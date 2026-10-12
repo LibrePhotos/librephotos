@@ -10344,9 +10344,8 @@
           },
           "rating": {
             "type": "integer",
-            "maximum": 9223372036854775807,
-            "minimum": -9223372036854775808,
-            "format": "int64"
+            "maximum": 5,
+            "minimum": 0
           },
           "hidden": {
             "type": "boolean"
@@ -10697,9 +10696,8 @@
           },
           "rating": {
             "type": "integer",
-            "maximum": 9223372036854775807,
-            "minimum": -9223372036854775808,
-            "format": "int64"
+            "maximum": 5,
+            "minimum": 0
           },
           "hidden": {
             "type": "boolean"
@@ -11548,9 +11546,8 @@
           },
           "rating": {
             "type": "integer",
-            "maximum": 9223372036854775807,
-            "minimum": -9223372036854775808,
-            "format": "int64"
+            "maximum": 5,
+            "minimum": 0
           },
           "hidden": {
             "type": "boolean"

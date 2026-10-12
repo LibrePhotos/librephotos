@@ -144,7 +144,7 @@ def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
     """
     old = photo.exif_timestamp
     photo.timestamp = value
-    photo.save()
+    photo.save(save_metadata=True)
     extract_date_time(photo)
     if photo.exif_timestamp != old:
         _record(user, DATE_TAKEN, [Change(photo.id, old, photo.exif_timestamp)])

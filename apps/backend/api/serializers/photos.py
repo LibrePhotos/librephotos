@@ -454,6 +454,19 @@ class PhotoSerializer(serializers.ModelSerializer):
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
         # category_source="user"; category_source is server-managed.
         read_only_fields = ("is_screenshot", "is_document", "category_source")
+        extra_kwargs = {"rating": {"min_value": 0, "max_value": edits.MAX_RATING}}
+
+    def update(self, instance: Photo, validated_data: dict[str, Any]) -> Photo:
+        # A rating is a metadata edit: recorded and written back by the edit
+        # service, not by Photo.save(), which no longer writes (#2295).
+        rating = validated_data.pop("rating", None)
+        instance = super().update(instance, validated_data)
+        if rating is not None:
+            request = self.context.get("request")
+            user = request_user(request) if request is not None else instance.owner
+            edits.set_rating(Photo.objects.filter(pk=instance.pk), rating, user)
+            instance.refresh_from_db(fields=["rating", "last_modified"])
+        return instance
 
     def _get_metadata(self, obj: Photo) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata, with caching."""

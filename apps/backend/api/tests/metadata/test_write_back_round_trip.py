@@ -21,6 +21,7 @@ from unittest.mock import patch
 
 from rest_framework.test import APIClient
 
+from api.directory_watcher.file_handlers import _process_photo
 from api.face_extractor import extract_from_exif
 from api.metadata.jobs import queue_rating_write, write_photo_ratings
 from api.metadata.photo_datetime import extract_date_time
@@ -30,6 +31,7 @@ from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.photo_metadata import PhotoMetadata
 from api.models.user import User
 from api.serializers.photos import PhotoEditSerializer
 from api.tests.metadata.exiftool_harness import (
@@ -102,7 +104,7 @@ class RatingRoundTripTest(RealExifToolTestCase):
                 photo = self._rated_photo(path, mode, rating=1)
 
                 photo.rating = 5
-                photo.save()
+                photo.save(save_metadata=True)
 
                 self.assertEqual(5, self._read_rating(path))
                 self.assertWritesLanded(expected=1)
@@ -114,7 +116,7 @@ class RatingRoundTripTest(RealExifToolTestCase):
         with self.assertUntouched(path):
             queue_rating_write(photo.owner, [photo.id])
             photo.rating = 5
-            photo.save()
+            photo.save(save_metadata=True)
 
     def test_a_metadata_api_rating_reaches_the_sidecar(self):
         # #2252: the metadata PATCH used to write PhotoMetadata.rating, which
@@ -133,6 +135,40 @@ class RatingRoundTripTest(RealExifToolTestCase):
         self.assertEqual(5, self._read_rating(path))
         self.assertWritesLanded(expected=1)
         self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
+
+    def test_a_photo_patch_rating_reaches_the_sidecar(self):
+        # #2295: PATCH /api/photos/{id}/ wrote the rating through the
+        # Photo.save() default, which no longer writes; it goes through the
+        # edit service like every other rating change.
+        path = self.make_image(".jpg")
+        photo = self._rated_photo(path, SIDECAR, rating=1)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with patch("api.metadata.jobs.AsyncTask", RunNow):
+            response = client.patch(
+                f"/api/photos/{photo.pk}/", {"rating": 5}, format="json"
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(5, response.data["rating"])
+        self.assertEqual(5, self._read_rating(path))
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
+
+    def test_a_photo_patch_rating_out_of_range_is_refused(self):
+        path = self.make_image(".jpg")
+        photo = self._rated_photo(path, SIDECAR, rating=1)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with self.assertUntouched(path):
+            response = client.patch(
+                f"/api/photos/{photo.pk}/", {"rating": 7}, format="json"
+            )
+
+        self.assertEqual(400, response.status_code, response.content)
+        self.assertEqual(1, Photo.objects.get(pk=photo.pk).rating)
 
 
 class DateRoundTripTest(RealExifToolTestCase):
@@ -185,8 +221,8 @@ class DateRoundTripTest(RealExifToolTestCase):
         )
 
     # #2298: Photo.save() diffs against the row as first loaded, so the
-    # serializer's save and extract_date_time's save both write the date.
-    @unittest.expectedFailure
+    # serializer's save and extract_date_time's save both wrote the date.
+    # Since #2295 only the edit's own save writes.
     def test_one_edit_is_one_write(self):
         self._edit_date(self.make_image(".jpg"), SIDECAR)
 
@@ -422,6 +458,42 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
             response = self._save_metadata_request(photo)
 
         self.assertEqual(400, response.status_code, response.content)
+
+
+class ScanReadsOnlyTest(RealExifToolTestCase):
+    """A scan reads the file and its sidecar; it never writes either (#2295).
+
+    The file carries a rating the database does not have yet, as after the
+    user rated the photo in another app. Writing it back would rewrite the
+    original (media-file mode) or create a sidecar that from then on hides
+    the original's rating (sidecar mode).
+    """
+
+    def _rated_elsewhere(self, mode):
+        path = self.make_image(".jpg", f"scan-{mode}")
+        self.tag(path, "-XMP-xmp:Rating=4")
+        user = create_test_user(save_metadata_to_disk=mode)
+        return self.photo_for(path, user, thumbnails=True, rating=0), path
+
+    def test_extracting_the_exif_data_writes_nothing(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                photo, path = self._rated_elsewhere(mode)
+
+                with self.assertUntouched(path):
+                    PhotoMetadata.extract_exif_data(photo, commit=True)
+
+                self.assertEqual(4, Photo.objects.get(pk=photo.pk).rating)
+
+    def test_processing_a_scanned_photo_writes_nothing(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                photo, path = self._rated_elsewhere(mode)
+
+                with self.assertUntouched(path):
+                    _process_photo(photo, path, "job", datetime.datetime.now())
+
+                self.assertEqual(4, Photo.objects.get(pk=photo.pk).rating)
 
 
 # The web app's clockwise button sends -90 (``Photo.rotate`` counts its angle
