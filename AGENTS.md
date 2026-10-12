@@ -28,6 +28,12 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 - Use the tool versions the repo pins: Node from `apps/frontend/.nvmrc`, ruff and mypy from
   `apps/backend/requirements.dev.txt`.
 
+## Deploy
+
+- `deploy/compose/docker-compose.yml` and `docker-compose.unified.yml` both read `librephotos.env`: a new backend
+  variable goes into both compose files and `librephotos.env`, with the same `${key:-default}`
+  (`apps/backend/api/tests/infra/test_compose_files_in_sync.py` fails otherwise). Build the unified image from the repo root.
+
 ## Commands
 
 - Backend (`apps/backend`): `python manage.py test api.tests`, `ruff check .`, `ruff format .`,

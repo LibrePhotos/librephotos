@@ -11,13 +11,14 @@ The `deploy/` directory in the monorepo contains the Docker configuration for ru
 
 - `deploy/compose/docker-compose.yml` - Base configuration (published images), used in both dev and prod
 - `deploy/compose/docker-compose.dev.yml` - Development overrides (builds from local source, hot reload)
+- `deploy/compose/docker-compose.unified.yml` - Single-container image with PostgreSQL; reads the same `librephotos.env` as `docker-compose.yml`, and `api/tests/infra/test_compose_files_in_sync.py` keeps the backend environment of the two files equal
 - `deploy/compose/docker-compose.e2e.yml` - End-to-end test stack (builds from local source)
 - `deploy/docker/backend/` - Backend Dockerfile (app layer) and entrypoint
 - `deploy/docker/backend/base/` - Backend base image Dockerfile (system dependencies), published separately
 - `deploy/docker/backend-gpu/` and `deploy/docker/backend-gpu/base/` - CUDA (GPU) equivalents of the backend and its base
 - `deploy/docker/frontend/` - Frontend Dockerfiles (production and development)
 - `deploy/docker/proxy/` - Nginx reverse proxy configuration
-- `deploy/docker/unified/` - Single-container image ([Single Container Deployment](../../installation/unified-deployment.md)) with its own standalone Dockerfile and compose file
+- `deploy/docker/unified/` - Single-container image ([Single Container Deployment](../../installation/unified-deployment.md)) with its own standalone Dockerfile; build it locally from the repo root with `docker build -f deploy/docker/unified/Dockerfile .`
 
 ## ✨ Code Standards
 

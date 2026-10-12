@@ -72,7 +72,9 @@ def compose_drift(standard_text: str, unified_text: str) -> list[str]:
         problems.append(
             f"db image: {standard_db.get('image')!r} (standard) != {unified_db.get('image')!r} (unified)"
         )
-    standard_targets = sorted(volume_target(v) for v in standard_db.get("volumes") or [])
+    standard_targets = sorted(
+        volume_target(v) for v in standard_db.get("volumes") or []
+    )
     unified_targets = sorted(volume_target(v) for v in unified_db.get("volumes") or [])
     if standard_targets != unified_targets:
         problems.append(
@@ -118,7 +120,8 @@ services:
 
     def test_a_different_db_volume_target_is_drift(self):
         planted = self.BASE.replace(
-            "${data}/db:/var/lib/postgresql", "${data}/dbcursor:/var/lib/postgresql/data"
+            "${data}/db:/var/lib/postgresql",
+            "${data}/dbcursor:/var/lib/postgresql/data",
         )
         self.assertEqual(1, len(compose_drift(self.BASE, planted)))
 
@@ -132,7 +135,9 @@ services:
         self.assertEqual(1, len(compose_drift(self.BASE, planted)))
 
     def test_volume_target_ignores_colons_inside_interpolations(self):
-        self.assertEqual("${baseLogs:-/logs}", volume_target("${data}/logs:${baseLogs:-/logs}"))
+        self.assertEqual(
+            "${baseLogs:-/logs}", volume_target("${data}/logs:${baseLogs:-/logs}")
+        )
         self.assertEqual("/data", volume_target("${scanDirectory}:/data:ro"))
 
 
@@ -163,9 +168,13 @@ class ComposeFilesInSyncTest(SimpleTestCase):
             compose_service(load_compose(UNIFIED.read_text(encoding="utf-8")), BACKEND)
         )
         stale = sorted(
-            name for name in ALLOWED_DIFFERENCES if (name in standard) == (name in unified)
+            name
+            for name in ALLOWED_DIFFERENCES
+            if (name in standard) == (name in unified)
         )
-        self.assertEqual([], stale, "ALLOWED_DIFFERENCES entries both files now agree on")
+        self.assertEqual(
+            [], stale, "ALLOWED_DIFFERENCES entries both files now agree on"
+        )
 
     def test_build_unified_script_is_gone(self):
         self.assertEqual([], sorted(DEPLOY_DIR.rglob(REMOVED_SCRIPT)))
@@ -175,4 +184,6 @@ class ComposeFilesInSyncTest(SimpleTestCase):
             if path.is_file()
             and REMOVED_SCRIPT in path.read_text(encoding="utf-8", errors="ignore")
         )
-        self.assertEqual([], mentions, f"files under deploy/ that mention {REMOVED_SCRIPT}")
+        self.assertEqual(
+            [], mentions, f"files under deploy/ that mention {REMOVED_SCRIPT}"
+        )

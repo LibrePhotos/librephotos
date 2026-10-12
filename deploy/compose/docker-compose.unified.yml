@@ -1,6 +1,13 @@
-# LibrePhotos - No Proxy Configuration with PostgreSQL
-# This configuration removes the nginx proxy dependency
-# by having Django serve both the API and frontend
+# LibrePhotos single-container (unified) image with PostgreSQL.
+# Django serves both the API and the web app, so there is no proxy or
+# frontend container. Like docker-compose.yml, it reads its settings from
+# the .env file next to it:
+#   cp librephotos.env .env
+#   docker compose -f docker-compose.unified.yml up -d
+#
+# Keep the backend environment in step with docker-compose.yml:
+# apps/backend/api/tests/infra/test_compose_files_in_sync.py fails when a
+# variable is only in one of them.
 
 services:
   db:
@@ -12,7 +19,10 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${data}/dbcursor:/var/lib/postgresql/data
+      # Releases up to 1.3.0 mounted /var/lib/postgresql/data. pgautoupgrade finds
+      # a cluster sitting directly in dbcursor/ and moves it to the Postgres 18
+      # layout (dbcursor/18/docker) on the first start.
+      - ${data}/dbcursor:/var/lib/postgresql
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
@@ -44,6 +54,7 @@ services:
       - DB_PORT=5432
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - WORKER_CONCURRENCY=${workerConcurrency:-}
       - BASE_LOGS=${baseLogs:-/logs}
       - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}
@@ -51,14 +62,24 @@ services:
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
       - NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=${nextcloudAllowPrivateAddresses:-true}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - FRONTEND_BASE_URL=${frontendBaseUrl:-}
       - FEATURE_VIDEO=${featureVideo:-true}
       - FEATURE_FACE_DETECTION=${featureFaceDetection:-true}
       - FEATURE_FACE_CLUSTER=${featureFaceCluster:-true}
       - FEATURE_IMAGE_CAPTIONING=${featureImageCaptioning:-true}
       - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
       - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
+      - FEATURE_PROCESS_EMBEDDED_MEDIA=${featureProcessEmbeddedMedia:-true}
+      - TRANSCODE_CACHE_MAX_GB=${transcodeCacheMaxGb:-10}
+      - TRANSCODE_CACHE_MIN_FREE_GB=${transcodeCacheMinFreeGb:-2}
+      - TRANSCODE_CACHE_MAX_CONCURRENT=${transcodeCacheMaxConcurrent:-1}
+      - TRANSCODE_CACHE_NICE=${transcodeCacheNice:-10}
+      - TRANSCODE_LIVE_CPU_FRACTION=${transcodeLiveCpuFraction:-2}
+      - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
+      - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
+      - SQUARE_THUMBNAIL_QUALITY=${squareThumbnailQuality:-80}
       - SERVE_FRONTEND=true
       - DEBUG=0
     depends_on:
       db:
-        condition: service_healthy 
+        condition: service_healthy

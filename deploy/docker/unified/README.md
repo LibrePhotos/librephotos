@@ -22,10 +22,25 @@ This configuration removes the nginx proxy dependency by having Django serve bot
 
 ## Quick Start
 
-### Docker Compose (Recommended)
+### Docker Compose (PostgreSQL)
+The compose file is `deploy/compose/docker-compose.unified.yml`. It reads the same `.env` file as the standard `docker-compose.yml`:
+
 ```bash
-# Use the no-proxy Docker Compose configuration
-docker-compose -f docker-compose.no-proxy.yml up -d
+cd librephotos/deploy/compose
+cp librephotos.env .env   # then edit scanDirectory, data and the rest
+docker compose -f docker-compose.unified.yml up -d
+```
+
+#### Upgrading from `docker-compose.no-proxy.yml`
+
+Releases up to 1.3.0 kept this file as `deploy/docker/unified/docker-compose.no-proxy.yml` and mounted the database directory `${data}/dbcursor` at `/var/lib/postgresql/data`. The new file mounts the same directory at `/var/lib/postgresql`, which Postgres 18 needs. On the first start `pgautoupgrade` finds the old cluster at the top of `dbcursor/` and moves it into `dbcursor/18/docker` (upgrading it to Postgres 18 if it is older). Back up `${data}/dbcursor` first, then:
+
+```bash
+docker compose -f docker-compose.no-proxy.yml down    # with the old file
+cd librephotos/deploy/compose
+cp librephotos.env .env                               # if you have no .env there yet; copy your values over
+docker compose -f docker-compose.unified.yml up -d
+docker logs db                                        # wait for "database system is ready to accept connections"
 ```
 
 ### Docker Run (SQLite)
@@ -33,14 +48,14 @@ For a simple single-container deployment with SQLite database:
 
 ```bash
 # Create data directory structure
-mkdir -p ./librephotos-data/{db,internal_media,logs}
+mkdir -p ./librephotos-data/{db,protected_media,logs}
 
 # Run container
 docker run -d \
   --name librephotos \
   -p 3000:8001 \
   -v ./librephotos-data/db:/db \
-  -v ./librephotos-data/internal_media:/protected_media \
+  -v ./librephotos-data/protected_media:/protected_media \
   -v ./librephotos-data/logs:/logs \
   -v /path/to/your/photos:/data \
   -e SERVE_FRONTEND=true \
@@ -92,10 +107,11 @@ DB_PASS=your-password
 ## Migration from Standard Setup
 
 1. **Backup data**: Database and photos
-2. **Switch compose file**: Use `docker-compose.no-proxy.yml`
-3. **Add environment**: Set `SERVE_FRONTEND=True`
-4. **Update CSRF**: Set `CSRF_TRUSTED_ORIGINS` for your domain(s)
-5. **Deploy**: `docker-compose -f docker-compose.no-proxy.yml up -d`
+2. **Stop the stack**: `docker compose down` in `deploy/compose`
+3. **Move the database**: the standard file keeps it in `${data}/db`, the unified one in `${data}/dbcursor`; rename the directory
+4. **Switch compose file**: Use `deploy/compose/docker-compose.unified.yml` with the same `.env` (it already sets `SERVE_FRONTEND=true`)
+5. **Update CSRF**: Set `csrfTrustedOrigins` in `.env` for your domain(s)
+6. **Deploy**: `docker compose -f docker-compose.unified.yml up -d`
 
 ## Troubleshooting
 
@@ -128,12 +144,7 @@ Common issues:
 Images are built automatically via GitHub Actions on pushes and releases.
 
 ### Manual Build
-```bash
-cd librephotos/deploy/compose
-./build-unified.sh [tag]
-```
-
-Or directly (build context must be the monorepo root):
+Build from the monorepo root, which is the build context (this is what CI does):
 ```bash
 cd librephotos
 docker build -t my-librephotos-unified -f deploy/docker/unified/Dockerfile .
