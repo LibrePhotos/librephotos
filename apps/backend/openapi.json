@@ -241,14 +241,26 @@
             "name": "favorite",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
           },
           {
             "in": "query",
             "name": "hidden",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
           },
           {
             "in": "query",
@@ -276,77 +288,113 @@
             "in": "query",
             "name": "in_trashcan",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
           },
           {
             "in": "query",
             "name": "is_document",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only documents (false: no documents)"
           },
           {
             "in": "query",
             "name": "is_screenshot",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only screenshots (false: no screenshots)"
           },
           {
             "in": "query",
             "name": "last_modified",
             "schema": {
               "type": "string",
-              "format": "date"
-            }
+              "format": "date-time"
+            },
+            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
           },
           {
             "in": "query",
             "name": "media",
             "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
               "type": "string",
-              "enum": [
-                "all",
-                "photos",
-                "videos"
-              ]
-            }
+              "minLength": 1,
+              "default": "1"
+            },
+            "description": "Page number"
           },
           {
             "in": "query",
             "name": "person",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "Only photos showing this person"
           },
           {
             "in": "query",
             "name": "photo",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only photos (false: no photos)"
           },
           {
             "in": "query",
             "name": "public",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: public photos of any user"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "default": 100
+            },
+            "description": "Photos per page (default 100)"
           },
           {
             "in": "query",
             "name": "username",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public: only this user's public photos"
           },
           {
             "in": "query",
             "name": "video",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only videos (false: no videos)"
           }
         ],
         "tags": [
@@ -392,14 +440,26 @@
             "name": "favorite",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
           },
           {
             "in": "query",
             "name": "hidden",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
           },
           {
             "in": "query",
@@ -419,86 +479,103 @@
             "in": "query",
             "name": "in_trashcan",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
           },
           {
             "in": "query",
             "name": "is_document",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only documents (false: no documents)"
           },
           {
             "in": "query",
             "name": "is_screenshot",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only screenshots (false: no screenshots)"
           },
           {
             "in": "query",
             "name": "last_modified",
             "schema": {
               "type": "string",
-              "format": "date"
-            }
+              "format": "date-time"
+            },
+            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
           },
           {
             "in": "query",
             "name": "media",
             "schema": {
-              "type": "string",
-              "enum": [
-                "all",
-                "photos",
-                "videos"
-              ]
-            }
+              "type": "string"
+            },
+            "description": "all, photos or videos"
           },
           {
             "in": "query",
             "name": "person",
             "schema": {
               "type": "integer"
-            }
+            },
+            "description": "Only photos showing this person"
           },
           {
             "in": "query",
             "name": "photo",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only photos (false: no photos)"
           },
           {
             "in": "query",
             "name": "public",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: public photos of any user"
           },
           {
-            "name": "search",
-            "required": false,
             "in": "query",
-            "description": "A search term.",
+            "name": "search",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": ""
+            },
+            "description": "Caption, location or person name"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
           },
           {
             "in": "query",
             "name": "username",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public: only this user's public photos"
           },
           {
             "in": "query",
             "name": "video",
             "schema": {
               "type": "boolean"
-            }
+            },
+            "description": "Only videos (false: no videos)"
           }
         ],
         "tags": [
@@ -735,6 +812,24 @@
             },
             "description": "A unique integer value identifying this album user.",
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: public photos of any user"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public: the album must be this user's"
           }
         ],
         "tags": [
@@ -1140,6 +1235,25 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequestRequest"
+              }
+            }
+          }
+        },
         "security": [
           {
             "jwtAuth": []
@@ -1982,6 +2096,25 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailConfigRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailConfigRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailConfigRequestRequest"
+              }
+            }
+          }
+        },
         "security": [
           {
             "jwtAuth": []
@@ -2004,6 +2137,25 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTestRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTestRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTestRequestRequest"
+              }
+            }
+          }
+        },
         "security": [
           {
             "jwtAuth": []
@@ -3149,6 +3301,26 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotoShareRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotoShareRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotoShareRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "security": [
           {
             "jwtAuth": []
@@ -3939,6 +4111,18 @@
     "/api/photos/download/": {
       "get": {
         "operationId": "api_photos_download_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "job_id",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "The job_id the download answered",
+            "required": true
+          }
+        ],
         "tags": [
           "api"
         ],
@@ -3961,6 +4145,25 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZipDownloadRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ZipDownloadRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ZipDownloadRequestRequest"
+              }
+            }
+          }
+        },
         "security": [
           {
             "jwtAuth": []
@@ -7334,6 +7537,26 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserAlbumPublicRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserAlbumPublicRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserAlbumPublicRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "security": [
           {
             "jwtAuth": []
@@ -7725,6 +7948,32 @@
           "photo_count",
           "title"
         ]
+      },
+      "AlbumSharingOptionsRequestRequest": {
+        "type": "object",
+        "description": "Per-album overrides of the owner's public sharing defaults.\n\nEach is true, false or null (use the default); an absent one is kept and\nunknown keys are ignored.",
+        "properties": {
+          "share_location": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "share_camera_info": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "share_timestamps": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "share_captions": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "share_faces": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
       },
       "AlbumThing": {
         "type": "object",
@@ -8780,6 +9029,61 @@
         "type": "string",
         "description": "* `strict` - Strict\n* `normal` - Normal\n* `loose` - Loose"
       },
+      "EmailConfigRequestRequest": {
+        "type": "object",
+        "description": "An update of the instance email configuration; every field is optional.\n\nThe model's own constraints apply (provider choices, a positive port, the\ncolumn lengths); text is stored as sent, not trimmed. ``secret`` is\nwrite-only: a non-empty value replaces the stored credential, a blank or\nabsent one leaves it, and ``clear_secret`` wipes it (it wins over a new\n``secret``).",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ProviderEnum"
+          },
+          "from_email": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "host": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "port": {
+            "type": "integer",
+            "maximum": 9223372036854775807,
+            "minimum": 0,
+            "format": "int64"
+          },
+          "use_tls": {
+            "type": "boolean"
+          },
+          "use_ssl": {
+            "type": "boolean"
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "secret": {
+            "type": "string",
+            "writeOnly": true,
+            "nullable": true,
+            "description": "A new SMTP password or API key; blank keeps the stored one"
+          },
+          "clear_secret": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Remove the stored credential"
+          }
+        }
+      },
+      "EmailTestRequestRequest": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "nullable": true,
+            "default": "",
+            "description": "The recipient; the requesting admin's address when blank"
+          }
+        }
+      },
       "FaceIdsRequestRequest": {
         "type": "object",
         "properties": {
@@ -9692,6 +9996,30 @@
             "items": {
               "$ref": "#/components/schemas/TagList"
             }
+          }
+        }
+      },
+      "PasswordResetConfirmRequestRequest": {
+        "type": "object",
+        "description": "The emailed link's ``uid`` and ``token`` plus the new password.\n\nA missing, blank or null parameter is one error with the code\n``missing_parameters``, not a per-field one: the web client branches on it.",
+        "properties": {
+          "uid": {
+            "type": "string",
+            "nullable": true,
+            "default": "",
+            "description": "The user id from the emailed link"
+          },
+          "token": {
+            "type": "string",
+            "nullable": true,
+            "default": "",
+            "description": "The token from the emailed link"
+          },
+          "new_password": {
+            "type": "string",
+            "nullable": true,
+            "default": "",
+            "description": "The new password, as typed"
           }
         }
       },
@@ -11556,6 +11884,20 @@
           "video"
         ]
       },
+      "ProviderEnum": {
+        "enum": [
+          "disabled",
+          "custom",
+          "sendgrid",
+          "mailgun",
+          "postmark",
+          "brevo",
+          "smtp2go",
+          "ses"
+        ],
+        "type": "string",
+        "description": "* `disabled` - Disabled\n* `custom` - Custom SMTP server\n* `sendgrid` - SendGrid\n* `mailgun` - Mailgun\n* `postmark` - Postmark\n* `brevo` - Brevo\n* `smtp2go` - SMTP2GO\n* `ses` - Amazon SES"
+      },
       "PublicUser": {
         "type": "object",
         "properties": {
@@ -11695,6 +12037,25 @@
         },
         "required": [
           "file_hash"
+        ]
+      },
+      "SetPhotoShareRequestRequest": {
+        "type": "object",
+        "description": "Create, rotate or disable the public link of one photo.",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "description": "The photo's id or image hash"
+          },
+          "action": {
+            "type": "string",
+            "nullable": true,
+            "default": "enable",
+            "description": "enable (the default), rotate or disable; any case"
+          }
+        },
+        "required": [
+          "photo_id"
         ]
       },
       "SetPhotosCategoryRequestRequest": {
@@ -11961,6 +12322,41 @@
         "required": [
           "target_user_id",
           "val_shared"
+        ]
+      },
+      "SetUserAlbumPublicRequestRequest": {
+        "type": "object",
+        "properties": {
+          "album_id": {
+            "type": "integer"
+          },
+          "val_public": {
+            "type": "boolean",
+            "description": "true publishes the link, false revokes it"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true,
+            "description": "The link's slug (trimmed); blank mints a random one, null keeps it"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the link expires; null or blank clears it, absent keeps it"
+          },
+          "sharing_options": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AlbumSharingOptionsRequestRequest"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "album_id",
+          "val_public"
         ]
       },
       "SetUserAlbumSharedRequestRequest": {
@@ -12601,6 +12997,46 @@
           "upload_directory",
           "username"
         ]
+      },
+      "ZipDownloadRequestRequest": {
+        "type": "object",
+        "description": "The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.\n\nLike the other bulk actions (``PhotoSelectionRequest``): the ``query`` is\nthe filter of ``api.views.photo_filters.build_photo_queryset``, minus\n``excluded_hashes``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "nullable": true,
+            "default": false,
+            "description": "Archive every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true,
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "The photos, without select_all"
+          },
+          "include_stacked_photos": {
+            "type": "boolean",
+            "nullable": true,
+            "default": false,
+            "description": "Also archive the other photos of their stacks"
+          }
+        }
       }
     },
     "securitySchemes": {
