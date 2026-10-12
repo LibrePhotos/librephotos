@@ -4,6 +4,7 @@ from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Model, Prefetch, QuerySet
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -22,6 +23,7 @@ from api.serializers.fields import shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
+from api.views.params import JsonBooleanField, JsonIntegerField, JsonStringField
 
 logger = logging.getLogger(__name__)
 
@@ -1065,3 +1067,125 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
             for face in obj.faces.all()
             if not face.deleted and (person := face.person or face.cluster_person)
         ]
+
+
+class PhotoSelectionRequest(serializers.Serializer[None]):
+    """The photos a bulk action applies to.
+
+    Either ``image_hashes``, or ``select_all`` with a filter ``query`` (see
+    ``api.views.photo_filters.build_photo_queryset``) minus ``excluded_hashes``.
+    """
+
+    select_all = JsonBooleanField(
+        default=False, help_text="Apply to every photo the query matches"
+    )
+    query = serializers.DictField(
+        default=dict, help_text="The photo filter, with select_all"
+    )
+    excluded_hashes = serializers.ListField(
+        child=JsonStringField(),
+        default=list,
+        help_text="Photos the query matches that are left out, with select_all",
+    )
+    image_hashes = serializers.ListField(
+        child=JsonStringField(),
+        required=False,
+        help_text="The photos, without select_all",
+    )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not attrs["select_all"] and "image_hashes" not in attrs:
+            raise serializers.ValidationError(
+                {"image_hashes": "Expected a list of hashes, or select_all."}
+            )
+        return attrs
+
+
+class SetPhotosDeletedRequest(PhotoSelectionRequest):
+    deleted = JsonBooleanField(help_text="true moves to the trash, false restores")
+
+
+class SetPhotosFavoriteRequest(PhotoSelectionRequest):
+    favorite = JsonBooleanField()
+
+
+class SetPhotosHiddenRequest(PhotoSelectionRequest):
+    hidden = JsonBooleanField()
+
+
+class SetPhotosPublicRequest(PhotoSelectionRequest):
+    val_public = JsonBooleanField()
+
+
+class SetPhotosRatingRequest(PhotoSelectionRequest):
+    rating = JsonIntegerField(min_value=0, max_value=5, help_text="0 (none) to 5")
+
+
+class SetPhotosCategoryRequest(PhotoSelectionRequest):
+    category = serializers.ChoiceField(
+        choices=["photo", "screenshot", "document", "auto"],
+        help_text='"auto" hands the photos back to the detectors',
+    )
+
+
+class SetPhotosSharedRequest(PhotoSelectionRequest):
+    val_shared = JsonBooleanField(help_text="true shares, false unshares")
+    target_user_id = serializers.IntegerField()
+
+
+class PhotoCaptionRequest(serializers.Serializer[None]):
+    image_hash = JsonStringField()
+
+
+class SavePhotoCaptionRequest(PhotoCaptionRequest):
+    caption = JsonStringField()
+
+
+def _required_message(field: str) -> dict[str, str]:
+    """One message for a missing, null or blank ``field``, as the view had."""
+    message = f"{field} is required"
+    return {"required": message, "null": message, "blank": message}
+
+
+class SetMainFileRequest(serializers.Serializer[None]):
+    file_hash = serializers.CharField(error_messages=_required_message("file_hash"))
+
+
+class SaveMetadataRequest(serializers.Serializer[None]):
+    types = serializers.ListField(
+        child=serializers.CharField(),
+        default=lambda: ["ratings"],
+        help_text='What to write: "ratings" and/or "face_tags"',
+    )
+
+
+@extend_schema_field(OpenApiTypes.INT)
+class RotationAngleField(serializers.Field[int, str | int | float, int, Any]):
+    """Degrees clockwise, a multiple of 90; a number or a numeric string.
+
+    Read with ``int()``, so a float is truncated (90.7 is 90).
+    """
+
+    def to_internal_value(self, data: str | int | float) -> int:
+        try:
+            if not isinstance(data, (str, int, float)):
+                raise TypeError(data)
+            angle = int(data)
+        except (TypeError, ValueError) as error:
+            raise serializers.ValidationError("angle must be an integer") from error
+        if angle % 90 != 0:
+            raise serializers.ValidationError("angle must be a multiple of 90 degrees")
+        return angle
+
+    def to_representation(self, value: int) -> int:
+        return value
+
+
+class RotatePhotoRequest(serializers.Serializer[None]):
+    image_hash = serializers.CharField(error_messages=_required_message("image_hash"))
+    angle = RotationAngleField(
+        default=0,
+        error_messages={"null": "angle must be an integer"},
+        help_text="Degrees clockwise, a multiple of 90; negative turns left",
+    )
+    flip_horizontal = serializers.BooleanField(default=False)

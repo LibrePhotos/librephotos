@@ -20,6 +20,7 @@ from typing import Any
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.fields import empty
 from rest_framework.request import Request
 
 from api.request_data import request_dict
@@ -111,3 +112,53 @@ class QueryFlagField(serializers.Field[bool, str, bool, Any]):
 
     def to_representation(self, value: bool) -> bool:
         return value
+
+
+class JsonBooleanField(serializers.BooleanField):
+    """A JSON ``true``/``false`` only: ``"false"``, ``"true"`` or ``1`` are a 400.
+
+    For bodies whose endpoints never read a flag by truthiness or spelling
+    (``serializers.BooleanField`` takes ``"yes"``, ``"on"``, ``1``, ...). An
+    absent field stays absent on a form body too, where ``BooleanField`` would
+    read it as an unchecked box (false).
+    """
+
+    default_empty_html = empty
+
+    def to_internal_value(self, data: str | bool | int) -> bool:
+        if not isinstance(data, bool):
+            self.fail("invalid", input=data)
+        return data
+
+
+class JsonStringField(serializers.CharField):
+    """A JSON string kept as sent: blank allowed, whitespace not trimmed.
+
+    ``serializers.CharField`` would turn a number into a string and strip it.
+    """
+
+    def __init__(self, *, required: bool = True, help_text: str | None = None) -> None:
+        super().__init__(
+            required=required,
+            allow_blank=True,
+            trim_whitespace=False,
+            help_text=help_text,
+        )
+
+    def to_internal_value(self, data: str) -> str:
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return data
+
+
+class JsonIntegerField(serializers.IntegerField):
+    """A JSON integer only: ``"3"``, ``3.5`` or ``true`` are a 400.
+
+    ``serializers.IntegerField`` takes numeric strings and whole floats, and
+    reads nothing else into a number; ``true`` must not mean one star.
+    """
+
+    def to_internal_value(self, data: float | int | str) -> int:
+        if isinstance(data, bool) or not isinstance(data, int):
+            self.fail("invalid")
+        return super().to_internal_value(data)

@@ -10,7 +10,6 @@
   "api/views/memories.py": 4,
   "api/views/password_reset.py": 2,
   "api/views/photo_metadata.py": 5,
-  "api/views/photos.py": 8,
   "api/views/public_albums.py": 1,
   "api/views/public_photos.py": 1,
   "api/views/scan_triggers.py": 1,

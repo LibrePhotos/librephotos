@@ -3,38 +3,8 @@
 from collections.abc import Mapping
 
 from rest_framework import serializers
-from rest_framework.fields import empty
 
-
-class JsonBooleanField(serializers.BooleanField):
-    """A JSON ``true``/``false`` only: ``"true"`` or ``1`` are refused.
-
-    ``serializers.BooleanField`` accepts those spellings; the settings
-    endpoint never did. An absent field stays absent on a form body too,
-    where ``BooleanField`` would read it as an unchecked box (false).
-    """
-
-    default_empty_html = empty
-
-    def to_internal_value(self, data: str | bool | int) -> bool:
-        if not isinstance(data, bool):
-            self.fail("invalid", input=data)
-        return data
-
-
-class JsonStringField(serializers.CharField):
-    """A JSON string kept as sent: blank allowed, whitespace not trimmed.
-
-    ``serializers.CharField`` would turn a number into a string.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(required=False, allow_blank=True, trim_whitespace=False)
-
-    def to_internal_value(self, data: str) -> str:
-        if not isinstance(data, str):
-            self.fail("invalid")
-        return data
+from api.views.params import JsonBooleanField, JsonStringField
 
 
 class SiteSettingsRequest(serializers.Serializer[None]):
@@ -46,13 +16,13 @@ class SiteSettingsRequest(serializers.Serializer[None]):
 
     allow_registration = JsonBooleanField(required=False)
     allow_upload = JsonBooleanField(required=False)
-    skip_patterns = JsonStringField()
-    map_api_provider = JsonStringField()
-    map_api_key = JsonStringField()
-    map_tile_provider = JsonStringField()
-    captioning_model = JsonStringField()
-    ocr_model = JsonStringField()
-    face_recognition_model = JsonStringField()
+    skip_patterns = JsonStringField(required=False)
+    map_api_provider = JsonStringField(required=False)
+    map_api_key = JsonStringField(required=False)
+    map_tile_provider = JsonStringField(required=False)
+    captioning_model = JsonStringField(required=False)
+    ocr_model = JsonStringField(required=False)
+    face_recognition_model = JsonStringField(required=False)
     nextcloud_enabled = JsonBooleanField(required=False)
     auto_create_user_directory = JsonBooleanField(required=False)
 
