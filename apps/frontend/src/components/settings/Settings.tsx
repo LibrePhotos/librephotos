@@ -277,10 +277,10 @@ export function Settings() {
         <Card shadow="md">
           <Stack>
             <Title order={4}>
-              <Trans i18nKey="settings.llm">Caption Context</Trans>
+              <Trans i18nKey="settings.captioncontext">Caption Context</Trans>
             </Title>
             <Switch
-              label={t("settings.enablellm")}
+              label={t("settings.captioncontextenable")}
               checked={llmEnabled}
               onChange={event => {
                 setEditedUserDetails({

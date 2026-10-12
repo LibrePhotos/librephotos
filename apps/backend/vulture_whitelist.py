@@ -46,7 +46,6 @@ _.reset_for_tests  # function in api/geocode/rate_limit.py
 _.check_filename_pattern  # function in api/burst_detection_rules.py
 _.get_face_locations  # function in api/face_recognition.py
 _.resolution  # property in api/models/photo_metadata.py
-_.create_for_stack  # method in api/models/stack_review.py
 _.are_duplicates  # function in api/perceptual_hash.py
 _.find_similar_hashes  # function in api/perceptual_hash.py
 _.create_thumbnail  # function in api/thumbnails.py

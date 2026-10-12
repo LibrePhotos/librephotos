@@ -20,24 +20,19 @@ def get_default_config_burst_detection_rules() -> list[dict[str, Any]]:
     return get_default_burst_detection_rules()
 
 
-def get_default_llm_settings() -> dict[str, bool | int | str]:
+def get_default_llm_settings() -> dict[str, bool]:
     """Caption context: what a generated caption may know about the photo.
 
     The field keeps its historical name; the switches used to feed a separate
     LLM and now steer the captioning model's prompt directly. Names and
     places are on by default: a caption that says who and where is the point.
+    Keys that older versions stored (add_keywords, custom_prompt and the like)
+    may still be in a user's row; nothing reads them.
     """
     return {
         "enabled": True,
         "add_person": True,
         "add_location": True,
-        "add_keywords": False,
-        "add_camera": False,
-        "add_lens": False,
-        "add_album": False,
-        "sentiment": 0,
-        "custom_prompt": "",
-        "custom_prompt_enabled": False,
     }
 
 
@@ -105,16 +100,6 @@ class User(AbstractUser):
         default=get_default_public_sharing_settings
     )
 
-    # Deprecated legacy user-level setting kept only for migration compatibility.
-    # Runtime face model selection is now site-wide via Constance
-    # FACE_RECOGNITION_MODEL.
-    class FaceRecogniton(models.TextChoices):
-        HOG = "HOG"
-        CNN = "CNN"
-
-    face_recognition_model = models.TextField(
-        choices=FaceRecogniton.choices, default=FaceRecogniton.HOG
-    )
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)
     min_samples = models.IntegerField(default=1)
@@ -134,12 +119,11 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
-    skip_raw_files = models.BooleanField(
-        default=False
-    )  # Deprecated: kept for migration compatibility
-    # No longer read: every scan groups a RAW with its JPEG as file variants.
-    # Kept like skip_raw_files: dropping it needs a column-drop migration, and
-    # the user API still returns it to clients that read it.
+    # No longer read: every scan imports RAW files and groups a RAW with its
+    # JPEG as file variants. The user API still returns both, read-only, so
+    # released clients keep parsing the user object (#2219); the columns are
+    # dropped in a later release.
+    skip_raw_files = models.BooleanField(default=False)
     stack_raw_jpeg = models.BooleanField(default=True)
     slideshow_interval = models.IntegerField(default=5)
     # What the main timeline shows when its URL names no filter: any of

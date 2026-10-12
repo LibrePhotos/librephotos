@@ -27,7 +27,6 @@ from api.models.album_thing import (
 )
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_stack import PhotoStack
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.request_data import request_dict
@@ -184,15 +183,11 @@ class BulkPhotoMutationView(APIView):
         """The columns to UPDATE, besides ``last_modified``."""
         raise NotImplementedError
 
-    def before_update(self, user: User, photos: QuerySet[Photo], value: object) -> None:
-        """Hook run on the photos about to change, before the UPDATE."""
-
     def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         """UPDATE ``photos`` to ``value``; return the number of rows changed."""
         if self.refreshes_tag_counts:
             affected_tag_ids = tag_ids_for_photos(photos)
             affected_thing_ids = album_thing_ids_for_photos(photos)
-        self.before_update(user, photos, value)
         count = photos.update(
             **self.new_values(user, value), last_modified=timezone.now()
         )
@@ -307,23 +302,6 @@ class SetPhotosDeleted(BulkPhotoMutationView):
 
     def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"in_trashcan": value}
-
-    def before_update(self, user: User, photos: QuerySet[Photo], value: object) -> None:
-        if value:
-            return
-        # A restored photo re-enters its stacks: reset those to pending so
-        # they are reviewed again. Taken before the UPDATE, while ``photos``
-        # (which may filter on in_trashcan) still matches them.
-        from api.models.stack_review import StackReview
-
-        stack_ids = set(
-            PhotoStack.objects.filter(photos__in=photos).values_list("id", flat=True)
-        )
-        if stack_ids:
-            StackReview.objects.filter(
-                stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
-            ).update(decision=StackReview.Decision.PENDING)
-            logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
 
 class RatingMutationView(BulkPhotoMutationView):

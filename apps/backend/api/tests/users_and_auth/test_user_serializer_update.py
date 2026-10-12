@@ -198,21 +198,41 @@ class UserSerializerUpdateTest(TestCase):
         self._update(burst_detection_rules=rules)
         self.assertEqual(User.objects.get(id=self.user.id).burst_detection_rules, rules)
 
-    def test_raw_slideshow_and_duplicate_fields_are_saved(self):
+    def test_slideshow_and_duplicate_fields_are_saved(self):
         self._update(
-            skip_raw_files=True,
-            stack_raw_jpeg=True,
             slideshow_interval=9,
             duplicate_sensitivity=12,
             duplicate_clear_existing=True,
         )
         reloaded = User.objects.get(id=self.user.id)
-        self.assertTrue(reloaded.skip_raw_files)
-        self.assertTrue(reloaded.stack_raw_jpeg)
         self.assertEqual(reloaded.slideshow_interval, 9)
         # duplicate_sensitivity is a CharField: the int round-trips as a string.
         self.assertEqual(reloaded.duplicate_sensitivity, "12")
         self.assertTrue(reloaded.duplicate_clear_existing)
+
+    def test_deprecated_raw_flags_are_not_written(self):
+        # #2219: no scan reads skip_raw_files or stack_raw_jpeg, so the
+        # serializer ignores them even when they are passed in.
+        self._update(skip_raw_files=True, stack_raw_jpeg=False)
+        reloaded = User.objects.get(id=self.user.id)
+        self.assertFalse(reloaded.skip_raw_files)
+        self.assertTrue(reloaded.stack_raw_jpeg)
+
+    def test_patch_leaves_deprecated_raw_flags_unchanged(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"skip_raw_files": True, "stack_raw_jpeg": False},
+            format="json",
+        )
+        self.assertEqual(200, response.status_code)
+        # Still in the response, with the stored values, for released clients.
+        self.assertFalse(response.json()["skip_raw_files"])
+        self.assertTrue(response.json()["stack_raw_jpeg"])
+        reloaded = User.objects.get(id=self.user.id)
+        self.assertFalse(reloaded.skip_raw_files)
+        self.assertTrue(reloaded.stack_raw_jpeg)
 
     def test_avatar_is_saved(self):
         self._update(avatar="avatars/pic.png")
@@ -392,20 +412,33 @@ class ManageUserSerializerUpdateTest(TestCase):
 
     # ---- remaining fields ------------------------------------------------
 
-    def test_raw_flags_and_profile_fields_are_saved(self):
+    def test_profile_fields_are_saved(self):
         self._update(
-            skip_raw_files=True,
-            stack_raw_jpeg=True,
             email="manage@example.com",
             first_name="Man",
             last_name="Age",
         )
         reloaded = User.objects.get(id=self.user.id)
-        self.assertTrue(reloaded.skip_raw_files)
-        self.assertTrue(reloaded.stack_raw_jpeg)
         self.assertEqual(reloaded.email, "manage@example.com")
         self.assertEqual(reloaded.first_name, "Man")
         self.assertEqual(reloaded.last_name, "Age")
+
+    def test_patch_leaves_deprecated_raw_flags_unchanged(self):
+        # #2219: read-only here too; the admin's Edit User dialog never sends
+        # them, and the response keeps both for released clients.
+        client = APIClient()
+        client.force_authenticate(user=create_test_user(is_admin=True))
+        response = client.patch(
+            f"/api/manage/user/{self.user.id}/",
+            data={"skip_raw_files": True, "stack_raw_jpeg": False},
+            format="json",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["skip_raw_files"])
+        self.assertTrue(response.json()["stack_raw_jpeg"])
+        reloaded = User.objects.get(id=self.user.id)
+        self.assertFalse(reloaded.skip_raw_files)
+        self.assertTrue(reloaded.stack_raw_jpeg)
 
     def test_validated_data_is_mutated_and_unknown_keys_survive(self):
         data = {"first_name": "Zed", "confidence": 0.9}

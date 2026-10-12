@@ -54,7 +54,6 @@
 "api/models/photo_ocr.py" = ["DJ001", "DJ012"]
 "api/models/photo_search.py" = ["DJ001", "G004", "PLR0912"]
 "api/models/photo_share.py" = ["DJ008", "DJ012"]
-"api/models/stack_review.py" = ["DJ001"]
 "api/models/tag.py" = ["PLR0913"]
 "api/models/thumbnail.py" = ["BLE001", "DJ001", "DJ008", "G004"]
 "api/perceptual_hash.py" = ["BLE001", "G004"]

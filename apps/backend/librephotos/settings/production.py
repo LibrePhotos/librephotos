@@ -329,7 +329,6 @@ CONSTANCE_CONFIG = {
         "Map tile provider (map background shown behind photo pins)",
         "map_tile_provider",
     ),
-    "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": (
         "lfm2_vl_450m",
         "Captioning model",

@@ -54,8 +54,6 @@ USER_UPDATE_FIELDS = (
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
     ("llm_settings", None),
-    ("skip_raw_files", "Updated skip_raw_files to {value} for user {username}"),
-    ("stack_raw_jpeg", "Updated stack_raw_jpeg to {value} for user {username}"),
     (
         "slideshow_interval",
         "Updated slideshow_interval to {value} for user {username}",
@@ -373,8 +371,11 @@ class UserSerializer(serializers.ModelSerializer):
             "save_face_tags_to_disk": {"required": False},
             "text_alignment": {"required": False},
             "header_size": {"required": False},
-            "skip_raw_files": {"required": False},
-            "stack_raw_jpeg": {"required": False},
+            # Read-only since #2219: no scan reads them any more, and the
+            # fields stay in the output so released clients keep parsing.
+            # The model columns are dropped in a later release.
+            "skip_raw_files": {"read_only": True},
+            "stack_raw_jpeg": {"read_only": True},
             "slideshow_interval": {"required": False},
             "duplicate_sensitivity": {"required": False},
             "duplicate_clear_existing": {"required": False},
@@ -714,8 +715,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
             "password": {"write_only": True},
             "scan_directory": {"required": False},
             "upload_directory": {"required": False},
-            "skip_raw_files": {"required": False},
-            "stack_raw_jpeg": {"required": False},
+            # Read-only since #2219, as in UserSerializer.
+            "skip_raw_files": {"read_only": True},
+            "stack_raw_jpeg": {"read_only": True},
         }
 
     def get_photo_count(self, obj: User) -> int:
@@ -734,8 +736,6 @@ class ManageUserSerializer(serializers.ModelSerializer):
             self.apply_upload_directory(
                 instance, validated_data.pop("upload_directory")
             )
-
-        assign_fields(instance, validated_data, ("skip_raw_files", "stack_raw_jpeg"))
 
         if "username" in validated_data:
             self.apply_username(instance, validated_data.pop("username"))

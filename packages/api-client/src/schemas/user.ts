@@ -71,8 +71,10 @@ export const User = z.object({
   // what a client saved.
   burst_detection_rules: z.unknown().optional(),
   default_timezone: z.string(),
-  skip_raw_files: z.boolean().optional().default(false),
-  stack_raw_jpeg: z.boolean().optional().default(true),
+  // Read nowhere and read-only since #2219; the server still sends both until
+  // the columns are dropped, and a client must not fail a user over them.
+  skip_raw_files: z.boolean().optional(),
+  stack_raw_jpeg: z.boolean().optional(),
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
@@ -128,6 +130,7 @@ export const ManageUser = z.object({
   // Empty means the "uploads" folder inside scan_directory
   upload_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
+  // Read-only since #2219 (see User).
   skip_raw_files: z.boolean().optional(),
   stack_raw_jpeg: z.boolean().optional(),
   username: z.string().optional(),

@@ -39,8 +39,10 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
         self.old_apps = self.executor.loader.project_state(BEFORE).apps
 
     def tearDown(self):
-        # Leave the schema as every other test expects it, even on failure.
-        self.migrate(AFTER)
+        # Leave the schema as every other test expects it, even on failure: the
+        # latest migrations, not AFTER, or a later migration stays unapplied.
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.executor.loader.graph.leaf_nodes("api"))
 
     def migrate(self, targets):
         self.executor = MigrationExecutor(connection)
