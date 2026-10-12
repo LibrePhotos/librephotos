@@ -1,24 +1,26 @@
 """Characterization tests for the scan-trigger views (unit 40).
 
-Pins the CURRENT behaviour of:
+Pins the behaviour of:
 
 * ``api.views.scan_triggers.ScanPhotosView._scan_photos`` (reached via both GET and
   POST on ``/api/scanphotos``)
 
-Nothing heavy runs: ``Chain``, ``scan_photos``, ``do_all_models_exist`` and
-``download_models`` are all patched at their import site in
-``api.views.scan_triggers``, so no django-q broker, no filesystem walking and no model
-downloads happen.
+Nothing heavy runs: django-q's ``AsyncTask`` and ``Chain`` are patched in
+``api.jobs.queue`` (the one module that queues), ``scan_photos`` at its import
+site in ``api.views.scan_triggers`` and ``do_all_models_exist`` in
+``api.ml_models``, so no broker, no filesystem walking and no model downloads
+happen. The task is queued on commit; the tests run those callbacks.
 """
 
 import os
 import tempfile
-import uuid
 from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from api.ml_models import download_models
+from api.models import LongRunningJob
 from api.tests.utils import api_error, create_test_user
 from api.views.scan_triggers import ScanPhotosView
 
@@ -31,10 +33,10 @@ NO_DIR_MESSAGE = (
 
 
 class RecordingChain:
-    """Stand-in for ``django_q.tasks.Chain``.
+    """Stand-in for django-q's ``Chain`` (and, via ``RecordingTask``, ``AsyncTask``).
 
-    Records every ``append`` so tests can assert on the composed chain without
-    touching a broker.  ``instances`` collects every chain the view builds.
+    Records every ``append`` so tests can assert on the queued tasks without
+    touching a broker.  ``instances`` collects every chain or task queued.
     """
 
     instances = []
@@ -54,6 +56,14 @@ class RecordingChain:
         if RecordingChain.run_error is not None:
             raise RecordingChain.run_error
         return "chain-group-id"
+
+
+class RecordingTask(RecordingChain):
+    """Stand-in for ``AsyncTask``: a chain of one."""
+
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.append(func, *args, **kwargs)
 
 
 class ScanViewTestBase(TestCase):
@@ -81,15 +91,13 @@ class ScanViewTestBase(TestCase):
         request = getattr(self.factory, method)("/api/scanphotos")
         force_authenticate(request, user=user if user is not None else self.user)
         with (
-            patch(f"{MODULE}.Chain", RecordingChain),
-            patch(f"{MODULE}.do_all_models_exist", return_value=models_exist),
-            patch(f"{MODULE}.download_models") as download_models,
-            patch(f"{MODULE}.scan_photos") as scan_photos,
-            patch(f"{MODULE}.logger") as logger,
+            patch("api.jobs.queue.Chain", RecordingChain),
+            patch("api.jobs.queue.AsyncTask", RecordingTask),
+            patch("api.ml_models.do_all_models_exist", return_value=models_exist),
+            patch(f"{MODULE}.scan_photos", autospec=True) as scan_photos,
+            self.captureOnCommitCallbacks(execute=True),
         ):
             self.scan_photos_mock = scan_photos
-            self.download_models_mock = download_models
-            self.logger_mock = logger
             response = view_class.as_view()(request)
         return response
 
@@ -108,8 +116,9 @@ class ScanPhotosViewValidationTest(ScanViewTestBase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(api_error(response)["message"], NO_DIR_MESSAGE)
-        # No chain is even constructed on the guard path.
+        # Nothing is queued, and no row written, on the guard path.
         self.assertEqual(RecordingChain.instances, [])
+        self.assertFalse(LongRunningJob.objects.exists())
         self.scan_photos_mock.assert_not_called()
 
     def test_whitespace_only_scan_directory_returns_400(self):
@@ -147,31 +156,31 @@ class ScanPhotosViewValidationTest(ScanViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["status"])
-        self.assertEqual(self.chain.appended[0][0][4], file_path)
+        self.assertEqual(self.chain.appended[0][1]["scan_directory"], file_path)
 
 
 class ScanPhotosViewHappyPathTest(ScanViewTestBase):
-    def test_models_present_appends_only_scan_photos_and_returns_job_id(self):
+    def test_models_present_queues_only_scan_photos_and_returns_job_id(self):
         response = self.call_view(ScanPhotosView, models_exist=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["status"])
         job_id = response.data["job_id"]
-        self.assertIsInstance(job_id, uuid.UUID)
-        self.assertEqual(set(response.data), {"status", "job_id"})
+        self.assertIsInstance(job_id, str)
+        self.assertEqual(set(response.data), {"status", "job_id", "job_ids"})
+        self.assertEqual(response.data["job_ids"], [job_id])
 
         chain = self.chain
         self.assertTrue(chain.ran)
         self.assertEqual(len(chain.appended), 1)
         args, kwargs = chain.appended[0]
-        # positional signature: (scan_photos, user, full_scan, job_id, dir)
+        # (scan_photos, user, full_scan); job_id and the directory by name
         self.assertIs(args[0], self.scan_photos_mock)
         self.assertEqual(args[1], self.user)
         self.assertFalse(args[2])
-        self.assertEqual(args[3], job_id)
-        self.assertEqual(args[4], self.scan_directory)
-        self.assertEqual(kwargs, {})
-        self.download_models_mock.assert_not_called()
+        self.assertEqual(
+            kwargs, {"job_id": job_id, "scan_directory": self.scan_directory}
+        )
 
     def test_missing_models_prepends_download_models(self):
         response = self.call_view(ScanPhotosView, models_exist=False)
@@ -179,14 +188,17 @@ class ScanPhotosViewHappyPathTest(ScanViewTestBase):
         self.assertEqual(response.status_code, 200)
         chain = self.chain
         self.assertEqual(len(chain.appended), 2)
-        first_args, _ = chain.appended[0]
-        self.assertIs(first_args[0], self.download_models_mock)
+        first_args, first_kwargs = chain.appended[0]
+        self.assertIs(first_args[0], download_models)
         self.assertEqual(first_args[1], self.user)
+        # The download writes its own row when it runs.
+        self.assertEqual(first_kwargs, {})
         self.assertIs(chain.appended[1][0][0], self.scan_photos_mock)
 
     def test_post_and_get_share_the_same_implementation(self):
         post_response = self.call_view(ScanPhotosView, method="post")
         post_chain = self.chain
+        LongRunningJob.objects.update(finished=True)
         get_response = self.call_view(ScanPhotosView, method="get")
         get_chain = self.chain
 
@@ -196,35 +208,38 @@ class ScanPhotosViewHappyPathTest(ScanViewTestBase):
         # Fresh uuid4 per call -- job ids never repeat.
         self.assertNotEqual(post_response.data["job_id"], get_response.data["job_id"])
         self.assertEqual(
-            [a[0][4] for a in post_chain.appended],
-            [a[0][4] for a in get_chain.appended],
+            [a[1]["scan_directory"] for a in post_chain.appended],
+            [a[1]["scan_directory"] for a in get_chain.appended],
         )
 
-    def test_job_id_is_not_persisted_by_the_view(self):
-        from api.models import LongRunningJob
-
+    def test_the_job_row_exists_when_the_view_answers(self):
         response = self.call_view(ScanPhotosView)
 
         self.assertTrue(response.data["status"])
-        # The view only hands the id to the (mocked) task; creating the
-        # LongRunningJob row is scan_photos' job, not the view's.
-        self.assertFalse(
-            LongRunningJob.objects.filter(job_id=response.data["job_id"]).exists()
-        )
+        # Written by the request, not by the worker when it picks the task up.
+        job = LongRunningJob.objects.get(job_id=response.data["job_id"])
+        self.assertEqual(job.job_type, LongRunningJob.JOB_SCAN_PHOTOS)
+        self.assertEqual(job.started_by, self.user)
+        self.assertIsNone(job.started_at)
+        self.assertFalse(job.finished)
 
 
 class ScanPhotosViewErrorPathTest(ScanViewTestBase):
-    def test_chain_run_failure_returns_500_with_a_message(self):
-        response = self.call_view(ScanPhotosView, run_error=RuntimeError("broker down"))
+    """Queuing fails.
 
-        # The job never started, so the request fails: 500, no job_id.
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(
-            api_error(response)["message"], "Could not start the photo scan."
-        )
-        self.logger_mock.exception.assert_called_once_with(
-            "Could not start %s", "the photo scan"
-        )
+    Under a ``TestCase`` the commit hooks run when ``captureOnCommitCallbacks``
+    exits, after the view answered, so the error surfaces there;
+    ``api/tests/jobs/test_start_job.py`` checks the 500 of a real commit.
+    """
+
+    def test_queue_failure_propagates_and_fails_the_row(self):
+        with self.assertRaises(RuntimeError):
+            self.call_view(ScanPhotosView, run_error=RuntimeError("broker down"))
+
+        job = LongRunningJob.objects.get()
+        self.assertTrue(job.failed)
+        self.assertTrue(job.finished)
+        self.assertIn("broker down", job.result["error"])
 
     def test_non_exception_baseexception_is_not_swallowed(self):
         # ``except Exception``: KeyboardInterrupt/SystemExit propagate.
@@ -236,9 +251,10 @@ class ScanPhotosViewAuthTest(TestCase):
     def test_unauthenticated_request_is_rejected_before_the_body_runs(self):
         factory = APIRequestFactory()
         request = factory.get("/api/scanphotos")
-        with patch(f"{MODULE}.Chain", RecordingChain):
+        with patch("api.jobs.queue.AsyncTask", RecordingTask):
             RecordingChain.instances = []
             response = ScanPhotosView.as_view()(request)
 
         self.assertIn(response.status_code, (401, 403))
         self.assertEqual(RecordingChain.instances, [])
+        self.assertFalse(LongRunningJob.objects.exists())

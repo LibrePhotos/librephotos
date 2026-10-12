@@ -341,7 +341,9 @@ def _create_burst_stack(user: User, photos: list[Photo]) -> PhotoStack | None:
 
 
 def batch_detect_stacks(
-    user: User, options: StackDetectionOptions | None = None
+    user: User,
+    options: StackDetectionOptions | None = None,
+    job_id: str | None = None,
 ) -> None:
     """
     Run batch stack detection for a user.
@@ -361,12 +363,11 @@ def batch_detect_stacks(
 
     detect_bursts = options.get("detect_bursts", True)
 
-    # Create long-running job for progress tracking
-    job = LongRunningJob.create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        start_now=True,
-    )
+    # The row queued with the task (api.jobs.queue); None when it was
+    # cancelled while it waited.
+    job = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_PHOTOS, job_id)
+    if job is None:
+        return
 
     try:
         total_found = 0

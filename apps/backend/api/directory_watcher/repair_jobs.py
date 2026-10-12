@@ -62,11 +62,9 @@ def repair_ungrouped_file_variants(user: User, job_id: UUID) -> None:
         user: The user whose photos to repair
         job_id: Job ID for tracking progress
     """
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_REPAIR_FILE_VARIANTS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_REPAIR_FILE_VARIANTS, job_id)
+    if lrj is None:
+        return
 
     try:
         # Find Photos where main_file is RAW (potential orphans)

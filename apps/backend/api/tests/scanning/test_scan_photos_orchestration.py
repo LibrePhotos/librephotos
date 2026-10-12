@@ -6,8 +6,9 @@ metadata paths, which follow-up tasks are enqueued (scan_missing_photos,
 repair, feature-flagged jobs, the CLIP/face chain), how the progress target is
 computed, when the job is auto-finished, and what happens on failure.
 
-Everything that leaves the process is mocked: ``AsyncTask``/``Chain`` are
-recorders, the directory walkers are patched, and ``MEDIA_ROOT`` points at a
+Everything that leaves the process is mocked: django-q's ``AsyncTask``/``Chain``
+are recorders in ``api.jobs.queue`` (follow-up jobs are queued when their rows
+commit, so the commit hooks are run), the directory walkers are patched, and ``MEDIA_ROOT`` points at a
 temp dir so the thumbnail ``makedirs`` calls are harmless. No ML models, no
 network, no exiftool.
 """
@@ -127,8 +128,9 @@ class ScanPhotosCharacterizationBase(TestCase):
 
         with override_settings(**settings_overrides):
             with (
-                patch.object(scan_jobs, "AsyncTask", recorder),
-                patch.object(scan_jobs, "Chain", ChainRecorder),
+                patch("api.jobs.queue.AsyncTask", recorder),
+                patch("api.jobs.queue.Chain", ChainRecorder),
+                self.captureOnCommitCallbacks(execute=True),
                 patch.object(
                     scan_jobs, "walk_directory", side_effect=fake_walk
                 ) as walk_directory,
@@ -351,6 +353,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             queued_at=timezone.now(),
+            started_at=timezone.now() - datetime.timedelta(days=2, hours=1),
             finished=True,
             finished_at=timezone.now() - datetime.timedelta(days=2),
         )
@@ -359,6 +362,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             queued_at=timezone.now(),
+            started_at=timezone.now() - datetime.timedelta(hours=1),
             finished=True,
             finished_at=timezone.now(),
         )
@@ -367,6 +371,25 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
         self.assertFalse(full_scan)
         self.assertEqual(last_scan.pk, newest.pk)
         self.assertNotEqual(last_scan.pk, older.pk)
+
+    def test_a_scan_cancelled_before_it_started_is_not_a_baseline(self):
+        # Its row is written when it is queued; cancelled while it waited it
+        # finished without starting, and saw no files.
+        ran = create_test_job(
+            started_by=self.user,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            started_at=timezone.now() - datetime.timedelta(days=1, hours=1),
+            finished=True,
+            finished_at=timezone.now() - datetime.timedelta(days=1),
+        )
+        never_started = create_test_job(
+            started_by=self.user, job_type=LongRunningJob.JOB_SCAN_PHOTOS
+        )
+        never_started.cancel()
+
+        res = self.run_scan(walk_result=["/p/a.jpg"])
+
+        self.assertEqual(res["select"].call_args[0][3].pk, ran.pk)
 
     def test_no_previous_scan_gives_none_baseline(self):
         res = self.run_scan(walk_result=["/p/a.jpg"])
@@ -436,9 +459,11 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         res = self.run_scan(walk_result=["/p/a.jpg"], finish_work=True)
         self.assertEqual(res["tasks"].find(scan_jobs.generate_tags), [])
         self.assertEqual(res["tasks"].find(scan_jobs.add_geolocation), [])
-        chain_funcs = [entry[0] for entry in res["chain"].appended]
-        self.assertEqual(chain_funcs, [scan_jobs.batch_calculate_clip_embedding])
-        self.assertTrue(res["chain"].ran)
+        # Without face detection the embedding job is alone: no chain.
+        self.assertIsNone(res["chain"])
+        self.assertEqual(
+            len(res["tasks"].find(scan_jobs.batch_calculate_clip_embedding)), 1
+        )
 
     def test_feature_flags_on_queue_optional_jobs(self):
         res = self.run_scan(
@@ -455,21 +480,22 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         geo = res["tasks"].find(scan_jobs.add_geolocation)
         self.assertEqual(len(tags), 1)
         self.assertEqual(len(geo), 1)
-        # (user, job_uuid, full_scan)
-        self.assertEqual(tags[0][1][0], self.user)
-        self.assertTrue(tags[0][1][2])
+        # (user,), with job_id and full_scan by name
+        self.assertEqual(tags[0][1], (self.user,))
+        self.assertTrue(tags[0][2]["full_scan"])
+        tags_job = LongRunningJob.objects.get(job_id=tags[0][2]["job_id"])
+        self.assertEqual(tags_job.job_type, LongRunningJob.JOB_GENERATE_TAGS)
+        self.assertIsNone(tags_job.started_at)
         chain_funcs = [entry[0] for entry in res["chain"].appended]
         self.assertEqual(
             chain_funcs,
             [scan_jobs.batch_calculate_clip_embedding, scan_jobs.scan_faces],
         )
 
-    def test_clip_embedding_chain_runs_even_on_empty_scan(self):
+    def test_clip_embedding_job_runs_even_on_empty_scan(self):
         res = self.run_scan(walk_result=[])
-        self.assertTrue(res["chain"].ran)
         self.assertEqual(
-            [entry[0] for entry in res["chain"].appended],
-            [scan_jobs.batch_calculate_clip_embedding],
+            len(res["tasks"].find(scan_jobs.batch_calculate_clip_embedding)), 1
         )
 
     # ---- follow-ups wait for the scan's own work ----------------------
@@ -496,22 +522,29 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
                 FEATURE_REVERSE_GEOCODING=False,
                 FEATURE_FACE_DETECTION=False,
             ),
-            patch.object(scan_jobs, "AsyncTask", recorder),
-            patch.object(scan_jobs, "Chain", ChainRecorder),
+            patch("api.jobs.queue.AsyncTask", recorder),
+            patch("api.jobs.queue.Chain", ChainRecorder),
         ):
-            self.finish_queued_work(units=1)
+            with self.captureOnCommitCallbacks(execute=True):
+                self.finish_queued_work(units=1)
             self.assertEqual(recorder.find(scan_jobs.scan_missing_photos), [])
-            self.assertIsNone(ChainRecorder.last)
+            self.assertEqual(
+                recorder.find(scan_jobs.batch_calculate_clip_embedding), []
+            )
 
-            self.finish_queued_work(units=1)
+            with self.captureOnCommitCallbacks(execute=True):
+                self.finish_queued_work(units=1)
             self.assertEqual(len(recorder.find(scan_jobs.scan_missing_photos)), 1)
             self.assertEqual(
                 len(recorder.find(scan_jobs.repair_ungrouped_file_variants)), 1
             )
-            self.assertTrue(ChainRecorder.last.ran)
+            self.assertEqual(
+                len(recorder.find(scan_jobs.batch_calculate_clip_embedding)), 1
+            )
 
             # A straggler past the target must not queue them a second time.
-            update_scan_counter(self.job_id)
+            with self.captureOnCommitCallbacks(execute=True):
+                update_scan_counter(self.job_id)
             self.assertEqual(len(recorder.find(scan_jobs.scan_missing_photos)), 1)
 
         self.assertTrue(self.job().finished)
@@ -520,7 +553,10 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
     def test_cancelled_scan_queues_no_followups(self):
         res = self.run_scan(walk_result=["/p/a.jpg"])
         self.job().cancel()
-        with patch.object(scan_jobs, "AsyncTask", TaskRecorder(self.tasks)):
+        with (
+            patch("api.jobs.queue.AsyncTask", TaskRecorder(self.tasks)),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             self.finish_queued_work(units=1)
         self.assertEqual(self._followups(res), [])
 
@@ -536,8 +572,8 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         self.assertEqual(Photo.objects.count(), 5)
 
         with (
-            patch.object(scan_jobs, "AsyncTask", TaskRecorder(self.tasks)),
-            patch.object(scan_jobs, "Chain", ChainRecorder),
+            patch("api.jobs.queue.AsyncTask", TaskRecorder(self.tasks)),
+            patch("api.jobs.queue.Chain", ChainRecorder),
             self.assertLogs("api.directory_watcher.scan_jobs", level="INFO") as logs,
         ):
             self.finish_queued_work()

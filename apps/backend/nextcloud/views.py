@@ -2,7 +2,6 @@ import logging
 
 import owncloud as nextcloud
 import requests
-from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.models import LongRunningJob
 from api.permissions import IsNextcloudEnabled
 from api.request_user import request_user
 from api.views.params import parse_query
@@ -85,6 +85,9 @@ class ScanPhotosView(APIView):
         except UnsafeServerAddress as e:
             raise ValidationError(str(e)) from e
         return start_job(
-            lambda job_id: AsyncTask(scan_photos, user, job_id).run(),
-            "the Nextcloud scan",
+            user,
+            LongRunningJob.JOB_SCAN_PHOTOS,
+            scan_photos,
+            user,
+            description="the Nextcloud scan",
         )

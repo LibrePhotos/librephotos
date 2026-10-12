@@ -247,7 +247,7 @@ class SidecarsSurviveSlowIngestTest(TestCase):
             queue = SlowIngestQueue()
             with override_settings(MEDIA_ROOT=media_root):
                 with (
-                    patch("api.directory_watcher.scan_jobs.AsyncTask", queue),
+                    patch("api.jobs.queue.AsyncTask", queue),
                     patch("django_q.tasks.count_group", queue.count_group),
                     patch(
                         "api.directory_watcher.scan_jobs._queue_followup_jobs"

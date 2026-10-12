@@ -7,7 +7,6 @@ request thread, which is exactly what the async wrap is supposed to avoid.
 """
 
 import pickle
-import uuid
 from unittest.mock import patch
 
 from django.contrib.admin.sites import AdminSite
@@ -24,18 +23,12 @@ from api.tests.utils import create_test_face, create_test_photos, create_test_us
 
 
 class RecordingAsyncTask:
-    """Stand-in for django_q's AsyncTask that records what would be enqueued."""
+    """Stand-in for ``enqueue_task`` that records what would be enqueued."""
 
     calls = []
 
     def __init__(self, func, *args, **kwargs):
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        RecordingAsyncTask.calls.append((self.func, self.args, self.kwargs))
-        return uuid.uuid4().hex
+        RecordingAsyncTask.calls.append((func, args, kwargs))
 
 
 class DeduplicateFacesActionEnqueueTest(TestCase):
@@ -55,7 +48,7 @@ class DeduplicateFacesActionEnqueueTest(TestCase):
         RecordingAsyncTask.calls = []
 
     def run_action(self, queryset):
-        with patch.object(admin_module, "AsyncTask", RecordingAsyncTask):
+        with patch.object(admin_module, "enqueue_task", RecordingAsyncTask):
             self.photo_admin.deduplicate_faces(self.request, queryset)
         return RecordingAsyncTask.calls
 

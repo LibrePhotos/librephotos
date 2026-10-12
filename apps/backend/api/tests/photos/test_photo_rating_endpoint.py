@@ -166,7 +166,7 @@ class SetPhotosRatingMetadataWriteTest(TestCase):
     def _rate(self, mode, rating):
         self.user.save_metadata_to_disk = mode
         self.user.save()
-        with patch("api.metadata.jobs.AsyncTask") as async_task:
+        with patch("api.metadata.jobs.enqueue_task") as async_task:
             response = self.client.post(
                 URL, {"image_hashes": self.hashes, "rating": rating}, format="json"
             )
@@ -182,7 +182,6 @@ class SetPhotosRatingMetadataWriteTest(TestCase):
         self.assertIs(func, write_photo_ratings)
         self.assertEqual(list(photo_ids), [self.photos[1].pk])
         self.assertTrue(use_sidecar)
-        async_task.return_value.run.assert_called_once_with()
 
     def test_media_file_mode_writes_into_the_file(self):
         async_task = self._rate(User.SaveMetadata.MEDIA_FILE, 2)

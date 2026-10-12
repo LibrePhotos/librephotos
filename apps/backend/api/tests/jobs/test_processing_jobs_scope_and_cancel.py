@@ -81,7 +81,7 @@ class QueuedTasksCarryPrimaryKeysTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
 
     def _queued_payload(self, dispatcher):
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             dispatcher(self.user, uuid.uuid4(), True)
         self.assertEqual(async_task.call_count, 1)
         return async_task.call_args.args[1]

@@ -1,10 +1,10 @@
 from typing import Any
 
 from django.core.management.base import BaseCommand
-from django_q.tasks import AsyncTask
 
 from api.batch_jobs import queue_semantic_search_conversion
 from api.image_similarity import build_image_similarity_index
+from api.jobs.queue import enqueue_task
 from api.models import User
 
 
@@ -17,4 +17,4 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **kwargs: Any) -> None:
         converting = set(queue_semantic_search_conversion())
         for user in User.objects.exclude(pk__in=converting):
-            AsyncTask(build_image_similarity_index, user).run()
+            enqueue_task(build_image_similarity_index, user)

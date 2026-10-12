@@ -92,7 +92,6 @@
 "api/util.py" = ["BLE001", "PLR0913"]
 "api/views/faces.py" = ["PLR0912"]
 "api/views/health.py" = ["BLE001"]
-"api/views/jobs.py" = ["BLE001"]
 "api/views/media.py" = ["BLE001", "PLR0911"]
 "api/views/photos.py" = ["BLE001"]
 "api/views/server_info.py" = ["BLE001"]

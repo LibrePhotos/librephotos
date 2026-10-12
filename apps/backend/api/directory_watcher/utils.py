@@ -302,16 +302,20 @@ def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> Non
 
     if user_id is None or not semantic_shares_tagger():
         return
-    from django_q.tasks import AsyncTask
-
     from api.batch_jobs import batch_calculate_clip_embedding
+    from api.jobs.queue import enqueue_followup
     from api.models import User
 
     user = User.objects.filter(pk=user_id).first()
     if user is None:
         return
     try:
-        AsyncTask(batch_calculate_clip_embedding, user).run()
+        enqueue_followup(
+            user,
+            LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+            batch_calculate_clip_embedding,
+            user,
+        )
     except Exception:
         logger.exception("job %s: could not queue the search embeddings", job_id)
 

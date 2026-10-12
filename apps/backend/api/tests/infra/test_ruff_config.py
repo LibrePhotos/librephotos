@@ -145,6 +145,20 @@ class NewCodeRulesTests(unittest.TestCase):
             ):
                 self.assertNotIn("TID251", lint(source, exempt), exempt)
 
+    def test_django_q_tasks_is_banned_outside_the_queue_module(self):
+        # Issue #2333: work is queued through api.jobs.queue, which writes the
+        # job's row first and refuses a duplicate start.
+        for source in (
+            "from django_q.tasks import AsyncTask\n\nAsyncTask(print).run()\n",
+            "import django_q.tasks\n\ndjango_q.tasks.async_task(print)\n",
+        ):
+            self.assertIn("TID251", lint(source, "api/views/_ruff_probe.py"))
+            for exempt in ("api/jobs/queue.py", "api/tests/_ruff_probe.py"):
+                self.assertNotIn("TID251", lint(source, exempt), exempt)
+        # The models and the broker stay importable (the health check).
+        source = "from django_q.models import OrmQ\n\nOrmQ.objects.count()\n"
+        self.assertNotIn("TID251", lint(source, "api/views/_ruff_probe.py"))
+
     def test_console_tools_may_print(self):
         source = 'print("hello")\n'
         self.assertIn("T201", lint(source, "api/_ruff_probe.py"))

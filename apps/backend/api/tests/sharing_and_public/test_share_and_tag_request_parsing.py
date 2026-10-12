@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.models import LongRunningJob
 from api.tests.utils import (
     create_test_album_user,
     create_test_photo,
@@ -109,7 +110,7 @@ class GenerateOcrBodyTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=create_test_user())
 
-    @patch("api.views.scan_triggers.AsyncTask")
+    @patch("api.jobs.queue.AsyncTask")
     def test_full_scan_is_a_boolean(self, async_task):
         for body, full_scan in (
             ({}, False),
@@ -117,9 +118,11 @@ class GenerateOcrBodyTest(TestCase):
             ({"full_scan": True}, True),
         ):
             with self.subTest(body=body):
-                response = self.client.post("/api/generateocr", body, format="json")
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.client.post("/api/generateocr", body, format="json")
                 self.assertEqual(response.status_code, 200)
-                self.assertIs(async_task.call_args.args[3], full_scan)
+                self.assertIs(async_task.call_args.kwargs["full_scan"], full_scan)
+                LongRunningJob.objects.update(finished=True)
         response = self.client.post(
             "/api/generateocr", {"full_scan": "x"}, format="json"
         )

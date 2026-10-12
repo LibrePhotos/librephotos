@@ -1,5 +1,4 @@
 from django.db.models import Count, Min, Prefetch, Q, QuerySet
-from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
@@ -9,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.models import AlbumAuto, Person, Photo, User
+from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
 from api.request_user import request_user
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
@@ -126,8 +125,11 @@ class RegenerateAutoAlbumTitles(APIView):
     ) -> Response:
         user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(regenerate_event_titles, user, job_id).run(),
-            "the auto album title regeneration",
+            user,
+            LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
+            regenerate_event_titles,
+            user,
+            description="the auto album title regeneration",
         )
 
 
@@ -147,6 +149,9 @@ class AutoAlbumGenerateView(APIView):
     def _schedule_auto_album_regeneration(self, request: Request) -> Response:
         user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(generate_event_albums, user, job_id).run(),
-            "the auto album generation",
+            user,
+            LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
+            generate_event_albums,
+            user,
+            description="the auto album generation",
         )

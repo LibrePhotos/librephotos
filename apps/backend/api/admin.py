@@ -4,8 +4,8 @@ from collections import defaultdict
 from django.contrib import admin
 from django.db.models import QuerySet
 from django.http import HttpRequest
-from django_q.tasks import AsyncTask
 
+from api.jobs.queue import enqueue_task
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 from .models import (
@@ -114,10 +114,10 @@ class PhotoAdmin(admin.ModelAdmin):
         # this request thread, which defeats the point of the async task.
         photo_ids = list(queryset.values_list("id", flat=True))
         for start in range(0, len(photo_ids), DEDUPLICATE_FACES_CHUNK_SIZE):
-            AsyncTask(
+            enqueue_task(
                 deduplicate_faces_function,
                 photo_ids[start : start + DEDUPLICATE_FACES_CHUNK_SIZE],
-            ).run()
+            )
         self.message_user(
             request,
             f"Queued face deduplication for {len(photo_ids)} photo(s).",

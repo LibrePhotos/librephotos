@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from django.db.models import Q, QuerySet
 
 from api.image_similarity import build_image_similarity_index
+from api.jobs.queue import enqueue_followup
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.models.user import User
@@ -100,7 +101,9 @@ def _rebuild_index_while_converting(user: User) -> None:
         logger.error("Error rebuilding the similarity index mid-run: %s", e)
 
 
-def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> None:
+def batch_calculate_clip_embedding(
+    user: User, wait_for_tags: bool = False, job_id: str | None = None
+) -> None:
     """Embed the user's photos that lack an OpenCLIP embedding.
 
     With ``wait_for_tags`` (the scan's follow-up, when the tags job stores the
@@ -110,11 +113,11 @@ def batch_calculate_clip_embedding(user: User, wait_for_tags: bool = False) -> N
     photos embedded here get the tags of the same run if they have none, so
     re-embedding a library after an upgrade re-tags it too.
     """
-    lrj = LongRunningJob.create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
-        start_now=True,
+    lrj = LongRunningJob.claim(
+        user, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, job_id
     )
+    if lrj is None:
+        return
 
     with_tags = semantic_shares_tagger()
     missing = photos_missing_clip_embeddings(user)
@@ -180,8 +183,6 @@ def queue_semantic_search_conversion() -> list[int]:
     0152), the job re-embeds (and re-tags) those photos in place and rebuilds
     the index as it goes. Returns the ids of the users queued.
     """
-    from django_q.tasks import AsyncTask
-
     user_ids: list[int] = list(
         Photo.objects.filter(clip_embeddings__isnull=False)
         .exclude(produced_by_openclip())
@@ -189,5 +190,10 @@ def queue_semantic_search_conversion() -> list[int]:
         .distinct()
     )
     for user in User.objects.filter(pk__in=user_ids):
-        AsyncTask(batch_calculate_clip_embedding, user).run()
+        enqueue_followup(
+            user,
+            LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+            batch_calculate_clip_embedding,
+            user,
+        )
     return user_ids

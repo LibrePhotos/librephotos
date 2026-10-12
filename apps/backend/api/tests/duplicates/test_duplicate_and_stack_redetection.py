@@ -21,11 +21,13 @@ from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
 from api.duplicate_detection import detect_exact_copies, detect_visual_duplicates
+from api.models import LongRunningJob
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.stack_detection import detect_burst_sequences
 from api.tests.utils import (
+    api_error,
     create_test_duplicate,
     create_test_file,
     create_test_photo,
@@ -250,18 +252,21 @@ class APIRedetectionTestCase(APITestCase):
             create_test_photo(owner=self.user)
 
     def test_duplicate_detect_api_idempotent(self):
-        """Test that calling /api/duplicates/detect multiple times is safe."""
-        # First detection
+        """Calling /api/duplicates/detect again is refused while one is queued."""
         response1 = self.client.post("/api/duplicates/detect")
-        self.assertIn(response1.status_code, [200, 202])
+        self.assertEqual(response1.status_code, 202)
+        first_job_id = response1.json()["job_id"]
 
-        # Second detection
+        # A second click while the first is queued points at that job.
         response2 = self.client.post("/api/duplicates/detect")
-        self.assertIn(response2.status_code, [200, 202])
+        self.assertEqual(response2.status_code, 409)
+        self.assertEqual(api_error(response2)["code"], "job_already_running")
+        self.assertEqual(api_error(response2)["job_id"], first_job_id)
 
-        # Third detection
+        # Once it has finished, detection can run again.
+        LongRunningJob.objects.filter(job_id=first_job_id).update(finished=True)
         response3 = self.client.post("/api/duplicates/detect")
-        self.assertIn(response3.status_code, [200, 202])
+        self.assertEqual(response3.status_code, 202)
 
     def test_stack_detect_api_idempotent(self):
         """Test that calling /api/stacks/detect multiple times is safe."""
@@ -291,6 +296,7 @@ class APIRedetectionTestCase(APITestCase):
             "/api/duplicates/detect", {"clear_pending": False}, format="json"
         )
         self.assertIn(response1.status_code, [200, 202])
+        LongRunningJob.objects.update(finished=True)
 
         # Detection with clear_pending
         response2 = self.client.post(

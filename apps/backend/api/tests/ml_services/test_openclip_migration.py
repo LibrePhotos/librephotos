@@ -157,8 +157,9 @@ class ReEmbeddingQueuedTest(TestCase):
 
         _forwards()
         with (
-            patch("django_q.tasks.AsyncTask") as task,
-            patch("api.management.commands.build_similarity_index.AsyncTask"),
+            patch("api.jobs.queue.AsyncTask") as task,
+            patch("api.management.commands.build_similarity_index.enqueue_task"),
+            self.captureOnCommitCallbacks(execute=True),
         ):
             call_command("build_similarity_index")
 

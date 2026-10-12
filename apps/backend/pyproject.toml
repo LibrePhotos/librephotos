@@ -92,6 +92,9 @@ allow-star-arg-any = true
 # External tools run through one module (issue #2338): it resolves the binary
 # (the System32 trap on Windows), demands a timeout and logs failures the same way.
 "subprocess".msg = "Run external tools through api.binaries.run_tool (with a timeout) or start_tool."
+# Background work is queued in one module (issue #2333): it writes the job's
+# LongRunningJob row before the task is queued and refuses a duplicate start.
+"django_q.tasks".msg = "Queue work through api.jobs.queue (enqueue_job, enqueue_followup, enqueue_task, schedule_once)."
 # Each entry must name the replacement in its message.
 "datetime.UTC".msg = "Python 3.10 (backend-gpu image) has no datetime.UTC; use datetime.timezone.utc."
 
@@ -111,14 +114,16 @@ allow-star-arg-any = true
 # Console entry points that print to the terminal on purpose; standalone.py
 # also builds the environment of the child processes it starts.
 "librephotos/standalone.py" = ["T20", "TID251"]
-# Files that may touch os.environ (issue #2337) or subprocess (issue #2338)
-# directly; keep this list short. An entry lifts every banned API in the file.
+# Files that may touch os.environ (issue #2337), subprocess (issue #2338) or
+# django_q.tasks (issue #2333) directly; keep this list short. An entry lifts every banned API in the file.
 # The parser itself.
 "librephotos/env.py" = ["TID251"]
 # It builds the environment of the sidecars it starts, and supervises them.
 "api/services.py" = ["TID251"]
 # The one runner of external tools.
 "api/binaries.py" = ["TID251"]
+# The one module that queues background work (issue #2333).
+"api/jobs/queue.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
 "librephotos/wsgi.py" = ["TID251"]

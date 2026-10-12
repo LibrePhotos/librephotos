@@ -71,10 +71,11 @@ class ManualStackBodyTest(StackRequestTestCase):
         self.assertEqual(error_fields(response), ["photo_hash"])
 
 
-@patch("api.views.stacks.async_task")
+@patch("api.jobs.queue.AsyncTask")
 class DetectStacksBodyTest(StackRequestTestCase):
     def test_detect_bursts_defaults_to_true(self, async_task):
-        response = self.client.post("/api/stacks/detect/", {}, format="json")
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post("/api/stacks/detect/", {}, format="json")
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json()["options"], {"detect_bursts": True})
         self.assertEqual(async_task.call_args.args[2], {"detect_bursts": True})

@@ -91,7 +91,7 @@ class ZipPhotosTaskTestBase(TestCase):
         self.addCleanup(shutil.rmtree, self.source_dir, ignore_errors=True)
 
         # django-q scheduling must not hit the broker/DB scheduler.
-        schedule_patcher = patch("api.all_tasks.schedule")
+        schedule_patcher = patch("api.all_tasks.schedule_once")
         self.mock_schedule = schedule_patcher.start()
         self.addCleanup(schedule_patcher.stop)
 
@@ -169,7 +169,7 @@ class ZipPhotosTaskHappyPathTest(ZipPhotosTaskTestBase):
         args, kwargs = self.mock_schedule.call_args
         self.assertEqual(args[0], "api.all_tasks.delete_zip_file")
         self.assertEqual(args[1], "later.zip")
-        self.assertIn("next_run", kwargs)
+        self.assertIn("at", kwargs)
 
     def test_main_file_and_files_are_both_included(self):
         main = FakeFile(self.write_source("main.jpg"))
@@ -408,16 +408,19 @@ class ZipPhotosTaskErrorHandlingTest(ZipPhotosTaskTestBase):
         self.assertEqual(os.listdir(os.path.join(self.media_root, "zip")), [])
         self.assertTrue(job.failed)
 
-    def test_missing_job_id_raises_before_any_work(self):
+    def test_a_job_cancelled_while_queued_does_no_work(self):
+        job = self.make_job()
+        job.cancel()
         with override_settings(MEDIA_ROOT=self.media_root):
-            with self.assertRaises(LongRunningJob.DoesNotExist):
-                zip_photos_task(
-                    job_id="does-not-exist",
-                    user=self.user,
-                    photos=[],
-                    filename="x.zip",
-                )
+            result = zip_photos_task(
+                job_id=job.job_id, user=self.user, photos=[], filename="x.zip"
+            )
+        self.assertIsNone(result)
+        self.assertFalse(os.path.exists(os.path.join(self.media_root, "zip")))
         self.assertFalse(self.mock_schedule.called)
+        job.refresh_from_db()
+        self.assertIsNone(job.started_at)
+        self.assertTrue(job.cancelled)
 
     def test_photos_must_support_len(self):
         # ``count = len(photos)`` runs after lrj.start(), so a generator blows

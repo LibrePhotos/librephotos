@@ -60,11 +60,11 @@ def _group_photos(
 
 
 def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
-        job_id=job_id,
+    lrj = LongRunningJob.claim(
+        user, LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES, job_id
     )
+    if lrj is None:
+        return 0
     try:
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
@@ -85,11 +85,9 @@ def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
 
 
 def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_AUTO_ALBUMS, job_id)
+    if lrj is None:
+        return 0
 
     try:
         photos = (
@@ -235,11 +233,9 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
 
 # To-Do: This does not belong here
 def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
-    lrj = LongRunningJob.get_or_create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
-        job_id=job_id,
-    )
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_DELETE_MISSING_PHOTOS, job_id)
+    if lrj is None:
+        return 0
     try:
         missing_pks = list(
             Photo.objects.owned_by(user)

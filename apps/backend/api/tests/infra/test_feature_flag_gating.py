@@ -26,6 +26,7 @@ from api.photo_faces import extract_faces
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
+    create_test_job,
     create_test_photo,
     create_test_user,
 )
@@ -232,28 +233,30 @@ class FaceDetectionFeatureFlagTest(TestCase):
         face_extractor_mock.extract.assert_not_called()
         self.assertEqual(0, Face.objects.filter(photo=self.photo).count())
 
-    @patch("api.views.faces.do_all_models_exist", return_value=True)
-    @patch("api.views.faces.Chain")
+    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.jobs.queue.AsyncTask")
     def test_scan_faces_endpoint_starts_a_job_by_default(
-        self, chain_mock, models_exist_mock
+        self, task_mock, models_exist_mock
     ):
-        response = self.client.post("/api/scanfaces/", format="json")
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post("/api/scanfaces/", format="json")
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["status"])
-        chain_mock.return_value.run.assert_called_once()
+        task_mock.return_value.run.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    @patch("api.views.faces.do_all_models_exist", return_value=True)
-    @patch("api.views.faces.Chain")
+    @patch("api.ml_models.do_all_models_exist", return_value=True)
+    @patch("api.jobs.queue.AsyncTask")
     def test_scan_faces_endpoint_refuses_when_disabled(
-        self, chain_mock, models_exist_mock
+        self, task_mock, models_exist_mock
     ):
         response = self.client.post("/api/scanfaces/", format="json")
 
         self.assertEqual(403, response.status_code)
         self.assertEqual("permission_denied", response.json()["errors"][0]["code"])
-        chain_mock.assert_not_called()
+        task_mock.assert_not_called()
+        self.assertEqual(0, LongRunningJob.objects.count())
 
 
 class FaceClusterFeatureFlagTest(TestCase):
@@ -262,30 +265,46 @@ class FaceClusterFeatureFlagTest(TestCase):
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
 
-    @patch("api.face_classify.AsyncTask")
+    @patch("api.face_classify.enqueue_followup")
     @patch("api.face_classify.create_all_clusters", return_value=0)
-    def test_cluster_all_faces_runs_by_default(self, create_clusters_mock, task_mock):
+    def test_cluster_all_faces_runs_by_default(self, create_clusters_mock, queue_mock):
         self.assertTrue(cluster_all_faces(self.user, uuid.uuid4()))
         create_clusters_mock.assert_called_once()
+        # The training follows as a job of its own.
+        self.assertEqual(queue_mock.call_args.args[1], LongRunningJob.JOB_TRAIN_FACES)
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.face_classify.AsyncTask")
+    @patch("api.face_classify.enqueue_followup")
     @patch("api.face_classify.create_all_clusters")
     def test_cluster_all_faces_skipped_when_disabled(
-        self, create_clusters_mock, task_mock
+        self, create_clusters_mock, queue_mock
     ):
         self.assertFalse(cluster_all_faces(self.user, uuid.uuid4()))
         create_clusters_mock.assert_not_called()
+        queue_mock.assert_not_called()
         self.assertEqual(0, LongRunningJob.objects.count())
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.views.faces.Chain")
+    @patch("api.face_classify.create_all_clusters")
+    def test_a_queued_cluster_job_is_finished_when_disabled(self, create_clusters_mock):
+        # Queued before the flag went off: the row must not stay queued.
+        job = create_test_job(
+            started_by=self.user, job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES
+        )
+        self.assertFalse(cluster_all_faces(self.user, job.job_id))
+        job.refresh_from_db()
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+
+    @override_settings(FEATURE_FACE_CLUSTER=False)
+    @patch("api.jobs.queue.Chain")
     def test_train_faces_endpoint_refuses_when_disabled(self, chain_mock):
         response = self.client.post("/api/trainfaces/", format="json")
 
         self.assertEqual(403, response.status_code)
         self.assertEqual("permission_denied", response.json()["errors"][0]["code"])
         chain_mock.assert_not_called()
+        self.assertEqual(0, LongRunningJob.objects.count())
 
 
 class ScanPipelineFeatureFlagTest(TestCase):
@@ -299,9 +318,10 @@ class ScanPipelineFeatureFlagTest(TestCase):
 
     def _scan(self):
         with (
-            patch("api.directory_watcher.scan_jobs.AsyncTask") as task_mock,
-            patch("api.directory_watcher.scan_jobs.Chain") as chain_mock,
+            patch("api.jobs.queue.AsyncTask") as task_mock,
+            patch("api.jobs.queue.Chain") as chain_mock,
             patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
+            self.captureOnCommitCallbacks(execute=True),
         ):
             scan_photos(self.user, False, str(uuid.uuid4()))
 
@@ -334,7 +354,8 @@ class ScanPipelineFeatureFlagTest(TestCase):
 
     @override_settings(FEATURE_FACE_DETECTION=False)
     def test_face_scan_is_skipped_when_disabled(self):
-        _, chained = self._scan()
+        queued, chained = self._scan()
 
-        self.assertNotIn(scan_faces, chained)
-        self.assertIn(batch_calculate_clip_embedding, chained)
+        self.assertNotIn(scan_faces, chained + queued)
+        # Alone, the embedding job is queued without a chain.
+        self.assertIn(batch_calculate_clip_embedding, queued)

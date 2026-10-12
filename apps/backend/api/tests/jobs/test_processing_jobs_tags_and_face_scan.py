@@ -4,7 +4,7 @@ Pins the CURRENT behaviour of ``generate_tags`` and ``scan_faces`` before
 refactoring. These tests deliberately assert what the code does today,
 including a couple of quirks that are called out in comments.
 
-All ML work is mocked: ``extract_faces`` is patched, ``AsyncTask`` is
+All ML work is mocked: ``extract_faces`` is patched, ``enqueue_task`` is
 patched, and the face-embedding / clustering tail calls of ``scan_faces`` are
 patched at module level. Nothing here touches the network or a model file.
 """
@@ -39,7 +39,7 @@ class GenerateTagsCharacterizationTest(TestCase):
     def test_queues_one_async_task_per_untagged_photo(self):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 3)
@@ -62,7 +62,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertFalse(job.failed)
 
     def test_no_matching_photos_completes_job_with_zero_target(self):
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id)
 
         async_task.assert_not_called()
@@ -79,7 +79,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         )
         pending = create_test_photo(owner=self.user, captions_json={"im2txt": "a cat"})
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id)
 
         # Only the photo missing an OpenCLIP key is queued: a caption row
@@ -95,7 +95,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         )
         create_test_photo(owner=self.user, captions_json={OPENCLIP: {"tags": []}})
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
@@ -106,7 +106,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         create_test_photo(owner=other)
         mine = create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
@@ -130,7 +130,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         new = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=new.pk).update(added_on=now)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -151,7 +151,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
         create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id, full_scan=True)
 
         self.assertEqual(async_task.call_count, 2)
@@ -164,7 +164,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         )  # never completed -> not a cutoff
         create_test_photo(owner=self.user)
 
-        with patch.object(processing_jobs, "AsyncTask") as async_task:
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
             generate_tags(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
@@ -175,7 +175,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with (
-            patch.object(processing_jobs, "AsyncTask") as async_task,
+            patch.object(processing_jobs, "enqueue_task") as async_task,
             patch.object(processing_jobs, "is_job_cancelled", return_value=True),
         ):
             generate_tags(self.user, self.job_id)
@@ -192,7 +192,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         create_test_photo(owner=self.user)
 
         with (
-            patch.object(processing_jobs, "AsyncTask") as async_task,
+            patch.object(processing_jobs, "enqueue_task") as async_task,
             patch.object(
                 processing_jobs.db.connections,
                 "close_all",
@@ -213,7 +213,7 @@ class GenerateTagsCharacterizationTest(TestCase):
             job_type=LongRunningJob.JOB_GENERATE_TAGS,
             job_id=self.job_id,
         )
-        with patch.object(processing_jobs, "AsyncTask"):
+        with patch.object(processing_jobs, "enqueue_task"):
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(
@@ -257,18 +257,10 @@ class ScanFacesCharacterizationTest(TestCase):
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
 
-        # Embedding generation and clustering always run afterwards, each
-        # with a freshly generated job id (not the scan's own job id).
-        mock_embed.assert_called_once()
-        mock_cluster.assert_called_once()
-        self.assertIs(mock_embed.call_args.args[0], self.user)
-        self.assertIsInstance(mock_embed.call_args.args[1], uuid.UUID)
-        self.assertNotEqual(mock_embed.call_args.args[1], self.job_id)
-        self.assertIs(mock_cluster.call_args.args[0], self.user)
-        self.assertIsInstance(mock_cluster.call_args.args[1], uuid.UUID)
-        self.assertNotEqual(
-            mock_embed.call_args.args[1], mock_cluster.call_args.args[1]
-        )
+        # Embedding generation and clustering always run afterwards, called
+        # directly with no job id: each writes its own row when it has work.
+        mock_embed.assert_called_once_with(self.user)
+        mock_cluster.assert_called_once_with(self.user)
 
         self.assertEqual(len(photos), 2)
 

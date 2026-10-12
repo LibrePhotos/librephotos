@@ -88,7 +88,7 @@ class BulkFavoriteMetadataWriteTest(TestCase):
         self.hashes = [p.image_hash for p in self.photos]
 
     def _favorite(self, **payload):
-        with patch("api.metadata.jobs.AsyncTask") as async_task:
+        with patch("api.metadata.jobs.enqueue_task") as async_task:
             response = self.client.post(
                 "/api/photosedit/favorite/", payload, format="json"
             )
@@ -110,7 +110,6 @@ class BulkFavoriteMetadataWriteTest(TestCase):
         self.assertIs(func, write_photo_ratings)
         self.assertCountEqual(photo_ids, [self.photos[1].pk, self.photos[2].pk])
         self.assertTrue(use_sidecar)
-        async_task.return_value.run.assert_called_once_with()
 
     def test_media_file_mode_writes_into_the_file(self):
         self._set_mode(User.SaveMetadata.MEDIA_FILE)
@@ -142,7 +141,7 @@ class BulkFavoriteMetadataWriteTest(TestCase):
 
     def test_a_queue_failure_does_not_fail_the_favorite(self):
         self._set_mode(User.SaveMetadata.SIDECAR_FILE)
-        with patch("api.metadata.jobs.AsyncTask", side_effect=RuntimeError("down")):
+        with patch("api.metadata.jobs.enqueue_task", side_effect=RuntimeError("down")):
             response = self.client.post(
                 "/api/photosedit/favorite/",
                 {"image_hashes": self.hashes, "favorite": True},

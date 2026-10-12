@@ -1,8 +1,6 @@
 import logging
-from datetime import timedelta
 
-from django.db.models import Prefetch, Q, QuerySet
-from django.utils import timezone
+from django.db.models import F, Prefetch, QuerySet
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -11,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.jobs.queue import remove_queued_tasks
 from api.models import LongRunningJob, User
 from api.request_user import request_user
 from api.serializers.job import JobListQuery, LongRunningJobSerializer
@@ -74,29 +73,9 @@ class LongRunningJobViewSet(
 
         job.cancel()
 
-        # Best-effort: try to remove queued django-q tasks that haven't started yet.
-        # OrmQ stores tasks with a signed/pickled payload; the job_id is embedded
-        # in the task arguments, not in the OrmQ.key or humanized name fields.
-        # We iterate queued tasks and check the deserialized args for our job_id.
-        # This is bounded by Q_CLUSTER["queue_limit"] (default 50) and only runs
-        # on explicit user cancellation, so the overhead is minimal.
-        try:
-            from django_q.models import OrmQ
-
-            job_id_str = str(job.job_id)
-            for queued in OrmQ.objects.all():
-                try:
-                    task_args = queued.task.get("args", ())
-                    if any(str(arg) == job_id_str for arg in task_args):
-                        queued.delete()
-                except Exception:
-                    # Skip unparseable entries
-                    logger.debug("Skipping queued task %s", queued.id, exc_info=True)
-        except Exception:
-            # Non-critical; cooperative cancellation handles running tasks
-            logger.warning(
-                "Could not remove the queued tasks of job %s", job.job_id, exc_info=True
-            )
+        # The task skips a cancelled job when it claims its row; removing it
+        # from the broker as well frees its slot in the queue.
+        remove_queued_tasks(job.job_id)
 
         return Response(
             {
@@ -112,18 +91,13 @@ class QueueAvailabilityView(APIView):
     def get(self, request: Request, format: str | None = None) -> Response:
         job_detail = None
 
-        # Ignore unfinished rows past the stuck-job threshold so orphaned jobs
-        # (OOM, restart, uncaught exception) do not block the queue forever
-        # while waiting for the hourly cleanup schedule to fire. See #1919.
-        cutoff = timezone.now() - timedelta(hours=LongRunningJob.STUCK_JOB_HOURS)
+        # Queued jobs count: their rows are written when they are queued. The
+        # one shown is the job actually running, else the oldest queued one.
+        # running() leaves out rows past the stuck-job threshold (#1919).
         running_job = (
-            LongRunningJob.objects.filter(finished=False)
-            .filter(
-                Q(started_at__gte=cutoff)
-                | Q(started_at__isnull=True, queued_at__gte=cutoff)
-            )
-            .order_by("-started_at")
-            .last()
+            LongRunningJob.objects.running()
+            .order_by(F("started_at").asc(nulls_last=True), "queued_at")
+            .first()
         )
         # The queue is shared, so whether it is busy stays a global answer, but
         # the job itself (type, progress, who started it) follows the #1861

@@ -16,7 +16,6 @@ from django.db.models import (
     When,
 )
 from django.utils import timezone
-from django_q.tasks import Chain
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -28,9 +27,10 @@ from rest_framework.views import APIView
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.exceptions import Conflict
 from api.face_classify import cluster_all_faces
+from api.jobs.queue import JobStep
 from api.metadata.photo_writer import write_target
-from api.ml_models import do_all_models_exist, download_models
-from api.models import Face, Photo
+from api.ml_models import missing_models_prerequisites
+from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
@@ -50,7 +50,7 @@ from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
 from api.views.params import parse_body, parse_query
 from api.views.photos import _get_photo_filter_kwargs
-from api.views.scan_triggers import start_job
+from api.views.scan_triggers import start_job, start_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -73,15 +73,15 @@ class ScanFacesView(APIView):
             raise PermissionDenied("Face detection is disabled")
 
         user = request_user(request)
-
-        def enqueue(job_id: uuid.UUID) -> None:
-            chain = Chain()
-            if not do_all_models_exist():
-                chain.append(download_models, user)
-            chain.append(scan_faces, user, job_id, True)
-            chain.run()
-
-        return start_job(enqueue, "the face scan")
+        return start_job(
+            user,
+            LongRunningJob.JOB_SCAN_FACES,
+            scan_faces,
+            user,
+            full_scan=True,
+            description="the face scan",
+            prerequisites=missing_models_prerequisites(user),
+        )
 
 
 class TrainFaceView(APIView):
@@ -92,18 +92,25 @@ class TrainFaceView(APIView):
         if not settings.FEATURE_FACE_CLUSTER:
             raise PermissionDenied("Face clustering is disabled")
         user = request_user(request)
-
-        def enqueue(job_id: uuid.UUID) -> None:
-            chain = Chain()
-            if not do_all_models_exist():
-                chain.append(download_models, user)
-            chain.append(generate_face_embeddings, user, uuid.uuid4())
-            chain.append(cluster_all_faces, user, job_id)
-            chain.run()
-
-        # A failure to queue answers 500 (start_job); it used to be a 200
-        # with "status": false, which clients showed as "training started".
-        return start_job(enqueue, "the face training")
+        # Embeddings first, then clustering, which queues the training. The
+        # answer's job_id is the clustering job's; job_ids has both. A failure
+        # to queue answers 500 (start_jobs); it used to be a 200 with
+        # "status": false, which clients showed as "training started".
+        return start_jobs(
+            user,
+            [
+                JobStep(
+                    LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
+                    generate_face_embeddings,
+                    (user,),
+                ),
+                JobStep(
+                    LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces, (user,)
+                ),
+            ],
+            "the face training",
+            prerequisites=missing_models_prerequisites(user),
+        )
 
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._train_faces(request)

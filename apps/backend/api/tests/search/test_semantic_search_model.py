@@ -186,7 +186,10 @@ class EmbeddingsAfterTagsTest(TestCase):
             progress_current=1,
             progress_target=1,
         )
-        with patch("django_q.tasks.AsyncTask") as task:
+        with (
+            patch("api.jobs.queue.AsyncTask") as task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             watcher_utils.finish_job_if_complete(job.job_id)
         return user, task
 
@@ -195,7 +198,10 @@ class EmbeddingsAfterTagsTest(TestCase):
 
         user, task = self._finish_tags_job()
 
-        task.assert_called_once_with(batch_calculate_clip_embedding, user)
+        task.assert_called_once()
+        self.assertEqual(task.call_args.args, (batch_calculate_clip_embedding, user))
+        job = LongRunningJob.objects.get(job_id=task.call_args.kwargs["job_id"])
+        self.assertEqual(job.job_type, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS)
         task.return_value.run.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
@@ -227,10 +233,11 @@ class ConversionTest(TestCase):
         from api.image_similarity import build_image_similarity_index
 
         with (
-            patch("django_q.tasks.AsyncTask") as task,
+            patch("api.jobs.queue.AsyncTask") as task,
             patch(
-                "api.management.commands.build_similarity_index.AsyncTask"
+                "api.management.commands.build_similarity_index.enqueue_task"
             ) as index_task,
+            self.captureOnCommitCallbacks(execute=True),
         ):
             call_command("build_similarity_index")
 

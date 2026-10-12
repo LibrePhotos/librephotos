@@ -79,7 +79,10 @@ class NextcloudEndpointGatingTest(TestCase):
 
     @override_config(NEXTCLOUD_ENABLED=True)
     def test_scanphotos_is_reachable_once_nextcloud_is_enabled(self):
-        with mock.patch("nextcloud.views.AsyncTask") as async_task:
+        with (
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
             response = self.client.post(SCANPHOTOS_URL)
 
         self.assertEqual(response.status_code, 200)

@@ -8,8 +8,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
-from django_q.tasks import AsyncTask, schedule
 
+from api.jobs.queue import enqueue_job, schedule_once
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
@@ -35,22 +35,20 @@ def zip_file_name(file_uuid: uuid.UUID | str, user_id: int) -> str | None:
     return f"{canonical}{int(user_id)}.zip"
 
 
-def create_download_job(
-    job_type: int, user: User, photos: list[Photo], filename: str | None
-) -> str:
-    lrj = LongRunningJob.create_job(
-        user=user,
-        job_type=job_type,
-    )
-    if job_type == LongRunningJob.JOB_DOWNLOAD_PHOTOS:
-        AsyncTask(
-            zip_photos_task,
-            job_id=lrj.job_id,
-            user=user,
-            photos=photos,
-            filename=filename,
-        ).run()
+def create_download_job(user: User, photos: list[Photo], filename: str | None) -> str:
+    """Queue the archive of ``photos`` for ``user``; returns the job's id.
 
+    Not exclusive: a user may build several archives at once.
+    """
+    lrj = enqueue_job(
+        user,
+        LongRunningJob.JOB_DOWNLOAD_PHOTOS,
+        zip_photos_task,
+        user,
+        photos,
+        filename,
+        exclusive=False,
+    )
     return lrj.job_id
 
 
@@ -169,10 +167,11 @@ def _remove_abandoned_partial_zips(output_directory: str) -> None:
 
 
 def zip_photos_task(
-    job_id: str, user: User, photos: list[Photo], filename: str
+    user: User, photos: list[Photo], filename: str, job_id: str
 ) -> str | None:
-    lrj = LongRunningJob.objects.get(job_id=job_id)
-    lrj.start()
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_DOWNLOAD_PHOTOS, job_id)
+    if lrj is None:
+        return None
     count = len(photos)
     lrj.update_progress(current=0, target=count)
     output_directory = os.path.join(settings.MEDIA_ROOT, "zip")
@@ -206,7 +205,7 @@ def zip_photos_task(
     lrj.complete()
     # scheduling a task to delete the zip file after a day
     execution_time = timezone.now() + timedelta(days=1)
-    schedule("api.all_tasks.delete_zip_file", filename, next_run=execution_time)
+    schedule_once("api.all_tasks.delete_zip_file", filename, at=execution_time)
     return output_path
 
 

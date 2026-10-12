@@ -14,7 +14,9 @@ import requests
 from constance import config as site_config
 from django.conf import settings
 
+from api.exceptions import JobAlreadyRunning
 from api.http_timeouts import MODEL_DOWNLOAD
+from api.jobs.queue import Task, enqueue_job
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
 from librephotos.env import data_models_root
@@ -519,12 +521,15 @@ def _download_file(
         raise
 
 
-def download_models(user: User) -> None:
-    lrj = LongRunningJob.create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
-        start_now=True,
-    )
+def download_models(user: User, job_id: str | None = None) -> None:
+    """Download the selected models, reporting on the job ``job_id``.
+
+    Without ``job_id`` (chained in front of a scan or another job, see
+    ``missing_models_prerequisites``) it writes its own row as it starts.
+    """
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_DOWNLOAD_MODELS, job_id)
+    if lrj is None:
+        return
     lrj.update_progress(current=0, target=len(ML_MODELS))
 
     model_folder = _models_folder()
@@ -587,14 +592,23 @@ def captioning_model_exists() -> bool:
     )
 
 
+def missing_models_prerequisites(user: User) -> list[Task]:
+    """The model download to chain in front of a job, when models are missing."""
+    if do_all_models_exist():
+        return []
+    return [Task(download_models, (user,))]
+
+
 def model_download_running() -> bool:
-    return LongRunningJob.objects.filter(
-        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
-    ).exists()
+    return (
+        LongRunningJob.objects.running()
+        .filter(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        .exists()
+    )
 
 
 def start_model_download(user: User) -> bool:
-    """Queue a Download Models job unless one is already running.
+    """Queue a Download Models job unless one is already queued or running.
 
     Returns True when a download is now running (just queued or already
     underway), False when it could not be queued.
@@ -602,9 +616,9 @@ def start_model_download(user: User) -> bool:
     if model_download_running():
         return True
     try:
-        from django_q.tasks import AsyncTask
-
-        AsyncTask(download_models, user).run()
+        enqueue_job(user, LongRunningJob.JOB_DOWNLOAD_MODELS, download_models, user)
+        return True
+    except JobAlreadyRunning:
         return True
     except Exception:
         logger.exception("Failed to queue the model download")

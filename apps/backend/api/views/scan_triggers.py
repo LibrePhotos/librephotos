@@ -2,10 +2,8 @@
 
 import logging
 import os
-import uuid
-from collections.abc import Callable
+from collections.abc import Sequence
 
-from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -15,7 +13,10 @@ from rest_framework.views import APIView
 
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
-from api.ml_models import do_all_models_exist, download_models
+from api.exceptions import JobAlreadyRunning
+from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain
+from api.ml_models import missing_models_prerequisites
+from api.models import LongRunningJob
 from api.models.user import User
 from api.request_user import request_user
 from api.serializers.job import GenerateOcrRequest
@@ -37,34 +38,81 @@ def _validate_scan_directory(user: User) -> None:
         )
 
 
-def start_job(enqueue: Callable[[uuid.UUID], object], description: str) -> Response:
-    """Queue a background job for a request and answer that request.
+def enqueue_for_request(
+    user: User,
+    steps: Sequence[JobStep],
+    description: str,
+    prerequisites: Sequence[Task] = (),
+    exclusive: bool = True,
+) -> list[LongRunningJob]:
+    """Queue ``steps`` (one job, or several in a row) for a request.
 
-    ``enqueue(job_id)`` hands the work to django-q2. When that fails (the
-    broker is unreachable, say) the job never started, and the client is told
-    so with a 500 (code ``job_start_failed``) rather than a 200 carrying
-    ``"status": False``.
+    The rows are written before the request answers (``api.jobs.queue``). A
+    second start while one of these jobs is queued or running is a 409 with
+    code ``job_already_running`` whose entry carries the running job's
+    ``job_id``. When queuing fails (the broker is unreachable, say) the rows
+    are marked failed and the client gets a 500 (code ``job_start_failed``)
+    rather than a 200 carrying ``"status": False``.
     """
-    job_id = uuid.uuid4()
     try:
-        enqueue(job_id)
+        return enqueue_chain(
+            user, steps, prerequisites=prerequisites, exclusive=exclusive
+        )
+    except JobAlreadyRunning:
+        raise
     except Exception as error:
         logger.exception("Could not start %s", description)
         raise APIException(
             f"Could not start {description}.", code="job_start_failed"
         ) from error
-    return Response({"status": True, "job_id": job_id})
+
+
+def start_jobs(
+    user: User,
+    steps: Sequence[JobStep],
+    description: str,
+    prerequisites: Sequence[Task] = (),
+) -> Response:
+    """Queue ``steps`` (``enqueue_for_request``) and answer the request.
+
+    The answer's ``job_id`` is the last step's; ``job_ids`` lists every step's.
+    """
+    jobs = enqueue_for_request(user, steps, description, prerequisites)
+    return Response(
+        {
+            "status": True,
+            "job_id": jobs[-1].job_id,
+            "job_ids": [job.job_id for job in jobs],
+        }
+    )
+
+
+def start_job(
+    user: User,
+    job_type: int,
+    func: TaskFunc,
+    *args: object,
+    description: str,
+    prerequisites: Sequence[Task] = (),
+    **kwargs: object,
+) -> Response:
+    """``start_jobs`` for one job, ``func(*args, job_id=..., **kwargs)``."""
+    return start_jobs(
+        user, [JobStep(job_type, func, args, kwargs)], description, prerequisites
+    )
 
 
 def _start_photo_scan(user: User, directory: str, full_scan: bool = False) -> Response:
-    def enqueue(job_id: uuid.UUID) -> None:
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, user)
-        chain.append(scan_photos, user, full_scan, job_id, directory)
-        chain.run()
-
-    return start_job(enqueue, "the photo scan")
+    return start_job(
+        user,
+        LongRunningJob.JOB_SCAN_PHOTOS,
+        scan_photos,
+        user,
+        full_scan,
+        scan_directory=directory,
+        description="the photo scan",
+        prerequisites=missing_models_prerequisites(user),
+    )
 
 
 class ScanPhotosView(APIView):
@@ -123,8 +171,11 @@ class DeleteMissingPhotosView(APIView):
     ) -> Response:
         user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(delete_missing_photos, user, job_id).run(),
-            "the missing-photo cleanup",
+            user,
+            LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
+            delete_missing_photos,
+            user,
+            description="the missing-photo cleanup",
         )
 
 
@@ -136,8 +187,11 @@ class ClassifyMediaView(APIView):
 
         user = request_user(request)
         return start_job(
-            lambda job_id: AsyncTask(classify_media, user, job_id).run(),
-            "media classification",
+            user,
+            LongRunningJob.JOB_CLASSIFY_MEDIA,
+            classify_media,
+            user,
+            description="media classification",
         )
 
 
@@ -151,6 +205,10 @@ class GenerateOcrView(APIView):
         user = request_user(request)
         full_scan = parse_body(request, GenerateOcrRequest)["full_scan"]
         return start_job(
-            lambda job_id: AsyncTask(generate_ocr, user, job_id, full_scan).run(),
-            "text recognition",
+            user,
+            LongRunningJob.JOB_GENERATE_OCR,
+            generate_ocr,
+            user,
+            full_scan=full_scan,
+            description="text recognition",
         )

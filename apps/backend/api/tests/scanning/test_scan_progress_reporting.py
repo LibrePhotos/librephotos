@@ -169,8 +169,8 @@ class EmptyDirectoryScanTestCase(TestCase):
         # Mock AsyncTask to prevent background task issues in tests
         with (
             patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
-            patch("api.directory_watcher.scan_jobs.AsyncTask"),
-            patch("api.directory_watcher.scan_jobs.Chain"),
+            patch("api.jobs.queue.AsyncTask"),
+            patch("api.jobs.queue.Chain"),
         ):
             # Run the scan
             scan_photos(

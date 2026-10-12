@@ -15,7 +15,6 @@ import logging
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Count, Sum
-from django_q.tasks import async_task
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, ValidationError
@@ -24,7 +23,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import Photo, PhotoMetadata
+from api.jobs.queue import JobStep
+from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.duplicate import Duplicate
 from api.request_user import request_user
 from api.serializers.duplicate import (
@@ -33,6 +33,7 @@ from api.serializers.duplicate import (
     DuplicateResolveRequest,
 )
 from api.views.params import parse_body, parse_query
+from api.views.scan_triggers import enqueue_for_request
 
 logger = logging.getLogger(__name__)
 
@@ -336,8 +337,17 @@ class DetectDuplicatesView(APIView):
         # batches, more would use too much memory.
         options = parse_body(request, DetectDuplicatesRequest)
 
-        # Queue background job
-        async_task(batch_detect_duplicates, user, options)
+        [job] = enqueue_for_request(
+            user,
+            [
+                JobStep(
+                    LongRunningJob.JOB_DETECT_DUPLICATES,
+                    batch_detect_duplicates,
+                    (user, options),
+                )
+            ],
+            "duplicate detection",
+        )
 
         logger.info(
             "Duplicate detection queued for user %s with options: %s",
@@ -349,6 +359,7 @@ class DetectDuplicatesView(APIView):
                 "status": "queued",
                 "message": "Duplicate detection started",
                 "options": options,
+                "job_id": job.job_id,
             },
             status=status.HTTP_202_ACCEPTED,
         )
