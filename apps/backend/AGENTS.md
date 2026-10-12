@@ -58,6 +58,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (`api/tests/infra/test_api_conventions.py`); a mutating one also needs a case in
   `api/tests/sharing_and_public/test_cross_tenant_writes.py`, or its exact route in `NOT_PHOTO_SCOPED`
   with the reason (a prefix entry never covers the routes below it).
+- URLs: a new route is a `path()` (or a router registration), never `re_path()`: kebab-case literal segments, a trailing slash, ids through the converters in `librephotos/converters.py`. Legacy `re_path()` routes keep both slash forms through `/?$`, and `api/tests/infra/test_url_patterns.py` fails on a new one, an unanchored route or a client path that changes view.
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
   Python (settings dotted paths, django_q schedules) and only shrinks.
