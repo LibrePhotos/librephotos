@@ -24,7 +24,8 @@ const stubs = vi.hoisted(() => {
   return {
     ApiError,
     mutate: vi.fn<(params: unknown, callbacks: SaveCallbacks) => void>(),
-    // The album that holds a slug, or undefined for a free one (the server's 404)
+    // The album that holds a slug, undefined for a free one (the server's 404), or "pending" for
+    // a check that has not answered yet
     slugOwner: undefined as string | undefined,
   };
 });
@@ -38,10 +39,12 @@ vi.mock("../../api_client/albums/hooks", () => ({
 vi.mock("../../api_client/api", () => ({
   ApiError: stubs.ApiError,
   fetchClient: {
-    get: () =>
-      stubs.slugOwner === undefined
+    get: () => {
+      if (stubs.slugOwner === "pending") return new Promise(() => {});
+      return stubs.slugOwner === undefined
         ? Promise.reject(new stubs.ApiError())
-        : Promise.resolve({ results: { id: stubs.slugOwner } }),
+        : Promise.resolve({ results: { id: stubs.slugOwner } });
+    },
   },
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
@@ -215,6 +218,16 @@ describe("AlbumSlugSection link settings", () => {
     await typeSlug("mine");
     expect(container.textContent).not.toContain("sharing.urlTaken");
     expect(saveButton().disabled).toBe(false);
+  });
+
+  // The check of a new slug has no answer yet: that is not "taken", only not saveable yet.
+  it("does not call a slug taken while its check is running", async () => {
+    stubs.slugOwner = "pending";
+    await render(albumWith({}));
+    await typeSlug("summer");
+
+    expect(container.textContent).not.toContain("sharing.urlTaken");
+    expect(saveButton().disabled).toBe(true);
   });
 
   it("clears the expiry with Never", async () => {

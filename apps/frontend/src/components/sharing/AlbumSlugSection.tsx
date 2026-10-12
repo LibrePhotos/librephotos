@@ -48,7 +48,9 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
     retry: false,
   });
 
-  const available = !enabled || existingId === null || String(existingId) === String(albumId ?? "");
+  // No answer yet (undefined) is not "taken": saving waits for the check through `checking`.
+  const available =
+    !enabled || existingId === undefined || existingId === null || String(existingId) === String(albumId ?? "");
 
   useEffect(() => {
     onMetaChange({ valid, available, checking: isFetching });
