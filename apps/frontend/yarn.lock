@@ -1011,12 +1011,12 @@
   resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.49.0.tgz#8ad023d3847540250f318a73f80431f1b69d83ff"
   integrity sha512-l+GnSkFETx0U26icxv1VUFnxxiTqXfCcVRiRAnyMwibupM2S2L/hSaZ9gmSgz01rkrsH/93NvLsxykqdanc6lw==
 
-"@tanstack/eslint-plugin-query@5.104.1":
-  version "5.104.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/eslint-plugin-query/-/eslint-plugin-query-5.104.1.tgz#3d4a43358f28d606282d71833c587fee68f804d3"
-  integrity sha512-7LmiJkxzuy0YrCoL0q5yWz9NsW39h2CeuKjvetjVaFCJ9hrS4UM9TiCEx0rWeLDe6ff1r1KwV+yzclCvzzrnQg==
+"@tanstack/eslint-plugin-query@5.104.2":
+  version "5.104.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/eslint-plugin-query/-/eslint-plugin-query-5.104.2.tgz#17dc357bf5357d7e5d6c881a46bab011c3c25c32"
+  integrity sha512-HXPo1XeqKkBZI5m30CcF1WdEagFqPczHLrZHlObhGtJEkeLC1emtR4B38AVS+CPBKC8ZOjmM5nAKqUpZrAaedw==
   dependencies:
-    "@typescript-eslint/utils" "^8.70.1"
+    "@typescript-eslint/utils" "^8.71.0"
 
 "@tanstack/history@1.162.5":
   version "1.162.5"
@@ -1518,7 +1518,7 @@
     tinyglobby "^0.2.15"
     ts-api-utils "^2.5.0"
 
-"@typescript-eslint/utils@8.71.1", "@typescript-eslint/utils@^8.70.1":
+"@typescript-eslint/utils@8.71.1", "@typescript-eslint/utils@^8.71.0":
   version "8.71.1"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/utils/-/utils-8.71.1.tgz#cb0a9933f9d1705b44c11462e5ba26bf9fdcefeb"
   integrity sha512-CBjT6gfAz3DW2j9Q4moFnqt208Aq+506sVGXfpRcyAeqn0EpayL0mjdWoCO2t3RC7GewNrFxdeehuEaPg6DMzQ==
