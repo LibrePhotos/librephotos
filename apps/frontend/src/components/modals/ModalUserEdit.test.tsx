@@ -433,6 +433,12 @@ describe("ModalUserEdit password", () => {
     expect(document.body.textContent).toContain(i18n.t("settings.password.errormustretype"));
     expect(stubs.signUp).not.toHaveBeenCalled();
 
+    // Every submit says what is missing, not only the first one
+    type(input("password"), "s3cret!?");
+    submit();
+    expect(document.body.textContent).toContain(i18n.t("settings.password.errormustretype"));
+
+    type(input("password"), "s3cret!!");
     type(input("passwordConfirm"), "s3cret!!");
     submit();
 

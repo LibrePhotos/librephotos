@@ -41,7 +41,8 @@ export function newName(existingNames: Iterable<string>, messages: { blank: stri
   return z.string().trim().min(1, { error: messages.blank }).pipe(uniqueName(existingNames, messages.taken));
 }
 
-type NewPasswordFields = { password: string; passwordConfirm: string; changePassword: boolean };
+/** The password fields of `components/settings/PasswordEntry`; `changePassword` is its lock (true: unlocked). */
+export type NewPasswordFields = { password: string; passwordConfirm: string; changePassword: boolean };
 
 /**
  * `schema` with the password fields of `components/settings/PasswordEntry`: while a password is

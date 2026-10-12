@@ -39,11 +39,8 @@ export function ModalUserEdit(props: Props) {
     firstTimeSetup,
     userToEdit,
   } = props;
-  const [userPassword, setUserPassword] = useState("");
-  const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
   const { t } = useTranslation();
-  const [closing, setClosing] = useState(false);
   const { mutate: signup, isPending: isSigningUp } = useSignUpMutation();
   const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
@@ -61,12 +58,15 @@ export function ModalUserEdit(props: Props) {
       first_name: "",
       last_name: "",
       password: "",
+      passwordConfirm: "",
+      changePassword: false,
       scan_directory: "",
       upload_directory: "",
     },
     validate: schemaResolver(
       makeUserEditSchema(t, {
         otherUsernames: userList.filter(user => user.id !== userToEdit.id).map(user => user.username),
+        createNew,
         firstTimeSetup: !!firstTimeSetup,
         isPathValid,
         isUploadPathValid,
@@ -75,7 +75,7 @@ export function ModalUserEdit(props: Props) {
     ),
   });
 
-  // Reads the form and the typed password at reset time; neither is a trigger (see below).
+  // Reads the form at reset time; it is not a trigger (see below).
   const resetFromUser = useEffectEvent((user: Readonly<Partial<User>>) => {
     if (user) {
       if (user.scan_directory) {
@@ -93,15 +93,18 @@ export function ModalUserEdit(props: Props) {
         last_name: user.last_name ?? "",
         scan_directory: user.scan_directory ?? "",
         upload_directory: user.upload_directory ?? "",
-        password: userPassword || "",
+        // Another user starts with the password fields locked and empty.
+        password: "",
+        passwordConfirm: "",
+        changePassword: false,
       });
     } else {
       setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
     }
   });
   // Reset the form only when a different user is opened (or the language changes, for the
-  // placeholder). `form` is a new object every render and `userPassword` changes while typing;
-  // either as a trigger would wipe the fields the admin is editing.
+  // placeholder). `form` is a new object every render; as a trigger it would wipe the fields the
+  // admin is editing.
   useEffect(() => {
     resetFromUser(userToEdit);
   }, [userToEdit, t]);
@@ -113,12 +116,9 @@ export function ModalUserEdit(props: Props) {
   }, [form.values.scan_directory]);
 
   const validateAndClose = () => {
-    setClosing(true);
-
-    if (!newPasswordIsValid) {
-      return;
-    }
     const { email, username, first_name: firstName, last_name: lastName, scan_directory: scanDirectory } = form.values;
+    // Locked fields hold no password (locking empties them); the schema checked unlocked ones.
+    const password = createNew || form.values.changePassword ? form.values.password : "";
     const newUserData: Partial<User> = { ...userToEdit };
 
     if (scanDirectory) {
@@ -138,11 +138,11 @@ export function ModalUserEdit(props: Props) {
     }
 
     if (createNew) {
-      if (userPassword && username) {
+      if (password && username) {
         signup(
           {
             username: username.toLowerCase(),
-            password: userPassword,
+            password,
             email,
             first_name: firstName,
             last_name: lastName,
@@ -164,8 +164,8 @@ export function ModalUserEdit(props: Props) {
     newUserData.first_name = firstName;
     newUserData.last_name = lastName;
 
-    if (userPassword) {
-      newUserData.password = userPassword;
+    if (password) {
+      newUserData.password = password;
     }
     if (username) {
       newUserData.username = username;
@@ -186,11 +186,6 @@ export function ModalUserEdit(props: Props) {
         onError: reportUserSaveError,
       }
     );
-  };
-
-  const onPasswordValidate = (pass: string, valid: boolean) => {
-    setUserPassword(pass);
-    setNewPasswordIsValid(valid);
   };
 
   // Null without a scan directory: the backend refuses uploads then.
@@ -243,7 +238,7 @@ export function ModalUserEdit(props: Props) {
           </SimpleGrid>
 
           <Box mt="sm">
-            <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
+            <PasswordEntry form={form} createNew={createNew} />
           </Box>
         </Box>
         {!createNew && (

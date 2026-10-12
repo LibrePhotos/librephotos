@@ -159,6 +159,17 @@ describe("Profile", () => {
     expect(sentUser()).toMatchObject({ id: 1, password: "s3cret!!" });
   });
 
+  it("offers to save a password as soon as one is typed, and asks for the retype on Save", async () => {
+    await act(async () => lock().click());
+    expect(saveDialog()).toBeNull();
+
+    await type(defined(passwordInputs()[0]), "s3cret!!");
+    await act(async () => dialogButton("Update").click());
+
+    expect(stubs.updateUser).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("You must retype the password");
+  });
+
   it("does not save a password once the fields are locked again", async () => {
     await typeNewPassword("s3cret!!");
     await act(async () => lock().click());
