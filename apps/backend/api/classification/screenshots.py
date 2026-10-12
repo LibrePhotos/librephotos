@@ -24,6 +24,8 @@ import os
 import re
 from typing import TYPE_CHECKING
 
+from django.core.exceptions import ObjectDoesNotExist
+
 if TYPE_CHECKING:
     from api.models.photo import Photo
     from api.models.photo_metadata import PhotoMetadata
@@ -85,7 +87,7 @@ def _get_metadata(photo: Photo) -> PhotoMetadata | None:
     """
     try:
         return photo.metadata
-    except Exception:
+    except ObjectDoesNotExist:
         return None
 
 

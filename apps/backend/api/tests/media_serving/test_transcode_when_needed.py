@@ -4,7 +4,7 @@
 that does not decode HEVC, and it converted everything, including the H.264
 videos that play as they are -- at a 720-line cap, in a browser that may well
 have played the original in 4K. The backend now tells the frontend what each
-video is, in the form ``canPlayType`` takes (:mod:`api.video_playback`), and
+video is, in the form ``canPlayType`` takes (:mod:`api.video.playback`), and
 the frontend asks for a conversion with ``?transcode=1`` only when the answer
 is no.
 
@@ -20,7 +20,6 @@ from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api import transcode_cache, video_playback
 from api.models import Photo
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.photos import PhotoSerializer
@@ -34,13 +33,14 @@ from api.tests.utils import (
     create_test_photo,
     create_test_user,
 )
+from api.video import playback, transcode_cache
 
 MP4 = "mov,mp4,m4a,3gp,3g2,mj2"
 MKV = "matroska,webm"
 
 
 def _type(codec, pixel_format="yuv420p", container=MP4, video=True):
-    return video_playback.playback_type(
+    return playback.playback_type(
         SimpleNamespace(
             video=video,
             video_codec=codec,

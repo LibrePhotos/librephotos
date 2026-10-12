@@ -117,9 +117,9 @@ def _can_decode(path: str) -> bool:
     try:
         # Imported here: it loads libvips, Pillow's HEIC/JXL plugins and
         # LibRaw, which the API server never needs.
-        from api import image_decoding
+        from api.thumbnails import decoding
 
-        decodable = image_decoding.can_decode(path)
+        decodable = decoding.can_decode(path)
     except (ImportError, OSError) as e:
         # A loader library that is missing or fails to load (pyvips raises
         # OSError without libvips), or a file it cannot read.

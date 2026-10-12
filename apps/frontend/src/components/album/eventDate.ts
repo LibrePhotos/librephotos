@@ -1,7 +1,7 @@
 import type { DateTime } from "luxon";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
-// The backend keys an event at its first photo less this (api/autoalbum.py)
+// The backend keys an event at its first photo less this (api/albums/auto_albums.py)
 const GROUPING_KEY_OFFSET = { hours: 11, minutes: 59 };
 
 /**

@@ -23,8 +23,8 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
 
+from api.albums.timeline_filter import parse_tristate
 from api.request_data import request_dict
-from api.timeline_filter import parse_tristate
 
 
 def parse_query(
@@ -132,7 +132,7 @@ class QueryFlagField(serializers.Field[bool, str, bool, Any]):
 class TristateFlagField(serializers.Field[bool, str, bool, Any]):
     """A timeline-filter flag: a false word, any other word, or absent.
 
-    Read by ``api.timeline_filter.parse_tristate``: ``false``, ``0``, ``no``
+    Read by ``api.albums.timeline_filter.parse_tristate``: ``false``, ``0``, ``no``
     and ``off`` are false, any other non-blank value is true, and a blank or
     absent flag is left out of the validated data, so the timeline filter
     falls back to the user's saved default for it. It never fails.

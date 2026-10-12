@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.autoalbum import generate_event_albums, regenerate_event_titles
+from api.albums.auto_albums import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
 from api.pagination import WholeListPagination
@@ -93,7 +93,7 @@ class AlbumAutoListViewSet(ListViewSet):
                     "photos", filter=visible_photo_q("photos__"), distinct=True
                 ),
                 # When the event began: `timestamp` is only its grouping key,
-                # 11h59m before the first photo (api/autoalbum.py).
+                # 11h59m before the first photo (api/albums/auto_albums.py).
                 start=Min("photos__exif_timestamp", filter=visible_photo_q("photos__")),
             )
             .filter(Q(photo_count__gt=0))

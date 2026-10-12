@@ -13,20 +13,13 @@ from uuid import UUID
 from django import db
 from django.db.models import Q, QuerySet
 
-from api import (
-    photo_faces,
-    semantic_search,
-    sidecars,
-    thumbnails,
-    transcode_cache,
-    video_color,
-)
+from api import photo_faces, semantic_search, sidecars
+from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
     update_scan_counter,
 )
-from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import enqueue_task
@@ -37,6 +30,8 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photo_faces import extract_faces
 from api.semantic_search import OPENCLIP, TAG_THING_TYPE
+from api.thumbnails import render
+from api.video import color, transcode_cache
 
 logger = logging.getLogger(__name__)
 
@@ -395,12 +390,12 @@ def _tag_labels_for_photo(photo: Photo) -> set[str]:
 def detect_media_category(photo: Photo) -> tuple[bool, bool | None]:
     """``(is_screenshot, is_document)`` as the detectors see ``photo`` now.
 
-    Both are DB-only heuristics: :func:`api.screenshot_detection.classify` and,
+    Both are DB-only heuristics: :func:`api.classification.screenshots.classify` and,
     for a photo with an OCR row, :func:`classify_document` over its OCR text
     and tag labels. ``is_document`` is ``None`` without an OCR row: there is
     no evidence either way. No service call, no file read.
     """
-    from api.screenshot_detection import classify
+    from api.classification.screenshots import classify
 
     return classify(photo), detect_document(photo)
 
@@ -513,9 +508,9 @@ def classify_media(user: User, job_id: UUID) -> None:
     Backfill media-category flags (screenshot/document) for a user's photos.
 
     Unlike the tag/geolocation jobs the per-photo work is DB-only: it runs the
-    pure :func:`api.screenshot_detection.classify` heuristic (``is_screenshot``)
+    pure :func:`api.classification.screenshots.classify` heuristic (``is_screenshot``)
     and, for photos that already carry an OCR row, the pure
-    :func:`api.document_detection.classify_document` heuristic (``is_document``),
+    :func:`api.classification.documents.classify_document` heuristic (``is_document``),
     then writes the results back in batches. No service calls, thumbnails or file
     reads. Photos a user has manually corrected (``category_source == "user"``)
     are left alone. Photos without an OCR row keep their existing ``is_document``
@@ -525,7 +520,7 @@ def classify_media(user: User, job_id: UUID) -> None:
         user: The user whose photos to classify
         job_id: Job ID for tracking progress
     """
-    from api.screenshot_detection import classify
+    from api.classification.screenshots import classify
 
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_CLASSIFY_MEDIA, job_id)
     if lrj is None:
@@ -623,15 +618,15 @@ def videos_to_probe(user: User) -> QuerySet[Photo]:
 def _repair_probed_video(photo: Photo, fields: list[str]) -> None:
     """Rebuild what was made from ``photo`` wrongly, then save its probe.
 
-    ``fields`` are the probed values :func:`video_color.apply_probe` set on the
-    photo. They are saved last, so that a worker killed half-way through the
+    ``fields`` are the probed values :func:`api.video.color.apply_probe` set on
+    the photo. They are saved last, so that a worker killed half-way through the
     rebuild -- a container restart while ffmpeg runs -- leaves the video
     unprobed and the next scan's backfill tries it again, putting its set-aside
     thumbnails back first. A rebuild that fails cleanly has put them back
     already, and trying again would only fail again, so that one is saved.
     """
     try:
-        if video_color.converted_wrongly_before(photo):
+        if color.converted_wrongly_before(photo):
             transcode_cache.discard(photo.image_hash)
             # Fetched with select_related, so its photo is this one, and the
             # rebuild reads the values not saved yet.
@@ -639,7 +634,7 @@ def _repair_probed_video(photo: Photo, fields: list[str]) -> None:
             if thumbnail is not None:
                 # If ffmpeg fails, the old thumbnail stays: washed out or not,
                 # it is the video's picture, and none at all would be worse.
-                thumbnails.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
+                render.regenerate_thumbnails(thumbnail, keep_old_on_failure=True)
     except Exception:
         photo.save(update_fields=fields)
         raise
@@ -655,12 +650,12 @@ def probe_videos(user: User, job_id: UUID) -> None:
     ``file_handlers._process_photo``.) Until they are,
     every conversion of one probes the file itself, and their thumbnails date
     from before HDR sources were tonemapped and every output was forced to
-    8-bit 4:2:0 --
-    ``thumbnails.generate_thumbnail`` keeps a thumbnail that exists, so a washed-out or
-    unplayable one stays that way, and so does the cached copy. This fills the
-    fields in and, for the videos :func:`video_color.converted_wrongly_before`
-    names, drops the cached copy and rebuilds the thumbnails. An 8-bit 4:2:0
-    SDR video's were already right.
+    8-bit 4:2:0 -- ``api.thumbnails.render.generate_thumbnail`` keeps a
+    thumbnail that exists, so a washed-out or unplayable one stays that way,
+    and so does the cached copy. This fills the fields in and, for the videos
+    :func:`api.video.color.converted_wrongly_before` names, drops the cached
+    copy and rebuilds the thumbnails. An 8-bit 4:2:0 SDR video's were already
+    right.
 
     A video that cannot be probed right now -- ffprobe missing, the file on a
     drive that is not mounted -- is left unprobed and tried again after the
@@ -685,7 +680,7 @@ def probe_videos(user: User, job_id: UUID) -> None:
                     # rescan or another of these jobs; doing it again would
                     # only rebuild the same thumbnails.
                     pass
-                elif (fields := video_color.apply_probe(photo)) is None:
+                elif (fields := color.apply_probe(photo)) is None:
                     error = f"Photo {photo.image_hash}: could not probe the video"
                 else:
                     _repair_probed_video(photo, fields)

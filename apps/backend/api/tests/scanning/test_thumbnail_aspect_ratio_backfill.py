@@ -15,9 +15,9 @@ from django.conf import settings
 from django.test import TestCase
 from PIL import Image
 
-from api import thumbnails
 from api.directory_watcher.scan_jobs import backfill_missing_aspect_ratios
 from api.tests.utils import create_test_photo, create_test_user
+from api.thumbnails import render
 
 
 def write_big_thumbnail(photo, width, height):
@@ -46,7 +46,7 @@ class CalculateAspectRatioTest(TestCase):
     def test_landscape_ratio_read_from_thumbnail(self):
         photo = self._photo_with_thumbnail(300, 200)
 
-        thumbnails.calculate_aspect_ratio(photo.thumbnail)
+        render.calculate_aspect_ratio(photo.thumbnail)
 
         photo.thumbnail.refresh_from_db()
         self.assertEqual(photo.thumbnail.aspect_ratio, 1.5)
@@ -54,7 +54,7 @@ class CalculateAspectRatioTest(TestCase):
     def test_portrait_ratio_read_from_thumbnail(self):
         photo = self._photo_with_thumbnail(200, 400)
 
-        thumbnails.calculate_aspect_ratio(photo.thumbnail)
+        render.calculate_aspect_ratio(photo.thumbnail)
 
         photo.thumbnail.refresh_from_db()
         self.assertEqual(photo.thumbnail.aspect_ratio, 0.5)
@@ -70,7 +70,7 @@ class CalculateAspectRatioTest(TestCase):
         photo = self._photo_with_thumbnail(400, 200)
 
         with mock.patch("api.sidecars.http.post") as mock_post:
-            thumbnails.calculate_aspect_ratio(photo.thumbnail)
+            render.calculate_aspect_ratio(photo.thumbnail)
 
         mock_post.assert_not_called()
         photo.thumbnail.refresh_from_db()
@@ -80,7 +80,7 @@ class CalculateAspectRatioTest(TestCase):
         """A thumbnail path pointing at nothing must not abort the pipeline."""
         photo = create_test_photo(owner=self.user, aspect_ratio=None)
 
-        thumbnails.calculate_aspect_ratio(photo.thumbnail)
+        render.calculate_aspect_ratio(photo.thumbnail)
 
         photo.thumbnail.refresh_from_db()
         self.assertIsNone(photo.thumbnail.aspect_ratio)
@@ -95,7 +95,7 @@ class CalculateAspectRatioTest(TestCase):
         photo.thumbnail.thumbnail_big = ""
         photo.thumbnail.save()
 
-        thumbnails.calculate_aspect_ratio(photo.thumbnail)
+        render.calculate_aspect_ratio(photo.thumbnail)
 
         photo.thumbnail.refresh_from_db()
         self.assertIsNone(photo.thumbnail.aspect_ratio)

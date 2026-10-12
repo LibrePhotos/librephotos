@@ -2,7 +2,7 @@
 
 https://github.com/LibrePhotos/librephotos/issues/462
 
-``api.autoalbum.generate_event_albums`` groups a user's photos into events
+``api.albums.auto_albums.generate_event_albums`` groups a user's photos into events
 (anything less than 1 day 12 hours apart belongs to the same event) and then
 looks for an already existing ``AlbumAuto`` with::
 
@@ -37,7 +37,7 @@ import pytz
 from django.test import TestCase
 from django.utils import timezone
 
-from api.autoalbum import generate_event_albums
+from api.albums.auto_albums import generate_event_albums
 from api.models import AlbumAuto
 from api.tests.utils import create_test_photo, create_test_user
 

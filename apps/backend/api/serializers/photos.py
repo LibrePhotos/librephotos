@@ -9,7 +9,6 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
-from api import video_color, video_playback
 from api.image_similarity import search_similar_image
 from api.metadata import edits
 from api.models import AlbumDate, File, Photo, User
@@ -24,6 +23,7 @@ from api.serializers.fields import loaded_count, prefetched, shared_serializer
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
+from api.video import color, playback
 from api.views.params import (
     JsonBooleanField,
     JsonIntegerField,
@@ -125,7 +125,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             return ""
 
     def get_is_hdr(self, obj: Photo) -> bool:
-        return obj.video and obj.video_color_transfer in video_color.HDR_TRANSFERS
+        return obj.video and obj.video_color_transfer in color.HDR_TRANSFERS
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -499,7 +499,7 @@ class PhotoSerializer(serializers.ModelSerializer):
         return cached
 
     def get_video_playback_type(self, obj: Photo) -> str | None:
-        return video_playback.playback_type(obj)
+        return playback.playback_type(obj)
 
     def get_height(self, obj: Photo) -> int | None:
         metadata = self._get_metadata(obj)

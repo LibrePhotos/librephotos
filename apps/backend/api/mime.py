@@ -128,10 +128,10 @@ CV2_DECODABLE_EXTENSIONS = frozenset(
 )
 # Subset of IMAGE_EXTENSIONS: formats whose thumbnail follows an EXIF
 # Orientation that exiftool writes into the file afterwards, measured through
-# image_decoding.thumbnail (#2068). HEIC and AVIF keep the picture unrotated
-# (libheif applies its own irot/imir and ignores the EXIF tag), exiftool cannot
-# write EXIF into a bare JPEG XL codestream, BMP or GIF, and RAW files go
-# through LibRaw in the thumbnail service, which is unverified.
+# api.thumbnails.decoding.thumbnail (#2068). HEIC and AVIF keep the picture
+# unrotated (libheif applies its own irot/imir and ignores the EXIF tag),
+# exiftool cannot write EXIF into a bare JPEG XL codestream, BMP or GIF, and RAW
+# files go through LibRaw in the thumbnail service, which is unverified.
 EXIF_ORIENTED_EXTENSIONS = frozenset(
     {".jfif", ".jpe", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )

@@ -43,7 +43,7 @@ WEBSERVER_GID = env_int("WEBSERVER_GID", 101)
 # fly, and every video is converted for users who turn on "Always transcode
 # videos". A live conversion has no known length, so it cannot be sought at all;
 # the same conversion is therefore written to a file in the background and later
-# plays are served from that, seekable. See api/transcode_cache.py.
+# plays are served from that, seekable. See api/video/transcode_cache.py.
 #
 # The cache is bounded twice over: it never grows past TRANSCODE_CACHE_MAX_GB,
 # and it never eats into the last TRANSCODE_CACHE_MIN_FREE_GB of the volume,

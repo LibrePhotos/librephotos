@@ -23,7 +23,7 @@
   "PhotoSuperSimple/PhotoSuperSimple geolocation_json: missing-in-schema": "z.unknown(), so its absence parses; PhotoSuperSimpleSerializer no longer sends it.",
   "UserAlbumInfo/AlbumUserList cover_photo: null-in-zod-only": "An album without photos gets PhotoSuperSimpleSerializer(None).data (empty values), never null (AlbumUserListSerializer.get_cover_photo).",
   "UserAlbum/AlbumUser location: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
-  "PhotoSimple/PhotoSimple exif_timestamp: null-in-schema-only": "Event albums are made only from photos with a timestamp (api/autoalbum.py excludes exif_timestamp=None), so this list never sends null.",
+  "PhotoSimple/PhotoSimple exif_timestamp: null-in-schema-only": "Event albums are made only from photos with a timestamp (api/albums/auto_albums.py excludes exif_timestamp=None), so this list never sends null.",
   "PhotoSimple/PhotoSimple dominantColor: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PlaceAlbumInfo/AlbumPlaceList geolocation_level: null-in-schema-only": "Set whenever a photo joins a new place album (api/geocode/photo_location.py, api/metadata/edits.py); the column is nullable but no code path leaves it null.",
   "Person/Person face_url: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",

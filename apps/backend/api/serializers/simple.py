@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
-from api import video_color
 from api.models import Photo, User
 from api.serializers.sync import dominant_hex
+from api.video import color
 
 
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
@@ -56,7 +56,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
         return obj.video_length or ""
 
     def get_is_hdr(self, obj: Photo) -> bool:
-        return bool(obj.video and obj.video_color_transfer in video_color.HDR_TRANSFERS)
+        return bool(obj.video and obj.video_color_transfer in color.HDR_TRANSFERS)
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):

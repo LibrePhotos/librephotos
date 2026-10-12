@@ -20,7 +20,8 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from api import binaries, ffmpeg_budget, transcode_cache, video_color
+from api import binaries
+from api.video import color, ffmpeg_budget, transcode_cache
 from api.views import media
 
 # The whole point of the exercise, in the order the filters have to run.
@@ -49,25 +50,21 @@ def _filter_arg(command):
 
 class TransferProbeTest(SimpleTestCase):
     def setUp(self):
-        self.which = mock.patch.object(
-            video_color.binaries, "available", return_value=True
-        )
+        self.which = mock.patch.object(color.binaries, "available", return_value=True)
         self.which.start()
         self.addCleanup(self.which.stop)
 
     def test_reads_the_transfer_curve_out_of_ffprobe(self):
         with mock.patch.object(
-            video_color.binaries, "run_tool", _ffprobe_saying("smpte2084")
+            color.binaries, "run_tool", _ffprobe_saying("smpte2084")
         ):
-            self.assertEqual(
-                video_color.transfer_characteristics("/v.mov"), "smpte2084"
-            )
+            self.assertEqual(color.transfer_characteristics("/v.mov"), "smpte2084")
 
     def test_asks_only_about_the_first_video_stream(self):
         """A file's audio and subtitle streams have no colour to report."""
         run = _ffprobe_saying("bt709")
-        with mock.patch.object(video_color.binaries, "run_tool", run):
-            video_color.transfer_characteristics("/v.mov")
+        with mock.patch.object(color.binaries, "run_tool", run):
+            color.transfer_characteristics("/v.mov")
         name, argv = run.call_args[0]
         self.assertEqual(name, "ffprobe")
         self.assertIn("-select_streams", argv)
@@ -77,48 +74,48 @@ class TransferProbeTest(SimpleTestCase):
     def test_pq_and_hlg_are_the_hdr_ones(self):
         for transfer in ("smpte2084", "arib-std-b67"):
             with mock.patch.object(
-                video_color.binaries, "run_tool", _ffprobe_saying(transfer)
+                color.binaries, "run_tool", _ffprobe_saying(transfer)
             ):
-                self.assertTrue(video_color.is_hdr("/v.mov"), transfer)
+                self.assertTrue(color.is_hdr("/v.mov"), transfer)
 
     def test_ordinary_sdr_video_is_not_hdr(self):
         for transfer in ("bt709", "smpte170m", "iec61966-2-1", "unknown", ""):
             with mock.patch.object(
-                video_color.binaries, "run_tool", _ffprobe_saying(transfer)
+                color.binaries, "run_tool", _ffprobe_saying(transfer)
             ):
-                self.assertFalse(video_color.is_hdr("/v.mov"), transfer)
+                self.assertFalse(color.is_hdr("/v.mov"), transfer)
 
     def test_a_file_that_does_not_say_is_treated_as_sdr(self):
         """ffprobe omits the key entirely rather than reporting an empty one."""
         with mock.patch.object(
-            video_color.binaries,
+            color.binaries,
             "run_tool",
             mock.Mock(return_value=mock.Mock(stdout='{"streams": [{}]}')),
         ):
-            self.assertEqual(video_color.transfer_characteristics("/v.mov"), "")
+            self.assertEqual(color.transfer_characteristics("/v.mov"), "")
 
     def test_unreadable_file_does_not_take_the_conversion_down(self):
         """Whatever ffprobe does, the video still has to convert."""
         for stdout in ("", "not json at all", '{"streams": []}'):
             with mock.patch.object(
-                video_color.binaries,
+                color.binaries,
                 "run_tool",
                 mock.Mock(return_value=mock.Mock(stdout=stdout)),
             ):
-                self.assertEqual(video_color.transfer_characteristics("/v.mov"), "")
+                self.assertEqual(color.transfer_characteristics("/v.mov"), "")
 
     def test_ffprobe_blowing_up_is_read_as_sdr(self):
         with mock.patch.object(
-            video_color.binaries,
+            color.binaries,
             "run_tool",
             side_effect=binaries.ToolMissingError("ffprobe", "boom"),
         ):
-            self.assertFalse(video_color.is_hdr("/v.mov"))
+            self.assertFalse(color.is_hdr("/v.mov"))
 
     def test_a_host_without_ffprobe_converts_the_way_it_always_did(self):
-        with mock.patch.object(video_color.binaries, "available", return_value=False):
-            with mock.patch.object(video_color.binaries, "run_tool") as run:
-                self.assertFalse(video_color.is_hdr("/v.mov"))
+        with mock.patch.object(color.binaries, "available", return_value=False):
+            with mock.patch.object(color.binaries, "run_tool") as run:
+                self.assertFalse(color.is_hdr("/v.mov"))
             run.assert_not_called()
 
 
@@ -128,9 +125,9 @@ class VideoFilterTest(SimpleTestCase):
         self.addCleanup(ffmpeg_budget.reset_probe_cache)
 
     def _filter(self, transfer, scale=None, filters=" ... zscale  V->V  resize\n"):
-        with mock.patch.object(video_color, "is_hdr", return_value=transfer):
+        with mock.patch.object(color, "is_hdr", return_value=transfer):
             with mock.patch.object(ffmpeg_budget, "_run", return_value=filters):
-                return video_color.video_filter("/v.mov", scale)
+                return color.video_filter("/v.mov", scale)
 
     def test_hdr_gets_the_scale_first_and_the_tonemap_after(self):
         """Scaling first means the float pipeline runs on fewer pixels."""
@@ -208,7 +205,7 @@ class ConversionSitesTest(SimpleTestCase):
         self.addCleanup(ffmpeg_budget.reset_probe_cache)
 
     def _hdr(self, hdr=True):
-        return mock.patch.object(video_color, "is_hdr", return_value=hdr)
+        return mock.patch.object(color, "is_hdr", return_value=hdr)
 
     def _zscale(self):
         return mock.patch.object(
@@ -251,29 +248,29 @@ class ConversionSitesTest(SimpleTestCase):
                 )
 
     def test_the_animated_thumbnail_tonemaps_an_hdr_source(self):
-        from api import thumbnails
+        from api.thumbnails import render
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
-                thumbnails.create_animated_thumbnail("/v.mov", 720, "out", "h", ".mp4")
+            with mock.patch.object(render.binaries, "run_tool") as run_tool:
+                render.create_animated_thumbnail("/v.mov", 720, "out", "h")
         self.assertEqual(
             _filter_arg(run_tool.call_args[0][1]), "scale=-2:720," + TONEMAP
         )
 
     def test_the_poster_frame_tonemaps_an_hdr_source(self):
-        from api import thumbnails
+        from api.thumbnails import render
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
-                thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
+            with mock.patch.object(render.binaries, "run_tool") as run_tool:
+                render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
         self.assertEqual(_filter_arg(run_tool.call_args[0][1]), TONEMAP)
 
     def test_the_poster_frame_of_an_sdr_video_gains_no_filter(self):
-        from api import thumbnails
+        from api.thumbnails import render
 
         with self._hdr(False), self._zscale():
-            with mock.patch.object(thumbnails.binaries, "run_tool") as run_tool:
-                thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
+            with mock.patch.object(render.binaries, "run_tool") as run_tool:
+                render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
         self.assertIsNone(_filter_arg(run_tool.call_args[0][1]))
 
 
@@ -336,7 +333,7 @@ class RealTonemapTest(SimpleTestCase):
 
     def _assert_recognisable(self, white_nits):
         reference_y, reference_sat = self._stats("format=yuv420p")
-        y, sat = self._stats(f"{self._graded(white_nits)},{video_color._TONEMAP}")
+        y, sat = self._stats(f"{self._graded(white_nits)},{color._TONEMAP}")
         self.assertGreater(sat, reference_sat * 0.7, "the colour is gone")
         self.assertLess(y, 200, "the picture has faded to white")
         self.assertGreater(y, reference_y * 0.8, "the picture has gone dark")

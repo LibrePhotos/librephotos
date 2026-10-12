@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.autoalbum import delete_missing_photos
+from api.albums.auto_albums import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.exceptions import JobAlreadyRunning
 from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain

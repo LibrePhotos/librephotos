@@ -14,12 +14,14 @@ from unittest import mock
 
 from django.test import TestCase, override_settings
 
-from api import binaries, thumbnails, transcode_cache, video_color
+from api import binaries
 from api.directory_watcher import file_handlers, processing_jobs
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.thumbnail import thumbnail_file_paths
 from api.tests.utils import create_test_photo, create_test_user
-from api.thumbnails import SET_ASIDE_SUFFIX
+from api.thumbnails import render
+from api.thumbnails.render import SET_ASIDE_SUFFIX
+from api.video import color, transcode_cache
 
 HDR_PROBE = {
     "video_codec": "hevc",
@@ -44,7 +46,7 @@ def _ffmpeg_failing_on(fail_on):
             raise binaries.ToolFailedError(tool, 1, "Invalid data")
         return mock.Mock(returncode=0)
 
-    return mock.patch.object(thumbnails.binaries, "run_tool", side_effect=run)
+    return mock.patch.object(render.binaries, "run_tool", side_effect=run)
 
 
 class _Killed(BaseException):
@@ -59,12 +61,12 @@ class ThumbnailRebuildTest(TestCase):
         settings.enable()
         self.addCleanup(settings.disable)
         for patcher in (
-            mock.patch.object(video_color, "h264_video_args", return_value=[]),
-            mock.patch.object(video_color, "video_filter", return_value=None),
+            mock.patch.object(color, "h264_video_args", return_value=[]),
+            mock.patch.object(color, "video_filter", return_value=None),
             # The files are not real pictures; what is read from them is not
             # what is being tested.
-            mock.patch("api.thumbnails.calculate_aspect_ratio"),
-            mock.patch("api.thumbnails.refresh_perceptual_hash"),
+            mock.patch("api.thumbnails.render.calculate_aspect_ratio"),
+            mock.patch("api.thumbnails.render.refresh_perceptual_hash"),
         ):
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -102,11 +104,9 @@ class ThumbnailRebuildTest(TestCase):
     def test_a_failed_rebuild_puts_the_old_thumbnails_back(self):
         with (
             _ffmpeg_failing_on([".webp"]),
-            self.assertRaises(thumbnails.VideoThumbnailError),
+            self.assertRaises(render.VideoThumbnailError),
         ):
-            thumbnails.regenerate_thumbnails(
-                self._thumbnail(), keep_old_on_failure=True
-            )
+            render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
         self.assertEqual(
             self._contents(),
             {
@@ -121,19 +121,15 @@ class ThumbnailRebuildTest(TestCase):
         """The poster frame was made before the animated thumbnail failed."""
         with (
             _ffmpeg_failing_on([os.path.join("square_thumbnails_small", "")]),
-            self.assertRaises(thumbnails.VideoThumbnailError),
+            self.assertRaises(render.VideoThumbnailError),
         ):
-            thumbnails.regenerate_thumbnails(
-                self._thumbnail(), keep_old_on_failure=True
-            )
+            render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
         self.assertEqual(set(self._contents().values()), {b"old"})
         self.assertEqual(len(self._contents()), 3)
 
     def test_a_rebuild_that_works_replaces_them_and_leaves_nothing_behind(self):
         with _ffmpeg_failing_on([]):
-            thumbnails.regenerate_thumbnails(
-                self._thumbnail(), keep_old_on_failure=True
-            )
+            render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
         self.assertEqual(set(self._contents().values()), {b"new"})
         self.assertEqual(len(self._contents()), 3)
         self.assertEqual(self._leftovers(), [])
@@ -142,16 +138,16 @@ class ThumbnailRebuildTest(TestCase):
         """Its old thumbnails would show the photo turned the wrong way."""
         with (
             _ffmpeg_failing_on([".mp4"]),
-            self.assertRaises(thumbnails.VideoThumbnailError),
+            self.assertRaises(render.VideoThumbnailError),
         ):
-            thumbnails.regenerate_thumbnails(self._thumbnail())
+            render.regenerate_thumbnails(self._thumbnail())
         self.assertNotIn(b"old", self._contents().values())
         self.assertEqual(self._leftovers(), [])
 
     def test_probe_videos_keeps_the_thumbnail_when_ffmpeg_fails(self):
         job_id = "00000000-0000-0000-0000-000000002157"
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
             _ffmpeg_failing_on([".mp4"]),
         ):
@@ -173,20 +169,18 @@ class ThumbnailRebuildTest(TestCase):
             handle.write(b"partial")
         with (
             _ffmpeg_failing_on([".mp4"]),
-            self.assertRaises(thumbnails.VideoThumbnailError),
+            self.assertRaises(render.VideoThumbnailError),
         ):
-            thumbnails.regenerate_thumbnails(
-                self._thumbnail(), keep_old_on_failure=True
-            )
+            render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
         self.assertEqual(set(self._contents().values()), {b"old"})
         self.assertEqual(len(self._contents()), 3)
         self.assertEqual(self._leftovers(), [])
 
     def test_probe_videos_killed_mid_rebuild_tries_the_video_again(self):
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_Killed),
+            mock.patch.object(render.binaries, "run_tool", side_effect=_Killed),
             self.assertRaises(_Killed),
         ):
             processing_jobs.probe_videos(
@@ -197,9 +191,9 @@ class ThumbnailRebuildTest(TestCase):
         self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [self.photo])
 
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(video_color, "video_filter", return_value=None) as poster,
+            mock.patch.object(color, "video_filter", return_value=None) as poster,
             _ffmpeg_failing_on([]),
         ):
             processing_jobs.probe_videos(
@@ -218,11 +212,11 @@ class ThumbnailRebuildTest(TestCase):
         with (
             mock.patch("api.metadata.photo_reader.extract_exif_data"),
             mock.patch.object(file_handlers, "extract_date_time"),
-            mock.patch("api.screenshot_detection.classify", return_value=False),
+            mock.patch("api.classification.screenshots.classify", return_value=False),
             mock.patch.object(
                 file_handlers, "calculate_hash_from_thumbnail", return_value=None
             ),
-            mock.patch("api.thumbnails.calculate_dominant_color"),
+            mock.patch("api.thumbnails.render.calculate_dominant_color"),
             mock.patch.object(file_handlers.PhotoSearch, "recreate_search_captions"),
         ):
             file_handlers._process_photo(
@@ -231,9 +225,9 @@ class ThumbnailRebuildTest(TestCase):
 
     def test_a_rescan_rebuilds_from_the_probe_it_has_not_saved_yet(self):
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(video_color, "video_filter", return_value=None) as poster,
+            mock.patch.object(color, "video_filter", return_value=None) as poster,
             _ffmpeg_failing_on([]),
         ):
             self._rescan()
@@ -246,9 +240,9 @@ class ThumbnailRebuildTest(TestCase):
     def test_a_rescan_killed_mid_rebuild_leaves_the_video_to_probe_videos(self):
         """With the probe saved first, nothing would repair it or put them back."""
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
-            mock.patch.object(thumbnails.binaries, "run_tool", side_effect=_Killed),
+            mock.patch.object(render.binaries, "run_tool", side_effect=_Killed),
             self.assertRaises(_Killed),
         ):
             self._rescan()
@@ -257,7 +251,7 @@ class ThumbnailRebuildTest(TestCase):
         self.assertEqual(list(processing_jobs.videos_to_probe(self.user)), [self.photo])
 
         with (
-            mock.patch.object(video_color, "probe", return_value=HDR_PROBE),
+            mock.patch.object(color, "probe", return_value=HDR_PROBE),
             mock.patch.object(transcode_cache, "discard"),
             _ffmpeg_failing_on([]),
         ):

@@ -22,7 +22,8 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import binaries, ffmpeg_budget
+from api import binaries
+from api.video import ffmpeg_budget
 from api.views import media
 
 
@@ -140,7 +141,7 @@ class BuildLiveCommandTest(SimpleTestCase):
 
         Measured on a 4-core host converting 1080p to 720p: 2.67 cores
         unbounded, 2.58 with -threads after the input alone, 2.44 with it on
-        both sides. See api.ffmpeg_budget for the whole table.
+        both sides. See api.video.ffmpeg_budget for the whole table.
         """
         before, after = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(before[before.index("-threads") + 1], "4")
@@ -283,7 +284,7 @@ def _only_the_conversion_is_fake(process):
     return (
         mock.patch.object(binaries.subprocess, "Popen", return_value=process),
         mock.patch.object(ffmpeg_budget, "_run", return_value=""),
-        mock.patch.object(media.video_color, "is_hdr", return_value=False),
+        mock.patch.object(media.color, "is_hdr", return_value=False),
     )
 
 
@@ -380,7 +381,7 @@ class VideoTranscoderFailedStartTest(SimpleTestCase):
                 binaries.subprocess, "Popen", side_effect=OSError("ffmpeg not found")
             ),
             mock.patch.object(ffmpeg_budget, "_run", return_value=""),
-            mock.patch.object(media.video_color, "is_hdr", return_value=False),
+            mock.patch.object(media.color, "is_hdr", return_value=False),
             mock.patch.object(sys, "unraisablehook", unraisable.append),
         )
         with contextlib.ExitStack() as stack:

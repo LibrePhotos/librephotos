@@ -23,9 +23,9 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api import transcode_cache
 from api.photo_files import remove_photo
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.video import transcode_cache
 from api.views import media
 
 GB = transcode_cache.BYTES_PER_GB
@@ -274,7 +274,7 @@ class RunTranscodeTest(CacheDirectoryTestCase):
         """A stuck ffmpeg used to hold its slot and part-file until a restart."""
         self._quick_watch()
         code = f"open({self.part!r}, 'w').write('half'); import time; time.sleep(60)"
-        with self.assertLogs("api.transcode_cache", "WARNING") as logs:
+        with self.assertLogs("api.video.transcode_cache", "WARNING") as logs:
             self.assertIs(self._run_in_thread([sys.executable, "-c", code]), False)
         self.assertIn("no progress", logs.output[0])
         self.assertFalse(os.path.exists(self.part))
@@ -296,7 +296,7 @@ class RunTranscodeTest(CacheDirectoryTestCase):
             "import sys; sys.stderr.write('x' * 100000 + 'moov atom not found'); "
             "sys.exit(1)"
         )
-        with self.assertLogs("api.transcode_cache", "WARNING") as logs:
+        with self.assertLogs("api.video.transcode_cache", "WARNING") as logs:
             self.assertIs(self._run_in_thread([sys.executable, "-c", code]), False)
         self.assertIn("moov atom not found", logs.output[0])
         self.assertFalse(os.path.exists(self.final))

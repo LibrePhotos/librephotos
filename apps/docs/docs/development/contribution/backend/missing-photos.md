@@ -147,7 +147,7 @@ def scan_missing_photos(user, job_id: UUID):
 
 **Type**: `JOB_DELETE_MISSING_PHOTOS` (job type 5)
 
-**Function**: `delete_missing_photos(user, job_id)` in `apps/backend/api/autoalbum.py`
+**Function**: `delete_missing_photos(user, job_id)` in `apps/backend/api/albums/auto_albums.py`
 
 **Purpose**: Permanently removes missing photos and their associated data from the database
 
@@ -475,7 +475,7 @@ The English strings `settings.missingphotos`, `settings.missingphotosbutton`, an
     - `file_grouping.py` — grouping key, `select_main_file`, `FILE_TYPE_PRIORITY`
     - `processing_jobs.py`, `repair_jobs.py`, `utils.py`
     - `__init__.py` re-exports the public names, so existing `from api.directory_watcher import ...` imports still work
-  - `apps/backend/api/autoalbum.py` — `delete_missing_photos` function
+  - `apps/backend/api/albums/auto_albums.py` — `delete_missing_photos` function
 
 - **API Views**:
   - `apps/backend/api/views/scan_triggers.py` — delete missing photos endpoint

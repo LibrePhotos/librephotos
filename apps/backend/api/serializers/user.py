@@ -13,6 +13,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from api.albums.timeline_filter import validate_default_timeline_filter
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
@@ -21,7 +22,6 @@ from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
 from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
-from api.timeline_filter import validate_default_timeline_filter
 from api.util import is_valid_path
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 from service.exif.tag_validation import is_safe_tag_name

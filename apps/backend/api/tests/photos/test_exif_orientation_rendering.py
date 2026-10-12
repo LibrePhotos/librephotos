@@ -19,10 +19,11 @@ import pyvips
 from django.test import SimpleTestCase
 from PIL import Image
 
-from api import binaries, image_decoding
+from api import binaries
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
-from api.thumbnails import (
+from api.thumbnails import decoding
+from api.thumbnails.render import (
     _apply_local_orientation,
     exif_orientation_showing,
     renders_exif_orientation,
@@ -69,7 +70,7 @@ class ExifOrientationRenderingTest(SimpleTestCase):
                     self.skipTest(f"cannot encode {image_format} here")
                 self.assertEqual(6, read_orientation(path))
 
-                image = image_decoding.thumbnail(path, 64)
+                image = decoding.thumbnail(path, 64)
 
                 turned = image.height > image.width
                 self.assertEqual(turned, renders_exif_orientation(path))
@@ -86,7 +87,7 @@ class ExifOrientationRenderingTest(SimpleTestCase):
         rendered = {}
         for orientation in range(1, 9):
             path = self._tagged(f"o{orientation}.png", "PNG", orientation)
-            rendered[orientation] = image_decoding.thumbnail(path, 64).numpy()
+            rendered[orientation] = decoding.thumbnail(path, 64).numpy()
 
         for on_disk in range(1, 9):
             for local in range(1, 9):

@@ -163,6 +163,8 @@ densecap/data/models/densecap/densecap-pretrained-vgg16.t7
 */*.pkl
 */*/*.pkl
 thumbnails
+# The thumbnail code, not generated thumbnails.
+!/api/thumbnails/
 media
 samplephotos
 Conv2d.patch

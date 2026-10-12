@@ -10,7 +10,7 @@ import logging
 import os
 from typing import TYPE_CHECKING
 
-from api import transcode_cache
+from api.video import transcode_cache
 
 if TYPE_CHECKING:
     from api.models.photo import Photo

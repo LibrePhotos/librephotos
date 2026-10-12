@@ -1,7 +1,7 @@
 """Media-category detection: screenshot classification, the scan-time hook and
 the backfill job.
 
-The pure classifier (:func:`api.screenshot_detection.classify`) is exercised
+The pure classifier (:func:`api.classification.screenshots.classify`) is exercised
 with lightweight namespace stand-ins so every filename/locale/metadata branch is
 covered without touching the DB. The scan-time hook and the ``classify_media``
 backfill job are covered with real ``Photo`` rows.
@@ -13,12 +13,13 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.test import SimpleTestCase, TestCase
 
+from api.classification.screenshots import classify
 from api.directory_watcher.file_handlers import _process_photo
 from api.directory_watcher.processing_jobs import classify_media
 from api.models import LongRunningJob
-from api.screenshot_detection import classify
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -120,6 +121,20 @@ class ScreenshotClassifyRule2Test(SimpleTestCase):
     def test_png_without_any_metadata_row_is_screenshot(self):
         self.assertTrue(classify(_photo("/a/random.png", metadata=None)))
 
+    def test_a_missing_metadata_row_reads_as_none(self):
+        # A Photo without a PhotoMetadata row raises from the reverse accessor.
+        class NoMetadataRow(SimpleNamespace):
+            @property
+            def metadata(self):
+                raise ObjectDoesNotExist
+
+        photo = NoMetadataRow(
+            main_file=SimpleNamespace(path="/a/random.png"),
+            exif_gps_lat=None,
+            exif_gps_lon=None,
+        )
+        self.assertTrue(classify(photo))
+
     def test_png_with_camera_model_is_not_screenshot(self):
         self.assertFalse(
             classify(_photo("/a/random.png", metadata=_meta(camera_model="NIKON")))
@@ -170,9 +185,9 @@ class ScanTimeHookTest(TestCase):
 
     def _run_process(self, photo):
         with (
-            patch("api.thumbnails.generate_thumbnail"),
-            patch("api.thumbnails.calculate_aspect_ratio"),
-            patch("api.thumbnails.calculate_dominant_color"),
+            patch("api.thumbnails.render.generate_thumbnail"),
+            patch("api.thumbnails.render.calculate_aspect_ratio"),
+            patch("api.thumbnails.render.calculate_dominant_color"),
             patch("api.models.photo_search.PhotoSearch.recreate_search_captions"),
             # The PNG carries no camera metadata; the exif service is not running.
             patch(

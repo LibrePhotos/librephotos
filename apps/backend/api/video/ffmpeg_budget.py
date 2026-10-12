@@ -3,7 +3,7 @@
 Two conversions run in this codebase and they want opposite things. The live
 one (:class:`api.views.media.VideoTranscoder`) has somebody watching it, so it
 must stay ahead of playback and must not be niced behind anything. The cached
-one (:mod:`api.transcode_cache`) has nobody waiting, so it stands back. What
+one (:mod:`api.video.transcode_cache`) has nobody waiting, so it stands back. What
 they share is that ffmpeg, left alone, helps itself to the whole host: no
 thread limit and no output rate limit, so one person opening one video can
 starve the web UI, the scan workers and every other user. This module is the
@@ -34,6 +34,7 @@ starts at once and the browser still gets a buffer. Both are relatively recent
 ffmpeg options, so their presence is probed rather than assumed.
 """
 
+import functools
 import logging
 import os
 
@@ -44,14 +45,6 @@ logger = logging.getLogger(__name__)
 # ffmpeg printing its option or filter list: well under a second, a few on a
 # cold start of a slow ARM box. This runs in the request of a live transcode.
 PROBE_TIMEOUT = 30
-
-# Probed once per process: asking ffmpeg for its full help costs a subprocess and
-# about a megabyte of text, and the answer cannot change under us. The help text
-# is cached rather than each answer, so asking about a second option is free.
-_help_text: str | None = None
-
-# The filter list is a second, much smaller question, cached the same way.
-_filter_text: str | None = None
 
 
 def cpu_share(fraction: int = 2) -> int:
@@ -92,7 +85,7 @@ def supports_filter(name: str) -> bool:
     Same hazard as :func:`supports` and the same answer: naming a filter the
     build does not have makes ffmpeg exit rather than skip it. zscale in
     particular is libzimg, a build option rather than a version, so no ffmpeg is
-    new enough to guarantee it. See :mod:`api.video_color`.
+    new enough to guarantee it. See :mod:`api.video.color`.
     """
     return any(
         # "  ... name    V->V   description", with flags in the first column.
@@ -101,21 +94,17 @@ def supports_filter(name: str) -> bool:
     )
 
 
+# Probed once per process: asking ffmpeg for its full help costs a subprocess and
+# about a megabyte of text, and the answer cannot change under us. The help text
+# is cached rather than each answer, so asking about a second option is free.
+# The filter list is a second, much smaller question, cached the same way.
+@functools.cache
 def _filters() -> str:
-    global _filter_text
-    if _filter_text is None:
-        _filter_text = _run(["-hide_banner", "-filters"])
-    return _filter_text
+    return _run(["-hide_banner", "-filters"])
 
 
+@functools.cache
 def _full_help() -> str:
-    global _help_text
-    if _help_text is None:
-        _help_text = _read_full_help()
-    return _help_text
-
-
-def _read_full_help() -> str:
     return _run(["-hide_banner", "-h", "full"])
 
 
@@ -139,6 +128,5 @@ def _run(args: list[str]) -> str:
 
 def reset_probe_cache() -> None:
     """Forget what was probed. For tests, which vary the ffmpeg they pretend to have."""
-    global _help_text, _filter_text
-    _help_text = None
-    _filter_text = None
+    _full_help.cache_clear()
+    _filters.cache_clear()

@@ -2,7 +2,7 @@
 
 https://github.com/LibrePhotos/librephotos/issues/836
 
-Two distinct defects in ``api.autoalbum.generate_event_albums`` are covered:
+Two distinct defects in ``api.albums.auto_albums.generate_event_albums`` are covered:
 
 1. The job's progress counters are never advanced for any group that actually
    becomes an auto album.  Every branch that handles a group of >= 2 photos
@@ -25,7 +25,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from api.autoalbum import generate_event_albums
+from api.albums.auto_albums import generate_event_albums
 from api.models import AlbumAuto, LongRunningJob
 from api.tests.utils import create_test_photo, create_test_user
 

@@ -4,7 +4,7 @@ import type { User } from "../../api_client/user/types";
 
 // The main timeline's filter (issue #2130). The same four keys are saved as
 // the user's default (User.default_timeline_filter) and resolved by the
-// backend in api/timeline_filter.py.
+// backend in api/albums/timeline_filter.py.
 export type TimelineMedia = "all" | "photos" | "videos";
 
 export type TimelineFilter = {

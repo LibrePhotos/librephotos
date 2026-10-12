@@ -20,7 +20,7 @@ class TestIsValidMedia(SimpleTestCase):
 
     def test_a_decoder_that_cannot_load(self):
         with (
-            patch("api.image_decoding.can_decode", side_effect=OSError("libvips")),
+            patch("api.thumbnails.decoding.can_decode", side_effect=OSError("libvips")),
             self.assertLogs("api.media_files", "INFO") as logs,
         ):
             self.assertFalse(file_module.is_valid_media("/tmp/test.jpg", None))

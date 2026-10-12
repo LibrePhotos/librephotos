@@ -17,7 +17,8 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import ffmpeg_budget, thumbnails, transcode_cache, video_color
+from api.thumbnails import render
+from api.video import color, ffmpeg_budget, transcode_cache
 from api.views import media
 
 
@@ -43,9 +44,9 @@ class EvenDimensionsCommandTest(SimpleTestCase):
 
     def test_the_animated_thumbnails_were_already_even(self):
         for height in (500, 250):
-            with mock.patch.object(thumbnails, "_run_ffmpeg") as run:
-                thumbnails.create_animated_thumbnail(
-                    "/v.mov", height, "out", "h", ".mp4", transfer=""
+            with mock.patch.object(render, "_run_ffmpeg") as run:
+                render.create_animated_thumbnail(
+                    "/v.mov", height, "out", "h", transfer=""
                 )
             self.assertEqual(_filter(run.call_args.args[0]), f"scale=-2:{height}")
 
@@ -135,7 +136,7 @@ class RealOddSizedSourceTest(SimpleTestCase):
         """Pins the cause: without the rounding, libx264 refuses the picture."""
         source = self._source("yuv422p")
         destination = os.path.join(self.tmp.name, "old.mp4")
-        with mock.patch.object(video_color, "PLAYBACK_SCALE", "scale=-2:'min(720,ih)'"):
+        with mock.patch.object(color, "PLAYBACK_SCALE", "scale=-2:'min(720,ih)'"):
             command = transcode_cache.build_command(source, destination, transfer="")
         run = subprocess.run(command, capture_output=True, text=True)
         self.assertNotEqual(run.returncode, 0)

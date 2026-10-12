@@ -1,4 +1,4 @@
-"""Tests for ``api.image_captioning.generate_caption``.
+"""Tests for ``api.classification.captioning.generate_caption``.
 
 The client is thin: one sidecar, one URL, an optional prompt. What is pinned
 is the exact payload, the timeout constant, and that errors propagate rather
@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import TestCase
 
+from api.classification.captioning import CaptionError, generate_caption
 from api.http_timeouts import CAPTION
-from api.image_captioning import CaptionError, generate_caption
 
 CAPTIONING_URL = "http://127.0.0.1:8007/generate-caption"
 

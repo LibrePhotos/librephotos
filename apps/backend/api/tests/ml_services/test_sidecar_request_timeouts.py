@@ -131,7 +131,7 @@ class CaptionTimeoutTest(SimpleTestCase):
     def test_generate_caption_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"caption": "x"})
 
-        from api.image_captioning import generate_caption
+        from api.classification.captioning import generate_caption
 
         generate_caption("/tmp/photo.jpg")
 

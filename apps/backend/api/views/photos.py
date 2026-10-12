@@ -22,7 +22,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api import image_captioning, photo_files
+from api import photo_files
+from api.classification import captioning
 from api.exceptions import ServiceUnavailable
 from api.metadata import edits
 from api.metadata.photo_writer import (
@@ -858,7 +859,7 @@ class GeneratePhotoCaption(APIView):
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        res = image_captioning.generate_photo_caption(caption_instance)
+        res = captioning.generate_photo_caption(caption_instance)
 
         if not res:
             raise APIException(

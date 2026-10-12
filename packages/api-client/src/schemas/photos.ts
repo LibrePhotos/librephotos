@@ -181,7 +181,7 @@ export const BulkPhotoQuery = z.object({
   // true: only screenshots / documents; false: none of them.
   is_screenshot: z.boolean().optional(),
   is_document: z.boolean().optional(),
-  // The timeline filter, as the timeline sends it (see api/timeline_filter.py).
+  // The timeline filter, as the timeline sends it (see api/albums/timeline_filter.py).
   media: z.enum(["all", "photos", "videos"]).optional(),
   hide_screenshots: z.boolean().optional(),
   hide_documents: z.boolean().optional(),

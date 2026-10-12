@@ -23,14 +23,15 @@ from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 from PIL import Image, ImageCms
 
-from api import binaries, thumbnail_metadata, thumbnails
+from api import binaries
 from api.tests.utils import write_hanging_tool
-from api.thumbnail_metadata import (
+from api.thumbnails import metadata, render
+from api.thumbnails.metadata import (
     strip_thumbnail_metadata,
     strip_webp_metadata,
     webp_has_metadata,
 )
-from api.thumbnails import (
+from api.thumbnails.render import (
     WEBP,
     _render_raw_thumbnail,
     _render_thumbnail,
@@ -158,7 +159,7 @@ class GeneratedThumbnailMetadataTest(MediaRootTestCase):
         leaky = pyvips.Image.new_from_file(self.source).copy_memory()
         out = self.path("thumbnails_big")
         with mock.patch(
-            "api.thumbnails.image_decoding.raw_preview", return_value=leaky
+            "api.thumbnails.render.decoding.raw_preview", return_value=leaky
         ):
             _render_raw_thumbnail("/photos/x.nef", 1080, out, 1)
         self.assertEqual(_metadata_fields(_load(out)), [])
@@ -187,8 +188,8 @@ class GeneratedThumbnailMetadataTest(MediaRootTestCase):
 class VideoThumbnailMetadataTest(MediaRootTestCase):
     def _command(self, create, *args):
         with (
-            mock.patch("api.thumbnails._run_ffmpeg") as run,
-            mock.patch("api.thumbnails.video_color.video_filter", return_value=None),
+            mock.patch("api.thumbnails.render._run_ffmpeg") as run,
+            mock.patch("api.thumbnails.render.color.video_filter", return_value=None),
         ):
             create("/videos/clip.mp4", *args)
         return run.call_args.args[0]
@@ -203,9 +204,7 @@ class VideoThumbnailMetadataTest(MediaRootTestCase):
 
     def test_animated_thumbnail_drops_the_source_metadata(self):
         self._assert_drops_metadata(
-            self._command(
-                create_animated_thumbnail, 250, "square_thumbnails", "h", ".mp4"
-            )
+            self._command(create_animated_thumbnail, 250, "square_thumbnails", "h")
         )
 
     def test_video_still_drops_the_source_metadata(self):
@@ -297,7 +296,7 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
         out, err = StringIO(), StringIO()
         with (
             mock.patch(
-                "api.thumbnail_metadata.strip_webp_metadata",
+                "api.thumbnails.metadata.strip_webp_metadata",
                 side_effect=PermissionError("locked"),
             ),
             self.assertRaises(CommandError) as raised,
@@ -327,7 +326,7 @@ class HangingExifToolTest(MediaRootTestCase):
                     hanging if name == "exiftool" else resolve(name)
                 ),
             ),
-            mock.patch.object(thumbnail_metadata, "EXIFTOOL_BATCH_TIMEOUT", 0.5),
+            mock.patch.object(metadata, "EXIFTOOL_BATCH_TIMEOUT", 0.5),
         ):
             patch.start()
             self.addCleanup(patch.stop)
@@ -345,9 +344,7 @@ class HangingExifToolTest(MediaRootTestCase):
     def test_a_stuck_strip_batch_is_an_error_not_a_hang(self):
         errors = []
         with self.assertLogs("api.binaries", "WARNING"):
-            thumbnail_metadata._strip_mp4s(
-                [self.path("square_thumbnails", "v.mp4")], errors
-            )
+            metadata._strip_mp4s([self.path("square_thumbnails", "v.mp4")], errors)
         self.assertEqual(len(errors), 1)
         self.assertIn("did not finish", errors[0])
 
@@ -379,11 +376,10 @@ class StripVideoThumbnailMetadataTest(MediaRootTestCase):
         self._video(source)
         self.assertIn("48.8", self._location(source))
         with mock.patch(
-            "api.thumbnails.video_color.video_filter", return_value="scale=-2:120"
+            "api.thumbnails.render.color.video_filter",
+            return_value="scale=-2:120",
         ):
-            thumbnails.create_animated_thumbnail(
-                source, 120, "square_thumbnails", "v", ".mp4"
-            )
+            render.create_animated_thumbnail(source, 120, "square_thumbnails", "v")
         self.assertEqual(self._location(self.path("square_thumbnails", "v.mp4")), "")
 
     def test_strips_the_location_from_an_old_video_thumbnail(self):

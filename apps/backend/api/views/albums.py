@@ -15,6 +15,7 @@ from rest_framework.permissions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from api.albums.timeline_filter import timeline_filter_q
 from api.models import (
     AlbumDate,
     AlbumPlace,
@@ -67,7 +68,6 @@ from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )
-from api.timeline_filter import timeline_filter_q
 from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
 from api.views.mixins import PartialUpdateModelMixin
@@ -630,7 +630,7 @@ class AlbumDateListViewSet(ListViewSet):
             filter.append(Q(photos__public=True))
 
         # Media type, screenshots, documents and favorites (see
-        # api.timeline_filter). Positive conditions on the photos join, applied
+        # api.albums.timeline_filter). Positive conditions on the photos join, applied
         # in the one filter() call below, so a day holding a screenshot keeps
         # its other photos and photo_count counts only the matching ones.
         filter += timeline_filter_q(user, params, prefix="photos__")

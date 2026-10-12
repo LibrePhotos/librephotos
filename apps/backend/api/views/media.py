@@ -25,7 +25,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from api import binaries, ffmpeg_budget, transcode_cache, video_color
+from api import binaries
 from api.all_tasks import zip_file_name
 from api.authentication import JWTCookieAuthentication
 from api.http_range import file_size, ranged_response
@@ -34,6 +34,7 @@ from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.user import User
 from api.serializers.media import MediaQuery
+from api.video import color, ffmpeg_budget, transcode_cache
 from api.views.params import parse_query
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ def build_live_command(path: str, transfer: str | None = None) -> list[str]:
     Unbounded, this is one person's playback against everybody else's: ffmpeg
     defaults to every core and to converting as fast as the machine allows,
     while a viewer needs only a little more than real time. See
-    :mod:`api.ffmpeg_budget` for what the two limits below each bound, and why
+    :mod:`api.video.ffmpeg_budget` for what the two limits below each bound, and why
     ``-threads`` has to appear on both sides of the input to mean anything.
 
     It is deliberately *not* niced -- unlike the cached copy, somebody is
@@ -159,8 +160,8 @@ def build_live_command(path: str, transfer: str | None = None) -> list[str]:
     # than 720 lines, and the phone clips that most often need converting are
     # exactly that. Upscaling costs bandwidth and CPU to add nothing a viewer
     # can see. An HDR source needs tonemapping after it, or the browser reads a
-    # PQ curve as bt709 and shows it washed out; see :mod:`api.video_color`.
-    command += video_color.h264_video_args(path, video_color.PLAYBACK_SCALE, transfer)
+    # PQ curve as bt709 and shows it washed out; see :mod:`api.video.color`.
+    command += color.h264_video_args(path, color.PLAYBACK_SCALE, transfer)
 
     return command + ["-f", "mp4", "-"]
 
@@ -350,7 +351,7 @@ class MediaServingView(APIView):
         still streams like that, because it starts immediately; in the
         background the same conversion is written to a file, and every later
         play is served from that instead, as an ordinary seekable mp4. See
-        :mod:`api.transcode_cache` for what keeps it from filling the disk.
+        :mod:`api.video.transcode_cache` for what keeps it from filling the disk.
         """
         cached = transcode_cache.cached_path(photo)
         if cached:
@@ -414,8 +415,8 @@ class MediaServingView(APIView):
         """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
 
         The request filename cannot be turned into an on-disk name by string
-        manipulation: ``api.thumbnails.generate_thumbnail`` always stores files as
-        ``<image_hash>.<ext>``, while the frontend also addresses photos by
+        manipulation: ``api.thumbnails.render.generate_thumbnail`` always stores
+        files as ``<image_hash>.<ext>``, while the frontend also addresses photos by
         their UUID (``AlbumCoverPickerModal``, the lightbox preloader), so a
         UUID request would otherwise be pointed at a file that does not exist.
         The model is the only reliable source of the stored name.
@@ -938,7 +939,7 @@ class MediaServingView(APIView):
 
         Always, with "Always transcode videos" on. Otherwise when the frontend
         asks, with ``?transcode=1``: it does that only for a video this browser
-        says it cannot play (see :mod:`api.video_playback`). Only for a signed-in
+        says it cannot play (see :mod:`api.video.playback`). Only for a signed-in
         requester -- a public album or public photo is still served as it is,
         since a conversion is the most expensive thing anyone can make this
         server do, and nobody is signed in to be accountable for it.

@@ -7,8 +7,8 @@ from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
-from api import autoalbum
-from api.autoalbum import delete_missing_photos
+from api.albums import auto_albums
+from api.albums.auto_albums import delete_missing_photos
 from api.models import File, LongRunningJob, Photo, Thumbnail
 from api.models.tag import Tag
 from api.tests.utils import (
@@ -162,7 +162,7 @@ class DeleteMissingPhotosThumbnailCleanupTest(TransactionTestCase):
 
 
 class DeleteMissingPhotosCorrectnessTest(TestCase):
-    """Guards three correctness fixes in api.autoalbum.delete_missing_photos.
+    """Guards three correctness fixes in api.albums.auto_albums.delete_missing_photos.
 
     The function had a Q-filter precedence bug that scoped only the first OR
     clause to the requesting user, letting a non-admin scan touch other users'
@@ -380,7 +380,7 @@ class DeleteMissingPhotosBatchingTest(TestCase):
         user = create_test_user()
         # A small batch size exercised against a slightly-larger photo count
         # demonstrates the multi-batch path without making the test slow.
-        with patch.object(autoalbum, "_DELETE_MISSING_BATCH_SIZE", 3):
+        with patch.object(auto_albums, "_DELETE_MISSING_BATCH_SIZE", 3):
             missing = [create_test_photo(owner=user) for _ in range(7)]
             thing = create_test_album_thing(
                 title="multi-batch", thing_type="thing", owner=user
@@ -399,7 +399,7 @@ class DeleteMissingPhotosBatchingTest(TestCase):
         # The progress refresh moved from per-photo to per-batch; the final
         # current must still equal the target.
         user = create_test_user()
-        with patch.object(autoalbum, "_DELETE_MISSING_BATCH_SIZE", 2):
+        with patch.object(auto_albums, "_DELETE_MISSING_BATCH_SIZE", 2):
             for _ in range(5):
                 create_test_photo(owner=user)
             job_id = str(uuid.uuid4())
