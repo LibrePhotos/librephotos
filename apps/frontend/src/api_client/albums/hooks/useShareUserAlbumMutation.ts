@@ -1,10 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { SharedAlbumsByMeQueryKeys } from "./useFetchSharedAlbumsByMeQuery";
-import { SharedAlbumsWithMeQueryKeys } from "./useFetchSharedAlbumsWithMeQuery";
-import { UserAlbumQueryKeys } from "./useFetchUserAlbumQuery";
-import { UserAlbumsQueryKeys } from "./useFetchUserAlbumsQuery";
+import { photoGridKeys } from "../../photos/keys";
+import { albumKeys } from "../keys";
 
 type ShareUserAlbumParams = {
   albumId: string;
@@ -24,9 +22,9 @@ export const useShareUserAlbumMutation = () =>
     },
     onSuccess: (_, { albumId }) => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, albumId] });
-      queryClient.invalidateQueries({ queryKey: [...SharedAlbumsByMeQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...SharedAlbumsWithMeQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.userAlbums() });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.userAlbum(albumId) });
+      queryClient.invalidateQueries({ queryKey: albumKeys.sharedByMe() });
+      queryClient.invalidateQueries({ queryKey: albumKeys.sharedWithMe() });
     },
   });

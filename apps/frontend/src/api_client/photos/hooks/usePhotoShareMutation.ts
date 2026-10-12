@@ -5,6 +5,7 @@ import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { serverAddress } from "../../apiClient";
+import { photoKeys } from "../keys";
 
 export const PhotoShare = z.object({
   enabled: z.boolean(),
@@ -18,8 +19,6 @@ export type PhotoShare = z.infer<typeof PhotoShare>;
 
 const PhotoShareResponse = z.object({ status: z.boolean(), share: PhotoShare });
 const PhotoShareListResponse = z.object({ results: PhotoShare.array() });
-
-const PhotoSharesQueryKeys = ["photoShares"];
 
 export type PhotoShareAction = "enable" | "rotate" | "disable";
 
@@ -38,7 +37,7 @@ export const usePhotoShareMutation = () =>
       return parseWithNotification(PhotoShareResponse, response, "Failed to parse photo share response").share;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...PhotoSharesQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoKeys.shares() });
     },
     onError: () => {
       notification.error(i18n.t("sharing.photoLinkFailed"), { title: i18n.t("sharing.photoLink") });
@@ -48,7 +47,7 @@ export const usePhotoShareMutation = () =>
 /** The current user's active photo share links, newest first. */
 export const useFetchPhotoSharesQuery = (enabled = true) =>
   useQuery({
-    queryKey: [...PhotoSharesQueryKeys],
+    queryKey: photoKeys.shares(),
     enabled,
     queryFn: async () => {
       const response = await fetchClient.get("/photo/share/list");
@@ -81,7 +80,7 @@ const SharedPhotoResponse = z.object({ results: SharedPhoto });
 /** A photo shared by link, or `null` when the link is unknown or revoked. */
 export const useFetchSharedPhotoQuery = (slug: string) =>
   useQuery({
-    queryKey: ["sharedPhotoBySlug", slug],
+    queryKey: photoKeys.sharedBySlug(slug),
     retry: false,
     queryFn: async () => {
       // Plain fetch, like the public album page: a visitor has no session,

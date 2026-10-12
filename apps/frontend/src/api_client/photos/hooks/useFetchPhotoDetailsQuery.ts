@@ -1,12 +1,11 @@
 import type { Photo } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-
-export const PhotoDetailsQueryKeys = ["photoDetails"] as const;
+import { photoKeys } from "../keys";
 
 export const useFetchPhotoDetailsQuery = (hash: string, skip: boolean = false) =>
   useQuery({
-    queryKey: [...PhotoDetailsQueryKeys, hash],
+    queryKey: photoKeys.detail(hash),
     queryFn: async () => {
       if (!hash) {
         return null;

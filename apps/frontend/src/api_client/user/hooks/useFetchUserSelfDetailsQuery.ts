@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { userKeys } from "../keys";
 import { User } from "../types";
-
-export const UserSelfDetailsQueryKeys = ["userSelfDetails"] as const;
 
 // User Self Details Query
 export const useFetchUserSelfDetailsQuery = (userId: string) =>
   useQuery<User>({
-    queryKey: [...UserSelfDetailsQueryKeys, userId],
+    queryKey: userKeys.selfDetail(userId),
     queryFn: async () => {
       const response = await fetchClient.get(`/user/${userId}/`);
       return parseWithNotification(User, response, "Failed to parse user self details");

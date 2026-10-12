@@ -34,11 +34,8 @@ import {
 import { useScanPhotosMutation } from "../api_client/jobs";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { useUpdateSettingsMutation } from "../api_client/settings/hooks/useUpdateSettingsMutation";
-import {
-  useCurrentUserSelfDetailsQuery,
-  UserListQueryKeys,
-  useUpdateUserScanDirectoryMutation,
-} from "../api_client/user/hooks";
+import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../api_client/user/hooks";
+import { userKeys } from "../api_client/user/keys";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
 import { uploadLocation } from "../components/setup/uploadLocation";
 import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
@@ -302,7 +299,7 @@ function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): React.JSX.Elem
       { email, first_name: firstName, last_name: lastName, username, password },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
+          queryClient.invalidateQueries({ queryKey: userKeys.list() });
           login(
             { username, password },
             {

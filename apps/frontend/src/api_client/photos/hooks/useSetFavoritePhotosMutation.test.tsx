@@ -7,11 +7,9 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
-import { UserAlbumQueryKeys } from "../../albums/hooks/useFetchUserAlbumQuery";
 import { queryClient } from "../../api";
-import { SharedPhotosByMeQueryKeys } from "./useFetchSharedPhotosByMeQuery";
-import { SharedPhotosWithMeQueryKeys } from "./useFetchSharedPhotosWithMeQuery";
+import { photoGridKeys } from "../keys";
+import { Photoset } from "../types";
 import { useSetFavoritePhotosMutation } from "./useSetFavoritePhotosMutation";
 
 const stubs = vi.hoisted(() => ({
@@ -35,10 +33,10 @@ const isStale = (queryKey: readonly unknown[]) => queryClient.getQueryState(quer
 describe("useSetFavoritePhotosMutation", () => {
   it("marks every photo grid stale: the timeline, a user album and the shared grids", async () => {
     stubs.post.mockResolvedValue({ status: true, updated_hashes: ["a"] });
-    const timeline = [...DateAlbumsQueryKeys, "none"];
-    const userAlbum = [...UserAlbumQueryKeys, "7", false, "", "all"];
-    const sharedWithMe = [...SharedPhotosWithMeQueryKeys];
-    const sharedByMe = [...SharedPhotosByMeQueryKeys];
+    const timeline = photoGridKeys.dateAlbumList([Photoset.NONE, undefined, undefined, undefined, "all", ""]);
+    const userAlbum = photoGridKeys.userAlbumView("7", false, "", "all");
+    const sharedWithMe = photoGridKeys.sharedWithMe();
+    const sharedByMe = photoGridKeys.sharedByMe();
     [timeline, userAlbum, sharedWithMe, sharedByMe].forEach(queryKey => queryClient.setQueryData(queryKey, []));
 
     let mutation: ReturnType<typeof useSetFavoritePhotosMutation> | undefined;

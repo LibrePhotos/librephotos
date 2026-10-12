@@ -1,8 +1,7 @@
 import { runningJobId } from "@librephotos/api-client";
 import { notification } from "../../service/notifications";
 import { queryClient } from "../api";
-import { JobsQueryKeys } from "./hooks/useJobsQuery";
-import { WorkerQueryKeys } from "./hooks/useWorkerQuery";
+import { jobKeys } from "./keys";
 
 /** What a job trigger led to: the server's answer, or the job of its kind that is already running. */
 type JobStart<T> = { alreadyRunning: false; data: T } | { alreadyRunning: true; jobId: string };
@@ -22,8 +21,8 @@ export async function startJob<T>(trigger: () => Promise<T>): Promise<JobStart<T
       throw error;
     }
     notification.jobAlreadyRunning();
-    void queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
-    void queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
+    void queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
+    void queryClient.invalidateQueries({ queryKey: jobKeys.all });
     return { alreadyRunning: true, jobId };
   }
 }

@@ -3,9 +3,8 @@ import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { jobKeys } from "../keys";
 import { CancelJobResponse } from "../types";
-import { JobsQueryKeys } from "./useJobsQuery";
-import { WorkerQueryKeys } from "./useWorkerQuery";
 
 export const useCancelJobMutation = () =>
   useMutation({
@@ -15,8 +14,8 @@ export const useCancelJobMutation = () =>
     },
     onSuccess: () => {
       notification.jobCancelled();
-      queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
     },
     onError: () => {
       notification.requestFailed(i18n.t("toasts.canceljobfailedtitle"), i18n.t("toasts.canceljobfailed"));

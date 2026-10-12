@@ -2,11 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
-import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
+import { photoGridKeys, photoKeys } from "../keys";
 
 // A refused rotation is a 4xx/5xx (the backend's error envelope), so a 2xx
 // is always a done rotation.
@@ -33,10 +30,10 @@ export const useRotatePhotosMutation = () =>
     },
     onSuccess: (_data, request) => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
 
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hash] });
+      queryClient.invalidateQueries({ queryKey: photoKeys.detail(request.image_hash) });
     },
   });

@@ -6,6 +6,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
+import { photoGridKeys } from "../../api_client/photos/keys";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
@@ -25,7 +26,7 @@ function PublicAlbumBySlug() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["publicAlbumBySlug", slug],
+    queryKey: photoGridKeys.publicAlbum(slug),
     retry: false,
     queryFn: async () => {
       let json: unknown;

@@ -43,7 +43,6 @@ vi.mock("../../service/notifications", () => ({
   ),
 }));
 vi.mock("../../api_client/tags/hooks/useFetchTagsQuery", () => ({
-  TagsQueryKeys: ["tags"],
   useFetchTagsQuery: () => ({ data: stubs.tags }),
 }));
 vi.mock("../../api_client/api", () => ({

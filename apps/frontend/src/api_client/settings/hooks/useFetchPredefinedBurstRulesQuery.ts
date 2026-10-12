@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { BurstDetectionRule } from "../../../components/settings/burstDetectionSchema";
 import { parseListWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-
-const PredefinedBurstRulesQueryKeys = ["predefinedBurstRules"] as const;
+import { settingsKeys } from "../keys";
 
 export const useFetchPredefinedBurstRulesQuery = () =>
   useQuery({
-    queryKey: [...PredefinedBurstRulesQueryKeys],
+    queryKey: settingsKeys.predefinedBurstRules(),
     queryFn: async () => {
       const response = await fetchClient.get<string>("/predefinedburstrules/");
       const rules: unknown = JSON.parse(response);

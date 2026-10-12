@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { AutoAlbumsQueryKeys } from "../../albums/hooks/useFetchAutoAlbumsQuery";
+import { albumKeys } from "../../albums/keys";
 import { fetchClient, queryClient } from "../../api";
 import { startJob } from "../startJob";
 
@@ -13,6 +13,6 @@ export const useGenerateAutoAlbumsMutation = () =>
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.autoAlbums() });
     },
   });

@@ -28,7 +28,7 @@ import {
   useUpdateAvatarMutation,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
-import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
+import { userKeys } from "../../api_client/user/keys";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
 import { PasswordEntry } from "./PasswordEntry";
@@ -78,7 +78,7 @@ export function Profile() {
 
   useEffect(() => {
     if (auth?.access?.user_id) {
-      queryClient.invalidateQueries({ queryKey: [...UserSelfDetailsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
     }
   }, [auth?.access?.user_id, queryClient]);
 

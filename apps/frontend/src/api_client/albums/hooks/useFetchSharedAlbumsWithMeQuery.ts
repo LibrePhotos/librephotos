@@ -2,14 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { albumKeys } from "../keys";
 import { UserAlbumListResponse } from "../types";
 import type { UserAlbumsGroupedByUserId } from "./useFetchSharedAlbumsByMeQuery";
 
-export const SharedAlbumsWithMeQueryKeys = ["sharedAlbumsWithMe"] as const;
-
 export const useFetchSharedAlbumsWithMeQuery = () =>
   useQuery({
-    queryKey: [...SharedAlbumsWithMeQueryKeys],
+    queryKey: albumKeys.sharedWithMe(),
     queryFn: async () => {
       const response = await fetchClient.get("/albums/user/shared/tome/");
       const result = parseWithNotification(

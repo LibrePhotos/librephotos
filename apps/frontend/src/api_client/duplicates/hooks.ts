@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchClient } from "../api";
 import { startJob } from "../jobs/startJob";
+import { duplicateKeys } from "./keys";
 import type {
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
@@ -12,15 +13,6 @@ import type {
   ResolveDuplicateResponse,
   ReviewStatus,
 } from "./types";
-
-// Query keys
-export const DuplicatesQueryKeys = {
-  all: ["duplicates"] as const,
-  list: (duplicateType?: DuplicateType, status?: ReviewStatus, page?: number, pageSize?: number) =>
-    [...DuplicatesQueryKeys.all, "list", duplicateType, status, page, pageSize] as const,
-  detail: (id: string) => [...DuplicatesQueryKeys.all, "detail", id] as const,
-  stats: () => [...DuplicatesQueryKeys.all, "stats"] as const,
-};
 
 // Fetch duplicate groups list with pagination
 const useFetchDuplicatesQuery = (
@@ -36,7 +28,7 @@ const useFetchDuplicatesQuery = (
   params.append("page_size", String(pageSize));
 
   return useQuery({
-    queryKey: DuplicatesQueryKeys.list(duplicateType, status, page, pageSize),
+    queryKey: duplicateKeys.list(duplicateType, status, page, pageSize),
     queryFn: () => fetchClient.get<DuplicateListResponse>(`/duplicates?${params.toString()}`),
   });
 };
@@ -44,7 +36,7 @@ const useFetchDuplicatesQuery = (
 // Fetch single duplicate group details
 const useFetchDuplicateQuery = (duplicateId: string) =>
   useQuery({
-    queryKey: DuplicatesQueryKeys.detail(duplicateId),
+    queryKey: duplicateKeys.detail(duplicateId),
     queryFn: () => fetchClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
     enabled: !!duplicateId,
   });
@@ -52,7 +44,7 @@ const useFetchDuplicateQuery = (duplicateId: string) =>
 // Fetch duplicate stats
 const useFetchDuplicateStatsQuery = (options?: { staleTime?: number }) =>
   useQuery({
-    queryKey: DuplicatesQueryKeys.stats(),
+    queryKey: duplicateKeys.stats(),
     queryFn: () => fetchClient.get<DuplicateStats>("/duplicates/stats"),
     staleTime: options?.staleTime,
   });
@@ -65,7 +57,7 @@ export const useDetectDuplicatesMutation = () => {
       startJob(() => fetchClient.post<DetectDuplicatesResponse>("/duplicates/detect", options)),
     onSuccess: () => {
       // Invalidate stats to show updated detection status
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
     },
   });
 };
@@ -88,9 +80,9 @@ export const useResolveDuplicateMutation = () => {
     },
     onSuccess: (_, { id }) => {
       // Invalidate the specific duplicate and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.all });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
     },
   });
 };
@@ -105,9 +97,9 @@ export const useDismissDuplicateMutation = () => {
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.all });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
     },
   });
 };
@@ -122,9 +114,9 @@ export const useRevertDuplicateMutation = () => {
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.all });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
     },
   });
 };
@@ -139,9 +131,9 @@ export const useDeleteDuplicateMutation = () => {
     },
     onSuccess: (_, duplicateId) => {
       const id = String(duplicateId);
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.all });
+      queryClient.invalidateQueries({ queryKey: duplicateKeys.stats() });
     },
   });
 };

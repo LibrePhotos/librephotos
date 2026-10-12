@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { mediaTypeToParams, type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { photoGridKeys } from "../../photos/keys";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
 import type { SearchPhotosResult } from "../types";
 import { SearchPhotos, SemanticSearchPhotos } from "../types";
-
-export const SearchPhotosQueryKeys = ["searchPhotos"] as const;
 
 export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) => {
   const { data: currentUser, isError: userFailed } = useCurrentUserSelfDetailsQuery();
@@ -19,7 +18,7 @@ export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) 
   const semantic = (currentUser?.semantic_search_topk ?? 0) > 0;
 
   return useQuery({
-    queryKey: [...SearchPhotosQueryKeys, searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"],
+    queryKey: photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"),
     queryFn: async () => {
       const params = new URLSearchParams({ search: searchTerm, ...mediaTypeToParams(mediaType) });
       const response = await fetchClient.get(`/photos/searchlist/?${params.toString()}`);

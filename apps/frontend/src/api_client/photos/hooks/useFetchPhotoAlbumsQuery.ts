@@ -3,16 +3,15 @@ import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { UserAlbumInfo } from "../../albums/types";
 import { fetchClient } from "../../api";
+import { photoKeys } from "../keys";
 
 const PhotoAlbumsResponse = z.object({
   results: UserAlbumInfo.array(),
 });
 
-const PhotoAlbumsQueryKeys = ["photoAlbums"] as const;
-
 export const useFetchPhotoAlbumsQuery = (hash: string) =>
   useQuery({
-    queryKey: [...PhotoAlbumsQueryKeys, hash],
+    queryKey: photoKeys.albums(hash),
     queryFn: async () => {
       if (!hash) {
         return [];

@@ -6,11 +6,8 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
-import {
-  useFetchUserSelfDetailsQuery,
-  UserSelfDetailsQueryKeys,
-  useUpdateUserMutation,
-} from "../../api_client/user/hooks";
+import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
+import { userKeys } from "../../api_client/user/keys";
 import { PublicSharingDefaults, User } from "../../api_client/user/types";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
@@ -66,7 +63,7 @@ export function Settings() {
 
   useEffect(() => {
     if (auth?.access?.user_id) {
-      queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
     }
   }, [auth?.access?.user_id, queryClient]);
 

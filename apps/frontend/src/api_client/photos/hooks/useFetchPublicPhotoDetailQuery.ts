@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { fetchClient } from "../../api";
+import { photoKeys } from "../keys";
 
 // Response schema for public photo detail
 const PublicPhotoDetail = z.object({
@@ -51,8 +52,6 @@ export const PublicPhotoDetailResponse = z.object({
 });
 export type PublicPhotoDetailResponse = z.infer<typeof PublicPhotoDetailResponse>;
 
-const PublicPhotoDetailQueryKeys = ["publicPhotoDetail"] as const;
-
 async function fetchPublicPhotoDetail(slug: string, photoId: string): Promise<PublicPhotoDetailResponse> {
   const response = await fetchClient.get(`/public/albums/s/${slug}/photos/${photoId}/`);
 
@@ -77,7 +76,7 @@ export const useFetchPublicPhotoDetailQuery = ({
   enabled = true,
 }: UseFetchPublicPhotoDetailQueryParams) =>
   useQuery({
-    queryKey: [...PublicPhotoDetailQueryKeys, slug, photoId],
+    queryKey: photoKeys.publicDetail(slug, photoId),
     queryFn: () => fetchPublicPhotoDetail(slug, photoId),
     enabled: enabled && !!slug && !!photoId,
   });

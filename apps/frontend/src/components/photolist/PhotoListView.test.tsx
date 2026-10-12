@@ -62,7 +62,6 @@ vi.mock("../../api_client/auth/hooks", () => ({
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: userHooks.self, isLoading: false }),
-  UserSelfDetailsQueryKeys: ["user"],
   useUpdateUserMutation: vi.fn(() => ({ mutate: userHooks.mutate })),
 }));
 // A fresh array per call, like the real formatter: that is what made Pig

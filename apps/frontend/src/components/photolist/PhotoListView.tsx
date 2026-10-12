@@ -24,11 +24,8 @@ import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "..
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import type { BulkPhotoQuery, DatePhotosGroup, PigPhoto, SelectionState } from "../../api_client/photos/types";
-import {
-  useCurrentUserSelfDetailsQuery,
-  UserSelfDetailsQueryKeys,
-  useUpdateUserMutation,
-} from "../../api_client/user/hooks";
+import { useCurrentUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
+import { userKeys } from "../../api_client/user/keys";
 import type { User } from "../../api_client/user/types";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups } from "../../util/util";
@@ -309,7 +306,7 @@ function PhotoListViewComponent({
         { id: userId, ...changes },
         {
           onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+            queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
           },
         }
       );

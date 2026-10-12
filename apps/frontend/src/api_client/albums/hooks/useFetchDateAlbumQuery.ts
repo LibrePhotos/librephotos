@@ -8,9 +8,10 @@ import {
 import { definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys } from "../../photos/keys";
 import type { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { FetchDateAlbumResponse } from "../types";
-import { buildDateAlbumFilterParams, dateAlbumsListKey, DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
+import { buildDateAlbumFilterParams, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
   photosetType: Photoset;
@@ -23,22 +24,16 @@ type AlbumDateOption = {
   timelineFilter?: TimelineFilter;
 };
 
-export const DateAlbumQueryKeys = ["dateAlbum"];
-
 // Fetch a single date album
 export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) =>
   useQuery({
-    queryKey: [
-      ...DateAlbumQueryKeys,
-      options.photosetType,
-      options.album_date_id,
-      options.page,
+    queryKey: photoGridKeys.dateAlbumDay(options.photosetType, options.album_date_id, options.page, [
       options.person_id,
       options.username,
       options.folder,
       options.mediaType ?? "all",
       timelineFilterKey(options.timelineFilter),
-    ],
+    ]),
     queryFn: async () => {
       const params = {
         ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
@@ -59,7 +54,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       const result = parsed.results;
 
       // Get the current data from cache
-      const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, ...dateAlbumsListKey(options)];
+      const dateAlbumsQueryKey = photoGridKeys.dateAlbumList(dateAlbumsListKey(options));
       const oldData = queryClient.getQueryData<IncompleteDatePhotosGroup[]>(dateAlbumsQueryKey);
 
       if (oldData) {

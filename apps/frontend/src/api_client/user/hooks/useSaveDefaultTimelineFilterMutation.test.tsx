@@ -11,6 +11,9 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 import { defined } from "../../../util/defined.test-utils";
+import { photoGridKeys } from "../../photos/keys";
+import { Photoset } from "../../photos/types";
+import { userKeys } from "../keys";
 
 const stubs = await vi.hoisted(async () => {
   const { QueryClient } = await import("@tanstack/react-query");
@@ -108,8 +111,11 @@ describe("useSaveDefaultTimelineFilterMutation", () => {
     stubs.patch.mockReset();
     stubs.patch.mockResolvedValue(savedUser);
     const { queryClient } = stubs;
-    queryClient.setQueryData(["userSelfDetails", "7"], { ...savedUser, default_timeline_filter: {} });
-    queryClient.setQueryData(["dateAlbums", "none", "key"], []);
+    queryClient.setQueryData(userKeys.selfDetail("7"), { ...savedUser, default_timeline_filter: {} });
+    queryClient.setQueryData(
+      photoGridKeys.dateAlbumList([Photoset.NONE, undefined, undefined, undefined, "all", ""]),
+      []
+    );
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
     let mutate: ReturnType<typeof useSaveDefaultTimelineFilterMutation>["mutateAsync"] | undefined;
@@ -132,10 +138,10 @@ describe("useSaveDefaultTimelineFilterMutation", () => {
 
     expect(stubs.patch).toHaveBeenCalledTimes(1);
     expect(stubs.patch).toHaveBeenCalledWith("/user/7/", { default_timeline_filter: { hide_screenshots: true } });
-    expect(queryClient.getQueryData(["userSelfDetails", "7"])).toHaveProperty("default_timeline_filter", {
+    expect(queryClient.getQueryData(userKeys.selfDetail("7"))).toHaveProperty("default_timeline_filter", {
       hide_screenshots: true,
     });
-    const invalidated = invalidate.mock.calls.map(([filters]) => filters?.queryKey?.[0]);
-    expect(invalidated).toEqual(["userSelfDetails"]);
+    const invalidated = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(invalidated).toEqual([userKeys.selfDetails()]);
   });
 });

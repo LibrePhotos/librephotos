@@ -3,12 +3,10 @@ import { z } from "zod";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
-import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
+import { statsKeys } from "../../stats/keys";
+import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 export type PhotoCategory = "photo" | "screenshot" | "document";
 
@@ -70,10 +68,10 @@ export const useSetPhotosCategoryMutation = () =>
       // the Screenshots page, and changes the stats tiles. Photo details are
       // keyed by hash or id depending on the caller, so all of them (only the
       // lightbox's few are loaded) refetch.
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+      queryClient.invalidateQueries({ queryKey: photoKeys.details() });
     },
     // At hook level, so it also reports an Undo fired after the lightbox
     // closed (per-call callbacks of an unmounted component never run).

@@ -2,12 +2,11 @@ import { endpoints, invalidateAfter } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
+import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { FacesQueryKeys } from "./useFetchFacesQuery";
-import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
+import { photoKeys } from "../../photos/keys";
+import { statsKeys } from "../../stats/keys";
+import { faceKeys } from "../keys";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
 
@@ -30,11 +29,11 @@ export const useSetFacesPersonLabelMutation = () =>
       // num_people, etc. change) and photo details (people array changes), after a short delay
       // so backend processing is complete.
       invalidateAfter(queryClient, [
-        IncompleteFacesQueryKeys,
-        FacesQueryKeys,
-        PeopleAlbumsQueryKeys,
-        CountStatsQueryKeys,
-        PhotoDetailsQueryKeys,
+        faceKeys.incomplete(),
+        faceKeys.personFaces(),
+        albumKeys.peopleAlbums(),
+        statsKeys.counts(),
+        photoKeys.details(),
       ]);
     },
   });

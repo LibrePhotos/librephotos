@@ -3,10 +3,9 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
+import { statsKeys } from "../../stats/keys";
+import { jobKeys } from "../keys";
 import { startJob } from "../startJob";
-import { JobsQueryKeys } from "./useJobsQuery";
-import { WorkerQueryKeys } from "./useWorkerQuery";
 
 const JobResponse = z.object({
   status: z.boolean(),
@@ -31,8 +30,8 @@ export const useGenerateOcrMutation = () =>
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
     },
   });

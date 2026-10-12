@@ -29,7 +29,6 @@ vi.mock("../../api_client/services/hooks/useServiceActionMutation", () => ({
 }));
 
 vi.mock("../../api_client/services/hooks/useServicesQuery", () => ({
-  ServiceHealthQueryKeys: ["serviceHealth"],
   useServicesListQuery: () => ({
     data: { services: { face_recognition: 8005, thumbnail: 8003 } },
     isLoading: false,

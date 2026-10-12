@@ -3,10 +3,8 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys, photoKeys } from "../keys";
 import type { BulkPhotoQuery, SimpleUser } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
-import { SharedPhotosByMeQueryKeys } from "./useFetchSharedPhotosByMeQuery";
-import { SharedPhotosWithMeQueryKeys } from "./useFetchSharedPhotosWithMeQuery";
 
 const SharePhotosResponse = z.object({
   status: z.boolean(),
@@ -62,12 +60,13 @@ export const useUpdatePhotoSharingMutation = () =>
       return data;
     },
     onSuccess: (_, request) => {
-      queryClient.invalidateQueries({ queryKey: [...SharedPhotosByMeQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...SharedPhotosWithMeQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.sharedByMe() });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.sharedWithMe() });
 
       // If we have a single photo in individual mode, invalidate its details
-      if (!request.select_all && request.image_hashes.length === 1) {
-        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
+      if (imageHash !== undefined && others.length === 0) {
+        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },
   });

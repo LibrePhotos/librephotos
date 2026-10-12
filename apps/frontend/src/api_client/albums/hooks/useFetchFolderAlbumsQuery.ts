@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, fetchClient } from "../../api";
-
-const FOLDER_SUBFOLDERS_QUERY_KEY = ["folderSubfolders"] as const;
+import { albumKeys } from "../keys";
 
 export type SubfolderInfo = {
   name: string;
@@ -36,7 +35,7 @@ export function retryFolderRequest(failureCount: number, error: unknown): boolea
 
 export const useFetchFolderSubfoldersQuery = (path?: string) =>
   useQuery({
-    queryKey: [...FOLDER_SUBFOLDERS_QUERY_KEY, path],
+    queryKey: albumKeys.folder(path),
     queryFn: async (): Promise<FolderNavigationResponse> => {
       const params = path ? `?path=${encodeURIComponent(path)}` : "";
       return fetchClient.get<FolderNavigationResponse>(`/folders/subfolders/${params}`);

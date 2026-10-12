@@ -209,11 +209,6 @@
       "count": 3
     }
   },
-  "src/api_client/photos/invalidatePhotoLists.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
   "src/api_client/services/hooks/useServiceActionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1

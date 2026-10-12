@@ -1,14 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList, FaceAnalysisMethod } from "../../../api_client/faces";
-import {
-  FacesQueryKeys,
-  FacesTab,
-  fetchFaces,
-  IncompleteFacesQueryKeys,
-  useFetchIncompleteFacesQuery,
-  type FacesRouteOrder,
-} from "../../../api_client/faces";
+import { FacesTab, fetchFaces, useFetchIncompleteFacesQuery, type FacesRouteOrder } from "../../../api_client/faces";
+import { faceKeys } from "../../../api_client/faces/keys";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
 const PAGE_SIZE = 100;
@@ -97,7 +91,7 @@ export function useFaceDataFetching(
         if (cancelled) return;
 
         const incompleteParams = element.inferred ? params.inferred : params.labeled;
-        const incompleteKey = [...IncompleteFacesQueryKeys, incompleteParams];
+        const incompleteKey = faceKeys.incompleteList(incompleteParams);
         const person = queryClient
           .getQueryData<CompletePersonFaceList>(incompleteKey)
           ?.find(entry => entry.id === element.person);
@@ -124,7 +118,7 @@ export function useFaceDataFetching(
           // Fetch face data
           // TODO(sickelap): related to the above. optimize by using prefetchQuery and checking if data is already in cache
           const data = await queryClient.fetchQuery({
-            queryKey: [...FacesQueryKeys, queryParams],
+            queryKey: faceKeys.personFacePage(queryParams),
             queryFn: () => fetchFaces(queryParams),
           });
 

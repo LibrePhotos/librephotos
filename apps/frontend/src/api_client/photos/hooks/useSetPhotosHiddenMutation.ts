@@ -3,12 +3,11 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { IncompleteFacesQueryKeys } from "../../faces/hooks/useFetchIncompleteFacesQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { faceKeys } from "../../faces/keys";
+import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
+import { photoKeys } from "../keys";
 import type { BulkPhotoQuery } from "../types";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -54,13 +53,14 @@ export const useSetPhotosHiddenMutation = () =>
     onSuccess: (data, request) => {
       // Invalidate relevant queries to ensure consistent state
       invalidatePhotoLists(queryClient);
-      queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
 
       // If we have a single photo in individual mode, invalidate its details
-      if (!request.select_all && request.image_hashes.length === 1) {
-        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      const [imageHash, ...others] = request.select_all ? [] : request.image_hashes;
+      if (imageHash !== undefined && others.length === 0) {
+        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },
   });

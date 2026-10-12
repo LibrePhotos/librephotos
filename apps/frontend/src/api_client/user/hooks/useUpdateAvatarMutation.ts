@@ -2,9 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { userKeys } from "../keys";
 import { User } from "../types";
-import { UserListQueryKeys } from "./useFetchUserListQuery";
-import { UserSelfDetailsQueryKeys } from "./useFetchUserSelfDetailsQuery";
 
 export const useUpdateAvatarMutation = () =>
   useMutation({
@@ -15,7 +14,7 @@ export const useUpdateAvatarMutation = () =>
     onSuccess: data => {
       notification.updateUser(data.username);
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: [...UserSelfDetailsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...UserListQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
+      queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },
   });

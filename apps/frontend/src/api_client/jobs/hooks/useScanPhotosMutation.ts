@@ -2,15 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
-import { AutoAlbumsQueryKeys } from "../../albums/hooks/useFetchAutoAlbumsQuery";
+import { albumKeys } from "../../albums/keys";
 import { fetchClient, queryClient } from "../../api";
-import { ServerStatsQueryKeys } from "../../server/hooks/useFetchServerStatsQuery";
-import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
+import { serverKeys } from "../../server/keys";
+import { statsKeys } from "../../stats/keys";
+import { jobKeys } from "../keys";
 import { startJob } from "../startJob";
-import { JobsQueryKeys } from "./useJobsQuery";
-import { WorkerQueryKeys } from "./useWorkerQuery";
 
 const JobResponse = z.object({
   status: z.boolean(),
@@ -28,12 +25,12 @@ export const useScanPhotosMutation = () =>
       notification.startPhotoScan();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...ServerStatsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.autoAlbums() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+      queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
+      queryClient.invalidateQueries({ queryKey: serverKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
     },
   });

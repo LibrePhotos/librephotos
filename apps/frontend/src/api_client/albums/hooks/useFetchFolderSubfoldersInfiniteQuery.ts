@@ -1,16 +1,15 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { fetchClient } from "../../api";
+import { albumKeys } from "../keys";
 import { retryFolderRequest, type FolderNavigationResponse, type SubfolderInfo } from "./useFetchFolderAlbumsQuery";
-
-const FOLDER_SUBFOLDERS_QUERY_KEY = ["folderSubfolders"] as const;
 
 export const useFetchFolderSubfoldersInfiniteQuery = (
   path?: string,
   { refetchOnWindowFocus = true }: { refetchOnWindowFocus?: boolean } = {}
 ) =>
   useInfiniteQuery<FolderNavigationResponse>({
-    queryKey: [...FOLDER_SUBFOLDERS_QUERY_KEY, "infinite", path],
+    queryKey: albumKeys.folderPages(path),
     queryFn: async ({ pageParam }): Promise<FolderNavigationResponse> => {
       const page = typeof pageParam === "number" && pageParam > 0 ? pageParam : 1;
       const params = new URLSearchParams();

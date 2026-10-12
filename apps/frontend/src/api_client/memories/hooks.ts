@@ -1,11 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
+import { memoryKeys } from "./keys";
 import { FetchMemoriesResponse } from "./types";
-
-const MemoriesQueryKeys = {
-  list: (size?: number) => ["memories", { size }] as const,
-};
 
 const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
   fetchClient
@@ -20,7 +17,7 @@ const fetchMemories = (size?: number): Promise<FetchMemoriesResponse> =>
  */
 export const useFetchMemoriesQuery = (options?: { size?: number; enabled?: boolean }) =>
   useQuery({
-    queryKey: MemoriesQueryKeys.list(options?.size),
+    queryKey: memoryKeys.list(options?.size),
     queryFn: () => fetchMemories(options?.size),
     enabled: options?.enabled ?? true,
   });

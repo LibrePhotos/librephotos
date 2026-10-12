@@ -2,10 +2,10 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { photoGridKeys } from "../../photos/keys";
+import { tagKeys } from "../keys";
 import type { TagList, TagPhotosByNameParams } from "../types";
 import { Tag } from "../types";
-import { TagAlbumQueryKeys } from "./useFetchTagAlbumQuery";
-import { TagsQueryKeys } from "./useFetchTagsQuery";
 
 /** Resolve a typed name to its tag, creating the tag when it is new.
  *
@@ -33,7 +33,7 @@ async function resolveTag(name: string, cached: TagList | undefined) {
 export const useTagPhotosByNameMutation = () =>
   useMutation({
     mutationFn: async ({ names, photos, selectAll, photoCount }: TagPhotosByNameParams) => {
-      const cached = queryClient.getQueryData<TagList>([...TagsQueryKeys]);
+      const cached = queryClient.getQueryData<TagList>(tagKeys.list());
       const payload = selectAll ?? { photos: photos ?? [] };
 
       const applied: string[] = [];
@@ -51,7 +51,7 @@ export const useTagPhotosByNameMutation = () =>
       return applied;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
-      queryClient.invalidateQueries({ queryKey: [...TagAlbumQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("tagAlbum") });
     },
   });

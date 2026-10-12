@@ -7,9 +7,9 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
-import { DateAlbumsQueryKeys } from "../albums/hooks/useFetchDateAlbumsQuery";
-import { UserAlbumQueryKeys } from "../albums/hooks/useFetchUserAlbumQuery";
 import { queryClient } from "../api";
+import { photoGridKeys } from "../photos/keys";
+import { Photoset } from "../photos/types";
 import { useCreateManualStackMutation, useMergeStacksMutation } from "./hooks";
 
 const stubs = vi.hoisted(() => ({
@@ -29,8 +29,8 @@ beforeAll(() => {
 
 afterEach(() => queryClient.clear());
 
-const timeline = [...DateAlbumsQueryKeys, "none"];
-const userAlbum = [...UserAlbumQueryKeys, "7", false, "", "all"];
+const timeline = photoGridKeys.dateAlbumList([Photoset.NONE, undefined, undefined, undefined, "all", ""]);
+const userAlbum = photoGridKeys.userAlbumView("7", false, "", "all");
 
 async function run<T>(useHook: () => { mutateAsync: (variables: T) => Promise<unknown> }, variables: T) {
   let mutation: { mutateAsync: (variables: T) => Promise<unknown> } | undefined;

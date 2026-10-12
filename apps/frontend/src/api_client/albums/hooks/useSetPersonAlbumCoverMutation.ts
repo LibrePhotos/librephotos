@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { PeopleAlbumsQueryKeys } from "./useFetchPeopleAlbumsQuery";
+import { albumKeys } from "../keys";
 
 type SetPersonAlbumCoverParams = {
   id: string;
@@ -16,6 +16,6 @@ export const useSetPersonAlbumCoverMutation = () =>
     },
     onSuccess: () => {
       // Person album covers affect the people albums listing
-      queryClient.invalidateQueries({ queryKey: [...PeopleAlbumsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: albumKeys.peopleAlbums() });
     },
   });

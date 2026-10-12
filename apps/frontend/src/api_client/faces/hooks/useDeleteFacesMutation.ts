@@ -1,13 +1,12 @@
 import { endpoints, invalidateAfter } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
+import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
-import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { FacesQueryKeys } from "./useFetchFacesQuery";
-import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
+import { photoKeys } from "../../photos/keys";
+import { statsKeys } from "../../stats/keys";
+import { faceKeys } from "../keys";
 
-const DeleteFacesQueryKeys = ["deleteFaces"];
+const DeleteFacesMutationKey = ["deleteFaces"] as const;
 
 type DeleteFacesRequest = { faceIds: number[] };
 
@@ -15,18 +14,18 @@ const deleteFaces = (data: DeleteFacesRequest) => endpoints.deleteFaces(apiClien
 
 export const useDeleteFacesMutation = () =>
   useMutation({
-    mutationKey: [...DeleteFacesQueryKeys],
+    mutationKey: DeleteFacesMutationKey,
     mutationFn: deleteFaces,
     onSuccess: () => {
       // Face-related queries, people albums (face counts change), statistics (num_faces,
       // num_people, etc. change) and photo details (people array changes), after a short delay
       // so backend processing is complete.
       invalidateAfter(queryClient, [
-        IncompleteFacesQueryKeys,
-        FacesQueryKeys,
-        PeopleAlbumsQueryKeys,
-        CountStatsQueryKeys,
-        PhotoDetailsQueryKeys,
+        faceKeys.incomplete(),
+        faceKeys.personFaces(),
+        albumKeys.peopleAlbums(),
+        statsKeys.counts(),
+        photoKeys.details(),
       ]);
     },
     onError: error => {

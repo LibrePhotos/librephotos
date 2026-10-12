@@ -7,8 +7,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { jobKeys } from "../keys";
 import type { WorkerAvailabilityResponse } from "../types";
-import { useWorkerQuery, WorkerQueryKeys } from "./useWorkerQuery";
+import { useWorkerQuery } from "./useWorkerQuery";
 
 const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
@@ -31,7 +32,7 @@ function Harness() {
 
 /** The answer the query holds. Read from the cache: a re-render of the harness is not needed for it. */
 function cachedWorker() {
-  return queryClient.getQueryData<WorkerAvailabilityResponse>([...WorkerQueryKeys]);
+  return queryClient.getQueryData<WorkerAvailabilityResponse>(jobKeys.worker());
 }
 
 async function advance(ms: number) {

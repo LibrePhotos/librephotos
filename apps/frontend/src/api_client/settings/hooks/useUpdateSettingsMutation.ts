@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { settingsKeys } from "../keys";
 import { SiteSettings } from "../types";
-import { SiteSettingsQueryKeys } from "./useGetSettingsQuery";
 
 export const useUpdateSettingsMutation = () =>
   useMutation({
@@ -12,6 +12,6 @@ export const useUpdateSettingsMutation = () =>
     },
     onSuccess: () => {
       // Invalidate the settings query to refetch
-      queryClient.invalidateQueries({ queryKey: [...SiteSettingsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.site() });
     },
   });

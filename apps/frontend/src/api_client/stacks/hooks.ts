@@ -3,6 +3,7 @@ import { parseWithNotification } from "../../util/zodUtils";
 import { fetchClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { invalidatePhotoLists } from "../photos/invalidatePhotoLists";
+import { stackKeys } from "./keys";
 import {
   CreateManualStackResponse,
   DetectStacksResponse,
@@ -21,16 +22,6 @@ import {
   type StackListResponse,
   type StackStatsResponse,
 } from "./types";
-
-// Query keys for cache invalidation
-const stackKeys = {
-  all: ["stacks"] as const,
-  lists: () => [...stackKeys.all, "list"] as const,
-  list: (filters: Record<string, unknown>) => [...stackKeys.lists(), filters] as const,
-  details: () => [...stackKeys.all, "detail"] as const,
-  detail: (id: string) => [...stackKeys.details(), id] as const,
-  stats: () => [...stackKeys.all, "stats"] as const,
-};
 
 // API functions
 async function fetchStacks(params?: {

@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { mediaKeys } from "../keys";
 import { MediaDiagnostics } from "../types";
-
-const MediaDiagnosticsQueryKeys = ["mediaDiagnostics"] as const;
 
 /** Ask the backend why serving this original just failed. Administrators only.
  *
@@ -13,7 +12,7 @@ const MediaDiagnosticsQueryKeys = ["mediaDiagnostics"] as const;
  */
 export const useMediaDiagnosticsQuery = (mediaHash: string | undefined, enabled: boolean) =>
   useQuery({
-    queryKey: [...MediaDiagnosticsQueryKeys, mediaHash],
+    queryKey: mediaKeys.diagnostics(mediaHash),
     queryFn: async () => {
       const response = await fetchClient.get(`/media/diagnostics/${mediaHash}/`);
       return parseWithNotification(MediaDiagnostics, response, "Failed to parse media diagnostics response");

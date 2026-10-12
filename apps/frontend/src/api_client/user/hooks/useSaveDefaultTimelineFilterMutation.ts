@@ -5,8 +5,8 @@ import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
+import { userKeys } from "../keys";
 import { User } from "../types";
-import { UserSelfDetailsQueryKeys } from "./useFetchUserSelfDetailsQuery";
 
 type SaveDefaultTimelineFilterRequest = {
   userId: number;
@@ -39,12 +39,12 @@ export const useSaveDefaultTimelineFilterMutation = () =>
     onSuccess: user => {
       // Put the new default in place before anything refetches, so the
       // timeline never resolves its filter against the old one in between.
-      queryClient.setQueriesData({ queryKey: [...UserSelfDetailsQueryKeys] }, (old: User | undefined) =>
+      queryClient.setQueriesData({ queryKey: userKeys.selfDetails() }, (old: User | undefined) =>
         old?.id === user.id ? user : old
       );
       // The timeline sends its resolved filter in full, and saving does not
       // change what is on screen, so the date albums stay as they are.
-      queryClient.invalidateQueries({ queryKey: [...UserSelfDetailsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
     },
     onError: () => {
       notification.requestFailed(i18n.t("timelinefilter.save"), i18n.t("timelinefilter.savefailed"));

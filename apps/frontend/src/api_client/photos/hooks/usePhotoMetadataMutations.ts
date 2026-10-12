@@ -3,10 +3,10 @@
  */
 
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { TagsQueryKeys } from "../../tags/hooks/useFetchTagsQuery";
+import { tagKeys } from "../../tags/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
+import { photoKeys } from "../keys";
 import { bulkUpdateMetadata, updatePhotoMetadata, type MetadataUpdateFields } from "../metadata";
-import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 /**
  * Refresh everything a metadata edit can change.
@@ -19,10 +19,10 @@ import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
  */
 function invalidateAfterMetadataEdit(queryClient: QueryClient, photoIds: string[]) {
   photoIds.forEach(photoId => {
-    queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
+    queryClient.invalidateQueries({ queryKey: photoKeys.metadata(photoId) });
   });
-  queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys] });
-  queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: photoKeys.details() });
+  queryClient.invalidateQueries({ queryKey: tagKeys.all });
   invalidatePhotoLists(queryClient);
 }
 
