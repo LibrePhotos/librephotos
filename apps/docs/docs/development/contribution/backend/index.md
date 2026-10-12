@@ -50,7 +50,7 @@ The config lives in `[tool.mypy]` in `apps/backend/pyproject.toml`. It pins `pla
 - mypy reports an error that is not in the baseline. Errors are matched by file, code and message, not by line, so moving existing code around is fine;
 - a baseline entry no longer occurs. Run `python scripts/typecheck.py --update` and commit the smaller file;
 - the baseline grew compared with the target branch. The only exception is a pull request that changes `requirements*.txt` or the mypy config, because a new stub or library release can change the messages; the job then lists the new entries for the reviewer. This is also why Renovate never automerges the `backend type checking` group;
-- a strict module (see below) has a baseline entry.
+- a strict module (see below) has a baseline entry, or a strict-list entry names no module mypy checks (a module renamed or moved without updating the list).
 
 Rules for new code:
 
@@ -60,7 +60,7 @@ Rules for new code:
 - `typing.cast` only where the value really is narrower than the stubs say, with a comment saying why.
 - Never run `--update` to accept new errors.
 
-The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request.
+The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request, and when you move or rename a listed module, rename its entry.
 
 ### Dead code
 

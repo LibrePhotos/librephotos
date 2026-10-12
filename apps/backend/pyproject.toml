@@ -157,11 +157,11 @@ module = ["allauth.*", "bulk_update.*", "constance.*", "cpuinfo.*", "diskcache.*
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]          # strict modules: this list only grows (scripts/typecheck.py enforces it)
+[[tool.mypy.overrides]]          # strict modules: this list only grows, and each entry names a checked module (scripts/typecheck.py enforces both)
 # Explicit flags instead of `strict = true`: inside an override, `strict` turns
 # the strict flags on for every module, not just the listed ones.
 module = ["api.dataviz.color_palettes", "api.metadata.tags", "api.http_timeouts",
-          "api.views.pagination", "api.serializers.site_settings", "librephotos.env",
+          "api.drf.pagination", "api.serializers.site_settings", "librephotos.env",
           "typecheck", "ruff_baseline"]
 disallow_any_generics = true
 disallow_untyped_calls = true

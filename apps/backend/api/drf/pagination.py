@@ -20,9 +20,11 @@ Clients that need a whole list follow ``next`` until it is null
 (``fetchAllPages`` in ``packages/api-client/src/transport/pages.ts``).
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from django.core.paginator import Page
 from django.core.paginator import Paginator as DjangoPaginator
@@ -59,7 +61,8 @@ def query_page_number(
         return default
     field = ClampedIntegerField(default=default, lowest=1, highest=highest)
     try:
-        return field.run_validation(raw)
+        # run_validation is typed Any in the stubs; the field returns an int.
+        return int(field.run_validation(raw))
     except ValidationError as error:
         raise ValidationError({name: error.detail}) from error
 
@@ -88,7 +91,9 @@ class DefaultPagination(PageNumberPagination):
             highest=self.max_page_size,
         )
 
-    def get_page_number(self, request: Request, paginator: DjangoPaginator) -> int:
+    def get_page_number(
+        self, request: Request, paginator: DjangoPaginator[object]
+    ) -> int:
         if request.query_params.get(PAGE_PARAM) in self.last_page_strings:
             return paginator.num_pages
         return query_page_number(request, PAGE_PARAM, default=1)
@@ -113,7 +118,9 @@ class DefaultPagination(PageNumberPagination):
             }
         )
 
-    def get_paginated_response_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
+    def get_paginated_response_schema(
+        self, schema: dict[str, object]
+    ) -> dict[str, object]:
         paginated = super().get_paginated_response_schema(schema)
         for name, example in (("page", 1), ("page_size", 100), ("num_pages", 2)):
             paginated["properties"][name] = {"type": "integer", "example": example}
@@ -179,7 +186,9 @@ class DayAlbumPagination(DefaultPagination):
             )
         return super().get_page_size(request)
 
-    def get_page_number(self, request: Request, paginator: DjangoPaginator) -> int:
+    def get_page_number(
+        self, request: Request, paginator: DjangoPaginator[object]
+    ) -> int:
         try:
             number = super().get_page_number(request, paginator)
         except ValidationError:
