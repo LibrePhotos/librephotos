@@ -176,7 +176,7 @@ describe("faces endpoints", () => {
   });
 
   it("fetches the incomplete-faces bare array", async () => {
-    const { client, calls } = harness([{ id: 1, name: "Bob", face_count: 3 }]);
+    const { client, calls } = harness([{ id: 1, name: "Bob", kind: "USER", face_count: 3 }]);
     const rows = await endpoints.fetchIncompleteFaces(client, { inferred: false });
     expect(defined(calls[0]).url).toContain("/api/faces/incomplete/?");
     expect(rows).toHaveLength(1);

@@ -46,7 +46,9 @@ export function FaceComponent({
   const { t } = useTranslation();
   const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const entrySize = entrySquareSize - (selectMode ? 30 : 10);
-  const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
+  // The face list always sends it; only a placeholder could lack it.
+  const probability = cell.person_label_probability ?? 0;
+  const labelProbabilityColor = calculateProbabiltyColor(probability);
   const { tab: activeTab } = routeApi.useSearch();
 
   if (isScrollingFast) {
@@ -56,11 +58,7 @@ export function FaceComponent({
   return (
     <Box className={classes.box} data-selected={isSelected} w="100%" h="100%">
       <Box>
-        <FaceTooltip
-          tooltipOpened={tooltipOpened}
-          probability={cell.person_label_probability}
-          timestamp={cell.timestamp}
-        >
+        <FaceTooltip tooltipOpened={tooltipOpened} probability={probability} timestamp={cell.timestamp}>
           <Indicator
             offset={10}
             withBorder
@@ -76,7 +74,7 @@ export function FaceComponent({
                 handleClick(e, cell);
               }}
               // A paged-in face always has its image; null would only be a placeholder's
-              src={cell.image === null ? undefined : getFaceImageUrl(cell.image)}
+              src={cell.image ? getFaceImageUrl(cell.image) : undefined}
               size={entrySize}
             />
           </Indicator>

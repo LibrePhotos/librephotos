@@ -20,7 +20,6 @@ vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { ge
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
   useDeleteFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
-  FacesTab: { enum: { inferred: "inferred", unknown: "unknown", labeled: "labeled" } },
 }));
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn<(options: unknown) => void>(),

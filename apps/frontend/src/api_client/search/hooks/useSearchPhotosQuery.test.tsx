@@ -5,6 +5,7 @@
  * of /search/<q>), so a semantic user's flat list was parsed as date groups and
  * popped a "Failed to parse search photos ... report this on GitHub" toast.
  */
+import { ResponseParseError } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -16,15 +17,12 @@ const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
   user: undefined as { semantic_search_topk: number } | undefined,
   userFailed: false,
-  parseError: vi.fn<(message: string) => void>(),
 }));
 
 vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
 vi.mock("../../user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user, isError: stubs.userFailed }),
 }));
-// parseWithNotification reports a schema mismatch through parseError.
-vi.mock("../../../service/notifications", () => ({ notification: { parseError: stubs.parseError } }));
 
 const pigPhoto = {
   id: "11111111-1111-1111-1111-111111111111",
@@ -70,7 +68,6 @@ afterEach(async () => {
   await act(async () => root?.unmount());
   container?.remove();
   stubs.get.mockReset();
-  stubs.parseError.mockReset();
   stubs.user = undefined;
   stubs.userFailed = false;
 });
@@ -94,8 +91,8 @@ describe("useSearchPhotosQuery", () => {
     await settle(() => result.isSuccess);
 
     expect(stubs.get).toHaveBeenCalledTimes(1);
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?search=beach");
     expect(result.data?.photosFlat).toHaveLength(1);
-    expect(stubs.parseError).not.toHaveBeenCalled();
   });
 
   it("still searches when the user cannot be loaded", async () => {
@@ -123,7 +120,6 @@ describe("useSearchPhotosQuery", () => {
 
     expect(result.data?.photosGroupedByDate).toHaveLength(1);
     expect(result.data?.photosFlat).toHaveLength(1);
-    expect(stubs.parseError).not.toHaveBeenCalled();
   });
 
   // The undated group comes as "No timestamp" today and as null, like every
@@ -146,11 +142,10 @@ describe("useSearchPhotosQuery", () => {
     expect(result.isSuccess).toBe(true);
     expect(result.data?.photosGroupedByDate[1]?.date).toBe(date);
     expect(result.data?.photosFlat).toHaveLength(2);
-    expect(stubs.parseError).not.toHaveBeenCalled();
   });
 
-  // Proves the not.toHaveBeenCalled() checks above watch the right toast.
-  it("reports a response that does not match the schema", async () => {
+  // A mismatch fails the query with the error the QueryClient reports (api.ts notifyParseError).
+  it("fails on a response that does not match the schema", async () => {
     stubs.user = { semantic_search_topk: 0 };
     stubs.get.mockResolvedValue({ results: [{ date: 20240402, location: "", items: [pigPhoto] }] });
     container = document.createElement("div");
@@ -159,6 +154,6 @@ describe("useSearchPhotosQuery", () => {
     await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
     await settle(() => result.isError);
 
-    expect(stubs.parseError).toHaveBeenCalledTimes(1);
+    expect(result.error).toBeInstanceOf(ResponseParseError);
   });
 });

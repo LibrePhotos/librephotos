@@ -162,62 +162,13 @@
       "count": 13
     }
   },
-  "src/api_client/faces/hooks/useAddFaceMutation.test.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
   "src/api_client/faces/hooks/useAddFaceMutation.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/hooks/useClusterFacesQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
       "count": 1
     }
   },
   "src/api_client/faces/hooks/useDeleteFacesMutation.ts": {
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/hooks/useFetchFacesQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/hooks/useFetchIncompleteFacesQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/hooks/useRescanFacesMutation.ts": {
-    "ban/api-client-method": {
       "count": 1
     }
   },
@@ -228,45 +179,6 @@
   },
   "src/api_client/faces/hooks/useTrainFacesMutation.ts": {
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/folders/hooks/useFetchDirsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/folders/hooks/useFetchNextcloudDirsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/folders/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/geocode/hooks/useGeocodeSearchQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/geocode/types.ts": {
-    "ban/api-client-zod": {
       "count": 1
     }
   },
@@ -328,32 +240,6 @@
   },
   "src/api_client/jobs/startJob.ts": {
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/media/hooks/useMediaDiagnosticsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/media/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/memories/hooks.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/memories/types.ts": {
-    "ban/api-client-zod": {
       "count": 1
     }
   },
@@ -466,92 +352,11 @@
       "count": 1
     }
   },
-  "src/api_client/search/hooks/useSearchExamplesQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/search/hooks/useSearchPhotosQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/search/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/server/hooks/useFetchImageTagQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/server/hooks/useFetchServerLogsViewQuery.ts": {
-    "ban/api-client-method": {
-      "count": 2
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/server/hooks/useFetchServerStatsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/server/hooks/useFetchStorageStatsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
   "src/api_client/services/hooks/useServiceActionMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/services/hooks/useServicesQuery.ts": {
-    "ban/api-client-method": {
-      "count": 2
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/services/types.ts": {
-    "ban/api-client-zod": {
       "count": 1
     }
   },
@@ -574,62 +379,6 @@
   "src/api_client/stacks/hooks.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 13
-    }
-  },
-  "src/api_client/stats/hooks/useFetchCountStatsQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/hooks/useFetchLocationTreeQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/hooks/useFetchPhotoMonthCountQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/hooks/useFetchSocialGraphQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/hooks/useFetchWordCloudQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/hooks/useLocationTimelineQuery.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/stats/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
     }
   },
   "src/api_client/tags/hooks/useCreateTagMutation.ts": {
@@ -684,37 +433,7 @@
     "@typescript-eslint/no-floating-promises": {
       "count": 6
     },
-    "ban/api-client-method": {
-      "count": 1
-    },
     "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/upload/hooks/useUploadMutation.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
-      "count": 1
-    }
-  },
-  "src/api_client/upload/types.ts": {
-    "ban/api-client-zod": {
-      "count": 1
-    }
-  },
-  "src/api_client/upload/uploadExists.ts": {
-    "ban/api-client-method": {
-      "count": 1
-    },
-    "ban/api-client-zod": {
-      "count": 1
-    },
-    "ban/api-client-zod-utils": {
       "count": 1
     }
   },

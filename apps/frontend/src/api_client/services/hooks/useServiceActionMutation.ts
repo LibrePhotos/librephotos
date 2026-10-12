@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { serviceLabel } from "../../../components/settings/serviceLabel";
 import i18n from "../../../i18n";
@@ -12,10 +13,7 @@ type ServiceAction = {
 
 export const useServiceActionMutation = () =>
   useMutation({
-    mutationFn: async ({ serviceName, action }: ServiceAction) => {
-      const response = await apiClient.post<{ message: string }>(`/services/${serviceName}/${action}/`);
-      return response;
-    },
+    mutationFn: ({ serviceName, action }: ServiceAction) => endpoints.runServiceAction(apiClient, serviceName, action),
     onSuccess: data => {
       notification.serviceActionSuccess(data.message);
       queryClient.invalidateQueries({ queryKey: serviceKeys.healths() });

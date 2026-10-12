@@ -1,34 +1,7 @@
-import { z } from "zod";
+import type { CountStats } from "@librephotos/api-client";
 
-/** One node of the location tree (sunburst chart): a place and the places in it. */
-export type LocationSunburst = {
-  name: string;
-  hex?: string;
-  children?: LocationSunburst[];
-};
+export type { CountStats, LocationTimeline } from "@librephotos/api-client";
 
-export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
-  z.object({
-    name: z.string(),
-    hex: z.string().optional(),
-    children: z.array(LocationSunburst).optional(),
-  })
-);
-
-export const CountStats = z.object({
-  num_photos: z.number(),
-  num_missing_photos: z.number(),
-  num_faces: z.number(),
-  num_people: z.number(),
-  num_unknown_faces: z.number(),
-  num_labeled_faces: z.number(),
-  num_inferred_faces: z.number(),
-  num_albumauto: z.number(),
-  num_albumdate: z.number(),
-  num_albumuser: z.number(),
-});
-
-export type CountStats = z.infer<typeof CountStats>;
 export const COUNT_STATS_DEFAULTS: CountStats = {
   num_photos: 0,
   num_missing_photos: 0,
@@ -41,36 +14,3 @@ export const COUNT_STATS_DEFAULTS: CountStats = {
   num_albumdate: 0,
   num_albumuser: 0,
 };
-
-const WordCloud = z.object({
-  label: z.string(),
-  y: z.number(),
-  x: z.number().optional(),
-});
-
-export const WordCloudResponse = z.object({
-  captions: WordCloud.array(),
-  people: WordCloud.array(),
-  locations: WordCloud.array(),
-});
-
-export type WordCloudResponse = z.infer<typeof WordCloudResponse>;
-
-const PhotoMonthCount = z.object({
-  month: z.string(),
-  count: z.number(),
-});
-export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
-export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
-
-export const LocationTimeline = z.array(
-  z.object({
-    data: z.array(z.number()),
-    color: z.string(),
-    loc: z.string(),
-    start: z.number(),
-    end: z.number(),
-  })
-);
-
-export type LocationTimeline = z.infer<typeof LocationTimeline>;

@@ -132,8 +132,7 @@ Everything below is relative to
   URLs from `mediaUrl` and are fetched with `fetchMedia`, both in `api_client/media/mediaUrl.ts`. A
   component never calls `apiClient` or `fetch` itself: when it needs a request, add the endpoint and
   its schema (with a fixture test) to `packages/api-client`, then a hook to the domain's folder. Lint
-  enforces this; domains that still call `apiClient` directly or define their own zod schemas are
-  listed in `eslint-suppressions.json` and are moving over one at a time
+  enforces this: no file in `api_client` calls `apiClient` directly or defines its own zod schema
   ([#2347](https://github.com/LibrePhotos/librephotos/issues/2347)).
 - [hooks](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/hooks) and
   [service](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/service) contain

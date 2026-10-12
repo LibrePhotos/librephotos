@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { z } from "zod";
-import { FacesTab } from "../../../api_client/faces/types";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
+import { FacesTab } from "../facesTab";
 
 /** Each tab's saved scroll position; a tab without one is not scrolled when it opens. */
 type TabPositions = Partial<Record<FacesTab, number>>;

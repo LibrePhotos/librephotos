@@ -6,7 +6,7 @@ import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FaceAnalysisMethod } from "../../api_client/faces";
-import { FacesTab, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
@@ -14,6 +14,7 @@ import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
+import { FacesTab } from "./facesTab";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
@@ -87,8 +88,10 @@ export function FaceDashboard() {
   // Event handlers
   const handleShowClick = useCallback(
     (event: React.MouseEvent, item: FaceCell) => {
-      const index = idx2hash.findIndex(image => image.id === item.photo);
-      showLightbox(item.photo, index >= 0);
+      // Like idx2hash: the server never sends a face without its photo.
+      const photoId = item.photo ?? "";
+      const index = idx2hash.findIndex(image => image.id === photoId);
+      showLightbox(photoId, index >= 0);
     },
     [idx2hash, showLightbox]
   );

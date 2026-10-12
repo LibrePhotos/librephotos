@@ -6,8 +6,8 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { FacesTab } from "../../../api_client/faces/types";
 import { STORAGE_KEYS } from "../../../util/storage";
+import { FacesTab } from "../facesTab";
 import { useCollapsedPersons } from "./useCollapsedPersons";
 import { useTabScrollPositions } from "./useTabScrollPositions";
 

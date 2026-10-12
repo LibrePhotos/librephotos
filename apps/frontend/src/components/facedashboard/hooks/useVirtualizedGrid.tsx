@@ -1,6 +1,5 @@
 import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { FacesTab } from "../../../api_client/faces";
 import type {
   CompletePersonFace,
   CompletePersonFaceList,
@@ -11,6 +10,7 @@ import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util
 import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
+import { FacesTab } from "../facesTab";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */
 export type GridCell = CompletePersonFace | PersonFace;

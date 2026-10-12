@@ -3,8 +3,8 @@ import { getRouteApi } from "@tanstack/react-router";
 import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
-import type { FacesTab } from "../../api_client/faces";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
+import type { FacesTab } from "./facesTab";
 
 type Props = Readonly<{
   tooltipOpened: boolean;

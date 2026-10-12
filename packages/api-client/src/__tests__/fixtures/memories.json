@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-12",
+  "window_days": 3,
+  "results": [
+    {
+      "id": "years_ago-2025",
+      "type": "years_ago",
+      "years_ago": 1,
+      "year": 2025,
+      "date": "2025-10-12",
+      "start_date": "2025-10-12",
+      "end_date": "2025-10-12",
+      "location": "Berlin",
+      "numberOfItems": 2,
+      "cover": {
+        "id": "c79a828a-839b-4f9d-bddd-4907b05a61f4",
+        "image_hash": "65fbedee89090f733ec4d606215024e11",
+        "dominantColor": "#aabbcc",
+        "url": "65fbedee89090f733ec4d606215024e11",
+        "location": "Roncalli, Mckernstr, Berlin, 10963, Germany",
+        "date": "2025-10-12T15:00:00+00:00",
+        "birthTime": "2025-10-12T15:00:00Z",
+        "aspectRatio": 1.0,
+        "type": "image",
+        "video_length": "",
+        "is_hdr": false,
+        "rating": 4,
+        "owner": {
+          "id": 1,
+          "username": "alice",
+          "first_name": "Alice",
+          "last_name": ""
+        },
+        "exif_gps_lat": 52.501711,
+        "exif_gps_lon": 13.381502,
+        "removed": false,
+        "in_trashcan": false,
+        "stacks": null,
+        "has_raw_variant": false,
+        "local_orientation": 1
+      },
+      "items": [
+        {
+          "id": "bfb619e4-222f-43df-9b23-bfd1e3ff5181",
+          "image_hash": "d6c6079bdca1bc7e7eef331748d0a2fd1",
+          "dominantColor": "#aabbcc",
+          "url": "d6c6079bdca1bc7e7eef331748d0a2fd1",
+          "location": "Roncalli, Mckernstr, Berlin, 10963, Germany",
+          "date": "2025-10-12T09:00:00+00:00",
+          "birthTime": "2025-10-12T09:00:00Z",
+          "aspectRatio": 1.0,
+          "type": "image",
+          "video_length": "",
+          "is_hdr": false,
+          "rating": 0,
+          "owner": {
+            "id": 1,
+            "username": "alice",
+            "first_name": "Alice",
+            "last_name": ""
+          },
+          "exif_gps_lat": 52.501711,
+          "exif_gps_lon": 13.381502,
+          "removed": false,
+          "in_trashcan": false,
+          "stacks": null,
+          "has_raw_variant": false,
+          "local_orientation": 1
+        },
+        {
+          "id": "c79a828a-839b-4f9d-bddd-4907b05a61f4",
+          "image_hash": "65fbedee89090f733ec4d606215024e11",
+          "dominantColor": "#aabbcc",
+          "url": "65fbedee89090f733ec4d606215024e11",
+          "location": "Roncalli, Mckernstr, Berlin, 10963, Germany",
+          "date": "2025-10-12T15:00:00+00:00",
+          "birthTime": "2025-10-12T15:00:00Z",
+          "aspectRatio": 1.0,
+          "type": "image",
+          "video_length": "",
+          "is_hdr": false,
+          "rating": 4,
+          "owner": {
+            "id": 1,
+            "username": "alice",
+            "first_name": "Alice",
+            "last_name": ""
+          },
+          "exif_gps_lat": 52.501711,
+          "exif_gps_lon": 13.381502,
+          "removed": false,
+          "in_trashcan": false,
+          "stacks": null,
+          "has_raw_variant": false,
+          "local_orientation": 1
+        }
+      ]
+    }
+  ]
+}

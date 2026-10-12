@@ -1,7 +1,8 @@
 import { HoverCard, Stack, Text } from "@mantine/core";
 import { t } from "i18next";
 import React from "react";
-import { FaceAnalysisMethod, FacesTab, useFetchIncompleteFacesQuery } from "../../api_client/faces";
+import { FaceAnalysisMethod, useFetchIncompleteFacesQuery } from "../../api_client/faces";
+import { FacesTab } from "./facesTab";
 
 type Props = Readonly<{
   tab: FacesTab;

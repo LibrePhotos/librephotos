@@ -1,3 +1,4 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
@@ -10,7 +11,7 @@ import { startJob } from "../../jobs/startJob";
  */
 export const useRescanFacesMutation = () =>
   useMutation({
-    mutationFn: () => startJob(() => apiClient.post("/scanfaces", {})),
+    mutationFn: () => startJob(() => endpoints.scanFaces(apiClient)),
     onSuccess: start => {
       if (!start.alreadyRunning) {
         notification.rescanFaces();

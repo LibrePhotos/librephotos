@@ -104,9 +104,10 @@ green CI run. To develop against a local backend, copy `.env.development.example
   package ships to mobile. A parse failure throws `ResponseParseError`, which the QueryClient in `api.ts`
   reports, so a hook adds no parse handling of its own.
 - Lint: `ban/api-client-method` (an `apiClient.<method>` call outside `api.ts` and tests), `ban/api-client-zod`
-  and `ban/api-client-zod-utils` (zod or `util/zodUtils` in `src/api_client`). Domains not moved yet sit in
-  `eslint-suppressions.json`, which only shrinks. `endpointReturnTypes.test.ts` in the package fails on an
-  endpoint returning `Promise<unknown>` (no exceptions left).
+  and `ban/api-client-zod-utils` (zod or `util/zodUtils` in `src/api_client`). Every domain is on the package
+  and `eslint-suppressions.json` has no entry for these rules, so a new violation fails lint. A UI-only zod
+  enum (a route's search params) lives next to its component, not in `src/api_client`.
+  `endpointReturnTypes.test.ts` in the package fails on an endpoint returning `Promise<unknown>` (no exceptions left).
 
 ## Styling
 

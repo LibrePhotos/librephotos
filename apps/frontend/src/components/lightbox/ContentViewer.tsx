@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAddFaceMutation } from "../../api_client/faces";
-import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
+import type { NormalizedFaceBox } from "../../api_client/faces/types";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
