@@ -61,3 +61,20 @@
   --app-shimmer-amber-15: rgba(255, 193, 7, 0.15);
   --app-shimmer-gold-25: rgba(255, 215, 0, 0.25);
 }
+
+/*
+ * light-dark() in a production build. Vite minifies CSS with Lightning CSS, which rewrites
+ * light-dark(A, B) into two variables that only a literal `color-scheme` declaration sets. Mantine
+ * declares color-scheme through var(--mantine-color-scheme), which Lightning CSS cannot follow, so
+ * without these rules the variables stay unset, the value holds both colours and the browser drops
+ * it: every light-dark() background and text colour vanishes. (Dark mode got its variables from the
+ * no-flash rule in index.html; light mode had none.) The dev server leaves light-dark() alone, so
+ * this shows only in a build; src/theme/colors.test.ts builds it.
+ */
+:root[data-mantine-color-scheme="light"] {
+  color-scheme: light;
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  color-scheme: dark;
+}
