@@ -28,7 +28,7 @@ class TagSerializer(serializers.ModelSerializer):
 
         request = self.context.get("request")
         owner = request.user if request else None
-        taken = Tag.objects.filter(name=name, owner=owner)
+        taken = Tag.objects.owned_by(owner).filter(name=name)
         if self.instance:
             taken = taken.exclude(pk=self.instance.pk)
         if taken.exists():

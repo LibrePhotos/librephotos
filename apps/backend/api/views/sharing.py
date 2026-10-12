@@ -102,9 +102,9 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
         if getattr(self, "swagger_fake_view", False):
             return AlbumUser.objects.none()
         return with_album_user_list_relations(
-            AlbumUser.objects.annotate(shared_to_count=Count("shared_to"))
+            AlbumUser.objects.owned_by(request_user(self.request))
+            .annotate(shared_to_count=Count("shared_to"))
             .filter(shared_to_count__gt=0)
-            .filter(owner=request_user(self.request).id)
             .order_by("id")
         )
 

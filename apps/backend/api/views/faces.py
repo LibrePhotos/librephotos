@@ -156,11 +156,8 @@ class FaceListView(ListViewSet):
         if params["order_by"].lower() == "date":
             order_by = ["photo__exif_timestamp", *order_by]
         return (
-            Face.objects.filter(
-                Q(photo__owner=self.request.user),
-                Q(deleted=False),
-                conditional_filter,
-            )
+            Face.objects.owned_by(self.request.user)
+            .filter(Q(deleted=False), conditional_filter)
             .annotate(analysis_method=Value(analysis_method, output_field=CharField()))
             .prefetch_related("photo")
             .order_by(*order_by)
@@ -186,7 +183,7 @@ class FaceIncompleteListViewSet(ListViewSet):
         analysis_method = params["analysis_method"]
         min_confidence = params["min_confidence"]
 
-        queryset = Person.objects.filter(cluster_owner=user)
+        queryset = Person.objects.owned_by(user)
         # Every count below is scoped to the requester's own photos, because
         # FaceListView scopes its rows the same way (`photo__owner`). Without
         # it, a person shared with another user is counted across both
@@ -204,7 +201,9 @@ class FaceIncompleteListViewSet(ListViewSet):
                             & Q(
                                 classification_faces__classification_probability__gte=min_confidence
                             )
-                            & Q(classification_faces__photo__owner=user),
+                            & Face.objects.owner_q(
+                                user, through="classification_faces__"
+                            ),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -217,7 +216,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                             Q(cluster_faces__deleted=False)
                             & Q(cluster_faces__person=None)
                             & Q(cluster_faces__cluster_probability__gte=min_confidence)
-                            & Q(cluster_faces__photo__owner=user),
+                            & Face.objects.owner_q(user, through="cluster_faces__"),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -228,7 +227,8 @@ class FaceIncompleteListViewSet(ListViewSet):
             conditional_count = Count(
                 Case(
                     When(
-                        Q(faces__deleted=False) & Q(faces__photo__owner=user),
+                        Q(faces__deleted=False)
+                        & Face.objects.owner_q(user, through="faces__"),
                         then=1,
                     ),
                     output_field=IntegerField(),
@@ -256,26 +256,32 @@ class FaceIncompleteListViewSet(ListViewSet):
 
         if params["inferred"]:
             if params["analysis_method"] == "classification":
-                unknown_faces_count = Face.objects.filter(
-                    Q(deleted=False)
-                    & Q(person=None)
-                    & Q(photo__owner=user)
-                    & Q(classification_probability__lte=min_confidence),
-                ).count()
-            else:
-                unknown_faces_count = Face.objects.filter(
-                    (
-                        Q(cluster_person=None)
-                        | Q(cluster_probability__lte=min_confidence)
+                unknown_faces_count = (
+                    Face.objects.owned_by(user)
+                    .filter(
+                        Q(deleted=False)
+                        & Q(person=None)
+                        & Q(classification_probability__lte=min_confidence),
                     )
-                    & Q(deleted=False)
-                    & Q(person=None)
-                    & Q(photo__owner=user),
-                ).count()
+                    .count()
+                )
+            else:
+                unknown_faces_count = (
+                    Face.objects.owned_by(user)
+                    .filter(
+                        (
+                            Q(cluster_person=None)
+                            | Q(cluster_probability__lte=min_confidence)
+                        )
+                        & Q(deleted=False)
+                        & Q(person=None),
+                    )
+                    .count()
+                )
         else:
-            unknown_faces_count = Face.objects.filter(
-                person=None, deleted=False, photo__owner=user
-            ).count()
+            unknown_faces_count = (
+                Face.objects.owned_by(user).filter(person=None, deleted=False).count()
+            )
 
         if unknown_faces_count > 0:
             unknown_person = {
@@ -315,11 +321,14 @@ class SetFacePersonLabel(APIView):
             # kind that gets a person album and trains the classifier, and move
             # the face onto it. The face dashboard has always hidden confirm for
             # these kinds; the photo's own face list had not.
-            if Person.objects.filter(
-                name=person_name,
-                cluster_owner=user,
-                kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN),
-            ).exists():
+            if (
+                Person.objects.owned_by(user)
+                .filter(
+                    name=person_name,
+                    kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN),
+                )
+                .exists()
+            ):
                 raise ValidationError(
                     {
                         "person_name": (
@@ -341,7 +350,7 @@ class SetFacePersonLabel(APIView):
         # not come back serialized in ``not_updated`` (it carried the photo id
         # and the face crop path of someone else's photo).
         faces = (
-            Face.objects.filter(photo__owner=user)
+            Face.objects.owned_by(user)
             .select_related(
                 "photo__owner",
                 "photo__main_file",
@@ -669,7 +678,7 @@ class DeleteFaces(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, FaceIdsRequest)
-        faces = Face.objects.filter(photo__owner=user).in_bulk(data["face_ids"])
+        faces = Face.objects.owned_by(user).in_bulk(data["face_ids"])
 
         deleted: list[str] = []
         not_deleted: list[str] = []

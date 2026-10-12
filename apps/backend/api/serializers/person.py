@@ -101,7 +101,7 @@ class PersonSerializer(serializers.ModelSerializer):
         if len(name.strip()) == 0:
             raise serializers.ValidationError("Name cannot be empty")
         owner = self._requester()
-        qs = Person.objects.filter(name=name, cluster_owner=owner)
+        qs = Person.objects.owned_by(owner).filter(name=name)
         if qs.exists():
             return qs[0]
         else:

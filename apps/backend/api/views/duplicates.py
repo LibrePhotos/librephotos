@@ -60,7 +60,7 @@ class DuplicateListView(APIView):
         page_size = params["page_size"]
 
         duplicates = (
-            Duplicate.objects.filter(owner=user)
+            Duplicate.objects.owned_by(user)
             .prefetch_related("photos__thumbnail", "kept_photo__thumbnail")
             .annotate(photos_count=Count("photos"))
             .order_by("-created_at")
@@ -140,8 +140,10 @@ class DuplicateDetailView(APIView):
     def get(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
-            duplicate = Duplicate.objects.annotate(photos_count=Count("photos")).get(
-                id=duplicate_id, owner=user
+            duplicate = (
+                Duplicate.objects.owned_by(user)
+                .annotate(photos_count=Count("photos"))
+                .get(id=duplicate_id)
             )
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
@@ -218,7 +220,7 @@ class DuplicateResolveView(APIView):
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
+            duplicate = Duplicate.objects.get_owned(user, id=duplicate_id)
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
 
@@ -258,7 +260,7 @@ class DuplicateDismissView(APIView):
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
+            duplicate = Duplicate.objects.get_owned(user, id=duplicate_id)
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
 
@@ -276,7 +278,7 @@ class DuplicateRevertView(APIView):
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
+            duplicate = Duplicate.objects.get_owned(user, id=duplicate_id)
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
 
@@ -299,7 +301,7 @@ class DuplicateDeleteView(APIView):
     def delete(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
-            duplicate = Duplicate.objects.get(id=duplicate_id, owner=user)
+            duplicate = Duplicate.objects.get_owned(user, id=duplicate_id)
         except Duplicate.DoesNotExist:
             raise NotFound("Duplicate group not found")
 
@@ -359,7 +361,7 @@ class DuplicateStatsView(APIView):
 
     def get(self, request: Request) -> Response:
         user = request_user(request)
-        duplicates = Duplicate.objects.filter(owner=user)
+        duplicates = Duplicate.objects.owned_by(user)
 
         # Count by type
         by_type: dict[str, int] = {}

@@ -637,7 +637,9 @@ class MediaServingView(APIView):
         A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
         not be served on the strength of that album's share.
         """
-        return photo.albumuser_set.filter(owner_id=photo.owner_id)
+        return photo.albumuser_set.filter(
+            owner_id=photo.owner_id  # owner-scope: same owner as the photo
+        )
 
     def _in_public_album(self, photo: Photo) -> bool:
         """Whether an active public share of one of its owner's albums vouches."""
@@ -846,7 +848,9 @@ class MediaServingView(APIView):
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         try:
             photo = (
-                album.photos.filter(owner_id=album.owner_id)
+                album.photos.filter(
+                    owner_id=album.owner_id  # owner-scope: same owner as the album
+                )
                 .only(
                     "image_hash",
                     "video",

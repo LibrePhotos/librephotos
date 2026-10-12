@@ -185,9 +185,11 @@ class MemoriesView(APIView):
         fallback = params["fallback"]
         size = params["size"]
 
-        first_date = AlbumDate.objects.filter(owner=user, date__isnull=False).aggregate(
-            Min("date")
-        )["date__min"]
+        first_date = (
+            AlbumDate.objects.owned_by(user)
+            .filter(date__isnull=False)
+            .aggregate(Min("date"))["date__min"]
+        )
 
         results: list[dict[str, object]] = []
         if first_date is not None:
@@ -227,7 +229,7 @@ class MemoriesView(APIView):
         # (date, location) for every candidate day, in one query. A library
         # spanning 20 years contributes at most a few hundred rows here.
         day_rows = list(
-            AlbumDate.objects.filter(owner=user)
+            AlbumDate.objects.owned_by(user)
             .filter(day_filter)
             .values_list("date", "location")
         )

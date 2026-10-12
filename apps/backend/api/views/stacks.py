@@ -67,7 +67,8 @@ class PhotoStackListView(APIView):
         valid_stack_types = PhotoStack.VALID_STACK_TYPES
 
         stacks = (
-            PhotoStack.objects.filter(owner=user, stack_type__in=valid_stack_types)
+            PhotoStack.objects.owned_by(user)
+            .filter(stack_type__in=valid_stack_types)
             .prefetch_related("photos__thumbnail", "primary_photo__thumbnail")
             .annotate(photos_count=Count("photos"))
             .order_by("-created_at")
@@ -152,8 +153,10 @@ class PhotoStackDetailView(APIView):
         ]
 
         try:
-            stack = PhotoStack.objects.annotate(photos_count=Count("photos")).get(
-                id=stack_id, owner=user, stack_type__in=all_stack_types
+            stack = (
+                PhotoStack.objects.owned_by(user)
+                .annotate(photos_count=Count("photos"))
+                .get(id=stack_id, stack_type__in=all_stack_types)
             )
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
@@ -234,7 +237,7 @@ class PhotoStackDetailView(APIView):
         """Delete a stack (unlinks photos but doesn't delete them)."""
         user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=user)
+            stack = PhotoStack.objects.get_owned(user, id=stack_id)
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
@@ -259,7 +262,7 @@ class PhotoStackDeleteView(APIView):
     def delete(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=user)
+            stack = PhotoStack.objects.get_owned(user, id=stack_id)
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
@@ -285,7 +288,7 @@ class PhotoStackSetPrimaryView(APIView):
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=user)
+            stack = PhotoStack.objects.get_owned(user, id=stack_id)
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
@@ -362,9 +365,8 @@ class PhotoStackStatsView(APIView):
     def get(self, request: Request) -> Response:
         user = request_user(request)
         listed = (
-            PhotoStack.objects.filter(
-                owner=user, stack_type__in=PhotoStack.VALID_STACK_TYPES
-            )
+            PhotoStack.objects.owned_by(user)
+            .filter(stack_type__in=PhotoStack.VALID_STACK_TYPES)
             .annotate(photos_count=Count("photos"))
             .filter(photos_count__gte=2)
         )
@@ -374,8 +376,8 @@ class PhotoStackStatsView(APIView):
             stack_type: listed_types[stack_type]
             for stack_type in PhotoStack.VALID_STACK_TYPES
         }
-        deprecated = PhotoStack.objects.filter(
-            owner=user, stack_type__in=self.DEPRECATED_STACK_TYPES
+        deprecated = PhotoStack.objects.owned_by(user).filter(
+            stack_type__in=self.DEPRECATED_STACK_TYPES
         )
         for stack_type in self.DEPRECATED_STACK_TYPES:
             by_type[stack_type] = deprecated.filter(stack_type=stack_type).count()
@@ -473,7 +475,7 @@ class AddToStackView(APIView):
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=user)
+            stack = PhotoStack.objects.get_owned(user, id=stack_id)
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
@@ -506,7 +508,7 @@ class RemoveFromStackView(APIView):
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
-            stack = PhotoStack.objects.get(id=stack_id, owner=user)
+            stack = PhotoStack.objects.get_owned(user, id=stack_id)
         except PhotoStack.DoesNotExist:
             raise NotFound("Photo stack not found")
 
@@ -574,11 +576,12 @@ class MergeStacksView(APIView):
         # Convert to list immediately to avoid multiple query evaluations with
         # potentially inconsistent ordering
         manual_stacks = list(
-            PhotoStack.objects.filter(
-                owner=user,
+            PhotoStack.objects.owned_by(user)
+            .filter(
                 stack_type=PhotoStack.StackType.MANUAL,
                 photos__in=photos,
-            ).distinct()
+            )
+            .distinct()
         )
 
         if not manual_stacks:

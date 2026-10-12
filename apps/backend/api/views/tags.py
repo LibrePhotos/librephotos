@@ -62,7 +62,7 @@ class TagViewSet(
         if not isinstance(user, User):
             return Tag.objects.none()
 
-        queryset = Tag.objects.filter(owner=user)
+        queryset = Tag.objects.owned_by(user)
 
         if self.action == "list":
             # "Tags of this photo" on the list only: on a tag album's detail
@@ -116,7 +116,7 @@ class TagViewSet(
     )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         name = parse_body(request, TagCreateRequest)["name"]
-        existing = Tag.objects.filter(name=name, owner=request_user(request)).first()
+        existing = Tag.objects.owned_by(request_user(request)).filter(name=name).first()
         if existing is not None:
             return Response(TagSerializer(existing).data)
         return super().create(request, *args, **kwargs)
@@ -268,7 +268,9 @@ class TagViewSet(
     def merge(self, request: Request, pk: str | None = None) -> Response:
         tag = self.get_object()
         source_id = parse_body(request, TagMergeRequest)["tag"]
-        source = Tag.objects.filter(pk=source_id, owner=request_user(request)).first()
+        source = (
+            Tag.objects.owned_by(request_user(request)).filter(pk=source_id).first()
+        )
         if source is None:
             raise NotFound()
         if source.pk == tag.pk:

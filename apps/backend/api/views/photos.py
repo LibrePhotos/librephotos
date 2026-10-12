@@ -560,7 +560,7 @@ class PhotoViewSet(
         # unscoped lookup answered 200 for anyone's hash and 404 for an unknown
         # one, telling strangers which files others have (GHSA-hq2w-x39h-8wmp).
         if isinstance(user, User):
-            user_albums = AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user))
+            user_albums = AlbumUser.objects.owned_or_shared_to(user)
             candidates = Photo.objects.visible_to(user) | Photo.objects.filter(
                 albumuser__in=user_albums
             )
@@ -784,7 +784,7 @@ class SetPhotosShared(APIView):
                 DeletionLog.objects.filter(
                     entity=DeletionLog.ENTITY_PHOTO,
                     entity_id__in=[str(i) for i in newly_shared_ids],
-                    owner_id=target_user_id,
+                    owner_id=target_user_id,  # owner-scope: the recipient's tombstones
                 ).delete()
             logger.info(
                 "Shared %s's %s images to user %s", user.id, len(res), target_user_id
