@@ -3,7 +3,8 @@ from datetime import datetime
 from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Model, Prefetch, QuerySet
+from django.db.models import Count, Model, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -244,10 +245,19 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
         PhotoStack.StackType.RAW_JPEG_PAIR,
         PhotoStack.StackType.LIVE_PHOTO,
     ]
+    # A subquery, not Count("photos"): the prefetch filters the stacks through
+    # that same join, so a count over it saw only the photo being prefetched
+    # and every tile said its stack held one photo.
+    stack_size = (
+        PhotoStack.photos.through.objects.filter(photostack_id=OuterRef("pk"))
+        .values("photostack_id")
+        .annotate(size=Count("*"))
+        .values("size")
+    )
     stacks_prefetch = Prefetch(
         "stacks",
         queryset=PhotoStack.objects.filter(stack_type__in=valid_stack_types).annotate(
-            photo_count_annotation=Count("photos")
+            photo_count_annotation=Coalesce(Subquery(stack_size), 0)
         ),
     )
 
