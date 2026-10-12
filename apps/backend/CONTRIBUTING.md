@@ -270,7 +270,6 @@ yarn lint:warning:fix  # Fix linting issues
 **Code Style:**
 - Line length: 120 characters
 - Use Prettier for formatting (configured in `prettier.config.cjs`)
-- Prefer TypeScript types over interfaces (project convention)
 - Use functional components with hooks
 
 ### Pull Request Checklist

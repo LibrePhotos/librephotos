@@ -14,9 +14,9 @@ import {
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 
-interface TagsSectionProps {
+type TagsSectionProps = {
   photoDetail: PhotoType;
-}
+};
 
 export function TagsSection(props: TagsSectionProps) {
   // The draft belongs to one photo: remount when the photo changes, or an editor

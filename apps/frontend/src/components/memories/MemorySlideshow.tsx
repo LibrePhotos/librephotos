@@ -1,5 +1,5 @@
 import React from "react";
-import { PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
 import { Lightbox } from "../lightbox/Lightbox";
 import { useSlideshowSelection } from "./useSlideshowSelection";
 

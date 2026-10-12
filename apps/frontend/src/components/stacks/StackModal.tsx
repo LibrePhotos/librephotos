@@ -128,8 +128,9 @@ function getStackTypeIcon(type: PhotoStack["stack_type"], size = 14) {
       return <IconSun size={size} />;
     case "manual":
       return <IconStack2 size={size} />;
-    default:
-      // Also the legacy RAW + JPEG and Live Photo stacks a photo can still open
+    // The legacy RAW + JPEG and Live Photo stacks a photo can still open
+    case "live_photo":
+    case "raw_jpeg":
       return <IconLayersSubtract size={size} />;
   }
 }

@@ -6,7 +6,7 @@ import type { Photo as PhotoType } from "../../api_client/photos/types";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 
-interface PeopleSectionProps {
+type PeopleSectionProps = {
   photoDetail: Pick<PhotoType, "people">;
   isPublic: boolean;
   showTitle?: boolean;
@@ -19,7 +19,7 @@ interface PeopleSectionProps {
   isDrawingFace?: boolean;
   /** Why the photo cannot be drawn on right now, if it cannot. */
   addFaceBlockedReason?: string;
-}
+};
 
 export function PeopleSection({
   photoDetail,

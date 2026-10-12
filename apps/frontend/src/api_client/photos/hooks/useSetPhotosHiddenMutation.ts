@@ -7,7 +7,7 @@ import { IncompleteFacesQueryKeys } from "../../faces/hooks/useFetchIncompleteFa
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const UpdatePhotosResponse = z.object({

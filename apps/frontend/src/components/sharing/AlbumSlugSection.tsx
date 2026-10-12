@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
-import { UserAlbum } from "../../api_client/albums/types";
+import type { UserAlbum } from "../../api_client/albums/types";
 import { ApiError, fetchClient } from "../../api_client/api";
 import { shareAddress } from "../../api_client/apiClient";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";

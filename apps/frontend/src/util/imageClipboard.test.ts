@@ -106,7 +106,7 @@ describe("copyImageToClipboard", () => {
     // Browsers resolve the promises inside a ClipboardItem before the write
     // settles, and reject the write if any of them reject.
     stubs.write.mockImplementation(async (items: FakeClipboardItem[]) => {
-      await Promise.all(items.flatMap(item => Object.values(item.data)));
+      await Promise.all(items.flatMap(item => Object.values(item.data).map(part => Promise.resolve(part))));
     });
     vi.stubGlobal("navigator", { clipboard: { write: stubs.write } });
     vi.stubGlobal(
@@ -148,7 +148,7 @@ describe("copyImageToClipboard", () => {
   });
 
   it("fetches with credentials so the media endpoint sees the session cookie", () => {
-    copyImageToClipboard("/media/thumbnails_big/abc");
+    void copyImageToClipboard("/media/thumbnails_big/abc");
     expect(fetch).toHaveBeenCalledWith("/media/thumbnails_big/abc", { credentials: "include" });
   });
 

@@ -11,7 +11,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
-import { Photo } from "../../api_client/photos/types";
+import type { Photo } from "../../api_client/photos/types";
 import {
   parsePhotoTimestamp,
   parsePickerDate,

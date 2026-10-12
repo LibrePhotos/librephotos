@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 /** One node of the location tree (sunburst chart): a place and the places in it. */
-export interface LocationSunburst {
+export type LocationSunburst = {
   name: string;
   hex?: string;
   children?: LocationSunburst[];
-}
+};
 
 export const LocationSunburst: z.ZodType<LocationSunburst> = z.lazy(() =>
   z.object({

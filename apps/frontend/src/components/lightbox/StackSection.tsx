@@ -28,10 +28,10 @@ import type { Photo, PhotoStackDetail, StackTypeEnum } from "../../api_client/ph
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
-interface StackSectionProps {
+type StackSectionProps = {
   photoDetail: Photo;
   onPhotoSelect?: (photoId: string) => void;
-}
+};
 
 const stackTypeIcons: Record<StackTypeEnum, React.ReactNode> = {
   raw_jpeg: <IconFile size={16} />,
@@ -57,13 +57,13 @@ function formatBytes(bytes: number | null | undefined): string {
   return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
 }
 
-interface SingleStackCardProps {
+type SingleStackCardProps = {
   stack: PhotoStackDetail;
   photoId: string;
   t: TFunction;
   isCompact?: boolean;
   onPhotoSelect?: (photoId: string) => void;
-}
+};
 
 function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }: SingleStackCardProps) {
   const icon = stackTypeIcons[stack.type];

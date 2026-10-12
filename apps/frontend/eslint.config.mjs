@@ -9,6 +9,8 @@ import { builtinRules } from "eslint/use-at-your-own-risk";
 import globals from "globals";
 
 const TS_FILES = ["**/*.{ts,tsx}"];
+// Test code: test files, their shared fixtures and the issue repros.
+const TEST_FILES = ["**/*.test.{ts,tsx}", "**/*.test-utils.{ts,tsx}", "src/__repro__/**"];
 
 // ---------------------------------------------------------------------------------------------------
 // Convention bans. Add a ban as one entry in the list for its rule, never as a rule in a config block:
@@ -334,6 +336,9 @@ export default [
       "react/react-in-jsx-scope": "off",
       "react/jsx-boolean-value": "off",
       "react/jsx-props-no-spreading": "off",
+      "react/jsx-key": ["error", { checkFragmentShorthand: true }],
+      "react/no-array-index-key": "error",
+      "react/jsx-no-useless-fragment": "error",
 
       // React hooks
       "react-hooks/rules-of-hooks": "error",
@@ -366,6 +371,28 @@ export default [
       "@typescript-eslint/no-unsafe-function-type": "error",
       "@typescript-eslint/no-empty-object-type": "error",
       "@typescript-eslint/no-wrapper-object-types": "error",
+
+      // Every promise is awaited, returned or discarded with `void`; an event prop gets a sync
+      // function (`onClick={() => void navigate(...)}`). Existing findings sit in
+      // eslint-suppressions.json and are burned down per directory; never add to it.
+      "@typescript-eslint/no-floating-promises": ["error", { ignoreVoid: true }],
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
+      // A switch over a union names every member, or its default asserts `never`.
+      "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: false }],
+      // `type`, not `interface`; `import type` for type-only imports.
+      "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+      // `typeof import("...")` stays allowed: it is how vi.mock factories type importOriginal.
+      "@typescript-eslint/consistent-type-imports": ["error", { disallowTypeAnnotations: false }],
+    },
+  },
+  {
+    // An async function without `await`. Off in test code, where async mocks and test bodies are
+    // the norm and the rule finds nothing worth fixing.
+    files: TS_FILES,
+    ignores: TEST_FILES,
+    rules: {
+      "@typescript-eslint/require-await": "error",
     },
   },
   ...banConfigs(),

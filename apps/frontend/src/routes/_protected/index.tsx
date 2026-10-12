@@ -4,11 +4,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
+import { Photoset } from "../../api_client/photos/types";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
-import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import {
   countActiveFilters,
   describeTimelineFilter,

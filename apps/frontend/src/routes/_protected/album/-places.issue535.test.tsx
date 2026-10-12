@@ -96,7 +96,7 @@ vi.mock("react-map-gl/maplibre", async () => {
     const [map, setMap] = react.useState<MapStub | null>(null);
     react.useEffect(() => {
       let mounted = true;
-      Promise.resolve().then(() => {
+      void Promise.resolve().then(() => {
         if (!mounted) return;
         setMap({
           getBounds: () => ({

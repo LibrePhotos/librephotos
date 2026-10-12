@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 import { useFetchPhotoMetadataQuery, useUpdatePhotoMetadataMutation } from "../../api_client/photos/hooks";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 
-interface KeywordsSectionProps {
+type KeywordsSectionProps = {
   photoDetail: PhotoType;
-}
+};
 
 export function KeywordsSection(props: KeywordsSectionProps) {
   // The draft belongs to one photo: remount when the photo changes, or an editor

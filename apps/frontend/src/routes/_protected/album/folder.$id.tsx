@@ -1,4 +1,5 @@
-import { Box, Button, Group, MantineFontSize, useMantineTheme } from "@mantine/core";
+import type { MantineFontSize } from "@mantine/core";
+import { Box, Button, Group, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconFolder as Folder, IconArrowLeft } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -9,10 +10,11 @@ import {
   useFetchDateAlbumsQuery,
   useFetchFolderSubfoldersQuery,
 } from "../../../api_client/albums/hooks";
-import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import type { PigPhoto } from "../../../api_client/photos/types";
+import { Photoset } from "../../../api_client/photos/types";
 import { FolderListModal } from "../../../components/album/FolderListModal";
-import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import type { PhotoGroup, PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/folder/$id")({

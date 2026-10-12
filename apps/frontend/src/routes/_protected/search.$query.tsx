@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useSearchPhotosQuery } from "../../api_client/search/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
-import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 
 export const Route = createFileRoute("/_protected/search/$query")({

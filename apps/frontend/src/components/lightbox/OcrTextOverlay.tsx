@@ -86,8 +86,11 @@ export function OcrTextOverlay({ blocks, aspectRatio }: OcrTextOverlayProps) {
         WebkitUserSelect: "text",
       }}
     >
-      {placed.map((block, index) => (
-        <g key={index} transform={`translate(${block.x} ${block.y}) rotate(${block.angle})`}>
+      {placed.map(block => (
+        <g
+          key={`${block.x},${block.y},${block.text}`}
+          transform={`translate(${block.x} ${block.y}) rotate(${block.angle})`}
+        >
           {/* Faint backdrop marking the block as selectable, like Live Text's glow */}
           <rect
             width={block.width}

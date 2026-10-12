@@ -1,6 +1,6 @@
 import { IconStarFilled as StarFilled } from "@tabler/icons-react";
 import React from "react";
-import { PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 

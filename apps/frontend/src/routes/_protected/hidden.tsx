@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "../../api_client/photos/types";
+import { Photoset } from "../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
-import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 

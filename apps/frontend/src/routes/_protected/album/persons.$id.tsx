@@ -2,17 +2,18 @@ import { IconUser as User } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { Person } from "../../../api_client/albums/hooks";
 import {
-  Person,
   useFetchDateAlbumQuery,
   useFetchDateAlbumsQuery,
   useFetchPeopleAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import type { PigPhoto } from "../../../api_client/photos/types";
+import { Photoset } from "../../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
-import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../../components/photolist/PhotoListView";
+import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import type { PhotoGroup, PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 

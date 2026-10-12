@@ -2,13 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import {
-  CompletePersonFace,
-  CompletePersonFaceList,
-  FaceAnalysisMethod,
-  FacesOrderOption,
-  IncompletePersonFace,
-} from "../types";
+import type { CompletePersonFace, CompletePersonFaceList } from "../types";
+import { FaceAnalysisMethod, FacesOrderOption, IncompletePersonFace } from "../types";
 
 const IncompletePersonFaceList = z.array(IncompletePersonFace);
 const IncompletePersonFaceListResponse = IncompletePersonFaceList;

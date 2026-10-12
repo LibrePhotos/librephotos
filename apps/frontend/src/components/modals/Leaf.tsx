@@ -1,4 +1,5 @@
-import { Group, RenderTreeNodePayload } from "@mantine/core";
+import type { RenderTreeNodePayload } from "@mantine/core";
+import { Group } from "@mantine/core";
 import { IconFolder, IconFolderOpen } from "@tabler/icons-react";
 import React from "react";
 

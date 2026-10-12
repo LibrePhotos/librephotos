@@ -3,7 +3,7 @@ import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { BulkPhotoQuery, SimpleUser } from "../types";
+import type { BulkPhotoQuery, SimpleUser } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { SharedPhotosByMeQueryKeys } from "./useFetchSharedPhotosByMeQuery";
 import { SharedPhotosWithMeQueryKeys } from "./useFetchSharedPhotosWithMeQuery";

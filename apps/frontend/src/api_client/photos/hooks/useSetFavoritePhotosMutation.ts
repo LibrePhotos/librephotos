@@ -4,7 +4,7 @@ import { notification } from "../../../service/notifications";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const UpdatedPhotosResponse = z.object({

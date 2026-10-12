@@ -21,7 +21,7 @@ export function JobIndicator({ job }: { job: JobState }) {
       return <Check color={color} />;
     case "running":
       return <Refresh color={color} />;
-    default:
+    case "queued":
       return <Clock color={color} />;
   }
 }

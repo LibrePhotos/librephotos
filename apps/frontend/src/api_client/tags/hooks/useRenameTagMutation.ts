@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { RenameTagParams } from "../types";
+import type { RenameTagParams } from "../types";
 import { TagAlbumQueryKeys } from "./useFetchTagAlbumQuery";
 import { TagsQueryKeys } from "./useFetchTagsQuery";
 

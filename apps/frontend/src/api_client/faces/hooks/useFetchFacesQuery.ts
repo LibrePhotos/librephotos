@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import { CompletePersonFace, FaceAnalysisMethod, FacesOrderOption, PersonFace } from "../types";
+import type { CompletePersonFace } from "../types";
+import { FaceAnalysisMethod, FacesOrderOption, PersonFace } from "../types";
 
 const PersonFaceListResponse = z.object({
   count: z.number(),

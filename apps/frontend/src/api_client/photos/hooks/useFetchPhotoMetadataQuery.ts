@@ -2,7 +2,8 @@
  * React Query hook for fetching photo metadata
  */
 
-import { skipToken, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import type { UseQueryOptions } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { fetchPhotoMetadata } from "../metadata";
 import type { PhotoMetadata } from "../types";
 

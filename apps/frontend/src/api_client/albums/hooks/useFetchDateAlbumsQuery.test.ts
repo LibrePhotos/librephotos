@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
 import { addTempElementsToGroups, tempPigPhoto } from "../../../util/util";
-import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
+import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
+import { Photoset } from "../../photos/types";
 import {
   buildDateAlbumFilterParams,
   DATE_ALBUM_PAGE_SIZE,

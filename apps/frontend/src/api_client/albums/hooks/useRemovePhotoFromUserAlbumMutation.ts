@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
-import { RemovePhotoFromUserAlbumParams } from "../types";
+import type { RemovePhotoFromUserAlbumParams } from "../types";
 import { UserAlbumQueryKeys } from "./useFetchUserAlbumQuery";
 import { UserAlbumsQueryKeys } from "./useFetchUserAlbumsQuery";
 

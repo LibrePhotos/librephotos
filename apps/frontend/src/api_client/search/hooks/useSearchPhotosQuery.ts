@@ -3,7 +3,8 @@ import { mediaTypeToParams, type MediaType } from "../../../components/photolist
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
-import { SearchPhotos, SearchPhotosResult, SemanticSearchPhotos } from "../types";
+import type { SearchPhotosResult } from "../types";
+import { SearchPhotos, SemanticSearchPhotos } from "../types";
 
 export const SearchPhotosQueryKeys = ["searchPhotos"] as const;
 

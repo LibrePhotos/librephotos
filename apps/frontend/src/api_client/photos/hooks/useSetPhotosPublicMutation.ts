@@ -5,7 +5,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 

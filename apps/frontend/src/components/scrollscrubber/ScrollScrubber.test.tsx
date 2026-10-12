@@ -69,7 +69,9 @@ function render(targetHeight: number) {
 // The scrubber measures the window after a 500 ms debounce
 function renderMeasured(targetHeight: number) {
   render(targetHeight);
-  act(() => vi.advanceTimersByTime(500));
+  act(() => {
+    vi.advanceTimersByTime(500);
+  });
 }
 
 const scrubber = () => {
@@ -103,7 +105,9 @@ describe("ScrollScrubber", () => {
   it("lays the markers out again when the target grows", () => {
     const viewport = window.innerHeight;
     renderMeasured(2000);
-    act(() => scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    act(() => {
+      scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
 
     expect(markerTops()).toHaveLength(2);
     expect(markerTops()[1]).toBeCloseTo((1000 * 100) / (2000 - viewport));
@@ -121,10 +125,14 @@ describe("ScrollScrubber", () => {
     // Throttled to one check a second: the jump is picked up on the trailing call
     scrollWindowTo(1000, 5000);
     expect(scrubber().style.opacity).toBe("0");
-    act(() => vi.advanceTimersByTime(1000));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(scrubber().style.opacity).toBe("1");
 
-    act(() => vi.advanceTimersByTime(2500));
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
     expect(scrubber().style.opacity).toBe("0");
   });
 
@@ -132,16 +140,24 @@ describe("ScrollScrubber", () => {
     renderMeasured(5000);
     scrollWindowTo(100, 5000);
     scrollWindowTo(1000, 5000);
-    act(() => vi.advanceTimersByTime(1000));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(scrubber().style.opacity).toBe("1");
 
     // Another jump while it is shown restarts the 2.5 s countdown
-    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     scrollWindowTo(2000, 5000);
-    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     expect(scrubber().style.opacity).toBe("1");
 
-    act(() => vi.advanceTimersByTime(1000));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(scrubber().style.opacity).toBe("0");
   });
 
@@ -150,7 +166,9 @@ describe("ScrollScrubber", () => {
 
     scrollWindowTo(100, 5000);
     scrollWindowTo(500, 5000);
-    act(() => vi.advanceTimersByTime(1000));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
     expect(scrubber().style.opacity).toBe("0");
   });
@@ -162,7 +180,9 @@ describe("ScrollScrubber", () => {
     const viewport = window.innerHeight;
     Object.defineProperty(window, "scrollY", { configurable: true, value: 1 });
     renderWithTarget(viewport);
-    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     renderWithTarget(viewport);
 
@@ -179,11 +199,15 @@ describe("ScrollScrubber", () => {
     const viewport = window.innerHeight;
     Object.defineProperty(window, "scrollY", { configurable: true, value: 1 });
     renderWithTarget(viewport);
-    act(() => vi.advanceTimersByTime(1500));
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     renderWithTarget(viewport);
     renderWithTarget(viewport + 2000);
-    act(() => scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    act(() => {
+      scrubber().dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
 
     expect(container.innerHTML).not.toContain("NaN");
     expect(consoleErrors.mock.calls.map(args => args.join(" ")).filter(text => text.includes("NaN"))).toEqual([]);

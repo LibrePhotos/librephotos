@@ -1,6 +1,6 @@
 import cx from "clsx";
 import React, { useCallback } from "react";
-import { FacesTab } from "../../api_client/faces/types";
+import type { FacesTab } from "../../api_client/faces/types";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
@@ -9,10 +9,11 @@ import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "../virtual/VirtualGrid";
 import { FaceComponent } from "./FaceComponent";
 import { HeaderComponent } from "./HeaderComponent";
-import { FaceCell, FaceSelection, GridCell, GridRows, isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
+import type { FaceCell, FaceSelection, GridCell, GridRows } from "./hooks/useVirtualizedGrid";
+import { isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
 import classes from "./VirtualizedGridComponent.module.css";
 
-interface VirtualizedGridComponentProps {
+type VirtualizedGridComponentProps = {
   containerRef: React.Ref<HTMLDivElement>;
   gridRef: React.RefObject<VirtualGridHandle | null>;
   entrySquareSize: number;
@@ -32,7 +33,7 @@ interface VirtualizedGridComponentProps {
   activeTab: FacesTab;
   collapsedPersons: ReadonlySet<number>;
   onToggleCollapse: (personId: number) => void;
-}
+};
 
 export function VirtualizedGridComponent({
   containerRef,

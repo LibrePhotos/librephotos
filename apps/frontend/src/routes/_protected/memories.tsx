@@ -5,7 +5,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MAX_MEMORY_ITEMS, useFetchMemoriesQuery } from "../../api_client/memories";
 import { EmptyState } from "../../components/common/EmptyState";
-import { MemoriesHeader, MemoriesView } from "../../components/memories/MemoriesHeader";
+import type { MemoriesView } from "../../components/memories/MemoriesHeader";
+import { MemoriesHeader } from "../../components/memories/MemoriesHeader";
 import { MemoryCard } from "../../components/memories/MemoryCard";
 import {
   memoriesAreCapped,

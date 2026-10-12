@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import { UserAlbumList, UserAlbumListResponse } from "../types";
+import type { UserAlbumList } from "../types";
+import { UserAlbumListResponse } from "../types";
 
 /** One row of the shared-albums queries: a sharer (or recipient) and their albums. */
 export type UserAlbumsGroupedByUserId = {

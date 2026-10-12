@@ -33,6 +33,14 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `@mantine/notifications` (lint bans it; the colours live in `toast.ts`). A message shown from two
   places gets a named helper there.
 - No `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck`; fix the type.
+- Every promise is awaited, returned or discarded with `void`. In a mutation's `onSuccess`/`onSettled`,
+  return the invalidation (`Promise.all` for several) when the UI should wait for fresh data, `void` it
+  when it should not. Event props get a sync function: `onClick={() => void navigate(...)}`. Old findings
+  sit in `eslint-suppressions.json` (ESLint bulk suppressions): never add to it to get a PR green; after
+  fixing some, run eslint with `--prune-suppressions`, since a stale entry fails the lint.
+- A `switch` over a union names every member (a `default` does not count). `type`, not `interface`
+  (module augmentation excepted); `import type` for type-only imports. No `console.log`, `.debug` or
+  `.info`; `console.warn`/`console.error` stay until there is an error reporter.
 - A new "use X, not Y" convention is one entry in `importBans`, `syntaxBans`, `globalBans` or
   `propertyBans` in `eslint.config.mjs` (with `allowIn` for the module that owns Y) plus its planted
   violation in `eslint.config.test.mjs`; never set a `no-restricted-*` rule in a config block. Each entry

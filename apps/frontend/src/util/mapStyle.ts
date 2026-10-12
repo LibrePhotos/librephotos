@@ -39,6 +39,7 @@ export function resolveMapStyle(provider: string | undefined): ResolvedMapStyle 
     case "osm":
       return OSM_STYLE;
     case "photoprism":
+    case undefined:
     default:
       // Undefined (settings still loading) also lands here, preserving the
       // historical default so maps don't flicker to a placeholder on first paint.

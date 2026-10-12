@@ -39,7 +39,8 @@ function getRuleExtraInfo(rule: BurstDetectionRule, t: TFunction<"translation", 
         return t("settings.burst.rule_custom_pattern", { pattern: rule.custom_pattern });
       }
       return t("settings.burst.rule_pattern_type", { type: rule.pattern_type || "all" });
-    default:
+    case "exif_burst_mode":
+    case "exif_sequence_number":
       return null;
   }
 }

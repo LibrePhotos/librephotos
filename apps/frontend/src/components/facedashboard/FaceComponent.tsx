@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import classes from "./FaceComponent.module.css";
 import { FaceTooltip } from "./FaceTooltip";
-import { FaceCell } from "./hooks/useVirtualizedGrid";
+import type { FaceCell } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
   cell: FaceCell;

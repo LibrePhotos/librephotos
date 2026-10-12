@@ -5,7 +5,7 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
-import { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
   selectedItems: PigPhoto[];

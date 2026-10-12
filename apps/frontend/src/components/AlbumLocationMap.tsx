@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
 import { useMapStyle } from "../util/mapStyle";
-import { getAveragedCoordinates, PartialPhotoWithLocation } from "../util/util";
+import type { PartialPhotoWithLocation } from "../util/util";
+import { getAveragedCoordinates } from "../util/util";
 import { FeatureBoundary } from "./common/FeatureBoundary";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";

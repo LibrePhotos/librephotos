@@ -55,7 +55,7 @@ import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { User } from "../../api_client/user/types";
+import type { User } from "../../api_client/user/types";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageLoader } from "../common/PageLoader";

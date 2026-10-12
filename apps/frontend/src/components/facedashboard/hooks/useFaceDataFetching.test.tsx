@@ -154,7 +154,7 @@ describe("useFaceDataFetching", () => {
     // What a tagging mutation does: invalidate the face pages, then refetch the
     // incomplete list, which comes back as placeholders again.
     await act(async () => {
-      queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
+      void queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
       seedPerson(150);
       isFetchingLists = true;
     });

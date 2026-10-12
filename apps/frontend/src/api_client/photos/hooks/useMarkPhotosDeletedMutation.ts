@@ -6,7 +6,7 @@ import { fetchClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const DeletePhotosResponse = z.object({

@@ -11,14 +11,8 @@ import type {
 } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, {
-  AttributionControl,
-  Layer,
-  MapLayerMouseEvent,
-  MapRef,
-  NavigationControl,
-  Source,
-} from "react-map-gl/maplibre";
+import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
+import MapGL, { AttributionControl, Layer, NavigationControl, Source } from "react-map-gl/maplibre";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";

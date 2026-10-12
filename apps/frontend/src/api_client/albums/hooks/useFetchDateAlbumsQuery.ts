@@ -8,7 +8,8 @@ import {
 import { addTempElementsToGroups, definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
+import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
+import { Photoset } from "../../photos/types";
 import { FetchDateAlbumsListResponse } from "../types";
 import { DateAlbumQueryKeys } from "./useFetchDateAlbumQuery";
 

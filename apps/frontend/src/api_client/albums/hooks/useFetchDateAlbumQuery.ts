@@ -8,7 +8,7 @@ import {
 import { definedSearchParams } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
+import type { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { FetchDateAlbumResponse } from "../types";
 import { buildDateAlbumFilterParams, dateAlbumsListKey, DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
 

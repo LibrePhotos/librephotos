@@ -1,0 +1,540 @@
+{
+  "src/App.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useAddPhotoToUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useCreateUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useDeleteAllAutoAlbumsMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useDeleteAutoAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useDeletePersonAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/albums/hooks/useDeleteUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useFetchFolderSubfoldersInfiniteQuery.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useRemovePhotoFromUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useRenamePersonAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/albums/hooks/useRenameUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useSetPersonAlbumCoverMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useSetUserAlbumCoverMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/albums/hooks/useShareUserAlbumMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/albums/hooks/useToggleUserAlbumLockedMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/hooks/useToggleUserAlbumPublicMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/albums/invalidatePlaces.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/api.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/auth/hooks/useLoginMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/auth/hooks/useSignUpMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/duplicates/hooks.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 13
+    }
+  },
+  "src/api_client/jobs/hooks/useCancelJobMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/jobs/hooks/useDeleteJobMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/jobs/hooks/useGenerateAutoAlbumsMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/jobs/hooks/useGenerateOcrMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/jobs/hooks/useRescanPhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/api_client/jobs/hooks/useScanNextcloudPhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/api_client/jobs/hooks/useScanPhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/api_client/photos/hooks/useDeleteMissingPhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 6
+    }
+  },
+  "src/api_client/photos/hooks/useGenerateImageToTextCaptionMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/photos/hooks/useMarkPhotosDeletedMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/photos/hooks/usePhotoMetadataMutations.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/photos/hooks/usePhotoShareMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/photos/hooks/usePurgeDeletedPhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 7
+    }
+  },
+  "src/api_client/photos/hooks/useRotatePhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/photos/hooks/useSavePhotoCaptionMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/photos/hooks/useSetFavoritePhotosMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/photos/hooks/useSetPhotosCategoryMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/photos/hooks/useSetPhotosHiddenMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/photos/hooks/useSetPhotosPublicMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/photos/hooks/useUpdatePhotoMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/photos/hooks/useUpdatePhotoSharingMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/photos/invalidatePhotoLists.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/services/hooks/useServiceActionMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/settings/hooks/useEmailConfig.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/settings/hooks/useUpdateSettingsMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/stacks/hooks.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 15
+    }
+  },
+  "src/api_client/tags/hooks/useCreateTagMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/tags/hooks/useDeleteTagMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/tags/hooks/useMergeTagsMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/tags/hooks/useRenameTagMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/tags/hooks/useTagPhotosByNameMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/tags/hooks/useTagPhotosMutations.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 4
+    }
+  },
+  "src/api_client/upload/hooks/useUploadFinishedMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 6
+    }
+  },
+  "src/api_client/user/hooks/useDeleteUserMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/user/hooks/useManageUpdateUserMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/user/hooks/useSaveDefaultTimelineFilterMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/api_client/user/hooks/useUpdateAvatarMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/api_client/user/hooks/useUpdateUserMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/api_client/user/hooks/useUpdateUserScanDirectoryMutation.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/components/album/AlbumSection.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/album/FolderListModal.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/charts/StatisticsNav.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/charts/WordCloud.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/common/EmptyState.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/components/facedashboard/FaceDashboard.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/facedashboard/HeaderButtons.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/components/facedashboard/TabComponent.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/facedashboard/hooks/useFaceDataFetching.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/job/JobDetailView.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/job/JobList.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/lightbox/ContentViewer.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/lightbox/Description.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/lightbox/KeywordsSection.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/lightbox/PersonDetailComponent.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/lightbox/TagsSection.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/map/LocationPickerModal.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/menubars/FooterMenu.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 5
+    }
+  },
+  "src/components/menubars/ProfileButton.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 5
+    }
+  },
+  "src/components/menubars/SideMenuNarrow.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    }
+  },
+  "src/components/menubars/TopMenuPublic.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/modals/ModalTagEdit.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/components/photolist/DefaultHeader.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 12
+    }
+  },
+  "src/components/photolist/MediaTypeSelector.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/photolist/PhotoListView.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/components/photolist/SelectionActions.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/photolist/useTimelineFilter.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    }
+  },
+  "src/components/react-pig/components/Tile/Tile.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 4
+    }
+  },
+  "src/components/settings/Profile.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/settings/ServerLogsCard.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/settings/ServiceList.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/settings/Settings.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/components/sharing/ModalAlbumShare.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    }
+  },
+  "src/components/spotlight/useSpotlightActions.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/index.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/album/persons.index.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/album/places.index.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/organizing.$tab.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/sharing/byme.$tab.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/sharing/links.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/_protected/sharing/withme.$tab.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/login.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 3
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    }
+  },
+  "src/routes/password-reset.confirm.$uid.$token.tsx": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/util/util.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  }
+}

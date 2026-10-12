@@ -9,7 +9,7 @@ import { DuplicatesQueryKeys } from "../../duplicates/hooks";
 import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
-import { BulkPhotoQuery } from "../types";
+import type { BulkPhotoQuery } from "../types";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 // Request type for individual photo hashes
