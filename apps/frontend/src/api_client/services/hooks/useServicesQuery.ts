@@ -1,7 +1,7 @@
+import { POLL_IDLE_MS } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
-import { POLL_IDLE_MS } from "../../polling";
 import { ServiceHealthResponse, ServicesListResponse } from "../types";
 
 const ServicesQueryKeys = ["services"] as const;

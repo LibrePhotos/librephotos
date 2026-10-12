@@ -1,7 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as endpoints from "../endpoints";
+import { pollWhile } from "../polling";
 import { Photoset } from "../schemas";
-import type { LoginPost } from "../schemas";
+import type { JobsResponse, LoginPost, WorkerAvailabilityResponse } from "../schemas";
+import type { ApiClient } from "../transport/types";
 import { useApiClient } from "./context";
 import { queryKeys } from "./queryKeys";
 
@@ -215,23 +217,49 @@ export function useSiteSettingsQuery() {
   return useQuery({ queryKey: queryKeys.siteSettings(), queryFn: () => endpoints.fetchSiteSettings(client) });
 }
 
-export function useJobsQuery(options?: { page?: number; pageSize?: number; refetchInterval?: number }) {
-  const client = useApiClient();
-  return useQuery({
+/** The job list's cadence: active only while a job on the page is unfinished; idle otherwise, so a job that starts elsewhere is still picked up. */
+export const jobListRefetchInterval = pollWhile<JobsResponse>(page => page.results.some(job => !job.finished));
+
+/**
+ * The job list. It polls at the active cadence only while a job on the page is unfinished. Pass
+ * `enabled: false` to stop it (offline).
+ */
+export function jobsQueryOptions(
+  client: ApiClient,
+  options: { page?: number; pageSize?: number; enabled?: boolean } = {}
+) {
+  return queryOptions({
     queryKey: queryKeys.jobs(),
-    queryFn: () => endpoints.fetchJobs(client, options?.page ?? 1, options?.pageSize ?? 20),
-    refetchInterval: options?.refetchInterval,
+    queryFn: () => endpoints.fetchJobs(client, options.page ?? 1, options.pageSize ?? 20),
+    refetchInterval: jobListRefetchInterval,
+    enabled: options.enabled ?? true,
   });
 }
 
-export function useWorkerAvailabilityQuery(options?: { refetchInterval?: number; enabled?: boolean }) {
+export function useJobsQuery(options?: { page?: number; pageSize?: number; enabled?: boolean }) {
   const client = useApiClient();
-  return useQuery({
+  return useQuery(jobsQueryOptions(client, options));
+}
+
+/** The worker's cadence: active while the worker is busy, idle otherwise. */
+export const workerRefetchInterval = pollWhile<WorkerAvailabilityResponse>(worker => !worker.queue_can_accept_job);
+
+/**
+ * The worker's availability. It polls on `workerRefetchInterval`. Pass `enabled: false` to stop it
+ * (offline).
+ */
+export function workerAvailabilityQueryOptions(client: ApiClient, options: { enabled?: boolean } = {}) {
+  return queryOptions({
     queryKey: queryKeys.workerAvailability(),
     queryFn: () => endpoints.fetchWorkerAvailability(client),
-    refetchInterval: options?.refetchInterval,
-    enabled: options?.enabled ?? true,
+    refetchInterval: workerRefetchInterval,
+    enabled: options.enabled ?? true,
   });
+}
+
+export function useWorkerAvailabilityQuery(options?: { enabled?: boolean }) {
+  const client = useApiClient();
+  return useQuery(workerAvailabilityQueryOptions(client, options));
 }
 
 /* ---- sharing ----------------------------------------------------------- */

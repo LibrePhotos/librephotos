@@ -42,8 +42,9 @@ green CI run. To develop against a local backend, copy `.env.development.example
   which gives them their flags (path `/`, SameSite=Lax, Secure on HTTPS); lint bans `react-cookie` elsewhere.
   The `jwt` cookie is HttpOnly and the server clears it on logout (`/api/auth/token/blacklist/`).
 - Follow a job or wait on a condition with `pollWhile`, `pollUntil` or `invalidateAfter` from
-  `src/api_client/polling.ts`, with a `POLL_*_MS` name for the interval. Lint bans a number in
-  `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval` in `src/api_client`.
+  `@librephotos/api-client` (`packages/api-client/src/polling.ts`), with a `POLL_*_MS` name for the
+  interval. Lint bans a number in `refetchInterval`/`pollingInterval` and a raw `setTimeout`/`setInterval`
+  in `src/api_client` and `packages/api-client` (the polling module is the one place that sets timers).
 - A failed request rejects with `ApiError`: branch on its `status` or `serverCode` (the backend's
   `errors[0].code`), never on message text; show only `serverMessage`, never `message`.
 - `packages/api-client` runs on this app's zod and React Query (`resolve.dedupe`, tsconfig `paths`) and on the mobile app's: shared schemas use zod 4 APIs only, and a zod or React Query bump here moves `apps/mobile`, the package and the root `package.json` too (`scripts/check-shared-deps.mjs` fails otherwise). `yarn test` runs the package's suite as the `api-client` vitest project.
