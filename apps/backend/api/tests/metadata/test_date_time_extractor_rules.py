@@ -1,17 +1,29 @@
 import datetime
+import json
+from unittest.mock import patch
 
 import pytz
 from django.test import TestCase
+from django.utils.dateparse import parse_datetime
+from rest_framework.test import APIClient
 
 from api.metadata.datetime_rules import (
+    DEFAULT_RULES_JSON,
     DEFAULT_RULES_PARAMS,
+    PREDEFINED_RULES_PARAMS,
     RuleContext,
     TimeExtractionRule,
     _extract_no_tz_datetime_from_str,
     as_rules,
     extract_local_date_time,
 )
+from api.metadata.photo_datetime import extract_date_time
 from api.metadata.tags import Tags
+from api.models import Photo
+from api.tests.utils import create_test_photo, create_test_user
+
+# "Timestamp set by user" as lists saved before #2254 hold it.
+RULE_14 = {"id": 14, "name": "Timestamp set by user", "rule_type": "user_defined"}
 
 
 class NumericTagValueTest(TestCase):
@@ -77,7 +89,6 @@ class NumericTagValueTest(TestCase):
                 gps_lat=None,
                 gps_lon=None,
                 user_default_tz="UTC",
-                user_defined_timestamp=None,
             ),
         )
         self.assertIsNone(result)
@@ -106,7 +117,6 @@ class DefaultRulesOrderTest(TestCase):
                 gps_lat=None,
                 gps_lon=None,
                 user_default_tz="UTC",
-                user_defined_timestamp=None,
             ),
         )
 
@@ -139,24 +149,20 @@ class DefaultRulesOrderTest(TestCase):
             datetime.datetime(2001, 2, 3, 4, 5, 6, tzinfo=pytz.utc), result
         )
 
-    def test_user_defined_timestamp_still_outranks_every_exif_rule(self):
-        user_timestamp = datetime.datetime(1999, 12, 31, 23, 59, 59, tzinfo=pytz.utc)
-
-        def exif_getter(tags):
-            return [{Tags.DATE_CREATED: "2019:08:15 07:45:00"}.get(tag) for tag in tags]
-
+    def test_the_old_timestamp_set_by_user_rule_matches_nothing(self):
+        # A list saved by an older client may still hold rule 14; a date set
+        # by hand no longer goes through the rules (ManualDateOverrideTest).
         result = extract_local_date_time(
             path="/photos/IMG_0001.jpg",
-            rules=as_rules(DEFAULT_RULES_PARAMS),
-            exif_getter=exif_getter,
-            context=RuleContext(
-                gps_lat=None,
-                gps_lon=None,
-                user_default_tz="UTC",
-                user_defined_timestamp=user_timestamp,
-            ),
+            rules=as_rules([RULE_14, *DEFAULT_RULES_PARAMS]),
+            exif_getter=lambda tags: [None] * len(tags),
+            context=RuleContext(gps_lat=None, gps_lon=None, user_default_tz="UTC"),
         )
-        self.assertEqual(user_timestamp, result)
+        self.assertIsNone(result)
+
+    def test_the_defaults_have_no_timestamp_set_by_user_rule(self):
+        self.assertNotIn(14, [rule["id"] for rule in DEFAULT_RULES_PARAMS])
+        self.assertNotIn(14, [rule["id"] for rule in PREDEFINED_RULES_PARAMS])
 
 
 class BrokenCustomRegexpRuleTest(TestCase):
@@ -193,7 +199,6 @@ class BrokenCustomRegexpRuleTest(TestCase):
                 gps_lat=None,
                 gps_lon=None,
                 user_default_tz="UTC",
-                user_defined_timestamp=None,
             ),
         )
 
@@ -221,3 +226,107 @@ class BrokenCustomRegexpRuleTest(TestCase):
     def test_unmatched_optional_time_group_defaults_to_zero(self):
         result = self._extract_with(r"(\d{4})/(\d\d)/(\d\d)/(x\d)?")
         self.assertEqual(datetime.datetime(2020, 1, 2, tzinfo=pytz.utc), result)
+
+
+CAMERA_DATE = datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc)
+MANUAL_DATE = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=pytz.utc)
+
+
+def _camera_metadata(path, tags, **kwargs):
+    """A file whose only date is the camera's EXIF:DateTimeOriginal."""
+    return [
+        "2005:01:02 03:04:05" if tag == Tags.DATE_TIME_ORIGINAL else None
+        for tag in tags
+    ]
+
+
+class ManualDateOverrideTest(TestCase):
+    """#2254: a date set by hand is the photo's date, whatever the rule list says.
+
+    It used to apply only through the "Timestamp set by user" rule (id 14), an
+    ordinary entry of the list: deleted, or dragged below an EXIF rule, the
+    lightbox edit answered 200 and changed nothing, and a rescan replaced the
+    dates set earlier with the file's.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _user_with_rules(self, rules):
+        user = create_test_user()
+        user.datetime_rules = json.dumps(rules)
+        user.save(update_fields=["datetime_rules"])
+        self.client.force_authenticate(user=user)
+        return user
+
+    def _without_rule_14(self):
+        return [rule for rule in json.loads(DEFAULT_RULES_JSON) if rule["id"] != 14]
+
+    def _rule_14_last(self):
+        # As a list saved before #2254 has it.
+        return [*self._without_rule_14(), RULE_14]
+
+    def _edit(self, photo, value):
+        with patch(
+            "api.metadata.photo_datetime.get_metadata", side_effect=_camera_metadata
+        ):
+            return self.client.patch(
+                f"/api/photos/edit/{photo.image_hash}/",
+                {"exif_timestamp": value},
+                format="json",
+            )
+
+    def _rescan(self, photo):
+        # What a rescan does with the date: the rules over a fresh row.
+        fresh = Photo.objects.get(pk=photo.pk)
+        with patch(
+            "api.metadata.photo_datetime.get_metadata", side_effect=_camera_metadata
+        ):
+            extract_date_time(fresh)
+        return Photo.objects.get(pk=photo.pk).exif_timestamp
+
+    def test_an_edit_applies_without_rule_14(self):
+        user = self._user_with_rules(self._without_rule_14())
+        photo = create_test_photo(owner=user, exif_timestamp=CAMERA_DATE)
+
+        response = self._edit(photo, MANUAL_DATE.isoformat())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Photo.objects.get(pk=photo.pk).exif_timestamp, MANUAL_DATE)
+
+    def test_an_edit_applies_with_rule_14_below_the_exif_rules(self):
+        user = self._user_with_rules(self._rule_14_last())
+        photo = create_test_photo(owner=user, exif_timestamp=CAMERA_DATE)
+
+        self._edit(photo, MANUAL_DATE.isoformat())
+
+        self.assertEqual(Photo.objects.get(pk=photo.pk).exif_timestamp, MANUAL_DATE)
+
+    def test_a_manual_date_survives_a_rescan_without_rule_14(self):
+        user = self._user_with_rules(self._without_rule_14())
+        photo = create_test_photo(
+            owner=user, timestamp=MANUAL_DATE, exif_timestamp=MANUAL_DATE
+        )
+
+        self.assertEqual(self._rescan(photo), MANUAL_DATE)
+
+    def test_a_manual_date_survives_a_rescan_with_the_default_rules(self):
+        user = self._user_with_rules(json.loads(DEFAULT_RULES_JSON))
+        photo = create_test_photo(
+            owner=user, timestamp=MANUAL_DATE, exif_timestamp=MANUAL_DATE
+        )
+
+        self.assertEqual(self._rescan(photo), MANUAL_DATE)
+
+    def test_clearing_the_manual_date_returns_to_the_files_date(self):
+        user = self._user_with_rules(json.loads(DEFAULT_RULES_JSON))
+        photo = create_test_photo(owner=user, exif_timestamp=CAMERA_DATE)
+        self._edit(photo, MANUAL_DATE.isoformat())
+
+        response = self._edit(photo, None)
+
+        self.assertEqual(response.status_code, 200)
+        photo.refresh_from_db()
+        self.assertIsNone(photo.timestamp)
+        self.assertEqual(photo.exif_timestamp, CAMERA_DATE)
+        self.assertEqual(parse_datetime(response.json()["exif_timestamp"]), CAMERA_DATE)

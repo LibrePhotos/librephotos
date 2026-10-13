@@ -183,8 +183,8 @@ class DateRoundTripTest(RealExifToolTestCase):
         return photo
 
     def _date_the_scan_reads(self, photo):
-        # A fresh row with no user timestamp, so rule 14 ("Timestamp set by
-        # user") passes and rule 16 has to find the date in the file.
+        # A fresh row with no user timestamp, so the date set by hand does
+        # not override the rules and rule 16 has to find it in the file.
         fresh = Photo.objects.get(pk=photo.pk)
         fresh.timestamp = None
         extract_date_time(fresh, commit=False)

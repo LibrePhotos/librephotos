@@ -434,6 +434,9 @@ class PhotoSerializer(serializers.ModelSerializer):
     # What the video is, in the form the browser's canPlayType() takes, so the
     # frontend asks for a conversion only when this browser cannot play it.
     video_playback_type = serializers.SerializerMethodField()
+    # Whether exif_timestamp is a date the user set by hand, which overrides
+    # the date rules until the user removes it (#2254, #2280).
+    date_set_by_user = serializers.SerializerMethodField()
 
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
@@ -455,6 +458,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "exif_gps_lat",
             "exif_gps_lon",
             "exif_timestamp",
+            "date_set_by_user",
             "captions_json",
             "search_captions",
             "search_location",
@@ -530,6 +534,9 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_video_playback_type(self, obj: Photo) -> str | None:
         return playback.playback_type(obj)
+
+    def get_date_set_by_user(self, obj: Photo) -> bool:
+        return obj.timestamp is not None
 
     def get_height(self, obj: Photo) -> int | None:
         metadata = self._get_metadata(obj)

@@ -24,7 +24,6 @@ library.exploredatadescription
 lightbox.sidebar.filepath
 lightbox.sidebar.generate
 lightbox.sidebar.location
-lightbox.sidebar.removetimestamp
 lightbox.sidebar.scene
 lightbox.sidebar.similarity
 lightbox.sidebar.submit

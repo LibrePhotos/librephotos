@@ -10925,6 +10925,10 @@
             "format": "date-time",
             "nullable": true
           },
+          "date_set_by_user": {
+            "type": "boolean",
+            "readOnly": true
+          },
           "captions_json": {
             "type": "object",
             "additionalProperties": {},
@@ -11144,6 +11148,7 @@
           "camera",
           "captions_json",
           "category_source",
+          "date_set_by_user",
           "digitalZoomRatio",
           "embedded_media",
           "exif_gps_lat",

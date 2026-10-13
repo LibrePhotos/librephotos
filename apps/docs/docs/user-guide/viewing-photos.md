@@ -136,7 +136,9 @@ The sidebar displays detailed information about the current photo and provides q
 
 ### Timestamp
 
-Shows when the photo was taken. You can click the edit button to modify the date and time if needed.
+Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
+
+A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one. _Not released yet._
 
 ### File & Camera Info
 

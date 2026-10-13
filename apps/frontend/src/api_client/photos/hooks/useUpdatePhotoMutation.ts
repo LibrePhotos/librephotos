@@ -1,12 +1,13 @@
 import { endpoints, photoKeys, statsKeys } from "@librephotos/api-client";
 import type { Photo } from "@librephotos/api-client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { apiClient, queryClient } from "../../api";
+import { apiClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 
-export const useUpdatePhotoMutation = () =>
-  useMutation({
+export const useUpdatePhotoMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
       const result = await endpoints.updatePhoto(apiClient, id, data);
       // The coordinates are saved either way; say so when no place name came with them.
@@ -18,12 +19,15 @@ export const useUpdatePhotoMutation = () =>
       return result;
     },
     onSuccess: (data, { data: patch }) => {
-      queryClient.invalidateQueries({ queryKey: photoKeys.detail(data.image_hash) });
       // A new date moves the photo to another day on the timeline, and out of
       // the no-timestamp list.
       if ("exif_timestamp" in patch) {
         invalidatePhotoLists(queryClient);
-        queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
+        void queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
       }
+      // Returned, so a caller's onSuccess sees the photo as saved: the date editor
+      // closes on the new date, not on the old one until the refetch lands (#2280).
+      return queryClient.invalidateQueries({ queryKey: photoKeys.detail(data.image_hash) });
     },
   });
+};
