@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0162_photo_search_folded'),
+        ('api', '0163_job_last_progress_at'),
     ]
 
     operations = [

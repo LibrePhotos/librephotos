@@ -124,7 +124,7 @@ sidebar_position: 18
         <td>Camera serial number</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Stored in the photo's metadata (<code>/api/photos/{id}/metadata/</code>), not shown in Info and not sent with every photo. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+        <td>Stored in the photo's metadata (<code>{"/api/photos/{id}/metadata/"}</code>), not shown in Info and not sent with every photo. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
     </tr>
     <tr>
         <td>EXIF:ExposureCompensation, EXIF:Flash, EXIF:MeteringMode, EXIF:WhiteBalance</td>
