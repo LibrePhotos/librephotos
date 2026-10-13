@@ -85,13 +85,17 @@ def to_face_box(
 
 
 def extract_from_exif(
-    image_path: str, big_thumbnail_image_path: str
+    image_path: str,
+    big_thumbnail_image_path: str,
+    sidecar_files: list[str] | None = None,
 ) -> list[FaceLocation] | None:
+    """Face regions in the file or its sidecars; *sidecar_files* as in ``get_metadata``."""
     (region_info, orientation) = get_metadata(
         image_path,
         tags=[Tags.REGION_INFO, Tags.ORIENTATION],
         try_sidecar=True,
         struct=True,
+        sidecar_files=sidecar_files,
     )
     if not region_info:
         return None
@@ -139,9 +143,12 @@ def extract_from_face_service(
 
 
 def extract(
-    image_path: str, big_thumbnail_path: str, owner: User
+    image_path: str,
+    big_thumbnail_path: str,
+    owner: User,
+    sidecar_files: list[str] | None = None,
 ) -> list[FaceLocation]:
-    exif = extract_from_exif(image_path, big_thumbnail_path)
+    exif = extract_from_exif(image_path, big_thumbnail_path, sidecar_files)
     if not exif:
         return extract_from_face_service(image_path, big_thumbnail_path)
     return exif

@@ -53,7 +53,9 @@ def _read_tags_with_exiftool(file_path, tags):
         return [et.get_tag(tag, file_path) for tag in tags]
 
 
-def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
+def _exiftool_get_metadata(
+    media_file, tags, try_sidecar=True, struct=False, sidecar_files=None
+):
     """Call exiftool directly, bypassing the HTTP service.
 
     This mirrors the behaviour of ``service/exif/main.py`` but runs
@@ -61,7 +63,10 @@ def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
     """
     from api.metadata.reader import _get_existing_metadata_files_reversed
 
-    files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
+    if sidecar_files is not None:
+        files = [media_file, *sidecar_files]
+    else:
+        files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
 
     with exiftool.ExifTool() as et:
         values = []

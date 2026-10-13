@@ -23,6 +23,7 @@ from api.faces import extractor
 from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.faces.recognition import get_face_encodings
 from api.lazy_import import LazyModule
+from api.metadata.reader import sidecar_files_for_photo
 from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
@@ -88,7 +89,10 @@ def _detect_and_save_faces(
 
     assert photo.main_file is not None
     face_locations = extractor.extract(
-        photo.main_file.path, photo.thumbnail.thumbnail_big.path, photo.owner
+        photo.main_file.path,
+        photo.thumbnail.thumbnail_big.path,
+        photo.owner,
+        sidecar_files_for_photo(photo),
     )
 
     if len(face_locations) == 0:

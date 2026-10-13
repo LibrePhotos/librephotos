@@ -28,6 +28,8 @@ LibrePhotos uses a two-phase scan to group file variants:
 
 2. **Phase 2 — Processing**: Each group is processed together, creating one Photo entity with all files attached as variants. The main display file is chosen automatically by priority: JPEG → Video → RAW. Once all image groups have finished, any XMP sidecars are processed and attached to the photo they belong to.
 
+Metadata is read from the main file and from the XMP sidecars of every variant. A sidecar named after the RAW file (`IMG_001.CR2.xmp`, as darktable and other RAW editors write it) counts as well, so a rating, keywords, a description or face regions set in the RAW editor reach the photo. When both exist, a sidecar named after the main file (`IMG_001.xmp` or `IMG_001.jpg.xmp`) wins over the RAW's. _Not released yet:_ before this, only sidecars named after the main file were read; a **Rescan** from the Library page picks up the others.
+
 After each scan, a **Repair File Variants** job runs automatically. It looks for RAW files that ended up as their own photo and merges them into the matching image photo (same folder, same base name — JPEG, HEIC, PNG or TIFF), and corrects the main display file when a RAW file is still marked as the main one. Live Photo videos that were already scanned as separate photos are not merged by this job.
 
 ### Viewing File Variants

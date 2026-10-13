@@ -158,7 +158,11 @@ def _detect_bursts_hard_criteria(
     These are deterministic rules that identify burst photos based on
     camera metadata or filename conventions.
     """
-    from api.metadata.reader import MetadataReadError, get_metadata
+    from api.metadata.reader import (
+        MetadataReadError,
+        get_metadata,
+        sidecar_files_for_photo,
+    )
 
     # Get all photos that could be in bursts
     photos = (
@@ -186,7 +190,11 @@ def _detect_bursts_hard_criteria(
 
         # Get EXIF tags for this photo
         try:
-            exif_values = get_metadata(photo.main_file.path, required_tags)
+            exif_values = get_metadata(
+                photo.main_file.path,
+                required_tags,
+                sidecar_files=sidecar_files_for_photo(photo),
+            )
             exif_tags = dict(zip(required_tags, exif_values))
         except MetadataReadError as e:
             logger.debug("Could not read EXIF for %s: %s", photo.main_file.path, e)

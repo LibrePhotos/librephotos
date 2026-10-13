@@ -19,6 +19,7 @@ from api.faces.photo_faces import DetectedFace, save_detected_face
 from api.geocode.photo_location import find_album_places
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, RuleContext
 from api.metadata.photo_datetime import extract_date_time, find_album_date
+from api.metadata.reader import sidecar_files_for_photo
 from api.models import Face, Photo
 from api.models.album_date import AlbumDate, get_or_create_album_date
 from api.models.album_place import get_album_place
@@ -169,7 +170,9 @@ class ExtractDateTimeTest(TestCase):
             extract_date_time(photo)
 
         get_metadata.assert_called_once_with(
-            photo.main_file.path, tags=["EXIF:DateTimeOriginal"], try_sidecar=True
+            photo.main_file.path,
+            tags=["EXIF:DateTimeOriginal"],
+            sidecar_files=sidecar_files_for_photo(photo),
         )
 
 
