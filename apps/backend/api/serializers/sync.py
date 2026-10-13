@@ -144,12 +144,18 @@ PERSON_VALUES = (
 
 
 def serialize_person_row(row: dict[str, Any]) -> dict[str, Any]:
+    cover = row["cover_photo__image_hash"]
     return {
         "id": row["id"],
         "name": row["name"],
         "kind": row["kind"],
         "face_count": row["face_count"],
-        "cover_photo_hash": row["cover_photo__image_hash"],
+        # The cover the user chose, else null. Kept as is for older apps.
+        "cover_photo_hash": cover,
+        # The cover the People list shows (PersonSerializer.face_photo_url):
+        # the chosen one, else the first face's photo, else null. The mobile
+        # seed reads the list, so the delta feed has to agree with it.
+        "effective_cover_hash": cover or row.get("first_face_photo_hash") or None,
         "last_modified": to_ms(row["last_modified"]),
     }
 

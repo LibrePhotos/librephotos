@@ -25,7 +25,7 @@ from typing import Any, Generic, TypeVar
 from uuid import UUID
 
 from django.db import models
-from django.db.models import Count, Exists, OuterRef, Q, QuerySet
+from django.db.models import Count, Exists, OuterRef, Q, QuerySet, Subquery
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -48,6 +48,7 @@ from api.models import (
     Tag,
     User,
 )
+from api.serializers.person import first_face_of_person
 from api.serializers.sync import (
     AUTO_ALBUM_VALUES,
     PERSON_VALUES,
@@ -100,7 +101,7 @@ class BaseSyncView(APIView, Generic[ModelT]):
         """Model queryset (unordered, unpaginated) of rows this user may see."""
         raise NotImplementedError
 
-    def annotate(self, qs: QuerySet[ModelT]) -> QuerySet[ModelT]:
+    def annotate(self, qs: QuerySet[ModelT], user: User) -> QuerySet[ModelT]:
         """Optional extra annotations before ``.values()``."""
         return qs
 
@@ -108,8 +109,8 @@ class BaseSyncView(APIView, Generic[ModelT]):
         raise NotImplementedError
 
     # ---- shared machinery --------------------------------------------------
-    def _materialize(self, qs: QuerySet[ModelT], limit: int) -> list[Row]:
-        return list(self.annotate(qs).values(*self.values_fields)[:limit])
+    def _materialize(self, qs: QuerySet[ModelT], limit: int, user: User) -> list[Row]:
+        return list(self.annotate(qs, user).values(*self.values_fields)[:limit])
 
     def _apply_keyset(
         self,
@@ -164,7 +165,7 @@ class BaseSyncView(APIView, Generic[ModelT]):
         qs = self._apply_keyset(qs, cursor_dt, cursor_pk)
         qs = qs.order_by("last_modified", self.pk_field)
 
-        rows = self._materialize(qs, page_size)
+        rows = self._materialize(qs, page_size, user)
 
         items = self.serialize_page(rows, user)
 
@@ -198,7 +199,7 @@ class SyncPhotosView(BaseSyncView[Photo]):
     def scoped_queryset(self, user: User) -> QuerySet[Photo]:
         return Photo.objects.owned_or_shared_to(user)
 
-    def annotate(self, qs: QuerySet[Photo]) -> QuerySet[Photo]:
+    def annotate(self, qs: QuerySet[Photo], user: User) -> QuerySet[Photo]:
         motion = File.objects.filter(
             pk=OuterRef("main_file"), embedded_media__isnull=False
         )
@@ -213,10 +214,17 @@ class SyncPhotosView(BaseSyncView[Photo]):
 # --------------------------------------------------------------------------- #
 class SyncPersonsView(BaseSyncView[Person]):
     entity = DeletionLog.ENTITY_PERSON
-    values_fields = PERSON_VALUES
+    values_fields = PERSON_VALUES + ("first_face_photo_hash",)
 
     def scoped_queryset(self, user: User) -> QuerySet[Person]:
         return Person.objects.owned_by(user).filter(kind=Person.KIND_USER)
+
+    def annotate(self, qs: QuerySet[Person], user: User) -> QuerySet[Person]:
+        # The People list's cover fallback, for ``effective_cover_hash``.
+        first_face = first_face_of_person(user)
+        return qs.annotate(
+            first_face_photo_hash=Subquery(first_face.values("photo__image_hash")[:1])
+        )
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         return [serialize_person_row(r) for r in rows]
@@ -343,7 +351,7 @@ class SyncTagAlbumsView(BaseSyncView[Tag]):
         # Tag.name is the title; alias via annotate-free values mapping below.
         return Tag.objects.owned_by(user)
 
-    def _materialize(self, qs: QuerySet[Tag], limit: int) -> list[Row]:
+    def _materialize(self, qs: QuerySet[Tag], limit: int, user: User) -> list[Row]:
         fields = ("id", "name", "photo_count", "last_modified")
         rows: list[Row] = list(qs.values(*fields)[:limit])
         for r in rows:

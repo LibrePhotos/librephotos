@@ -3,6 +3,7 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import OuterRef, QuerySet
 from rest_framework import serializers
 
 from api.drf.request_user import request_user
@@ -16,6 +17,23 @@ _T = TypeVar("_T")
 # Sentinel telling ``PersonSerializer`` that the queryset did not carry the
 # first-face annotations, so it has to look the face up itself.
 _UNANNOTATED = object()
+
+
+def first_face_of_person(user: User) -> QuerySet[Face]:
+    """The face a person without a chosen cover falls back to, for a Subquery.
+
+    Correlated on ``OuterRef("pk")`` of a Person queryset. The People list and
+    the mobile person feed both annotate from it, so the cover a phone mirrors
+    is the one the web shows. Scoped to the requester's own photos, following
+    the owned_by / visible_to convention (#2031): ``cluster_owner`` scopes the
+    person, not its faces, so without this a face attached from another user's
+    photo would put that photo's image hash in this user's people (#2047).
+    """
+    return (
+        Face.objects.owned_by(user)
+        .filter(person=OuterRef("pk"), deleted=False)
+        .order_by("id")
+    )
 
 
 class PersonSerializer(serializers.ModelSerializer):

@@ -28,7 +28,6 @@ from api.models import (
     AlbumPlace,
     AlbumThing,
     AlbumUser,
-    Face,
     Person,
     Photo,
     User,
@@ -62,7 +61,7 @@ from api.serializers.album_user import (
     AlbumUserSerializer,
     with_album_user_list_relations,
 )
-from api.serializers.person import PersonSerializer
+from api.serializers.person import PersonSerializer, first_face_of_person
 from api.serializers.photos import (
     PhotoSummarySerializer,
 )
@@ -98,15 +97,7 @@ class PersonViewSet(
         # People without an explicit cover fall back to their first face.
         # Resolving that in the serializer costs eight queries per person, so
         # the values are pulled in with the page instead (issue #618).
-        # Scoped to the requester's own photos, following the owned_by /
-        # visible_to convention (#2031). `cluster_owner` scopes the person, not
-        # its faces, so without this a face attached from another user's photo
-        # would put that photo's image hash in this user's people list (#2047).
-        first_face = (
-            Face.objects.owned_by(user)
-            .filter(person=OuterRef("pk"), deleted=False)
-            .order_by("id")
-        )
+        first_face = first_face_of_person(user)
         qs = (
             Person.objects.owned_by(user)
             .filter(kind=Person.KIND_USER)

@@ -29,6 +29,7 @@ from api.tests.utils import (
     create_test_album_thing,
     create_test_album_user,
     create_test_duplicate,
+    create_test_face,
     create_test_person,
     create_test_photo,
     create_test_photos,
@@ -234,6 +235,82 @@ class SyncTombstoneTest(TestCase):
         tag.delete()
         _items2, tombs2, _c = sync_pull(self.client, url, cursor=cursor)
         self.assertIn(tid, tombs2)
+
+
+class SyncPersonsCoverTest(TestCase):
+    """The person feed carries the cover the People list shows.
+
+    ``cover_photo_hash`` is only a cover the user chose. The People list
+    (``/api/persons/`` ``face_photo_url``) falls back to the first face's photo,
+    and so does the mobile seed, which reads that list. The delta feed used to
+    send only ``cover_photo_hash``, so a person's cover vanished on the phone
+    after the first delta pull. ``effective_cover_hash`` is the list's value.
+    """
+
+    URL = "/api/sync/persons/"
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+
+    def _item(self, person):
+        items, _tomb, _cursor = sync_pull(self.client, self.URL)
+        matching = [i for i in items if i["id"] == person.id]
+        self.assertEqual(len(matching), 1, items)
+        return matching[0]
+
+    def _list_cover(self, person):
+        body = self.client.get("/api/persons/?page_size=1000").json()
+        rows = body["results"] if isinstance(body, dict) else body
+        return next(r["face_photo_url"] for r in rows if r["id"] == person.id)
+
+    def test_no_chosen_cover_falls_back_to_the_first_face_photo(self):
+        person = create_test_person(cluster_owner=self.user, face_count=2)
+        first = create_test_photo(owner=self.user)
+        create_test_face(photo=first, person=person)
+        create_test_face(photo=create_test_photo(owner=self.user), person=person)
+
+        item = self._item(person)
+
+        self.assertEqual(item["effective_cover_hash"], first.image_hash)
+        self.assertEqual(item["effective_cover_hash"], self._list_cover(person))
+        # The chosen-cover field keeps its meaning for older apps.
+        self.assertIsNone(item["cover_photo_hash"])
+
+    def test_a_chosen_cover_wins_over_the_first_face(self):
+        chosen = create_test_photo(owner=self.user)
+        person = create_test_person(
+            cluster_owner=self.user, cover_photo=chosen, face_count=1
+        )
+        create_test_face(photo=create_test_photo(owner=self.user), person=person)
+
+        item = self._item(person)
+
+        self.assertEqual(item["effective_cover_hash"], chosen.image_hash)
+        self.assertEqual(item["cover_photo_hash"], chosen.image_hash)
+        self.assertEqual(item["effective_cover_hash"], self._list_cover(person))
+
+    def test_a_person_without_faces_has_no_cover(self):
+        person = create_test_person(cluster_owner=self.user)
+        self.assertIsNone(self._item(person)["effective_cover_hash"])
+
+    def test_deleted_faces_and_other_users_photos_are_no_cover(self):
+        # Same scoping as the People list (#2047): a face on a stranger's photo
+        # would leak that photo's hash, and a deleted face is no cover.
+        stranger = create_test_user()
+        person = create_test_person(cluster_owner=self.user, face_count=1)
+        create_test_face(photo=create_test_photo(owner=stranger), person=person)
+        create_test_face(
+            photo=create_test_photo(owner=self.user), person=person, deleted=True
+        )
+        mine = create_test_photo(owner=self.user)
+        create_test_face(photo=mine, person=person)
+
+        item = self._item(person)
+
+        self.assertEqual(item["effective_cover_hash"], mine.image_hash)
+        self.assertEqual(item["effective_cover_hash"], self._list_cover(person))
 
 
 class SyncCursorExpiryTest(TestCase):
