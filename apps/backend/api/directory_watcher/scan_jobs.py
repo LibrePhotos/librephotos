@@ -33,8 +33,10 @@ from api.directory_watcher.processing_jobs import (
 )
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
+    SkippedDirectory,
     finish_job_if_complete,
     is_job_cancelled,
+    record_skipped_directories,
     update_job_result,
     update_scan_counter,
     walk_directory,
@@ -221,14 +223,19 @@ def backfill_missing_aspect_ratios(user: User) -> int:
     return still_missing
 
 
-def _discover_scan_paths(scan_directory: str, scan_files: list[str]) -> list[str]:
-    """Collect every candidate file path, either from an explicit list or a walk."""
+def _discover_scan_paths(
+    scan_directory: str, scan_files: list[str]
+) -> tuple[list[str], list[SkippedDirectory]]:
+    """Collect every candidate file path, either from an explicit list or a walk.
+
+    Also returns the subdirectories the walk had to skip because they could
+    not be listed.
+    """
     photo_list: list[str] = []
     if scan_files:
         walk_files(scan_files, photo_list)
-    else:
-        walk_directory(scan_directory, photo_list)
-    return photo_list
+        return photo_list, []
+    return photo_list, walk_directory(scan_directory, photo_list)
 
 
 def _partition_scan_paths(
@@ -329,6 +336,7 @@ def _remember_followups(
     full_scan: bool,
     scan_directory: str,
     scan_files: list[str],
+    skipped_directories: bool = False,
 ) -> None:
     """Store what the follow-up jobs and later scans need.
 
@@ -338,6 +346,19 @@ def _remember_followups(
     """
     result: dict[str, Any] = dict(lrj.result) if isinstance(lrj.result, dict) else {}
     library_scan = scan_directory == user.scan_directory and not scan_files
+    scan_missing = bool(full_scan or library_scan)
+    if skipped_directories:
+        # The files under a skipped folder were not seen. They may not even be
+        # reachable for the existence check, which would flag them all
+        # missing, and a change to them is not picked up by this scan, so it
+        # cannot be the baseline of the next incremental one either.
+        if scan_missing:
+            logger.warning(
+                "job %s: skipping the missing-file check, the scan skipped a directory",
+                lrj.job_id,
+            )
+        scan_missing = False
+        library_scan = False
     if library_scan:
         result[LongRunningJob.LIBRARY_SCAN] = True
     result[_FOLLOWUPS_KEY] = {
@@ -345,7 +366,7 @@ def _remember_followups(
         # if the scan type is not the default user scan directory, or if it is
         # specified as only scanning specific files, there is no need to rescan
         # fully for missing photos.
-        "scan_missing_photos": bool(full_scan or library_scan),
+        "scan_missing_photos": scan_missing,
         "photo_count_before": Photo.objects.owned_by(user).count(),
     }
     lrj.set_result(result)
@@ -488,7 +509,7 @@ def scan_photos(
     try:
         if scan_directory == "":
             scan_directory = user.scan_directory
-        photo_list = _discover_scan_paths(scan_directory, scan_files)
+        photo_list, skipped = _discover_scan_paths(scan_directory, scan_files)
         files_found = len(photo_list)
         last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_SCAN_PHOTOS)
 
@@ -515,8 +536,11 @@ def scan_photos(
         # Progress target is number of groups (not individual files)
         # Each group = one Photo with potentially multiple file variants
         total_groups = len(groups_to_process) + len(metadata_paths)
-        _remember_followups(lrj, user, full_scan, scan_directory, scan_files)
+        _remember_followups(
+            lrj, user, full_scan, scan_directory, scan_files, bool(skipped)
+        )
         lrj.update_progress(current=0, target=total_groups)
+        record_skipped_directories(job_id, skipped)
         db.connections.close_all()
 
         logger.info(

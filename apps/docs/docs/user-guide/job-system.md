@@ -32,7 +32,7 @@ Finds all missing media files and removes them from the database.
 
 ### Scan Missing Photos
 
-Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete Missing Photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files. See [Missing Photos](./missing-photos.md).
+Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete Missing Photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read (not released yet). See [Missing Photos](./missing-photos.md).
 
 ### Calculate Clip Embeddings
 

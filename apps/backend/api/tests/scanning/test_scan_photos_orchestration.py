@@ -107,6 +107,7 @@ class ScanPhotosCharacterizationBase(TestCase):
             if walk_directory_side_effect is not None:
                 raise walk_directory_side_effect
             photo_list.extend(walk_result)
+            return []
 
         settings_overrides = {
             "MEDIA_ROOT": self.media_root.name,

@@ -34,6 +34,8 @@ The scan imports images, videos, RAW files and XMP sidecars. Any other file in y
 
 A **Scan** processes new and changed files, and also every photo whose metadata could not be read last time (for example because the exif service was restarting or timed out): such a photo is listed in the job's errors, and the next scan reads it again, even though the file has not changed. _Not released yet:_ before this, only a **Rescan** read those photos again; after the update, the first **Scan** also reads the photos earlier scans left without metadata.
 
+A folder LibrePhotos is not allowed to read, such as a `lost+found` folder owned by root or a NAS recycle bin, is skipped and the rest of the library is still scanned (not released yet). The scan then finishes as a partial failure and its job lists the folder with the reason. Because the photos in that folder were not looked at, that scan does not check for [missing photos](./missing-photos.md). If the scan directory itself cannot be read, the scan fails.
+
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
 :::note

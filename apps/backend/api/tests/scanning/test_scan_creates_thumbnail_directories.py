@@ -41,7 +41,10 @@ class ScanPhotosDirectoryCreationTest(TestCase):
 
             with override_settings(MEDIA_ROOT=media_root):
                 with (
-                    patch("api.directory_watcher.scan_jobs.walk_directory"),
+                    patch(
+                        "api.directory_watcher.scan_jobs.walk_directory",
+                        return_value=[],
+                    ),
                     patch("api.directory_watcher.scan_jobs.walk_files"),
                     patch("api.directory_watcher.scan_jobs.photo_scanner"),
                     patch("api.jobs.queue.AsyncTask", DummyAsyncTask),
