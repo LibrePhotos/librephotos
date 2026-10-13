@@ -39,6 +39,7 @@ type PhotoGridKind =
   | "search"
   | "withoutTimestamp"
   | "withoutLocation"
+  | "notInAlbum"
   | "sharedByMe"
   | "sharedWithMe";
 
@@ -85,6 +86,8 @@ export const photoGridKeys = {
     [...gridKind("search"), term, mediaType, mode] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
+  /** One page of the photos in none of my albums. */
+  notInAlbum: (page: number, mediaType: MediaType) => [...gridKind("notInAlbum"), page, mediaType] as const,
   /** The photos I shared, grouped by recipient (web). */
   sharedByMe: () => gridKind("sharedByMe"),
   /** The photos I shared, one row per share as the server sends them. */

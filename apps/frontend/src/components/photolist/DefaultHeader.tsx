@@ -16,6 +16,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconAlbumOff as AlbumOff,
   IconCalendar as Calendar,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
@@ -196,6 +197,7 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/favorites") ||
       path.startsWith("/notimestamp") ||
       path.startsWith("/nolocation") ||
+      path.startsWith("/noalbum") ||
       path.startsWith("/recent") ||
       path.startsWith("/user/") ||
       path.startsWith("/photos") ||
@@ -293,6 +295,14 @@ export function DefaultHeader(props: Props) {
             onClick={() => void navigate({ to: "/nolocation" })}
           >
             {t("sidemenu.withoutlocation")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<AlbumOff color={theme.colors.blue[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/noalbum")}
+            onClick={() => void navigate({ to: "/noalbum" })}
+          >
+            {t("sidemenu.notinalbum")}
           </Menu.Item>
 
           <Menu.Divider />

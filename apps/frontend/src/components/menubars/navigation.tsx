@@ -49,6 +49,7 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
         "/hidden",
         "/notimestamp",
         "/nolocation",
+        "/noalbum",
         "/screenshots",
         "/documents",
         "/memories",

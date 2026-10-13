@@ -27,6 +27,7 @@ vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => ({ data: [] }),
 }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
+vi.mock("../../api_client/duplicates", () => ({ useDuplicateStatsQuery: () => ({ data: undefined }) }));
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -37,7 +38,7 @@ async function render(props: Partial<React.ComponentProps<typeof DefaultHeader>>
   root = createRoot(container);
   await act(async () => {
     defined(root).render(
-      <MantineProvider>
+      <MantineProvider env="test">
         <DefaultHeader
           loading={false}
           numPhotosetItems={1}
@@ -105,5 +106,17 @@ describe("DefaultHeader view switcher", () => {
     expect(button).not.toBeNull();
     expect(defined(button).getAttribute("aria-haspopup")).toBe("menu");
     expect(heading.textContent).toContain("Photos");
+  });
+
+  it("lists Not in an album right after Without Location and marks it on /noalbum", async () => {
+    route.pathname = "/noalbum";
+    const el = await render({ title: "Photos not in an album" });
+    await act(async () => defined(el.querySelector<HTMLButtonElement>("h1 button")).click());
+
+    const items = [...document.querySelectorAll('[role="menuitem"]')];
+    const labels = items.map(item => item.textContent);
+    expect(labels.indexOf("Not in an album")).toBe(labels.indexOf("Without Location") + 1);
+    const current = items.filter(item => item.querySelector(".tabler-icon-check"));
+    expect(current.map(item => item.textContent)).toEqual(["Not in an album"]);
   });
 });

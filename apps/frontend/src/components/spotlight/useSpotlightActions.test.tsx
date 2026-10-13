@@ -226,6 +226,15 @@ describe("navigation", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/documents" });
   });
 
+  it("goes to the photos not in an album, right after No location", async () => {
+    await render();
+    const ids = allActions().map(entry => entry.id);
+    expect(ids.indexOf("nav-noalbum")).toBe(ids.indexOf("nav-nolocation") + 1);
+
+    await trigger("nav-noalbum");
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/noalbum" });
+  });
+
   it("encodes search terms", async () => {
     stubs.searchOptions = [{ value: "what? #1/2", type: SearchOptionType.EXAMPLE, data: "what? #1/2" }];
     await render();

@@ -4,7 +4,7 @@ import uuid
 from collections import defaultdict
 from typing import Any
 
-from django.db.models import Prefetch, Q, QuerySet
+from django.db.models import F, Prefetch, Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
@@ -49,6 +49,7 @@ from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photo
+from api.photos.selection import not_in_own_album_q
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
     captioning_model_exists,
@@ -229,6 +230,29 @@ class NoLocationPhotoViewSet(ListViewSet):
                 Q(exif_gps_lat__isnull=True) | Q(exif_gps_lon__isnull=True)
             )
         ).order_by("added_on")
+
+    @extend_schema(parameters=[PhotoMediaQuery])
+    def list(self, *args: Any, **kwargs: Any) -> Response:
+        return super().list(*args, **kwargs)
+
+
+class NoAlbumPhotoViewSet(ListViewSet):
+    """The photos in none of the requester's own albums, newest first (#530).
+
+    Albums other users share with the requester do not count. Select-all on
+    this list sends ``no_album`` to ``build_photo_queryset``, which applies
+    the same ``not_in_own_album_q``.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PhotoSummarySerializer
+    pagination_class = DefaultPagination
+
+    def get_queryset(self) -> QuerySet[Photo]:
+        user = scope_user(self.request)
+        return with_photo_summary_relations(
+            _media_filtered_photos(self.request).filter(not_in_own_album_q(user))
+        ).order_by(F("exif_timestamp").desc(nulls_last=True), "-added_on", "pk")
 
     @extend_schema(parameters=[PhotoMediaQuery])
     def list(self, *args: Any, **kwargs: Any) -> Response:

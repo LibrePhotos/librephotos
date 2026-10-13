@@ -4556,6 +4556,87 @@
         }
       }
     },
+    "/api/photos/no-album/": {
+      "get": {
+        "operationId": "api_photos_no_album_list",
+        "description": "The photos in none of the requester's own albums, newest first (#530).\n\nAlbums other users share with the requester do not count. Select-all on\nthis list sends ``no_album`` to ``build_photo_queryset``, which applies\nthe same ``not_in_own_album_q``.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/nolocation/": {
       "get": {
         "operationId": "api_photos_nolocation_list",

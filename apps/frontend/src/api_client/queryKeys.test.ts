@@ -73,6 +73,16 @@ const domains: Record<string, Domain> = {
         ],
       },
       {
+        // invalidateUserAlbumPhotos: the photos enter or leave Not in an album (#530).
+        mutation: "useAddPhotoToUserAlbumMutation",
+        invalidates: [
+          { before: ["albums", "user"], after: albumKeys.userAlbums() },
+          { before: ["photoGrid", "userAlbum", "7"], after: photoGridKeys.userAlbum("7") },
+          { before: ["photoGrid", "notInAlbum"], after: photoGridKeys.kind("notInAlbum") },
+        ],
+        refreshes: ["useFetchUserAlbumsQuery", "useFetchUserAlbumQuery", "useFetchPhotosNotInAlbumQuery"],
+      },
+      {
         mutation: "useDeleteAutoAlbumMutation",
         invalidates: [
           { before: ["albums", "auto"], after: albumKeys.autoAlbums() },
@@ -274,6 +284,11 @@ const domains: Record<string, Domain> = {
         before: ["photoGrid", "withoutLocation", 2, "all"],
         after: photoGridKeys.withoutLocation(2, "all"),
       },
+      // New in #530, keyed like No timestamp.
+      useFetchPhotosNotInAlbumQuery: {
+        before: ["photoGrid", "notInAlbum", 2, "all"],
+        after: photoGridKeys.notInAlbum(2, "all"),
+      },
       useFetchSharedPhotosByMeQuery: { before: ["photoGrid", "sharedByMe"], after: photoGridKeys.sharedByMe() },
       useFetchSharedPhotosWithMeQuery: { before: ["photoGrid", "sharedWithMe"], after: photoGridKeys.sharedWithMe() },
     },
@@ -299,6 +314,7 @@ const domains: Record<string, Domain> = {
           "useSearchPhotosQuery",
           "useFetchPhotosWithoutTimestampQuery",
           "useFetchPhotosWithoutLocationQuery",
+          "useFetchPhotosNotInAlbumQuery",
           "useFetchSharedPhotosByMeQuery",
           "useFetchSharedPhotosWithMeQuery",
         ],
@@ -538,7 +554,7 @@ describe("photoGridKeys.all", () => {
       .filter(([, { before }]) => before[0] === "photoGrid")
       .map(([name]) => name);
     // One query per grid kind.
-    expect(grids).toHaveLength(14);
+    expect(grids).toHaveLength(15);
     expect(matched(photoGridKeys.all)).toEqual([...grids, ...raw.map(queryKey => hashKey(queryKey))].sort());
   });
 });
