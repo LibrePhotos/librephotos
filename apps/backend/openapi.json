@@ -11214,6 +11214,11 @@
           "category_source": {
             "type": "string",
             "readOnly": true
+          },
+          "geocoded": {
+            "type": "boolean",
+            "description": "Whether the photo's coordinates have a place name.\n\nFalse after a location edit the geocoder could not name, so the\nclient can say the place was not looked up.",
+            "readOnly": true
           }
         },
         "required": [
@@ -11221,6 +11226,7 @@
           "exif_gps_lat",
           "exif_gps_lon",
           "exif_timestamp",
+          "geocoded",
           "hidden",
           "image_hash",
           "in_trashcan",

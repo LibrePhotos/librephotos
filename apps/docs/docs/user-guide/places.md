@@ -104,6 +104,8 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 
 The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search and "use my current location" still work.
 
+If no place name can be found for the new position (reverse geocoding is turned off, the provider fails or rate limits, or the spot has no address, such as open sea), the new coordinates are still saved. The photo then drops the place it had before: it leaves its old place albums, is no longer found by searching the old place name, and the info sidebar shows the coordinates instead of a place name. A notice says that the place name could not be looked up. (Not released yet: up to 1.3.0, the photo kept the old place name and albums in that case, and the dialog reported a plain success.)
+
 ## Troubleshooting
 
 ### Places tab is empty

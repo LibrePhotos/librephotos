@@ -44,14 +44,14 @@ from django.utils.dateparse import parse_datetime
 
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.geocode.photo_location import find_album_places
+from api.geocode.photo_location import find_album_places, forget_place
 from api.metadata.jobs import queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
-from api.models.album_place import AlbumPlace, get_album_place
+from api.models.album_place import get_album_place
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
@@ -78,6 +78,9 @@ KEYWORDS = "keywords"
 # Free-text PhotoMetadata columns a user may set. The scan fills them from the
 # file too, but never over a value the user set (``_apply_text_fields``).
 TEXT_FIELDS = ("title", "copyright", "creator")
+# The Photo columns a location edit writes. Not a whole-row save: a job may
+# have written other columns since the row was loaded (geolocate_photo).
+LOCATION_COLUMNS = ["exif_gps_lat", "exif_gps_lon", "geolocation_json", "last_modified"]
 
 #: Fields whose MetadataEdit rows the revert endpoint can apply.
 REVERTIBLE_FIELDS = frozenset(
@@ -172,7 +175,8 @@ def set_location(
 
     The coordinates are saved first, so a geocoder failure still keeps them;
     the reverse-geocoded place then feeds ``geolocation_json``, the search
-    location and the Places albums.
+    location and the Places albums. Without one (geocoding off, no result, an
+    error) the photo has no place (``has_place``), not the old one.
     """
     old = _location_value(photo)
     _apply_location(photo, latitude, longitude)
@@ -184,20 +188,21 @@ def set_location(
 def _apply_location(
     photo: Photo, latitude: float | None, longitude: float | None
 ) -> None:
-    old_album_places = find_album_places(photo)
+    # The place of the old coordinates goes with them, whatever the geocoder
+    # says about the new ones (#2253).
+    forget_place(photo, find_album_places(photo))
     if latitude is None or longitude is None:
-        _remove_from_album_places(photo, old_album_places)
         photo.exif_gps_lat = None
         photo.exif_gps_lon = None
+        # No coordinates, rather than coordinates not geocoded yet ({}).
         photo.geolocation_json = None
-        _update_search_location(photo, None)
-        photo.save()
+        photo.save(update_fields=LOCATION_COLUMNS)
         return
 
     photo.exif_gps_lat = float(latitude)
     photo.exif_gps_lon = float(longitude)
-    photo.save()
-    # The coordinates are kept whatever the geocoder does.
+    # Saved before the geocoder runs, so its failure still keeps them.
+    photo.save(update_fields=LOCATION_COLUMNS)
     try:
         geocode_result = reverse_geocode(photo.exif_gps_lat, photo.exif_gps_lon)
     except Exception:
@@ -212,9 +217,8 @@ def _apply_location(
     geocode_result["_v"] = GEOCODE_VERSION
     photo.geolocation_json = geocode_result
     _update_search_location(photo, geocode_result)
-    _remove_from_album_places(photo, old_album_places)
     _add_to_album_places(photo, geocode_result)
-    photo.save()
+    photo.save(update_fields=LOCATION_COLUMNS)
 
 
 def _update_search_location(
@@ -223,12 +227,6 @@ def _update_search_location(
     search_instance, _ = PhotoSearch.objects.get_or_create(photo=photo)
     search_instance.update_search_location(geocode_result)
     search_instance.save()
-
-
-def _remove_from_album_places(photo: Photo, album_places: QuerySet[AlbumPlace]) -> None:
-    for album_place in album_places:
-        album_place.photos.remove(photo)
-        album_place.save()
 
 
 def _add_to_album_places(photo: Photo, geocode_result: Mapping[str, object]) -> None:

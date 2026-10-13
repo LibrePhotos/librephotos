@@ -9,7 +9,12 @@ export const useUpdatePhotoMutation = () =>
   useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
       const result = await endpoints.updatePhoto(apiClient, id, data);
-      notification.updatePhoto();
+      // The coordinates are saved either way; say so when no place name came with them.
+      if ("exif_gps_lat" in data && result.geocoded === false) {
+        notification.locationSavedWithoutPlace();
+      } else {
+        notification.updatePhoto();
+      }
       return result;
     },
     onSuccess: (data, { data: patch }) => {

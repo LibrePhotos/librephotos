@@ -34,6 +34,9 @@ export const PhotoEditResponse = z.looseObject({
   rating: z.number().optional(),
   hidden: z.boolean().optional(),
   in_trashcan: z.boolean().optional(),
+  // False when a location edit kept the coordinates but found no place name for them (#2253).
+  // Older servers do not send it.
+  geocoded: z.boolean().optional(),
 });
 export type PhotoEditResponse = z.infer<typeof PhotoEditResponse>;
 

@@ -18,6 +18,11 @@ type LocationSectionProps = {
 export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false }: LocationSectionProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
+  const { exif_gps_lat: lat, exif_gps_lon: lon } = photoDetail;
+  // Coordinates the geocoder could not name (#2253) are named by themselves, not "no location".
+  const label =
+    photoDetail.search_location ||
+    (lat != null && lon != null ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : t("lightbox.sidebar.no_location"));
   return (
     <Group>
       <Stack w="100%">
@@ -25,10 +30,10 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
           <MapPin />
           <Text
             c={photoDetail.search_location ? undefined : "dimmed"}
-            title={photoDetail.search_location ?? undefined}
+            title={label}
             style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
           >
-            {photoDetail.search_location || t("lightbox.sidebar.no_location")}
+            {label}
           </Text>
           {!isPublic && (
             <Tooltip label={t("lightbox.sidebar.update_location")}>

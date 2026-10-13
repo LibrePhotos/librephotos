@@ -88,6 +88,11 @@ function updatePhoto() {
   toast.success(i18n.t("toasts.editphoto"), { title: i18n.t("toasts.editphototitle") });
 }
 
+/** A location edit kept the coordinates, but no place name was found for them (#2253). */
+function locationSavedWithoutPlace() {
+  toast.warning(i18n.t("toasts.locationsavedwithoutplace"), { title: i18n.t("toasts.editphototitle") });
+}
+
 function rotatePhotos(numberOfPhotos: number, rotation: number) {
   toast.success(i18n.t("toasts.rotatephoto", { numberOfPhotos, rotation }), {
     title: i18n.t("toasts.rotatephototitle"),
@@ -122,6 +127,7 @@ export const photos = {
   downloadCompleted,
   downloadFailed,
   downloadStarting,
+  locationSavedWithoutPlace,
   removePhotos,
   rotatePhotos,
   savePhotoCaptions,
