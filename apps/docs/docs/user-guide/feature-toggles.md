@@ -97,21 +97,23 @@ _Not released yet._ Turning off face detection or image captioning also skips th
 
 ### Site settings switches
 
-_Not released yet._ Every feature in the table except **Embedded media** also has a switch in the site settings, which an admin can change without restarting anything. The two layers combine like this:
+_Not released yet._ Every feature in the table except **Embedded media** also has a switch in the **Features** card, under **Account menu > Admin Area > Site settings**, which an admin can flip without restarting anything. The two layers combine like this:
 
-- An environment variable set to `false` is a hard off. The feature stays off whatever the site settings say.
-- While the environment variable allows a feature (the default), its site setting decides. All of them start on.
+- An environment variable set to `false` is a hard off. The feature stays off whatever the site settings say, and its switch in the Features card is disabled, with a **Locked** badge and the name of the variable. To turn the feature on, change the variable in your Compose file or `.env` and restart.
+- While the environment variable allows a feature (the default), its switch decides. All of them start on.
 
-| Feature | Site setting |
-| --- | --- |
-| Video | `VIDEO_ENABLED` |
-| Face detection | `FACE_DETECTION_ENABLED` |
-| Face clustering | `FACE_CLUSTER_ENABLED` |
-| Image captioning | `IMAGE_CAPTIONING_ENABLED` |
-| Reverse geocoding | `REVERSE_GEOCODING_ENABLED` |
-| Things (scene classification) | `SCENE_CLASSIFICATION_ENABLED` |
+| Feature | Name in the Features card | Site setting |
+| --- | --- | --- |
+| Video | Videos | `VIDEO_ENABLED` |
+| Face detection | Face detection | `FACE_DETECTION_ENABLED` |
+| Face clustering | Face clustering | `FACE_CLUSTER_ENABLED` |
+| Image captioning | Image captioning | `IMAGE_CAPTIONING_ENABLED` |
+| Reverse geocoding | Place names | `REVERSE_GEOCODING_ENABLED` |
+| Things (scene classification) | Things | `SCENE_CLASSIFICATION_ENABLED` |
 
-For now the switches are on the Django admin's **Constance › Config** page (`/api/django-admin/constance/config/`); a Features card in **Site Settings** follows. A change applies to the next file, photo or job. Background workers take up to a minute to see it, and so does the watchdog that starts and stops the face recognition and captioning services. Turning a feature off does not delete the faces, captions, tags or places it already produced.
+A switch saves as soon as you flip it, like the other site settings. A change applies to the next file, photo or job. Background workers take up to a minute to see it, and so does the watchdog that starts and stops the face recognition and captioning services. Turning a feature off does not delete the faces, captions, Things or place names it already produced.
+
+Face detection, image captioning and Things run on a machine learning model. Under each of these switches a line says whether its model is ready. When a model is missing, saving a switch starts the **Download models** job, and the line shows its progress with a link to the job. If the download fails, the line says so and offers **Retry**.
 
 :::note Embedded media
 The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
@@ -140,7 +142,7 @@ The **Embedded media** switch is checked only the first time a file is imported.
 
 ## Switches in Site Settings {#switches-in-site-settings}
 
-Some features are not switched with environment variables, but by an administrator in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
+Besides the Features card [above](#site-settings-switches), some features are switched by a model choice in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
 
 - **Captioning Model**: `None` turns automatic captioning off. _Not released yet:_ it also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
 - **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).

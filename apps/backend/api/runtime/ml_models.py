@@ -18,7 +18,7 @@ from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import Task, enqueue_job
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
-from api.runtime.features import feature_enabled
+from api.runtime.features import Feature, feature_enabled
 from api.runtime.http_timeouts import MODEL_DOWNLOAD
 from librephotos.env import data_models_root
 
@@ -603,6 +603,50 @@ def captioning_model_exists() -> bool:
         _model_target_exists(model_folder, model)
         for model in ML_MODELS
         if model["type"] == MlTypes.CAPTIONING
+    )
+
+
+# The features that run on a downloaded model, and that model's type. Face
+# clustering, reverse geocoding and video import need none.
+FEATURE_MODEL_TYPES: dict[Feature, str] = {
+    "FACE_DETECTION": MlTypes.FACE_RECOGNITION,
+    "IMAGE_CAPTIONING": MlTypes.CAPTIONING,
+    "SCENE_CLASSIFICATION": MlTypes.CLIP,
+}
+
+
+def feature_model_ready(
+    feature: Feature, face_recognition_model: str, captioning_model: str
+) -> bool | None:
+    """Whether the model a feature runs on is on disk; None when it needs none.
+
+    The two model settings are read by the caller with the others: of the
+    face models only the selected one counts, and captioning with the model
+    "None" runs on no model.
+    """
+    model_type = FEATURE_MODEL_TYPES.get(feature)
+    if model_type is None:
+        return None
+    if model_type == MlTypes.CAPTIONING and _is_model_not_selected(captioning_model):
+        return None
+    model_folder = _models_folder()
+    return all(
+        _model_target_exists(model_folder, model)
+        for model in ML_MODELS
+        if model["type"] == model_type
+        and (
+            model_type != MlTypes.FACE_RECOGNITION
+            or model["name"] == face_recognition_model
+        )
+    )
+
+
+def latest_model_download() -> LongRunningJob | None:
+    """The newest Download Models job, finished or not."""
+    return (
+        LongRunningJob.objects.filter(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        .order_by("-queued_at")
+        .first()
     )
 
 

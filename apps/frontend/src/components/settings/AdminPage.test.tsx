@@ -39,6 +39,8 @@ vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../job/JobList", () => ({ JobList: () => null }));
 vi.mock("../modals/ModalUserDelete", () => ({ ModalUserDelete: () => null }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
+vi.mock("./EmailSettings", () => ({ EmailSettings: () => null }));
+vi.mock("./FeaturesCard", () => ({ FeaturesCard: () => null }));
 vi.mock("./ServerLogsCard", () => ({ ServerLogsCard: () => null }));
 vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
@@ -118,13 +120,22 @@ describe("AdminPage", () => {
     mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
     await render();
 
-    // admin-email is inside SiteSettings (mocked here); EmailSettings.test checks it.
-    for (const id of ["admin-site", "admin-tools", "admin-logs", "admin-services", "admin-users", "admin-jobs"]) {
+    // admin-email is inside EmailSettings (mocked here); EmailSettings.test checks it.
+    for (const id of [
+      "admin-site",
+      "admin-features",
+      "admin-tools",
+      "admin-logs",
+      "admin-services",
+      "admin-users",
+      "admin-jobs",
+    ]) {
       expect(document.getElementById(id)?.tagName, id).toBe("SECTION");
     }
     const toc = defined(container.querySelector("nav"), "the section navigation");
     expect([...toc.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual([
       "#admin-site",
+      "#admin-features",
       "#admin-email",
       "#admin-tools",
       "#admin-logs",

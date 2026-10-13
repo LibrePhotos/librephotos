@@ -4,8 +4,8 @@ import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
-import { EmailSettings } from "./EmailSettings";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
+import { SectionLink } from "./SettingsSection";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
@@ -135,7 +135,7 @@ export function SiteSettings() {
     // dataUpdatedAt: a reload that brings back the same values still resets the controls
   }, [settings, isLoading, dataUpdatedAt]);
 
-  // A fragment, so the cards are direct children of the admin page's Stack and get its gap.
+  // A fragment: the dialog and the card, inside the admin page's admin-site section.
   return (
     <>
       <Modal
@@ -161,7 +161,10 @@ export function SiteSettings() {
 
       <Card shadow="md">
         <Stack>
-          <Title order={4}>{t("adminarea.sitesettings")}</Title>
+          <Title order={4}>
+            {t("adminarea.sitesettings")}
+            <SectionLink />
+          </Title>
 
           <Switch
             label={t("sitesettings.header")}
@@ -332,8 +335,6 @@ export function SiteSettings() {
           </Grid>
         </Stack>
       </Card>
-
-      <EmailSettings />
     </>
   );
 }
