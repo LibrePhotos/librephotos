@@ -35,6 +35,8 @@ KILL_GRACE_SECONDS = 10
 
 PIPE = subprocess.PIPE
 DEVNULL = subprocess.DEVNULL
+# As ``stderr``: into the same pipe as stdout.
+STDOUT = subprocess.STDOUT
 
 # A started tool, as start_tool returns it.
 Process = subprocess.Popen[bytes]
@@ -232,29 +234,37 @@ def start_tool(
     name: str,
     args: Sequence[str],
     *,
+    stdin: int | None = DEVNULL,
     stdout: int | IO[bytes] | None = None,
     stderr: int | IO[bytes] | None = None,
-    start_new_session: bool = True,
 ) -> Process:
     """Start the tool ``name`` with ``args``; the caller waits for or kills it.
 
     For tools that run as long as their work does (a transcode), where no
-    single timeout fits. stdin is empty, ``stdout``/``stderr`` take PIPE,
-    DEVNULL, a file or None (inherit). A new session by default, so a signal
-    meant for the server's process group does not reach the tool half way
-    through a file. Raises :class:`ToolMissingError` when it cannot be started.
+    single timeout fits. stdin is empty unless it is PIPE (a tool fed
+    commands, like ``exiftool -stay_open``); ``stdout``/``stderr`` take PIPE,
+    DEVNULL, a file or None (inherit), and ``stderr`` also STDOUT. A new
+    session, so a signal meant for the server's process group does not reach
+    the tool half way through a file. Raises
+    :class:`ToolMissingError` when it cannot be started.
     """
     try:
         return subprocess.Popen(
             [resolve(name), *args],
-            stdin=subprocess.DEVNULL,
+            stdin=stdin,
             stdout=stdout,
             stderr=stderr,
-            start_new_session=start_new_session,
+            start_new_session=True,
         )
     except OSError as error:
         logger.warning("%s could not be started: %s", name, error)
         raise ToolMissingError(name, str(error)) from error
+
+
+def kill(process: Process) -> None:
+    """Kill a started tool and the processes it started (see ``_kill_tree``)."""
+    _kill_tree(process)
+    process.wait()
 
 
 def wait(process: Process, timeout: float) -> int | None:

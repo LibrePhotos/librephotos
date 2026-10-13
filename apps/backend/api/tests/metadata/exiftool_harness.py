@@ -5,11 +5,11 @@ not know, a tag that cannot live in an ``.xmp`` or a wrong orientation all
 pass. ``RealExifToolTestCase`` runs the write paths against real files and
 reads the result back through the code the scan uses:
 
-* Writes: ``api.metadata.writer`` gets one long-lived ExifTool process
-  (``RecordingExifTool``) instead of starting one per call. It runs with the
-  writer's own common arguments (``-G -n``) and records every write, checking
-  that ExifTool reported the file updated and that every tag it was given is
-  in the target afterwards (``WriteRecord.problems``).
+* Writes: ``api.metadata.writer`` gets one long-lived ExifTool process of
+  its own kind (``RecordingWriterProcess``) instead of starting one per call.
+  It records every write, checking that ExifTool reported the file updated
+  and that every tag it was given is in the target afterwards
+  (``WriteRecord.problems``).
 * Reads: the HTTP call inside ``get_metadata`` is answered by the exif
   service's own Flask route, in process, with its two ExifTool instances
   replaced by the shared ones. Patching the transport rather than
@@ -30,7 +30,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from types import SimpleNamespace, TracebackType
@@ -43,6 +43,7 @@ import requests
 from django.test import TestCase, override_settings
 
 from api.metadata.reader import existing_sidecars, sidecar_for_write
+from api.metadata.writer import ExifToolProcess
 from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
@@ -102,11 +103,12 @@ def _as_list(value: object) -> list[str]:
 
 
 class RecordingExifTool(exiftool.ExifTool):
-    """An ExifTool process shared by every write and read of a test class.
+    """An ExifTool process shared by every read of a test class.
 
     ``start``, ``terminate`` and the context manager are no-ops once it runs,
-    so ``write_metadata`` and ``read_orientation`` (which start and stop the
-    process they create) use it as it is; ``stop`` ends it for real.
+    so ``read_orientation`` (which starts and stops the process it creates)
+    uses it as it is; ``stop`` ends it for real. ``writes`` collects what
+    ``RecordingWriterProcess`` wrote.
     """
 
     def __init__(self, common_args: list[str] | None = None) -> None:
@@ -135,12 +137,6 @@ class RecordingExifTool(exiftool.ExifTool):
     ) -> None:
         return None
 
-    def execute(self, *params: bytes) -> bytes:
-        output = super().execute(*params)
-        if b"-overwrite_original" in params:
-            self.writes.append(self._check_write(params, output))
-        return output
-
     def prepare(self, path: str, *arguments: str) -> None:
         """Tag a fixture, without recording it as a write under test."""
         output = exiftool.ExifTool.execute(
@@ -165,7 +161,7 @@ class RecordingExifTool(exiftool.ExifTool):
         values, _ = _attribute(data, list(tags))
         return dict(zip(tags, values))
 
-    def _check_write(self, params: tuple[bytes, ...], output: bytes) -> WriteRecord:
+    def check_write(self, params: tuple[bytes, ...], output: bytes) -> WriteRecord:
         target = os.fsdecode(params[-1])
         arguments = [
             parsed
@@ -192,6 +188,38 @@ class RecordingExifTool(exiftool.ExifTool):
                     f"{tag} reads back as {found!r} from {target}, not {value!r}"
                 )
         return record
+
+
+class RecordingWriterProcess:
+    """The writer's ExifTool process, shared by a test class, recording each write.
+
+    ``close`` is a no-op, so ``write_metadata`` (which closes the process it
+    started) uses it as it is; ``stop`` ends it for real.
+    """
+
+    def __init__(self, recorder: RecordingExifTool) -> None:
+        self._process = ExifToolProcess()
+        self._recorder = recorder
+
+    @property
+    def alive(self) -> bool:
+        return self._process.alive
+
+    def execute(self, arguments: Sequence[bytes], timeout: float) -> tuple[str, int]:
+        output, status = self._process.execute(arguments, timeout)
+        self._recorder.writes.append(
+            self._recorder.check_write(tuple(arguments), output.encode())
+        )
+        return output, status
+
+    def kill(self) -> None:
+        self._process.kill()
+
+    def close(self) -> None:
+        """Owned by the test class; see ``stop``."""
+
+    def stop(self) -> None:
+        self._process.close()
 
 
 class _ServiceAnswer:
@@ -249,6 +277,11 @@ class RealExifToolTestCase(TestCase):
         cls.addClassCleanup(shutil.rmtree, cls.library, True)
 
         shared = cls.exiftool
+        writer_process = RecordingWriterProcess(cls.exiftool)
+        cls.addClassCleanup(writer_process.stop)
+
+        def shared_writer_process() -> RecordingWriterProcess:
+            return writer_process
 
         def shared_exiftool(*args: object, **kwargs: object) -> RecordingExifTool:
             return shared
@@ -264,6 +297,7 @@ class RealExifToolTestCase(TestCase):
                 "api.metadata.writer.exiftool",
                 SimpleNamespace(ExifTool=shared_exiftool),
             ),
+            patch("api.metadata.writer._start_process", shared_writer_process),
             patch.object(exif_service, "static_et", cls.exiftool),
             patch.object(exif_service, "static_struct_et", cls.struct_exiftool),
         ]

@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db.models import QuerySet
 
 from api.metadata.photo_writer import write_photo_metadata, write_target
+from api.metadata.writer import one_exiftool_process
 from api.models import Photo, User
 
 # The modes in which a user's edits are written to disk (write_target is not
@@ -85,25 +86,26 @@ class Command(BaseCommand):
         """Write each photo to its owner's target, or to ``override``'s."""
         written = 0
         errors = 0
-        for i, photo in enumerate(photos.iterator(), 1):
-            use_sidecar = (
-                override if override is not None else write_target(photo.owner)
-            )
-            if use_sidecar is None:
-                continue  # handle() keeps only the photos of owners who sync
-            try:
-                write_photo_metadata(
-                    photo, use_sidecar=use_sidecar, metadata_types=metadata_types
+        with one_exiftool_process():
+            for i, photo in enumerate(photos.iterator(), 1):
+                use_sidecar = (
+                    override if override is not None else write_target(photo.owner)
                 )
-                written += 1
-            except Exception as e:
-                errors += 1
-                self.stderr.write(f"Error writing {photo.image_hash}: {e}")
+                if use_sidecar is None:
+                    continue  # handle() keeps only the photos of owners who sync
+                try:
+                    write_photo_metadata(
+                        photo, use_sidecar=use_sidecar, metadata_types=metadata_types
+                    )
+                    written += 1
+                except Exception as e:
+                    errors += 1
+                    self.stderr.write(f"Error writing {photo.image_hash}: {e}")
 
-            if i % 100 == 0:
-                self.stdout.write(
-                    f"Progress: {i}/{total} ({written} written, {errors} errors)"
-                )
+                if i % 100 == 0:
+                    self.stdout.write(
+                        f"Progress: {i}/{total} ({written} written, {errors} errors)"
+                    )
 
         return written, errors
 

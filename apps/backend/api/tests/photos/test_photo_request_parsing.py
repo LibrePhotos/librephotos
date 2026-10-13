@@ -172,7 +172,7 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
 class RotateBodyTest(PhotoBodyTestCase):
     URL = "/api/photosedit/rotate"
 
-    @patch("api.views.photos.rotate_photo")
+    @patch("api.views.photos.rotate_photo", return_value=None)
     def test_flip_is_a_boolean_not_truthiness(self, rotate):
         photo = create_test_photo(owner=self.user)
         response = self.client.post(
@@ -183,7 +183,7 @@ class RotateBodyTest(PhotoBodyTestCase):
         self.assertEqual(response.status_code, 200, response.content)
         rotate.assert_called_once_with(ANY, angle=90, flip_horizontal=False)
 
-    @patch("api.views.photos.rotate_photo")
+    @patch("api.views.photos.rotate_photo", return_value=None)
     def test_defaults(self, rotate):
         photo = create_test_photo(owner=self.user)
         response = self.client.post(

@@ -15,7 +15,7 @@ from django.db import transaction
 
 from api.metadata.orientation import compose_orientation
 from api.metadata.tags import Tags
-from api.metadata.writer import TagValue, write_metadata
+from api.metadata.writer import MetadataWriteError, TagValue, write_metadata
 from api.models.user import User
 from api.photos.paths import is_nextcloud_copy
 
@@ -66,11 +66,18 @@ def write_photo_metadata_on_commit(
     use_sidecar = write_target(photo.owner)
     if use_sidecar is None:
         return
-    transaction.on_commit(
-        lambda: write_photo_metadata(photo, modified_fields, use_sidecar),
-        using=using,
-        robust=True,
-    )
+
+    def write() -> None:
+        try:
+            write_photo_metadata(photo, modified_fields, use_sidecar)
+        except MetadataWriteError as error:
+            logger.warning(
+                "The edit of photo %s was not written to disk: %s",
+                photo.image_hash,
+                error,
+            )
+
+    transaction.on_commit(write, using=using, robust=True)
 
 
 def write_photo_metadata(
@@ -80,6 +87,8 @@ def write_photo_metadata(
     metadata_types: list[str] | None = None,
 ) -> None:
     """Write metadata tags to the photo's file or sidecar.
+
+    Raises ``MetadataWriteError`` when ExifTool did not write the tags.
 
     Args:
         modified_fields: The fields the caller changed ("rating",
@@ -119,7 +128,9 @@ def write_photo_metadata(
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
 
 
-def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) -> None:
+def rotate_photo(
+    photo: Photo, angle: int = 0, flip_horizontal: bool = False
+) -> str | None:
     """Rotate the photo non-destructively.
 
     Updates ``local_orientation`` and regenerates thumbnails. The change is
@@ -135,6 +146,9 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
         flip_horizontal: If True, apply a horizontal flip on top of the
             rotation.
 
+    Returns:
+        Why the orientation could not be written to disk, or None.
+
     Raises:
         ValueError: If ``angle`` is not a multiple of 90.
     """
@@ -144,7 +158,7 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
         raise ValueError("angle must be a multiple of 90 degrees")
 
     if angle == 0 and not flip_horizontal:
-        return
+        return None
 
     from api.thumbnails import render
 
@@ -158,21 +172,40 @@ def rotate_photo(photo: Photo, angle: int = 0, flip_horizontal: bool = False) ->
     # Regenerate thumbnails so the UI sees the updated orientation.
     render.regenerate_thumbnails(photo.thumbnail)
 
-    write_orientation_to_disk(photo, angle, flip_horizontal)
+    return write_orientation_to_disk(photo, angle, flip_horizontal)
 
 
-def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -> None:
+def write_orientation_to_disk(
+    photo: Photo, angle: int, flip_horizontal: bool
+) -> str | None:
     """Write the combined orientation to the file / sidecar when the user
     has opted into persisting metadata to disk.
 
     A media-file write the renderer picks up is folded into the file (see
     ``_fold_rotation_into_file``). Anything else keeps the rotation in
     ``local_orientation`` and writes the tag for other viewers only.
+
+    Returns why the write failed, or None; the rotation itself is saved
+    either way.
     """
     use_sidecar = write_target(photo.owner)
     if use_sidecar is None or not _keeps_edits(photo):
-        return
+        return None
+    try:
+        _write_orientation(photo, angle, flip_horizontal, use_sidecar)
+    except MetadataWriteError as error:
+        logger.warning(
+            "The rotation of photo %s was not written to disk: %s",
+            photo.image_hash,
+            error,
+        )
+        return str(error)
+    return None
 
+
+def _write_orientation(
+    photo: Photo, angle: int, flip_horizontal: bool, use_sidecar: bool
+) -> None:
     if not use_sidecar and _fold_rotation_into_file(photo):
         return
 
@@ -211,9 +244,8 @@ def _fold_rotation_into_file(photo: Photo) -> bool:
 
     * the format's decode path honours an EXIF Orientation written into
       it (``renders_exif_orientation``: not HEIC, AVIF, RAW, ...), and
-    * the value is really on disk afterwards. exiftool reports a failed
-      write (read-only library, locked file, unwritable format) on stdout
-      and PyExifTool does not raise, so the file is read back.
+    * the value is really on disk afterwards: the file is read back.
+      A write ExifTool refused raises ``MetadataWriteError`` before that.
 
     The file's own tag is the starting point, not ``PhotoMetadata.orientation``,
     which the scan never fills in: a photo shot in portrait (EXIF 6) would

@@ -37,6 +37,7 @@ from api.metadata.photo_writer import (
     write_photo_metadata,
     write_target,
 )
+from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.mime import mime_type
 from api.models import AlbumUser, Face, Photo, User
 from api.models.album_thing import (
@@ -1100,17 +1101,25 @@ class SaveMetadataView(APIView):
 
         written = 0
         errors = 0
-        for photo in photos.iterator():
-            try:
-                write_photo_metadata(
-                    photo, use_sidecar=use_sidecar, metadata_types=metadata_types
-                )
-                written += 1
-            except Exception:
-                errors += 1
-                logger.exception(
-                    "Failed to save metadata for photo %s", photo.image_hash
-                )
+        with one_exiftool_process():
+            for photo in photos.iterator():
+                try:
+                    write_photo_metadata(
+                        photo, use_sidecar=use_sidecar, metadata_types=metadata_types
+                    )
+                    written += 1
+                except MetadataWriteError as error:
+                    errors += 1
+                    logger.warning(
+                        "The metadata of photo %s was not written: %s",
+                        photo.image_hash,
+                        error,
+                    )
+                except Exception:
+                    errors += 1
+                    logger.exception(
+                        "Failed to save metadata for photo %s", photo.image_hash
+                    )
 
         return Response({"status": True, "written": written, "errors": errors})
 
@@ -1159,7 +1168,8 @@ class RotatePhotoView(APIView):
             "status": true,
             "image_hash": "<md5-hash>",
             "local_orientation": 6,          // new EXIF orientation code (1–8)
-            "last_modified": "2024-01-01T00:00:00Z"  // for client cache-busting
+            "last_modified": "2024-01-01T00:00:00Z",  // for client cache-busting
+            "write_error": null  // why the file or sidecar was not written
         }
     """
 
@@ -1174,7 +1184,9 @@ class RotatePhotoView(APIView):
         photo = _get_rotatable_photo(image_hash, request_user(request))
 
         try:
-            rotate_photo(photo, angle=angle, flip_horizontal=flip_horizontal)
+            write_error = rotate_photo(
+                photo, angle=angle, flip_horizontal=flip_horizontal
+            )
         except Exception as error:
             logger.exception("Failed to rotate photo %s", image_hash)
             raise APIException("failed to rotate photo") from error
@@ -1188,5 +1200,7 @@ class RotatePhotoView(APIView):
                 "image_hash": photo.image_hash,
                 "local_orientation": photo.local_orientation,
                 "last_modified": photo.last_modified.isoformat(),
+                # The rotation is saved; it did not reach the file (#2294).
+                "write_error": write_error,
             }
         )

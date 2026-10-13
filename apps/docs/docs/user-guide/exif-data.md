@@ -305,3 +305,14 @@ for the sidecar of a RAW file next to the JPEG (`IMG_2.CR2`).
 _Not released yet: up to 1.3.0, LibrePhotos always wrote to `IMG_2.xmp`, creating it next to
 an existing `IMG_2.jpg.xmp`. A photo that already has both keeps both; LibrePhotos reads and
 writes `IMG_2.xmp`, and the other app keeps its own file._
+
+## Writes that fail
+
+A write ExifTool cannot make, for example into a read-only library, a damaged file or a format
+that cannot hold the tag, never undoes your edit: the rating, date, face label or rotation stays
+in LibrePhotos. The backend log names the photo and ExifTool's reason. Labelling a face, drawing
+one and rotating a photo also return the reason as `write_error` in the API response, and
+`POST /api/savemetadata` and `manage.py save_metadata` count the photos they could not write
+as errors.
+
+_Not released yet: up to 1.3.0, a failed write looked like a success and was not logged._
