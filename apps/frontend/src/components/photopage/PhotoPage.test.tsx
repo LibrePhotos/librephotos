@@ -63,6 +63,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.markDeleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: () => {} }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.setHidden }),
+  useSetPhotosRatingMutation: () => ({ mutate: () => {}, isPending: false }),
   useUpdatePhotoMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
 vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({

@@ -1494,25 +1494,35 @@ export async function deletePhotos(
 }
 
 /**
- * Set a 0–5 star rating on one photo (keyed by image hash).
+ * Set a 0–5 star rating on photos (keyed by image hash).
  *
- * `/photosedit/rating/` is the favorite toggle's sibling (the web app has no
- * star row, so only mobile calls it): owner-scoped, bumps the photo's
+ * `/photosedit/rating/` is the favorite toggle's sibling (the web app's stars
+ * mode and the mobile star row call it): owner-scoped, bumps each photo's
  * `last_modified` so the next delta pull carries the rating, and writes it to
  * the file or sidecar when the user syncs metadata to disk. Not
  * `PATCH /photos/edit/{hash}/`: that endpoint ignores `rating` and still
- * answers 200, so every rating was silently dropped.
+ * answers 200, so every rating was silently dropped. Hashes only: the server
+ * refuses a select-all rating.
  */
+export async function setPhotosRating(
+  client: ApiClient,
+  imageHashes: string[],
+  rating: number
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/rating/", {
+    image_hashes: imageHashes,
+    rating,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set rating");
+}
+
+/** Set a 0–5 star rating on one photo (the mobile outbox replays one photo at a time). */
 export async function setPhotoRating(
   client: ApiClient,
   imageHash: string,
   rating: number
 ): Promise<S.BulkPhotoMutationResponse> {
-  const res = await client.post<unknown>("/photosedit/rating/", {
-    image_hashes: [imageHash],
-    rating,
-  });
-  return parseResponse(S.BulkPhotoMutationResponse, res, "set rating");
+  return setPhotosRating(client, [imageHash], rating);
 }
 
 /**

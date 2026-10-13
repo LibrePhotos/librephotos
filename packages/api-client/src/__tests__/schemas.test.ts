@@ -68,6 +68,12 @@ describe("schema parsing against fixtures", () => {
     expect(parsed.default_timeline_filter).toEqual({});
   });
 
+  // #2202: servers before the rating style setting do not send it.
+  it("reads a user without rating_mode as favorite mode", () => {
+    expect(User.parse(userFixture).rating_mode).toBe("favorite");
+    expect(User.parse({ ...userFixture, rating_mode: "stars" }).rating_mode).toBe("stars");
+  });
+
   // #2219: read-only and unused; the server stops sending them once the
   // columns are dropped, so they get no default and may be missing.
   it("parses a user record with and without the deprecated RAW flags", () => {

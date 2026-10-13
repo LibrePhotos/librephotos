@@ -24,6 +24,7 @@ import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxControls } from "./LightboxControls";
 import { LIGHTBOX_PHOTO_HEIGHT, LIGHTBOX_VIDEO_HEIGHT, MediaDisplay } from "./MediaDisplay";
+import { photoActionHotkeys } from "./photoActionHotkeys";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { useFaceDrawing } from "./useFaceDrawing";
@@ -305,43 +306,8 @@ export function ContentViewer({
     [PLAY_PAUSE_KEY, () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
-    // Additional shortcuts for photo actions handled by lightbox controls
-    [
-      "f",
-      () => {
-        // Trigger favorite action if photo details are available and not public
-        if (photoDetails && !isPublic) {
-          commands.emit("favorite");
-        }
-      },
-    ],
-    [
-      "h",
-      () => {
-        // Trigger hide action if photo details are available and not public
-        if (photoDetails && !isPublic) {
-          commands.emit("hide");
-        }
-      },
-    ],
-    [
-      "p",
-      () => {
-        // Trigger public action if photo details are available and not public
-        if (photoDetails && !isPublic) {
-          commands.emit("public");
-        }
-      },
-    ],
-    [
-      "d",
-      () => {
-        // Trigger delete action if photo details are available and not public
-        if (photoDetails && !isPublic) {
-          commands.emit("delete");
-        }
-      },
-    ],
+    // F, 0-5, H, P and D act on the photo through the toolbar.
+    ...photoActionHotkeys(commands, !!photoDetails && !isPublic),
     ["g", toggleFullscreen], // Toggle fullscreen mode
     ["s", toggleSlideshow], // Toggle slideshow mode
     ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection

@@ -53,6 +53,7 @@ class UserTest(TestCase):
         "nextcloud_scan_directory",
         "avatar_url",
         "favorite_min_rating",
+        "rating_mode",
         "image_scale",
         "save_metadata_to_disk",
         "datetime_rules",
@@ -141,6 +142,30 @@ class UserTest(TestCase):
             f"/api/user/{self.user1.id}/", data={"first_name": "Updated"}
         )
         self.assertEqual(200, response.status_code)
+
+    def test_rating_mode_defaults_to_favorite(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get(f"/api/user/{self.user1.id}/")
+        self.assertEqual("favorite", response.json()["rating_mode"])
+
+    def test_rating_mode_round_trips(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.patch(
+            f"/api/user/{self.user1.id}/", data={"rating_mode": "stars"}
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("stars", response.json()["rating_mode"])
+        self.user1.refresh_from_db()
+        self.assertEqual("stars", self.user1.rating_mode)
+
+    def test_rating_mode_rejects_unknown_value(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.patch(
+            f"/api/user/{self.user1.id}/", data={"rating_mode": "thumbs"}
+        )
+        self.assertEqual(400, response.status_code)
+        self.user1.refresh_from_db()
+        self.assertEqual("favorite", self.user1.rating_mode)
 
     def test_public_update_user(self):
         response = self.client.patch(

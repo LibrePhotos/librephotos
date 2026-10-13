@@ -34,6 +34,18 @@ Selecting all photos on a filtered timeline selects only what it shows, so **Sel
 
 Photos you've marked as favorites. To favorite a photo, click the star icon in the lightbox toolbar (or press `f`), or use the selection actions menu. The star turns yellow once the photo's rating reaches the **Minimum image rating to interpret as favorite** value in your user settings.
 
+Removing a favorite sets the photo's rating to 0, which also clears a star rating it had (for example a 5-star rating imported from Lightroom or digiKam). If you rate with stars, switch to stars mode instead.
+
+#### Rating photos with stars
+
+Not released yet. Set **Rating style** to **Stars** in [Settings](./settings/index.md#metadata-options) to rate photos from 1 to 5 stars instead of marking favorites:
+
+- In the photo viewer, five stars replace the favorite star in the toolbar, and on the [photo page](#photo-page) a **Rating** tile replaces **Favorite**. Click a star to set the rating, click the current rating again to clear it, or press `1` to `5` (`0` clears it). On a photo someone shared with you, the stars show the owner's rating and cannot be changed.
+- In the grid, a rated photo shows its rating, such as **4 ★**, in the top-right corner. Unrated photos show nothing.
+- To rate several photos, select them and choose **Set rating** from the selection actions menu. **Set rating** is not available after **Select all**: select the photos one by one instead.
+
+The rating is the same 0-5 rating that is read from and written to the file's metadata, so it matches what the mobile app and other photo tools show. Photos at or above **Minimum image rating to interpret as favorite** still appear on the Favorites page.
+
 ### Hidden
 
 Photos you've hidden from the main timeline. Hiding a photo removes it from the default view without deleting it. To hide photos, select them and choose **"Hide"** from the selection actions menu.
@@ -122,7 +134,7 @@ The toolbar at the top provides quick actions. From left to right:
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
 - **Hide / Show** (eye icon) - Hide the photo from the main timeline, or unhide it.
-- **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark.
+- **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark. In stars mode this is a row of five stars instead (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Share link** (globe icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The globe is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
 - **Delete** - Move the photo to trash.
 - **Rotate counter-clockwise** / **Rotate clockwise** - Rotate the photo 90° in either direction (see [Rotating Photos](#rotating-photos)).
@@ -255,7 +267,7 @@ Beside the photo (below it on a phone), the page title is the date the photo was
 
 Under the title, labelled buttons hold the photo's actions:
 
-- **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one.
+- **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one. In stars mode it is a wider **Rating** tile with five stars instead, which work as in the photo viewer (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Share**: create a revocable link to this photo, as the globe in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
 - **Album**: add the photo to one of your albums, or to a new one.
 - **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
@@ -288,7 +300,8 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `Space` | Play / pause (videos only) |
 | `z` | Toggle zoom (still images only) |
 | `i` | Toggle sidebar |
-| `f` | Toggle favorite |
+| `f` | Toggle favorite (favorites mode) |
+| `0` - `5` | Set the star rating, `0` clears it (stars mode) |
 | `h` | Hide / unhide photo |
 | `p` | Open the photo's share link dialog |
 | `d` | Move photo to trash |
@@ -297,7 +310,7 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `t` | Select text in the photo / stop selecting it (only on your own photos where [text was recognised](./text-recognition.md#selecting-text-in-the-photo-viewer)) |
 | `Ctrl` + `c` (`⌘` + `c` on macOS) | Copy the photo to the clipboard (still images only; when text is selected, the browser copies the text instead) |
 
-The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages.
+The `f`, `0`-`5`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages. `f` does nothing in stars mode and `0`-`5` do nothing in favorites mode.
 
 ### Seeking in Videos
 

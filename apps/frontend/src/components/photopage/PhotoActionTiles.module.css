@@ -24,6 +24,16 @@
   background: var(--mantine-color-default-hover);
 }
 
+/* Stars mode (#2202): five stars need two tiles' width, and the stars are the controls. */
+.ratingTile {
+  grid-column: span 2;
+  cursor: default;
+}
+
+.ratingTile:hover {
+  background: var(--mantine-color-body);
+}
+
 /* A favourite or a photo with a live share link shows it on its tile. */
 .tile[data-active] {
   border-color: var(--mantine-color-yellow-filled);

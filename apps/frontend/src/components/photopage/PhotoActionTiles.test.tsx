@@ -42,6 +42,10 @@ function makeActions(overrides: Partial<PhotoActions> = {}): PhotoActions {
   return {
     isFavorite: false,
     toggleFavorite: vi.fn<() => void>(),
+    ratesWithStars: false,
+    canRate: false,
+    rating: 0,
+    setRating: vi.fn<(rating: number) => void>(),
     isHidden: false,
     toggleHidden: vi.fn<() => void>(),
     isShared: false,
@@ -101,6 +105,19 @@ describe("photo action tiles", () => {
     expect(favorite.title).toBe("photopage.actions.unfavorite");
     await act(async () => favorite.click());
     expect(actions.toggleFavorite).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the stars instead of Favorite in stars mode, and rates by click (#2202)", async () => {
+    const actions = makeActions({ ratesWithStars: true, canRate: true, rating: 2 });
+    const { container } = await renderTiles({ actions });
+    expect(container.textContent).not.toContain("photopage.tiles.favorite");
+    expect(container.textContent).toContain("photopage.tiles.rating");
+    expect(container.querySelector('[role="radiogroup"]')).not.toBeNull();
+    // Mantine's Rating puts a hidden 0 before the five stars: label 4 is the 4th star.
+    await act(async () =>
+      defined(container.querySelectorAll<HTMLLabelElement>(".mantine-Rating-root label")[4]).click()
+    );
+    expect(actions.setRating).toHaveBeenCalledWith(4);
   });
 
   it("opens the share link and the album picker for this photo", async () => {

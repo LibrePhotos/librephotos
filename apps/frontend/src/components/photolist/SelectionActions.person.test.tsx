@@ -29,6 +29,7 @@ vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: noopMutatio
 vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: noopMutation,
   useSetFavoritePhotosMutation: noopMutation,
+  useSetPhotosRatingMutation: noopMutation,
   useSetPhotosHiddenMutation: noopMutation,
   useSetPhotosPublicMutation: noopMutation,
   useSetPhotosCategoryMutation: noopMutation,
@@ -39,6 +40,9 @@ vi.mock("../../api_client/stacks", () => ({
   useRemoveFromStackMutation: noopMutation,
 }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
+}));
 vi.mock("../modals/ModalDownloadOptions", () => ({ ModalDownloadOptions: () => null }));
 
 beforeAll(async () => {

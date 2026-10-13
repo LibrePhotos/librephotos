@@ -16,6 +16,7 @@ import {
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
+import { isFavorite } from "../../util/rating";
 import { DisabledReason } from "../common/DisabledReason";
 import { savedTimelineFilter, timelineFilterShows } from "../photolist/timelineFilter";
 
@@ -107,16 +108,12 @@ export function CategoryBadge({ photoDetail }: Props) {
   }
 
   const state = optimistic?.imageHash === fromServer.imageHash ? optimistic : fromServer;
-  const shownInTimeline = timelineFilterShows(
-    savedTimelineFilter(user?.default_timeline_filter),
-    {
-      video: photoDetail.video,
-      is_screenshot: state.is_screenshot,
-      is_document: state.is_document,
-      rating: photoDetail.rating,
-    },
-    user?.favorite_min_rating ?? 0
-  );
+  const shownInTimeline = timelineFilterShows(savedTimelineFilter(user?.default_timeline_filter), {
+    video: photoDetail.video,
+    is_screenshot: state.is_screenshot,
+    is_document: state.is_document,
+    favorite: isFavorite(photoDetail.rating, user),
+  });
 
   // `next` is what the photo becomes; `undo` is what the toast's Undo puts
   // back (null: no toast). Everything is bound to the photo's hash, so an

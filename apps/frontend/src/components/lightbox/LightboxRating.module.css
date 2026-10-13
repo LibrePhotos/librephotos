@@ -1,0 +1,5 @@
+/* An inline SVG sits on the text baseline, which lifted the stars above the
+   toolbar's other icons. */
+.symbol {
+  display: block;
+}

@@ -11439,6 +11439,9 @@
             "minimum": -9223372036854775808,
             "format": "int64"
           },
+          "rating_mode": {
+            "$ref": "#/components/schemas/RatingModeEnum"
+          },
           "image_scale": {
             "type": "number",
             "format": "double"
@@ -13032,6 +13035,14 @@
           "username"
         ]
       },
+      "RatingModeEnum": {
+        "enum": [
+          "favorite",
+          "stars"
+        ],
+        "type": "string",
+        "description": "* `favorite` - Favorite\n* `stars` - Stars"
+      },
       "RecentlyAddedPhotos": {
         "type": "object",
         "description": "``/api/photos/recentlyadded/``: the latest upload day and its photos.",
@@ -14274,6 +14285,9 @@
             "minimum": -9223372036854775808,
             "format": "int64"
           },
+          "rating_mode": {
+            "$ref": "#/components/schemas/RatingModeEnum"
+          },
           "image_scale": {
             "type": "number",
             "format": "double"
@@ -14376,6 +14390,7 @@
           "public_photo_samples",
           "public_sharing",
           "public_sharing_defaults",
+          "rating_mode",
           "save_face_tags_to_disk",
           "save_metadata_to_disk",
           "scan_directory",

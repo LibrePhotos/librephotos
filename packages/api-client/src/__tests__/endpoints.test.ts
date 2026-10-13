@@ -184,6 +184,11 @@ describe("photo rating endpoint", () => {
     await endpoints.setPhotoRating(client, "h1", 0);
     expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ image_hashes: ["h1"], rating: 0 });
   });
+  it("posts one rating for several hashes", async () => {
+    const { client, calls } = harness({ status: true, count: 2 });
+    await endpoints.setPhotosRating(client, ["h1", "h2"], 4);
+    expect(JSON.parse(String(defined(defined(calls[0]).init).body))).toEqual({ image_hashes: ["h1", "h2"], rating: 4 });
+  });
 });
 
 describe("faces endpoints", () => {

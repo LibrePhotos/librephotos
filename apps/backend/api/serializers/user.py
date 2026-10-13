@@ -44,6 +44,7 @@ USER_UPDATE_FIELDS = (
     ("confidence", "Updated confidence for user {value}"),
     ("semantic_search_topk", "Updated semantic_search_topk for user {value}"),
     ("favorite_min_rating", "Updated favorite_min_rating for user {value}"),
+    ("rating_mode", "Updated rating_mode to {value} for user {username}"),
     ("save_metadata_to_disk", "Updated save_metadata_to_disk for user {value}"),
     (
         "save_face_tags_to_disk",
@@ -228,6 +229,7 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_scan_directory": {"required": False},
             "nextcloud_app_password": {"write_only": True},
             "favorite_min_rating": {"required": False},
+            "rating_mode": {"required": False},
             "save_metadata_to_disk": {"required": False},
             "save_face_tags_to_disk": {"required": False},
             "text_alignment": {"required": False},
@@ -267,6 +269,7 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_scan_directory",
             "avatar_url",
             "favorite_min_rating",
+            "rating_mode",
             "image_scale",
             "text_alignment",
             "header_size",

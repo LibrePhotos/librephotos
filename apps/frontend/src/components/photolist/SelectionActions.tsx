@@ -14,8 +14,6 @@ import {
   IconPlus as Plus,
   IconScreenshot as Screenshot,
   IconShare as Share,
-  IconStar as Star,
-  IconStarOff as StarOff,
   IconTag as Tag,
   IconTrash as Trash,
 } from "@tabler/icons-react";
@@ -27,11 +25,11 @@ import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import { shareMediaUrl } from "../../api_client/media/mediaUrl";
 import {
   useMarkPhotosDeletedMutation,
-  useSetFavoritePhotosMutation,
   useSetPhotosCategoryMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
+import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import type { SelectionState } from "../../api_client/photos/types";
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
@@ -40,6 +38,7 @@ import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
 import { DisabledReason } from "../common/DisabledReason";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
+import { SelectionRatingItems } from "./SelectionRatingItems";
 import { StackSelectionActions } from "./StackSelectionActions";
 
 /** The albums whose cover the selection can set. */
@@ -69,7 +68,6 @@ export function SelectionActions(props: Readonly<Props>) {
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
-  const setFavoritePhotos = useSetFavoritePhotosMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
   const setPhotosCategory = useSetPhotosCategoryMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
@@ -106,6 +104,12 @@ export function SelectionActions(props: Readonly<Props>) {
   // Helper to get excluded hashes for selectAll mode
   // Placeholder tiles that never loaded have no hash.
   const getExcludedHashes = () => selectedItems.map(i => i.image_hash).filter(Boolean);
+
+  // The selection as a bulk photo mutation takes it
+  const photoSelection = (): PhotoSelection =>
+    selectAllMode
+      ? { select_all: true, query: selectAllQuery ?? {}, excluded_hashes: getExcludedHashes() }
+      : { image_hashes: getImageHashes() };
 
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
@@ -240,53 +244,12 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<Star size={ICON_SIZE.menu} />}
-              onClick={() => {
-                if (selectAllMode) {
-                  setFavoritePhotos.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    favorite: true,
-                  });
-                } else {
-                  setFavoritePhotos.mutate({
-                    image_hashes: getImageHashes(),
-                    favorite: true,
-                  });
-                }
-                resetSelection();
-              }}
-            >
-              {t("selectionactions.favorite")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<StarOff size={ICON_SIZE.menu} />}
-              onClick={() => {
-                if (selectAllMode) {
-                  setFavoritePhotos.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    favorite: false,
-                  });
-                } else {
-                  setFavoritePhotos.mutate({
-                    image_hashes: getImageHashes(),
-                    favorite: false,
-                  });
-                }
-                resetSelection();
-              }}
-            >
-              {t("selectionactions.unfavorite")}
-            </Menu.Item>
-          </DisabledReason>
+          <SelectionRatingItems
+            disabledReason={noSelection}
+            selectAllMode={selectAllMode}
+            selection={photoSelection}
+            onDone={resetSelection}
+          />
 
           <Menu.Divider />
 

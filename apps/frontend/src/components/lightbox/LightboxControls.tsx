@@ -24,8 +24,6 @@ import {
   IconArrowBackUp as Restore,
   IconRotate2 as RotateCCW,
   IconRotateClockwise2 as RotateCW,
-  IconStar as Star,
-  IconStarFilled as StarFilled,
   IconTextRecognition as TextRecognition,
   IconTrash as Trash,
   IconX as X,
@@ -34,12 +32,13 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE } from "../../uiConstants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
+import { LightboxRating } from "./LightboxRating";
 import { usePhotoActions } from "./usePhotoActions";
 
 // Interval options for slideshow
@@ -92,12 +91,20 @@ export function LightboxControls({
   useEffect(() => {
     const unsubscribers = [
       commands.on("favorite", actions.toggleFavorite),
+      commands.on("rate", actions.setRating),
       commands.on("hide", actions.toggleHidden),
       commands.on("public", actions.openShareLink),
       commands.on("delete", actions.toggleTrash),
     ];
     return () => unsubscribers.forEach(off => off());
-  }, [commands, actions.toggleFavorite, actions.toggleHidden, actions.openShareLink, actions.toggleTrash]);
+  }, [
+    commands,
+    actions.toggleFavorite,
+    actions.setRating,
+    actions.toggleHidden,
+    actions.openShareLink,
+    actions.toggleTrash,
+  ]);
 
   const slideshowLabel = isSlideshowActive ? t("lightbox.controls.stopslideshow") : t("lightbox.controls.slideshow");
   const liveTextLabel = showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext");
@@ -107,9 +114,6 @@ export function LightboxControls({
   const { toggleHidden, toggleTrash } = actions;
   const hideLabel = actions.isHidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto");
   const trashLabel = actions.inTrash ? t("lightbox.toolbar.restorePhoto") : t("lightbox.toolbar.deletePhoto");
-  const favoriteLabel = actions.isFavorite
-    ? t("lightbox.toolbar.removeFromFavorites")
-    : t("lightbox.toolbar.addToFavorites");
   const shareLabel = t("sharing.shareLinkShortcut");
   // The server refuses to rotate a video, and the player would not show it.
   const canRotate = type !== "video";
@@ -271,7 +275,7 @@ export function LightboxControls({
         </Group>
       )}
 
-      {/* Group 3: Metadata controls - Hide, Favorite, Public, Delete (only for authenticated users) */}
+      {/* Group 3: Metadata controls - Hide, Favorite or stars, Public, Delete (only for authenticated users) */}
       {!isPublic && showMetaGroup && (
         <>
           <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
@@ -288,23 +292,7 @@ export function LightboxControls({
                 </ActionIcon>
               </Tooltip>
             )}
-            {photoDetail && (
-              <Tooltip label={favoriteLabel} position="bottom" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size={28}
-                  aria-label={favoriteLabel}
-                  onClick={actions.toggleFavorite}
-                >
-                  {actions.isFavorite ? (
-                    <StarFilled size={ICON_SIZE.lightbox} color={FAVORITE_COLOR} />
-                  ) : (
-                    <Star size={ICON_SIZE.lightbox} />
-                  )}
-                </ActionIcon>
-              </Tooltip>
-            )}
+            {photoDetail && <LightboxRating actions={actions} />}
             {photoDetail && !actionsInMenu && (
               <Tooltip label={shareLabel} position="bottom" withArrow>
                 <ActionIcon

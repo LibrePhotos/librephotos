@@ -37,6 +37,7 @@ vi.mock("../../api_client/jobs", () => ({ useDownloadPhotosMutation: () => ({ mu
 vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.deleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: stubs.favorite }),
+  useSetPhotosRatingMutation: () => ({ mutate: () => {} }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.hidden }),
   useSetPhotosPublicMutation: () => ({ mutate: stubs.public }),
   useSetPhotosCategoryMutation: () => ({ mutate: stubs.category }),
@@ -47,6 +48,9 @@ vi.mock("../../api_client/stacks", () => ({
   useRemoveFromStackMutation: () => ({ mutateAsync: stubs.removeFromStack }),
 }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
+}));
 // The real dialog is tested on its own: here it only hands back the confirmation.
 vi.mock("../modals/ModalDownloadOptions", () => ({
   ModalDownloadOptions: ({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: (o: object) => void }) =>

@@ -153,6 +153,15 @@
     "semanticsearchupdate": "Update",
     "favorite": "Favorite options",
     "favoriteminimum": "Minimum image rating to interpret as favorite",
+    "ratingstyle": "Rating style",
+    "ratingstyleoptions": {
+      "favorite": "Favorites",
+      "stars": "Stars"
+    },
+    "ratingstyledescription": {
+      "favorite": "Mark photos with a favorite star. Adding a favorite sets the photo's rating to the minimum rating below; removing a favorite sets it to 0, which also clears a star rating the photo had.",
+      "stars": "Rate photos with 1 to 5 stars in the photo viewer (keys 0 to 5) and in the selection menu. A rating only changes when you set it. The minimum rating below still decides which photos are favorites."
+    },
     "favoriteoption": {
       "placeholder": "Minimum rating"
     },
@@ -611,6 +620,11 @@
     "selected": "selected",
     "favorite": "Favorite",
     "unfavorite": "Unfavorite",
+    "setrating": "Set rating",
+    "ratingstars_one": "{{count}} star",
+    "ratingstars_other": "{{count}} stars",
+    "norating": "No rating",
+    "setratingselectall": "Ratings are set on the photos you pick. After Select all, pick the photos one by one instead.",
     "hide": "Hide",
     "unhide": "Unhide",
     "makepublic": "Make Public",
@@ -742,6 +756,11 @@
       "hidePhoto": "Hide photo (H)",
       "addToFavorites": "Add to favorites (F)",
       "removeFromFavorites": "Remove from favorites (F)",
+      "rating": "Rating (keys 0 to 5)",
+      "rateStars_one": "Rate {{count}} star",
+      "rateStars_other": "Rate {{count}} stars",
+      "clearRating": "Clear rating",
+      "ratedStars": "Rated {{rating}} of 5 stars",
       "makePublic": "Make public (P)",
       "makePrivate": "Make private (P)",
       "showInfoPanel": "Show info panel (I)",
@@ -1005,7 +1024,8 @@
     "hdrvideo": "HDR video: recorded with more brightness and color than the tile can show",
     "select": "Select {{name}}",
     "hdrvideolabel": "HDR video",
-    "hdrvideotaken": "HDR video taken {{date}}"
+    "hdrvideotaken": "HDR video taken {{date}}",
+    "rating": "Rated {{rating}} of 5 stars"
   },
   "trash": {
     "restorePhoto": "Restore photo",
@@ -1721,6 +1741,11 @@
     "favoritephoto": "{{numberOfPhotos}} photo(s) were added to your favorites.",
     "unfavoritephoto": "{{numberOfPhotos}} photo(s) unfavorited.",
     "setfavoritestitle": "Set favorites",
+    "setratingtitle": "Set rating",
+    "setrating_one": "{{count}} photo rated {{rating}} of 5.",
+    "setrating_other": "{{count}} photos rated {{rating}} of 5.",
+    "clearrating_one": "Rating of {{count}} photo cleared.",
+    "clearrating_other": "Ratings of {{count}} photos cleared.",
     "hidephoto": "{{numberOfPhotos}} photo(s) were hidden.",
     "unhidephoto": "{{numberOfPhotos}} photo(s) were unhidden.",
     "sethidetitle": "Set hidden",
@@ -2208,6 +2233,7 @@
     },
     "tiles": {
       "label": "Photo actions",
+      "rating": "Rating",
       "favorite": "Favorite",
       "share": "Share",
       "album": "Album",

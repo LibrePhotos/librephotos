@@ -1,4 +1,5 @@
-import { Card, Flex, Group, Radio, Select, Stack, Title } from "@mantine/core";
+import { RatingMode } from "@librephotos/api-client";
+import { Card, Flex, Group, Input, Radio, SegmentedControl, Select, Stack, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
@@ -48,10 +49,21 @@ export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
         <WriteEditsChoice user={user} onChange={onChange} />
+        <Input.Wrapper
+          label={t("settings.ratingstyle")}
+          description={t(`settings.ratingstyledescription.${user.rating_mode}`)}
+        >
+          <SegmentedControl<RatingMode>
+            mt="xs"
+            value={user.rating_mode}
+            onChange={value => onChange({ rating_mode: value })}
+            data={RatingMode.options.map(mode => ({ value: mode, label: t(`settings.ratingstyleoptions.${mode}`) }))}
+          />
+        </Input.Wrapper>
         <Radio.Group
           label={t("settings.favoriteminimum")}
           value={user.favorite_min_rating?.toString()}
-          onChange={value => onChange({ favorite_min_rating: parseInt(value, 10) || 3 })}
+          onChange={value => onChange({ favorite_min_rating: Number(value) })}
         >
           <Group mt="xs">
             <Radio value="1" label="1" />
