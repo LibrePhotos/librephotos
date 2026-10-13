@@ -43,6 +43,30 @@ class Tags:
     # under DESCRIPTION, so this is the fallback; get_tag keeps the first one.
     # The wildcard does not match the untagged x-default entry itself.
     DESCRIPTION_ANY_LANGUAGE = "XMP:Description-*"
+    # Older captions: the IPTC record (Photoshop, Picasa, newsroom tools) and
+    # the EXIF one, which some cameras fill with a placeholder.
+    IPTC_CAPTION = "IPTC:Caption-Abstract"
+    IMAGE_DESCRIPTION = "EXIF:ImageDescription"
+    # Title, creator and copyright, each from XMP, IPTC and EXIF. These are
+    # read one by one and the fallback is done in Python: ExifTool's MWG
+    # composites would do it, but loading the MWG module makes the ungrouped
+    # Rating come back under Composite too, which breaks the batched read.
+    # IPTC:Headline is not read: the exif sidecar's -struct reads are
+    # ungrouped, so it and XMP:Headline would come back as one "Headline" key.
+    # Photoshop and Lightroom mirror it into XMP:Headline anyway.
+    TITLE = "XMP:Title"
+    HEADLINE = "XMP:Headline"
+    IPTC_OBJECT_NAME = "IPTC:ObjectName"
+    XMP_CREATOR = "XMP:Creator"
+    IPTC_BYLINE = "IPTC:By-line"
+    ARTIST = "EXIF:Artist"
+    XMP_RIGHTS = "XMP:Rights"
+    IPTC_COPYRIGHT = "IPTC:CopyrightNotice"
+    EXIF_COPYRIGHT = "EXIF:Copyright"
+    # XMP-iptcExt:PersonInImage (names of people shown, no regions) and
+    # XMP-lr:HierarchicalSubject ("Places|USA|San Francisco"), imported as keywords.
+    PERSON_IN_IMAGE = "XMP:PersonInImage"
+    HIERARCHICAL_SUBJECT = "XMP:HierarchicalSubject"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
 

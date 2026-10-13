@@ -166,7 +166,7 @@ sidebar_position: 18
         <td>Keywords / People</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read and merged with IPTC:Keywords into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility.</td>
+        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility.</td>
     </tr>
     <tr>
         <td>IPTC:Keywords</td>
@@ -174,6 +174,62 @@ sidebar_position: 18
         <td>✔️</td>
         <td>❌</td>
         <td>Merged with XMP:Subject into the photo's keywords.</td>
+    </tr>
+    <tr>
+        <td>XMP-iptcExt:PersonInImage</td>
+        <td>Keywords</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Names of the people shown (without face regions), added to the photo's keywords and so its tags. Not linked to people in LibrePhotos, which come from faces. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>XMP-lr:HierarchicalSubject</td>
+        <td>Keywords</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Hierarchical keywords as written by Lightroom, digiKam and darktable. The last level of each path becomes a keyword: <code>Places|USA|San Francisco</code> adds <code>San Francisco</code>. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>XMP:Description</td>
+        <td>Caption</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The photo's description becomes its caption: the default-language entry first, else any language entry. A caption you typed is never replaced, and one you cleared stays cleared.</td>
+    </tr>
+    <tr>
+        <td>IPTC:Caption-Abstract</td>
+        <td>Caption</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Caption fallback when the file has no XMP description (older Photoshop and Lightroom, Picasa, newsroom tools). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>EXIF:ImageDescription</td>
+        <td>Caption</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Last caption fallback. Placeholders cameras write there, such as <code>OLYMPUS DIGITAL CAMERA</code> or <code>SONY DSC</code>, and a description that only repeats the camera model are skipped. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>XMP:Title, XMP:Headline, IPTC:ObjectName</td>
+        <td>Title</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The title, from the first of these tags that has one. A title you edit is kept on later scans until you restore the photo from its file. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>XMP:Creator, IPTC:By-line, EXIF:Artist</td>
+        <td>Creator</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The creator, from the first of these tags that has one (the first name when there are several). An edit of yours is kept on later scans. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>XMP:Rights, IPTC:CopyrightNotice, EXIF:Copyright</td>
+        <td>Copyright</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The copyright notice, from the first of these tags that has one. An edit of yours is kept on later scans. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
     </tr>
     <tr>
         <td>EXIF:Orientation</td>

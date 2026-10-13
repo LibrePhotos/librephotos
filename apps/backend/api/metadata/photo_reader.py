@@ -16,55 +16,48 @@ from api.models.photo_metadata import PhotoMetadata
 if TYPE_CHECKING:
     from api.models.photo import Photo
 
-# The value names below line up positionally with EXIF_TAGS: get_metadata returns
-# one value per requested tag, in the order the tags were asked for.
-EXIF_VALUE_NAMES = (
-    "size",
-    "fstop",
-    "focal_length",
-    "iso",
-    "shutter_speed",
-    "camera",
-    "lens",
-    "width",
-    "height",
-    "focal_length_35mm",
-    "subject_distance",
-    "digital_zoom_ratio",
-    "video_length",
-    "rating",
-    "subsec_time_original",
-    "image_number",
-    "xmp_subject",
-    "iptc_keywords",
-    "xmp_description",
-    "xmp_description_any_language",
-    "matroska_duration",
+# Each value name with the tag it is read from. get_metadata returns one value
+# per requested tag, in the order the tags were asked for, so both lists below
+# are derived from this one and cannot drift apart.
+EXIF_FIELDS: tuple[tuple[str, str], ...] = (
+    ("size", Tags.FILE_SIZE),
+    ("fstop", Tags.FSTOP),
+    ("focal_length", Tags.FOCAL_LENGTH),
+    ("iso", Tags.ISO),
+    ("shutter_speed", Tags.EXPOSURE_TIME),
+    ("camera", Tags.CAMERA),
+    ("lens", Tags.LENS),
+    ("width", Tags.IMAGE_WIDTH),
+    ("height", Tags.IMAGE_HEIGHT),
+    ("focal_length_35mm", Tags.FOCAL_LENGTH_35MM),
+    ("subject_distance", Tags.SUBJECT_DISTANCE),
+    ("digital_zoom_ratio", Tags.DIGITAL_ZOOM_RATIO),
+    ("video_length", Tags.QUICKTIME_DURATION),
+    ("rating", Tags.RATING),
+    ("subsec_time_original", Tags.SUBSEC_TIME_ORIGINAL),
+    ("image_number", Tags.IMAGE_NUMBER),
+    ("xmp_subject", Tags.SUBJECT),
+    ("iptc_keywords", Tags.IPTC_KEYWORDS),
+    ("xmp_description", Tags.DESCRIPTION),
+    ("xmp_description_any_language", Tags.DESCRIPTION_ANY_LANGUAGE),
+    ("matroska_duration", Tags.MATROSKA_DURATION),
+    ("iptc_caption", Tags.IPTC_CAPTION),
+    ("image_description", Tags.IMAGE_DESCRIPTION),
+    ("xmp_title", Tags.TITLE),
+    ("xmp_headline", Tags.HEADLINE),
+    ("iptc_object_name", Tags.IPTC_OBJECT_NAME),
+    ("xmp_creator", Tags.XMP_CREATOR),
+    ("iptc_byline", Tags.IPTC_BYLINE),
+    ("exif_artist", Tags.ARTIST),
+    ("xmp_rights", Tags.XMP_RIGHTS),
+    ("iptc_copyright", Tags.IPTC_COPYRIGHT),
+    ("exif_copyright", Tags.EXIF_COPYRIGHT),
+    ("person_in_image", Tags.PERSON_IN_IMAGE),
+    ("hierarchical_subject", Tags.HIERARCHICAL_SUBJECT),
 )
 
-EXIF_TAGS = [
-    Tags.FILE_SIZE,
-    Tags.FSTOP,
-    Tags.FOCAL_LENGTH,
-    Tags.ISO,
-    Tags.EXPOSURE_TIME,
-    Tags.CAMERA,
-    Tags.LENS,
-    Tags.IMAGE_WIDTH,
-    Tags.IMAGE_HEIGHT,
-    Tags.FOCAL_LENGTH_35MM,
-    Tags.SUBJECT_DISTANCE,
-    Tags.DIGITAL_ZOOM_RATIO,
-    Tags.QUICKTIME_DURATION,
-    Tags.RATING,
-    Tags.SUBSEC_TIME_ORIGINAL,
-    Tags.IMAGE_NUMBER,
-    Tags.SUBJECT,
-    Tags.IPTC_KEYWORDS,
-    Tags.DESCRIPTION,
-    Tags.DESCRIPTION_ANY_LANGUAGE,
-    Tags.MATROSKA_DURATION,
-]
+EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)
+EXIF_TAGS = [tag for _, tag in EXIF_FIELDS]
 
 
 def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None:

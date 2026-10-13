@@ -116,6 +116,38 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             capture_output=True,
         )
 
+        # Every caption, title, creator, copyright and keyword source (#2266,
+        # #2267), with a Rating so the ungrouped request shares the command.
+        cls.text = os.path.join(cls.directory, "text.jpg")
+        PIL.Image.new("RGB", (16, 12), (30, 20, 10)).save(cls.text)
+        subprocess.run(
+            [
+                EXIFTOOL,
+                "-overwrite_original",
+                "-XMP:Rating=2",
+                "-IPTC:Caption-Abstract=iptc caption",
+                "-EXIF:ImageDescription=OLYMPUS DIGITAL CAMERA",
+                "-XMP-dc:Title=xmp title",
+                "-XMP-dc:Title-de=Titel",
+                "-XMP-photoshop:Headline=xmp headline",
+                "-IPTC:ObjectName=iptc object",
+                "-IPTC:Headline=iptc headline",
+                "-XMP-dc:Creator=Jane Doe",
+                "-XMP-dc:Creator=John Roe",
+                "-IPTC:By-line=iptc author",
+                "-EXIF:Artist=exif artist",
+                "-XMP-dc:Rights=(c) xmp",
+                "-IPTC:CopyrightNotice=(c) iptc",
+                "-EXIF:Copyright=(c) exif",
+                "-XMP-iptcExt:PersonInImage=Alice",
+                "-XMP-iptcExt:PersonInImage=Bob",
+                "-XMP-lr:HierarchicalSubject=Places|USA|San Francisco",
+                cls.text,
+            ],
+            check=True,
+            capture_output=True,
+        )
+
     @classmethod
     def tearDownClass(cls):
         cls.plain.terminate()
@@ -132,6 +164,7 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             [os.path.join(FIXTURES, "niaz.jpg"), os.path.join(FIXTURES, "niaz.xmp")],
             [os.path.join(FIXTURES, "iptc_test.jpg")],
             [self.languages],
+            [self.text],
         ]
 
     def test_batched_equals_per_tag_for_every_tag_we_read(self):
@@ -228,3 +261,24 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         ) as execute_json:
             highest_priority_values(self.plain, ALL_TAGS, files)
         self.assertEqual(execute_json.call_count, 1)
+
+    def test_text_tags_are_answered_by_the_batch(self):
+        # No new tag may come back under a key the batch cannot place, or every
+        # such file would fall back to one command per tag.
+        for et in (self.plain, self.struct):
+            with self.subTest(struct=et is self.struct):
+                data = et.get_tags_batch(ALL_TAGS, [self.text])[0]
+                values, complete = _attribute(data, ALL_TAGS)
+                self.assertTrue(complete)
+                values = dict(zip(ALL_TAGS, values))
+                self.assertEqual(values[Tags.RATING], 2)
+                self.assertEqual(values[Tags.IPTC_CAPTION], "iptc caption")
+                self.assertEqual(values[Tags.TITLE], "xmp title")
+                self.assertEqual(values[Tags.XMP_CREATOR], ["Jane Doe", "John Roe"])
+                self.assertEqual(values[Tags.IPTC_COPYRIGHT], "(c) iptc")
+                self.assertEqual(values[Tags.PERSON_IN_IMAGE], ["Alice", "Bob"])
+                # -struct keeps a one-entry list a list.
+                self.assertIn(
+                    values[Tags.HIERARCHICAL_SUBJECT],
+                    ("Places|USA|San Francisco", ["Places|USA|San Francisco"]),
+                )

@@ -56,10 +56,12 @@ from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
     IMPORTED_DESCRIPTION_KEY,
+    REVERT_ALL,
     MetadataEdit,
     PhotoMetadata,
     description_of,
     merged_keywords_of,
+    text_fields_of,
 )
 from api.models.photo_search import PhotoSearch
 from api.models.tag import sync_tags_from_keywords
@@ -73,11 +75,9 @@ LOCATION = "location"
 RATING = "rating"
 CAPTION = "caption"
 KEYWORDS = "keywords"
-# Free-text PhotoMetadata columns a user may set; nothing reads them from the
-# file yet (#2266).
+# Free-text PhotoMetadata columns a user may set. The scan fills them from the
+# file too, but never over a value the user set (``_apply_text_fields``).
 TEXT_FIELDS = ("title", "copyright", "creator")
-# The field name of the "restore from file" marker revert-all records.
-REVERT_ALL = "_all"
 
 #: Fields whose MetadataEdit rows the revert endpoint can apply.
 REVERTIBLE_FIELDS = frozenset(
@@ -467,8 +467,9 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
 
     previous_keywords = metadata.keywords
     metadata.keywords = merged_keywords_of(values) or None
+    file_text = text_fields_of(values)
     for field in TEXT_FIELDS:
-        setattr(metadata, field, None)
+        setattr(metadata, field, file_text[field])
     metadata.source = PhotoMetadata.Source.EMBEDDED
     metadata.version += 1
     metadata.save()
