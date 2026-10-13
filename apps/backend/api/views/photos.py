@@ -48,7 +48,11 @@ from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photo
 from api.runtime.features import feature_enabled
-from api.runtime.ml_models import captioning_model_exists, start_model_download
+from api.runtime.ml_models import (
+    captioning_model_exists,
+    captioning_model_selected,
+    start_model_download,
+)
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     with_album_user_list_relations,
@@ -833,7 +837,10 @@ class GeneratePhotoCaption(APIView):
 
     @extend_schema(request=PhotoCaptionRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        if not feature_enabled("IMAGE_CAPTIONING"):
+        # With "None" picked the captioner is never downloaded (#2218): asking
+        # for it below would start a download that skips it, answering
+        # model_downloading forever.
+        if not feature_enabled("IMAGE_CAPTIONING") or not captioning_model_selected():
             raise PermissionDenied("Image captioning is disabled")
 
         image_hash = parse_body(request, PhotoCaptionRequest)["image_hash"]

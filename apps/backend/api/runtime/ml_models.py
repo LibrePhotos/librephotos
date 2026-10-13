@@ -18,6 +18,7 @@ from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import Task, enqueue_job
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
+from api.runtime.features import feature_enabled
 from api.runtime.http_timeouts import MODEL_DOWNLOAD
 from librephotos.env import data_models_root
 
@@ -234,17 +235,30 @@ def _is_model_not_selected(value: object) -> bool:
     return not value or str(value).strip().lower() == "none"
 
 
+def captioning_model_selected() -> bool:
+    """Whether an admin picked a captioning model; "None" turns captioning off."""
+    return not _is_model_not_selected(site_config.CAPTIONING_MODEL)
+
+
 def _is_model_selected(model: MlModel) -> bool:
+    """Whether the deployment needs the model on disk (#2218).
+
+    A feature that is turned off (environment flag or site setting) needs no
+    model, so a small or offline install never fetches it. Turning it back on
+    fetches it then: saving the site settings and the caption endpoint start
+    the download, and the next scan chains it. Files already on disk stay.
+    """
     model_type = model["type"]
     if model_type == MlTypes.CAPTIONING:
-        # The one captioner is always kept available: it is small, and turning
-        # captioning on should never wait for a download.
-        return True
+        return feature_enabled("IMAGE_CAPTIONING") and captioning_model_selected()
     if model_type == MlTypes.CLIP:
         # Tags, semantic search and similar photos: always needed.
         return True
     if model_type == MlTypes.FACE_RECOGNITION:
-        return model["name"] == site_config.FACE_RECOGNITION_MODEL
+        return (
+            feature_enabled("FACE_DETECTION")
+            and model["name"] == site_config.FACE_RECOGNITION_MODEL
+        )
     if model_type == MlTypes.OCR:
         return not _is_model_not_selected(site_config.OCR_MODEL) and (
             model["name"] == site_config.OCR_MODEL
