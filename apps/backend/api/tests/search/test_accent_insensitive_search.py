@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.test import APIClient, APIRequestFactory
 
+from api.faces.labels import recreate_search_captions
 from api.models import PhotoSearch
 from api.models.photo_search import fold
 from api.search.filters import SemanticSearchFilter, build_folded_search_q
@@ -21,7 +22,6 @@ from api.tests.utils import (
     create_test_tag,
     create_test_user,
 )
-from api.views.faces import SetFacePersonLabel
 
 
 class FoldTest(TestCase):
@@ -90,7 +90,7 @@ class SearchFoldedColumnTest(TestCase):
         unindexed = create_test_photo(owner=self.user)
         create_test_face(photo=unindexed, person=person)
 
-        SetFacePersonLabel._recreate_search_captions([indexed, unindexed])
+        recreate_search_captions([indexed, unindexed])
 
         updated = PhotoSearch.objects.get(photo=indexed).search_folded
         self.assertIn("zoe", updated)

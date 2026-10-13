@@ -536,6 +536,22 @@ export async function fetchPeopleAlbums(client: ApiClient, options: { pageSize?:
   return parseResponse(S.FetchPeopleAlbumsResponse, { results }, "people albums").results;
 }
 
+/** One person: the person page's title (ApiError 404 for an unknown id or another user's person). */
+export async function fetchPerson(client: ApiClient, personId: number | string): Promise<S.Person> {
+  const res = await client.get<unknown>(`/persons/${personId}/`);
+  return parseResponse(S.Person, res, "person");
+}
+
+/** Take a person off photos (by `Photo.id`): their faces on them go back to unknown. */
+export async function removePhotosFromPerson(
+  client: ApiClient,
+  personId: number | string,
+  photoIds: string[]
+): Promise<S.PersonRemovePhotosResponse> {
+  const res = await client.post<unknown>(`/persons/${personId}/remove-photos/`, { photo_ids: photoIds });
+  return parseResponse(S.PersonRemovePhotosResponse, res, "remove photos from person");
+}
+
 /** Rename a person. */
 export async function renamePerson(
   client: ApiClient,

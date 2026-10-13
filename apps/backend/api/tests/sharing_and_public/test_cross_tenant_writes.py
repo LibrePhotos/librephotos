@@ -511,6 +511,16 @@ class CrossTenantWriteTest(TestCase):
             ("delete", f"/api/persons/{self.v_person.pk}/", None),
             (
                 "post",
+                f"/api/persons/{self.v_person.pk}/remove-photos/",
+                {"photo_ids": self._ids()},
+            ),
+            (
+                "post",
+                f"/api/persons/{self.a_person.pk}/remove-photos/",
+                {"photo_ids": self._ids()},
+            ),
+            (
+                "post",
                 "/api/labelfaces",
                 {
                     "person_name": "Mallory",

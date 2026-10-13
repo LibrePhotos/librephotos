@@ -82,6 +82,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   UserAlbumEditResponse: { schema: S.UserAlbumEditResponse, components: ["AlbumUserEdit"] },
   UserAlbumRenameResponse: { schema: S.UserAlbumRenameResponse, components: ["AlbumUser"] },
   PersonEditResponse: { schema: S.PersonEditResponse, components: ["Person"] },
+  PersonRemovePhotosResponse: { schema: S.PersonRemovePhotosResponse, components: ["PersonRemovePhotosResponse"] },
 };
 
 /** Exported zod objects that are not compared, and why. */

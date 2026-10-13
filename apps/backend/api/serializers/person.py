@@ -165,3 +165,30 @@ class PersonSerializer(serializers.ModelSerializer):
     def delete(self, validated_data: dict[str, Any], id: int) -> None:
         person = Person.objects.filter(id=id).get()
         person.delete()
+
+
+# A person page selection is explicit (its "Select all" is not offered for
+# this action), so a cap far above a manual selection only bounds the IN list.
+MAX_REMOVE_PHOTOS = 10000
+
+
+class PersonRemovePhotosRequest(serializers.Serializer[None]):
+    photo_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=False,
+        max_length=MAX_REMOVE_PHOTOS,
+        help_text="Ids of the photos to take this person off",
+    )
+
+
+class PersonRemovePhotosResponseSerializer(serializers.Serializer[None]):
+    removed = serializers.IntegerField(
+        help_text="How many of the person's faces went back to unknown"
+    )
+    photo_count = serializers.IntegerField(
+        help_text="How many photos no longer show this person"
+    )
+    write_error = serializers.CharField(
+        allow_null=True,
+        help_text="Why some face tags were not written to their files, or null",
+    )

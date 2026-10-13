@@ -30,3 +30,5 @@ export * from "./useFetchFolderAlbumsQuery";
 export * from "./useFetchFolderSubfoldersInfiniteQuery";
 export * from "./usePublicAlbumQuery";
 export * from "./useSlugAvailabilityQuery";
+export * from "./useFetchPersonQuery";
+export * from "./useRemovePhotosFromPersonMutation";

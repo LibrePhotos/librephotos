@@ -204,6 +204,7 @@ function AlbumPeople() {
       <PersonDeleteModal
         opened={deleteDialogVisible}
         onClose={closeDeleteDialog}
+        person={selectedAlbum}
         onConfirm={() => {
           deletePersonMutation.mutate(selectedAlbum.id);
         }}

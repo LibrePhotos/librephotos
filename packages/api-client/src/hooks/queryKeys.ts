@@ -58,6 +58,8 @@ export const photoGridKeys = {
   kind: gridKind,
   /** A timeline-style list of day groups (timeline, favourites, person, folder, ...), with the web's placeholders. */
   dateAlbumList: (listKey: DateAlbumsListKey) => [...gridKind("dateAlbums"), ...listKey] as const,
+  /** Every list of one photoset's day groups, all filters (a person's page under every media filter). */
+  dateAlbumLists: (photoset: Photoset) => [...gridKind("dateAlbums"), photoset] as const,
   /** One photoset's day groups as the server sends them, without placeholders. */
   dateAlbumListRaw: (photoset: Photoset) => [...gridKind("dateAlbums"), photoset, "raw"] as const,
   /** Every loaded day page of one photoset's lists. */
@@ -126,6 +128,8 @@ export const albumKeys = {
   peopleAlbums: () => [...albumRoot, "people"] as const,
   /** The people list as the server sends it. */
   peopleAlbumsRaw: () => [...albumKeys.peopleAlbums(), "raw"] as const,
+  /** One person (the person page's title), under the people list so a rename refreshes both. */
+  person: (id: number) => [...albumKeys.peopleAlbums(), "person", id] as const,
   locationClusters: () => [...albumRoot, "locationClusters"] as const,
   /** The albums I shared, grouped by recipient (web). */
   sharedByMe: () => [...albumRoot, "sharedByMe"] as const,

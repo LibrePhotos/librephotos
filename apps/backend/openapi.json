@@ -3338,6 +3338,66 @@
         }
       }
     },
+    "/api/persons/{id}/remove-photos/": {
+      "post": {
+        "operationId": "api_persons_remove_photos_create",
+        "description": "Take this person off the given photos: the person's faces on them go back to unknown, as \"Not this person\" does in the face dashboard. Photos that are not the requester's, or that do not show this person, are ignored.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this person.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRemovePhotosRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRemovePhotosRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRemovePhotosRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonRemovePhotosResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photo/share/": {
       "post": {
         "operationId": "api_photo_share_create",
@@ -11288,6 +11348,46 @@
           "photo",
           "photo_image_hash",
           "timestamp"
+        ]
+      },
+      "PersonRemovePhotosRequestRequest": {
+        "type": "object",
+        "properties": {
+          "photo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Ids of the photos to take this person off",
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "photo_ids"
+        ]
+      },
+      "PersonRemovePhotosResponse": {
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "integer",
+            "description": "How many of the person's faces went back to unknown"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "How many photos no longer show this person"
+          },
+          "write_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why some face tags were not written to their files, or null"
+          }
+        },
+        "required": [
+          "photo_count",
+          "removed",
+          "write_error"
         ]
       },
       "Photo": {

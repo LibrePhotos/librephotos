@@ -21,3 +21,14 @@ export function albumNotFoundState(
     actionLink: backLink,
   };
 }
+
+/** The person page's `albumNotFoundState`: a deleted, merged or someone else's person. */
+export function personNotFoundState(t: TFunction, icon: ReactNode): EmptyStateConfig {
+  return {
+    icon,
+    title: t("emptystate.personnotfound.title"),
+    description: t("emptystate.personnotfound.description"),
+    actionLabel: t("emptystate.personnotfound.action"),
+    actionLink: "/album/persons",
+  };
+}
