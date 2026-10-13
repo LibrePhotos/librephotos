@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.6c291ba9.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d2206f7c.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -45,10 +45,10 @@
 <p><code>Write edits to files</code> copies some of your edits into your files, so other apps see them. Each option says what it writes. Default <code>Off</code>.</p>
 <ul>
 <li class=""><code>Off</code>: edits stay in LibrePhotos. Your files are never changed.</li>
-<li class=""><code>Save to sidecar</code>: ratings, dates and rotations are written to an <code>.xmp</code> file next to the photo. The photo itself is not changed.</li>
-<li class=""><code>Save to media file</code>: ratings, dates and rotations are written into the photo file itself. This changes your originals, so keep a backup. HEIC, AVIF and RAW files keep their rotation in LibrePhotos.</li>
+<li class=""><code>Save to sidecar</code>: ratings, dates, rotations, captions and locations are written to an <code>.xmp</code> file next to the photo. The photo itself is not changed.</li>
+<li class=""><code>Save to media file</code>: ratings, dates, rotations, captions and locations are written into the photo file itself. This changes your originals, so keep a backup. HEIC, AVIF and RAW files keep their rotation in LibrePhotos.</li>
 </ul>
-<p>Captions, tags and locations are not written yet; they stay in LibrePhotos whatever you choose. Face names are written only with <code>Write face tags to image files</code> (see <a href="#face-options" class="">Face Options</a>). The tags each edit writes are listed in <a class="" href="/docs/user-guide/exif-data#what-librephotos-writes">EXIF Data</a>. While you edit a date, caption, tags or location in the <a class="" href="/docs/user-guide/viewing-photos#photo-details-sidebar">photo details sidebar</a>, a line under the editor says whether that edit reaches the file. Photos imported from <a class="" href="/docs/user-guide/library#nextcloud-integration">Nextcloud</a> are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos. <em>Not released yet: up to 1.3.0, this setting was called <code>Synchronize metadata to disk</code>.</em></p>
+<p>Tags are not written yet; they stay in LibrePhotos whatever you choose. <em>Not released yet: up to 1.3.0, captions and locations were not written either.</em> Face names are written only with <code>Write face tags to image files</code> (see <a href="#face-options" class="">Face Options</a>). The tags each edit writes are listed in <a class="" href="/docs/user-guide/exif-data#what-librephotos-writes">EXIF Data</a>. While you edit a date, caption, tags or location in the <a class="" href="/docs/user-guide/viewing-photos#photo-details-sidebar">photo details sidebar</a>, a line under the editor says whether that edit reaches the file. Photos imported from <a class="" href="/docs/user-guide/library#nextcloud-integration">Nextcloud</a> are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos. <em>Not released yet: up to 1.3.0, this setting was called <code>Synchronize metadata to disk</code>.</em></p>
 </li>
 <li class="">
 <p><code>Rating style</code> (not released yet) picks how you rate photos on the web. Default <code>Favorites</code>.</p>
