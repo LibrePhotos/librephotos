@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.82a1749b.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.fe1fe49b.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -114,7 +114,7 @@
 <li class="">Inside that callback, the files are kept if any remaining <code>Thumbnail</code> row still points at them, or any <code>Photo</code> still has that <code>image_hash</code> (for example a photo that is still being scanned and has no <code>Thumbnail</code> row yet).</li>
 <li class="">Otherwise <code>delete_thumbnail_files(image_hash)</code> removes them. It logs and skips an <code>OSError</code> (including <code>PermissionError</code>) per file, so a file that cannot be removed never fails the job.</li>
 </ul>
-<p>The same receiver runs for every <code>Thumbnail</code> delete, including the scheduled trash cleanup (<code>api.photos.retention.cleanup_deleted_photos</code>).</p>
+<p>The same receiver runs for every <code>Thumbnail</code> delete, including the daily removed-photo cleanup (<code>api.photos.retention.cleanup_deleted_photos</code>), which deletes the rows of photos removed more than 30 days ago. It never touches photos in the trash. The trash retention is a separate daily task (<code>api.photos.retention.empty_expired_trash</code>, not released yet): when an admin sets <code>TRASH_RETENTION_DAYS</code> above 0, it deletes photos trashed longer ago than that, files included, through the same <code>remove_photos</code> as <strong>Delete permanently</strong>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="api-endpoints">API Endpoints<a href="#api-endpoints" class="hash-link" aria-label="Direct link to API Endpoints" title="Direct link to API Endpoints" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="delete-missing-photos">Delete Missing Photos<a href="#delete-missing-photos" class="hash-link" aria-label="Direct link to Delete Missing Photos" title="Direct link to Delete Missing Photos" translate="no">​</a></h3>
 <p><strong>Endpoint</strong>: <code>POST /api/deletemissingphotos</code></p>
