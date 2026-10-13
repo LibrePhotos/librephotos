@@ -1,13 +1,18 @@
 import type { TooltipProps } from "@mantine/core";
-import { Portal, Text, Tooltip, VisuallyHidden } from "@mantine/core";
+import { Menu, Portal, Text, Tooltip, VisuallyHidden } from "@mantine/core";
+import clsx from "clsx";
 import React, { cloneElement, useId } from "react";
+import classes from "./DisabledReason.module.css";
 
 /** The props DisabledReason sets on its control: any Mantine Button, ActionIcon or Menu.Item takes them. */
 type ControlProps = {
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
+  className?: string;
   "aria-disabled"?: boolean;
   "aria-describedby"?: string;
   "data-disabled"?: boolean;
+  /** Menu.Item only. */
+  closeMenuOnClick?: boolean;
 };
 
 type DisabledReasonProps = Readonly<{
@@ -31,6 +36,8 @@ const REASON_EVENTS = { hover: true, focus: true, touch: true };
  * explanation it holds is lost. With a reason, the control is marked `data-disabled` (Mantine's
  * disabled look) and `aria-disabled` instead, stays focusable, ignores clicks, and shows the reason
  * on hover, keyboard focus and touch; screen readers get it through `aria-describedby`.
+ * A Menu.Item gets no `data-disabled`, which Mantine's arrow keys skip (#2592): it keeps its place in
+ * the keyboard order, takes the disabled look from DisabledReason.module.css and leaves the menu open.
  * Lint (`ban/tooltip-disabled-control`) bans a Tooltip around a `disabled` control.
  */
 export function DisabledReason({ reason, label, position, opened, children }: DisabledReasonProps) {
@@ -46,8 +53,11 @@ export function DisabledReason({ reason, label, position, opened, children }: Di
     );
   }
 
+  const isMenuItem = children.type === Menu.Item;
   const control = cloneElement(children, {
-    "data-disabled": true,
+    ...(isMenuItem
+      ? { className: clsx(children.props.className, classes.menuItem), closeMenuOnClick: false }
+      : { "data-disabled": true }),
     "aria-disabled": true,
     "aria-describedby": reasonId,
     // What a disabled button does: nothing, and the click does not reach a form or a parent either.
