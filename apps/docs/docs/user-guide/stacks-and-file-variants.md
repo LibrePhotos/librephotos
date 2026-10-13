@@ -64,9 +64,13 @@ Burst detection runs a list of rules stored per user. Enabled by default (hard c
 - **EXIF Sequence Number** — sequence metadata written by the camera
 - **Filename Burst Pattern** — naming conventions such as `IMG_001_BURST001` or `photo (1)`
 
+The two EXIF rules build one burst from consecutive frames of the same camera (model, and serial number when the photo has one) taken at most 2 seconds apart, using the sub-second capture time (`SubSecTimeOriginal`). A burst that crosses a second boundary stays one stack, two cameras shooting at the same moment get one stack each, and a sequence number that starts again begins a new burst. A frame whose sequence number says "single shot" (0) is not a burst frame. Frames are ordered by capture time, and the stack's cover is the middle frame.
+
+_Not released yet:_ before this, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made **Detect Stacks** fail. Run **Detect Stacks** again to regroup existing bursts.
+
 Available but **disabled by default** (soft criteria — these estimate, and can group unrelated photos):
 
-- **Timestamp Proximity** — photos taken within a configurable interval of each other (2 seconds by default) on the same camera
+- **Timestamp Proximity** — photos taken within a configurable interval of each other (2 seconds by default, measured to the sub-second) on the same camera
 - **Visual Similarity** — perceptual-hash comparison of consecutive photos
 
 Open **Settings** and use the **Burst Detection Rules** panel to enable, disable, reorder, add or remove these rules (including extra presets such as a looser 5-second timestamp rule or a custom filename pattern). Changes apply the next time you run **Detect Stacks**.

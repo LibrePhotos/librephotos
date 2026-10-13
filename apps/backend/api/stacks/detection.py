@@ -22,12 +22,14 @@ Burst detection uses a rules-based system with two categories:
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from collections.abc import Callable
 from typing import TypedDict
 
 from django.db.models import Q
 
+from api.metadata.tags import Tags
 from api.models import Photo
 from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.photo_stack import PhotoStack
@@ -36,11 +38,15 @@ from api.stacks.burst_rules import (
     BurstDetectionRule,
     BurstRuleTypes,
     as_rules,
+    capture_time,
+    frame_order,
     get_enabled_rules,
     get_hard_rules,
     get_soft_rules,
     group_photos_by_timestamp,
     group_photos_by_visual_similarity,
+    sequence_position,
+    split_into_bursts,
 )
 
 logger = logging.getLogger(__name__)
@@ -181,8 +187,11 @@ def _detect_bursts_hard_criteria(
         required_tag_names.update(rule.get_required_exif_tags())
     required_tags = list(required_tag_names)
 
-    # Group photos by burst group_key
+    # Group photos by burst group_key, with the rule that matched them
     burst_groups: defaultdict[str, list[Photo]] = defaultdict(list)
+    group_rules: dict[str, BurstDetectionRule] = {}
+    # MakerNotes:SequenceNumber of the photos the sequence rule matched
+    positions: dict[object, int | None] = {}
 
     for i, photo in enumerate(photos):
         if not photo.main_file:
@@ -200,29 +209,37 @@ def _detect_bursts_hard_criteria(
             logger.debug("Could not read EXIF for %s: %s", photo.main_file.path, e)
             exif_tags = {}
 
-        # Try each hard rule until one matches
-        for rule in hard_rules:
-            is_burst, group_key = rule.is_burst_photo(photo, exif_tags)
-            if is_burst and group_key:
-                burst_groups[group_key].append(photo)
-                break  # Photo matched a rule, don't try others
+        match = _first_matching_rule(photo, hard_rules, exif_tags)
+        if match is not None:
+            rule, group_key = match
+            burst_groups[group_key].append(photo)
+            group_rules[group_key] = rule
+            if rule.rule_type == BurstRuleTypes.EXIF_SEQUENCE_NUMBER:
+                positions[photo.pk] = sequence_position(
+                    exif_tags.get(Tags.SEQUENCE_NUMBER)
+                )
 
         if progress_callback and i % 100 == 0:
             progress_callback(i, total, len(burst_groups))
 
-    # Create stacks from groups with 2+ photos
+    # Create stacks from the bursts of 2+ photos in each group
     stacks_created = 0
     for group_key, photos_in_group in burst_groups.items():
-        if len(photos_in_group) >= 2:
-            # Sort by timestamp if available
-            photos_in_group.sort(key=lambda p: p.exif_timestamp or p.added_on)
-            stack = _create_burst_stack(user, photos_in_group)
+        bursts = split_into_bursts(
+            photos_in_group,
+            group_rules[group_key].burst_interval(),
+            lambda photo: positions.get(photo.pk),
+        )
+        for burst in bursts:
+            if len(burst) < 2:
+                continue
+            stack = _create_burst_stack(user, burst)
             if stack:
                 stacks_created += 1
                 logger.debug(
                     "Created hard-criteria burst stack: %s with %s photos",
                     group_key,
-                    len(photos_in_group),
+                    len(burst),
                 )
 
     logger.info(
@@ -231,6 +248,29 @@ def _detect_bursts_hard_criteria(
         len(burst_groups),
     )
     return stacks_created
+
+
+def _first_matching_rule(
+    photo: Photo, hard_rules: list[BurstDetectionRule], exif_tags: dict[str, object]
+) -> tuple[BurstDetectionRule, str] | None:
+    """The first rule that puts ``photo`` in a burst, with its group key.
+
+    A rule that fails on an odd value skips this photo, not the whole job.
+    """
+    for rule in hard_rules:
+        try:
+            is_burst, group_key = rule.is_burst_photo(photo, exif_tags)
+        except (AttributeError, KeyError, TypeError, ValueError, re.error):
+            logger.warning(
+                "Burst rule %s failed on photo %s; skipping the photo",
+                rule.id,
+                photo.image_hash,
+                exc_info=True,
+            )
+            return None
+        if is_burst and group_key:
+            return rule, group_key
+    return None
 
 
 def _detect_bursts_soft_criteria(
@@ -261,7 +301,8 @@ def _detect_bursts_soft_criteria(
         return 0
 
     stacks_created = 0
-    photos_list = list(photos)
+    # Frames of one second in the order the camera took them.
+    photos_list = sorted(photos, key=frame_order)
 
     # Process each soft rule
     for rule in soft_rules:
@@ -327,8 +368,8 @@ def _create_burst_stack(user: User, photos: list[Photo]) -> PhotoStack | None:
         owner=user,
         stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         photos=photos_to_stack,
-        sequence_start=photos_to_stack[0].exif_timestamp,
-        sequence_end=photos_to_stack[-1].exif_timestamp,
+        sequence_start=capture_time(photos_to_stack[0]),
+        sequence_end=capture_time(photos_to_stack[-1]),
     )
 
     logger.info(

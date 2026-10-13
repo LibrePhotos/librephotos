@@ -19,8 +19,9 @@ from __future__ import annotations
 import logging
 import os
 import re
-from collections.abc import Sequence
-from datetime import timedelta
+from collections import defaultdict
+from collections.abc import Callable, Sequence
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from api.metadata.datetime_rules import rules_json
@@ -30,6 +31,144 @@ if TYPE_CHECKING:
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
+
+# The longest pause between two frames of one burst, for the rules that do not
+# set ``interval_ms`` (the EXIF rules) and the soft rule's default.
+DEFAULT_BURST_INTERVAL_MS = 2000
+
+# Canon's ContinuousDrive codes of single-frame drive modes (``exiftool -listx``:
+# 0 Single, 2 Movie, 6 Silent Single, 9 Single, Silent); every other code is a
+# continuous mode. The exif service reads with ``-n``, so the codes arrive.
+_SINGLE_FRAME_DRIVE_CODES = frozenset({0, 2, 6, 9})
+# MakerNotes:SequenceNumber of a photo outside a sequence: 0 = Single and
+# 255 / 65535 = n/a (Sony and FujiFilm tables).
+_NO_SEQUENCE_POSITION = frozenset({0, 255, 65535})
+_OFF_WORDS = frozenset({"", "0", "off", "no", "false", "n/a"})
+
+
+def _tag_code(value: object) -> int | None:
+    """The integer an ExifTool value stands for, or None for a printed word."""
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
+
+
+def burst_mode_is_on(value: object) -> bool:
+    """Whether a MakerNotes:BurstMode value is a burst: any mode but Off (0)."""
+    if value is None:
+        return False
+    code = _tag_code(value)
+    if code is not None:
+        return code != 0
+    return str(value).strip().lower() not in _OFF_WORDS
+
+
+def continuous_drive_is_on(value: object) -> bool:
+    """Whether a Canon MakerNotes:ContinuousDrive value is a continuous mode."""
+    if value is None:
+        return False
+    code = _tag_code(value)
+    if code is not None:
+        return code not in _SINGLE_FRAME_DRIVE_CODES
+    text = str(value).strip().lower()
+    return text.startswith("continuous") or text == "on"
+
+
+def sequence_position(value: object) -> int | None:
+    """A frame's MakerNotes:SequenceNumber in its burst, None for a single shot."""
+    if value is None:
+        return None
+    code = _tag_code(value)
+    if code is None or code < 0 or code in _NO_SEQUENCE_POSITION:
+        return None
+    return code
+
+
+def capture_time(photo: Photo) -> datetime | None:
+    """When ``photo`` was taken, to the sub-second where the camera says.
+
+    ``exif_timestamp`` holds whole seconds; ``exif_timestamp_subsec`` holds
+    the digits of EXIF:SubSecTimeOriginal, a decimal fraction ("5" and "500"
+    are both half a second).
+    """
+    timestamp = photo.exif_timestamp
+    if timestamp is None or timestamp.microsecond:
+        return timestamp
+    digits = re.match(r"\d+", (photo.exif_timestamp_subsec or "").strip())
+    if digits is None:
+        return timestamp
+    fraction = float("0." + digits.group())
+    return timestamp + timedelta(microseconds=round(fraction * 1_000_000))
+
+
+def camera_of(photo: Photo) -> str | None:
+    """The camera that took ``photo``: its model, and its serial number if read.
+
+    Not the make: photos scanned before the make was imported (#2265) have
+    none, and a burst must not split between rescanned and older photos.
+    """
+    metadata = photo.metadata if hasattr(photo, "metadata") else None
+    if metadata is None or not metadata.camera_model:
+        return None
+    if metadata.serial_number:
+        return f"{metadata.camera_model} #{metadata.serial_number}"
+    return metadata.camera_model
+
+
+def frame_order(photo: Photo) -> tuple[datetime, int, str]:
+    """Sort key for the frames of a burst: capture time, then camera counters."""
+    taken = capture_time(photo) or photo.added_on
+    number = photo.image_sequence_number
+    path = photo.main_file.path if photo.main_file else ""
+    return (taken, -1 if number is None else number, path)
+
+
+def split_into_bursts(
+    photos: Sequence[Photo],
+    interval: timedelta | None,
+    position: Callable[[Photo], int | None] | None = None,
+) -> list[list[Photo]]:
+    """``photos`` in frame order, cut where a frame comes more than ``interval``
+    after the previous one or where its ``position`` (sequence number) does
+    not rise, as when the camera starts a new burst. With ``interval`` None
+    the capture times do not cut.
+    """
+    bursts: list[list[Photo]] = []
+    previous: Photo | None = None
+    for photo in sorted(photos, key=frame_order):
+        if previous is None or _starts_new_burst(previous, photo, interval, position):
+            bursts.append([photo])
+        else:
+            bursts[-1].append(photo)
+        previous = photo
+    return bursts
+
+
+def _starts_new_burst(
+    previous: Photo,
+    photo: Photo,
+    interval: timedelta | None,
+    position: Callable[[Photo], int | None] | None,
+) -> bool:
+    if interval is not None:
+        before, after = capture_time(previous), capture_time(photo)
+        if before is None or after is None or after - before > interval:
+            return True
+    if position is not None:
+        before_number, after_number = position(previous), position(photo)
+        if (
+            before_number is not None
+            and after_number is not None
+            and after_number <= before_number
+        ):
+            return True
+    return False
 
 
 class BurstRuleTypes:
@@ -116,10 +255,20 @@ class BurstDetectionRule:
             tags.add(Tags.CONTINUOUS_DRIVE)
         elif self.rule_type == BurstRuleTypes.EXIF_SEQUENCE_NUMBER:
             tags.add(Tags.SEQUENCE_NUMBER)
-            tags.add(Tags.IMAGE_NUMBER)
-            tags.add(Tags.SUBSEC_TIME_ORIGINAL)
 
         return tags
+
+    def burst_interval(self) -> timedelta | None:
+        """The longest pause within one burst of this rule, or None when the
+        rule's group key alone makes the burst (filename patterns)."""
+        if self.rule_type in (
+            BurstRuleTypes.EXIF_BURST_MODE,
+            BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+        ):
+            return timedelta(
+                milliseconds=self.params.get("interval_ms", DEFAULT_BURST_INTERVAL_MS)
+            )
+        return None
 
     def _check_condition_path(self, path: str) -> bool:
         """Check if path matches condition_path regex."""
@@ -196,54 +345,33 @@ class BurstDetectionRule:
     def _check_exif_burst_mode(
         self, photo: Photo, exif_tags: dict[str, Any]
     ) -> tuple[bool, str | None]:
-        """Check if EXIF BurstMode or ContinuousDrive indicates burst."""
-        burst_mode = exif_tags.get(Tags.BURST_MODE)
-        continuous_drive = exif_tags.get(Tags.CONTINUOUS_DRIVE)
+        """Check if EXIF BurstMode or ContinuousDrive indicates burst.
 
-        # BurstMode: 1 = On (Canon, etc.)
-        if burst_mode and str(burst_mode) in ("1", "On", "True", "Yes"):
-            # Group by timestamp (rounded to second) + camera model
-            camera = exif_tags.get(Tags.CAMERA, "unknown")
-            timestamp = photo.exif_timestamp
-            if timestamp:
-                group_key = f"burst_{camera}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
-                return True, group_key
+        The group key is the camera; ``split_into_bursts`` cuts its frames
+        into bursts on the capture time (``burst_interval``).
+        """
+        if not (
+            burst_mode_is_on(exif_tags.get(Tags.BURST_MODE))
+            or continuous_drive_is_on(exif_tags.get(Tags.CONTINUOUS_DRIVE))
+        ):
+            return False, None
+        if photo.exif_timestamp is None:
             return True, None
-
-        # ContinuousDrive: Continuous, etc.
-        if continuous_drive and continuous_drive.lower() in ("continuous", "on", "1"):
-            camera = exif_tags.get(Tags.CAMERA, "unknown")
-            timestamp = photo.exif_timestamp
-            if timestamp:
-                group_key = f"burst_{camera}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
-                return True, group_key
-            return True, None
-
-        return False, None
+        return True, f"burst_{camera_of(photo) or 'unknown'}"
 
     def _check_exif_sequence_number(
         self, photo: Photo, exif_tags: dict[str, Any]
     ) -> tuple[bool, str | None]:
-        """Check if photo has sequence number indicating burst."""
-        sequence_num = exif_tags.get(Tags.SEQUENCE_NUMBER)
+        """Check if the photo is a numbered frame of a sequence.
 
-        # If we have a sequence number, it's likely part of a burst
-        if sequence_num is not None:
-            try:
-                int(sequence_num)  # Validate it's a valid number
-                # Sequence numbers suggest burst
-                # Group by directory + base timestamp
-                camera = exif_tags.get(Tags.CAMERA, "unknown")
-                timestamp = photo.exif_timestamp
-                if timestamp:
-                    # Round to same second for grouping
-                    group_key = f"seq_{camera}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
-                    return True, group_key
-                return True, None
-            except (ValueError, TypeError):
-                pass
-
-        return False, None
+        Grouped like ``_check_exif_burst_mode``; ``split_into_bursts`` also
+        starts a new burst where the number does not rise.
+        """
+        if sequence_position(exif_tags.get(Tags.SEQUENCE_NUMBER)) is None:
+            return False, None
+        if photo.exif_timestamp is None:
+            return True, None
+        return True, f"seq_{camera_of(photo) or 'unknown'}"
 
     def _check_filename_pattern(
         self, photo: Photo, exif_tags: dict[str, Any]
@@ -350,74 +478,35 @@ def check_filename_pattern(
 
 
 def group_photos_by_timestamp(
-    photos: Sequence[Photo], interval_ms: int = 2000, require_same_camera: bool = True
+    photos: Sequence[Photo],
+    interval_ms: int = DEFAULT_BURST_INTERVAL_MS,
+    require_same_camera: bool = True,
 ) -> list[list[Photo]]:
     """
     Group photos by timestamp proximity (soft criterion).
 
-    Args:
-        photos: QuerySet of Photo objects ordered by exif_timestamp
-        interval_ms: Maximum milliseconds between consecutive burst shots
-        require_same_camera: If True, only group photos from same camera
+    Frames whose capture times (to the sub-second) follow each other within
+    ``interval_ms`` form a burst. With ``require_same_camera`` each camera's
+    photos are grouped on their own, so two people shooting at the same
+    moment get two bursts; photos without a camera model form their own set.
 
     Returns:
-        List of lists, each inner list is a group of Photo objects
+        The groups of two photos or more, each in frame order, by first frame.
     """
-    if not photos:
-        return []
+    by_camera: defaultdict[str | None, list[Photo]] = defaultdict(list)
+    for photo in photos:
+        if photo.exif_timestamp is None:
+            continue
+        by_camera[camera_of(photo) if require_same_camera else None].append(photo)
 
     interval = timedelta(milliseconds=interval_ms)
-    groups: list[list[Photo]] = []
-    current_group: list[Photo] = []
-    prev_photo: Photo | None = None
-    prev_camera: str | None = None
-
-    for photo in photos:
-        if not photo.exif_timestamp:
-            continue
-
-        # Get camera info for same-camera check
-        camera: str | None = None
-        if (
-            require_same_camera
-            and hasattr(photo, "metadata")
-            and photo.metadata is not None
-        ):
-            camera = f"{photo.metadata.camera_make or ''}_{photo.metadata.camera_model or ''}"
-
-        if prev_photo is None:
-            current_group = [photo]
-            prev_photo = photo
-            prev_camera = camera
-            continue
-
-        # Check time difference. prev_photo was kept only because it had a timestamp.
-        assert prev_photo.exif_timestamp is not None
-        time_diff = photo.exif_timestamp - prev_photo.exif_timestamp
-
-        # Check if same camera (if required)
-        same_camera = True
-        if require_same_camera and camera and prev_camera:
-            same_camera = camera == prev_camera
-
-        if time_diff <= interval and same_camera:
-            # Part of same burst
-            current_group.append(photo)
-        else:
-            # End of current burst, save if we have a group
-            if len(current_group) >= 2:
-                groups.append(current_group)
-            # Start new group
-            current_group = [photo]
-
-        prev_photo = photo
-        prev_camera = camera
-
-    # Don't forget the last group
-    if len(current_group) >= 2:
-        groups.append(current_group)
-
-    return groups
+    groups = [
+        burst
+        for same_camera in by_camera.values()
+        for burst in split_into_bursts(same_camera, interval)
+        if len(burst) >= 2
+    ]
+    return sorted(groups, key=lambda burst: frame_order(burst[0]))
 
 
 def group_photos_by_visual_similarity(
