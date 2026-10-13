@@ -5210,8 +5210,108 @@
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
-        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups.",
+        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups.",
         "parameters": [
+          {
+            "in": "query",
+            "name": "aperture_max",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0
+            },
+            "description": "Highest f-number"
+          },
+          {
+            "in": "query",
+            "name": "aperture_min",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0
+            },
+            "description": "Lowest f-number"
+          },
+          {
+            "in": "query",
+            "name": "camera",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Camera model, exact match ignoring case (values: metadata-values?field=camera)"
+          },
+          {
+            "in": "query",
+            "name": "extension",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 10
+            },
+            "description": "The main file's extension, with or without the dot"
+          },
+          {
+            "in": "query",
+            "name": "file_type",
+            "schema": {
+              "enum": [
+                "image",
+                "raw",
+                "video"
+              ],
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "image or video: the main file's type; raw: has a RAW file\n\n* `image` - image\n* `raw` - raw\n* `video` - video"
+          },
+          {
+            "in": "query",
+            "name": "focal35_max",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Longest 35 mm equivalent focal length in mm"
+          },
+          {
+            "in": "query",
+            "name": "focal35_min",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Shortest 35 mm equivalent focal length in mm"
+          },
+          {
+            "in": "query",
+            "name": "focal_max",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0
+            },
+            "description": "Longest focal length in mm"
+          },
+          {
+            "in": "query",
+            "name": "focal_min",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0
+            },
+            "description": "Shortest focal length in mm"
+          },
+          {
+            "in": "query",
+            "name": "has_location",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "true: only photos with GPS coordinates; false: only photos without"
+          },
           {
             "in": "query",
             "name": "is_document",
@@ -5228,6 +5328,57 @@
           },
           {
             "in": "query",
+            "name": "iso_max",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Highest ISO speed"
+          },
+          {
+            "in": "query",
+            "name": "iso_min",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Lowest ISO speed"
+          },
+          {
+            "in": "query",
+            "name": "lens",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Lens model, exact match ignoring case (values: metadata-values?field=lens)"
+          },
+          {
+            "in": "query",
+            "name": "make",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Camera maker, exact match ignoring case (values: metadata-values?field=make)"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "maxItems": 20
+            },
+            "description": "Repeat for several people: only photos showing all of them"
+          },
+          {
+            "in": "query",
             "name": "photo",
             "schema": {
               "type": "boolean"
@@ -5235,10 +5386,38 @@
           },
           {
             "in": "query",
+            "name": "rating_min",
+            "schema": {
+              "type": "integer",
+              "maximum": 5,
+              "minimum": 1
+            },
+            "description": "At least this many stars (1-5)"
+          },
+          {
+            "in": "query",
             "name": "search",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "taken_after",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Taken on or after this day (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "taken_before",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Taken on or before this day (YYYY-MM-DD)"
           },
           {
             "in": "query",
@@ -6473,6 +6652,52 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": {}
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/search/metadata-values/": {
+      "get": {
+        "operationId": "api_search_metadata_values_retrieve",
+        "description": "The cameras, makers or lenses of the requester's photos, for the\nsuggestions of the search filters: each distinct value with its photo\ncount, most photos first, in one answer (a library has few).",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "field",
+            "schema": {
+              "enum": [
+                "camera",
+                "make",
+                "lens"
+              ],
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "camera (model), make (camera maker) or lens (model)\n\n* `camera` - camera\n* `make` - make\n* `lens` - lens",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataValues"
                 }
               }
             },
@@ -11040,6 +11265,38 @@
           "synced_to_file",
           "user",
           "user_name"
+        ]
+      },
+      "MetadataValue": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "As stored; filters match it ignoring case"
+          },
+          "count": {
+            "type": "integer",
+            "description": "The requester's photos with it"
+          }
+        },
+        "required": [
+          "count",
+          "value"
+        ]
+      },
+      "MetadataValues": {
+        "type": "object",
+        "description": "``GET /api/search/metadata-values/``: most photos first.",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetadataValue"
+            }
+          }
+        },
+        "required": [
+          "results"
         ]
       },
       "PaginatedAlbumAutoListList": {

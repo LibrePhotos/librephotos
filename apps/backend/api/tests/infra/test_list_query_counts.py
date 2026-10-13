@@ -222,6 +222,13 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
             params={"search": "beach"},
             rows=grouped_rows,
         ),
+        # The structured search filters (#2259) join PhotoMetadata, one row
+        # per photo, and add no query per result.
+        ListFixture(
+            lambda user, index: _tile_photo(user, camera="X-T5", iso=400, rating=4),
+            params={"camera": "x-t5", "iso_min": "200", "rating_min": "3"},
+            rows=grouped_rows,
+        ),
     ),
     "api/faces/incomplete/": (ListFixture(_person),),
     "api/faces/": (ListFixture(_face_without_person),),
@@ -230,12 +237,24 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/stacks/": (ListFixture(_stack),),
     "api/duplicates/": (ListFixture(_duplicate),),
     "api/photo/share/list/": (ListFixture(_photo_share),),
+    # One distinct camera per row: the suggestions are one aggregate query.
+    "api/search/metadata-values/": (
+        ListFixture(
+            lambda user, index: _visible_photo(user, camera=f"Camera {index}"),
+            params={"field": "camera"},
+        ),
+    ),
 }
 
 # Plain APIViews whose GET renders a list of rows. The walker cannot tell them
 # from any other GET view, so they are named here; each needs a fixture.
 HAND_WRITTEN_LIST_ROUTES = frozenset(
-    {"api/stacks/", "api/duplicates/", "api/photo/share/list/"}
+    {
+        "api/stacks/",
+        "api/duplicates/",
+        "api/photo/share/list/",
+        "api/search/metadata-values/",
+    }
 )
 
 # List routes that are not measured, each with the reason. An entry must name

@@ -437,6 +437,7 @@ urlpatterns = [
     ),
     re_path(r"^api/memories/?$", memories.MemoriesView.as_view()),
     re_path(r"^api/searchtermexamples/?$", search.SearchTermExamples.as_view()),
+    path("api/search/metadata-values/", search.MetadataValuesView.as_view()),
     re_path(r"^api/locationsunburst/?$", dataviz.LocationSunburst.as_view()),
     re_path(r"^api/locationtimeline/?$", dataviz.LocationTimeline.as_view()),
     re_path(r"^api/defaultrules/?$", user.DefaultRulesView.as_view()),

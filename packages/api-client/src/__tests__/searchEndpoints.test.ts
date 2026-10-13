@@ -37,6 +37,46 @@ describe("search", () => {
     expect(result.photosGroupedByDate).toEqual([]);
   });
 
+  it("sends the structured filters, one person parameter per person", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "", false, {
+      video: true,
+      camera: "X-T5",
+      iso_min: 400,
+      aperture_max: 2.8,
+      rating_min: 4,
+      taken_after: "2024-03-01",
+      has_location: false,
+      file_type: "raw",
+      person: [3, 7],
+    });
+    expect(defined(requests[0]).url).toBe(
+      `${API}/photos/searchlist/?video=true&camera=X-T5&iso_min=400&aperture_max=2.8&rating_min=4` +
+        "&taken_after=2024-03-01&has_location=false&file_type=raw&person=3&person=7"
+    );
+  });
+
+  it("leaves unset filters and an empty person list out", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "beach", false, { lens: undefined, person: [] });
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach`);
+  });
+
+  it("reads the suggestions of a filter", async () => {
+    const { client, requests } = fakeServer({
+      results: [
+        { value: "X-T5", count: 3 },
+        { value: "GR III", count: 1 },
+      ],
+    });
+    const values = await endpoints.fetchMetadataValues(client, "camera");
+    expect(defined(requests[0]).url).toBe(`${API}/search/metadata-values/?field=camera`);
+    expect(values).toEqual([
+      { value: "X-T5", count: 3 },
+      { value: "GR III", count: 1 },
+    ]);
+  });
+
   it("reads the search examples", async () => {
     const { client, requests } = fakeServer({ results: ["natural light", "2023", "Ontario 2023", "Bob"] });
     const examples = await endpoints.fetchSearchExamples(client);

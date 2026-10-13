@@ -241,6 +241,7 @@ CLIENT_PATHS = {
     "/api/rqavailable/": "api.views.jobs.QueueAvailabilityView",
     "/api/scanfaces": "api.views.faces.ScanFacesView",
     "/api/scanphotos/": "api.views.scan_triggers.ScanPhotosView",
+    "/api/search/metadata-values/": "api.views.search.MetadataValuesView",
     "/api/searchtermexamples/": "api.views.search.SearchTermExamples",
     "/api/serverlogs": "api.views.dataviz.ServerLogsView",
     "/api/serverlogs/view": "api.views.dataviz.ServerLogsViewerView",

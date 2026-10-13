@@ -71,11 +71,23 @@ export function parseEachResponse<T>(itemSchema: z.ZodType<T>, data: unknown, co
   return { items, skipped, total: entries.length };
 }
 
-/** Build a `?a=b&c=d` query string, dropping undefined/null values. */
-export function buildQuery(params: Record<string, string | number | boolean | undefined | null>): string {
-  const entries = Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== null && v !== "")
-    .map(([k, v]) => [k, String(v)] as [string, string]);
+type QueryValue = string | number | boolean | undefined | null;
+
+/** A parameter's values: a list repeats its key, anything else is one value. */
+function queryValues(value: QueryValue | readonly (string | number)[]): readonly QueryValue[] {
+  return typeof value === "object" && value !== null ? value : [value];
+}
+
+/**
+ * Build a `?a=b&c=d` query string, dropping undefined/null/blank values. A list repeats its key
+ * (`{ person: [1, 2] }` is `?person=1&person=2`).
+ */
+export function buildQuery(params: Record<string, QueryValue | readonly (string | number)[]>): string {
+  const entries = Object.entries(params).flatMap(([k, v]) =>
+    queryValues(v)
+      .filter(item => item !== undefined && item !== null && item !== "")
+      .map(item => [k, String(item)] as [string, string])
+  );
   const qs = new URLSearchParams(entries).toString();
   return qs ? `?${qs}` : "";
 }

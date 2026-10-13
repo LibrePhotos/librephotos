@@ -352,6 +352,61 @@ function albumMediaQuery(filter: AlbumMediaFilter) {
   };
 }
 
+/**
+ * The structured search filters (#2259, #329), all optional and combined with AND. Ranges are
+ * inclusive; `taken_after` / `taken_before` are days (`YYYY-MM-DD`); `person` lists people who must
+ * all be in the photo. `camera`, `make` and `lens` take a value from `fetchMetadataValues`.
+ * A select-all `query` (`BulkPhotoQuery`) takes the same keys, so it acts on what the search listed.
+ */
+export type SearchFilters = {
+  camera?: string;
+  make?: string;
+  lens?: string;
+  iso_min?: number;
+  iso_max?: number;
+  aperture_min?: number;
+  aperture_max?: number;
+  focal_min?: number;
+  focal_max?: number;
+  focal35_min?: number;
+  focal35_max?: number;
+  /** 1 to 5 stars. */
+  rating_min?: number;
+  taken_after?: string;
+  taken_before?: string;
+  /** true: only photos with GPS coordinates; false: only photos without. */
+  has_location?: boolean;
+  /** image or video: the main file's type; raw: the photo has a RAW file. */
+  file_type?: S.FileTypeFilter;
+  /** The main file's extension, with or without the dot. */
+  extension?: string;
+  person?: readonly number[];
+};
+
+/** The query parameters of `filter`; unset filters are left out. */
+function searchFiltersQuery(filter: SearchFilters) {
+  return {
+    camera: filter.camera,
+    make: filter.make,
+    lens: filter.lens,
+    iso_min: filter.iso_min,
+    iso_max: filter.iso_max,
+    aperture_min: filter.aperture_min,
+    aperture_max: filter.aperture_max,
+    focal_min: filter.focal_min,
+    focal_max: filter.focal_max,
+    focal35_min: filter.focal35_min,
+    focal35_max: filter.focal35_max,
+    rating_min: filter.rating_min,
+    taken_after: filter.taken_after,
+    taken_before: filter.taken_before,
+    has_location: filter.has_location,
+    file_type: filter.file_type,
+    extension: filter.extension,
+    person: filter.person,
+  };
+}
+
 export type UserAlbumOptions = AlbumMediaFilter & {
   /** Read the album through its public link, as `username`'s album. */
   public?: boolean;
@@ -603,15 +658,16 @@ export async function deletePerson(client: ApiClient, personId: number | string)
 /**
  * Search the library. The server picks the answer's shape from the user's semantic_search_topk:
  * `semantic` says which one to read (a flat list, or date groups). `filter` narrows it to photos,
- * videos or screenshots.
+ * videos or screenshots, and by the structured search filters (`SearchFilters`); with filters the
+ * term may be empty.
  */
 export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
-  filter: AlbumMediaFilter = {}
+  filter: AlbumMediaFilter & SearchFilters = {}
 ): Promise<S.SearchPhotosResult> {
-  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter) });
+  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter), ...searchFiltersQuery(filter) });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
   if (semantic) {
     const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
@@ -622,6 +678,15 @@ export async function searchPhotos(
     photosFlat: parsed.results.flatMap(group => group.items),
     photosGroupedByDate: parsed.results,
   };
+}
+
+/** The cameras, makers or lenses of my photos, most photos first: the suggestions of the search filters. */
+export async function fetchMetadataValues(
+  client: ApiClient,
+  field: S.MetadataValueField
+): Promise<S.MetadataValuesResponse["results"]> {
+  const res = await client.get<unknown>(`/search/metadata-values/${buildQuery({ field })}`);
+  return parseResponse(S.MetadataValuesResponse, res, "metadata values").results;
 }
 
 /** A few example searches built from the user's library (captions, people, places). */

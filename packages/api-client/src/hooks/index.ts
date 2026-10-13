@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import * as endpoints from "../endpoints";
 import { pollWhile } from "../polling";
 import { Photoset } from "../schemas";
-import type { JobsResponse, LoginPost, WorkerAvailabilityResponse } from "../schemas";
+import type { JobsResponse, LoginPost, MetadataValueField, WorkerAvailabilityResponse } from "../schemas";
 import type { ApiClient } from "../transport/types";
 import { useApiClient } from "./context";
 import {
@@ -12,6 +12,7 @@ import {
   NO_TIMELINE_FILTER,
   photoGridKeys,
   photoKeys,
+  searchKeys,
   settingsKeys,
   tagKeys,
   userKeys,
@@ -226,18 +227,42 @@ export function usePeopleAlbumsQuery() {
 
 /* ---- search ------------------------------------------------------------ */
 
-/** A photo search. A semantic search answers with a flat list, a plain one with date groups. */
-export function searchPhotosQueryOptions(client: ApiClient, searchTerm: string, semantic = false) {
+/**
+ * A photo search. A semantic search answers with a flat list, a plain one with date groups. With
+ * structured `filters` the term may be empty; without either nothing is asked.
+ */
+export function searchPhotosQueryOptions(
+  client: ApiClient,
+  searchTerm: string,
+  semantic = false,
+  filters: endpoints.SearchFilters = {}
+) {
+  const filtered = Object.values(filters).some(value => value !== undefined);
   return queryOptions({
-    queryKey: photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped"),
-    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic),
-    enabled: searchTerm.length > 0,
+    queryKey: filtered
+      ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters)
+      : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped"),
+    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters),
+    enabled: searchTerm.length > 0 || filtered,
   });
 }
 
-export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
+export function useSearchPhotosQuery(searchTerm: string, semantic = false, filters: endpoints.SearchFilters = {}) {
   const client = useApiClient();
-  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic));
+  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic, filters));
+}
+
+/** The suggestions of one search filter: my cameras, makers or lenses, most photos first. */
+export function metadataValuesQueryOptions(client: ApiClient, field: MetadataValueField) {
+  return queryOptions({
+    queryKey: searchKeys.metadataValues(field),
+    queryFn: () => endpoints.fetchMetadataValues(client, field),
+  });
+}
+
+export function useMetadataValuesQuery(field: MetadataValueField) {
+  const client = useApiClient();
+  return useQuery(metadataValuesQueryOptions(client, field));
 }
 
 /* ---- settings / jobs --------------------------------------------------- */

@@ -15,6 +15,7 @@ from api.albums.timeline_filter import parse_tristate, timeline_filter_q
 from api.models import AlbumUser, Photo
 from api.models.user import User
 from api.photos.paths import folder_path_q
+from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
 
 
 def not_in_own_album_q(user: User | AnonymousUser | None) -> Q:
@@ -49,7 +50,17 @@ def build_photo_queryset(
               the timeline filter, resolved by api.albums.timeline_filter exactly as
               the date-album endpoints resolve it, so select-all on the
               timeline acts on what it shows
-            - person: int - Filter by person ID (faces)
+            - person: int or list of int - Only photos showing every one of
+              these people (the user's own; another id is a 400)
+            - camera, make, lens, iso_min, iso_max, aperture_min,
+              aperture_max, focal_min, focal_max, focal35_min, focal35_max,
+              rating_min, taken_after, taken_before, has_location,
+              file_type, extension - the structured search filters of
+              ``api.search.metadata_filter.MetadataFilterQuery``; a bad
+              value is a 400 on ``query``. The free-text ``search`` term is
+              not part of a select-all. Search lists every photo of a stack,
+              so a select-all after a search also sends
+              ``show_all_stack_photos``.
             - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
             - no_timestamp: bool - Only photos without a date (``exif_timestamp``
@@ -82,9 +93,11 @@ def build_photo_queryset(
     else:
         filters.append(Q(in_trashcan=False))
 
-    # Person/face filter
-    if params.get("person"):
-        filters.append(Q(faces__person__id=params["person"]))
+    # Camera, exposure, rating, dates, location, file type and people: the
+    # structured search filters, read exactly as search reads them so a
+    # select-all after a filtered search acts on what it listed. ``person``
+    # (one id or a list, every one of them in the photo) is among them.
+    filters += metadata_filter_q(parse_metadata_filter(user, params, "query"))
 
     # Tag filter
     if params.get("tag"):
