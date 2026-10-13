@@ -13,7 +13,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import binaries
+from api.runtime import binaries
 from api.thumbnails import render
 
 

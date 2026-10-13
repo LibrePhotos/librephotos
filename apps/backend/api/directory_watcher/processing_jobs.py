@@ -13,7 +13,6 @@ from uuid import UUID
 from django import db
 from django.db.models import Q, QuerySet
 
-from api import sidecars
 from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
@@ -30,6 +29,7 @@ from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
+from api.runtime import sidecars
 from api.search import semantic
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 from api.thumbnails import render
@@ -285,7 +285,7 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
     try:
         from constance import config as site_config
 
-        from api.ml_models import _is_model_not_selected
+        from api.runtime.ml_models import _is_model_not_selected
 
         ocr_model = site_config.OCR_MODEL
 
@@ -443,8 +443,8 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     import requests
     from constance import config as site_config
 
-    from api.http_timeouts import OCR
-    from api.ml_models import _is_model_not_selected
+    from api.runtime.http_timeouts import OCR
+    from api.runtime.ml_models import _is_model_not_selected
 
     ocr_model = site_config.OCR_MODEL
     if _is_model_not_selected(ocr_model):

@@ -39,7 +39,6 @@ from api.metadata.photo_writer import (
     write_target,
 )
 from api.mime import mime_type
-from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, Face, Photo, User
 from api.models.album_thing import (
     album_thing_ids_for_photos,
@@ -49,6 +48,7 @@ from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photo
+from api.runtime.ml_models import captioning_model_exists, start_model_download
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     with_album_user_list_relations,

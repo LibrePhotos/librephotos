@@ -28,7 +28,7 @@ _.ApiConfig  # class in api/apps.py
 _.NextcloudConfig  # class in nextcloud/apps.py
 
 # django_q Schedule rows, created by dotted path in management commands.
-_.check_services  # function in api/services.py (start_service)
+_.check_services  # function in api/runtime/supervisor.py (start_service)
 _.cleanup_deleted_photos  # function in api/photos/retention.py (start_cleaning_service)
 _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_service)
 _.cleanup_stuck_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)

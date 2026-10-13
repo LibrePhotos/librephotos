@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 
 from django.conf import settings
 
-from api import binaries
+from api.runtime import binaries
 
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 

@@ -39,7 +39,7 @@ from typing import IO, TYPE_CHECKING
 
 from django.conf import settings
 
-from api import binaries
+from api.runtime import binaries
 from api.video import color
 
 if TYPE_CHECKING:

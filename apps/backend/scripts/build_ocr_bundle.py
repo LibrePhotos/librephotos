@@ -3,7 +3,7 @@
 
 This script is checked in for reproducibility and is run **by hand** by a
 maintainer to (re)generate the ``ppocrv6_<tier>.tar.gz`` bundles that
-``api/ml_models.py`` downloads. It is NOT imported by the running server and it
+``api/runtime/ml_models.py`` downloads. It is NOT imported by the running server and it
 does NOT add any runtime dependency to the backend: it only needs the standard
 library (``urllib``, ``tarfile``, ``hashlib``, ``json``) plus PyYAML, which is
 already present in the backend environment as a transitive dependency and is
@@ -412,7 +412,7 @@ def build_tier(tier: str, output_dir: Path) -> dict:
     # extra member) is included automatically — nothing assumes exactly 5 files.
     #
     # The archive members are prefixed with "ocr/ppocrv6_<tier>/" to match the
-    # model's `target-dir` in api/ml_models.py. download_model() unpacks tar
+    # model's `target-dir` in api/runtime/ml_models.py. download_model() unpacks tar
     # bundles with extractall(path=data_models) (the PARENT), so the tar itself
     # must carry the full sub-path or the files land in the wrong place and
     # _model_target_exists() would never see them.

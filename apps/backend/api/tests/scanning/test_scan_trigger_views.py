@@ -8,7 +8,7 @@ Pins the behaviour of:
 Nothing heavy runs: django-q's ``AsyncTask`` and ``Chain`` are patched in
 ``api.jobs.queue`` (the one module that queues), ``scan_photos`` at its import
 site in ``api.views.scan_triggers`` and ``do_all_models_exist`` in
-``api.ml_models``, so no broker, no filesystem walking and no model downloads
+``api.runtime.ml_models``, so no broker, no filesystem walking and no model downloads
 happen. The task is queued on commit; the tests run those callbacks.
 """
 
@@ -19,8 +19,8 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from api.ml_models import download_models
 from api.models import LongRunningJob
+from api.runtime.ml_models import download_models
 from api.tests.utils import api_error, create_test_user
 from api.views.scan_triggers import ScanPhotosView
 
@@ -93,7 +93,9 @@ class ScanViewTestBase(TestCase):
         with (
             patch("api.jobs.queue.Chain", RecordingChain),
             patch("api.jobs.queue.AsyncTask", RecordingTask),
-            patch("api.ml_models.do_all_models_exist", return_value=models_exist),
+            patch(
+                "api.runtime.ml_models.do_all_models_exist", return_value=models_exist
+            ),
             patch(f"{MODULE}.scan_photos", autospec=True) as scan_photos,
             self.captureOnCommitCallbacks(execute=True),
         ):

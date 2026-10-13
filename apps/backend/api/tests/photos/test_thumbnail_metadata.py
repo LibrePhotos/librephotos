@@ -23,7 +23,7 @@ from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 from PIL import Image, ImageCms
 
-from api import binaries
+from api.runtime import binaries
 from api.tests.utils import write_hanging_tool
 from api.thumbnails import metadata, render
 from api.thumbnails.metadata import (
@@ -334,7 +334,7 @@ class HangingExifToolTest(MediaRootTestCase):
     def test_the_management_command_fails_on_the_timeout(self):
         started = time.monotonic()
         with (
-            self.assertLogs("api.binaries", "WARNING"),
+            self.assertLogs("api.runtime.binaries", "WARNING"),
             self.assertRaises(CommandError) as raised,
         ):
             call_command("strip_thumbnail_metadata", stdout=StringIO())
@@ -343,7 +343,7 @@ class HangingExifToolTest(MediaRootTestCase):
 
     def test_a_stuck_strip_batch_is_an_error_not_a_hang(self):
         errors = []
-        with self.assertLogs("api.binaries", "WARNING"):
+        with self.assertLogs("api.runtime.binaries", "WARNING"):
             metadata._strip_mp4s([self.path("square_thumbnails", "v.mp4")], errors)
         self.assertEqual(len(errors), 1)
         self.assertIn("did not finish", errors[0])

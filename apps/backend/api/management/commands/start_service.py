@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from django_q.models import Schedule
 
 from api.jobs.queue import ensure_schedule
-from api.services import (
+from api.runtime.supervisor import (
     SERVICES,
     disabled_reason,
     is_service_enabled,
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                     continue
                 start_service(svc)
             ensure_schedule(
-                "api.services.check_services",
+                "api.runtime.supervisor.check_services",
                 schedule_type=Schedule.MINUTES,
                 minutes=1,
             )

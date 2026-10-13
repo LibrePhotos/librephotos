@@ -6,10 +6,10 @@ the caller on an infinite socket read. Long-running jobs then appear as
 "running" forever without making progress.
 
 These tests don't try to exercise the sidecar protocol — they just
-intercept the shared sidecar client (``api.sidecars.http``) or
+intercept the shared sidecar client (``api.runtime.sidecars.http``) or
 ``requests.get`` for each caller and assert that ``timeout=`` is set to a
 finite tuple. The timeout values are
-defined in ``api.http_timeouts`` so tightening or relaxing them is a
+defined in ``api.runtime.http_timeouts`` so tightening or relaxing them is a
 one-place edit.
 """
 
@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from api import http_timeouts
+from api.runtime import http_timeouts
 
 
 def _ok_response(json_body=None):
@@ -41,7 +41,7 @@ def _assert_finite_timeout(call):
 
 
 class FaceRecognitionTimeoutTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_get_face_locations_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"face_locations": []})
 
@@ -56,7 +56,7 @@ class FaceRecognitionTimeoutTest(SimpleTestCase):
 
 
 class SemanticSearchTimeoutTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_create_clip_embeddings_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"imgs_emb": [], "magnitudes": []})
 
@@ -69,7 +69,7 @@ class SemanticSearchTimeoutTest(SimpleTestCase):
             mock_post.call_args.kwargs["timeout"], http_timeouts.CLIP_EMBED
         )
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_calculate_query_embeddings_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"emb": [], "magnitude": 0})
 
@@ -81,7 +81,7 @@ class SemanticSearchTimeoutTest(SimpleTestCase):
 
 
 class ExifReaderTimeoutTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.metadata.reader._get_existing_metadata_files_reversed")
     def test_get_metadata_passes_timeout(self, mock_files, mock_post):
         mock_files.return_value = ["/tmp/photo.jpg"]
@@ -96,7 +96,7 @@ class ExifReaderTimeoutTest(SimpleTestCase):
 
 
 class ImageSimilarityTimeoutTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_search_similar_embedding_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"result": []})
 
@@ -111,12 +111,12 @@ class ImageSimilarityTimeoutTest(SimpleTestCase):
 
 
 class ServicesHealthCheckTimeoutTest(SimpleTestCase):
-    @patch("api.services.requests.get")
+    @patch("api.runtime.supervisor.requests.get")
     def test_is_healthy_passes_timeout(self, mock_get):
         mock_get.return_value = _ok_response({"last_request_time": None})
         mock_get.return_value.status_code = 200
 
-        from api.services import is_healthy
+        from api.runtime.supervisor import is_healthy
 
         is_healthy("image_similarity")
 
@@ -127,7 +127,7 @@ class ServicesHealthCheckTimeoutTest(SimpleTestCase):
 
 
 class CaptionTimeoutTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_generate_caption_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"caption": "x"})
 

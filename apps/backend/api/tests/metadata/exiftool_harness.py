@@ -42,11 +42,11 @@ import PIL.Image
 import requests
 from django.test import TestCase, override_settings
 
-from api import sidecars
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
+from api.runtime import sidecars
 from api.tests.utils import create_test_photo
 from api.thumbnails.render import generate_thumbnail
 

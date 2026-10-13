@@ -13,8 +13,8 @@ from rest_framework.views import APIView
 from api.accounts.mail import email_is_configured
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
-from api.ml_models import do_all_models_exist, start_model_download
 from api.models import User
+from api.runtime.ml_models import do_all_models_exist, start_model_download
 from api.search.semantic import OPENCLIP
 from api.serializers.site_settings import SiteSettingsRequest
 

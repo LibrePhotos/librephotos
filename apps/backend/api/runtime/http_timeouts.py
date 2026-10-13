@@ -28,7 +28,7 @@ CLIP_EMBED = (CONNECT_TIMEOUT, 120)
 CAPTION = (CONNECT_TIMEOUT, 180)
 OCR = (CONNECT_TIMEOUT, 180)
 
-# Not a sidecar: a model file from its mirror (api.ml_models). With stream=True
+# Not a sidecar: a model file from its mirror (api.runtime.ml_models). With stream=True
 # the read timeout bounds the wait for each chunk, not the whole download, so
 # a large model on a slow line still finishes; a mirror that stops sending
 # fails the download instead of parking the job forever.

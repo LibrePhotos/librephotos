@@ -15,10 +15,10 @@ from constance import config as site_config
 from django.conf import settings
 
 from api.drf.exceptions import JobAlreadyRunning
-from api.http_timeouts import MODEL_DOWNLOAD
 from api.jobs.queue import Task, enqueue_job
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
+from api.runtime.http_timeouts import MODEL_DOWNLOAD
 from librephotos.env import data_models_root
 
 logger = logging.getLogger(__name__)

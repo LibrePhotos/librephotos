@@ -206,7 +206,7 @@ class OcrDerivesDocumentTest(TestCase):
             )
             at.photos.add(photo)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_receipt_fingerprint_and_tag_sets_document(self, mock_post):
         photo = create_test_photo(owner=self.user)
         self._add_tags(photo, "receipt")
@@ -226,7 +226,7 @@ class OcrDerivesDocumentTest(TestCase):
         # Sanity: OCR row was written too.
         self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_receipt_tagged_by_the_tagger_is_a_document(self, mock_post):
         """The tags the tagger files are the labels the detector reads."""
         photo = create_test_photo(owner=self.user)
@@ -246,7 +246,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertTrue(photo.is_document)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_labels_of_a_retired_tagger_do_not_count(self, mock_post):
         photo = create_test_photo(owner=self.user)
         create_test_album_thing(
@@ -266,7 +266,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertFalse(photo.is_document)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_plain_photo_not_document(self, mock_post):
         photo = create_test_photo(owner=self.user)
         mock_post.return_value = _ok_response(text="hello world", area=0.02)
@@ -283,7 +283,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertFalse(photo.is_document)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_user_corrected_photo_untouched(self, mock_post):
         photo = create_test_photo(
             owner=self.user, category_source="user", is_document=False
@@ -303,7 +303,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertFalse(photo.is_document)  # user pin respected
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_unchanged_value_writes_no_update(self, mock_post):
         # A plain photo stays is_document=False; the derivation must not issue a
         # redundant UPDATE for the unchanged value.

@@ -12,7 +12,8 @@ from constance import config as site_config
 from constance.test import override_config
 from django.test import TestCase, TransactionTestCase, override_settings
 
-from api.ml_models import (
+from api.models.long_running_job import LongRunningJob
+from api.runtime.ml_models import (
     ML_MODELS,
     MlTypes,
     ModelChecksumError,
@@ -26,7 +27,6 @@ from api.ml_models import (
     download_models,
     start_model_download,
 )
-from api.models.long_running_job import LongRunningJob
 from api.tests.utils import create_test_user
 
 
@@ -236,7 +236,7 @@ class DownloadFileTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "ocr" / "ppocrv6_small.tar.gz"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(requests.HTTPError):
                     _download_file("https://example.invalid/x", target, "ppocrv6_small")
 
@@ -251,7 +251,7 @@ class DownloadFileTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "nested" / "model.onnx"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "model")
 
             self.assertEqual(payload, target.read_bytes())
@@ -264,7 +264,7 @@ class DownloadFileTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.onnx"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(OSError):
                     _download_file("https://example.invalid/x", target, "model")
 
@@ -281,7 +281,7 @@ class DownloadFileTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.onnx"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "model")
 
             self.assertEqual(payload, target.read_bytes())
@@ -302,7 +302,9 @@ class DownloadModelFailureTest(TestCase):
                 target_path.write_bytes(b"Entry not found")
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models._download_file", side_effect=fake_download):
+                with patch(
+                    "api.runtime.ml_models._download_file", side_effect=fake_download
+                ):
                     with self.assertRaises(tarfile.ReadError):
                         download_model(model)
 
@@ -325,7 +327,8 @@ class DownloadModelsJobTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
                 with patch(
-                    "api.ml_models.download_model", side_effect=fake_download_model
+                    "api.runtime.ml_models.download_model",
+                    side_effect=fake_download_model,
                 ):
                     download_models(self.user)
 
@@ -345,7 +348,7 @@ class DownloadModelsJobTest(TestCase):
         )
         job.cancel()
 
-        with patch("api.ml_models.download_model") as download_model:
+        with patch("api.runtime.ml_models.download_model") as download_model:
             download_models(self.user, job_id=job.job_id)
 
         download_model.assert_not_called()
@@ -356,7 +359,7 @@ class DownloadModelsJobTest(TestCase):
     def test_job_completes_when_every_model_downloads(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
-                with patch("api.ml_models.download_model"):
+                with patch("api.runtime.ml_models.download_model"):
                     download_models(self.user)
 
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
@@ -370,7 +373,7 @@ class DownloadModelsJobTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
                 with patch(
-                    "api.ml_models.download_model",
+                    "api.runtime.ml_models.download_model",
                     side_effect=lambda model: handed.append(model["name"]),
                 ):
                     download_models(self.user)
@@ -400,7 +403,8 @@ class DownloadModelsJobTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
                 with patch(
-                    "api.ml_models.download_model", side_effect=fake_download_model
+                    "api.runtime.ml_models.download_model",
+                    side_effect=fake_download_model,
                 ):
                     download_models(self.user)
 
@@ -497,7 +501,7 @@ class DownloadFileChecksumTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "nested" / "model.onnx"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "model", digest)
 
             self.assertEqual(payload, target.read_bytes())
@@ -512,7 +516,7 @@ class DownloadFileChecksumTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "nested" / "model.onnx"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 with self.assertRaises(ModelChecksumError):
                     _download_file(
                         "https://example.invalid/x", target, "model", wrong_digest
@@ -531,7 +535,7 @@ class DownloadFileChecksumTest(TestCase):
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
-            with patch("api.ml_models.requests.get", return_value=response):
+            with patch("api.runtime.ml_models.requests.get", return_value=response):
                 _download_file("https://example.invalid/x", target, "model", None)
 
             self.assertEqual(payload, target.read_bytes())
@@ -555,7 +559,7 @@ class DownloadModelChecksumTest(TestCase):
             )
 
             with override_settings(MEDIA_ROOT=str(media_root)):
-                with patch("api.ml_models.requests.get", return_value=response):
+                with patch("api.runtime.ml_models.requests.get", return_value=response):
                     with self.assertRaises(ModelChecksumError):
                         download_model(model)
 

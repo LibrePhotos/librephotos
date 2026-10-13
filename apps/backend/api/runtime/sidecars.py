@@ -2,7 +2,7 @@
 
 Addresses
     ``SERVICES`` is the only place a sidecar's port is written down: the
-    backend builds its URLs from it (``sidecar_url``), api.services starts and
+    backend builds its URLs from it (``sidecar_url``), api.runtime.supervisor starts and
     watches the processes it lists, and the sidecars bind to it
     (service._common.serve). The sidecars listen on IPv4 loopback only
     (127.0.0.1 unless SERVICE_HOST says otherwise). ``localhost`` resolves to

@@ -31,7 +31,7 @@ class SimilaritySearchFailureTest(SimpleTestCase):
         for failure in FAILURES:
             with (
                 self.subTest(failure=type(failure).__name__),
-                patch("api.sidecars.http.post", side_effect=failure),
+                patch("api.runtime.sidecars.http.post", side_effect=failure),
             ):
                 self.assertEqual(search_similar_embedding(1, [0.1] * 512), [])
                 self.assertEqual(search_similar_image(1, _Photo()), [])
@@ -44,7 +44,8 @@ class PhotoDetailWithoutSimilaritySidecarTest(TestCase):
         client = APIClient()
         client.force_authenticate(user=user)
         with patch(
-            "api.sidecars.http.post", side_effect=requests.ConnectionError("refused")
+            "api.runtime.sidecars.http.post",
+            side_effect=requests.ConnectionError("refused"),
         ):
             response = client.get(f"/api/photos/{photo.image_hash}/")
         self.assertEqual(response.status_code, 200)

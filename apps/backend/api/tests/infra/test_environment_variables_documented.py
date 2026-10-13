@@ -76,7 +76,7 @@ INTERNAL_ENV_VARS = {
     "OCR_MODEL_DIR": "Test and local-export override for an OCR model bundle (service/ocr/ppocr/config.py).",
     "OPENCLIP_MODEL_DIR": "Test and local-export override for an OpenCLIP bundle (service/tags/openclip/openclip.py).",
     "PATH": "Read by the Windows standalone launcher to build its child processes' environment.",
-    "PYTHONPATH": "Extended by api/services.py for the sidecar processes it starts; the sidecars use it, not operators.",
+    "PYTHONPATH": "Extended by api/runtime/supervisor.py for the sidecar processes it starts; the sidecars use it, not operators.",
     "XDG_DATA_HOME": "The standalone launcher's default data folder on Linux, from the desktop session.",
 }
 

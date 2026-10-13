@@ -12,7 +12,7 @@ per-user data directory.
                                         lives in the notification area (tray)
     librephotos.exe run --port 8000 --data-dir D:\\LibrePhotos --no-browser
     librephotos.exe manage <command>    any manage.py command, e.g. createadmin
-    librephotos.exe service <name>      one sidecar (api.services starts these)
+    librephotos.exe service <name>      one sidecar (api.runtime.supervisor starts these)
 
 The same module runs from source too (python librephotos_standalone.py), which
 is how it is tested; only the paths differ.
@@ -628,7 +628,7 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
 
 
 def _shutdown(cluster: subprocess.Popen[bytes]) -> None:
-    from api.services import SERVICES, stop_service
+    from api.runtime.supervisor import SERVICES, stop_service
 
     for service in SERVICES:
         stop_service(service)

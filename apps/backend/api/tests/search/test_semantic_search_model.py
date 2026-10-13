@@ -34,7 +34,7 @@ def _reply(body):
 
 
 class RoutingAndThresholdsTest(TestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_queries_run_in_the_tags_sidecar(self, post):
         post.return_value = _reply({"emb": [1.0], "magnitude": 1.0})
 
@@ -43,7 +43,7 @@ class RoutingAndThresholdsTest(TestCase):
         self.assertIn(":8011/query-embeddings", post.call_args.args[0])  # tags
         self.assertEqual(post.call_args.kwargs["json"], {"query": "a dog"})
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_images_run_in_the_tags_sidecar(self, post):
         post.return_value = _reply(
             {"imgs_emb": [[1.0], None], "magnitudes": [1.0, None]}
@@ -62,7 +62,7 @@ class RoutingAndThresholdsTest(TestCase):
         self.assertEqual(magnitudes, [1.0, None])
         self.assertIsNone(tags)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_images_with_the_tags_of_the_same_run(self, post):
         post.return_value = _reply(
             {"imgs_emb": [[1.0]], "magnitudes": [1.0], "tags": [["cat"]]}
@@ -106,7 +106,7 @@ class RoutingAndThresholdsTest(TestCase):
 
 
 class SimilarPhotosTest(TestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_a_photo_of_an_earlier_model_has_none_yet(self, post):
         photo = create_test_photo(owner=create_test_user())
         photo.clip_embeddings = [0.5] * 4  # CLIP ViT-B/32, not converted
@@ -115,7 +115,7 @@ class SimilarPhotosTest(TestCase):
         self.assertEqual(search_similar_image(photo.owner, photo), [])
         post.assert_not_called()
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_openclips_threshold_is_sent(self, post):
         photo = create_test_photo(owner=create_test_user())
         photo.clip_embeddings = [0.5] * 4
@@ -276,7 +276,7 @@ class ConversionReTagsTest(TestCase):
             Photo.objects.select_related("thumbnail").get(pk=p.pk)
             for p in (self.untagged, self.tagged)
         ]
-        with patch("api.sidecars.http.post") as post:
+        with patch("api.runtime.sidecars.http.post") as post:
             post.return_value = _reply(reply)
             store_clip_embeddings(objs, with_tags=True)
         return post

@@ -1,4 +1,4 @@
-"""The standalone build (librephotos/standalone.py) and how api.services starts
+"""The standalone build (librephotos/standalone.py) and how api.runtime.supervisor starts
 and stops sidecars from it.
 
 Everything here runs from source: the compiled binary is recognised through
@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from api import services
+from api.runtime import supervisor
 from librephotos import standalone
 
 FAKE_COMPILED = SimpleNamespace(
@@ -79,7 +79,7 @@ class ArgumentsTest(SimpleTestCase):
         self.assertEqual(standalone.parse_args(["service", "exif"]).name, "exif")
 
     def test_every_sidecar_has_a_module_that_serves(self):
-        for name in services.SERVICES:
+        for name in supervisor.SERVICES:
             module = standalone.service_module_name(name)
             path = os.path.join(
                 standalone.BACKEND_ROOT, *module.split(".")[:-1], "main.py"
@@ -187,23 +187,23 @@ class PrepareEnvironmentTest(SimpleTestCase):
             self.assertEqual(self._prepare_with_build_info(content), (None, None))
 
 
-@patch("api.services.subprocess.Popen")
+@patch("api.runtime.supervisor.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
     def test_from_source_the_script_runs_under_python(self, popen):
-        services.start_service("thumbnail")
+        supervisor.start_service("thumbnail")
         self.assertEqual(
             popen.call_args.args[0], ["python", "service/thumbnail/main.py"]
         )
 
     def test_image_similarity_lives_outside_service(self, popen):
-        services.start_service("image_similarity")
+        supervisor.start_service("image_similarity")
         self.assertEqual(
             popen.call_args.args[0], ["python", "image_similarity/main.py"]
         )
 
     def test_compiled_the_binary_runs_the_sidecar_itself(self, popen):
         with as_compiled():
-            services.start_service("thumbnail")
+            supervisor.start_service("thumbnail")
         self.assertEqual(
             popen.call_args.args[0],
             [os.path.abspath(FAKE_COMPILED.original_argv0), "service", "thumbnail"],
@@ -213,31 +213,33 @@ class SidecarCommandTest(SimpleTestCase):
 class ServiceProcessMatchTest(SimpleTestCase):
     def test_matches_both_ways_of_running_a_sidecar(self):
         self.assertTrue(
-            services._is_service_process(["python", "service/exif/main.py"], "exif")
+            supervisor._is_service_process(["python", "service/exif/main.py"], "exif")
         )
         self.assertTrue(
-            services._is_service_process(
+            supervisor._is_service_process(
                 [r"C:\venv\Scripts\python.exe", r"C:\code\service\exif\main.py"], "exif"
             )
         )
         self.assertTrue(
-            services._is_service_process(
+            supervisor._is_service_process(
                 [r"C:\LibrePhotos\librephotos.exe", "service", "exif"], "exif"
             )
         )
 
     def test_does_not_match_other_services_or_unrelated_processes(self):
         self.assertFalse(
-            services._is_service_process(["python", "service/tags/main.py"], "exif")
+            supervisor._is_service_process(["python", "service/tags/main.py"], "exif")
         )
         self.assertFalse(
-            services._is_service_process(["librephotos.exe", "service", "tags"], "exif")
+            supervisor._is_service_process(
+                ["librephotos.exe", "service", "tags"], "exif"
+            )
         )
         self.assertFalse(
-            services._is_service_process(["vim", "service/exif/main.py"], "exif")
+            supervisor._is_service_process(["vim", "service/exif/main.py"], "exif")
         )
-        self.assertFalse(services._is_service_process(None, "exif"))
-        self.assertFalse(services._is_service_process(["python"], "exif"))
+        self.assertFalse(supervisor._is_service_process(None, "exif"))
+        self.assertFalse(supervisor._is_service_process(["python"], "exif"))
 
 
 # stop_service itself: api/tests/ml_services/test_service_watchdog.py
@@ -325,14 +327,14 @@ class NamedExecutableTest(SimpleTestCase):
 
     def test_every_sidecar_and_the_cluster_have_a_name(self):
         named = set(standalone.PROCESS_NAMES)
-        self.assertEqual(named, set(services.SERVICES) | {"jobs", "worker"})
+        self.assertEqual(named, set(supervisor.SERVICES) | {"jobs", "worker"})
         self.assertEqual(
             len(set(standalone.PROCESS_NAMES.values())), len(standalone.PROCESS_NAMES)
         )
 
     def test_sidecars_start_under_their_name(self):
-        with patch("api.services.subprocess.Popen") as popen:
-            services.start_service("face_recognition")
+        with patch("api.runtime.supervisor.subprocess.Popen") as popen:
+            supervisor.start_service("face_recognition")
         argv = popen.call_args.args[0]
         self.assertEqual(os.path.basename(argv[0]), "librephotos-faces.exe")
         self.assertEqual(argv[1:], ["service", "face_recognition"])

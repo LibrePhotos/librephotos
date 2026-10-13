@@ -130,15 +130,15 @@ class NewCodeRulesTests(unittest.TestCase):
         self.assertIn("TID251", lint(source, "api/_ruff_probe.py"))
 
     def test_subprocess_is_banned_outside_the_tool_runner(self):
-        # Issue #2338: tools run through api.binaries, which demands a timeout.
+        # Issue #2338: tools run through api.runtime.binaries, which demands a timeout.
         for source in (
             "import subprocess\n\nsubprocess.run(['ffmpeg'], check=True)\n",
             "from subprocess import Popen\n\nPopen(['ffmpeg'])\n",
         ):
             self.assertIn("TID251", lint(source, "api/views/_ruff_probe.py"))
             for exempt in (
-                "api/binaries.py",
-                "api/services.py",
+                "api/runtime/binaries.py",
+                "api/runtime/supervisor.py",
                 "librephotos/standalone.py",
                 "scripts/_ruff_probe.py",
                 "api/tests/_ruff_probe.py",

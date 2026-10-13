@@ -283,8 +283,8 @@ class BuildImageSimilarityIndexTest(TestCase):
             photo.save()
         return photos
 
-    @patch("api.sidecars.http.delete")
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.delete")
+    @patch("api.runtime.sidecars.http.post")
     def test_earlier_models_embeddings_are_left_out(self, post, delete):
         """A library half converted to OpenCLIP has only those indexed."""
         photos = self._with_embeddings(3)
@@ -298,8 +298,8 @@ class BuildImageSimilarityIndexTest(TestCase):
         self.assertEqual(len(sent["image_hashes"]), 2)
         self.assertNotIn(photos[0].image_hash, sent["image_hashes"])
 
-    @patch("api.sidecars.http.delete")
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.delete")
+    @patch("api.runtime.sidecars.http.post")
     def test_one_page_is_a_whole_rebuild(self, post, delete):
         self._with_embeddings(2)
         post.return_value = _build_reply(index_size=2)
@@ -313,7 +313,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         self.assertEqual((body["begin"], body["commit"]), (True, True))
         self.assertEqual(len(body["image_hashes"]), 2)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_pages_are_flagged_first_and_last(self, post):
         self._with_embeddings(3)
         post.return_value = _build_reply()
@@ -327,7 +327,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         ]
         self.assertEqual(flags, [(True, False), (False, False), (False, True)])
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_a_user_without_embeddings_gets_an_empty_index(self, post):
         post.return_value = _build_reply()
 
@@ -337,7 +337,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         self.assertEqual(body["image_hashes"], [])
         self.assertEqual((body["begin"], body["commit"]), (True, True))
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_an_error_reply_fails_the_rebuild(self, post):
         self._with_embeddings(1)
         post.return_value = _error_reply()
@@ -345,7 +345,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         with self.assertRaisesRegex(SimilarityIndexError, "disk full"):
             build_image_similarity_index(self.user)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_a_refused_page_fails_the_rebuild(self, post):
         self._with_embeddings(1)
         post.return_value = _build_reply(status=False)
@@ -353,7 +353,7 @@ class BuildImageSimilarityIndexTest(TestCase):
         with self.assertRaises(SimilarityIndexError):
             build_image_similarity_index(self.user)
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_an_unreachable_sidecar_fails_the_rebuild(self, post):
         post.side_effect = requests.ConnectionError("refused")
 
@@ -362,13 +362,13 @@ class BuildImageSimilarityIndexTest(TestCase):
 
 
 class SearchSimilarEmbeddingTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_an_error_reply_is_no_result(self, post):
         post.return_value = _error_reply()
 
         self.assertEqual(search_similar_embedding(1, unit(0)), [])
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_the_result_is_returned(self, post):
         post.return_value = _build_reply()
         post.return_value.json.return_value = {"status": True, "result": ["a"]}

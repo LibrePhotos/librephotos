@@ -13,7 +13,7 @@ from django.db.utils import OperationalError
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.services import (
+from api.runtime.supervisor import (
     SERVICE_FEATURE_FLAGS,
     SERVICE_SITE_GATES,
     SERVICES,
@@ -26,6 +26,14 @@ from api.tests.utils import api_error, create_test_user
 # The site settings that have to say yes before the services they gate are
 # started at all; the flag tests are about the environment, not about these.
 EVERY_MODEL_SELECTED = override_config(OCR_MODEL="ppocrv6_small")
+
+
+def _no_constance_table(config: object, key: str) -> object:
+    raise OperationalError("no such table: constance_config")
+
+
+# A database that is not up yet: the site settings cannot be read.
+UNREADABLE_CONFIG = patch("constance.base.Config.__getattr__", new=_no_constance_table)
 
 
 def spawned_services(popen_mock):
@@ -83,7 +91,7 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
             self.assertTrue(is_service_enabled("thumbnail"))
 
 
-@patch("api.services.subprocess.Popen")
+@patch("api.runtime.supervisor.subprocess.Popen")
 class StartServiceTest(SimpleTestCase):
     def test_an_enabled_service_is_spawned(self, popen_mock):
         self.assertTrue(start_service("face_recognition"))
@@ -101,7 +109,7 @@ class StartServiceTest(SimpleTestCase):
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
     def test_the_refusal_is_logged_at_info(self, popen_mock):
-        with self.assertLogs("api.services", level="INFO") as logs:
+        with self.assertLogs("api.runtime.supervisor", level="INFO") as logs:
             start_service("image_captioning")
 
         self.assertTrue(
@@ -114,7 +122,7 @@ class StartServiceTest(SimpleTestCase):
 
 
 @EVERY_MODEL_SELECTED
-@patch("api.services.subprocess.Popen")
+@patch("api.runtime.supervisor.subprocess.Popen")
 class StartAllCommandTest(TestCase):
     """`manage.py start_service all` is what the Docker entrypoints run."""
 
@@ -151,13 +159,16 @@ class StartAllCommandTest(TestCase):
             call_command("start_service", "all")
 
         self.assertTrue(
-            Schedule.objects.filter(func="api.services.check_services").exists()
+            Schedule.objects.filter(
+                func="api.runtime.supervisor.check_services"
+            ).exists()
         )
 
 
-@patch("api.services.is_healthy", return_value=False)
-@patch("api.services.stop_service")
-@patch("api.services.start_service")
+@UNREADABLE_CONFIG
+@patch("api.runtime.supervisor.is_healthy", return_value=False)
+@patch("api.runtime.supervisor.stop_service")
+@patch("api.runtime.supervisor.start_service")
 class CheckServicesTest(SimpleTestCase):
     """The per-minute watchdog must not resurrect what a flag switched off."""
 
@@ -169,7 +180,7 @@ class CheckServicesTest(SimpleTestCase):
     ):
         check_services()
 
-        # No database here: the OCR model cannot be read, and an unreadable
+        # The OCR model cannot be read (UNREADABLE_CONFIG), and an unreadable
         # configuration takes no service away.
         self.assertEqual(set(SERVICES), self._restarted(start_mock))
 
@@ -209,7 +220,7 @@ class CheckServicesTest(SimpleTestCase):
         self, start_mock, stop_mock, _healthy
     ):
         """It runs every minute; a skip line per service would flood the log."""
-        with self.assertLogs("api.services", level="INFO") as logs:
+        with self.assertLogs("api.runtime.supervisor", level="INFO") as logs:
             check_services()
 
         self.assertFalse(
@@ -222,7 +233,7 @@ class CheckServicesTest(SimpleTestCase):
         )
 
 
-@patch("api.services.subprocess.Popen")
+@patch("api.runtime.supervisor.subprocess.Popen")
 class OcrSiteGateTest(TestCase):
     """OCR's switch is a site setting, not an environment flag.
 
@@ -256,8 +267,8 @@ class OcrSiteGateTest(TestCase):
         self.assertIn("ocr", spawned_services(popen_mock))
 
     @override_config(OCR_MODEL="ppocrv6_small")
-    @patch("api.services.is_healthy", return_value=False)
-    @patch("api.services.stop_service")
+    @patch("api.runtime.supervisor.is_healthy", return_value=False)
+    @patch("api.runtime.supervisor.stop_service")
     def test_the_watchdog_brings_it_up_after_the_admin_selects_a_model(
         self, stop_mock, healthy_mock, popen_mock
     ):
@@ -275,8 +286,16 @@ class OcrSiteGateTest(TestCase):
         ):
             self.assertTrue(is_service_enabled("ocr"))
 
+    def test_a_bug_reading_the_configuration_is_not_swallowed(self, popen_mock):
+        """Only a database error fails open; anything else is a bug to see."""
+        with (
+            patch("constance.base.Config.__getattr__", side_effect=RuntimeError("bug")),
+            self.assertRaises(RuntimeError),
+        ):
+            is_service_enabled("ocr")
+
     def test_the_refusal_names_the_site_setting_rather_than_a_flag(self, popen_mock):
-        with self.assertLogs("api.services", level="INFO") as logs:
+        with self.assertLogs("api.runtime.supervisor", level="INFO") as logs:
             start_service("ocr")
 
         self.assertTrue(

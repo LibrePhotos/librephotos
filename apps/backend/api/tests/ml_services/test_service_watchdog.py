@@ -1,4 +1,4 @@
-"""The per-minute watchdog (api.services.check_services) and process handling.
+"""The per-minute watchdog (api.runtime.supervisor.check_services) and process handling.
 
 It used to SIGKILL any sidecar whose last request was more than two minutes
 old and start a new one, to get the model's memory back: a kill in the middle
@@ -18,7 +18,7 @@ import psutil
 import requests
 from django.test import SimpleTestCase
 
-from api import services
+from api.runtime import supervisor
 
 
 def _health(**body):
@@ -30,38 +30,41 @@ def _health(**body):
 
 class IdleSidecarTest(SimpleTestCase):
     def setUp(self):
-        services._last_health.clear()
-        self.addCleanup(services._last_health.clear)
+        supervisor._last_health.clear()
+        self.addCleanup(supervisor._last_health.clear)
 
-    @patch("api.services.requests.get")
+    @patch("api.runtime.supervisor.requests.get")
     def test_an_idle_sidecar_is_healthy(self, get):
         get.return_value = _health(last_request_time=time.time() - 3600)
 
-        self.assertTrue(services.is_healthy("tags"))
+        self.assertTrue(supervisor.is_healthy("tags"))
 
-    @patch("api.sidecars.http.get")
-    @patch("api.services.requests.get")
+    @patch("api.runtime.sidecars.http.get")
+    @patch("api.runtime.supervisor.requests.get")
     def test_an_idle_model_is_unloaded_not_the_process_killed(self, get, unload):
         get.return_value = _health(
-            last_request_time=time.time() - services.IDLE_UNLOAD_SECONDS - 1,
+            last_request_time=time.time() - supervisor.IDLE_UNLOAD_SECONDS - 1,
             model_loaded=True,
         )
         unload.return_value = MagicMock(status_code=200)
 
         with (
-            patch("api.services.stop_service") as stop,
-            patch("api.services.start_service") as start,
-            patch("api.services.is_service_enabled", side_effect=lambda s: s == "tags"),
+            patch("api.runtime.supervisor.stop_service") as stop,
+            patch("api.runtime.supervisor.start_service") as start,
+            patch(
+                "api.runtime.supervisor.is_service_enabled",
+                side_effect=lambda s: s == "tags",
+            ),
         ):
-            services.check_services()
+            supervisor.check_services()
 
         stop.assert_not_called()
         start.assert_not_called()
         unload.assert_called_once()
         self.assertEqual(unload.call_args.args[0], "http://127.0.0.1:8011/unload-model")
 
-    @patch("api.sidecars.http.get")
-    @patch("api.services.requests.get")
+    @patch("api.runtime.sidecars.http.get")
+    @patch("api.runtime.supervisor.requests.get")
     def test_a_busy_or_empty_sidecar_is_left_alone(self, get, unload):
         cases = {
             "recent": {"last_request_time": time.time(), "model_loaded": True},
@@ -84,55 +87,60 @@ class IdleSidecarTest(SimpleTestCase):
             with self.subTest(case):
                 get.return_value = _health(**body)
                 with patch(
-                    "api.services.is_service_enabled",
+                    "api.runtime.supervisor.is_service_enabled",
                     side_effect=lambda s: s == "tags",
                 ):
-                    services.check_services()
+                    supervisor.check_services()
                 unload.assert_not_called()
 
-    @patch("api.sidecars.http.get", side_effect=requests.ConnectionError("gone"))
-    @patch("api.services.requests.get")
+    @patch(
+        "api.runtime.sidecars.http.get", side_effect=requests.ConnectionError("gone")
+    )
+    @patch("api.runtime.supervisor.requests.get")
     def test_a_failed_unload_is_only_logged(self, get, _unload):
         get.return_value = _health(last_request_time=0.0, model_loaded=True)
 
         with (
-            patch("api.services.is_service_enabled", side_effect=lambda s: s == "ocr"),
-            self.assertLogs("api.services", "WARNING") as logs,
+            patch(
+                "api.runtime.supervisor.is_service_enabled",
+                side_effect=lambda s: s == "ocr",
+            ),
+            self.assertLogs("api.runtime.supervisor", "WARNING") as logs,
         ):
-            services.check_services()
+            supervisor.check_services()
 
         self.assertTrue(any("unload" in line for line in logs.output), logs.output)
 
 
 class ProcessHandleTest(SimpleTestCase):
     def setUp(self):
-        services._processes.clear()
-        self.addCleanup(services._processes.clear)
+        supervisor._processes.clear()
+        self.addCleanup(supervisor._processes.clear)
 
-    @patch("api.services.subprocess.Popen")
+    @patch("api.runtime.supervisor.subprocess.Popen")
     def test_start_keeps_the_handle(self, popen):
-        services.start_service("thumbnail")
+        supervisor.start_service("thumbnail")
 
-        self.assertIs(services._processes["thumbnail"], popen.return_value)
+        self.assertIs(supervisor._processes["thumbnail"], popen.return_value)
 
     def test_the_watchdog_reaps_a_sidecar_that_exited(self):
         exited = MagicMock(pid=41)
         exited.poll.return_value = -9
         running = MagicMock(pid=42)
         running.poll.return_value = None
-        services._processes.update({"exif": exited, "tags": running})
+        supervisor._processes.update({"exif": exited, "tags": running})
 
-        with patch("api.services.is_service_enabled", return_value=False):
-            services.check_services()
+        with patch("api.runtime.supervisor.is_service_enabled", return_value=False):
+            supervisor.check_services()
 
         exited.poll.assert_called()
-        self.assertEqual(services._processes, {"tags": running})
+        self.assertEqual(supervisor._processes, {"tags": running})
 
 
 class StopServiceTest(SimpleTestCase):
     def setUp(self):
-        services._processes.clear()
-        self.addCleanup(services._processes.clear)
+        supervisor._processes.clear()
+        self.addCleanup(supervisor._processes.clear)
 
     def _process(self, pid, cmdline):
         process = MagicMock()
@@ -144,7 +152,7 @@ class StopServiceTest(SimpleTestCase):
         stubborn = self._process(43, ["librephotos.exe", "service", "exif"])
         other = self._process(42, ["python", "service/tags/main.py"])
         handle = MagicMock()
-        services._processes["exif"] = handle
+        supervisor._processes["exif"] = handle
 
         with (
             patch("psutil.process_iter", return_value=[polite, stubborn, other]),
@@ -152,7 +160,7 @@ class StopServiceTest(SimpleTestCase):
                 "psutil.wait_procs", side_effect=[([polite], [stubborn]), ([], [])]
             ) as wait,
         ):
-            self.assertTrue(services.stop_service("exif"))
+            self.assertTrue(supervisor.stop_service("exif"))
 
         polite.terminate.assert_called_once_with()
         stubborn.terminate.assert_called_once_with()
@@ -160,11 +168,11 @@ class StopServiceTest(SimpleTestCase):
         polite.kill.assert_not_called()
         stubborn.kill.assert_called_once_with()
         self.assertEqual(
-            wait.call_args_list[0].kwargs["timeout"], services.STOP_GRACE_SECONDS
+            wait.call_args_list[0].kwargs["timeout"], supervisor.STOP_GRACE_SECONDS
         )
         # Its own child is reaped, not left a zombie.
         handle.poll.assert_called()
-        self.assertNotIn("exif", services._processes)
+        self.assertNotIn("exif", supervisor._processes)
 
     def test_a_process_that_is_already_gone_is_fine(self):
         gone = self._process(41, ["python", "service/exif/main.py"])
@@ -174,7 +182,7 @@ class StopServiceTest(SimpleTestCase):
             patch("psutil.process_iter", return_value=[gone]),
             patch("psutil.wait_procs", return_value=([], [])),
         ):
-            services.stop_service("exif")
+            supervisor.stop_service("exif")
 
     def test_never_itself(self):
         import os
@@ -186,4 +194,35 @@ class StopServiceTest(SimpleTestCase):
             patch("psutil.process_iter", return_value=[me]),
             patch("psutil.wait_procs", return_value=([], [])),
         ):
-            self.assertFalse(services.stop_service("exif"))
+            self.assertFalse(supervisor.stop_service("exif"))
+
+    def test_a_process_table_it_cannot_read_is_reported_not_raised(self):
+        handle = MagicMock()
+        supervisor._processes["exif"] = handle
+
+        with (
+            patch("psutil.process_iter", side_effect=psutil.AccessDenied()),
+            self.assertLogs("api.runtime.supervisor", level="ERROR"),
+        ):
+            self.assertFalse(supervisor.stop_service("exif"))
+
+        handle.poll.assert_called()
+        self.assertNotIn("exif", supervisor._processes)
+
+    def test_a_bug_is_not_swallowed(self):
+        with (
+            patch("psutil.process_iter", side_effect=RuntimeError("bug")),
+            self.assertRaises(RuntimeError),
+        ):
+            supervisor.stop_service("exif")
+
+
+class HealthCheckErrorsTest(SimpleTestCase):
+    def test_an_unknown_sidecar_is_unhealthy(self):
+        with self.assertLogs("api.runtime.supervisor", level="ERROR"):
+            self.assertFalse(supervisor.is_healthy("no_such_sidecar"))
+
+    @patch("api.runtime.supervisor.requests.get", side_effect=RuntimeError("bug"))
+    def test_a_bug_is_not_swallowed(self, _get):
+        with self.assertRaises(RuntimeError):
+            supervisor.is_healthy("tags")

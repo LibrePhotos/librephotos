@@ -19,9 +19,9 @@ from api.accounts.directories import (
 from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
-from api.ml_models import missing_models_prerequisites
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
+from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer

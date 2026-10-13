@@ -22,7 +22,7 @@ from unittest import mock
 
 from django.test import SimpleTestCase, override_settings
 
-from api import binaries
+from api.runtime import binaries
 from api.video import ffmpeg_budget
 from api.views import media
 

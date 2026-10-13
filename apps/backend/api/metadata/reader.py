@@ -4,8 +4,8 @@ from typing import Any
 
 import requests
 
-from api import sidecars
 from api.mime import METADATA_EXTENSIONS
+from api.runtime import sidecars
 
 
 class MetadataReadError(RuntimeError):
@@ -67,10 +67,10 @@ def get_metadata(
         "files_by_reverse_priority": files_by_reverse_priority,
         "struct": struct,
     }
-    from api.http_timeouts import EXIF
+    from api.runtime.http_timeouts import EXIF
 
     # A refused or dropped connection and a 503 are retried by the client
-    # (api.sidecars); what still fails here would fail again.
+    # (api.runtime.sidecars); what still fails here would fail again.
     try:
         response = sidecars.post("exif", "/get-tags", json=payload, timeout=EXIF)
         values = response.json()["values"]

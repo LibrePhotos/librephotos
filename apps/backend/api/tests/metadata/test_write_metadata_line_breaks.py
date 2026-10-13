@@ -14,9 +14,9 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase
 
-from api import binaries
 from api.metadata.face_regions import build_face_region_exiftool_args
 from api.metadata.writer import write_metadata
+from api.runtime import binaries
 
 INJECTED = "Joe\n-IFD0:Copyright=INJECTED"
 

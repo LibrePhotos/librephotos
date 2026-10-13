@@ -10,7 +10,6 @@ from django.conf import settings
 from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
-from api import binaries
 from api.dataviz.color_palettes import hex_palette
 from api.lazy_import import LazyModule
 from api.models import (
@@ -26,6 +25,7 @@ from api.models import (
     User,
 )
 from api.models.user import get_deleted_user
+from api.runtime import binaries
 from api.search.semantic import OPENCLIP
 
 if TYPE_CHECKING:

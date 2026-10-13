@@ -6,23 +6,31 @@ from unittest.mock import patch
 import requests
 from django.test import SimpleTestCase
 
-from api import services
+from api.runtime import supervisor
 
 
-@patch("api.services.requests.get", side_effect=requests.ConnectionError("reset"))
+@patch(
+    "api.runtime.supervisor.requests.get", side_effect=requests.ConnectionError("reset")
+)
 class BusySidecarTest(SimpleTestCase):
     def test_a_running_sidecar_that_does_not_answer_is_healthy(self, _get):
-        with patch("api.services._service_process_running", return_value=True):
-            self.assertTrue(services.is_healthy("tags"))
+        with patch(
+            "api.runtime.supervisor._service_process_running", return_value=True
+        ):
+            self.assertTrue(supervisor.is_healthy("tags"))
 
     def test_a_vanished_sidecar_is_not(self, _get):
-        with patch("api.services._service_process_running", return_value=False):
-            self.assertFalse(services.is_healthy("tags"))
+        with patch(
+            "api.runtime.supervisor._service_process_running", return_value=False
+        ):
+            self.assertFalse(supervisor.is_healthy("tags"))
 
     def test_a_timeout_counts_the_same_way(self, get):
         get.side_effect = requests.Timeout("slow")
-        with patch("api.services._service_process_running", return_value=True):
-            self.assertTrue(services.is_healthy("image_similarity"))
+        with patch(
+            "api.runtime.supervisor._service_process_running", return_value=True
+        ):
+            self.assertTrue(supervisor.is_healthy("image_similarity"))
 
 
 class ProcessLookupTest(SimpleTestCase):
@@ -38,5 +46,5 @@ class ProcessLookupTest(SimpleTestCase):
                 Proc(["python", "service/tags/main.py"]),
             ],
         ):
-            self.assertTrue(services._service_process_running("tags"))
-            self.assertFalse(services._service_process_running("exif"))
+            self.assertTrue(supervisor._service_process_running("tags"))
+            self.assertFalse(supervisor._service_process_running("exif"))

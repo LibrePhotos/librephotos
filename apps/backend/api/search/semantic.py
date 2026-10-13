@@ -28,9 +28,9 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
-from api import sidecars
-from api.http_timeouts import CLIP_EMBED
 from api.lazy_import import LazyModule
+from api.runtime import sidecars
+from api.runtime.http_timeouts import CLIP_EMBED
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -140,7 +140,7 @@ def generate_photo_tags(caption: PhotoCaption, commit: bool = True) -> None:
     try:
         import requests
 
-        from api.http_timeouts import TAGS
+        from api.runtime.http_timeouts import TAGS
 
         image_path = photo.thumbnail.thumbnail_big.path
         confidence = photo.owner.confidence

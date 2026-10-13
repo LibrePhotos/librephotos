@@ -237,9 +237,11 @@ class LoggerLevelsTest(SimpleTestCase):
         self.assertTrue(all("LOG_LEVELS" in w for w in warnings), warnings)
 
     def test_reads_the_environment_by_default(self):
-        with patch.dict(os.environ, {"LOG_LEVELS": "api.services=DEBUG"}):
+        with patch.dict(os.environ, {"LOG_LEVELS": "api.runtime.supervisor=DEBUG"}):
             config = build_logging_config(level="INFO")
-        self.assertEqual(config["loggers"]["api.services"], {"level": "DEBUG"})
+        self.assertEqual(
+            config["loggers"]["api.runtime.supervisor"], {"level": "DEBUG"}
+        )
 
     def test_without_overrides_the_handlers_keep_the_global_level(self):
         # No LOG_LEVELS, no change: what reaches the file is exactly what did
@@ -261,8 +263,8 @@ class LoggerLevelsTest(SimpleTestCase):
             logging.getLogger("api.directory_watcher.scan_jobs").debug(
                 "scan debug line"
             )
-            logging.getLogger("api.services").debug("services debug line")
-            logging.getLogger("api.services").info("services info line")
+            logging.getLogger("api.runtime.supervisor").debug("services debug line")
+            logging.getLogger("api.runtime.supervisor").info("services info line")
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 contents = f.read()
@@ -272,9 +274,9 @@ class LoggerLevelsTest(SimpleTestCase):
 
     def test_one_module_can_be_turned_down(self):
         with temporary_logging(
-            level="INFO", logger_levels={"api.services": "ERROR"}
+            level="INFO", logger_levels={"api.runtime.supervisor": "ERROR"}
         ) as log_file:
-            logging.getLogger("api.services").warning("services warning line")
+            logging.getLogger("api.runtime.supervisor").warning("services warning line")
             logging.getLogger("api.thumbnails.render").warning(
                 "thumbnails warning line"
             )
@@ -301,7 +303,7 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
         "api.views.password_reset",
         # Formerly routed through the shared "ownphotos" logger.
         "api.directory_watcher.scan_jobs",
-        "api.services",
+        "api.runtime.supervisor",
         "nextcloud.views",
     )
 
@@ -324,9 +326,10 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
     def test_the_modules_really_use_those_logger_names(self):
         # The assertions above are only worth anything if these are the loggers
         # the modules actually log through.
-        from api import apps, services
+        from api import apps
         from api.accounts import mail
         from api.directory_watcher import scan_jobs
+        from api.runtime import supervisor
         from api.views import email_config, password_reset
         from nextcloud import views as nextcloud_views
 
@@ -335,7 +338,7 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
         self.assertEqual(email_config.logger.name, "api.views.email_config")
         self.assertEqual(password_reset.logger.name, "api.views.password_reset")
         self.assertEqual(scan_jobs.logger.name, "api.directory_watcher.scan_jobs")
-        self.assertEqual(services.logger.name, "api.services")
+        self.assertEqual(supervisor.logger.name, "api.runtime.supervisor")
         self.assertEqual(nextcloud_views.logger.name, "nextcloud.views")
 
     def test_no_module_logs_through_a_shared_logger(self):

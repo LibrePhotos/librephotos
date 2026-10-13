@@ -38,7 +38,7 @@ import functools
 import logging
 import os
 
-from api import binaries
+from api.runtime import binaries
 
 logger = logging.getLogger(__name__)
 

@@ -82,7 +82,7 @@ ensure_logs_root(LOGS_ROOT)
 # directory is not writable - it resolves to `/` in plenty of container setups -
 # it falls back to a fresh /tmp/matplotlib-XXXXXXXX directory and rebuilds the
 # font cache on *every* process start. Give it a directory we own instead. The
-# ML services are spawned with subprocess.Popen (see api/services.py), so they
+# ML services are spawned with subprocess.Popen (see api/runtime/supervisor.py), so they
 # inherit this.
 MPLCONFIGDIR = env_str("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
 try:
@@ -291,7 +291,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         "django.forms.fields.ChoiceField",
         {
             "widget": "django.forms.Select",
-            # The InsightFace model packs carried by api.ml_models.ML_MODELS
+            # The InsightFace model packs carried by api.runtime.ml_models.ML_MODELS
             # under MlTypes.FACE_RECOGNITION, labelled as the frontend's
             # selector labels them (SiteSettings.tsx). There is no "none" entry:
             # face recognition cannot be turned off from here.

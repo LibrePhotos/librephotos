@@ -21,7 +21,7 @@ directory on *every* process start and logs::
 The font cache is therefore rebuilt from scratch for every worker and every
 service restart. Fixing it means LibrePhotos itself exporting MPLCONFIGDIR to a
 directory it owns (e.g. under ``BASE_DATA``/``BASE_LOGS``) before matplotlib is
-imported; because ``api.services.start_service`` spawns the ML services with
+imported; because ``api.runtime.supervisor.start_service`` spawns the ML services with
 ``subprocess.Popen`` they inherit whatever the Django process exported.
 
 The tests below simulate the reporter's environment (home directory that cannot

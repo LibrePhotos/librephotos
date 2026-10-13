@@ -2,7 +2,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
-from api import binaries
+from api.runtime import binaries
 from api.thumbnails.metadata import strip_thumbnail_metadata
 
 

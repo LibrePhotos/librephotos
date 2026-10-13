@@ -10,7 +10,7 @@ Covers two concerns of the same transport layer:
   saturates the box (``requests.ConnectionError`` wrapping
   ``http.client.RemoteDisconnected``). A single blip used to fail the whole
   face, and enough of them tripped the job-failure threshold. The shared
-  client (api.sidecars, tested in api/tests/infra/test_sidecar_client.py)
+  client (api.runtime.sidecars, tested in api/tests/infra/test_sidecar_client.py)
   retries those below the level mocked here; a status error is raised at once.
 """
 
@@ -29,7 +29,7 @@ from api.faces.recognition import (
 
 
 class FaceRecognitionClientTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_empty_http_response_details(
         self, mock_site_config, mock_post
@@ -51,7 +51,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         self.assertIn("status 400", str(context.exception))
         self.assertIn("<empty body>", str(context.exception))
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_http_response_body(
         self, mock_site_config, mock_post
@@ -72,7 +72,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         self.assertIn("status 500", str(context.exception))
         self.assertIn("model failed to load", str(context.exception))
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_get_face_locations_includes_invalid_json_response_body(
         self, mock_site_config, mock_post
@@ -103,7 +103,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
 class DetectFacesTest(SimpleTestCase):
     """One detection returns the faces and their encodings together."""
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_encodings_come_with_the_locations(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
@@ -124,7 +124,7 @@ class DetectFacesTest(SimpleTestCase):
         self.assertEqual(faces[1][1].tolist(), [1.0, 2.0])
         mock_post.assert_called_once()
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_older_sidecar_without_encodings(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
@@ -137,7 +137,7 @@ class DetectFacesTest(SimpleTestCase):
 class GetFaceEncodingsTest(SimpleTestCase):
     """A region the sidecar found no face at comes back as None, in its slot."""
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     @patch("api.faces.recognition.site_config")
     def test_an_unmatched_region_is_none(self, mock_site_config, mock_post):
         mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
@@ -183,7 +183,7 @@ def _status_error_response(status_code=400):
 
 
 class PostToFaceServiceTest(SimpleTestCase):
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_posts_to_the_face_sidecar(self, mock_post):
         mock_post.return_value = _ok_response({"encodings": []})
 
@@ -194,14 +194,14 @@ class PostToFaceServiceTest(SimpleTestCase):
             mock_post.call_args.args[0], "http://127.0.0.1:8005/face-encodings"
         )
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_a_connection_the_client_gave_up_on_propagates(self, mock_post):
         mock_post.side_effect = requests.ConnectionError("Remote end closed connection")
 
         with self.assertRaises(requests.ConnectionError):
             _post_to_face_service("/face-encodings", {"source": "/tmp/p.jpg"})
 
-    @patch("api.sidecars.http.post")
+    @patch("api.runtime.sidecars.http.post")
     def test_status_error_is_not_retried(self, mock_post):
         # A non-2xx status is not transient — retrying would fail identically.
         mock_post.return_value = _status_error_response(400)

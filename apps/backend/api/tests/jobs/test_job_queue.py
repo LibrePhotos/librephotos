@@ -51,7 +51,7 @@ class ScanQueuedTest(TestCase):
         self.user = create_test_user(scan_directory=self.scan_directory)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        models = patch("api.ml_models.do_all_models_exist", return_value=True)
+        models = patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
         models.start()
         self.addCleanup(models.stop)
 
