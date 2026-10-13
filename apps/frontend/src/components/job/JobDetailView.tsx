@@ -17,6 +17,8 @@ import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { PageHeader } from "../PageHeader";
+import { CancelJobButton } from "./CancelJobButton";
+import { DeleteJobButton } from "./DeleteJobButton";
 import { formatJobDuration } from "./JobDuration";
 import { JobProgress } from "./JobProgress";
 import { JOB_OUTCOME_COLOR, jobOutcome } from "./jobStatus";
@@ -50,7 +52,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
     <Button
       variant="subtle"
       leftSection={<IconArrowLeft size={16} />}
-      onClick={() => navigate({ to: backTo })}
+      onClick={() => void navigate({ to: backTo })}
       // Pulled left by its padding so the arrow lines up with the heading
       style={{ alignSelf: "flex-start" }}
       px="xs"
@@ -114,7 +116,19 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
       <Stack>
         {backButton}
         {/* Same header as the job list it was opened from */}
-        <PageHeader icon={StatusIcon} iconColor={color} title={jobTypeLabel(job, t)} />
+        <PageHeader
+          icon={StatusIcon}
+          iconColor={color}
+          title={jobTypeLabel(job, t)}
+          // The list's own buttons, so a job is stopped or removed the same way from both (#2213).
+          // Cancel hides itself once the job has finished.
+          actions={
+            <>
+              <CancelJobButton job={job} />
+              <DeleteJobButton job={job} onDeleted={() => void navigate({ to: backTo })} />
+            </>
+          }
+        />
 
         <Card shadow="md">
           <Title order={4} mb={16}>

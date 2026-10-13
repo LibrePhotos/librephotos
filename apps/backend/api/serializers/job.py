@@ -42,6 +42,16 @@ class CancelJobResponseSerializer(serializers.Serializer[None]):
     job = LongRunningJobSerializer()
 
 
+class JobStartedResponseSerializer(serializers.Serializer[None]):
+    """The answer of a view that starts a job (``api.jobs.start.start_jobs``)."""
+
+    status = serializers.BooleanField()
+    job_id = serializers.CharField(help_text="The started job's id (its last step's)")
+    job_ids = serializers.ListField(
+        child=serializers.CharField(), help_text="Every step's job id, in order"
+    )
+
+
 class JobListQuery(serializers.Serializer[None]):
     mine = QueryFlagField(
         true_values={"true"},

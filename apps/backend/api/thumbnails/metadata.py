@@ -14,6 +14,7 @@ rewritten, so a second run just reads.
 """
 
 import json
+import logging
 import os
 import stat
 import tempfile
@@ -22,7 +23,12 @@ from dataclasses import dataclass, field
 
 from django.conf import settings
 
+from api.models import LongRunningJob
+from api.models.long_running_job import JobCancelledError
+from api.models.user import User
 from api.runtime import binaries
+
+logger = logging.getLogger(__name__)
 
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 
@@ -42,6 +48,15 @@ EXIFTOOL_BATCH_TIMEOUT = 600
 # itself writes ItemList:Encoder into every file it makes, which is harmless.
 MP4_METADATA_GROUPS = ["-UserData:all", "-ItemList:all", "-Keys:all", "-XMP:all"]
 HARMLESS_MP4_TAGS = {"SourceFile", "ItemList:Encoder"}
+
+# Progress is reported after this many thumbnails: often enough for the job's
+# progress bar and its cancel check, rarely enough not to write the job's row
+# for every file.
+PROGRESS_EVERY = 200
+# How many failed thumbnails a job keeps in its result.
+MAX_JOB_ERRORS = 100
+
+Progress = Callable[[int, int], object]
 
 
 @dataclass
@@ -142,7 +157,36 @@ def _batches(paths: list[str]) -> Iterator[list[str]]:
         yield paths[start : start + BATCH_SIZE]
 
 
-def mp4s_with_metadata(paths: list[str]) -> list[str]:
+class _ProgressCounter:
+    """Counts the thumbnails checked and reports ``(done, total)`` now and then.
+
+    ``report`` is called once at the start, after every ``every`` thumbnails
+    and once more at the end, so a caller can update a job or print a line
+    without a call per file. Whatever it raises (a cancelled job) stops the
+    walk.
+    """
+
+    def __init__(self, total: int, report: Progress | None, every: int) -> None:
+        self.total = total
+        self.done = 0
+        self._report = report
+        self._every = every
+        self._reported = 0
+        if report:
+            report(0, total)
+
+    def advance(self, count: int = 1) -> None:
+        self.done += count
+        if self._report and (
+            self.done - self._reported >= self._every or self.done == self.total
+        ):
+            self._reported = self.done
+            self._report(self.done, self.total)
+
+
+def mp4s_with_metadata(
+    paths: list[str], counter: _ProgressCounter | None = None
+) -> list[str]:
     """The video thumbnails in ``paths`` that carry metadata from their source."""
     found: list[str] = []
     for batch in _batches(paths):
@@ -152,6 +196,8 @@ def mp4s_with_metadata(paths: list[str]) -> list[str]:
             tags = {tag for tag in entry if not tag.startswith("ExifTool:")}
             if tags - HARMLESS_MP4_TAGS:
                 found.append(os.path.normpath(entry["SourceFile"]))
+        if counter:
+            counter.advance(len(batch))
     return found
 
 
@@ -190,39 +236,46 @@ def _webps(
     paths: list[str],
     action: Callable[[str], bool],
     errors: list[str],
-    progress: Callable[[str], object] | None,
+    counter: _ProgressCounter | None,
 ) -> list[str]:
     """The ``paths`` for which ``action`` returned true; failures go to ``errors``."""
     found = []
-    for index, path in enumerate(paths, 1):
+    for path in paths:
         try:
             if action(path):
                 found.append(path)
         except OSError as error:
             errors.append(f"{path}: {error}")
-        if progress and index % 10000 == 0:
-            progress(f"{index}/{len(paths)} WebP thumbnails done")
+        if counter:
+            counter.advance()
     return found
 
 
 def strip_thumbnail_metadata(
     media_root: str | None = None,
     dry_run: bool = False,
-    progress: Callable[[str], object] | None = None,
+    progress: Progress | None = None,
+    progress_every: int = PROGRESS_EVERY,
 ) -> StripResult:
-    """Remove EXIF, XMP and video metadata from every thumbnail under ``media_root``."""
+    """Remove EXIF, XMP and video metadata from every thumbnail under ``media_root``.
+
+    ``progress(done, total)`` gets the number of thumbnails checked so far:
+    at the start, after every ``progress_every`` thumbnails and at the end.
+    What it raises (a cancelled job) stops the walk.
+    """
     media_root = media_root or settings.MEDIA_ROOT
     result = StripResult()
     webps, mp4s = _thumbnail_files(media_root)
     result.scanned = len(webps) + len(mp4s)
-    dirty_mp4s = mp4s_with_metadata(mp4s) if mp4s else []
+    counter = _ProgressCounter(result.scanned, progress, progress_every)
+    dirty_mp4s = mp4s_with_metadata(mp4s, counter) if mp4s else []
 
     if dry_run:
-        dirty_webps = _webps(webps, webp_has_metadata, result.errors, progress)
+        dirty_webps = _webps(webps, webp_has_metadata, result.errors, counter)
         result.with_metadata = dirty_webps + dirty_mp4s
         return result
 
-    stripped_webps = _webps(webps, strip_webp_metadata, result.errors, progress)
+    stripped_webps = _webps(webps, strip_webp_metadata, result.errors, counter)
     _strip_mp4s(dirty_mp4s, result.errors)
     result.with_metadata = stripped_webps + dirty_mp4s
     # Counted from what is on disk afterwards, not from what the tools report.
@@ -231,3 +284,69 @@ def strip_thumbnail_metadata(
     result.still_with_metadata = left
     result.stripped = len(result.with_metadata) - len(left)
     return result
+
+
+def strip_problems(result: StripResult) -> list[str]:
+    """What went wrong in a run that did not dry-run, empty when nothing did.
+
+    A thumbnail that could not be read or rewritten is not counted as still
+    carrying metadata, but nothing says it does not. Errors are not
+    thumbnails: a failed ExifTool batch of videos is one.
+    """
+    problems = []
+    if result.still_with_metadata:
+        problems.append(f"{len(result.still_with_metadata)} still carry metadata")
+    if result.errors:
+        count = len(result.errors)
+        problems.append(f"{count} error{'' if count == 1 else 's'}")
+    return problems
+
+
+def _job_details(result: StripResult) -> dict[str, object]:
+    """The counts a job keeps in its result, with the first failed thumbnails."""
+    failed = result.errors + [
+        f"{path}: still carries metadata" for path in result.still_with_metadata
+    ]
+    return {
+        "scanned": result.scanned,
+        "with_metadata": len(result.with_metadata),
+        "stripped": result.stripped,
+        "error_count": len(failed),
+        "errors": failed[:MAX_JOB_ERRORS],
+    }
+
+
+def strip_thumbnail_metadata_job(user: User, job_id: str | None = None) -> None:
+    """The job an admin starts from the Admin Area (#2321).
+
+    The same work as ``manage.py strip_thumbnail_metadata`` over the whole
+    instance's thumbnails, with its progress and outcome on the job's row. A
+    cancel stops it where it reports progress.
+    """
+    job = LongRunningJob.claim(
+        user, LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA, job_id
+    )
+    if job is None:
+        return
+
+    def report(done: int, total: int) -> None:
+        job.update_progress(done, total)
+        job.stop_if_cancelled()
+
+    try:
+        result = strip_thumbnail_metadata(progress=report)
+    except JobCancelledError:
+        logger.info("job %s was cancelled", job.job_id)
+        return
+    except Exception as error:
+        # ExifTool could not say which video thumbnails carry metadata.
+        logger.exception("job %s: could not strip thumbnail metadata", job.job_id)
+        job.fail(error=error)
+        return
+    summary = f"Stripped {result.stripped} thumbnails."
+    problems = strip_problems(result)
+    if problems:
+        logger.warning("job %s: %s %s", job.job_id, summary, ", ".join(problems))
+        job.fail(f"{summary} {', '.join(problems)}.", details=_job_details(result))
+        return
+    job.complete(result={"status": "completed", **_job_details(result)})

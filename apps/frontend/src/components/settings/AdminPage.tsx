@@ -46,6 +46,7 @@ import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
+import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
 
 /** The scan directory on one line, cut at the start so its last folders stay in view. */
 function ScanDirectory({ path }: Readonly<{ path: string | null | undefined }>) {
@@ -249,6 +250,7 @@ function AdminTools() {
             {t("adminarea.download")}
           </Button>
         </Flex>
+        <StripThumbnailMetadataTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
       </Stack>
       <Modal
         opened={confirmOpen}

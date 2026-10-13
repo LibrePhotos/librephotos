@@ -14,6 +14,11 @@ function jobAlreadyRunning() {
   toast.warning(i18n.t("toasts.jobalreadyrunning"), { title: i18n.t("toasts.jobalreadyrunningtitle") });
 }
 
+/** The thumbnail metadata cleanup an admin started from the Admin Area (#2321). */
+function startStripThumbnailMetadata() {
+  toast.success(i18n.t("toasts.stripthumbnailmetadata"), { title: i18n.t("toasts.stripthumbnailmetadatatitle") });
+}
+
 function requestFailed(title: string, message: string) {
   toast.error(message, { title });
 }
@@ -44,4 +49,5 @@ export const worker = {
   requestFailed,
   saveFailed,
   serverError,
+  startStripThumbnailMetadata,
 };

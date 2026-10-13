@@ -145,6 +145,7 @@ Below the Features card is an **Email (SMTP)** card that configures outgoing e-m
 
 - **Delete all auto created albums** removes every automatically generated event album in one step. Your photos are not affected.
 - **Download Server Stats** saves a `serverstats.json` report — see [Server Stats](../library.md#server-stats) for what it contains.
+- **Remove photo details from old thumbnails** starts a job that removes the location and other photo details from thumbnails made by LibrePhotos 1.2.1 or older. Your photos are not changed. While it runs, the row shows how far it got and links to the job. See [After upgrading from 1.2.1 or older](../../installation/upgrading.md#strip-thumbnail-metadata). Not released yet: up to 1.3.0, this tool is not in the Admin Area.
 
 ## Users
 

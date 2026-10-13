@@ -55,6 +55,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   JobDetail: { schema: S.JobDetail, components: ["LongRunningJob"] },
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
   CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
+  JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
   // users and auth
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },

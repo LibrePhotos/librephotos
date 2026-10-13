@@ -4,7 +4,7 @@ import os
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +17,8 @@ from api.jobs.start import start_job
 from api.models import LongRunningJob
 from api.models.user import User
 from api.runtime.ml_models import missing_models_prerequisites
-from api.serializers.job import GenerateOcrRequest
+from api.serializers.job import GenerateOcrRequest, JobStartedResponseSerializer
+from api.thumbnails.metadata import strip_thumbnail_metadata_job
 
 
 def _validate_scan_directory(user: User) -> None:
@@ -142,4 +143,24 @@ class GenerateOcrView(APIView):
             user,
             full_scan=full_scan,
             description="text recognition",
+        )
+
+
+class StripThumbnailMetadataView(APIView):
+    """Start removing photo details from old thumbnails (#2321).
+
+    The thumbnails of every user are walked, so only an admin may start it.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        return start_job(
+            user,
+            LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA,
+            strip_thumbnail_metadata_job,
+            user,
+            description="the thumbnail metadata cleanup",
         )
