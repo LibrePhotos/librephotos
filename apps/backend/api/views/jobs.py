@@ -19,6 +19,7 @@ from api.serializers.job import (
     CancelJobResponseSerializer,
     JobListQuery,
     LongRunningJobSerializer,
+    QueueAvailabilitySerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ class LongRunningJobViewSet(
 class QueueAvailabilityView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=QueueAvailabilitySerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         job_detail = None
 

@@ -36,11 +36,21 @@ from api.jobs.queue import JobStep
 from api.jobs.start import enqueue_for_request
 from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.photo_stack import PhotoStack
+from api.serializers.photo_groups import UnlinkGroupResponseSerializer
 from api.serializers.stack import (
+    AddToStackResponseSerializer,
     CreateManualStackRequest,
+    CreateManualStackResponseSerializer,
+    DetectStacksQueuedSerializer,
     DetectStacksRequest,
+    MergeStacksResponseSerializer,
     PhotoStackListQuery,
+    PhotoStackPageSerializer,
+    PhotoStackSerializer,
     PhotoStackSetPrimaryRequest,
+    PhotoStackStatsSerializer,
+    RemoveFromStackResponseSerializer,
+    SetStackPrimaryResponseSerializer,
     StackPhotosRequest,
 )
 
@@ -65,6 +75,7 @@ class PhotoStackListView(PaginatedViewMixin, APIView):
     @extend_schema(
         operation_id="api_stacks_list",
         parameters=[PhotoStackListQuery, *PAGE_PARAMETERS],
+        responses=PhotoStackPageSerializer,
     )
     def get(self, request: Request) -> Response:
         user = request_user(request)
@@ -137,6 +148,7 @@ class PhotoStackDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=PhotoStackSerializer)
     def get(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
@@ -227,6 +239,7 @@ class PhotoStackDetailView(APIView):
             }
         )
 
+    @extend_schema(responses={200: UnlinkGroupResponseSerializer})
     def delete(self, request: Request, stack_id: str) -> Response:
         """Delete a stack (unlinks photos but doesn't delete them)."""
         user = request_user(request)
@@ -253,6 +266,7 @@ class PhotoStackDeleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UnlinkGroupResponseSerializer})
     def delete(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -278,7 +292,10 @@ class PhotoStackSetPrimaryView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=PhotoStackSetPrimaryRequest)
+    @extend_schema(
+        request=PhotoStackSetPrimaryRequest,
+        responses=SetStackPrimaryResponseSerializer,
+    )
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -311,7 +328,10 @@ class DetectStacksView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=DetectStacksRequest)
+    @extend_schema(
+        request=DetectStacksRequest,
+        responses={202: DetectStacksQueuedSerializer},
+    )
     def post(self, request: Request) -> Response:
         from api.stacks.detection import batch_detect_stacks
 
@@ -366,6 +386,7 @@ class PhotoStackStatsView(APIView):
         PhotoStack.StackType.LIVE_PHOTO,
     ]
 
+    @extend_schema(responses=PhotoStackStatsSerializer)
     def get(self, request: Request) -> Response:
         user = request_user(request)
         listed = (
@@ -413,7 +434,10 @@ class CreateManualStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=CreateManualStackRequest)
+    @extend_schema(
+        request=CreateManualStackRequest,
+        responses={201: CreateManualStackResponseSerializer},
+    )
     def post(self, request: Request) -> Response:
         user = request_user(request)
         photo_hashes = parse_body(request, CreateManualStackRequest)["photo_hashes"]
@@ -475,7 +499,7 @@ class AddToStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=StackPhotosRequest)
+    @extend_schema(request=StackPhotosRequest, responses=AddToStackResponseSerializer)
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -508,7 +532,9 @@ class RemoveFromStackView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=StackPhotosRequest)
+    @extend_schema(
+        request=StackPhotosRequest, responses=RemoveFromStackResponseSerializer
+    )
     def post(self, request: Request, stack_id: str) -> Response:
         user = request_user(request)
         try:
@@ -562,7 +588,7 @@ class MergeStacksView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=StackPhotosRequest)
+    @extend_schema(request=StackPhotosRequest, responses=MergeStacksResponseSerializer)
     def post(self, request: Request) -> Response:
         user = request_user(request)
         photo_hashes = parse_body(request, StackPhotosRequest)["photo_hashes"]

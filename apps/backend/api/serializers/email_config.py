@@ -1,10 +1,14 @@
-"""The bodies of the email settings views (``api/views/email_config.py``)."""
+"""The bodies and answers of the email settings views (``api/views/email_config.py``).
+
+The answers are only for the OpenAPI schema: the views build the dicts.
+"""
 
 from typing import Any
 
 from rest_framework import serializers
 
-from api.models.email_config import EmailConfig
+from api.models.email_config import PROVIDER_CHOICES, EmailConfig
+from api.serializers.fields import declare_fields
 
 
 class EmailConfigRequest(serializers.ModelSerializer[EmailConfig]):
@@ -69,3 +73,44 @@ class EmailTestRequest(serializers.Serializer[None]):
         allow_null=True,
         help_text="The recipient; the requesting admin's address when blank",
     )
+
+
+class EmailProviderPresetSerializer(serializers.Serializer[None]):
+    """One of ``PROVIDER_PRESETS``: what choosing the provider fills in."""
+
+    host = serializers.CharField(
+        required=False,
+        help_text="Absent for Amazon SES (its host depends on the region)",
+    )
+    port = serializers.IntegerField()
+    use_tls = serializers.BooleanField()
+    use_ssl = serializers.BooleanField()
+    default_username = serializers.CharField(
+        required=False, help_text="The user name the provider requires, if any"
+    )
+    help_url = serializers.URLField(help_text="Where to create the credential")
+
+
+declare_fields(EmailProviderPresetSerializer, label=serializers.CharField())
+
+
+class EmailConfigResponseSerializer(serializers.Serializer[None]):
+    """``GET``/``POST /api/email-config/``: the configuration without its secret."""
+
+    provider = serializers.ChoiceField(choices=PROVIDER_CHOICES)
+    from_email = serializers.CharField(allow_blank=True)
+    host = serializers.CharField(allow_blank=True)
+    port = serializers.IntegerField()
+    use_tls = serializers.BooleanField()
+    use_ssl = serializers.BooleanField()
+    username = serializers.CharField(allow_blank=True)
+    has_secret = serializers.BooleanField(help_text="Whether a credential is stored")
+    is_configured = serializers.BooleanField(help_text="Whether email can be sent")
+    presets = serializers.DictField(
+        child=EmailProviderPresetSerializer(), help_text="By provider"
+    )
+
+
+class EmailTestResponseSerializer(serializers.Serializer[None]):
+    status = serializers.BooleanField(help_text="Always true; a failure is an error")
+    message = serializers.CharField(help_text="Which address the email went to")

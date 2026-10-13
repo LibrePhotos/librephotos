@@ -34,10 +34,18 @@ from api.jobs.start import enqueue_for_request
 from api.models import LongRunningJob, Photo, PhotoMetadata
 from api.models.duplicate import Duplicate
 from api.serializers.duplicate import (
+    DetectDuplicatesQueuedSerializer,
     DetectDuplicatesRequest,
+    DismissDuplicateResponseSerializer,
+    DuplicateDetailSerializer,
     DuplicateListQuery,
+    DuplicatePageSerializer,
     DuplicateResolveRequest,
+    DuplicateStatsSerializer,
+    ResolveDuplicateResponseSerializer,
+    RevertDuplicateResponseSerializer,
 )
+from api.serializers.photo_groups import UnlinkGroupResponseSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +68,7 @@ class DuplicateListView(PaginatedViewMixin, APIView):
     @extend_schema(
         operation_id="api_duplicates_list",
         parameters=[DuplicateListQuery, *PAGE_PARAMETERS],
+        responses=DuplicatePageSerializer,
     )
     def get(self, request: Request) -> Response:
         user = request_user(request)
@@ -131,6 +140,7 @@ class DuplicateDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=DuplicateDetailSerializer)
     def get(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -210,7 +220,10 @@ class DuplicateResolveView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=DuplicateResolveRequest)
+    @extend_schema(
+        request=DuplicateResolveRequest,
+        responses=ResolveDuplicateResponseSerializer,
+    )
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -251,6 +264,7 @@ class DuplicateDismissView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses=DismissDuplicateResponseSerializer)
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -269,6 +283,7 @@ class DuplicateRevertView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses=RevertDuplicateResponseSerializer)
     def post(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -292,6 +307,7 @@ class DuplicateDeleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UnlinkGroupResponseSerializer})
     def delete(self, request: Request, duplicate_id: str) -> Response:
         user = request_user(request)
         try:
@@ -321,7 +337,10 @@ class DetectDuplicatesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=DetectDuplicatesRequest)
+    @extend_schema(
+        request=DetectDuplicatesRequest,
+        responses={202: DetectDuplicatesQueuedSerializer},
+    )
     def post(self, request: Request) -> Response:
         from api.duplicates.detection import batch_detect_duplicates
 
@@ -363,6 +382,7 @@ class DuplicateStatsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=DuplicateStatsSerializer)
     def get(self, request: Request) -> Response:
         user = request_user(request)
         duplicates = Duplicate.objects.owned_by(user)

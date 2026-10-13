@@ -58,6 +58,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs
+  WorkerAvailabilityResponse: { schema: S.WorkerAvailabilityResponse, components: ["QueueAvailability"] },
   Job: { schema: S.Job, components: ["LongRunningJob"] },
   JobDetail: { schema: S.JobDetail, components: ["LongRunningJob"] },
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
@@ -66,6 +67,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // photo edits
   RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
   // users and auth
+  PasswordResetResponse: { schema: S.PasswordResetResponse, components: ["PasswordResetResponse"] },
+  SsoConfig: { schema: S.SsoConfig, components: ["SSOConfig"] },
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },
   PublicPhotoSample: { schema: S.PublicPhotoSample, components: ["PhotoSuperSimple"] },
@@ -73,6 +76,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
   SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
   // site settings
+  EmailConfig: { schema: S.EmailConfig, components: ["EmailConfigResponse"] },
+  EmailTestResponse: { schema: S.EmailTestResponse, components: ["EmailTestResponse"] },
   SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
   SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
   SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
@@ -101,6 +106,33 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   StorageStats: { schema: S.StorageStats, components: ["StorageStats"] },
   ServerLogs: { schema: S.ServerLogs, components: ["ServerLogs"] },
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
+  // stacks
+  StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
+  StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },
+  StackThumbnail: { schema: S.StackThumbnail, components: ["PhotoGroupThumbnail"] },
+  PhotoStackListItem: { schema: S.PhotoStackListItem, components: ["PhotoStackListItem"] },
+  PhotoStackListResponse: { schema: S.PhotoStackListResponse, components: ["PhotoStackPage"] },
+  PhotoStack: { schema: S.PhotoStack, components: ["PhotoStack"] },
+  PhotoStackStats: { schema: S.PhotoStackStats, components: ["PhotoStackStats"] },
+  SetStackPrimaryResponse: { schema: S.SetStackPrimaryResponse, components: ["SetStackPrimaryResponse"] },
+  CreateManualStackResponse: { schema: S.CreateManualStackResponse, components: ["CreateManualStackResponse"] },
+  RemoveFromStackResponse: { schema: S.RemoveFromStackResponse, components: ["RemoveFromStackResponse"] },
+  MergeStacksResponse: { schema: S.MergeStacksResponse, components: ["MergeStacksResponse"] },
+  UnlinkGroupResponse: { schema: S.UnlinkGroupResponse, components: ["UnlinkGroupResponse"] },
+  DetectionQueuedResponse: {
+    schema: S.DetectionQueuedResponse,
+    components: ["DetectStacksQueued", "DetectDuplicatesQueued"],
+  },
+  // duplicates
+  DuplicatePhoto: { schema: S.DuplicatePhoto, components: ["DuplicatePhoto"] },
+  DuplicateThumbnail: { schema: S.DuplicateThumbnail, components: ["PhotoGroupThumbnail"] },
+  DuplicateListItem: { schema: S.DuplicateListItem, components: ["DuplicateListItem"] },
+  DuplicateListResponse: { schema: S.DuplicateListResponse, components: ["DuplicatePage"] },
+  DuplicateDetail: { schema: S.DuplicateDetail, components: ["DuplicateDetail"] },
+  DuplicateStats: { schema: S.DuplicateStats, components: ["DuplicateStats"] },
+  ResolveDuplicateResponse: { schema: S.ResolveDuplicateResponse, components: ["ResolveDuplicateResponse"] },
+  DismissDuplicateResponse: { schema: S.DismissDuplicateResponse, components: ["DismissDuplicateResponse"] },
+  RevertDuplicateResponse: { schema: S.RevertDuplicateResponse, components: ["RevertDuplicateResponse"] },
 };
 
 /** Exported zod objects that are not compared, and why. */
@@ -113,8 +145,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   TokenClaims: "the JWT payload, not a response body",
   AuthError: "the error envelope from api/views/exception_handler.py, not a component",
   LogoutResponse: "simplejwt's TokenBlacklistView declares no response serializer (it answers {})",
-  PasswordResetResponse: "its views declare no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SsoConfig: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   IsFirstTimeSetupResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PublicSharingDefaults: "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
@@ -185,54 +215,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  StackFileVariant:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  StackPhoto:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  StackThumbnail:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  PhotoStackListItem:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  PhotoStackListResponse:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  PhotoStack:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  PhotoStackStats:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  SetStackPrimaryResponse:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  CreateManualStackResponse:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  RemoveFromStackResponse:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  MergeStacksResponse:
-    "api/views/stacks.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  UnlinkGroupResponse:
-    "api/views/stacks.py and api/views/duplicates.py build their answers by hand and declare no response serializer (openapi-baseline.txt, issue #485)",
-  DetectionQueuedResponse:
-    "api/views/stacks.py and api/views/duplicates.py build their answers by hand and declare no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicatePhoto:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicateThumbnail:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicateListItem:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicateListResponse:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicateDetail:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DuplicateStats:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  ResolveDuplicateResponse:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  DismissDuplicateResponse:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  RevertDuplicateResponse:
-    "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
-  WorkerAvailabilityResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  EmailConfig: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  EmailTestResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ListUser:
     "one shape for two serializers: UserViewSet lists User rows for admins and PublicUser rows for everyone else",
   UploadOptions: "a request body",

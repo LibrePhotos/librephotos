@@ -3,7 +3,8 @@ import { MaybeFlag, PageFields, StackTypeEnum } from "./common";
 
 /*
  * Organizational photo stacks: bursts, exposure brackets and manual groups (backend
- * api/views/stacks.py, which builds every answer by hand: no serializer describes them).
+ * api/views/stacks.py, which builds its answers by hand; the response serializers in
+ * api/serializers/stack.py describe them for openapi.json).
  * Duplicates (exact copies, visual duplicates) are in ./duplicates. RAW + JPEG pairs and
  * Live Photos are file variants now, not stacks.
  */

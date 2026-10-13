@@ -533,6 +533,9 @@ SPECTACULAR_SETTINGS = {
     # status this is keeps it stable when another "status" choice appears.
     "ENUM_NAME_OVERRIDES": {
         "HealthStatusEnum": "api.serializers.health.HEALTH_STATES",
+        # A stack's type, and the narrower set the stack list returns.
+        "StackTypeEnum": "api.serializers.stack.STACK_TYPES",
+        "ListedStackTypeEnum": "api.serializers.stack.LISTED_STACK_TYPES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

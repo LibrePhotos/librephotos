@@ -23,6 +23,7 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_not_required
 from django.http import Http404, HttpRequest, HttpResponseBase, HttpResponseRedirect
 from django.urls import NoReverseMatch, reverse
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,6 +33,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.accounts.cookies import set_auth_cookies
 from api.accounts.public_url import is_internal_base_url, public_base_url
 from api.models.user import User
+from api.serializers.sso import SSOConfigSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +151,7 @@ class SSOConfigView(APIView):
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
+    @extend_schema(responses=SSOConfigSerializer)
     def get(self, request: Request) -> Response:
         from allauth.socialaccount.models import SocialApp
 

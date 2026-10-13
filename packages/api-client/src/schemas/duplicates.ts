@@ -3,7 +3,8 @@ import { MaybeFlag, PageFields } from "./common";
 
 /*
  * Duplicate groups: exact copies and visually similar photos, for storage cleanup (backend
- * api/views/duplicates.py, which builds every answer by hand: no serializer describes them).
+ * api/views/duplicates.py, which builds its answers by hand; the response serializers in
+ * api/serializers/duplicate.py describe them for openapi.json).
  * Organizational grouping (bursts, brackets, manual) is in ./stacks.
  */
 

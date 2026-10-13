@@ -656,6 +656,13 @@ class PasswordResetRequest(serializers.Serializer[None]):
     email = serializers.CharField(default="", allow_blank=True, allow_null=True)
 
 
+class PasswordResetResponseSerializer(serializers.Serializer[None]):
+    """Both password-reset steps; a failure is an error, not this."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    message = serializers.CharField()
+
+
 def _reset_field(help_text: str) -> serializers.CharField:
     return serializers.CharField(
         default="",
