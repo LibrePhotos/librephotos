@@ -218,8 +218,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 1. Add the model files to `ML_MODELS` in `api/runtime/ml_models.py` (downloads and checksums).
 2. Put the sidecar in `service/<name>/main.py` using `service._common.create_app`, exposing `serve()`
    (the Windows standalone build calls it).
-3. Register its port in `SERVICES` (`api/runtime/sidecars.py`) and its feature flag in `SERVICE_FEATURE_FLAGS`
-   (`api/runtime/supervisor.py`).
+3. Register its port in `SERVICES` (`api/runtime/sidecars.py`) and its feature in `SERVICE_FEATURES`
+   (`api/runtime/supervisor.py`). Gate optional work with `feature_enabled(...)` from `api/runtime/features.py`
+   (the `FEATURE_*` env flag is a hard off, then the `*_ENABLED` site setting decides), never a direct
+   `settings.FEATURE_*` read of those features (`FeatureGateCallSitesTest` in `api/tests/infra/test_feature_flag_gating.py`).
 4. Document its `FEATURE_*` and model-directory variables on the environment-variables docs page.
 
 OpenCLIP ViT-B/32 (`service/tags/openclip/`, registry entry `openclip_vitb32`) is the only image-text

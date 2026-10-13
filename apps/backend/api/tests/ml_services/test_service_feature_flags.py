@@ -1,4 +1,7 @@
-"""The FEATURE_* switches decide which ML services are spawned and watched.
+"""The feature switches decide which ML services are spawned and watched.
+
+A switch is the FEATURE_* environment flag (a hard off) and then the site
+setting (api.runtime.features), which the per-minute watchdog re-reads.
 
 Without this, a deployment that turned face detection or captioning off still
 paid for every model: `start_service all` spawned all nine sidecars and the
@@ -10,14 +13,17 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.core.management import call_command
 from django.db.utils import OperationalError
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.runtime.features import forget_site_switches
 from api.runtime.supervisor import (
     SERVICE_FEATURE_FLAGS,
+    SERVICE_FEATURES,
     SERVICE_SITE_GATES,
     SERVICES,
     check_services,
+    disabled_reason,
     is_service_enabled,
     start_service,
 )
@@ -48,9 +54,10 @@ def spawned_services(popen_mock):
     return names
 
 
-class ServiceFeatureFlagMappingTest(SimpleTestCase):
+class ServiceFeatureFlagMappingTest(TestCase):
     def test_every_service_has_a_verdict(self):
         """A new service without an entry would silently become always-on."""
+        self.assertEqual(set(SERVICES), set(SERVICE_FEATURES))
         self.assertEqual(set(SERVICES), set(SERVICE_FEATURE_FLAGS))
 
     def test_every_service_is_enabled_out_of_the_box(self):
@@ -83,16 +90,84 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
     def test_image_captioning_follows_the_captioning_flag(self):
         self.assertFalse(is_service_enabled("image_captioning"))
 
+    @override_settings()
     def test_a_missing_setting_leaves_the_service_enabled(self):
         """An unrecognised switch must not take a service away."""
-        with patch.dict(
-            SERVICE_FEATURE_FLAGS, {"thumbnail": "FEATURE_NOT_IN_ANY_SETTINGS"}
-        ):
+        from django.conf import settings
+
+        del settings.FEATURE_FACE_DETECTION
+
+        self.assertTrue(is_service_enabled("face_recognition"))
+
+
+class ServiceSiteSettingTest(TestCase):
+    """The site setting turns a service's feature off without a restart."""
+
+    def setUp(self):
+        forget_site_switches()
+        self.addCleanup(forget_site_switches)
+
+    def test_turning_face_detection_off_disables_face_recognition(self):
+        self.assertTrue(is_service_enabled("face_recognition"))
+
+        with override_config(FACE_DETECTION_ENABLED=False):
+            self.assertFalse(is_service_enabled("face_recognition"))
             self.assertTrue(is_service_enabled("thumbnail"))
+
+        self.assertTrue(is_service_enabled("face_recognition"))
+
+    @override_config(IMAGE_CAPTIONING_ENABLED=False)
+    def test_turning_captioning_off_disables_the_captioner(self):
+        self.assertFalse(is_service_enabled("image_captioning"))
+
+    @override_config(SCENE_CLASSIFICATION_ENABLED=False)
+    def test_tags_serve_search_with_tagging_off(self):
+        self.assertTrue(is_service_enabled("tags"))
+
+    @override_config(FACE_DETECTION_ENABLED=False)
+    def test_the_reason_names_the_site_setting(self):
+        reason = disabled_reason("face_recognition")
+
+        self.assertIn("FACE_DETECTION_ENABLED", reason)
+        self.assertIn("site settings", reason)
+        self.assertNotIn("FEATURE_FACE_DETECTION", reason)
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @override_config(FACE_DETECTION_ENABLED=False)
+    def test_the_environment_wins_the_reason_when_both_are_off(self):
+        """The site switch cannot turn it back on, so name the one that can."""
+        reason = disabled_reason("face_recognition")
+
+        self.assertIn("FEATURE_FACE_DETECTION", reason)
+        self.assertIn("environment", reason)
+
+    @override_config(FACE_DETECTION_ENABLED=False)
+    @patch("api.runtime.supervisor.subprocess.Popen")
+    def test_start_service_refuses_it(self, popen_mock):
+        self.assertFalse(start_service("face_recognition"))
+        popen_mock.assert_not_called()
+
+    @patch("api.runtime.supervisor.is_healthy", return_value=False)
+    @patch("api.runtime.supervisor.stop_service")
+    @patch("api.runtime.supervisor.start_service")
+    def test_the_watchdog_follows_the_site_setting(
+        self, start_mock, stop_mock, _healthy
+    ):
+        with override_config(FACE_DETECTION_ENABLED=False):
+            check_services()
+        self.assertNotIn(
+            "face_recognition", {call.args[0] for call in start_mock.call_args_list}
+        )
+
+        start_mock.reset_mock()
+        check_services()
+        self.assertIn(
+            "face_recognition", {call.args[0] for call in start_mock.call_args_list}
+        )
 
 
 @patch("api.runtime.supervisor.subprocess.Popen")
-class StartServiceTest(SimpleTestCase):
+class StartServiceTest(TestCase):
     def test_an_enabled_service_is_spawned(self, popen_mock):
         self.assertTrue(start_service("face_recognition"))
         popen_mock.assert_called_once()
@@ -169,7 +244,7 @@ class StartAllCommandTest(TestCase):
 @patch("api.runtime.supervisor.is_healthy", return_value=False)
 @patch("api.runtime.supervisor.stop_service")
 @patch("api.runtime.supervisor.start_service")
-class CheckServicesTest(SimpleTestCase):
+class CheckServicesTest(TestCase):
     """The per-minute watchdog must not resurrect what a flag switched off."""
 
     def _restarted(self, start_mock):
@@ -361,6 +436,20 @@ class ServiceAdminApiTest(TestCase):
         self.assertEqual(409, response.status_code)
         self.assertEqual("service_disabled", api_error(response)["code"])
         self.assertIn("FEATURE_IMAGE_CAPTIONING", api_error(response)["message"])
+        start_mock.assert_not_called()
+
+    @override_config(IMAGE_CAPTIONING_ENABLED=False)
+    @patch("api.views.services.start_service")
+    def test_starting_a_service_turned_off_in_the_site_settings_names_it(
+        self, start_mock
+    ):
+        forget_site_switches()
+        response = self.client.post("/api/services/image_captioning/start/")
+
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("service_disabled", api_error(response)["code"])
+        self.assertIn("IMAGE_CAPTIONING_ENABLED", api_error(response)["message"])
+        self.assertIn("site settings", api_error(response)["message"])
         start_mock.assert_not_called()
 
     @patch("api.views.services.start_service", return_value=True)

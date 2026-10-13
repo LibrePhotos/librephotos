@@ -93,6 +93,24 @@ All of these default to on. See [Advanced docker-compose usage](../installation/
 
 Turning off face detection, image captioning or Things also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from. (Since 1.2.0; on 1.1.0 the switches stop the processing, but the services still start.)
 
+### Site settings switches
+
+_Not released yet._ Every feature in the table except **Embedded media** also has a switch in the site settings, which an admin can change without restarting anything. The two layers combine like this:
+
+- An environment variable set to `false` is a hard off. The feature stays off whatever the site settings say.
+- While the environment variable allows a feature (the default), its site setting decides. All of them start on.
+
+| Feature | Site setting |
+| --- | --- |
+| Video | `VIDEO_ENABLED` |
+| Face detection | `FACE_DETECTION_ENABLED` |
+| Face clustering | `FACE_CLUSTER_ENABLED` |
+| Image captioning | `IMAGE_CAPTIONING_ENABLED` |
+| Reverse geocoding | `REVERSE_GEOCODING_ENABLED` |
+| Things (scene classification) | `SCENE_CLASSIFICATION_ENABLED` |
+
+For now the switches are on the Django admin's **Constance › Config** page (`/api/django-admin/constance/config/`); a Features card in **Site Settings** follows. A change applies to the next file, photo or job. Background workers take up to a minute to see it, and so does the watchdog that starts and stops the face recognition and captioning services. Turning a feature off does not delete the faces, captions, tags or places it already produced.
+
 :::note Embedded media
 The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
 :::

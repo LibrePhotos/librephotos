@@ -93,6 +93,12 @@ class ApiConfig(AppConfig):
         for module in SIGNAL_MODULES:
             import_module(module).register()
 
+        # Not a model signal, so not in SIGNAL_MODULES: a saved site setting
+        # drops this process's cached copy of the feature switches.
+        from api.runtime import features
+
+        features.register()
+
         try:
             reconfigure_logging()
         except LoggingNotConfiguredError:

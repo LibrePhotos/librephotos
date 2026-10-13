@@ -6,10 +6,10 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import requests
-from django.conf import settings
 
 from api.models.user import User
 from api.runtime import sidecars
+from api.runtime.features import feature_enabled
 from api.runtime.http_timeouts import CAPTION
 
 if TYPE_CHECKING:
@@ -82,7 +82,7 @@ def generate_photo_caption(caption: PhotoCaption, commit: bool = True) -> bool:
     first model's name). Moved out of ``PhotoCaption`` so the model makes no
     sidecar calls (#2336).
     """
-    if not settings.FEATURE_IMAGE_CAPTIONING:
+    if not feature_enabled("IMAGE_CAPTIONING"):
         logger.info("Image captioning is disabled")
         return False
 

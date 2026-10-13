@@ -362,6 +362,31 @@ CONSTANCE_CONFIG = {
         "Face recognition model",
         "face_recognition_model",
     ),
+    # Site switches for the optional features (api/runtime/features.py). The
+    # FEATURE_* environment variable above is a hard off; while it allows a
+    # feature, these decide, without a restart.
+    "VIDEO_ENABLED": (True, "Import video files during a scan", bool),
+    "FACE_DETECTION_ENABLED": (True, "Find faces in photos", bool),
+    "FACE_CLUSTER_ENABLED": (
+        True,
+        "Group the faces found into people to label",
+        bool,
+    ),
+    "IMAGE_CAPTIONING_ENABLED": (
+        True,
+        "Describe photos with a generated caption",
+        bool,
+    ),
+    "REVERSE_GEOCODING_ENABLED": (
+        True,
+        "Turn GPS coordinates into place names",
+        bool,
+    ),
+    "SCENE_CLASSIFICATION_ENABLED": (
+        True,
+        "Detect what is in photos (beach, kitchen, sunset) for the Things albums",
+        bool,
+    ),
     "LOG_MAX_BYTES": (
         200 * 1024 * 1024,
         "Maximum log file size in bytes before rotation (default 200 MB)",

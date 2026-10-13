@@ -2,7 +2,8 @@ import logging
 
 import geopy
 from constance import config as site_config
-from django.conf import settings
+
+from api.runtime.features import feature_enabled
 
 from .config import get_provider_config, get_provider_parser
 from .rate_limit import wait as wait_for_provider
@@ -56,7 +57,7 @@ class Geocode:
 
 
 def reverse_geocode(lat: float, lon: float) -> dict:
-    if not settings.FEATURE_REVERSE_GEOCODING:
+    if not feature_enabled("REVERSE_GEOCODING"):
         logger.debug("Reverse geocoding is disabled")
         return {}
     provider = site_config.MAP_API_PROVIDER

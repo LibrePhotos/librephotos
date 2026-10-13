@@ -46,6 +46,7 @@ from api.photos.media_files import (
     is_video,
     looks_like_media,
 )
+from api.runtime.features import feature_enabled
 from api.stacks.live_photo import (
     extract_embedded_motion_video,
     has_embedded_motion_video,
@@ -397,7 +398,7 @@ def _attach_embedded_motion_video(user: User, photo: Photo, file: File) -> File 
     if not (
         has_embedded_motion_video(file.path)
         and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
-        and settings.FEATURE_VIDEO
+        and feature_enabled("VIDEO")
     ):
         return None
 

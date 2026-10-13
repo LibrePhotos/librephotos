@@ -13,8 +13,6 @@ import hashlib
 import logging
 import os
 
-from django.conf import settings
-
 from api.mime import (
     IMAGE_EXTENSIONS,
     METADATA_EXTENSIONS,
@@ -25,6 +23,7 @@ from api.mime import (
 )
 from api.models.file import File
 from api.models.user import User
+from api.runtime.features import feature_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +103,11 @@ def looks_like_media(path: str) -> bool:
 
 def is_valid_media(path: str, user: User | None) -> bool:
     if is_video(path=path):
-        if not settings.FEATURE_VIDEO:
+        # Once per file of a scan: feature_enabled caches the site switches.
+        video_on = feature_enabled("VIDEO")
+        if not video_on:
             logger.info("Video support is disabled, skipping %s", path)
-        return bool(settings.FEATURE_VIDEO)
+        return video_on
     if is_metadata(path=path) or is_raw(path=path):
         return True
     return _can_decode(path)

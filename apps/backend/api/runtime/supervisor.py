@@ -9,6 +9,13 @@ from django.conf import settings
 from django.db import DatabaseError
 
 from api.runtime import sidecars
+from api.runtime.features import (
+    Feature,
+    env_flag_name,
+    feature_enabled,
+    feature_locked,
+    site_setting_key,
+)
 from api.runtime.sidecars import SERVICES, sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
@@ -23,18 +30,25 @@ BACKEND_ROOT = os.path.dirname(
 
 HTTP_OK = 200
 
-# The feature flag each service serves; None means core scan/search, always on.
+# The feature each service serves; None means core scan/search, always on.
 # The tags service runs OpenCLIP, which also makes the semantic-search
-# embeddings and query embeddings, so it is core: FEATURE_SCENE_CLASSIFICATION
-# only decides whether photos get tags (api.search.semantic).
-SERVICE_FEATURE_FLAGS = {
+# embeddings and query embeddings, so it is core: SCENE_CLASSIFICATION only
+# decides whether photos get tags (api.search.semantic).
+SERVICE_FEATURES: dict[str, Feature | None] = {
     "image_similarity": None,
     "thumbnail": None,
-    "face_recognition": "FEATURE_FACE_DETECTION",
-    "image_captioning": "FEATURE_IMAGE_CAPTIONING",
+    "face_recognition": "FACE_DETECTION",
+    "image_captioning": "IMAGE_CAPTIONING",
     "exif": None,
     "tags": None,
     "ocr": None,
+}
+
+# The environment variable that can lock each service's feature off, which the
+# admin Services page shows.
+SERVICE_FEATURE_FLAGS = {
+    service: None if feature is None else env_flag_name(feature)
+    for service, feature in SERVICE_FEATURES.items()
 }
 
 
@@ -72,25 +86,30 @@ SERVICE_SITE_GATES = {
 def is_service_enabled(service: str) -> bool:
     """Whether this deployment's configuration calls for the service to run.
 
-    A flag the settings module does not define counts as enabled, so an
-    unrecognised switch can never take a service away from a deployment that
-    had it before.
+    The feature's switch is the environment flag and then the site setting
+    (api.runtime.features); the per-minute watchdog re-reads it, so turning a
+    feature off or on in the site settings stops or starts its sidecar without
+    a restart.
     """
     gate = SERVICE_SITE_GATES.get(service)
     if gate is not None and not gate():
         return False
 
-    flag = SERVICE_FEATURE_FLAGS.get(service)
-    if flag is None:
-        return True
-    return bool(getattr(settings, flag, True))
+    feature = SERVICE_FEATURES.get(service)
+    return feature is None or feature_enabled(feature)
 
 
 def disabled_reason(service: str) -> str:
-    """Why is_service_enabled turned the service down, for a log or an error."""
-    flag = SERVICE_FEATURE_FLAGS.get(service)
-    if flag is not None and not bool(getattr(settings, flag, True)):
-        return f"{flag} is disabled"
+    """Why is_service_enabled turned the service down, for a log or an error.
+
+    It names the switch to change: the environment variable when the server
+    configuration locked the feature off, else the site setting.
+    """
+    feature = SERVICE_FEATURES.get(service)
+    if feature is not None and feature_locked(feature):
+        return f"{env_flag_name(feature)} is disabled in the server environment"
+    if feature is not None and not feature_enabled(feature):
+        return f"{site_setting_key(feature)} is turned off in the site settings"
     return "no model is selected for it in the site settings"
 
 

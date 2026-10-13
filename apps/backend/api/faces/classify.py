@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from bulk_update.helper import bulk_update
-from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -19,6 +18,7 @@ from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
+from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -138,7 +138,7 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
     :param user: the current user running the training
     :param job_id: the background job ID; None when ``scan_faces`` calls it
     """
-    if not settings.FEATURE_FACE_CLUSTER:
+    if not feature_enabled("FACE_CLUSTER"):
         logger.info("Face clustering is disabled")
         LongRunningJob.complete_unclaimed(job_id)
         return False

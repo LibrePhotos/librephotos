@@ -3,7 +3,6 @@ import uuid
 from typing import Any
 
 import PIL.Image
-from django.conf import settings
 from django.db.models import (
     Case,
     CharField,
@@ -43,6 +42,7 @@ from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
+from api.runtime.features import feature_enabled
 from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.face import (
     AddFaceRequest,
@@ -74,7 +74,7 @@ class ScanFacesView(APIView):
         return self._scan_faces(request)
 
     def _scan_faces(self, request: Request, format: str | None = None) -> Response:
-        if not settings.FEATURE_FACE_DETECTION:
+        if not feature_enabled("FACE_DETECTION"):
             raise PermissionDenied("Face detection is disabled")
 
         user = request_user(request)
@@ -94,7 +94,7 @@ class TrainFaceView(APIView):
 
     @staticmethod
     def _train_faces(request: Request) -> Response:
-        if not settings.FEATURE_FACE_CLUSTER:
+        if not feature_enabled("FACE_CLUSTER"):
             raise PermissionDenied("Face clustering is disabled")
         user = request_user(request)
         # Embeddings first, then clustering, which queues the training. The
