@@ -97,6 +97,17 @@ console before starting `librephotos.exe`; the data directory options above only
 `protected_media\secret.key` in the data directory (releases after 1.3.0; 1.3.0 and older kept it in
 the logs directory, and a newer release moves it on its first start).
 
+### Upgrading from 1.3.0 or older
+
+Not released yet: up to 1.3.0, LibrePhotos on Windows took the time on your PC's clock for UTC when it
+recorded when a photo was added and when it checked whether a file had changed since the last scan.
+West of Greenwich (UTC minus some hours, as in the Americas) a normal scan could therefore skip a file
+you edited within those hours after a scan, and the places and faces of photos added shortly after an
+earlier run were not looked up. Run a full rescan once after the upgrade: on the **Library** page, in
+the **Scan Library** section, click the arrow next to **Scan** and choose **Rescan** (or **Rescan All
+Photos** in the Ctrl+K command palette). East of Greenwich nothing was missed. Either way, the times
+in **Recently added** stay shifted by your UTC offset for photos added before the upgrade.
+
 ## Building it yourself
 
 ```powershell

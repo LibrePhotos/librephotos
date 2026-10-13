@@ -4,9 +4,9 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-import pytz
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from api.lazy_import import LazyModule
 from api.models import (
@@ -132,7 +132,7 @@ def _event_album(
     )
     if not albums:
         album = AlbumAuto(
-            created_on=datetime.utcnow().replace(tzinfo=pytz.utc),
+            created_on=timezone.now(),
             owner=user,
             timestamp=key,
         )
