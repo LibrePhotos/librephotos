@@ -68,19 +68,19 @@ export function JobList({ variant = "admin" }: IJobList) {
         <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing={matches ? "xs" : 6}>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th> {t("joblist.status")}</Table.Th>
-              <Table.Th> {t("joblist.jobtype")}</Table.Th>
-              <Table.Th> {t("joblist.progress")}</Table.Th>
+              <Table.Th>{t("joblist.status")}</Table.Th>
+              <Table.Th>{t("joblist.jobtype")}</Table.Th>
+              <Table.Th>{t("joblist.progress")}</Table.Th>
               {matches && (
                 <>
-                  <Table.Th> {t("joblist.queued")}</Table.Th>
-                  <Table.Th> {t("joblist.started")}</Table.Th>
-                  <Table.Th> {t("joblist.duration")}</Table.Th>
-                  {!mine && <Table.Th> {t("joblist.startedby")}</Table.Th>}
+                  <Table.Th>{t("joblist.queued")}</Table.Th>
+                  <Table.Th>{t("joblist.started")}</Table.Th>
+                  <Table.Th>{t("joblist.duration")}</Table.Th>
+                  {!mine && <Table.Th>{t("joblist.startedby")}</Table.Th>}
                 </>
               )}
               {/* One column for Cancel and Remove: Cancel only exists while a job runs, so its own column was empty on almost every row */}
-              <Table.Th> {t("joblist.actions")}</Table.Th>
+              <Table.Th>{t("joblist.actions")}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>

@@ -53,7 +53,7 @@ export function SaveChangesDialog({ opened, saving = false, onSave, onCancel }: 
           <Button size="sm" variant="default" onClick={onCancel} disabled={saving}>
             {t("settings.nextcloudcancel")}
           </Button>
-          <Button size="sm" color="green" onClick={onSave} loading={saving}>
+          <Button size="sm" onClick={onSave} loading={saving}>
             {t("settings.favoriteupdate")}
           </Button>
         </Group>

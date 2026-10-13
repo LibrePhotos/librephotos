@@ -1,19 +1,11 @@
 import type { DateTimeRule } from "@librephotos/api-client";
-import {
-  ActionIcon,
-  Modal,
-  ScrollArea,
-  Table,
-  Text,
-  TextInput,
-  useComputedColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
-import { getRuleExtraInfo } from "../settings/dateTimeSettings";
+import { describeRuleType, getRuleExtraInfo } from "../settings/dateTimeSettings";
+import classes from "../settings/RuleTable.module.css";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -31,8 +23,6 @@ function searchRules(query: string) {
 
 export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRules }: Props) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
   const [filter, setFilter] = useState("");
   const [rulesToAdd, setRulesToAdd] = useState<DateTimeRule[]>([]);
   const appendRule = (rule: DateTimeRule) => setRulesToAdd([...rulesToAdd, rule]);
@@ -53,24 +43,18 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
     .filter(ignoreSelectedRules)
     .map(rule => (
       <Table.Tr key={rule.name}>
-        <Table.Td>
-          <strong>
-            {rule.name} (ID:{rule.id})
-          </strong>
-          <div
-            style={{
-              fontSize: "0.9rem",
-              color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
-            }}
-          >
-            {t("rules.rule_type", { rule: rule.rule_type })}
-          </div>
-          {getRuleExtraInfo(rule, t)}
+        <Table.Td className={classes.ruleCell}>
+          <strong>{rule.name}</strong>
+          <Text size="sm" c="dimmed">
+            {t("rules.rule_type", { rule: describeRuleType(rule.rule_type, t) })}
+          </Text>
+          <Text component="div" size="xs" c="dimmed">
+            {getRuleExtraInfo(rule, t)}
+          </Text>
         </Table.Td>
         <Table.Td width={40}>
           <ActionIcon
             variant="subtle"
-            color="green"
             aria-label={t("settings.add_rule_named", { name: rule.name })}
             onClick={() => appendRule(rule)}
           >

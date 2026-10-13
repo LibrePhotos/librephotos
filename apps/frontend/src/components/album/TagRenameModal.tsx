@@ -40,7 +40,7 @@ export function TagRenameModal({ opened, onClose, tagName, existingNames, onSubm
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button color="green" disabled={!form.isValid()} onClick={() => rename()}>
+          <Button disabled={!form.isValid()} onClick={() => rename()}>
             {t("rename")}
           </Button>
         </Group>

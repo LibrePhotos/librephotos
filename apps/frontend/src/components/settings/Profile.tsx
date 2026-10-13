@@ -157,7 +157,6 @@ export function Profile() {
                 </Button>
                 <Button
                   size="sm"
-                  color="green"
                   leftSection={<Upload size={16} />}
                   onClick={async () => {
                     const editor = editorRef.current;

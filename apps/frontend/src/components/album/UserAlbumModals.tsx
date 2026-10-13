@@ -52,7 +52,7 @@ function RenameForm({ onClose, albumId, albumTitle, existingTitles }: Omit<Renam
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" color="green" disabled={!form.isValid()} loading={renameUserAlbum.isPending}>
+          <Button type="submit" disabled={!form.isValid()} loading={renameUserAlbum.isPending}>
             {t("rename")}
           </Button>
         </Group>

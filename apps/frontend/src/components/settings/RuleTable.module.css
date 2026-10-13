@@ -1,0 +1,6 @@
+/* The date/time and burst rule lists on /settings and their Add rule dialogs (#2225). */
+
+/* Long tokens such as "MakerNotes:ContinuousDrive" wrap, so the delete button stays in view on a phone. */
+.ruleCell {
+  overflow-wrap: anywhere;
+}

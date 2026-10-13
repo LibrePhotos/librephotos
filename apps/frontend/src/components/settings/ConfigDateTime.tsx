@@ -1,16 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { DateTimeRule } from "@librephotos/api-client";
-import {
-  Button,
-  CloseButton,
-  Group,
-  ScrollArea,
-  Table,
-  Text,
-  Title,
-  useComputedColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { Button, CloseButton, Group, ScrollArea, Table, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -18,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { describeRuleType, getRuleExtraInfo } from "./dateTimeSettings";
+import classes from "./RuleTable.module.css";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
 import { SectionLink } from "./SettingsSection";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
@@ -34,8 +25,6 @@ function isDateTimeRule(entry: unknown): entry is DateTimeRule {
 
 export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
   const { data: allRules } = useFetchPredefinedRulesQuery();
   // Every saved entry: the list shows and edits the rules, and saves the other entries as they are.
   const [entries, setEntries] = useState<unknown[]>([]);
@@ -105,19 +94,14 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
 
   const items = userRules.map(rule => (
     <SortableTr key={rule.id} id={rule.id.toString()}>
-      <Table.Td>
-        <strong>
-          {rule.name} (ID:{rule.id})
-        </strong>
-        <div
-          style={{
-            fontSize: "0.9rem",
-            color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
-          }}
-        >
+      <Table.Td className={classes.ruleCell}>
+        <strong>{rule.name}</strong>
+        <Text size="sm" c="dimmed">
           {t("rules.rule_type", { rule: describeRuleType(rule.rule_type, t) })}
-        </div>
-        {getRuleExtraInfo(rule, t)}
+        </Text>
+        <Text component="div" size="xs" c="dimmed">
+          {getRuleExtraInfo(rule, t)}
+        </Text>
       </Table.Td>
       <Table.Td width={40}>
         <CloseButton
@@ -146,12 +130,12 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
       </Text>
 
       <Group mb="md">
-        <Button color="green" leftSection={<CodePlus />} onClick={open}>
+        <Button leftSection={<CodePlus />} onClick={open}>
           {t("settings.add_rule")}
         </Button>
 
         <Button
-          color={resetButtonDisabled ? "gray" : "red"}
+          variant="default"
           disabled={resetButtonDisabled}
           leftSection={<ArrowBackUp />}
           onClick={() => resetToDefaultRules()}
@@ -162,6 +146,12 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
 
       <ScrollArea>
         <Table highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>{t("settings.burst.rule")}</Table.Th>
+              <Table.Th />
+            </Table.Tr>
+          </Table.Thead>
           <SortableTbody ids={userRules.map(rule => rule.id.toString())} onMove={moveRule}>
             {items}
           </SortableTbody>

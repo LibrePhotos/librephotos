@@ -1,17 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { SavedBurstDetectionRule, type BurstDetectionRule } from "@librephotos/api-client";
-import {
-  Badge,
-  Button,
-  CloseButton,
-  Group,
-  ScrollArea,
-  Switch,
-  Table,
-  Text,
-  Title,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Badge, Button, CloseButton, Group, ScrollArea, Switch, Table, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
@@ -20,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedBurstRulesQuery";
 import { ModalConfigBurstDetection } from "../modals/ModalConfigBurstDetection";
 import { isHardRule, isRuleEnabled } from "./burstDetectionRules";
+import classes from "./RuleTable.module.css";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
 import { SectionLink } from "./SettingsSection";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
@@ -60,7 +50,6 @@ function getRuleExtraInfo(rule: SavedBurstDetectionRule, t: TFunction<"translati
 
 export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionProps) {
   const { t } = useTranslation();
-  const colorScheme = useComputedColorScheme();
   const { data: allRules } = useFetchPredefinedBurstRulesQuery();
   // Every saved entry: the list shows and edits the rules, and saves the other entries as they are.
   const [entries, setEntries] = useState<unknown[]>([]);
@@ -143,10 +132,8 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
       <Table.Td width={60}>
         <Switch checked={isRuleEnabled(rule)} onChange={() => toggleRule(rule)} size="sm" aria-label={rule.name} />
       </Table.Td>
-      {/* Only the text dims for a disabled rule: a dimmed switch reads as a disabled control.
-          Long tokens such as "MakerNotes:ContinuousDrive" wrap, so the delete button stays in view
-          on a phone. */}
-      <Table.Td style={{ opacity: isRuleEnabled(rule) ? 1 : 0.6, overflowWrap: "anywhere" }}>
+      {/* Only the text dims for a disabled rule: a dimmed switch reads as a disabled control. */}
+      <Table.Td className={classes.ruleCell} opacity={isRuleEnabled(rule) ? 1 : 0.6}>
         <Group gap="xs">
           <strong>{rule.name}</strong>
           <Badge size="xs" color={isHardRule(rule) ? "blue" : "orange"}>
@@ -154,7 +141,7 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
           </Badge>
         </Group>
         {rule.description && (
-          <Text size="sm" c={colorScheme === "dark" ? "gray.6" : "dark.3"}>
+          <Text size="sm" c="dimmed">
             {rule.description}
           </Text>
         )}
@@ -187,12 +174,12 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
       </Text>
 
       <Group mb="md">
-        <Button color="green" leftSection={<CodePlus />} onClick={open}>
+        <Button leftSection={<CodePlus />} onClick={open}>
           {t("settings.add_rule")}
         </Button>
 
         <Button
-          color={resetButtonDisabled ? "gray" : "red"}
+          variant="default"
           disabled={resetButtonDisabled}
           leftSection={<ArrowBackUp />}
           onClick={() => resetToDefaultRules()}

@@ -143,7 +143,23 @@ describe("ConfigDateTime", () => {
     await renderList(JSON.stringify([legacyRule]));
 
     expect(rowIds()).toEqual(["1"]);
-    expect(container.textContent).toContain("Date taken (ID:1)");
+    expect(found(container.querySelector('tr[data-sortable-id="1"] strong'), "rule title").textContent).toBe(
+      "Date taken"
+    );
+  });
+
+  // #2225: laid out like the burst rule list.
+  it("names its column in a header row and does not show the internal rule id", async () => {
+    await renderList(JSON.stringify([legacyRule, predefinedRules[1]]));
+
+    const headers = [...container.querySelectorAll("thead th")].map(th => th.textContent);
+    expect(headers).toEqual([i18n.t("settings.burst.rule"), ""]);
+    // One header cell per row cell, so the delete column lines up.
+    expect(
+      found(container.querySelector<HTMLTableRowElement>("tr[data-sortable-id]"), "a rule row").cells
+    ).toHaveLength(headers.length);
+    expect(container.textContent).not.toContain("(ID:");
+    expect(container.textContent).toContain(i18n.t("rules.rule_type", { rule: i18n.t("rules.rule_type_names.exif") }));
   });
 
   it("saves the other rules unchanged when one is deleted", async () => {
