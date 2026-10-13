@@ -111,6 +111,7 @@ beforeEach(async () => {
           onToggleCollapse={() => {}}
           faceActions={actions}
           pendingFaceIds={new Set([21])}
+          showScrubber
         />
       </MantineProvider>
     )

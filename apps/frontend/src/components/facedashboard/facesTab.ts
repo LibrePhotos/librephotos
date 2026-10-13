@@ -20,3 +20,10 @@ export type FacesRouteOrder = z.infer<typeof FacesRouteOrder>;
 export function isUnknownGroup(group: Readonly<{ name: string }>): boolean {
   return group.name === UNKNOWN_PERSON_NAME;
 }
+
+/**
+ * The order of the people (groups) on the dashboard (its `personOrder` URL parameter): by name, as
+ * the server sends them, or the people with the most faces first (#764).
+ */
+export const FacesPersonOrder = z.enum(["name", "count"]);
+export type FacesPersonOrder = z.infer<typeof FacesPersonOrder>;

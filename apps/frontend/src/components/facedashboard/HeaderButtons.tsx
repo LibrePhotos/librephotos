@@ -21,6 +21,7 @@ import { PAGE_GUTTER } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
+import { PersonOrderControl } from "./PersonOrderControl";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -52,7 +53,7 @@ export function HeaderButtons({
   const trainFacesMutation = useTrainFacesMutation();
   const { t } = useTranslation();
   const search = routeApi.useSearch();
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence, personOrder } = search;
   const collapseLabel = allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall");
   // The toolbar's face actions work on the selection; their tooltips say what they do and, until a
   // face is selected, why they cannot (#2237).
@@ -72,13 +73,14 @@ export function HeaderButtons({
           </Button>
           {/* Dividers only where the controls fit on one row: when the row wraps they end up dangling at line ends */}
           <Divider orientation="vertical" visibleFrom="md" />
-          <Stack align="start">
+          {/* The order of the faces, then of the people (#764): close together, as one control */}
+          <Group gap="xs" wrap="nowrap">
             <Select
               w={150}
               value={orderBy}
               onChange={value => {
                 // Picking the selected option again clears it (null): the route then falls back to its default
-                navigate({ to: "/faces", search: { ...search, orderBy: FaceOrderBy.safeParse(value).data } });
+                void navigate({ to: "/faces", search: { ...search, orderBy: FaceOrderBy.safeParse(value).data } });
               }}
               leftSection={<SortDescending size={16} />}
               data={[
@@ -92,7 +94,11 @@ export function HeaderButtons({
                 },
               ]}
             />
-          </Stack>
+            <PersonOrderControl
+              value={personOrder}
+              onChange={order => void navigate({ to: "/faces", search: { ...search, personOrder: order } })}
+            />
+          </Group>
           {(activeTab === "inferred" || activeTab === "unknown") && (
             <>
               <Divider orientation="vertical" visibleFrom="md" />
@@ -101,7 +107,10 @@ export function HeaderButtons({
                   w={150}
                   value={analysisMethod}
                   onChange={value => {
-                    navigate({ to: "/faces", search: { ...search, method: FaceAnalysisMethod.safeParse(value).data } });
+                    void navigate({
+                      to: "/faces",
+                      search: { ...search, method: FaceAnalysisMethod.safeParse(value).data },
+                    });
                   }}
                   leftSection={<Filter size={16} />}
                   data={[
@@ -123,7 +132,7 @@ export function HeaderButtons({
                   value={minConfidence * 100}
                   onChange={value => {
                     if (typeof value === "number") {
-                      navigate({ to: "/faces", search: { ...search, minConfidence: value / 100 } });
+                      void navigate({ to: "/faces", search: { ...search, minConfidence: value / 100 } });
                     }
                   }}
                   min={0}

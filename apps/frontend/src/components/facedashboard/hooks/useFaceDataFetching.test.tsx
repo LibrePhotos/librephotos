@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList, PersonFaceList } from "../../../api_client/faces";
 import { defined } from "../../../util/defined.test-utils";
-import { FacesTab } from "../facesTab";
+import { FacesTab, type FacesPersonOrder } from "../facesTab";
 import { useFaceDataFetching } from "./useFaceDataFetching";
 
 // The part of useFetchIncompleteFacesQuery's result the hook reads
@@ -69,14 +69,16 @@ const firstCachedFace = () => {
 let root: Root;
 let container: HTMLDivElement;
 
-function Harness({ groups }: { groups: Group[] }) {
-  useFaceDataFetching(groups, FacesTab.enum.inferred, "clustering", "confidence", 0);
+let lists: ReturnType<typeof useFaceDataFetching>["lists"] | undefined;
+
+function Harness({ groups, personOrder }: { groups: Group[]; personOrder: FacesPersonOrder }) {
+  lists = useFaceDataFetching(groups, FacesTab.enum.inferred, "clustering", "confidence", 0, personOrder).lists;
   return null;
 }
 
-const render = async (groups: Group[]) => {
+const render = async (groups: Group[], personOrder: FacesPersonOrder = "name") => {
   await act(async () => {
-    root.render(<Harness groups={groups} />);
+    root.render(<Harness groups={groups} personOrder={personOrder} />);
   });
   await act(async () => {
     await Promise.resolve();
@@ -168,5 +170,24 @@ describe("useFaceDataFetching", () => {
 
     expect(stubs.fetchFaces).toHaveBeenCalledTimes(2);
     expect(firstCachedFace().isTemp).toBeUndefined();
+  });
+
+  it("orders the people by face count on a copy of the cached list (#764)", async () => {
+    const cluster = (id: number, name: string, faceCount: number) => ({
+      id,
+      name,
+      face_count: faceCount,
+      kind: "CLUSTER",
+      faces: placeholders(faceCount),
+    });
+    const cached = [cluster(1, "Unknown 001", 2), cluster(2, "Unknown 002", 9), cluster(3, "Unknown 003", 5)];
+    queryClient.setQueryData<CompletePersonFaceList>(INFERRED_KEY, cached);
+
+    await render([], "count");
+    expect(lists?.inferred.map(person => person.id)).toEqual([2, 3, 1]);
+    expect(queryClient.getQueryData<CompletePersonFaceList>(INFERRED_KEY)?.map(person => person.id)).toEqual([1, 2, 3]);
+
+    await render([], "name");
+    expect(lists?.inferred.map(person => person.id)).toEqual([1, 2, 3]);
   });
 });

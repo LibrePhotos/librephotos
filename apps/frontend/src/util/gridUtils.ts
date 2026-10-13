@@ -1,10 +1,11 @@
 const gridType = "dense";
 
 /**
- * The rows of a grid of groups: each group gets a header row holding just the
- * group, followed by rows of up to `itemsPerRow` of its items.
+ * The rows of a grid of groups: an open group gets a header row holding just the group, followed
+ * by rows of up to `itemsPerRow` of its items. Folded groups share rows of up to `itemsPerRow`
+ * groups, one cell each.
  */
-export type GroupedGridRows<Group, Item> = Array<[Group] | Item[]>;
+export type GroupedGridRows<Group, Item> = Array<Group[] | Item[]>;
 
 export const calculateGridCellSize = (gridWidth: number) => {
   let numEntrySquaresPerRow: number;
@@ -58,37 +59,44 @@ export const calculateGridCellSize = (gridWidth: number) => {
   return { entrySquareSize, numEntrySquaresPerRow };
 };
 
+/** Splits a list into rows of at most `perRow` (at least one per row). */
+function chunkRows<T>(items: readonly T[], perRow: number): T[][] {
+  const size = Math.max(1, perRow);
+  const rows: T[][] = [];
+  for (let start = 0; start < items.length; start += size) {
+    rows.push(items.slice(start, start + size));
+  }
+  return rows;
+}
+
+/**
+ * The faces grid's rows. An expanded person is a header row and rows of their faces. A collapsed
+ * person is a single cell, and collapsed people next to each other share rows, so "Collapse all"
+ * turns the dashboard into a grid of people (#860). A collapsed person's faces are left out
+ * entirely, so every consumer of the flattened cell array (row count, scrubber, lazy page loader)
+ * shrinks with it.
+ */
 export const calculateFaceGridCells = <Person extends { id: number; faces: readonly unknown[] }>(
   groupedByPersonList: readonly Person[],
   itemsPerRow: number,
   collapsedPersonIds: ReadonlySet<number> = new Set()
 ): { cellContents: GroupedGridRows<Person, Person["faces"][number]> } => {
   const gridContents: GroupedGridRows<Person, Person["faces"][number]> = [];
-  let rowCursor: Person["faces"][number][] = [];
+  let collapsedRun: Person[] = [];
+  const flushCollapsedRun = () => {
+    gridContents.push(...chunkRows(collapsedRun, itemsPerRow));
+    collapsedRun = [];
+  };
 
   groupedByPersonList.forEach(person => {
-    gridContents.push([person]);
-    // A collapsed person is reduced to its header row, so every consumer of the
-    // flattened cell array (row count, scrubber, lazy page loader) shrinks with it
     if (collapsedPersonIds.has(person.id)) {
+      collapsedRun.push(person);
       return;
     }
-    person.faces.forEach((face, idx) => {
-      if (idx === 0) {
-        rowCursor = [];
-      }
-      if (idx > 0 && idx % itemsPerRow === 0) {
-        gridContents.push(rowCursor);
-      }
-      if (idx % itemsPerRow === 0) {
-        rowCursor = [];
-      }
-      rowCursor.push(face);
-      if (idx === person.faces.length - 1) {
-        gridContents.push(rowCursor);
-      }
-    });
+    flushCollapsedRun();
+    gridContents.push([person], ...chunkRows(person.faces, itemsPerRow));
   });
+  flushCollapsedRun();
   return { cellContents: gridContents };
 };
 

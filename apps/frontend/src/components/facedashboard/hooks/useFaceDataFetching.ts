@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList } from "../../../api_client/faces";
 import { fetchFaces, useFetchIncompleteFacesQuery } from "../../../api_client/faces";
-import { FacesTab, isUnknownGroup, type FacesRouteOrder } from "../facesTab";
+import { FacesTab, isUnknownGroup, type FacesPersonOrder, type FacesRouteOrder } from "../facesTab";
+import { orderPeople } from "../personOrder";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
-const PAGE_SIZE = 100;
+export const PAGE_SIZE = 100;
 
 // Custom hook to manage face data fetching
 export function useFaceDataFetching(
@@ -20,7 +21,8 @@ export function useFaceDataFetching(
   activeTab: FacesTab,
   analysisMethod: FaceAnalysisMethod,
   orderBy: FacesRouteOrder,
-  minConfidence: number
+  minConfidence: number,
+  personOrder: FacesPersonOrder
 ) {
   // Create params objects for API calls. Memoized: they key the cache entries the
   // page loader below reads and writes, and a fresh object on every render would
@@ -60,14 +62,21 @@ export function useFaceDataFetching(
     wasFetchingLists.current = isFetchingLists;
   }, [isFetchingLists]);
 
-  // Filter data by category - MEMOIZED to prevent recalculation on every render
+  // Filter data by category - MEMOIZED to prevent recalculation on every render. The people are
+  // ordered on copies (#764): the cached lists keep the server's name order.
   const lists = useMemo(
     () => ({
       unknown: inferredFacesListUnfiltered.filter(isUnknownGroup),
-      inferred: inferredFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
-      labeled: labeledFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
+      inferred: orderPeople(
+        inferredFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
+        personOrder
+      ),
+      labeled: orderPeople(
+        labeledFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
+        personOrder
+      ),
     }),
-    [inferredFacesListUnfiltered, labeledFacesListUnfiltered]
+    [inferredFacesListUnfiltered, labeledFacesListUnfiltered, personOrder]
   );
 
   // Create hash mapping based on active tab - MEMOIZED

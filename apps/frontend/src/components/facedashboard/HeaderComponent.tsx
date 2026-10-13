@@ -1,8 +1,7 @@
-import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
-  IconChevronRight as ChevronRight,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconTrash as Trash,
@@ -22,6 +21,7 @@ import type { CompletePersonFace } from "../../api_client/faces/types";
 import { PersonRenameForm } from "../album/PersonRenameModal";
 import { canConfirmFace, isNamedPerson } from "./faceActionRules";
 import classes from "./HeaderComponent.module.css";
+import { useFocusOnMount } from "./hooks/useFocusOnMount";
 import { isLoadedFace } from "./hooks/useVirtualizedGrid";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
@@ -30,8 +30,13 @@ type Props = {
   style: React.CSSProperties;
   setSelectedFaces: (faces: FaceSelection[]) => void;
   selectedFaces: readonly FaceSelection[];
-  isCollapsed: boolean;
+  /** Folds the person into a single cell of the grid of people (PersonCell). */
   onToggleCollapse: () => void;
+  /** The face that stands for the person (#860); the avatar's placeholder while there is none. */
+  coverUrl: string | undefined;
+  /** The person was just unfolded: the toggle takes the focus their collapsed cell had. */
+  takeFocus: boolean;
+  onFocused: () => void;
 };
 
 const routeApi = getRouteApi("/_protected/faces");
@@ -41,8 +46,10 @@ export function HeaderComponent({
   style,
   setSelectedFaces,
   selectedFaces,
-  isCollapsed,
   onToggleCollapse,
+  coverUrl,
+  takeFocus,
+  onFocused,
 }: Readonly<Props>) {
   const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
@@ -58,6 +65,7 @@ export function HeaderComponent({
   // The dialogs open from menu items that are gone when they close, so the Modal's own
   // focus return dropped focus on the page body: it goes back to the ⋮ button instead
   const menuTrigger = useRef<HTMLButtonElement>(null);
+  const toggleRef = useFocusOnMount<HTMLButtonElement>(takeFocus, onFocused);
 
   function closeRenameDialog() {
     hideRenameDialog();
@@ -115,18 +123,17 @@ export function HeaderComponent({
     <Stack w="100%" justify="end" pb="xl" style={style}>
       <Group wrap="nowrap">
         <ActionIcon
+          ref={toggleRef}
           variant="subtle"
           color="gray"
           onClick={onToggleCollapse}
-          aria-expanded={!isCollapsed}
-          aria-label={
-            isCollapsed
-              ? t("facesdashboard.expandperson", { name: cell.name })
-              : t("facesdashboard.collapseperson", { name: cell.name })
-          }
+          aria-expanded
+          aria-label={t("facesdashboard.collapseperson", { name: cell.name })}
         >
-          {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+          <ChevronDown />
         </ActionIcon>
+        {/* The chip names the person, so the face is decoration */}
+        <Avatar src={coverUrl} alt="" radius="xl" size={36} className={classes.cover} />
         <Chip
           variant="filled"
           radius="xs"

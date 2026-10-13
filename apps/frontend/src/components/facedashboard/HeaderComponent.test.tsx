@@ -77,8 +77,10 @@ beforeEach(async () => {
           style={{}}
           selectedFaces={[]}
           setSelectedFaces={vi.fn<HeaderProps["setSelectedFaces"]>()}
-          isCollapsed={false}
           onToggleCollapse={vi.fn<() => void>()}
+          coverUrl={undefined}
+          takeFocus={false}
+          onFocused={vi.fn<() => void>()}
         />
       </MantineProvider>
     );

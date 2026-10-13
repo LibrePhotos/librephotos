@@ -22,7 +22,7 @@ The switch only takes effect together with **Settings → Metadata → Write edi
 - **Save to media file**: the regions are written into the original image file itself.
 - **Off** (the default): nothing is written, and the switch is greyed out until you pick one of the other two.
 
-*Not released yet: up to 1.3.0, face tags were written into the original image file while synchronization was **Off**. If you had the switch on with synchronization **Off**, your originals may already carry face regions and person names; LibrePhotos does not remove them.*
+_Not released yet: up to 1.3.0, face tags were written into the original image file while synchronization was **Off**. If you had the switch on with synchronization **Off**, your originals may already carry face regions and person names; LibrePhotos does not remove them._
 
 ## Change the label of a face
 
@@ -62,6 +62,14 @@ Each tab shows how many faces it holds. Hover over a tab to see how many people 
 
 To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the green plus button in the toolbar to add them to the person. To reject faces, select them and click the orange person-off button in the toolbar, which moves them back to "Unknown - Other".
 
+### Browse people
+
+_Not released yet: the faces, tiles and order of people below come with the release after 1.3._
+
+Each group starts with a row that shows the person's face, their name and how many faces they have. The face is the cover from the **People** page; a cluster such as "Unknown 001" uses its first face. Click the arrow next to the face to collapse the person: they shrink to a single tile with their face, name and face count, and collapsed people sit side by side. The double-arrow button in the toolbar collapses every group at once, which turns the tab into a grid of people. A collapsed person loads none of their faces apart from the cover, so a large library opens faster this way. Click a tile to open that person's faces again. The dashboard remembers which people you collapsed, per tab.
+
+Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
+
 ### Act on one face
 
 You can also review faces one at a time, without selecting them first. Point at a face (or move to it with the **Tab** key) and two buttons appear on it; on a phone or tablet they are always shown:
@@ -99,7 +107,7 @@ Faces are detected with [InsightFace](https://github.com/deepinsight/insightface
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
 
-*Not released yet: up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.*
+_Not released yet: up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them._
 
 ### Face Quality
 
