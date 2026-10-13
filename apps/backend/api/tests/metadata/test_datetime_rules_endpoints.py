@@ -22,8 +22,9 @@ class PredefinedRulesTest(TestCase):
         self.assertIsInstance(data, str)
         rules = json.loads(data)
         self.assertIsInstance(rules, list)
-        # 16 until "Timestamp set by user" (id 14) left the list (#2254).
-        self.assertEqual(15, len(rules))
+        # 16 until "Timestamp set by user" (id 14) left the list (#2254),
+        # then the video rules 17-19 joined it (#2268).
+        self.assertEqual(18, len(rules))
 
     def test_default_rules_on_predefined_rules_endpoint(self):
         response = self.client.get("/api/predefinedrules/")

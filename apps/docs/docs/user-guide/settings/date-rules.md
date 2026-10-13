@@ -52,6 +52,16 @@ The settings UI only offers "gps_timezonefinder" and "user_default" for "report_
 
 If either "source_tz" or "report_tz" could not be obtained, the rule is considered to be not applicable.
 
+### Videos
+
+Videos keep their date in other tags than photos, and the default rules read three of them:
+
+- **Phone videos** (iPhone, many Android phones) state the local time they were recorded at, with its UTC offset, in `QuickTime:CreationDate`. The rule "Local time from the video's QuickTime:CreationDate tag (phones)" uses that time as is, so no time zone has to be guessed. It is ranked above the rules that convert the UTC `QuickTime:CreateDate`.
+- **Other MP4 and MOV files** only have the UTC `QuickTime:CreateDate`, converted with the time zone of the video's position or, without one, your default time zone.
+- **MKV and WebM files** have a UTC `Matroska:DateTimeOriginal`, converted the same way by the two "MKV/WebM creation date" rules.
+
+_Not released yet._ After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with a **Rescan**.
+
 ### What gets stored, and why times are not converted for you
 
 Once a rule succeeds, LibrePhotos stores the **local time the camera recorded** — the time you would have read off the camera when you took the shot.

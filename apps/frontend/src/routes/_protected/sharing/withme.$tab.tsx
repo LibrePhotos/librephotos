@@ -62,11 +62,11 @@ function SharedWithMe() {
             <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="photos" keepMounted={false} pt="md">
+          <Tabs.Panel value="photos" pt="md">
             <PhotosSharedWithMe />
           </Tabs.Panel>
 
-          <Tabs.Panel value="albums" keepMounted={false} pt="md">
+          <Tabs.Panel value="albums" pt="md">
             <AlbumsSharedWithMe />
           </Tabs.Panel>
         </Tabs>

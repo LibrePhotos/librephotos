@@ -46,6 +46,7 @@ const planted = {
   "untyped-mock": `const plantedMock = vi.fn();`,
   "open-state": `const [modalOpen, setModalOpen] = useState(false);`,
   "route-modal": `const plantedDialog = <Modal opened onClose={close} />;`,
+  "tabs-panel-keep-mounted": `const plantedPanel = <Tabs.Panel value="photos" keepMounted={false} />;`,
   "date-parse": `const plantedInstant = DateTime.fromISO(value);`,
   "date-set-locale": `const plantedLabel = plantedInstant.setLocale("de").toFormat("D");`,
   "date-constructor": `const plantedDate = new Date(value);`,

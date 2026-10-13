@@ -110,11 +110,11 @@ function StacksDuplicatesPage() {
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="duplicates" keepMounted={false}>
+          <Tabs.Panel value="duplicates">
             <DuplicatesPageContent />
           </Tabs.Panel>
 
-          <Tabs.Panel value="stacks" keepMounted={false}>
+          <Tabs.Panel value="stacks">
             <StacksPageContent />
           </Tabs.Panel>
         </Tabs>

@@ -21,6 +21,7 @@ is how it is tested; only the paths differ.
 from __future__ import annotations
 
 import argparse
+import errno
 import importlib
 import json
 import os
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
+# The port the message about a taken one suggests instead (#2323).
+ALTERNATIVE_PORT = 8080
 # Set by the root process when it runs without a console: where its own output
 # and that of every child goes instead (see bootstrap_process).
 CONSOLE_LOG_ENV = "LIBREPHOTOS_CONSOLE_LOG"
@@ -616,6 +619,50 @@ def run_startup_step(argv: list[str], failure: str) -> None:
     raise StartupError(f"{failure}\n\n{detail}" if detail else failure)
 
 
+def port_unavailable_message(port: int, error: OSError | None) -> str:
+    """The message box text for a web server port LibrePhotos cannot listen on.
+
+    Names the program holding it when the OS says (#2323): "port in use" alone
+    leaves the user to find out which of their programs that is.
+    """
+    from api.runtime.ports import port_owner
+
+    example = ALTERNATIVE_PORT if port != ALTERNATIVE_PORT else ALTERNATIVE_PORT + 1
+    another_port = (
+        "start LibrePhotos on another port, for example with "
+        f'"librephotos.exe run --port {example}" (see "Using another port" in '
+        "the LibrePhotos documentation for Windows)."
+    )
+    owner = port_owner(port)
+    if owner is not None or error is None or error.errno == errno.EADDRINUSE:
+        program = ""
+        if owner is not None:
+            name = owner.name or "unknown name"
+            program = f" ({name}, process ID {owner.pid})"
+        return (
+            f"Port {port} is already used by another program{program}. "
+            "LibrePhotos needs it to show its pages.\n\n"
+            f"Close that program and start LibrePhotos again, or {another_port}"
+        )
+    return (
+        f"LibrePhotos cannot use port {port}: {error.strerror or error}.\n\n"
+        f"Windows keeps some ports for itself or for other programs; {another_port}"
+    )
+
+
+def check_port(host: str, port: int) -> None:
+    """Raise StartupError when the web server could not listen on its port.
+
+    Runs before anything else starts: uvicorn only finds out after the
+    migrations, the sidecars and the job cluster, and then exits.
+    """
+    from api.runtime.ports import bind_error
+
+    error = bind_error(host, port)
+    if error is not None:
+        raise StartupError(port_unavailable_message(port, error))
+
+
 def _set_console_title(title: str) -> None:
     if sys.platform == "win32":
         import ctypes
@@ -645,6 +692,9 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
         return
 
     _capture_console_output()
+    # Something else answers on the port, or nothing does but the port is
+    # still not ours to take (#2323): say so before doing any work.
+    check_port(host, port)
     _take_children_down_with_us()
     prepare_database()
     django.setup()
@@ -719,16 +769,31 @@ def _serve(
             threading.Thread(
                 target=_open_browser_when_up, args=(url,), daemon=True
             ).start()
-        server.run()
+        try:
+            server.run()
+        except SystemExit:
+            # uvicorn's answer to a port it cannot bind (#2323): sys.exit(3),
+            # which main()'s "except Exception" would let through without
+            # the message box. Only a start that never happened is ours.
+            if server.started:
+                raise
         if not server.started:
-            config = server.config
-            raise RuntimeError(
-                f"The server could not start on {config.host}:{config.port}"
-            )
+            raise _server_start_failure(server.config.host, server.config.port)
     finally:
         if icon is not None:
             icon.stop()
         _shutdown(cluster)
+
+
+def _server_start_failure(host: str, port: int) -> Exception:
+    """Why the server did not start: its port, taken after check_port ran,
+    or an error uvicorn has already logged."""
+    from api.runtime.ports import bind_error
+
+    error = bind_error(host, port)
+    if error is not None:
+        return StartupError(port_unavailable_message(port, error))
+    return RuntimeError(f"The server could not start on {host}:{port}")
 
 
 def _shutdown(cluster: subprocess.Popen[bytes]) -> None:

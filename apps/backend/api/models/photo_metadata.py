@@ -51,6 +51,11 @@ def _assign_string(target: object, field: str, value: object) -> None:
         setattr(target, field, value)
 
 
+def _turned_sideways(rotation: object) -> bool:
+    """Whether a video's ``Composite:Rotation`` (degrees) swaps width and height."""
+    return isinstance(rotation, int | float) and rotation % 180 == 90
+
+
 def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
@@ -514,13 +519,22 @@ class PhotoMetadata(models.Model):
             ("aperture", "fstop"),
             ("focal_length", "focal_length"),
             ("iso", "iso"),
-            ("width", "width"),
-            ("height", "height"),
             ("focal_length_35mm", "focal_length_35mm"),
         ):
             _assign_nonzero_number(metadata, field, values[name])
 
-        _assign_string(metadata, "camera_model", values["camera"])
+        width, height = values["width"], values["height"]
+        if _turned_sideways(values["rotation"]):
+            # A portrait phone video is stored landscape with a rotation of 90
+            # or 270 degrees: keep the size it is shown at, as its thumbnail is.
+            width, height = height, width
+        _assign_nonzero_number(metadata, "width", width)
+        _assign_nonzero_number(metadata, "height", height)
+
+        # Videos carry no EXIF; their camera is in the QuickTime atoms.
+        _assign_string(
+            metadata, "camera_model", values["camera"] or values["quicktime_model"]
+        )
         _assign_string(metadata, "lens_model", values["lens"])
 
         shutter_speed = format_exposure_time(values["shutter_speed"])
@@ -548,9 +562,14 @@ class PhotoMetadata(models.Model):
         A tag the file does not have leaves its column as it was: NULL on
         the first scan, never a 0 or "" placeholder.
         """
-        for field in ("camera_make", "lens_make", "serial_number"):
+        for field, value in (
+            # Videos carry no EXIF; their maker is in the QuickTime atoms.
+            ("camera_make", values["camera_make"] or values["quicktime_make"]),
+            ("lens_make", values["lens_make"]),
+            ("serial_number", values["serial_number"]),
+        ):
             # A serial number of digits only comes back from ExifTool as a number.
-            text = _text_value(values[field])
+            text = _text_value(value)
             if text is not None:
                 setattr(metadata, field, text[:_MAKER_MAX_LENGTH])
 

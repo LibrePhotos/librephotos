@@ -442,6 +442,7 @@ class StartupStepTest(SimpleTestCase):
         with (
             patch.object(standalone, "_already_running", return_value=False),
             patch.object(standalone, "_take_children_down_with_us"),
+            patch.object(standalone, "check_port"),
             patch.object(standalone, "run_teed", side_effect=list(results)) as teed,
             patch("django.setup") as setup,
             self.assertRaises(standalone.StartupError) as raised,

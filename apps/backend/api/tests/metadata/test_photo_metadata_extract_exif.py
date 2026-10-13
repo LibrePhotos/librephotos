@@ -158,6 +158,9 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.COLOR_SPACE,
                 Tags.BITS_PER_SAMPLE,
                 Tags.GPS_ALTITUDE,
+                Tags.QUICKTIME_MAKE,
+                Tags.QUICKTIME_MODEL,
+                Tags.ROTATION,
             ],
         )
 

@@ -11,6 +11,8 @@
 - ``ml_models``: the pinned model files, their download job and checksums
 - ``binaries``: the only place an external tool (ffmpeg, ffprobe, ExifTool, ...)
   is started
+- ``ports``: whether a port can be listened on and which program holds it;
+  importable without Django
 
 This file imports nothing, so ``api.runtime.sidecars`` stays importable
 without Django (the ``django-free`` import contract in ``pyproject.toml``).

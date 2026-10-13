@@ -512,10 +512,28 @@ DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
         "exif_tag": Tags.DATE_TIME,
     },
     {
+        "id": 17,
+        "name": f"Local time from the video's {Tags.QUICKTIME_CREATION_DATE} tag (phones)",
+        "rule_type": RuleTypes.EXIF,
+        # The value carries its UTC offset ("2024:04:03 03:00:00-07:00"). The
+        # date regexp drops it, which is right here: what is left is the local
+        # time the video was shot at.
+        "exif_tag": Tags.QUICKTIME_CREATION_DATE,
+    },
+    {
         "id": 2,
         "name": "Get Video creation tag in UTC + figure out timezone using GPS coordinates",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "gps_timezonefinder",
+    },
+    {
+        "id": 18,
+        "name": "Get MKV/WebM creation date in UTC + figure out timezone using GPS coordinates",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.MATROSKA_DATE,
         "transform_tz": 1,
         "source_tz": "utc",
         "report_tz": "gps_timezonefinder",
@@ -539,6 +557,15 @@ DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
         "name": "Video creation datetime in user default timezone (can't find out actual timezone)",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
+    },
+    {
+        "id": 19,
+        "name": "MKV/WebM creation date in user default timezone (can't find out actual timezone)",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.MATROSKA_DATE,
         "transform_tz": 1,
         "source_tz": "utc",
         "report_tz": "user_default",

@@ -11,6 +11,15 @@ class Tags:
     # EXIF:DateTimeOriginal untouched.
     DATE_CREATED = "XMP:DateCreated"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
+    # Phones (iPhone, many Android phones) store the local capture time with
+    # its UTC offset in the QuickTime Keys atom; ExifTool reports Keys tags
+    # under the family 0 group QuickTime. CreateDate above is UTC.
+    QUICKTIME_CREATION_DATE = "QuickTime:CreationDate"
+    # MKV and WebM: the creation date (UTC, "...Z"), from the Matroska DateUTC element.
+    MATROSKA_DATE = "Matroska:DateTimeOriginal"
+    # A video's camera, from the Keys or UserData atom: videos carry no EXIF.
+    QUICKTIME_MAKE = "QuickTime:Make"
+    QUICKTIME_MODEL = "QuickTime:Model"
     QUICKTIME_DURATION = "QuickTime:Duration"
     # MKV and WebM: ExifTool files their duration under Matroska, not QuickTime.
     MATROSKA_DURATION = "Matroska:Duration"
@@ -66,9 +75,7 @@ class Tags:
     # read one by one and the fallback is done in Python: ExifTool's MWG
     # composites would do it, but loading the MWG module makes the ungrouped
     # Rating come back under Composite too, which breaks the batched read.
-    # IPTC:Headline is not read: the exif sidecar's -struct reads are
-    # ungrouped, so it and XMP:Headline would come back as one "Headline" key.
-    # Photoshop and Lightroom mirror it into XMP:Headline anyway.
+    # IPTC:Headline is not read: Photoshop and Lightroom mirror it into XMP:Headline.
     TITLE = "XMP:Title"
     HEADLINE = "XMP:Headline"
     IPTC_OBJECT_NAME = "IPTC:ObjectName"
@@ -82,7 +89,9 @@ class Tags:
     # XMP-lr:HierarchicalSubject ("Places|USA|San Francisco"), imported as keywords.
     PERSON_IN_IMAGE = "XMP:PersonInImage"
     HIERARCHICAL_SUBJECT = "XMP:HierarchicalSubject"
-    ROTATION = "QuickTime:Rotation"
+    # A video's rotation in degrees (0, 90, 180, 270), from its track matrix.
+    # ExifTool returns it only as a Composite tag: "QuickTime:Rotation" reads nothing.
+    ROTATION = "Composite:Rotation"
     ORIENTATION = "EXIF:Orientation"
     # The orientation an XMP sidecar can hold: ExifTool cannot store
     # EXIF:Orientation in an .xmp (#2297). Written, never read: a sidecar

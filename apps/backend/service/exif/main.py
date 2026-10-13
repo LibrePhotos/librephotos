@@ -1,4 +1,5 @@
 import shutil
+from collections import Counter
 from typing import Any
 
 import exiftool
@@ -140,6 +141,17 @@ def _attribute(data: dict[str, object], tags: list[str]) -> tuple[list[object], 
     return values, len(claimed) == len(keys)
 
 
+def _shared_names(tags: list[str]) -> set[str]:
+    """The tags of *tags* whose name another one has too (EXIF:Model, QuickTime:Model)."""
+    names = Counter(_split_tag(tag)[1] for tag in tags)
+    return {tag for tag in tags if names[_split_tag(tag)[1]] > 1}
+
+
+def _ungrouped(data: dict[str, object]) -> bool:
+    """Whether an answer came from the -struct instance, whose keys have no group."""
+    return any(":" not in key for key in data if key != "SourceFile")
+
+
 def _file_values(
     et: exiftool.ExifTool,
     tags: list[str],
@@ -150,12 +162,15 @@ def _file_values(
     """*file*'s value of each of *tags*, from its answer to the *requested* names."""
     found, complete = _attribute(data, requested)
     by_name = dict(zip(requested, found))
+    # Without groups, tags of one name in different groups come back as one
+    # key, which cannot say whose value it is: each gets a command of its own.
+    ambiguous = _shared_names(requested) if _ungrouped(data) else set()
     values: list[object] = []
     for tag in tags:
         value: object = None
         for name in _names_in(file, tag):
             value = by_name[name]
-            if value is None and not complete:
+            if name in ambiguous or (value is None and not complete):
                 value = et.get_tag(name, file)
             if value is not None:
                 break
