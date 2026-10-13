@@ -248,23 +248,34 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.assertEqual(float(self.photo.exif_gps_lon), 13.4)
 
     @patch("api.metadata.edits.reverse_geocode")
-    def test_latitude_only_is_ignored_entirely(self, geocode):
-        """QUIRK: a partial coordinate pair is popped and dropped - the photo's
-        latitude is NOT updated and no geocoding happens."""
-        result = _edit(self.photo, {"exif_gps_lat": "52.5"})
+    def test_a_single_coordinate_is_refused(self, geocode):
+        """Half a location edit is invalid (#2209); it used to be dropped
+        silently, so the client never learnt that nothing was saved."""
+        for data in ({"exif_gps_lat": "52.5"}, {"exif_gps_lon": "13.4"}):
+            with self.subTest(data=data):
+                serializer = PhotoEditSerializer(self.photo, data=data, partial=True)
+                self.assertFalse(serializer.is_valid())
+                self.assertEqual(
+                    set(serializer.errors), {"exif_gps_lat", "exif_gps_lon"}
+                )
 
         geocode.assert_not_called()
-        self.assertIsNone(result.exif_gps_lat)
         self.photo.refresh_from_db()
         self.assertIsNone(self.photo.exif_gps_lat)
-
-    @patch("api.metadata.edits.reverse_geocode")
-    def test_longitude_only_is_ignored_entirely(self, geocode):
-        _edit(self.photo, {"exif_gps_lon": "13.4"})
-
-        geocode.assert_not_called()
-        self.photo.refresh_from_db()
         self.assertIsNone(self.photo.exif_gps_lon)
+
+    @patch("api.metadata.edits.reverse_geocode", return_value=dict(GEO_RESULT))
+    def test_both_null_removes_the_location(self, geocode):
+        _edit(self.photo, {"exif_gps_lat": "52.5", "exif_gps_lon": "13.4"})
+
+        _edit(self.photo, {"exif_gps_lat": None, "exif_gps_lon": None})
+
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.exif_gps_lat)
+        self.assertIsNone(self.photo.exif_gps_lon)
+        self.assertIsNone(self.photo.geolocation_json)
+        self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
+        geocode.assert_called_once_with(52.5, 13.4)
 
     @patch("api.metadata.edits.reverse_geocode")
     def test_no_gps_fields_does_not_geocode(self, geocode):
