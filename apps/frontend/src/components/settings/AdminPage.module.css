@@ -1,0 +1,18 @@
+/* The users table (#2244). */
+
+/* A scan directory stays on one line: wide enough for the distinctive end of most paths. */
+.scanDirectory {
+  max-width: 140px;
+}
+
+/* The theme's sm breakpoint, where the table gains the photo count and joined columns. */
+@media (min-width: 48em) {
+  .scanDirectory {
+    max-width: 320px;
+  }
+}
+
+/* A path has no spaces to wrap at: break it anywhere so the tooltip keeps its width. */
+.pathTooltip {
+  overflow-wrap: anywhere;
+}

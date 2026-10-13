@@ -1,10 +1,11 @@
 import type { BurstDetectionRule } from "@librephotos/api-client";
-import { ActionIcon, Badge, Modal, ScrollArea, Table, Text, TextInput, useComputedColorScheme } from "@mantine/core";
+import { ActionIcon, Badge, Group, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
+import classes from "../settings/RuleTable.module.css";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -47,7 +48,6 @@ function getRuleExtraInfo(rule: BurstDetectionRule, t: TFunction<"translation", 
 
 export function ModalConfigBurstDetection({ opened, onClose, availableRules, onAddRules }: Props) {
   const { t } = useTranslation();
-  const colorScheme = useComputedColorScheme();
   const [filter, setFilter] = useState("");
   const [rulesToAdd, setRulesToAdd] = useState<BurstDetectionRule[]>([]);
   const appendRule = (rule: BurstDetectionRule) => setRulesToAdd([...rulesToAdd, rule]);
@@ -68,15 +68,15 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
     .filter(ignoreSelectedRules)
     .map(rule => (
       <Table.Tr key={rule.id}>
-        <Table.Td>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <Table.Td className={classes.ruleCell}>
+          <Group gap="xs">
             <strong>{rule.name}</strong>
             <Badge size="xs" color={rule.category === "hard" ? "blue" : "orange"}>
               {rule.category === "hard" ? t("settings.burst.hard_criterion") : t("settings.burst.soft_criterion")}
             </Badge>
-          </div>
+          </Group>
           {rule.description && (
-            <Text size="sm" c={colorScheme === "dark" ? "gray.6" : "dark.3"}>
+            <Text size="sm" c="dimmed">
               {rule.description}
             </Text>
           )}
@@ -89,7 +89,6 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
         <Table.Td width={40}>
           <ActionIcon
             variant="subtle"
-            color="green"
             aria-label={t("settings.add_rule_named", { name: rule.name })}
             onClick={() => appendRule(rule)}
           >

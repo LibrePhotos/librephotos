@@ -21,7 +21,7 @@ export function TopMenuPublic() {
   if (isAuthenticated && user) {
     actions = (
       <Group gap="xs" wrap="nowrap">
-        <Button size="xs" variant="subtle" color="green" onClick={() => navigate({ to: "/" })}>
+        <Button size="xs" variant="subtle" onClick={() => navigate({ to: "/" })}>
           {t("publicalbum.goHome")}
         </Button>
         <ProfileButton />
@@ -30,7 +30,7 @@ export function TopMenuPublic() {
   } else if (!checkingSession) {
     // While the session is being checked show neither, so an owner does not see "Login" flash.
     actions = (
-      <Button size="xs" variant="subtle" color="green" onClick={() => navigate({ to: "/login" })}>
+      <Button size="xs" variant="subtle" onClick={() => navigate({ to: "/login" })}>
         {t("login.login")}
       </Button>
     );

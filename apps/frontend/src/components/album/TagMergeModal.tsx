@@ -48,7 +48,7 @@ export function TagMergeModal({ opened, onClose, target, tags, onSubmit }: Props
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button color="green" disabled={!form.isValid()} onClick={() => merge()}>
+          <Button disabled={!form.isValid()} onClick={() => merge()}>
             {t("tagalbum.merge")}
           </Button>
         </Group>

@@ -13,6 +13,7 @@ import {
   Table,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -36,6 +37,7 @@ import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import classes from "./AdminPage.module.css";
 import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
 import { ADMIN_SECTIONS } from "./sectionIds";
@@ -44,6 +46,34 @@ import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
+
+/** The scan directory on one line, cut at the start so its last folders stay in view. */
+function ScanDirectory({ path }: Readonly<{ path: string | null | undefined }>) {
+  const { t } = useTranslation();
+  if (!path) {
+    return (
+      <Text size="sm" c="dimmed">
+        {t("adminarea.notset")}
+      </Text>
+    );
+  }
+  return (
+    // Focus and a long press open it too, so the full path is not only for mouse users.
+    <Tooltip
+      label={path}
+      events={{ hover: true, focus: true, touch: true }}
+      multiline
+      maw={480}
+      classNames={{ tooltip: classes.pathTooltip }}
+    >
+      <Text size="sm" truncate="start" className={classes.scanDirectory} tabIndex={0}>
+        {/* Truncating at the start sets the text right-to-left; the path itself stays left-to-right,
+            or the slash of "/mnt/..." shows at its end. */}
+        <span dir="ltr">{path}</span>
+      </Text>
+    </Tooltip>
+  );
+}
 
 function UserTable() {
   const { t } = useTranslation();
@@ -70,23 +100,31 @@ function UserTable() {
         <Table striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>{t("adminarea.actions")}</Table.Th>
               <Table.Th>{t("adminarea.username")}</Table.Th>
               <Table.Th>{t("adminarea.scandirectory")}</Table.Th>
               {matches && (
                 <>
-                  <Table.Th>{t("adminarea.minimumconfidence")}</Table.Th>
                   <Table.Th>{t("adminarea.photocount")}</Table.Th>
                   <Table.Th>{t("adminarea.joined")}</Table.Th>
                 </>
               )}
+              {/* Last, as in the worker jobs table. */}
+              <Table.Th>{t("adminarea.actions")}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {userList?.map(user => (
               <Table.Tr key={user.username}>
+                <Table.Td>{user.username}</Table.Td>
                 <Table.Td>
-                  <span style={{ display: "flex" }}>
+                  <ScanDirectory path={user.scan_directory} />
+                </Table.Td>
+                {matches && <Table.Td>{user.photo_count}</Table.Td>}
+                {matches && (
+                  <Table.Td>{user.date_joined ? parseInstant(user.date_joined).toRelative() : null}</Table.Td>
+                )}
+                <Table.Td>
+                  <Group gap={5} wrap="nowrap">
                     <ActionIcon
                       variant="transparent"
                       color="blue"
@@ -102,7 +140,6 @@ function UserTable() {
                     </ActionIcon>
 
                     <ActionIcon
-                      style={{ marginLeft: "5px" }}
                       variant="transparent"
                       color="red"
                       disabled={user.is_superuser}
@@ -115,18 +152,8 @@ function UserTable() {
                     >
                       <Trash />
                     </ActionIcon>
-                  </span>
+                  </Group>
                 </Table.Td>
-                <Table.Td>{user.username}</Table.Td>
-                {/* Long paths wrap anywhere instead of widening the table. */}
-                <Table.Td style={{ overflowWrap: "anywhere" }}>
-                  {user.scan_directory ? user.scan_directory : t("adminarea.notset")}
-                </Table.Td>
-                {matches && <Table.Td>{user.confidence ? user.confidence : t("adminarea.notset")}</Table.Td>}
-                {matches && <Table.Td>{user.photo_count}</Table.Td>}
-                {matches && (
-                  <Table.Td>{user.date_joined ? parseInstant(user.date_joined).toRelative() : null}</Table.Td>
-                )}
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -135,7 +162,6 @@ function UserTable() {
       <Flex justify="flex-end" mt={10}>
         <Button
           size="sm"
-          color="green"
           variant="outline"
           leftSection={<Plus />}
           onClick={() => {

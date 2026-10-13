@@ -157,6 +157,16 @@ describe("JobList", () => {
     await mine.unmount();
   });
 
+  // #2244: like the users table, actions last; no header starts with a stray space.
+  it("ends with the actions column and trims every header", async () => {
+    const { container, unmount } = await render(<JobList />);
+
+    const headers = [...container.querySelectorAll("thead th")].map(th => th.textContent);
+    expect(headers.at(-1)).toBe(i18n.t("joblist.actions"));
+    for (const header of headers) expect(header).toBe(header?.trim());
+    await unmount();
+  });
+
   it("asks the backend to narrow the list only on the per-user surface", async () => {
     // Without this the page would show an admin every user's jobs — under a "My
     // Jobs" heading, with the owner column hidden.
