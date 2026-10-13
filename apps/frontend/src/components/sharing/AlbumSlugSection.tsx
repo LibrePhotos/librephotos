@@ -8,11 +8,11 @@ import React, { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSlugAvailabilityQuery, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/api";
-import { shareAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
 import { copyToClipboard } from "../../util/util";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
+import { publicAlbumLink } from "./publicAlbum";
 
 /**
  * Whether another album already holds `slug`, asked of the public endpoint while `enabled` (the
@@ -174,8 +174,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   }, [taken, slug]);
 
   // derived values
-  // shareAddress carries the subpath the app may be served under.
-  const slugLink = album?.public_slug ? `${shareAddress}/public/s/${album.public_slug}` : "";
+  const slugLink = album?.public_slug ? publicAlbumLink(album.public_slug) : "";
 
   // Follow the server's copy, but never over a setting the owner is editing: the dirty fields are
   // guards here, not triggers.

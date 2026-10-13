@@ -1,20 +1,24 @@
 import type { Job } from "@librephotos/api-client";
 import { Button } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useCancelJobMutation } from "../../api_client/jobs/hooks";
+import { CancelJobModal } from "./CancelJobModal";
 
 export function CancelJobButton({ job }: Readonly<{ job: Job }>) {
   const { t } = useTranslation();
-  const { mutate: cancelJob, isPending } = useCancelJobMutation();
+  const [confirmOpened, { open, close }] = useDisclosure(false);
 
   if (job.finished || job.cancelled) {
     return null;
   }
 
   return (
-    <Button onClick={() => cancelJob(job.id)} color="red" variant="outline" size="xs" loading={isPending}>
-      {t("joblist.cancel")}
-    </Button>
+    <>
+      <Button onClick={open} color="red" variant="outline" size="xs">
+        {t("joblist.cancel")}
+      </Button>
+      <CancelJobModal opened={confirmOpened} onClose={close} job={job} />
+    </>
   );
 }

@@ -1,4 +1,6 @@
+import type { JobDetail } from "@librephotos/api-client";
 import { ActionIcon, Avatar, Box, Menu } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
@@ -8,12 +10,13 @@ import {
   IconUser as User,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import React from "react";
+import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
 import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { CancelJobModal } from "../job/CancelJobModal";
 import { LogoutWhileUploadingModal, useLogoutGuard } from "../upload";
 import { jobPercent, WorkerJobMenuSection } from "./WorkerJobMenuSection";
 import { WorkerProgressRing } from "./WorkerProgressRing";
@@ -27,10 +30,21 @@ export function ProfileButton(): React.ReactNode {
   const { workerRunningJob, currentData } = useWorkerStatus();
   // Busy only once the worker has answered; no ring while the first poll is in flight.
   const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
+  const [menuOpened, menu] = useDisclosure(false);
+  const [cancelOpened, cancelDialog] = useDisclosure(false);
+  // The job the user asked to cancel, kept as it was: if it ends and another starts while
+  // the dialog is open, confirming must not cancel the new one.
+  const [jobToCancel, setJobToCancel] = useState<JobDetail | null>(null);
+
+  const askToCancel = (job: JobDetail) => {
+    setJobToCancel(job);
+    menu.close();
+    cancelDialog.open();
+  };
 
   return (
     <>
-      <Menu width={240} position="bottom-end">
+      <Menu width={240} position="bottom-end" opened={menuOpened} onChange={menu.set}>
         {/* While the worker is busy a progress ring wraps the avatar, and the running
           job heads the menu. When idle there is nothing extra in the header. */}
         <Box pos="relative" display="flex">
@@ -54,7 +68,7 @@ export function ProfileButton(): React.ReactNode {
         </Box>
 
         <Menu.Dropdown>
-          {workerBusy && <WorkerJobMenuSection job={workerRunningJob} />}
+          {workerBusy && <WorkerJobMenuSection job={workerRunningJob} onCancel={askToCancel} />}
 
           <Menu.Label>
             <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
@@ -90,6 +104,7 @@ export function ProfileButton(): React.ReactNode {
         </Menu.Dropdown>
       </Menu>
       <LogoutWhileUploadingModal {...modalProps} />
+      {jobToCancel && <CancelJobModal opened={cancelOpened} onClose={cancelDialog.close} job={jobToCancel} />}
     </>
   );
 }

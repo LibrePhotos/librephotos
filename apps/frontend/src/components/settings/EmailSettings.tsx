@@ -15,6 +15,7 @@ import {
   Title,
 } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
+import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
@@ -24,6 +25,7 @@ import {
   useUpdateEmailConfigMutation,
 } from "../../api_client/settings/hooks/useEmailConfig";
 import { notification } from "../../service/notifications";
+import { ConfirmModal } from "../modals/ConfirmModal";
 import { makeEmailSettingsSchema } from "./EmailSettings.schema";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionLink, SettingsSection } from "./SettingsSection";
@@ -71,6 +73,8 @@ export function EmailSettings(): React.JSX.Element {
   });
   const [hasSecret, setHasSecret] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  // The admin has to look the credential up and type it again, so removing it asks first.
+  const [clearSecretOpened, clearSecretDialog] = useDisclosure(false);
 
   // Reads the form at load time; `form` is a new object every render and is not a trigger.
   const loadConfig = useEffectEvent((stored: EmailConfig) => {
@@ -143,6 +147,8 @@ export function EmailSettings(): React.JSX.Element {
         onSuccess: () => {
           setHasSecret(false);
           form.setFieldValue("secret", "");
+          clearSecretDialog.close();
+          notification.success(t("emailsettings.secretcleared"));
         },
         onError: reportSaveError,
       }
@@ -275,7 +281,7 @@ export function EmailSettings(): React.JSX.Element {
                 </Grid.Col>
                 {hasSecret && (
                   <Grid.Col span={12}>
-                    <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={onClearSecret}>
+                    <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={clearSecretDialog.open}>
                       {t("emailsettings.clear_secret")}
                     </Anchor>
                   </Grid.Col>
@@ -299,6 +305,15 @@ export function EmailSettings(): React.JSX.Element {
             </Alert>
           )}
         </Stack>
+        <ConfirmModal
+          opened={clearSecretOpened}
+          onClose={clearSecretDialog.close}
+          onConfirm={onClearSecret}
+          loading={isSaving}
+          title={t("confirmdialog.clearsecret.title")}
+          message={t("confirmdialog.clearsecret.message")}
+          confirmLabel={t("confirmdialog.clearsecret.confirm")}
+        />
       </Card>
     </SettingsSection>
   );

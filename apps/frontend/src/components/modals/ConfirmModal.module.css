@@ -1,0 +1,13 @@
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--mantine-spacing-sm);
+  margin-top: var(--mantine-spacing-xs);
+}
+
+/* On a phone both buttons share the row, so the red one is never the only easy thumb target. */
+@media (max-width: 35.99em) {
+  .actions > * {
+    flex: 1;
+  }
+}

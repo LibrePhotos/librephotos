@@ -2,7 +2,6 @@ import type { JobDetail } from "@librephotos/api-client";
 import { Button, Menu, Progress, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useCancelJobMutation } from "../../api_client/jobs/hooks";
 import { jobTypeLabel } from "../job/jobTypeLabel";
 
 // Share of the job done, 0-100, or null when there is nothing to measure yet.
@@ -16,13 +15,17 @@ export function jobPercent(job: JobDetail | null): number | null {
 type Props = Readonly<{
   // Null while the worker is busy with a job this user cannot see.
   job: JobDetail | null;
+  /**
+   * Asks to cancel `job`. The parent closes the menu and opens the confirmation beside
+   * it: a dialog inside the dropdown would unmount with the menu.
+   */
+  onCancel: (job: JobDetail) => void;
 }>;
 
 // The running job, shown at the top of the account menu only while the worker is
 // busy. The full job history stays one click away under "My Jobs".
-export function WorkerJobMenuSection({ job }: Props) {
+export function WorkerJobMenuSection({ job, onCancel }: Props) {
   const { t } = useTranslation();
-  const { mutate: cancelJob, isPending } = useCancelJobMutation();
   const percent = jobPercent(job);
 
   return (
@@ -41,11 +44,10 @@ export function WorkerJobMenuSection({ job }: Props) {
             )}
             {!job.finished && !job.cancelled && (
               <Button
-                onClick={() => cancelJob(job.id)}
+                onClick={() => onCancel(job)}
                 color="red"
                 variant="subtle"
                 size="compact-xs"
-                loading={isPending}
                 style={{ alignSelf: "flex-start" }}
               >
                 {t("joblist.cancel")}

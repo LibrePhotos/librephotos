@@ -30,7 +30,7 @@ To change a face to a new person, click on the green plus button. Search for the
 
 You do not have to go through the face dashboard. Open a photo and look at the **People** section of the sidebar: it lists every face found in that photo, including the ones nothing has named yet. Hovering a row draws a box around that face on the photo, so you can tell which face a row belongs to.
 
-A face the clustering and classification have not matched to anyone is shown as **Who is this?**. Click the row (or the person-question button next to it) to open the same **Label faces** dialog the dashboard uses, and pick or create a person. Rows that carry a name the classification guessed also offer the green check-person button to confirm that guess, the orange person-off button to reject it, and the trashcan to remove a detection that is not a face at all.
+A face the clustering and classification have not matched to anyone is shown as **Who is this?**. Click the row (or the person-question button next to it) to open the same **Label faces** dialog the dashboard uses, and pick or create a person. Rows that carry a name the classification guessed also offer the green check-person button to confirm that guess, the orange person-off button to reject it, and the trashcan to remove a detection that is not a face at all. The trashcan asks first, as it does on the face dashboard (see [Delete faces](#delete-faces)).
 
 A row labelled **Unknown 001** (or a similar number) is a face that clustering grouped together with others like it, without anybody naming the group. That label is the group's name, not a person's, so there is nothing to confirm and no green check-person button — name such a row the same way you name a **Who is this?** one.
 

@@ -87,7 +87,7 @@ The **Organizing** page (accessible from the navigation) is your central hub for
 - Filter by stack type — the dropdown offers **All Types** plus each type you actually have stacks of
 - Click a stack to open the **Stack Modal** showing all photos in the group with details (resolution, file size, camera, date)
 - **Set Cover** — Choose which photo represents the stack in the timeline
-- **Unstack** — Remove the grouping
+- **Unstack** — Remove the grouping. It asks first: the photos stay in your library, a burst or bracket stack comes back with the next detection, but a manual stack has to be built again by hand
 - **View in Lightbox** — Browse stack photos in the full lightbox viewer
 
 #### Creating Manual Stacks
