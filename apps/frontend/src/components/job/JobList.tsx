@@ -1,6 +1,6 @@
-import { Alert, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
@@ -29,6 +29,14 @@ type IJobList = Readonly<{
   variant?: "admin" | "mine";
 }>;
 
+/** A job's detail page on each surface: the admin area's, or the user's own at /jobs. */
+const DETAIL_ROUTE = { admin: "/admin/job/$id", mine: "/jobs/$id" } as const;
+
+/** A click on the row itself, not on a control inside it that does its own thing. */
+function isPlainRowClick(target: EventTarget) {
+  return !(target instanceof Element && target.closest('a, button, [role="button"]'));
+}
+
 export function JobList({ variant = "admin" }: IJobList) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,6 +45,7 @@ export function JobList({ variant = "admin" }: IJobList) {
   const [activePage, setActivePage] = useState(1);
   const [pageSize] = useState(10);
   const mine = variant === "mine";
+  const detailRoute = DETAIL_ROUTE[variant];
 
   const jobsQuery = useJobsQuery({ page: activePage, pageSize, mine });
   const { data: jobs, isLoading } = jobsQuery;
@@ -88,19 +97,27 @@ export function JobList({ variant = "admin" }: IJobList) {
               <Table.Tr
                 key={job.job_id}
                 style={{ cursor: "pointer" }}
+                // A mouse convenience: the job type is the link the keyboard reaches (#2228)
                 onClick={e => {
-                  // Don't navigate if clicking on the delete button or its container
-                  const { target } = e;
-                  if (target instanceof Element && (target.closest("button") || target.closest('[role="button"]'))) {
-                    return;
+                  if (isPlainRowClick(e.target)) {
+                    navigate({ to: detailRoute, params: { id: String(job.id) } });
                   }
-                  navigate({ to: `${mine ? "/jobs" : "/admin/job"}/${job.id}` });
                 }}
               >
                 <Table.Td>
                   <JobIndicator job={job} />
                 </Table.Td>
-                <Table.Td>{jobTypeLabel(job, t)}</Table.Td>
+                <Table.Td>
+                  <Anchor
+                    c="inherit"
+                    inherit
+                    underline="hover"
+                    // renderRoot, not component={Link}: only this way are `to` and `params` type-checked
+                    renderRoot={props => <Link to={detailRoute} params={{ id: String(job.id) }} {...props} />}
+                  >
+                    {jobTypeLabel(job, t)}
+                  </Anchor>
+                </Table.Td>
                 <Table.Td>
                   <JobProgress
                     target={job.progress_target}
