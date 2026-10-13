@@ -22,7 +22,9 @@ from dataclasses import dataclass
 
 import exiftool
 
+from api.metadata.orientation import SHOWN_ORIENTATION_TAGS, shown_orientation
 from api.metadata.reader import sidecar_for_write
+from api.mime import HEIF_EXTENSIONS, extension
 from api.runtime import binaries
 
 logger = logging.getLogger(__name__)
@@ -348,3 +350,24 @@ def read_orientation(media_file: str) -> int | None:
     if value is None:
         return 1
     return value if isinstance(value, int) else None
+
+
+def read_shown_orientation(media_file: str) -> int | None:
+    """The orientation (1-8) *media_file* is shown under (``shown_orientation``).
+
+    Read from the media file alone, like ``read_orientation``, which answers
+    for any file but a HEIF image (HEIC, AVIF): that one is shown under its
+    irot/imir, whatever its EXIF Orientation says (#2615). Returns None when
+    the file cannot be read at all.
+    """
+    if extension(media_file) not in HEIF_EXTENSIONS:
+        return read_orientation(media_file)
+    try:
+        with exiftool.ExifTool(binaries.exiftool()) as et:
+            found = et.get_tags(SHOWN_ORIENTATION_TAGS, media_file)
+    except Exception:
+        logger.exception("ExifTool could not read the orientation of a HEIF file")
+        return None
+    return shown_orientation(
+        media_file, *(found.get(tag) for tag in SHOWN_ORIENTATION_TAGS)
+    )

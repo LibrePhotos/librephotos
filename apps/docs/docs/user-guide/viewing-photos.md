@@ -161,7 +161,7 @@ Rotation in LibrePhotos is **non-destructive**:
 Your **Write edits to files** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
 
 - **Off**, the default: only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
-- **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that read sidecars (digiKam, darktable, Lightroom) can show the photo turned the same way.
+- **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that take the orientation from a sidecar, such as digiKam, show the photo turned the same way (darktable ignores it). The value is relative to the image as stored in the file: for a HEIC or AVIF photo it starts from the file's own rotation (its `irot` and `imir`), not from its EXIF Orientation, which can disagree.
 - **Save to media file**: for JPEG, PNG, TIFF and WebP files, LibrePhotos writes the new EXIF Orientation into the original, so every viewer shows the rotation. HEIC, AVIF and RAW files are not rewritten: their viewers ignore that tag, so the rotation stays in LibrePhotos.
 
 _Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save to media file** wrote a wrong EXIF Orientation into HEIC, AVIF and RAW originals (often the opposite turn), replacing the camera's own value. LibrePhotos' own thumbnails were not affected. If another app shows such a file turned the wrong way, set its orientation there or with `exiftool -Orientation=...`._

@@ -223,10 +223,13 @@ def write_orientation_to_disk(photo: Photo) -> str | None:
 
 
 def _orientation_on_disk(path: str) -> int:
-    """The EXIF Orientation in the original ``path``; raises when unreadable."""
-    from api.metadata.writer import read_orientation
+    """The orientation the original ``path`` is shown under; raises when unreadable.
 
-    on_disk = read_orientation(path)
+    Its EXIF Orientation, or a HEIF image's irot/imir (``read_shown_orientation``).
+    """
+    from api.metadata.writer import read_shown_orientation
+
+    on_disk = read_shown_orientation(path)
     if on_disk is None:
         raise MetadataWriteError(path, "ExifTool could not read its orientation")
     return on_disk
@@ -238,10 +241,17 @@ def _write_sidecar_orientation(photo: Photo) -> None:
     ``EXIF:Orientation`` cannot be stored in an ``.xmp``. An app that reads
     the sidecar takes its orientation instead of the original's own tag, so
     the value is the one that shows the original the way LibrePhotos renders
-    it now (``exif_orientation_showing``): the original's tag, which sidecar
-    mode never changes, with the whole of ``local_orientation`` on top. Every
-    rotate rewrites it from that same base, so rotations do not pile up.
-    LibrePhotos does not read it back (``SIDECAR_EQUIVALENTS``).
+    it now (``exif_orientation_showing``): the orientation the original is
+    shown under, which sidecar mode never changes, with the whole of
+    ``local_orientation`` on top. Every rotate rewrites it from that same
+    base, so rotations do not pile up. LibrePhotos does not read it back
+    (``SIDECAR_EQUIVALENTS``), so a rescan renders the photo as before.
+
+    For a HEIC or AVIF that base is its irot/imir, not its EXIF Orientation,
+    which libheif ignores and which can disagree with them (#2620). Like the
+    face regions in the same sidecar, the value is relative to the stored
+    pixels: digiKam decodes HEIF without irot/imir and orients the pixels by
+    the sidecar's ``tiff:Orientation``, and Apple's EXIF tag means the same.
     """
     from api.thumbnails.render import exif_orientation_showing
 

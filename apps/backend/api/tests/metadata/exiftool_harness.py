@@ -69,6 +69,9 @@ QUADRANTS = {
 # Stored layout, read left to right, top to bottom.
 STORED_LAYOUT = ("red", "green", "blue", "white")
 
+# The EXIF Orientation tag, for Pillow.
+EXIF_ORIENTATION = 0x0112
+
 # What ExifTool prints on stdout for a write that reached the file.
 WRITE_LANDED = (b"1 image files updated", b"1 image files created")
 
@@ -318,14 +321,31 @@ class RealExifToolTestCase(TestCase):
     def make_image(self, extension: str = ".jpg", name: str = "photo") -> str:
         """A ``WIDTH`` x ``HEIGHT`` image in ``STORED_LAYOUT``, untagged."""
         path = os.path.join(self.directory, name + extension)
-        quadrants = PIL.Image.new("RGB", (WIDTH, HEIGHT))
-        half_w, half_h = WIDTH // 2, HEIGHT // 2
-        for index, colour in enumerate(STORED_LAYOUT):
-            left, top = (index % 2) * half_w, (index // 2) * half_h
-            quadrants.paste(QUADRANTS[colour], (left, top, left + half_w, top + half_h))
         if extension in (".heic", ".heif") and not heic_encoder():
             raise unittest.SkipTest("this pillow-heif build has no HEVC encoder")
-        quadrants.save(path)
+        quadrants().save(path)
+        return path
+
+    def make_heic(self, name: str, shown: int, exif: int | None) -> str:
+        """A HEIC of ``quadrants()``, shown under ``shown``.
+
+        pillow-heif writes ``shown`` as irot/imir and as the EXIF Orientation;
+        that tag is then set to ``exif`` (removed for None), so it can
+        disagree with what libheif shows (#2615).
+        """
+        if not heic_encoder():
+            raise unittest.SkipTest("this pillow-heif build has no HEVC encoder")
+        path = os.path.join(self.directory, name + ".heic")
+        if shown == 1:
+            quadrants().save(path)
+        else:
+            tags = PIL.Image.Exif()
+            tags[EXIF_ORIENTATION] = shown
+            quadrants().save(path, exif=tags.tobytes())
+        if exif is None:
+            self.tag(path, "-EXIF:Orientation=")
+        elif exif != shown:
+            self.tag(path, f"-EXIF:Orientation#={exif}")
         return path
 
     def make_video(
@@ -435,6 +455,16 @@ class RealExifToolTestCase(TestCase):
 
 
 # ---- pictures ----------------------------------------------------------
+
+
+def quadrants() -> PIL.Image.Image:
+    """The stored image: ``STORED_LAYOUT``, ``WIDTH`` x ``HEIGHT``."""
+    image = PIL.Image.new("RGB", (WIDTH, HEIGHT))
+    half_w, half_h = WIDTH // 2, HEIGHT // 2
+    for index, colour in enumerate(STORED_LAYOUT):
+        left, top = (index % 2) * half_w, (index // 2) * half_h
+        image.paste(QUADRANTS[colour], (left, top, left + half_w, top + half_h))
+    return image
 
 
 def heic_encoder() -> bool:
