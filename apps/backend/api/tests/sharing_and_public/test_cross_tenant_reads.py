@@ -48,7 +48,10 @@ class CrossTenantReadTest(TestCase):
 
         year_ago = timezone.now() - datetime.timedelta(days=365)
         self.v_photo = create_test_photo(
-            owner=self.victim, public=False, exif_timestamp=year_ago
+            owner=self.victim,
+            public=False,
+            exif_timestamp=year_ago,
+            camera="VictimCameraModel",
         )
         self.v_photo2 = create_test_photo(
             owner=self.victim, public=False, exif_timestamp=year_ago
@@ -102,6 +105,7 @@ class CrossTenantReadTest(TestCase):
             *(str(p.pk) for p in self.v_photos),
             *(p.image_hash for p in self.v_photos),
             "VictimFriendName",
+            "VictimCameraModel",
             "victim-tag-name",
             "VictimTripTitle",
             "VictimEventTitle",
@@ -166,6 +170,11 @@ class CrossTenantReadTest(TestCase):
             ("/api/photos/shared/tome/", None),
             ("/api/photos/shared/fromme/", None),
             ("/api/photos/nolocation/", v.v_photo.image_hash),
+            ("/api/search/metadata-values/?field=camera", "VictimCameraModel"),
+            (
+                f"/api/photos/searchlist/?person={v.v_person.pk}",
+                v.v_photo.image_hash,
+            ),
             # The victim's photos are all in their album, so the owner sees none.
             ("/api/photos/no-album/", None),
             (f"/api/photos/{v.v_photo.pk}/albums/", "VictimTripTitle"),

@@ -8,9 +8,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.params import parse_query
 from api.drf.request_user import request_user, scope_user
 from api.models import Photo
 from api.search.filters import SemanticSearchFilter
+from api.search.metadata_filter import MetadataFilterQuery, metadata_values
 from api.search.term_examples import get_search_term_examples
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -19,6 +21,7 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.search import MetadataValuesQuery, MetadataValuesSerializer
 from api.views.custom_api_view import ListViewSet
 
 # The date of the undated group in search results. The other grouped lists send
@@ -55,12 +58,16 @@ class SearchListViewSet(ListViewSet):
             OpenApiParameter("photo", OpenApiTypes.BOOL),
             OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
             OpenApiParameter("is_document", OpenApiTypes.BOOL),
+            MetadataFilterQuery,
         ],
         description=(
             "Search photos and videos. Pass video=true to return only videos "
-            "or photo=true to return only photos. With semantic search on "
-            "(the user's semantic_search_topk), results is a flat list of "
-            "photo summaries instead of date groups."
+            "or photo=true to return only photos. The structured filters "
+            "(camera, lens, exposure ranges, rating, capture days, location, "
+            "file type, people) narrow the results with or without a search "
+            "term; a bad value is a 400 naming the parameter. With semantic "
+            "search on (the user's semantic_search_topk), results is a flat "
+            "list of photo summaries instead of date groups."
         ),
         responses=SearchResultsSerializer,
     )
@@ -80,6 +87,19 @@ class SearchListViewSet(ListViewSet):
             queryset = self.filter_queryset(photos)
             summary_serializer = PhotoSummarySerializer(queryset, many=True)
             return Response({"results": summary_serializer.data})
+
+
+class MetadataValuesView(APIView):
+    """The cameras, makers or lenses of the requester's photos, for the
+    suggestions of the search filters: each distinct value with its photo
+    count, most photos first, in one answer (a library has few)."""
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(parameters=[MetadataValuesQuery], responses=MetadataValuesSerializer)
+    def get(self, request: Request) -> Response:
+        field = parse_query(request, MetadataValuesQuery)["field"]
+        return Response({"results": metadata_values(request_user(request), field)})
 
 
 SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2

@@ -62,6 +62,7 @@ describe.skipIf(!baseUrl)("live backend contract", () => {
     await endpoints.fetchRecentlyAddedPhotos(client);
     await endpoints.fetchPhotosWithoutTimestamp(client, 1);
     await endpoints.fetchPhotosWithoutLocation(client, 1);
+    await endpoints.fetchMetadataValues(client, "camera");
   });
 
   it("albums: user, auto, thing, place, tag (lists and first detail)", async () => {

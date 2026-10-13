@@ -56,6 +56,7 @@ from api.runtime.ml_models import (
     captioning_model_selected,
     start_model_download,
 )
+from api.search.metadata_filter import no_location_q
 from api.serializers.album_user import (
     AlbumUserListSerializer,
     with_album_user_list_relations,
@@ -227,9 +228,7 @@ class NoLocationPhotoViewSet(ListViewSet):
 
     def get_queryset(self) -> QuerySet[Photo]:
         return with_photo_summary_relations(
-            _media_filtered_photos(self.request).filter(
-                Q(exif_gps_lat__isnull=True) | Q(exif_gps_lon__isnull=True)
-            )
+            _media_filtered_photos(self.request).filter(no_location_q())
         ).order_by("added_on")
 
     @extend_schema(parameters=[PhotoMediaQuery])

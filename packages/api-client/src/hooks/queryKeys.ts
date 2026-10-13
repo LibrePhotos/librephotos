@@ -1,4 +1,13 @@
-import type { DuplicateType, FaceAnalysisMethod, FaceOrderBy, JobListParams, Photoset, ReviewStatus } from "../schemas";
+import type { SearchFilters } from "../endpoints";
+import type {
+  DuplicateType,
+  FaceAnalysisMethod,
+  FaceOrderBy,
+  JobListParams,
+  MetadataValueField,
+  Photoset,
+  ReviewStatus,
+} from "../schemas";
 
 // React Query keys for the web and mobile apps: one factory per domain, built hierarchically so one
 // prefix invalidates a whole family (`albumKeys.all`, `photoGridKeys.all`), and every value a queryFn
@@ -86,6 +95,9 @@ export const photoGridKeys = {
   tagAlbumView: (id: string, mediaType: MediaType) => [...photoGridKeys.tagAlbum(id), mediaType] as const,
   search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped") =>
     [...gridKind("search"), term, mediaType, mode] as const,
+  /** A search narrowed by the structured filters: under the same search, so it refreshes with it. */
+  filteredSearch: (term: string, mediaType: MediaType, mode: "semantic" | "grouped", filters: SearchFilters) =>
+    [...photoGridKeys.search(term, mediaType, mode), filters] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
   /** One page of the photos in none of my albums. */
@@ -256,6 +268,8 @@ const searchRoot = ["search"] as const;
 export const searchKeys = {
   all: searchRoot,
   examples: () => [...searchRoot, "examples"] as const,
+  /** The suggestions of one search filter (cameras, makers or lenses). */
+  metadataValues: (field: MetadataValueField) => [...searchRoot, "metadataValues", field] as const,
 };
 
 const serverRoot = ["server"] as const;

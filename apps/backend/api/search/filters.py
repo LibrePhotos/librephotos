@@ -18,6 +18,7 @@ from api.albums.timeline_filter import timeline_filter_q
 from api.drf.request_user import request_user
 from api.models.photo_search import fold
 from api.models.tag import Tag
+from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
 from api.search.semantic import calculate_query_embeddings
 from api.search.similarity import search_similar_embedding
 
@@ -135,6 +136,11 @@ class SemanticSearchFilter(filters.SearchFilter):
             for param in ("video", "photo", "is_screenshot", "is_document")
         }
         queryset = queryset.filter(*timeline_filter_q(request.user, media_params))
+        # The structured filters (camera, exposure, rating, dates, location,
+        # file type, people) narrow the same way, with or without a term; a
+        # bad value is a 400 naming the parameter.
+        metadata = parse_metadata_filter(request_user(request), request.query_params)
+        queryset = queryset.filter(*metadata_filter_q(metadata))
 
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)

@@ -87,6 +87,38 @@ The search results header also has an **All / Photos / Videos** toggle in the to
 
 Results are displayed grouped by date, similar to the main timeline view.
 
+## Search Filters
+
+:::note Not released yet
+The search API takes these filters in the release after 1.3.0. The web app's filter panel comes in a later update; until then they are for scripts and other apps that call the API.
+:::
+
+Besides the words you type, a search can be narrowed by what the camera recorded, the rating, the day, the location, the file and the people in the photo. The filters are query parameters of `GET /api/photos/searchlist/`. They combine with each other, with the search words and with the **All / Photos / Videos** toggle (every condition must hold), and they also work without any search words: `/api/photos/searchlist/?camera=X-T5&iso_min=3200` lists every photo taken with that camera at ISO 3200 or more.
+
+| Parameter | Finds photos… |
+|-----------|---------------|
+| `camera` | taken with this camera model, for example `X-T5` (the whole name, any letter case) |
+| `make` | taken with a camera from this maker, for example `FUJIFILM` |
+| `lens` | taken with this lens model |
+| `iso_min`, `iso_max` | with an ISO speed in this range |
+| `aperture_min`, `aperture_max` | with an f-number in this range, for example `aperture_min=1.4&aperture_max=2` |
+| `focal_min`, `focal_max` | with a focal length in this range, in millimetres |
+| `focal35_min`, `focal35_max` | with a 35 mm equivalent focal length in this range |
+| `rating_min` | rated at least this many stars (1 to 5) |
+| `taken_after`, `taken_before` | taken on or after, or on or before, this day (`2024-03-01`) |
+| `has_location` | with GPS coordinates (`true`) or without them (`false`, the same photos as the **No Location** page) |
+| `file_type` | whose main file is an `image` or a `video`, or that have a RAW file (`raw`, the photos with the RAW badge) |
+| `extension` | whose main file has this extension, for example `cr3` or `.heic` |
+| `person` | showing this person. Repeat it for several people (`person=3&person=7`) to find the photos with all of them together |
+
+Ranges include both ends, and either end can be left out. A photo without the value, for example one whose camera did not record the lens, never matches a filter on it. A value the server cannot read, a range whose lowest value is above its highest, an unknown file extension or someone else's person answers with an error that names the parameter, rather than with an empty result.
+
+The camera maker comes from the photo's EXIF data since the release after 1.3.0. Photos scanned before that have none until you rescan them, so `make` does not find them yet.
+
+`GET /api/search/metadata-values/?field=camera` lists the camera models of your photos with how many photos each one took, most used first. `field=make` lists the makers and `field=lens` the lenses. Pick a filter value from there to be sure it matches.
+
+The bulk actions (favorite, hide, tag, share, add to an album, download, move to the trash) take the same parameters in their select-all `query`, so selecting every result of a filtered search acts on exactly the photos it listed. Send `show_all_stack_photos: true` with them, because search lists every photo of a stack, not only the one the timeline shows. The search words themselves are not part of a select-all.
+
 ## Semantic Search
 
 Semantic search uses AI (CLIP embeddings) to find photos by meaning rather than exact text matching. It understands the concept behind your query, and those matches are added to the normal text-search results rather than replacing them — so a search returns both the photos whose captions or metadata contain your words and the photos that simply look like what you described. Because of this, a result may not contain every word of your query.

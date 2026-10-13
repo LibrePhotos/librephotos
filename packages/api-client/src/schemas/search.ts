@@ -36,3 +36,23 @@ export const SearchPhotosResult = z.object({
   photosGroupedByDate: PhotosGroupedByDate,
 });
 export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>;
+
+/** What `GET /api/search/metadata-values/` lists: camera models, camera makers or lens models. */
+export const MetadataValueField = z.enum(["camera", "make", "lens"]);
+export type MetadataValueField = z.infer<typeof MetadataValueField>;
+
+/** The `file_type` search filter: the main file's type, or (raw) a photo with a RAW file. */
+export const FileTypeFilter = z.enum(["image", "raw", "video"]);
+export type FileTypeFilter = z.infer<typeof FileTypeFilter>;
+
+/** One suggestion: a value as stored (filters match it ignoring case) and how many of my photos have it. */
+export const MetadataValue = z.object({
+  value: z.string(),
+  count: z.number(),
+});
+export type MetadataValue = z.infer<typeof MetadataValue>;
+
+export const MetadataValuesResponse = z.object({
+  results: z.array(MetadataValue),
+});
+export type MetadataValuesResponse = z.infer<typeof MetadataValuesResponse>;

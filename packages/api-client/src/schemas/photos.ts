@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Media, PageFields, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { FileTypeFilter } from "./search";
 
 /** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
 export const PhotoPerson = z.object({
@@ -203,7 +204,8 @@ export const BulkPhotoQuery = z.object({
   media: z.enum(["all", "photos", "videos"]).optional(),
   hide_screenshots: z.boolean().optional(),
   hide_documents: z.boolean().optional(),
-  person: z.number().optional(),
+  // One person (the person page), or a list: only photos showing every one of them.
+  person: z.union([z.number(), z.array(z.number())]).optional(),
   folder: z.string().optional(),
   username: z.string().optional(),
   // Only photos without a date: the "Photos without Timestamps" page.
@@ -212,5 +214,24 @@ export const BulkPhotoQuery = z.object({
   no_album: z.boolean().optional(),
   // Stacked photos too, not only each stack's primary photo (for pages that list them all).
   show_all_stack_photos: z.boolean().optional(),
+  // The structured search filters (endpoints.SearchFilters), so a select-all after a filtered search
+  // acts on what it listed; a bad value is a 400 on "query".
+  camera: z.string().optional(),
+  make: z.string().optional(),
+  lens: z.string().optional(),
+  iso_min: z.number().optional(),
+  iso_max: z.number().optional(),
+  aperture_min: z.number().optional(),
+  aperture_max: z.number().optional(),
+  focal_min: z.number().optional(),
+  focal_max: z.number().optional(),
+  focal35_min: z.number().optional(),
+  focal35_max: z.number().optional(),
+  rating_min: z.number().optional(),
+  taken_after: z.string().optional(),
+  taken_before: z.string().optional(),
+  has_location: z.boolean().optional(),
+  file_type: FileTypeFilter.optional(),
+  extension: z.string().optional(),
 });
 export type BulkPhotoQuery = z.infer<typeof BulkPhotoQuery>;
