@@ -65,12 +65,16 @@ function AlbumThing() {
                     image_hash={cover.image_hash}
                   />
                 ) : (
-                  <div
-                    className={`${gridClasses.cover} ${gridClasses.placeholder}`}
-                    style={{ width: size, height: size }}
+                  <Flex
+                    className={gridClasses.cover}
+                    align="center"
+                    justify="center"
+                    h={size}
+                    w={size}
+                    bg="var(--mantine-color-default-hover)"
                   >
                     <Tags size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
-                  </div>
+                  </Flex>
                 )}
               </Link>
             );
