@@ -13,8 +13,10 @@ import {
   useFetchFolderSubfoldersQuery,
 } from "../../../api_client/albums/hooks";
 import { FolderListModal } from "../../../components/album/FolderListModal";
+import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import type { PhotoGroup, PigVisibleGroup } from "../../../components/photolist/PhotoListView";
+import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/folder/$id")({
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/_protected/album/folder/$id")({
   // A new page per folder: navigating between folders keeps this route mounted,
   // which carried the selection (and a select-all of the old folder) along.
   remountDeps: ({ params }) => params.id,
+  validateSearch: validateMediaSearch,
 });
 
 // The last segment of a path from the server, which on Windows mixes \ and /
@@ -56,6 +59,7 @@ function FolderDetail() {
   const { id } = Route.useParams();
   const folderPath = decodeFolderId(id);
   const { t } = useTranslation();
+  const mediaType = useMediaTypeFilter();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const [folderListOpened, { open: openFolderList, close: closeFolderList }] = useDisclosure(false);
   // Responsive breakpoints, in the theme's em values so they follow the browser font size
@@ -67,6 +71,7 @@ function FolderDetail() {
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
     photosetType: Photoset.NONE,
     folder: folderPath,
+    mediaType,
   });
 
   // Get subfolders for navigation
@@ -83,7 +88,7 @@ function FolderDetail() {
   const [group, setGroup] = useState<PhotoGroup>({ id: 0, page: 0 });
 
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath },
+    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath, mediaType },
     { skip: !group.id }
   );
 
@@ -231,7 +236,8 @@ function FolderDetail() {
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
-      photosetQuery={{ folder: folderPath }}
+      mediaType={mediaType}
+      photosetQuery={{ folder: folderPath, ...mediaTypeToBulkQuery(mediaType) }}
       selectable
     />
   );

@@ -4559,8 +4559,24 @@
     "/api/photos/notimestamp/": {
       "get": {
         "operationId": "api_photos_notimestamp_list",
-        "description": "A viewset that provides `list` actions.\n\nTo use it, override the class and set the `.queryset` and\n`.serializer_class` attributes.",
+        "description": "The photos without a capture time, first added first, a page at a time.",
         "parameters": [
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
           {
             "name": "page",
             "required": false,
@@ -4580,6 +4596,14 @@
             }
           },
           {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -4587,6 +4611,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
           }
         ],
         "tags": [
@@ -4617,7 +4649,41 @@
     "/api/photos/recentlyadded/": {
       "get": {
         "operationId": "api_photos_recentlyadded_list",
-        "description": "Every photo added on the day of the latest upload, in one answer.",
+        "description": "Every photo added on the day of the latest upload, in one answer.\n\nWith a media filter, the day is the latest upload day of a matching photo.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
         "tags": [
           "api"
         ],

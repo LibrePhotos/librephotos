@@ -146,6 +146,8 @@ describe("helpers", () => {
   it("maps photosets onto backend boolean filters", () => {
     expect(photosetToFilter(Photoset.FAVORITES).favorite).toBe(true);
     expect(photosetToFilter(Photoset.VIDEOS).video).toBe(true);
+    expect(photosetToFilter(Photoset.DOCUMENTS).is_document).toBe(true);
+    expect(photosetToFilter(Photoset.SCREENSHOTS).is_document).toBeUndefined();
     expect(photosetToFilter(Photoset.TIMESTAMP).favorite).toBeUndefined();
   });
 });

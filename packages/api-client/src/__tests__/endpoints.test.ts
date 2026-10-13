@@ -86,6 +86,30 @@ describe("album media filters", () => {
   });
 });
 
+describe("photo list media filters", () => {
+  it("passes the media-type filter to Recently added", async () => {
+    const { client, calls } = harness({ date: null, results: [] });
+    await endpoints.fetchRecentlyAddedPhotos(client);
+    await endpoints.fetchRecentlyAddedPhotos(client, { is_document: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/recentlyadded/");
+    expect(defined(calls[1]).url).toBe("https://demo.example.com/api/photos/recentlyadded/?is_document=true");
+  });
+
+  it("passes the media-type filter to No timestamp after the page", async () => {
+    const { client, calls } = harness({ count: 0, next: null, previous: null, results: [] });
+    await endpoints.fetchPhotosWithoutTimestamp(client, 2, { video: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/notimestamp/?page=2&video=true");
+  });
+
+  it("asks a date-album list for documents only", async () => {
+    const { client, calls } = harness({ results: [] });
+    await endpoints.fetchDateAlbumsList(client, { in_trashcan: true, is_document: true });
+    expect(defined(calls[0]).url).toBe(
+      "https://demo.example.com/api/albums/date/list/?in_trashcan=true&is_document=true"
+    );
+  });
+});
+
 describe("sharing endpoints", () => {
   it("sends share photos payload", async () => {
     const { client, calls } = harness({ status: true, count: 1 });

@@ -1,5 +1,6 @@
 import type { MediaType } from "@librephotos/api-client";
-import { useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { DEFAULT_MEDIA_TYPE } from "./mediaTypeFilter";
 
 // Reads the per-view media-type filter from the current route's `?media` search
@@ -8,4 +9,19 @@ import { DEFAULT_MEDIA_TYPE } from "./mediaTypeFilter";
 export function useMediaTypeFilter(): MediaType {
   const search = useSearch({ strict: false });
   return search.media ?? DEFAULT_MEDIA_TYPE;
+}
+
+// Sets the current page's `?media` param; the default clears it so the URL stays clean.
+export function useSetMediaTypeFilter(): (value: MediaType) => void {
+  const navigate = useNavigate();
+  return useCallback(
+    (value: MediaType) => {
+      void navigate({
+        // The current page: navigate resolves a missing `to` to "." as well.
+        to: ".",
+        search: prev => ({ ...prev, media: value === DEFAULT_MEDIA_TYPE ? undefined : value }),
+      });
+    },
+    [navigate]
+  );
 }

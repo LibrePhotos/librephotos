@@ -217,6 +217,15 @@ describe("navigation", () => {
     expect(action("nav-admin")).toBeDefined();
   });
 
+  it("goes to the Documents page, right after Screenshots", async () => {
+    await render();
+    const ids = allActions().map(entry => entry.id);
+    expect(ids.indexOf("nav-documents")).toBe(ids.indexOf("nav-screenshots") + 1);
+
+    await trigger("nav-documents");
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/documents" });
+  });
+
   it("encodes search terms", async () => {
     stubs.searchOptions = [{ value: "what? #1/2", type: SearchOptionType.EXAMPLE, data: "what? #1/2" }];
     await render();

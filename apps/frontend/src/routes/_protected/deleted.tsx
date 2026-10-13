@@ -6,20 +6,26 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
+import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/deleted")({
   component: DeletedPhotos,
+  // The media filter (?media=videos): "select all, delete permanently" then
+  // reaches only the photos it shows.
+  validateSearch: validateMediaSearch,
 });
 
 function DeletedPhotos() {
   const { t } = useTranslation();
+  const mediaType = useMediaTypeFilter();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.IN_TRASHCAN });
+  const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.IN_TRASHCAN, mediaType });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(photosQuery);
 
@@ -29,7 +35,7 @@ function DeletedPhotos() {
 
   const [group, setGroup] = useState(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.IN_TRASHCAN },
+    { album_date_id: group.id, page: group.page, photosetType: Photoset.IN_TRASHCAN, mediaType },
     { skip: !group.id }
   );
 
@@ -63,9 +69,11 @@ function DeletedPhotos() {
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
-      emptyStateConfig={emptyStateConfig}
+      // "Trash is empty" would be wrong when only the filter matches nothing.
+      emptyStateConfig={mediaType === "all" ? emptyStateConfig : undefined}
       error={listFailure}
-      photosetQuery={{ in_trashcan: true }}
+      mediaType={mediaType}
+      photosetQuery={{ in_trashcan: true, ...mediaTypeToBulkQuery(mediaType) }}
     />
   );
 }

@@ -15,7 +15,7 @@ describe("invalidatePhotoLists", () => {
     const grids = [
       photoGridKeys.dateAlbumList([Photoset.FAVORITES, 3, "alice", "/photos", "videos", "media=photos"]),
       photoGridKeys.dateAlbumDay([Photoset.NONE, undefined, undefined, undefined, "all", ""], 12, 2),
-      photoGridKeys.recentlyAdded(),
+      photoGridKeys.recentlyAddedView("videos"),
       photoGridKeys.userAlbumView("7", true, "alice", "photos"),
       photoGridKeys.publicAlbum("summer"),
       photoGridKeys.autoAlbum("8"),
@@ -23,7 +23,7 @@ describe("invalidatePhotoLists", () => {
       photoGridKeys.thingsAlbum("10", "all"),
       photoGridKeys.tagAlbumView("11", "all"),
       photoGridKeys.search("beach", "all", "semantic"),
-      photoGridKeys.withoutTimestamp(1),
+      photoGridKeys.withoutTimestamp(1, "documents"),
       photoGridKeys.sharedByMe(),
       photoGridKeys.sharedWithMe(),
     ];

@@ -149,6 +149,7 @@ export enum Photoset {
   SHARED_BY_ME = "sharedByMe",
   VIDEOS = "videos",
   SCREENSHOTS = "screenshots",
+  DOCUMENTS = "documents",
 }
 
 /** The image hash of a PigPhoto. Kept for callers that predate `image_hash` on every photo. */
