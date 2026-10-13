@@ -16,6 +16,7 @@ import { useLogoutMutation } from "../../api_client/auth";
 import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
+import { LogoutWhileUploadingModal, useLogoutGuard } from "../upload";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 
 export function FooterMenu(): React.JSX.Element {
@@ -28,6 +29,7 @@ export function FooterMenu(): React.JSX.Element {
   const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
   const { data: user } = useCurrentUserSelfDetailsQuery();
   const { mutate: logout } = useLogoutMutation();
+  const { requestLogout, modalProps } = useLogoutGuard(() => logout());
 
   const navigationItems = getNavigationItems(t, isAuthenticated);
 
@@ -157,11 +159,12 @@ export function FooterMenu(): React.JSX.Element {
             </Menu.Item>
           )}
 
-          <Menu.Item leftSection={<Logout size={14} />} onClick={() => logout()}>
+          <Menu.Item leftSection={<Logout size={14} />} onClick={requestLogout}>
             {t("topmenu.logout")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
+      <LogoutWhileUploadingModal {...modalProps} />
     </Flex>
   );
 }

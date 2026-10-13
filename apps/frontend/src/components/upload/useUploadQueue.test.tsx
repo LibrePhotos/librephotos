@@ -5,7 +5,7 @@ import { defined } from "../../util/defined.test-utils";
 import { useUploadQueue, type UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => ({
-  md5: vi.fn<(file: File) => Promise<string>>(),
+  md5: vi.fn<(file: File, isCancelled?: () => boolean) => Promise<string>>(),
   exists: vi.fn<(url: string) => Promise<unknown>>(),
   uploadChunk: vi.fn<(opts: { form_data: FormData; offset: number; chunk_size: number }) => Promise<unknown>>(),
   uploadFinished: vi.fn<(opts: { formData: FormData; shouldInvalidate: boolean }) => Promise<unknown>>(),
@@ -211,5 +211,154 @@ describe("useUploadQueue", () => {
     ]);
     expect(latest.items[0]?.error).toBeTruthy();
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
+  });
+  describe("cancel", () => {
+    /** The next chunk call waits until the returned release() is called. */
+    const holdNextChunk = () => {
+      let release = () => {};
+      stubs.uploadChunk.mockImplementationOnce(
+        opts =>
+          new Promise(resolve => {
+            release = () => resolve({ upload_id: "u1", offset: opts.offset + opts.chunk_size });
+          })
+      );
+      return () => release();
+    };
+
+    it("stops after the chunk in flight and marks every unfinished file cancelled", async () => {
+      const release = holdNextChunk();
+      await act(async () => {
+        latest.start([file("a.jpg", 2_500_000), file("b.jpg", 10), file("c.jpg", 10)]);
+      });
+      await tick();
+      expect(latest.items.map(i => i.status)).toEqual(["uploading", "pending", "pending"]);
+
+      await act(async () => {
+        latest.cancel();
+      });
+      expect(latest.isCancelling).toBe(true);
+      expect(latest.isUploading).toBe(true);
+      expect(latest.items.map(i => i.status)).toEqual(["uploading", "cancelled", "cancelled"]);
+
+      await act(async () => {
+        release();
+      });
+      await settle();
+
+      expect(latest.items.map(i => i.status)).toEqual(["cancelled", "cancelled", "cancelled"]);
+      expect(latest.isCancelling).toBe(false);
+      expect(stubs.uploadChunk).toHaveBeenCalledTimes(1);
+      expect(stubs.uploadFinished).not.toHaveBeenCalled();
+      expect(stubs.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("keeps finished files and still invalidates once", async () => {
+      await act(async () => {
+        latest.start([file("done.jpg", 10)]);
+      });
+      await settle();
+      const release = holdNextChunk();
+      await act(async () => {
+        latest.start([file("slow.jpg", 10), file("waiting.jpg", 10)]);
+      });
+      await tick();
+
+      await act(async () => {
+        latest.cancel();
+        release();
+      });
+      await settle();
+
+      expect(latest.items.map(i => i.status)).toEqual(["done", "cancelled", "cancelled"]);
+      expect(stubs.invalidate).toHaveBeenCalledTimes(1);
+    });
+
+    it("skips /upload/complete/ when cancelled after the last chunk", async () => {
+      const release = holdNextChunk();
+      await act(async () => {
+        latest.start([file("one-chunk.jpg", 10)]);
+      });
+      await tick();
+      await act(async () => {
+        latest.cancel();
+        release();
+      });
+      await settle();
+
+      expect(latest.items[0]?.status).toBe("cancelled");
+      expect(stubs.uploadFinished).not.toHaveBeenCalled();
+    });
+
+    it("passes the cancel check to the hash and treats a failure after cancel as cancelled", async () => {
+      let isCancelled = () => false;
+      let fail = (_err: Error) => {};
+      stubs.md5.mockImplementationOnce(
+        (_f, check) =>
+          new Promise((_resolve, reject) => {
+            isCancelled = check ?? isCancelled;
+            fail = reject;
+          })
+      );
+      await act(async () => {
+        latest.start([file("hashing.mov", 10)]);
+      });
+      await tick();
+      expect(isCancelled()).toBe(false);
+
+      await act(async () => {
+        latest.cancel();
+      });
+      expect(isCancelled()).toBe(true);
+      await act(async () => {
+        fail(new Error("aborted"));
+      });
+      await settle();
+
+      expect(latest.items[0]?.status).toBe("cancelled");
+      expect(latest.items[0]?.error).toBeUndefined();
+    });
+
+    it("uploads files added after cancel, and retry re-queues the cancelled ones", async () => {
+      const release = holdNextChunk();
+      await act(async () => {
+        latest.start([file("first.jpg", 10), file("second.jpg", 10)]);
+      });
+      await tick();
+      await act(async () => {
+        latest.cancel();
+        latest.start([file("later.jpg", 10)]);
+      });
+      await act(async () => {
+        release();
+      });
+      await settle();
+
+      expect(latest.items.map(i => [i.file.name, i.status])).toEqual([
+        ["first.jpg", "cancelled"],
+        ["second.jpg", "cancelled"],
+        ["later.jpg", "done"],
+      ]);
+
+      await act(async () => {
+        latest.retry(latest.items);
+      });
+      await settle();
+
+      expect(latest.items.map(i => i.status)).toEqual(["done", "done", "done"]);
+      expect(stubs.uploadFinished).toHaveBeenCalledTimes(3);
+    });
+
+    it("does nothing while the queue is idle", async () => {
+      await act(async () => {
+        latest.start([file("ok.jpg", 10)]);
+      });
+      await settle();
+      await act(async () => {
+        latest.cancel();
+      });
+
+      expect(latest.items[0]?.status).toBe("done");
+      expect(latest.isCancelling).toBe(false);
+    });
   });
 });

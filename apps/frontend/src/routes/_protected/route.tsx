@@ -7,7 +7,7 @@ import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
 import { SpotlightProvider } from "../../components/spotlight";
-import { UploadProgressCard, UploadProvider } from "../../components/upload";
+import { UploadDropTarget, UploadProgressCard, UploadProvider } from "../../components/upload";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../uiConstants";
 
 export const Route = createFileRoute("/_protected")({
@@ -34,31 +34,34 @@ function AppShellProtected() {
       {/* Here, not in __root: its search queries need a session, and login,
           signup and public pages have none (each fired 401s on load). */}
       <SpotlightProvider />
-      <AppShell
-        header={{ height: TOP_MENU_HEIGHT }}
-        navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
-        footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
-        transitionDuration={0}
-      >
-        <AppShell.Header>
-          <TopMenu />
-        </AppShell.Header>
-        <AppShell.Navbar>
-          <SideMenuNarrow />
-        </AppShell.Navbar>
-        <AppShell.Main
-          style={{
-            backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-          }}
+      {/* Files dropped anywhere in the app are uploaded; not on login or public pages. */}
+      <UploadDropTarget>
+        <AppShell
+          header={{ height: TOP_MENU_HEIGHT }}
+          navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
+          footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
+          transitionDuration={0}
         >
-          <Outlet />
-        </AppShell.Main>
-        {/* The footer is the phone navigation. A 0px footer on desktop still
+          <AppShell.Header>
+            <TopMenu />
+          </AppShell.Header>
+          <AppShell.Navbar>
+            <SideMenuNarrow />
+          </AppShell.Navbar>
+          <AppShell.Main
+            style={{
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+            }}
+          >
+            <Outlet />
+          </AppShell.Main>
+          {/* The footer is the phone navigation. A 0px footer on desktop still
             drew a 1px border and left its links in the tab order. */}
-        <AppShell.Footer hiddenFrom="sm">
-          <FooterMenu />
-        </AppShell.Footer>
-      </AppShell>
+          <AppShell.Footer hiddenFrom="sm">
+            <FooterMenu />
+          </AppShell.Footer>
+        </AppShell>
+      </UploadDropTarget>
       <UploadProgressCard />
     </UploadProvider>
   );

@@ -1833,20 +1833,48 @@
     "expand": "Expand list",
     "collapse": "Collapse list",
     "close": "Close",
-    "still_running": "Upload still running",
+    "cancel": "Cancel",
+    "cancel_hint": "Stop after the current file chunk. Finished files stay.",
+    "cancelling": "Stopping…",
+    "cancelled": "Upload cancelled",
+    "cancelled_count_one": "{{count}} cancelled",
+    "cancelled_count_other": "{{count}} cancelled",
     "retry": "Retry",
     "retry_failed_one": "Retry failed upload",
     "retry_failed_other": "Retry {{count}} failed uploads",
+    "retry_cancelled_one": "Retry cancelled upload",
+    "retry_cancelled_other": "Retry {{count}} cancelled uploads",
+    "retry_all_one": "Retry upload",
+    "retry_all_other": "Retry {{count}} uploads",
     "unknown_error": "Upload failed",
+    "not_signed_in": "You are not signed in",
     "status": {
       "pending": "Waiting",
       "hashing": "Checking file",
       "uploading": "Uploading",
       "done": "Done",
       "duplicate": "Duplicate",
-      "error": "Error"
+      "error": "Error",
+      "cancelled": "Cancelled"
     },
-    "empty_file": "The file is empty"
+    "empty_file": "The file is empty",
+    "drop": {
+      "accept_title": "Drop photos and videos to upload",
+      "accept_text": "They are saved to your upload folder and added to your library.",
+      "add_title": "Add to the running upload",
+      "add_text": "New files join the end of the queue.",
+      "reject_title": "Only photos and videos can be uploaded",
+      "reject_text": "Files that are not photos or videos are skipped.",
+      "no_scan_directory_title": "Uploading is not set up yet",
+      "no_scan_directory_text": "Your account has no scan directory, so there is nowhere to save uploads. Ask your administrator to set one."
+    },
+    "logout": {
+      "title": "Log out while uploading?",
+      "text_one": "Logging out stops the upload. {{count}} file has not been uploaded yet. Files that finished stay in your library.",
+      "text_other": "Logging out stops the upload. {{count}} files have not been uploaded yet. Files that finished stay in your library.",
+      "keep": "Keep uploading",
+      "confirm": "Stop and log out"
+    }
   },
   "timelinefilter": {
     "button": "Filter",

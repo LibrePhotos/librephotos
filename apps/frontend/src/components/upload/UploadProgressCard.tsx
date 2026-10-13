@@ -1,11 +1,13 @@
 import { ActionIcon, Badge, Box, Button, Group, Loader, Paper, Progress, Stack, Text, Tooltip } from "@mantine/core";
 import {
   IconAlertCircle,
+  IconBan,
   IconCheck,
   IconChevronDown,
   IconChevronUp,
   IconCopy,
   IconPhoto,
+  IconPlayerStop,
   IconRotateClockwise,
   IconVideo,
   IconX,
@@ -24,6 +26,7 @@ const STATUS_COLOR: Record<UploadStatus, string> = {
   done: "green",
   duplicate: "gray",
   error: "red",
+  cancelled: "gray",
 };
 
 const isFinished = (status: UploadStatus) => status === "done" || status === "duplicate" || status === "error";
@@ -36,6 +39,7 @@ function StatusBadge({ status }: { status: UploadStatus }) {
   if (status === "done") icon = <IconCheck size={12} />;
   if (status === "duplicate") icon = <IconCopy size={12} />;
   if (status === "error") icon = <IconAlertCircle size={12} />;
+  if (status === "cancelled") icon = <IconBan size={12} />;
   return (
     <Badge
       color={STATUS_COLOR[status]}
@@ -82,29 +86,112 @@ function UploadRow({ item, onRetry }: { item: UploadItem; onRetry: (item: Upload
   );
 }
 
+type Summary = {
+  total: number;
+  duplicates: number;
+  errors: number;
+  cancelled: number;
+  finished: number;
+  pct: number;
+};
+
+function summarise(items: UploadItem[]): Summary {
+  const count = (status: UploadStatus) => items.filter(i => i.status === status).length;
+  const total = items.length;
+  const finished = items.filter(i => isFinished(i.status)).length;
+  const bytes = items.reduce((acc, i) => acc + i.file.size, 0);
+  const sentBytes = items.reduce((acc, i) => acc + i.file.size * (isFinished(i.status) ? 1 : i.progress / 100), 0);
+  const ratio = bytes > 0 ? sentBytes / bytes : total > 0 ? finished / total : 0;
+  return {
+    total,
+    duplicates: count("duplicate"),
+    errors: count("error"),
+    cancelled: count("cancelled"),
+    finished,
+    pct: Math.round(ratio * 100),
+  };
+}
+
+function useCardTitle(isUploading: boolean, isCancelling: boolean, cancelled: number): string {
+  const { t } = useTranslation();
+  if (isCancelling) return t("upload.cancelling");
+  if (isUploading) return t("upload.uploading");
+  return cancelled > 0 ? t("upload.cancelled") : t("upload.complete");
+}
+
+/** One button re-queues every failed and cancelled file; its label says which kind. */
+function RetryAllButton({ summary, onRetry }: { summary: Summary; onRetry: () => void }) {
+  const { t } = useTranslation();
+  const count = summary.errors + summary.cancelled;
+  let label = t("upload.retry_all", { count });
+  if (summary.cancelled === 0) label = t("upload.retry_failed", { count });
+  if (summary.errors === 0) label = t("upload.retry_cancelled", { count });
+  return (
+    <Group px="md" pt="sm">
+      <Button
+        fullWidth
+        variant="default"
+        size="xs"
+        leftSection={<IconRotateClockwise size={14} />}
+        onClick={onRetry}
+        data-testid="upload-retry-all"
+      >
+        {label}
+      </Button>
+    </Group>
+  );
+}
+
+/** While uploading: a labelled Cancel (no confirmation, cancelled files can be retried). Afterwards: close. */
+function StopOrCloseButton() {
+  const { t } = useTranslation();
+  const { isUploading, isCancelling, cancel, reset } = useUpload();
+  if (!isUploading) {
+    return (
+      <Tooltip label={t("upload.close")}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          onClick={reset}
+          aria-label={t("upload.close")}
+          data-testid="upload-close"
+        >
+          <IconX size={16} />
+        </ActionIcon>
+      </Tooltip>
+    );
+  }
+  return (
+    <Tooltip label={t("upload.cancel_hint")}>
+      <Button
+        size="compact-sm"
+        variant="subtle"
+        color="red"
+        leftSection={<IconPlayerStop size={14} />}
+        onClick={cancel}
+        disabled={isCancelling}
+        data-testid="upload-cancel"
+      >
+        {t("upload.cancel")}
+      </Button>
+    </Tooltip>
+  );
+}
+
 /**
  * Floating, bottom-right progress card. Visible whenever there are queued or
- * finished uploads; collapsible, and dismissible once the queue is idle.
+ * finished uploads; collapsible, cancellable while running and dismissible once
+ * the queue is idle.
  */
 export function UploadProgressCard() {
   const { t } = useTranslation();
-  const { items, isUploading, retry, reset } = useUpload();
+  const { items, isUploading, isCancelling, retry } = useUpload();
   const [collapsed, setCollapsed] = useState(false);
 
-  const summary = useMemo(() => {
-    const total = items.length;
-    const duplicates = items.filter(i => i.status === "duplicate").length;
-    const errors = items.filter(i => i.status === "error").length;
-    const finished = items.filter(i => isFinished(i.status)).length;
-    const bytes = items.reduce((acc, i) => acc + i.file.size, 0);
-    const sentBytes = items.reduce((acc, i) => acc + i.file.size * (isFinished(i.status) ? 1 : i.progress / 100), 0);
-    const ratio = bytes > 0 ? sentBytes / bytes : total > 0 ? finished / total : 0;
-    return { total, duplicates, errors, finished, pct: Math.round(ratio * 100) };
-  }, [items]);
+  const summary = useMemo(() => summarise(items), [items]);
+  const title = useCardTitle(isUploading, isCancelling, summary.cancelled);
 
   if (items.length === 0) return null;
-
-  const closeLabel = isUploading ? t("upload.still_running") : t("upload.close");
 
   return (
     <Paper
@@ -119,14 +206,16 @@ export function UploadProgressCard() {
       data-testid="upload-progress-card"
     >
       <Group justify="space-between" wrap="nowrap" gap="xs" px="md" py="sm" className={classes.header}>
-        <Stack gap={0} miw="0">
+        {/* Announces "Upload cancelled" and the counts to screen readers as they change. */}
+        <Stack gap={0} miw="0" aria-live="polite">
           <Text size="sm" fw={600}>
-            {isUploading ? t("upload.uploading") : t("upload.complete")}
+            {title}
           </Text>
           <Text size="xs" c="dimmed" truncate>
             {t("upload.processed", { finished: summary.finished, total: summary.total })}
             {summary.duplicates > 0 && ` · ${t("upload.duplicates", { count: summary.duplicates })}`}
             {summary.errors > 0 && ` · ${t("upload.errors", { count: summary.errors })}`}
+            {summary.cancelled > 0 && ` · ${t("upload.cancelled_count", { count: summary.cancelled })}`}
           </Text>
         </Stack>
         <Group gap={4} wrap="nowrap" className={classes.noShrink}>
@@ -138,36 +227,20 @@ export function UploadProgressCard() {
           >
             {collapsed ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
           </ActionIcon>
-          <Tooltip label={closeLabel}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              onClick={reset}
-              disabled={isUploading}
-              aria-label={closeLabel}
-              data-testid="upload-close"
-            >
-              <IconX size={16} />
-            </ActionIcon>
-          </Tooltip>
+          <StopOrCloseButton />
         </Group>
       </Group>
 
-      <Progress value={summary.pct} size="sm" radius={0} aria-label={t("upload.uploading")} />
+      <Progress
+        value={summary.pct}
+        size="sm"
+        radius={0}
+        color={!isUploading && summary.cancelled > 0 ? "gray" : undefined}
+        aria-label={t("upload.uploading")}
+      />
 
-      {!isUploading && summary.errors > 0 && (
-        <Group px="md" pt="sm">
-          <Button
-            fullWidth
-            variant="default"
-            size="xs"
-            leftSection={<IconRotateClockwise size={14} />}
-            onClick={() => retry(items)}
-            data-testid="upload-retry-all"
-          >
-            {t("upload.retry_failed", { count: summary.errors })}
-          </Button>
-        </Group>
+      {!isUploading && summary.errors + summary.cancelled > 0 && (
+        <RetryAllButton summary={summary} onRetry={() => retry(items)} />
       )}
 
       {!collapsed && (

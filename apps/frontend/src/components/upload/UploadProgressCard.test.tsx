@@ -11,8 +11,10 @@ const stubs = vi.hoisted(() => {
   const queue: UploadQueue = {
     items: [],
     isUploading: false,
+    isCancelling: false,
     start: vi.fn<UploadQueue["start"]>(),
     retry: vi.fn<UploadQueue["retry"]>(),
+    cancel: vi.fn<UploadQueue["cancel"]>(),
     reset: vi.fn<UploadQueue["reset"]>(),
   };
   return { queue };
@@ -33,9 +35,10 @@ const item = (name: string, status: UploadItem["status"], progress = 0, error?: 
 let root: Root;
 let container: HTMLDivElement;
 
-const render = async (items: UploadItem[], isUploading: boolean) => {
+const render = async (items: UploadItem[], isUploading: boolean, isCancelling = false) => {
   stubs.queue.items = items;
   stubs.queue.isUploading = isUploading;
+  stubs.queue.isCancelling = isCancelling;
   await act(async () => {
     root.render(
       <MantineProvider>
@@ -87,7 +90,7 @@ describe("UploadProgressCard", () => {
     expect(byTestId("upload-progress-card")).toBeNull();
   });
 
-  it("summarises a running upload and keeps the close button locked", async () => {
+  it("summarises a running upload and offers Cancel instead of close", async () => {
     await render([item("a.jpg", "done", 100), item("b.mp4", "uploading", 50), item("c.jpg", "error", 0, "Boom")], true);
 
     const card = defined(byTestId("upload-progress-card"));
@@ -96,11 +99,43 @@ describe("UploadProgressCard", () => {
     expect(card.textContent).toContain("1 error");
     expect(card.textContent).toContain("Boom");
     expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(3);
-    expect(byTestId("upload-close")).toHaveProperty("disabled", true);
+    expect(byTestId("upload-close")).toBeNull();
     expect(byTestId("upload-retry-all")).toBeNull();
 
-    await click(byTestId("upload-close"));
-    expect(stubs.queue.reset).not.toHaveBeenCalled();
+    const cancel = defined(byTestId("upload-cancel"));
+    expect(cancel.textContent).toBe("Cancel");
+    await click(cancel);
+    expect(stubs.queue.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Stopping… with a locked Cancel until the file in flight returns", async () => {
+    await render([item("a.jpg", "uploading", 50), item("b.jpg", "cancelled")], true, true);
+
+    const card = defined(byTestId("upload-progress-card"));
+    expect(card.textContent).toContain("Stopping…");
+    expect(card.textContent).toContain("1 cancelled");
+    expect(byTestId("upload-cancel")).toHaveProperty("disabled", true);
+  });
+
+  it("says the upload was cancelled and retries cancelled and failed files with one button", async () => {
+    const items = [item("a.jpg", "done", 100), item("b.jpg", "error", 0, "Boom"), item("c.jpg", "cancelled")];
+    await render(items, false);
+
+    const card = defined(byTestId("upload-progress-card"));
+    expect(card.textContent).toContain("Upload cancelled");
+    expect(card.textContent).toContain("2/3 processed · 1 error · 1 cancelled");
+    expect(card.textContent).toContain("Cancelled");
+    expect(byTestId("upload-cancel")).toBeNull();
+
+    const retryAll = defined(byTestId("upload-retry-all"));
+    expect(retryAll.textContent).toContain("Retry 2 uploads");
+    await click(retryAll);
+    expect(stubs.queue.retry).toHaveBeenCalledWith(items);
+  });
+
+  it("names the cancelled files in the retry button when nothing failed", async () => {
+    await render([item("a.jpg", "cancelled"), item("b.jpg", "cancelled")], false);
+    expect(defined(byTestId("upload-retry-all")).textContent).toContain("Retry 2 cancelled uploads");
   });
 
   it("offers retry-all once the queue is idle with failures, and can be dismissed", async () => {

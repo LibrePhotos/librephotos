@@ -128,8 +128,10 @@ export function Profile() {
           <Title order={5}>{t("settings.avatar")}</Title>
           <Group align="flex-start" gap="xl" mb="lg">
             <div>
+              {/* noDragEventsBubbling: an avatar dropped here is not also an upload to the library. */}
               <Dropzone
                 noClick
+                noDragEventsBubbling
                 ref={dropzoneRef}
                 onDrop={accepted => {
                   const [avatarFile] = accepted;
@@ -149,13 +151,7 @@ export function Profile() {
                 <Trans i18nKey="settings.uploadheader" />
               </Title>
               <Group>
-                <Button
-                  size="sm"
-                  leftSection={<Photo size={16} />}
-                  onClick={() => {
-                    dropzoneRef.current?.open();
-                  }}
-                >
+                <Button size="sm" leftSection={<Photo size={16} />} onClick={() => dropzoneRef.current?.open()}>
                   <Trans i18nKey="settings.image" />
                 </Button>
                 <Button

@@ -1,0 +1,44 @@
+/* Above the shell and the progress card, below modals. The overlay only shows what a drop would do:
+   pointer-events none keeps every drag event on the page underneath, so a nested drop zone (the
+   avatar on the profile page) still gets its own drop. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mantine-spacing-md);
+  pointer-events: none;
+  background-color: var(--overlay-tint);
+}
+
+/* The dashed frame marks the whole window as the drop target. */
+.overlay::before {
+  content: "";
+  position: absolute;
+  inset: var(--mantine-spacing-xs);
+  border: 3px dashed var(--overlay-frame);
+  border-radius: var(--mantine-radius-md);
+}
+
+.overlay[data-tone="blue"] {
+  --overlay-tint: var(--mantine-color-blue-light);
+  --overlay-frame: var(--mantine-color-blue-filled);
+}
+
+.overlay[data-tone="red"] {
+  --overlay-tint: var(--mantine-color-red-light);
+  --overlay-frame: var(--mantine-color-red-filled);
+}
+
+.overlay[data-tone="gray"] {
+  --overlay-tint: var(--mantine-color-gray-light);
+  --overlay-frame: var(--mantine-color-gray-filled);
+}
+
+.card {
+  position: relative;
+  max-width: 420px;
+  text-align: center;
+}

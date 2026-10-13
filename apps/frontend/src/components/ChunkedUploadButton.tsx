@@ -3,40 +3,38 @@ import { IconUpload as Upload } from "@tabler/icons-react";
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
-import { useGetSettingsQuery } from "../api_client/settings";
-import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useUpload } from "./upload";
+import { UPLOAD_ACCEPT } from "./upload/uploadAccept";
+import { useCanUpload } from "./upload/useCanUpload";
 
+/**
+ * The header's upload tile: opens the file picker. Dropped files are taken
+ * anywhere in the app by `UploadDropTarget`, which also keeps a drop from
+ * opening the file in the tab.
+ */
 export function ChunkedUploadButton() {
   const { t } = useTranslation();
-  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
-  const { data: settings } = useGetSettingsQuery();
+  const availability = useCanUpload();
   const { start, isUploading } = useUpload();
+  const ready = availability === "ready";
 
-  const hasScanDirectory = !!userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
-
-  const { getRootProps, getInputProps, open } = useDropzone({
-    accept: {
-      "image/*": [],
-      "video/*": [],
-    },
-    // prevent react-dropzone from automatically opening the file dialog
-    // when the dropzone is clicked. We manually trigger it via the button
-    // click handler, which otherwise would result in the dialog opening
-    // twice due to event bubbling.
+  const { getInputProps, open } = useDropzone({
+    accept: UPLOAD_ACCEPT,
+    noDrag: true,
     noClick: true,
     noKeyboard: true,
-    onDrop: hasScanDirectory ? start : () => {},
-    disabled: !hasScanDirectory,
+    preventDropOnDocument: false,
+    onDrop: files => start(files),
+    disabled: !ready,
   });
 
-  if (!settings?.allow_upload) {
+  if (availability === "off") {
     return null;
   }
 
   const uploadContent = (
-    <div {...getRootProps({ className: "dropzone" })} style={{ alignItems: "center", display: "flex" }}>
-      <input {...getInputProps()} />
+    <div style={{ alignItems: "center", display: "flex" }}>
+      <input {...getInputProps()} data-testid="upload-input" />
       {/* Same 30px tile and 1.1rem glyph as the colour scheme toggle beside it.
           A block Indicator gave the button a line box that lifted it ~2px. */}
       <Indicator processing disabled={!isUploading} color="blue" size={8} offset={3} style={{ display: "flex" }}>
@@ -44,9 +42,9 @@ export function ChunkedUploadButton() {
           color="gray"
           variant="light"
           size={30}
-          onClick={hasScanDirectory ? open : undefined}
-          disabled={!hasScanDirectory}
-          style={!hasScanDirectory ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+          onClick={ready ? open : undefined}
+          disabled={!ready}
+          style={!ready ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
           aria-label={t("upload.button")}
         >
           <Upload size="1.1rem" />
@@ -55,7 +53,7 @@ export function ChunkedUploadButton() {
     </div>
   );
 
-  if (!hasScanDirectory) {
+  if (!ready) {
     return <Tooltip label={t("toasts.scan_directory_required")}>{uploadContent}</Tooltip>;
   }
 

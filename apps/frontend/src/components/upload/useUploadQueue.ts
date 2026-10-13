@@ -7,9 +7,9 @@ import {
 } from "../../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import i18n from "../../i18n";
-import { calculateChunks, calculateMD5 } from "./chunkedUpload";
+import { calculateChunks, calculateMD5, UploadCancelledError } from "./chunkedUpload";
 
-export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error";
+export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error" | "cancelled";
 
 export type UploadItem = {
   id: string;
@@ -23,13 +23,25 @@ export type UploadItem = {
 export type UploadQueue = {
   items: UploadItem[];
   isUploading: boolean;
+  /** Between cancel() and the end of the file in flight (its current chunk or hash slice). */
+  isCancelling: boolean;
   /** Append files to the queue and start uploading if idle. */
   start: (files: File[]) => void;
-  /** Re-queue the given items; anything not in the error state is ignored. */
+  /** Re-queue the given items; anything not failed or cancelled is ignored. */
   retry: (targets: UploadItem[]) => void;
+  /**
+   * Stop the running upload: waiting files and the file in flight end as "cancelled",
+   * finished files stay. Files added afterwards upload normally.
+   */
+  cancel: () => void;
   /** Clear the list. Ignored while an upload is running. */
   reset: () => void;
 };
+
+/** A queued item and the cancel generation it was queued in; cancel() bumps the generation. */
+type QueuedUpload = { item: UploadItem; generation: number };
+
+type User = { id: number };
 
 const sequentially = <T>(list: T[], fn: (item: T) => Promise<void>): Promise<void> =>
   list.reduce((chain, item) => chain.then(() => fn(item)), Promise.resolve());
@@ -61,21 +73,25 @@ export function useUploadQueue(): UploadQueue {
 
   const userRef = useRef(userSelfDetails);
   userRef.current = userSelfDetails;
-  const pendingRef = useRef<UploadItem[]>([]);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const pendingRef = useRef<QueuedUpload[]>([]);
   const drainingRef = useRef(false);
+  const generationRef = useRef(0);
 
   const patchItem = (id: string, patch: Partial<UploadItem>) => {
     setItems(prev => prev.map(it => (it.id === id ? { ...it, ...patch } : it)));
   };
 
-  const uploadFile = async (item: UploadItem, md5: string): Promise<void> => {
-    const user = userRef.current;
-    if (!user) throw new Error("Not signed in");
+  const uploadFile = async (item: UploadItem, user: User, md5: string, isCancelled: () => boolean): Promise<void> => {
+    const throwIfCancelled = () => {
+      if (isCancelled()) throw new UploadCancelledError();
+    };
     const { file } = item;
     let offset = 0;
     let uploadId = "";
     let sent = 0;
     await sequentially(calculateChunks(file), async chunk => {
+      throwIfCancelled();
       const formData = new FormData();
       if (uploadId) formData.append("upload_id", uploadId);
       formData.append("file", chunk);
@@ -89,6 +105,7 @@ export function useUploadQueue(): UploadQueue {
       patchItem(item.id, { progress: file.size ? Math.round((sent / file.size) * 100) : 100 });
     });
 
+    throwIfCancelled();
     const formData = new FormData();
     formData.append("upload_id", uploadId);
     formData.append("md5", md5);
@@ -98,28 +115,33 @@ export function useUploadQueue(): UploadQueue {
   };
 
   /** Resolves to true when a new file landed on the server. */
-  const processOne = async (item: UploadItem): Promise<boolean> => {
+  const processOne = async ({ item, generation }: QueuedUpload): Promise<boolean> => {
+    const isCancelled = () => generation !== generationRef.current;
     try {
       const user = userRef.current;
-      if (!user) throw new Error("Not signed in");
+      if (!user) throw new Error(i18n.t("upload.not_signed_in"));
 
       // The server cannot store an empty file (there is no chunk to send), and
       // waiting on one used to stall every file queued after it.
       if (item.file.size === 0) throw new Error(i18n.t("upload.empty_file"));
 
       patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
-      const md5 = await calculateMD5(item.file);
+      const md5 = await calculateMD5(item.file, isCancelled);
       if (await uploadExists(md5, user.id)) {
         patchItem(item.id, { status: "duplicate", progress: 100 });
         return false;
       }
 
       patchItem(item.id, { status: "uploading", progress: 0 });
-      await uploadFile(item, md5);
+      await uploadFile(item, user, md5, isCancelled);
       patchItem(item.id, { status: "done", progress: 100 });
       return true;
     } catch (err) {
-      patchItem(item.id, { status: "error", error: errorMessage(err) });
+      // A request that fails after cancel() is part of the cancel, not an error.
+      patchItem(
+        item.id,
+        isCancelled() ? { status: "cancelled", progress: 0 } : { status: "error", error: errorMessage(err) }
+      );
       return false;
     }
   };
@@ -130,9 +152,10 @@ export function useUploadQueue(): UploadQueue {
     setIsUploading(true);
     let uploadedAny = false;
     const next = async (): Promise<void> => {
-      const item = pendingRef.current.shift();
-      if (!item) return;
-      uploadedAny = (await processOne(item)) || uploadedAny;
+      const queued = pendingRef.current.shift();
+      if (!queued) return;
+      uploadedAny = (await processOne(queued)) || uploadedAny;
+      setIsCancelling(false);
       await next();
     };
     try {
@@ -140,13 +163,15 @@ export function useUploadQueue(): UploadQueue {
     } finally {
       drainingRef.current = false;
       setIsUploading(false);
+      setIsCancelling(false);
       if (uploadedAny) invalidateUploadQueries();
     }
   };
 
   const enqueue = (queued: UploadItem[]) => {
     if (queued.length === 0) return;
-    pendingRef.current.push(...queued);
+    const generation = generationRef.current;
+    pendingRef.current.push(...queued.map(item => ({ item, generation })));
     void drain();
   };
 
@@ -157,9 +182,17 @@ export function useUploadQueue(): UploadQueue {
   };
 
   const retry = (targets: UploadItem[]) => {
-    const failed = targets.filter(it => it.status === "error");
-    failed.forEach(it => patchItem(it.id, { status: "pending", progress: 0, error: undefined }));
-    enqueue(failed.map(it => ({ ...it, status: "pending" as const, progress: 0, error: undefined })));
+    const retryable = targets.filter(it => it.status === "error" || it.status === "cancelled");
+    retryable.forEach(it => patchItem(it.id, { status: "pending", progress: 0, error: undefined }));
+    enqueue(retryable.map(it => ({ ...it, status: "pending" as const, progress: 0, error: undefined })));
+  };
+
+  const cancel = () => {
+    if (!drainingRef.current) return;
+    generationRef.current += 1;
+    const dropped = new Set(pendingRef.current.splice(0).map(queued => queued.item.id));
+    setItems(prev => prev.map(it => (dropped.has(it.id) ? { ...it, status: "cancelled", progress: 0 } : it)));
+    setIsCancelling(true);
   };
 
   const reset = () => {
@@ -167,5 +200,5 @@ export function useUploadQueue(): UploadQueue {
     setItems([]);
   };
 
-  return { items, isUploading, start, retry, reset };
+  return { items, isUploading, isCancelling, start, retry, cancel, reset };
 }
