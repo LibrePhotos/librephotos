@@ -121,7 +121,7 @@ def write_photo_metadata(
     if write_face_tags:
         from api.metadata.face_regions import get_face_region_tags
 
-        tags_to_write.update(get_face_region_tags(photo))
+        tags_to_write.update(get_face_region_tags(photo, use_sidecar))
 
     if tags_to_write and _keeps_edits(photo):
         assert photo.main_file is not None

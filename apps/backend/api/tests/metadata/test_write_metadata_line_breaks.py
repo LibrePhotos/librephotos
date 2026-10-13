@@ -45,10 +45,10 @@ class FaceRegionNamesAreSingleLineTest(SimpleTestCase):
             ]
         )
 
-        for value in [tags["XMP-mwg-rs:RegionInfo"], *tags["XMP:Subject"]]:
+        for value in [tags["XMP-mwg-rs:RegionInfo"], *tags["XMP:Subject+"]]:
             self.assertNotIn("\n", value)
             self.assertNotIn("\r", value)
-        self.assertEqual(tags["XMP:Subject"], ["Joe  -if system('id')#"])
+        self.assertEqual(tags["XMP:Subject+"], ["Joe  -if system('id')#"])
 
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")

@@ -1,15 +1,23 @@
 from __future__ import annotations
 
 import logging
+import os
 import unicodedata
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
 
 import PIL
 
-from api.metadata.reader import get_metadata, sidecar_files_for_photo
+from api.metadata.reader import (
+    get_metadata,
+    sidecar_files_for_photo,
+    sidecar_for_write,
+)
 from api.metadata.tags import Tags
+from api.metadata.writer import TagValue, add_to, remove_from
 from api.models.face import Face
 from api.models.person import Person
+from api.models.photo_metadata import merged_keywords_of
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -119,13 +127,18 @@ def build_face_region_exiftool_args(
     face_regions: list[_FaceRegion],
     image_width: int | None = None,
     image_height: int | None = None,
-) -> dict[str, str | list[str]]:
+    previous_names: Sequence[str] = (),
+    keywords: list[str] | None = None,
+) -> dict[str, TagValue]:
     """Build exiftool args dict for writing XMP-mwg-rs:RegionInfo and XMP:Subject.
 
     Args:
         face_regions: list of dicts with keys: name, x, y, w, h
         image_width: original image width in pixels (for AppliedToDimensions)
         image_height: original image height in pixels (for AppliedToDimensions)
+        previous_names: the names of the face regions the photo had before
+        keywords: the keywords to start the target's XMP:Subject from, or
+            None when the target has a keyword list of its own to change
 
     Returns:
         dict of tag -> value suitable for write_metadata()
@@ -158,16 +171,82 @@ def build_face_region_exiftool_args(
 
     value = f"{{{applied_to}RegionList=[{region_list}]}}"
 
-    tags: dict[str, str | list[str]] = {Tags.REGION_INFO_WRITE: value}
-
-    # Add person names as XMP:Subject keywords for Lightroom compatibility
-    if person_names:
-        tags[Tags.SUBJECT] = person_names
-
+    tags: dict[str, TagValue] = {Tags.REGION_INFO_WRITE: value}
+    tags.update(
+        _person_keyword_tags(
+            list(dict.fromkeys(person_names)), previous_names, keywords
+        )
+    )
     return tags
 
 
-def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
+def _person_keyword_tags(
+    names: list[str], previous_names: Sequence[str], keywords: list[str] | None
+) -> dict[str, TagValue]:
+    """XMP:Subject changes that put the people's ``names`` among the keywords.
+
+    Lightroom and digiKam show people as keywords. The names are added to the
+    photo's keywords, never assigned: an assignment replaced them (#2291).
+    Each name is removed and added again, which adds it once, and a previous
+    region name no longer on the photo (a relabelled face) is removed.
+    ``keywords`` is the list to start from when the target has none yet.
+    """
+    removed = [name for name in dict.fromkeys(previous_names) if name not in names]
+    if keywords is not None:
+        kept = [keyword for keyword in keywords if keyword not in removed]
+        merged = kept + [name for name in names if name not in kept]
+        return {Tags.SUBJECT: merged} if merged else {}
+    tags: dict[str, TagValue] = {}
+    if removed or names:
+        tags[remove_from(Tags.SUBJECT)] = [*removed, *names]
+    if names:
+        tags[add_to(Tags.SUBJECT)] = names
+    return tags
+
+
+def _region_names(region_info: object) -> list[str]:
+    """The names of the face regions in a struct read of XMP:RegionInfo."""
+    if not isinstance(region_info, dict):
+        return []
+    regions = region_info.get("RegionList")
+    if not isinstance(regions, list):
+        return []
+    return [
+        _single_line(str(region["Name"]))
+        for region in regions
+        if isinstance(region, dict)
+        and region.get("Type") == "Face"
+        and region.get("Name") not in (None, "")
+    ]
+
+
+def _keywords_to_start_from(photo: Photo, use_sidecar: bool) -> list[str] | None:
+    """The keywords a sidecar's new XMP:Subject has to start from, or None.
+
+    The scan reads a sidecar's XMP:Subject in place of the media file's, so a
+    sidecar that gets its first keywords would hide the photo's own. It
+    starts from them instead: XMP:Subject and IPTC:Keywords as the scan
+    merges them. None when the target already has a keyword list (the media
+    file, or a sidecar that has one), which is changed item by item.
+    """
+    if not use_sidecar:
+        return None
+    assert photo.main_file is not None
+    main_path = photo.main_file.path
+    target = sidecar_for_write(main_path)
+    if os.path.exists(target):
+        (own_subject,) = get_metadata(target, tags=[Tags.SUBJECT], try_sidecar=False)
+        if own_subject is not None:
+            return None
+    (subject, iptc_keywords) = get_metadata(
+        main_path,
+        tags=[Tags.SUBJECT, Tags.IPTC_KEYWORDS],
+        sidecar_files=sidecar_files_for_photo(photo),
+    )
+    return merged_keywords_of({"xmp_subject": subject, "iptc_keywords": iptc_keywords})
+
+
+def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]:
     """Build face region exiftool tags dict for a photo.
 
     Returns a dict of tags suitable for merging into write_photo_metadata()'s
@@ -175,6 +254,7 @@ def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
 
     Args:
         photo: Photo model instance
+        use_sidecar: whether the tags go to the XMP sidecar or the media file
 
     Returns:
         dict: e.g. {"XMP-mwg-rs:RegionInfo": "{RegionList=[...]}"}  or {}
@@ -201,10 +281,18 @@ def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
 
     # Get EXIF orientation and original image dimensions
     assert photo.main_file is not None
+    sidecar_files = sidecar_files_for_photo(photo)
     (orientation, image_width, image_height) = get_metadata(
         photo.main_file.path,
         tags=[Tags.ORIENTATION, Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT],
-        sidecar_files=sidecar_files_for_photo(photo),
+        sidecar_files=sidecar_files,
+    )
+    # The face regions as the scan reads them, for the names they had.
+    (region_info,) = get_metadata(
+        photo.main_file.path,
+        tags=[Tags.REGION_INFO],
+        struct=True,
+        sidecar_files=sidecar_files,
     )
 
     # Convert each face's coordinates
@@ -234,4 +322,10 @@ def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
             }
         )
 
-    return build_face_region_exiftool_args(face_regions, image_width, image_height)
+    return build_face_region_exiftool_args(
+        face_regions,
+        image_width,
+        image_height,
+        previous_names=_region_names(region_info),
+        keywords=_keywords_to_start_from(photo, use_sidecar),
+    )

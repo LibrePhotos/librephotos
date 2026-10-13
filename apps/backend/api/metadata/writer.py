@@ -30,6 +30,25 @@ logger = logging.getLogger(__name__)
 # One tag's value: a list writes one argument per item.
 TagValue = str | int | list[str]
 
+
+def add_to(tag: str) -> str:
+    """The ``write_metadata`` key that adds values to the list ``tag``.
+
+    ExifTool's ``-TAG+=value``: the list keeps its other items, where a plain
+    ``tag`` key replaces the whole list with the values given.
+    """
+    return f"{tag}+"
+
+
+def remove_from(tag: str) -> str:
+    """The ``write_metadata`` key that removes values from the list ``tag``.
+
+    ExifTool's ``-TAG-=value``. Removing a value and adding it again
+    (``remove_from`` before ``add_to``) adds it once, without a duplicate.
+    """
+    return f"{tag}-"
+
+
 # A write may take this long, plus a second per WRITE_BYTES_PER_SECOND of the
 # target: ExifTool copies the whole file (a long video) to a temporary file.
 WRITE_TIMEOUT_SECONDS = 60
@@ -241,16 +260,19 @@ def one_exiftool_process() -> Iterator[None]:
 def _requested_tags(arguments: list[bytes]) -> tuple[set[str], bool]:
     """The tag names of ``-TAG=value`` arguments, and whether one sets a value.
 
-    A ``-TAG=`` with nothing after it removes the tag, which leaves a file
-    without it unchanged; that is no failure.
+    A ``-TAG=`` with nothing after it removes the tag, and a ``-TAG-=value``
+    removes one value, which leaves a file without it unchanged; that is no
+    failure.
     """
     names: set[str] = set()
     sets_a_value = False
     for argument in arguments:
         tag, _, value = os.fsdecode(argument)[1:].partition("=")
+        removes = tag.endswith("-")
+        tag = tag.removesuffix("+").removesuffix("-")
         names.add(tag)
         names.add(tag.rsplit(":", 1)[-1])
-        sets_a_value = sets_a_value or value != ""
+        sets_a_value = sets_a_value or (value != "" and not removes)
     return names, sets_a_value
 
 
@@ -288,7 +310,9 @@ def write_metadata(
 ) -> WriteResult:
     """Write ``tags`` into ``media_file`` or its XMP sidecar.
 
-    The sidecar is the one ``sidecar_for_write`` picks. Raises
+    A key from ``add_to``/``remove_from`` changes a list tag item by item
+    instead of replacing it. The sidecar is the one ``sidecar_for_write``
+    picks. Raises
     ``MetadataWriteError`` when ExifTool did not write them (see ``_outcome``).
     """
     target = sidecar_for_write(media_file) if use_sidecar else media_file
