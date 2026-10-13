@@ -8,6 +8,7 @@ username, so a flood against one account does not lock out the others.
 Each test sets a rate of 3 a minute and starts from an empty cache.
 """
 
+import base64
 from pathlib import Path
 from unittest.mock import patch
 
@@ -176,3 +177,91 @@ class BundledProxyForwardsTheClientTest(SimpleTestCase):
             "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
             api_location,
         )
+
+
+def basic(username: str, password: str) -> str:
+    raw = f"{username}:{password}".encode()
+    return "Basic " + base64.b64encode(raw).decode()
+
+
+# An API view (DEFAULT_AUTHENTICATION_CLASSES) and the media view, which
+# names BasicAuthentication itself.
+API_URL = "/api/photos/"
+MEDIA_URL = "/media/thumbnails_big/0123456789abcdef0123456789abcdef"
+
+
+class BasicAuthThrottleTest(ThrottleTestCase):
+    """Every ``Authorization: Basic`` request is a password check."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = create_test_user(username="alice", password="secret-pw-1")
+        create_test_user(username="bob", password="secret-pw-2")
+
+    def get(
+        self, url: str, username: str, password: str = "wrong", **headers: str
+    ) -> int:
+        return self.client.get(
+            url, HTTP_AUTHORIZATION=basic(username, password), **headers
+        ).status_code
+
+    def test_wrong_passwords_on_an_api_view_are_throttled(self):
+        headers = via_proxy(CLIENT_A)
+        statuses = [self.get(API_URL, "alice", **headers) for _ in range(4)]
+        self.assertEqual(statuses, [401, 401, 401, 429])
+
+    def test_wrong_passwords_on_the_media_view_are_throttled(self):
+        headers = via_proxy(CLIENT_A)
+        statuses = [self.get(MEDIA_URL, "alice", **headers) for _ in range(4)]
+        self.assertEqual(statuses, [401, 401, 401, 429])
+
+    def test_the_right_password_is_refused_too_once_throttled(self):
+        # Otherwise the guess that hits would still tell the client so.
+        headers = via_proxy(CLIENT_A)
+        for _ in range(3):
+            self.get(API_URL, "alice", **headers)
+        response = self.client.get(
+            API_URL, HTTP_AUTHORIZATION=basic("alice", "secret-pw-1"), **headers
+        )
+        self.assertEqual(response.status_code, 429)
+        self.assertIn("Retry-After", response)
+
+    def test_successful_requests_are_not_counted(self):
+        headers = via_proxy(CLIENT_A)
+        statuses = {
+            self.get(API_URL, "alice", "secret-pw-1", **headers) for _ in range(10)
+        }
+        self.assertEqual(statuses, {200})
+
+    def test_the_api_and_media_views_share_one_counter(self):
+        headers = via_proxy(CLIENT_A)
+        self.get(API_URL, "alice", **headers)
+        self.get(MEDIA_URL, "alice", **headers)
+        self.get(API_URL, "alice", **headers)
+        self.assertEqual(self.get(MEDIA_URL, "alice", **headers), 429)
+
+    def test_sign_in_and_basic_auth_share_one_counter(self):
+        # Two ways in do not double the guesses at one account.
+        headers = via_proxy(CLIENT_A)
+        self.sign_in("alice", **headers)
+        self.sign_in("alice", **headers)
+        self.get(API_URL, "alice", **headers)
+        self.assertEqual(self.get(API_URL, "alice", **headers), 429)
+
+    def test_other_accounts_and_clients_keep_their_own_counters(self):
+        for _ in range(3):
+            self.get(API_URL, "alice", **via_proxy(CLIENT_A))
+        self.assertEqual(self.get(API_URL, "alice", **via_proxy(CLIENT_A)), 429)
+        self.assertEqual(
+            self.get(API_URL, "bob", "secret-pw-2", **via_proxy(CLIENT_A)), 200
+        )
+        self.assertEqual(
+            self.get(API_URL, "alice", "secret-pw-1", **via_proxy(CLIENT_B)), 200
+        )
+
+    def test_a_forged_forwarded_header_does_not_buy_a_fresh_counter(self):
+        statuses = [
+            self.get(API_URL, "alice", **via_proxy(CLIENT_A, sent=f"10.0.0.{n}"))
+            for n in range(4)
+        ]
+        self.assertEqual(statuses, [401, 401, 401, 429])
