@@ -93,10 +93,14 @@ function locationSavedWithoutPlace() {
   toast.warning(i18n.t("toasts.locationsavedwithoutplace"), { title: i18n.t("toasts.editphototitle") });
 }
 
-function rotatePhotos(numberOfPhotos: number, rotation: number) {
-  toast.success(i18n.t("toasts.rotatephoto", { numberOfPhotos, rotation }), {
-    title: i18n.t("toasts.rotatephototitle"),
-  });
+/** `clockwiseDegrees` is the turn the user chose, as seen on screen; negative is counter-clockwise (#2587). */
+function photoRotated(clockwiseDegrees: number) {
+  const degrees = Math.abs(clockwiseDegrees);
+  const message =
+    clockwiseDegrees < 0
+      ? i18n.t("toasts.rotatephotocounterclockwise", { degrees })
+      : i18n.t("toasts.rotatephotoclockwise", { degrees });
+  toast.success(message, { title: i18n.t("toasts.rotatephototitle") });
 }
 
 function deleteMissingPhotos() {
@@ -128,8 +132,8 @@ export const photos = {
   downloadFailed,
   downloadStarting,
   locationSavedWithoutPlace,
+  photoRotated,
   removePhotos,
-  rotatePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,
   setPhotosCategory,
