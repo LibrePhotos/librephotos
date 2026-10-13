@@ -65,6 +65,11 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
             created_at=WHEN + datetime.timedelta(minutes=minutes)
         )
 
+    def rating_of(self, photo):
+        # Only the column this migration knows: a full Photo row would also
+        # select the columns later migrations add, which are not there yet.
+        return Photo.objects.filter(pk=photo.pk).values_list("rating", flat=True)[0]
+
     def test_patched_ratings_and_captions_reach_the_app(self):
         self.old_metadata(self.patched, rating=5, caption="Grandma's 80th")
         self.edit(self.patched, "rating", 5)
@@ -72,12 +77,12 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
 
         self.migrate(AFTER)
 
-        photo = Photo.objects.get(pk=self.patched.pk)
-        self.assertEqual(photo.rating, 5)
-        captions = PhotoCaption.objects.get(photo=photo).captions_json
+        self.assertEqual(self.rating_of(self.patched), 5)
+        captions = PhotoCaption.objects.get(photo_id=self.patched.pk).captions_json
         self.assertEqual(captions["user_caption"], "Grandma's 80th")
         self.assertIn(
-            "Grandma's 80th", PhotoSearch.objects.get(photo=photo).search_captions
+            "Grandma's 80th",
+            PhotoSearch.objects.get(photo_id=self.patched.pk).search_captions,
         )
 
     def test_snapshots_without_an_edit_are_left_behind(self):
@@ -87,7 +92,7 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
 
         self.migrate(AFTER)
 
-        self.assertEqual(Photo.objects.get(pk=self.snapshot.pk).rating, 0)
+        self.assertEqual(self.rating_of(self.snapshot), 0)
         self.assertFalse(PhotoCaption.objects.filter(photo=self.snapshot).exists())
 
     def test_an_edit_undone_by_revert_all_is_left_behind(self):
@@ -98,7 +103,7 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
 
         self.migrate(AFTER)
 
-        self.assertEqual(Photo.objects.get(pk=self.reverted.pk).rating, 0)
+        self.assertEqual(self.rating_of(self.reverted), 0)
         self.assertFalse(PhotoCaption.objects.filter(photo=self.reverted).exists())
 
     def test_a_lightbox_caption_wins_over_a_patched_one(self):

@@ -856,6 +856,33 @@ def _rebuild_made_before_probe(
     photo.save(update_fields=fields)
 
 
+def _set_metadata_read_at(photo: Photo, value: datetime.datetime | None) -> None:
+    photo.metadata_read_at = value
+    Photo.objects.filter(pk=photo.pk).update(metadata_read_at=value)
+
+
+def _read_metadata(
+    photo: Photo, path: str, job_id: UUID | str, start: datetime.datetime
+) -> None:
+    """Read the file's EXIF and date into the photo; raises ``MetadataReadError``."""
+    photo_reader.extract_exif_data(photo, commit=True)
+    elapsed = (datetime.datetime.now() - start).total_seconds()
+    logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
+
+    # Categorise the photo (screenshot/document) from the freshly extracted
+    # metadata. A manual correction ("user") is never overwritten by a rescan.
+    # The value is persisted by the full ``photo.save()`` inside the
+    # ``extract_date_time`` call immediately below.
+    if photo.category_source != "user":
+        from api.classification.screenshots import classify
+
+        photo.is_screenshot = classify(photo)
+
+    extract_date_time(photo, True)
+    elapsed = (datetime.datetime.now() - start).total_seconds()
+    logger.debug("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
+
+
 def _process_photo(
     photo: Photo, path: str, job_id: UUID | str, start: datetime.datetime
 ) -> None:
@@ -926,22 +953,14 @@ def _process_photo(
                 elapsed,
             )
 
-    photo_reader.extract_exif_data(photo, commit=True)
-    elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
-
-    # Categorise the photo (screenshot/document) from the freshly extracted
-    # metadata. A manual correction ("user") is never overwritten by a rescan.
-    # The value is persisted by the full ``photo.save()`` inside the
-    # ``extract_date_time`` call immediately below.
-    if photo.category_source != "user":
-        from api.classification.screenshots import classify
-
-        photo.is_screenshot = classify(photo)
-
-    extract_date_time(photo, True)
-    elapsed = (datetime.datetime.now() - start).total_seconds()
-    logger.debug("job %s: extract date time: %s, elapsed: %s", job_id, path, elapsed)
+    try:
+        _read_metadata(photo, path, job_id, start)
+    except Exception:
+        # Read again by the next incremental scan, although the file is known
+        # and unchanged by then (#2271).
+        _set_metadata_read_at(photo, None)
+        raise
+    _set_metadata_read_at(photo, timezone.now())
 
     render.calculate_dominant_color(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
