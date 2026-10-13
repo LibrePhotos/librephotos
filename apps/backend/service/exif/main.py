@@ -4,6 +4,8 @@ from typing import Any
 import exiftool
 from flask.typing import ResponseReturnValue
 
+from api.metadata.tags import SIDECAR_EQUIVALENTS
+from api.mime import METADATA_EXTENSIONS, extension
 from service._common import (
     MalformedRequest,
     create_app,
@@ -55,14 +57,34 @@ def running_exiftool(struct: object) -> exiftool.ExifTool:
     return et
 
 
+def _names_in(file: str, tag: str) -> list[str]:
+    """The names *tag* is read under in *file*, first found wins.
+
+    A sidecar holds an EXIF property under its XMP name (``SIDECAR_EQUIVALENTS``);
+    a media file is read by the requested name only.
+    """
+    equivalent = SIDECAR_EQUIVALENTS.get(tag)
+    if equivalent is not None and extension(file) in METADATA_EXTENSIONS:
+        return [equivalent, tag]
+    return [tag]
+
+
+def _with_equivalents(tags: list[str]) -> list[str]:
+    """*tags* plus the sidecar name of each, for one command over every file."""
+    extra = [SIDECAR_EQUIVALENTS[tag] for tag in tags if tag in SIDECAR_EQUIVALENTS]
+    return tags + [name for name in dict.fromkeys(extra) if name not in tags]
+
+
 def highest_priority_value(
     et: exiftool.ExifTool, tag: str, files_by_reverse_priority: list[str]
 ) -> object:
     value: object = None
     for file in files_by_reverse_priority:
-        retrieved_value = et.get_tag(tag, file)
-        if retrieved_value is not None:
-            value = retrieved_value
+        for name in _names_in(file, tag):
+            retrieved_value = et.get_tag(name, file)
+            if retrieved_value is not None:
+                value = retrieved_value
+                break
     return value
 
 
@@ -119,15 +141,26 @@ def _attribute(data: dict[str, object], tags: list[str]) -> tuple[list[object], 
 
 
 def _file_values(
-    et: exiftool.ExifTool, tags: list[str], file: str, data: dict[str, object]
+    et: exiftool.ExifTool,
+    tags: list[str],
+    file: str,
+    data: dict[str, object],
+    requested: list[str],
 ) -> list[object]:
-    values, complete = _attribute(data, tags)
-    if complete:
-        return values
-    return [
-        et.get_tag(tag, file) if value is None else value
-        for tag, value in zip(tags, values)
-    ]
+    """*file*'s value of each of *tags*, from its answer to the *requested* names."""
+    found, complete = _attribute(data, requested)
+    by_name = dict(zip(requested, found))
+    values: list[object] = []
+    for tag in tags:
+        value: object = None
+        for name in _names_in(file, tag):
+            value = by_name[name]
+            if value is None and not complete:
+                value = et.get_tag(name, file)
+            if value is not None:
+                break
+        values.append(value)
+    return values
 
 
 def highest_priority_values(
@@ -138,8 +171,11 @@ def highest_priority_values(
     A command costs ExifTool ~15 ms whether it reads one tag or thirty, so
     asking per tag and per file made metadata the slowest part of a scan.
     A later file overrides an earlier one, as with ``highest_priority_value``.
+    The sidecar names of the tags ride along in the same command; only a
+    sidecar's answer to them is used.
     """
-    per_file = et.get_tags_batch(tags, files_by_reverse_priority)
+    requested = _with_equivalents(tags)
+    per_file = et.get_tags_batch(requested, files_by_reverse_priority)
     if len(per_file) != len(files_by_reverse_priority):
         # ExifTool leaves out a file it cannot read, so the answers no longer
         # line up with the files; ask per tag and per file as before.
@@ -148,7 +184,7 @@ def highest_priority_values(
         ]
     values: list[object] = [None] * len(tags)
     for file, data in zip(files_by_reverse_priority, per_file):
-        for index, value in enumerate(_file_values(et, tags, file, data)):
+        for index, value in enumerate(_file_values(et, tags, file, data, requested)):
             if value is not None:
                 values[index] = value
     return values

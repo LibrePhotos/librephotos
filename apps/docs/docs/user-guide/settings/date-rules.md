@@ -56,7 +56,12 @@ Under the hood the local time is tagged as UTC before it is saved. That is an in
 
 Currently, supported rule types:
 
-- "exif" - local time is taken using exif tag params["exif_tag"] as obtained with exiftool
+- "exif" - local time is taken using exif tag params["exif_tag"] as obtained with exiftool.
+  An XMP sidecar next to the photo wins over the file. For `EXIF:DateTimeOriginal` and
+  `Composite:GPSDateTime` the sidecar is also read under its XMP name (`exif:DateTimeOriginal`,
+  `exif:GPSTimeStamp`); any other EXIF tag in a rule is not looked up in the sidecar, so to use
+  a property that only a sidecar holds, name its XMP tag directly (for example `XMP:<tag>`).
+  _Not released yet._
 - "path" - time is taken from the filename using a regular expression matching
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without

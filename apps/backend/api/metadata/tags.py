@@ -57,3 +57,29 @@ class Tags:
     # Camera serial number (useful for grouping shots from same camera)
     SERIAL_NUMBER = "EXIF:SerialNumber"
     CAMERA_SERIAL = "MakerNotes:SerialNumber"
+
+
+# The name of the same property in an XMP sidecar, for the EXIF and Composite
+# names above (#2261). An app that may not rewrite the original (a geotagger,
+# digiKam, darktable, Lightroom) stores these in the sidecar's exif:, tiff: and
+# exifEX: namespaces, which ExifTool reports as XMP:<Name>; it builds no
+# Composite:GPSLatitude/GPSLongitude from them either. The exif service asks a
+# sidecar for the name on the right, so its value overrides the embedded one.
+#
+# Explicit on purpose, not a blanket EXIF: -> XMP: rewrite: xmp:ModifyDate in a
+# sidecar is the time of the last edit, not a capture-related date, and a
+# sidecar orientation must not start rotating photos as a side effect.
+# Only sidecars are asked: inside a media file the EXIF block stays the source.
+SIDECAR_EQUIVALENTS: dict[str, str] = {
+    Tags.DATE_TIME_ORIGINAL: "XMP:DateTimeOriginal",
+    Tags.LATITUDE: "XMP:GPSLatitude",
+    Tags.LONGITUDE: "XMP:GPSLongitude",
+    Tags.GPS_DATE_TIME: "XMP:GPSDateTime",
+    Tags.FSTOP: "XMP:FNumber",
+    Tags.EXPOSURE_TIME: "XMP:ExposureTime",
+    Tags.ISO: "XMP:ISO",
+    Tags.FOCAL_LENGTH: "XMP:FocalLength",
+    Tags.FOCAL_LENGTH_35MM: "XMP:FocalLengthIn35mmFormat",
+    Tags.CAMERA: "XMP:Model",
+    Tags.LENS: "XMP:LensModel",
+}

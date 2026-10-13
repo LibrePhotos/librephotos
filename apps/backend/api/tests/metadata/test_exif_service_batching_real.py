@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import exiftool
 import PIL.Image
@@ -75,6 +76,30 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         subprocess.run(
             [EXIFTOOL, "-XMP:Rating=5", cls.sidecar], check=True, capture_output=True
         )
+        # A sidecar as a geotagger or a RAW editor writes it: the capture
+        # date, position, camera and exposure under their exif:/tiff:/exifEX:
+        # XMP names, which ExifTool reports as XMP:<Name> (#2261). The
+        # position is south-west, so the signs must survive.
+        cls.geotagged = os.path.join(cls.directory, "geotagged.xmp")
+        subprocess.run(
+            [
+                EXIFTOOL,
+                "-XMP-exif:DateTimeOriginal=2019:07:01 08:00:00+02:00",
+                "-XMP-exif:GPSLatitude=33.9 S",
+                "-XMP-exif:GPSLongitude=118.4 W",
+                "-XMP-exif:GPSDateTime=2019:07:01 06:00:00Z",
+                "-XMP-exif:FNumber=8",
+                "-XMP-exif:ISO=1600",
+                "-XMP-exif:ExposureTime=0.01",
+                "-XMP-exif:FocalLength=50",
+                "-XMP-exif:FocalLengthIn35mmFormat=75",
+                "-XMP-tiff:Model=Sidecar Cam",
+                "-XMP-exifEX:LensModel=Sidecar Lens",
+                cls.geotagged,
+            ],
+            check=True,
+            capture_output=True,
+        )
 
         # A description with language entries only, no x-default one.
         cls.languages = os.path.join(cls.directory, "languages.jpg")
@@ -102,6 +127,8 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         return [
             [self.camera],
             [self.camera, self.sidecar],
+            [self.camera, self.geotagged],
+            [self.geotagged],
             [os.path.join(FIXTURES, "niaz.jpg"), os.path.join(FIXTURES, "niaz.xmp")],
             [os.path.join(FIXTURES, "iptc_test.jpg")],
             [self.languages],
@@ -140,3 +167,64 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         values = dict(zip(ALL_TAGS, values))
         self.assertIsNone(values[Tags.DESCRIPTION])
         self.assertIn(values[Tags.DESCRIPTION_ANY_LANGUAGE], ("Hallo", "Bonjour"))
+
+    def test_sidecar_values_under_their_xmp_names_win(self):
+        values = dict(
+            zip(
+                ALL_TAGS,
+                highest_priority_values(
+                    self.plain, ALL_TAGS, [self.camera, self.geotagged]
+                ),
+            )
+        )
+        self.assertEqual(values[Tags.DATE_TIME_ORIGINAL], "2019:07:01 08:00:00+02:00")
+        self.assertEqual(values[Tags.LATITUDE], -33.9)
+        self.assertEqual(values[Tags.LONGITUDE], -118.4)
+        self.assertEqual(values[Tags.GPS_DATE_TIME], "2019:07:01 06:00:00Z")
+        self.assertEqual(values[Tags.CAMERA], "Sidecar Cam")
+        self.assertEqual(values[Tags.LENS], "Sidecar Lens")
+        self.assertEqual(values[Tags.FSTOP], 8)
+        self.assertEqual(values[Tags.ISO], 1600)
+        self.assertEqual(values[Tags.EXPOSURE_TIME], 0.01)
+        self.assertEqual(values[Tags.FOCAL_LENGTH], 50)
+        self.assertEqual(values[Tags.FOCAL_LENGTH_35MM], 75)
+        # Not in the sidecar: the media file's own values stay.
+        self.assertEqual(values[Tags.RATING], 3)
+        self.assertEqual(values[Tags.SUBSEC_TIME_ORIGINAL], 123)
+
+    def test_a_sidecar_without_those_properties_keeps_the_embedded_values(self):
+        values = dict(
+            zip(
+                ALL_TAGS,
+                highest_priority_values(
+                    self.plain, ALL_TAGS, [self.camera, self.sidecar]
+                ),
+            )
+        )
+        self.assertEqual(values[Tags.DATE_TIME_ORIGINAL], "2021:07:04 12:30:00")
+        self.assertEqual(values[Tags.LATITUDE], 48.137)
+        self.assertEqual(values[Tags.CAMERA], "Test Cam")
+        self.assertEqual(values[Tags.FSTOP], 2.8)
+
+    def test_an_embedded_xmp_property_does_not_override_the_exif_value(self):
+        # The XMP names are asked for every file in the one command, but only
+        # a sidecar answers with them: inside the media file EXIF stays the source.
+        jpeg = os.path.join(self.directory, "embedded-xmp.jpg")
+        shutil.copyfile(self.camera, jpeg)
+        subprocess.run(
+            [EXIFTOOL, "-overwrite_original", "-XMP-tiff:Model=Embedded XMP", jpeg],
+            check=True,
+            capture_output=True,
+        )
+        values = dict(
+            zip(ALL_TAGS, highest_priority_values(self.plain, ALL_TAGS, [jpeg]))
+        )
+        self.assertEqual(values[Tags.CAMERA], "Test Cam")
+
+    def test_one_exiftool_command_per_request(self):
+        files = [self.camera, self.geotagged]
+        with mock.patch.object(
+            self.plain, "execute_json", wraps=self.plain.execute_json
+        ) as execute_json:
+            highest_priority_values(self.plain, ALL_TAGS, files)
+        self.assertEqual(execute_json.call_count, 1)
