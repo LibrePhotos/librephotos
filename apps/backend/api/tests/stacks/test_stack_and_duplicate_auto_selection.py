@@ -10,7 +10,9 @@ Tests cover:
 
 from datetime import timedelta
 
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from api.models.duplicate import Duplicate
@@ -592,3 +594,79 @@ class DuplicateDismissTestCase(TestCase):
         # Neither should be trashed
         self.assertFalse(photo1.in_trashcan)
         self.assertFalse(photo2.in_trashcan)
+
+
+class HighestResolutionNullOrderingTestCase(TestCase):
+    """Unknown dimensions never win "highest resolution" (#2251).
+
+    Postgres sorts NULL first in a descending order and SQLite sorts it last,
+    so the SQL itself is checked for NULLS LAST as well: the CI suite runs on
+    SQLite, where a missing NULLS clause would still pick the right photo.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.no_metadata = create_test_photo(owner=self.user, size=300)
+        self.no_width = create_test_photo(
+            owner=self.user, width=None, height=3000, size=200
+        )
+        self.small = create_test_photo(owner=self.user, width=800, height=600, size=100)
+        self.large = create_test_photo(
+            owner=self.user, width=4000, height=3000, size=1000
+        )
+        self.photos = [self.no_metadata, self.no_width, self.small, self.large]
+
+    def assert_orders_nulls_last(self, queries: CaptureQueriesContext) -> None:
+        resolution_queries = [
+            q["sql"] for q in queries.captured_queries if '"width"' in q["sql"]
+        ]
+        self.assertTrue(resolution_queries, "no query ordered by resolution")
+        for sql in resolution_queries:
+            self.assertIn("DESC NULLS LAST", sql)
+
+    def test_visual_duplicate_skips_unknown_dimensions(self):
+        dup = create_test_duplicate(
+            owner=self.user,
+            duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
+        )
+        dup.photos.add(*self.photos)
+
+        with CaptureQueriesContext(connection) as queries:
+            best = dup.auto_select_best_photo()
+
+        self.assertEqual(best, self.large)
+        self.assert_orders_nulls_last(queries)
+
+    def test_potential_savings_keep_the_largest_resolution(self):
+        dup = create_test_duplicate(
+            owner=self.user,
+            duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
+        )
+        dup.photos.add(*self.photos)
+
+        savings = dup.calculate_potential_savings()
+
+        self.assertEqual(savings, 300 + 200 + 100)
+
+    def test_manual_stack_primary_skips_unknown_dimensions(self):
+        stack = create_test_stack(
+            owner=self.user, stack_type=PhotoStack.StackType.MANUAL
+        )
+        stack.photos.add(*self.photos)
+
+        with CaptureQueriesContext(connection) as queries:
+            primary = stack.auto_select_primary()
+
+        self.assertEqual(primary, self.large)
+        self.assert_orders_nulls_last(queries)
+
+    def test_equal_resolution_prefers_larger_file(self):
+        bigger_file = create_test_photo(
+            owner=self.user, width=4000, height=3000, size=5000
+        )
+        stack = create_test_stack(
+            owner=self.user, stack_type=PhotoStack.StackType.MANUAL
+        )
+        stack.photos.add(self.large, bigger_file)
+
+        self.assertEqual(stack.auto_select_primary(), bigger_file)

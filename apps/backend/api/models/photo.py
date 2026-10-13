@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 
 from api.models.duplicate import Duplicate
 from api.models.file import File
@@ -34,6 +34,21 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
         if isinstance(user, User) and user.is_authenticated:
             q |= self.owner_q(user) | Q(shared_to=user)
         return self.filter(q)
+
+
+def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:
+    """``photos`` with the largest ``width * height`` first, unknown sizes last.
+
+    The NULLS LAST is explicit because Postgres puts NULL first in a
+    descending sort and SQLite last, so a photo without dimensions won on
+    Postgres only (#2251). Equal resolutions go to the larger file, then to
+    the lowest id, so the pick is stable.
+    """
+    return photos.order_by(
+        (F("metadata__width") * F("metadata__height")).desc(nulls_last=True),
+        F("size").desc(),
+        "pk",
+    )
 
 
 # Large per-photo columns that list endpoints never render: defer them when a
