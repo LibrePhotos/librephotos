@@ -72,6 +72,16 @@ describe("user album sharing", () => {
     expect(album.shared_to.map(user => user.username)).toEqual(["bob"]);
   });
 
+  it("leaves an album shared with me", async () => {
+    const { client, requests } = fakeServer(null);
+    await expect(endpoints.leaveSharedAlbum(client, 4)).resolves.toBeUndefined();
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/useralbum/leave/",
+      method: "POST",
+      body: { album_id: "4" },
+    });
+  });
+
   it("makes an album public with its link settings, and leaves out what is not set", async () => {
     const { client, requests } = fakeServer({ status: true, album: card });
     const sharingOptions = { share_location: false, share_faces: true };

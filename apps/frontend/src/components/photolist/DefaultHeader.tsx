@@ -17,6 +17,8 @@ type Props = Readonly<{
   numPhotos: number;
   icon: TablerIcon;
   title: string;
+  // See PhotoListView's `titleBadge`.
+  titleBadge?: React.ReactNode;
   additionalSubHeader: React.ReactNode;
   dayHeaderPrefix?: string;
   date?: string;
@@ -120,6 +122,7 @@ export function DefaultHeader(props: Props) {
     icon,
     numPhotos,
     title,
+    titleBadge,
     additionalSubHeader,
     date,
     dayHeaderPrefix,
@@ -152,7 +155,12 @@ export function DefaultHeader(props: Props) {
   return (
     <PageHeader
       icon={icon}
-      title={titleNode}
+      title={
+        <>
+          {titleNode}
+          {titleBadge}
+        </>
+      }
       titleOrder={titleOrder}
       subtitle={
         <PhotoCounter

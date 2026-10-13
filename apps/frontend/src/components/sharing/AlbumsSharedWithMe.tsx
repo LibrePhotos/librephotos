@@ -1,14 +1,16 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
 import { Anchor, Avatar, Box, Stack, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import cx from "clsx";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize } from "../../util/gridUtils";
 import gridClasses from "../album/AlbumGridCell.module.css";
+import { LeaveSharedAlbumModal, type LeavableAlbum } from "../album/LeaveSharedAlbumModal";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
@@ -18,6 +20,7 @@ import type { TileGroup } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
 import classes from "./AlbumsShared.module.css";
 import { avatarSrc } from "./avatarSrc";
+import { SharedAlbumTileMenu } from "./SharedAlbumTileMenu";
 import { sharerName } from "./sharerGroups";
 
 const DAY_HEADER_HEIGHT = 70;
@@ -40,6 +43,9 @@ export function AlbumsSharedWithMe() {
   const { data: albumsSharedToMe, isFetching, isSuccess } = albumsQuery;
   const listFailure = useListFailure(albumsQuery);
   const { data: users } = useFetchUserListQuery();
+  // The album the "Leave album" dialog asks about; kept after closing so the dialog can animate out.
+  const [leaving, setLeaving] = useState<LeavableAlbum>();
+  const [leaveOpened, leaveDialog] = useDisclosure(false);
 
   // One group per user who shares albums with you, under a header with who it is
   const groups = useMemo((): TileGroup<UserAlbumInfo>[] => {
@@ -93,23 +99,35 @@ export function AlbumsSharedWithMe() {
             sizing={sizing}
             renderItem={(album, size) => (
               <>
-                <Anchor
-                  renderRoot={rootProps => (
-                    <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
-                  )}
-                >
-                  {album.cover_photo ? (
-                    <Tile
-                      className={cx(gridClasses.cover, classes.coverTile)}
-                      width={size}
-                      height={size}
-                      image_hash={album.cover_photo.image_hash}
-                      video={album.cover_photo.video}
-                    />
-                  ) : (
-                    <div className={cx(gridClasses.cover, classes.emptyCover)} style={{ width: size, height: size }} />
-                  )}
-                </Anchor>
+                <div className={classes.tile}>
+                  <Anchor
+                    renderRoot={rootProps => (
+                      <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
+                    )}
+                  >
+                    {album.cover_photo ? (
+                      <Tile
+                        className={cx(gridClasses.cover, classes.coverTile)}
+                        width={size}
+                        height={size}
+                        image_hash={album.cover_photo.image_hash}
+                        video={album.cover_photo.video}
+                      />
+                    ) : (
+                      <div
+                        className={cx(gridClasses.cover, classes.emptyCover)}
+                        style={{ width: size, height: size }}
+                      />
+                    )}
+                  </Anchor>
+                  <SharedAlbumTileMenu
+                    title={album.title}
+                    onLeave={() => {
+                      setLeaving(album);
+                      leaveDialog.open();
+                    }}
+                  />
+                </div>
                 <Text fw={700} mt={4} lineClamp={1} title={album.title}>
                   {album.title}
                 </Text>
@@ -121,6 +139,7 @@ export function AlbumsSharedWithMe() {
           />
         </div>
       )}
+      {leaving && <LeaveSharedAlbumModal opened={leaveOpened} onClose={leaveDialog.close} album={leaving} />}
     </div>
   );
 }

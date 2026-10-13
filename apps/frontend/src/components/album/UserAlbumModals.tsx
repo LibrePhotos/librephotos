@@ -71,11 +71,17 @@ export function RenameUserAlbumModal({ opened, ...props }: RenameProps) {
   );
 }
 
-export function DeleteUserAlbumModal({ opened, onClose, albumId, albumTitle }: AlbumModalProps) {
+type DeleteProps = AlbumModalProps &
+  Readonly<{
+    /** After the album is gone: the album's own page leaves it for My Albums. */
+    onDeleted?: () => void;
+  }>;
+
+export function DeleteUserAlbumModal({ opened, onClose, albumId, albumTitle, onDeleted }: DeleteProps) {
   const { t } = useTranslation();
   const deleteUserAlbum = useDeleteUserAlbumMutation({ reportsErrors: true });
   return (
-    <Modal opened={opened} onClose={onClose} title={t("delete")}>
+    <Modal opened={opened} onClose={onClose} title={t("useralbum.deletealbumtitle", { title: albumTitle })}>
       <Stack>
         <Text>{t("deletealbumexplanation")}</Text>
         {deleteUserAlbum.isError && (
@@ -88,9 +94,19 @@ export function DeleteUserAlbumModal({ opened, onClose, albumId, albumTitle }: A
           <Button
             color="red"
             loading={deleteUserAlbum.isPending}
-            onClick={() => deleteUserAlbum.mutate({ id: albumId, albumTitle }, { onSuccess: onClose })}
+            onClick={() =>
+              deleteUserAlbum.mutate(
+                { id: albumId, albumTitle },
+                {
+                  onSuccess: () => {
+                    onClose();
+                    onDeleted?.();
+                  },
+                }
+              )
+            }
           >
-            {t("confirm")}
+            {t("useralbum.deletealbum")}
           </Button>
         </Group>
       </Stack>

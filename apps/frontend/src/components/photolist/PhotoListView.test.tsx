@@ -77,7 +77,12 @@ vi.mock("../react-pig", () => ({
   }),
 }));
 vi.mock("./DefaultHeader", () => ({
-  DefaultHeader: ({ title }: { title: string }) => <h1 data-testid="title">{title}</h1>,
+  DefaultHeader: ({ title, titleBadge }: { title: string; titleBadge?: React.ReactNode }) => (
+    <h1 data-testid="title">
+      {title}
+      {titleBadge}
+    </h1>
+  ),
 }));
 vi.mock("../scrollscrubber/ScrollScrubber", () => ({
   ScrollScrubber: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -93,7 +98,7 @@ vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({ AlbumEditModal: () => nul
 vi.mock("../modals/ModalTagEdit", () => ({ ModalTagEdit: () => null }));
 vi.mock("../sharing/ModalAlbumShare", () => ({ ModalAlbumShare: () => null }));
 vi.mock("../sharing/ModalPhotosShare", () => ({ ModalPhotosShare: () => null }));
-vi.mock("./MediaTypeSelector", () => ({ MediaTypeSelector: () => null }));
+vi.mock("./MediaTypeSelector", () => ({ MediaTypeSelector: () => <span data-testid="media-filter" /> }));
 vi.mock("./SelectionActions", () => ({ SelectionActions: () => null }));
 vi.mock("./SelectionBar", () => ({
   SelectionBar: (props: SelectionBarProps) => {
@@ -477,6 +482,29 @@ describe("PhotoListView header actions", () => {
     await render({ headerActions: <Probe />, loading: false, photoset: [], idx2hash: [] });
     expect(el.querySelector('[data-testid="filter-button"]')).not.toBeNull();
     expect(mounts).toBe(1);
+  });
+
+  // A shared album is read-only for its recipient, yet "Leave album" lives in its toolbar (#2210).
+  it("shows headerActions on a read-only view, without the list's own controls", async () => {
+    const display = `[aria-label="${i18n.t("photodisplay.settings")}"]`;
+    const mediaFilter = '[data-testid="media-filter"]';
+    const props = { mediaType: "all", headerActions: <span data-testid="leave-menu" /> } as const;
+    // The owner's view: the list's controls next to the actions
+    const own = await render({ ...props, isPublic: false });
+    expect(own.querySelector(display)).not.toBeNull();
+    expect(own.querySelector(mediaFilter)).not.toBeNull();
+
+    const shared = await render({ ...props, isPublic: true });
+
+    expect(shared.querySelector('[data-testid="leave-menu"]')).not.toBeNull();
+    expect(shared.querySelector(display)).toBeNull();
+    expect(shared.querySelector(mediaFilter)).toBeNull();
+  });
+
+  it("hands the title badge to the header", async () => {
+    const el = await render({ title: "Lisbon 2026", titleBadge: <span data-testid="badge">Locked</span> });
+
+    expect(el.querySelector('h1 [data-testid="badge"]')).not.toBeNull();
   });
 });
 

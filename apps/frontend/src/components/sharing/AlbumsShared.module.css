@@ -27,3 +27,15 @@
 .emptyCover {
   background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
 }
+
+/* The cover and its "⋮" chip, which sits on the cover's top right corner. */
+.tile {
+  position: relative;
+}
+
+.tileActions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}

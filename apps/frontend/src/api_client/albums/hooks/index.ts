@@ -8,6 +8,7 @@ export * from "./useFetchLocationClustersQuery";
 export * from "./useFetchSharedAlbumsByMeQuery";
 export * from "./useFetchSharedAlbumsWithMeQuery";
 export * from "./useShareUserAlbumMutation";
+export * from "./useLeaveSharedAlbumMutation";
 export * from "./useToggleUserAlbumPublicMutation";
 export * from "./useToggleUserAlbumLockedMutation";
 export * from "./useFetchThingsAlbumsQuery";

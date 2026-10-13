@@ -23,7 +23,7 @@ export function RemoveFromAlbumMenuItem({
   let reason: string | undefined;
   // Removing from an album takes a list of photos; the select-all query is not supported.
   if (selectAllMode) reason = t("selectionactions.removephotosselectall");
-  else if (albumLocked) reason = t("useralbum.albumIsLocked");
+  else if (albumLocked) reason = t("useralbum.lockedCannotRemove");
   else if (!hasSelection) reason = t("selectionactions.selectphotosfirst");
 
   return (

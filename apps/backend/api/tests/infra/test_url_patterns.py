@@ -271,6 +271,7 @@ CLIENT_PATHS = {
     "/api/upload/complete/": "api.views.upload.UploadPhotosChunkedComplete",
     "/api/user/": "api.views.user.UserViewSet get=list,post=create",
     "/api/user/1/": "api.views.user.UserViewSet get=retrieve,patch=partial_update",
+    "/api/useralbum/leave/": "api.views.sharing.LeaveSharedAlbum",
     "/api/useralbum/makepublic": "api.views.public_albums.SetUserAlbumPublic",
     "/api/useralbum/share/": "api.views.sharing.SetUserAlbumShared",
     "/api/wordcloud/": "api.views.dataviz.SearchTermWordCloudView",

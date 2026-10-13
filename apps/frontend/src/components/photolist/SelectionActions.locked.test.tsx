@@ -112,7 +112,7 @@ describe("locked album selection actions", () => {
         expect(menuItem(key)?.disabled).toBe(false);
       }
       if (locked) {
-        expectDisabledWithReason(remove, i18n.t("useralbum.albumIsLocked"));
+        expectDisabledWithReason(remove, i18n.t("useralbum.lockedCannotRemove"));
       } else {
         expect(remove.getAttribute("aria-disabled")).toBeNull();
       }
@@ -129,7 +129,7 @@ describe("locked album selection actions", () => {
     try {
       const remove = defined(menuItem("selectionactions.removephotos"), "remove");
       // Hover, not focus: the menu moves focus itself, and its arrow keys skip a disabled item.
-      expect(await hoverAndReadTooltip(remove)).toContain(i18n.t("useralbum.albumIsLocked"));
+      expect(await hoverAndReadTooltip(remove)).toContain(i18n.t("useralbum.lockedCannotRemove"));
     } finally {
       await cleanup();
     }

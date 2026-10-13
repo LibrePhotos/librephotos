@@ -1027,6 +1027,14 @@ export async function setUserAlbumShared(
   return parseResponse(S.UserAlbumInfo, res, "share user album");
 }
 
+/**
+ * Leave an album someone shared with you: it drops off your "Shared with me" list, while the
+ * owner and the other recipients keep it. Answers 204; 404 for an album not shared with you.
+ */
+export async function leaveSharedAlbum(client: ApiClient, albumId: number | string): Promise<void> {
+  await client.post("/useralbum/leave/", { album_id: String(albumId) });
+}
+
 /* ---- public links ------------------------------------------------------ */
 
 /** Make photos (by hash or selected-all) public, so they show in the owner's public gallery, or private. */

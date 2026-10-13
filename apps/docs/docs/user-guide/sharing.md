@@ -20,10 +20,10 @@ The **Sharing** page (accessible from the navigation) is your central hub for al
 You can share any user album with other users on your LibrePhotos instance:
 
 1. Navigate to the album you want to share
-2. In the toolbar above the photo grid, open the **three-dot menu** (⋮) and, under **Album Actions**, choose **"Sharing"** — no photo selection is needed
+2. Open the **⋮** (**Album actions**) at the right of the album's header and choose **Sharing**
 3. Search for users and toggle sharing on or off for each
 
-You can also open the same dialog from the share action on the album's card under **Albums**. The toolbar only appears on albums that already contain at least one photo.
+You can also open the same dialog from the share action on the album's card under **Albums**, or from the selection toolbar's **three-dot menu** (⋮) under **Album Actions**, which only appears on albums that already contain at least one photo.
 
 Shared albums show up in the recipient's sharing area: they open **Sharing**, click the **Shared with you** tile, then the **Albums** tab (the page is titled *Albums others shared*).
 
@@ -151,6 +151,14 @@ Open **Sharing** and click the **Shared with you** tile (the pages are titled *P
 
 - **Photos tab** — Photos others have shared with you, grouped by sender
 - **Albums tab** — Albums others have shared with you, grouped by sender
+
+### Leaving an album shared with you
+
+An album someone shared with you stays in your list until you leave it. Open the **⋮** on the album's cover under **Albums others shared**, or the **⋮** (**Album actions**) at the right of the album page's header, and choose **Leave album**. LibrePhotos asks first; after you confirm, the album and its photos are no longer shown to you under Sharing, and on the mobile app it disappears at the next sync.
+
+Only you leave: the owner keeps the album, it stays shared with everyone else, and the owner no longer sees you under **Albums you shared** for it. They can share it with you again at any time. You cannot leave an album you own; delete it or stop sharing it instead.
+
+*Not released yet: up to 1.3.0, only the owner could take an album off your list, by unsharing it.*
 
 ### Public Links
 

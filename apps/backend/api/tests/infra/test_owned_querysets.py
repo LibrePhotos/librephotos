@@ -191,6 +191,23 @@ class OwnedOrSharedToTest(TestCase):
                 )
 
 
+class SharedWithTest(TestCase):
+    def test_only_rows_someone_else_shared_to_the_user(self):
+        alice = create_test_user()
+        bob = create_test_user()
+        carol = create_test_user()
+        mine = create_test_album_user(owner=alice)
+        # Shared to herself: still hers, not something she can leave.
+        mine.shared_to.add(alice)
+        shared = create_test_album_user(owner=bob)
+        shared.shared_to.add(alice, carol)
+        create_test_album_user(owner=bob).shared_to.add(carol)
+
+        self.assertEqual(list(AlbumUser.objects.shared_with(alice)), [shared])
+        self.assertEqual(list(AlbumUser.objects.shared_with(None)), [])
+        self.assertEqual(list(AlbumUser.objects.shared_with(AnonymousUser())), [])
+
+
 class OwnerQTest(TestCase):
     def test_owner_q_through_a_relation_stays_on_the_joined_row(self):
         alice = create_test_user()
