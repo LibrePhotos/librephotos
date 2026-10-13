@@ -188,7 +188,8 @@ def _discard_faces(photo: Photo) -> None:
     The crops are named after the image hash and are served by parsing it back
     out of the file name, so they cannot survive the hash moving. Deleting the
     rows leaves the people counts and covers describing faces that no longer
-    exist, so both are recomputed here.
+    exist, so both are recomputed here. The new picture's faces are found by
+    the next incremental Scan Faces, which covers photos not scanned (#2199).
     """
     persons = set(
         Person.objects.filter(
@@ -200,6 +201,8 @@ def _discard_faces(photo: Photo) -> None:
     )
 
     photo.faces.all().delete()
+    photo.faces_scanned_at = None
+    Photo.objects.filter(pk=photo.pk).update(faces_scanned_at=None)
 
     for person in persons:
         if person.cover_photo_id == photo.pk:

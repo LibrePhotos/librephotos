@@ -1,3 +1,5 @@
+import os
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -100,6 +102,40 @@ class UnmatchedRegionTest(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["encodings"], [None, [3.0, 4.0]])
+
+
+class FaceLocationsErrorStatusTest(SimpleTestCase):
+    """422 for a picture that cannot be read, 500 for a failure worth retrying (#2199)."""
+
+    def setUp(self):
+        face_main.app.config["TESTING"] = True
+        self.client = face_main.app.test_client()
+
+    def test_a_file_that_is_not_a_picture_answers_422(self):
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+            handle.write(b"not a picture")
+        self.addCleanup(os.remove, handle.name)
+
+        with patch.object(face_main, "_get_face_analysis") as get_analysis:
+            response = self.client.post("/face-locations", json={"source": handle.name})
+
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("error", response.get_json())
+        get_analysis.assert_not_called()
+
+    def test_a_model_failure_answers_500(self):
+        with (
+            patch.object(
+                face_main, "_get_face_analysis", side_effect=MemoryError("no memory")
+            ),
+            patch.object(face_main.Image, "open") as open_image,
+        ):
+            open_image.return_value.convert.return_value = np.zeros((4, 4, 3))
+            response = self.client.post(
+                "/face-locations", json={"source": "/tmp/p.jpg"}
+            )
+
+        self.assertEqual(response.status_code, 500)
 
 
 class FaceAnalysisProvidersTest(SimpleTestCase):

@@ -11,12 +11,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
+from http import HTTPStatus
 from io import BytesIO
 from typing import TYPE_CHECKING
 
-import PIL
+import PIL.Image
+import requests
 from django.core.files.base import ContentFile
 from django.db.utils import IntegrityError
+from django.utils import timezone
 
 import api.models
 from api.faces import extractor
@@ -77,9 +80,39 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
         _detect_and_save_faces(photo, unknown_cluster)
     except IntegrityError:
         _retry_face_extraction(photo, second_try)
+        return
     except Exception as e:
         logger.error("image %s: scan face failed", photo)
+        if _fails_for_good(e):
+            _mark_faces_scanned(photo)
         raise e
+    _mark_faces_scanned(photo)
+
+
+def _fails_for_good(error: Exception) -> bool:
+    """Whether detecting faces again would fail the same way (#2199).
+
+    The big thumbnail is not a picture, or the face service answered 422:
+    it could not read the picture. A connection error, a timeout or any
+    other status (a sidecar restarting or out of memory answers 500) may
+    pass next time, so the photo stays unscanned and the next incremental
+    Scan Faces tries it again.
+    """
+    if isinstance(
+        error, (PIL.UnidentifiedImageError, PIL.Image.DecompressionBombError)
+    ):
+        return True
+    if isinstance(error, requests.HTTPError) and error.response is not None:
+        return error.response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    return False
+
+
+def _mark_faces_scanned(photo: Photo) -> None:
+    """Record that face detection ran on the photo's picture as it is now."""
+    photo.faces_scanned_at = timezone.now()
+    api.models.Photo.objects.filter(pk=photo.pk).update(
+        faces_scanned_at=photo.faces_scanned_at
+    )
 
 
 def _detect_and_save_faces(

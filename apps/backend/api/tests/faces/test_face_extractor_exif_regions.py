@@ -242,7 +242,7 @@ class ExtractIntegrationTest(ExtractFromExifBaseTest):
         self.mock_get_metadata.return_value = ({"RegionList": []}, None)
         result = extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
         self.assertEqual(result, [(1, 2, 3, 4, None)])
-        mock_service.assert_called_once_with(IMAGE_PATH, THUMB_PATH)
+        mock_service.assert_called_once_with(THUMB_PATH)
 
     @patch("api.faces.extractor.extract_from_face_service")
     def test_exif_faces_win(self, mock_service):
