@@ -1,0 +1,25 @@
+.frame {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Over the map until its style has loaded, so a map never flashes the style's own background */
+.skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/*
+ * Dark mode: every tile provider ships a light basemap, so the canvas is inverted and turned back to
+ * its hues. The app's own layers on the canvas are painted in colours that this filter turns back
+ * into the light ones (theme/mapColors.ts; its test holds the filter as maths, so change both). The
+ * zoom buttons and the attribution are HTML on a white ground; the same filter darkens them to
+ * match. Markers and popups are HTML too and keep their colours.
+ */
+[data-mantine-color-scheme="dark"] .frame :global(.maplibregl-canvas),
+[data-mantine-color-scheme="dark"] .frame :global(.maplibregl-ctrl-group),
+[data-mantine-color-scheme="dark"] .frame :global(.maplibregl-ctrl-attrib) {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9);
+}

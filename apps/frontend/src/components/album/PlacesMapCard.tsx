@@ -1,31 +1,23 @@
 import { Skeleton, Text } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import type { CircleLayerSpecification } from "maplibre-gl";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, { Layer, Source } from "react-map-gl/maplibre";
+import { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
-import { MAP_POINT_COLOR, MAP_POINT_STROKE_COLOR } from "../../theme/mapColors";
 import { useMapStyle } from "../../util/mapStyle";
-import { FeatureBoundary } from "../common/FeatureBoundary";
-import { clusterFeatureCollection } from "../map/locationClusters";
+import { clusterFeatureCollection, initialViewForClusters } from "../map/locationClusters";
 import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../map/mapImages";
+import { miniPointLayer } from "../map/placesLayers";
+import { ThemedMap } from "../map/ThemedMap";
+import { useMapLayerColors } from "../map/useMapLayerColors";
 import classes from "./PlacesMapCard.module.css";
 
-// Simplified layer for the mini map
-const pointLayer: CircleLayerSpecification = {
-  id: "points",
-  type: "circle",
-  source: "locations",
-  paint: {
-    "circle-color": MAP_POINT_COLOR,
-    "circle-radius": 4,
-    "circle-stroke-width": 1,
-    "circle-stroke-color": MAP_POINT_STROKE_COLOR,
-  },
-};
+// The card is too small for the Places page's padding and zoom: a single place still shows
+// its country, and with none it shows the whole world.
+const FIT_CARD = { padding: 12, maxZoom: 4 };
+const CARD_WORLD_VIEW = { longitude: 0, latitude: 30, zoom: 0.8 };
 
 export function PlacesMapCard() {
   const { t } = useTranslation();
@@ -39,6 +31,9 @@ export function PlacesMapCard() {
 
   // Convert locationClusters to GeoJSON
   const geojsonData = useMemo(() => clusterFeatureCollection(locationClusters), [locationClusters]);
+  const initialViewState = useMemo(() => initialViewForClusters(geojsonData, FIT_CARD, CARD_WORLD_VIEW), [geojsonData]);
+  const layerColors = useMapLayerColors();
+  const pointLayer = useMemo(() => miniPointLayer(layerColors), [layerColors]);
 
   if (isLoading) {
     return (
@@ -58,24 +53,18 @@ export function PlacesMapCard() {
         {mapStyle === null ? (
           <MapDisabledPlaceholder height="100%" />
         ) : (
-          <FeatureBoundary name="map">
-            <MapGL
-              ref={ignoreMissingStyleImages}
-              initialViewState={{
-                longitude: 0,
-                latitude: 30,
-                zoom: 0.8,
-              }}
-              style={{ width: "100%", height: "100%" }}
-              mapStyle={mapStyle}
-              interactive={false}
-              attributionControl={false}
-            >
-              <Source id="locations" type="geojson" data={geojsonData}>
-                <Layer {...pointLayer} />
-              </Source>
-            </MapGL>
-          </FeatureBoundary>
+          <ThemedMap
+            ref={ignoreMissingStyleImages}
+            h="100%"
+            initialViewState={initialViewState}
+            mapStyle={mapStyle}
+            interactive={false}
+            attributionControl={false}
+          >
+            <Source id="locations" type="geojson" data={geojsonData}>
+              <Layer {...pointLayer} />
+            </Source>
+          </ThemedMap>
         )}
       </div>
       <div className={classes.body}>

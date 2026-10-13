@@ -26,6 +26,8 @@ Unlike People, Places and Things albums, event albums are **not** created during
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 
+The **Places** card on the Albums page shows a small map zoomed to fit your places, or the whole world while you have none; click it to open the [Places page](./places.md#the-places-page). (Not released yet: up to 1.3.0, the card always showed the whole world.)
+
 ### Tags
 Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
 

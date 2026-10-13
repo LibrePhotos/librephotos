@@ -1,14 +1,14 @@
 import type { Photo } from "@librephotos/api-client";
 import { Box, Image } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
+import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
 import { mediaUrl } from "../api_client/media/mediaUrl";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
-import { FeatureBoundary } from "./common/FeatureBoundary";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
+import { ThemedMap } from "./map/ThemedMap";
 
 type MappablePhoto = Readonly<Pick<Photo, "image_hash" | "exif_gps_lat" | "exif_gps_lon">>;
 type LocatedPhoto = MappablePhoto & Readonly<{ exif_gps_lat: number; exif_gps_lon: number }>;
@@ -70,36 +70,34 @@ export function LocationMap({ photos }: Props) {
 
   if (photosWithGPS.length > 0 && mapStyle !== null) {
     return (
-      <Box style={{ zIndex: 2, height, padding: 0 }}>
-        <FeatureBoundary name="map">
-          <MapGL
-            ref={setMapRef}
-            initialViewState={{
-              longitude: avgLon,
-              latitude: avgLat,
-              zoom: PHOTO_ZOOM,
-            }}
-            style={{ width: "100%", height }}
-            mapStyle={mapStyle}
-            attributionControl={false}
-          >
-            <NavigationControl position="top-right" />
-            <AttributionControl compact={true} />
-            {markers}
-            {popupInfo && (
-              <Popup
-                longitude={popupInfo.exif_gps_lon}
-                latitude={popupInfo.exif_gps_lat}
-                anchor="top"
-                onClose={() => setPopupInfo(null)}
-              >
-                <div>
-                  <Image src={mediaUrl.squareThumbnail(popupInfo.image_hash)} />
-                </div>
-              </Popup>
-            )}
-          </MapGL>
-        </FeatureBoundary>
+      <Box style={{ zIndex: 2 }}>
+        <ThemedMap
+          ref={setMapRef}
+          h={height}
+          initialViewState={{
+            longitude: avgLon,
+            latitude: avgLat,
+            zoom: PHOTO_ZOOM,
+          }}
+          mapStyle={mapStyle}
+          attributionControl={false}
+        >
+          <NavigationControl position="top-right" />
+          <AttributionControl compact={true} />
+          {markers}
+          {popupInfo && (
+            <Popup
+              longitude={popupInfo.exif_gps_lon}
+              latitude={popupInfo.exif_gps_lat}
+              anchor="top"
+              onClose={() => setPopupInfo(null)}
+            >
+              <div>
+                <Image src={mediaUrl.squareThumbnail(popupInfo.image_hash)} />
+              </div>
+            </Popup>
+          )}
+        </ThemedMap>
       </Box>
     );
   }

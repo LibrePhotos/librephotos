@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Combobox,
   Group,
@@ -13,16 +12,25 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCurrentLocation, IconSearch } from "@tabler/icons-react";
+import type { ParseKeys } from "i18next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MapLayerMouseEvent, MapRef, MarkerDragEvent } from "react-map-gl/maplibre";
-import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
+import { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
 import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
 import { useMapStyle } from "../../util/mapStyle";
-import { FeatureBoundary } from "../common/FeatureBoundary";
 import { ignoreMissingStyleImages } from "./mapImages";
+import { ThemedMap } from "./ThemedMap";
+
+// Why the browser could not tell where the user is, by GeolocationPositionError code:
+// PERMISSION_DENIED, POSITION_UNAVAILABLE and TIMEOUT.
+const GEOLOCATION_ERROR_KEYS: Partial<Record<number, ParseKeys>> = {
+  1: "locationpicker.permission_denied",
+  2: "locationpicker.position_unavailable",
+  3: "locationpicker.timeout",
+};
 
 type Props = Readonly<{
   imageHash: string;
@@ -110,19 +118,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       },
       error => {
         setIsGeolocating(false);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGeolocationError(t("locationpicker.permission_denied"));
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGeolocationError(t("locationpicker.position_unavailable"));
-            break;
-          case error.TIMEOUT:
-            setGeolocationError(t("locationpicker.timeout"));
-            break;
-          default:
-            setGeolocationError(t("locationpicker.unknown_error"));
-        }
+        setGeolocationError(t(GEOLOCATION_ERROR_KEYS[error.code] ?? "locationpicker.unknown_error"));
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -221,34 +217,30 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       </Text>
 
       {mapStyle !== null && (
-        <Box style={{ height: 350 }}>
-          <FeatureBoundary name="map">
-            <MapGL
-              ref={setMapRef}
-              initialViewState={{
-                longitude: initialCenter[1],
-                latitude: initialCenter[0],
-                zoom: initialZoom,
-              }}
-              style={{ width: "100%", height: 350 }}
-              mapStyle={mapStyle}
-              onClick={handleMapClick}
-              attributionControl={false}
-            >
-              <NavigationControl position="top-right" />
-              <AttributionControl compact={true} />
-              {position && (
-                <Marker
-                  longitude={position[1]}
-                  latitude={position[0]}
-                  anchor="bottom"
-                  draggable
-                  onDragEnd={handleMarkerDragEnd}
-                />
-              )}
-            </MapGL>
-          </FeatureBoundary>
-        </Box>
+        <ThemedMap
+          ref={setMapRef}
+          h={350}
+          initialViewState={{
+            longitude: initialCenter[1],
+            latitude: initialCenter[0],
+            zoom: initialZoom,
+          }}
+          mapStyle={mapStyle}
+          onClick={handleMapClick}
+          attributionControl={false}
+        >
+          <NavigationControl position="top-right" />
+          <AttributionControl compact={true} />
+          {position && (
+            <Marker
+              longitude={position[1]}
+              latitude={position[0]}
+              anchor="bottom"
+              draggable
+              onDragEnd={handleMarkerDragEnd}
+            />
+          )}
+        </ThemedMap>
       )}
 
       {position && (

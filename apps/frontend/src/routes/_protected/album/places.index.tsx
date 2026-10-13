@@ -3,37 +3,32 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { orderBy } from "lodash-es";
-import type {
-  CircleLayerSpecification,
-  GeoJSONSource,
-  Source as MapSource,
-  SymbolLayerSpecification,
-} from "maplibre-gl";
+import type { GeoJSONSource, Source as MapSource } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
-import MapGL, { AttributionControl, Layer, NavigationControl, Source } from "react-map-gl/maplibre";
+import { AttributionControl, Layer, NavigationControl, Source } from "react-map-gl/maplibre";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
-import { FeatureBoundary } from "../../../components/common/FeatureBoundary";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { useListFailure } from "../../../components/common/useListFailure";
-import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
+import {
+  clusterFeatureCollection,
+  clusterPoints,
+  initialViewForClusters,
+} from "../../../components/map/locationClusters";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
+import { clusterLayers } from "../../../components/map/placesLayers";
+import { ThemedMap } from "../../../components/map/ThemedMap";
+import { useMapLayerColors } from "../../../components/map/useMapLayerColors";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import {
-  MAP_CLUSTER_COLORS,
-  MAP_CLUSTER_TEXT_COLOR,
-  MAP_POINT_COLOR,
-  MAP_POINT_STROKE_COLOR,
-} from "../../../theme/mapColors";
 import { useMapStyle } from "../../../util/mapStyle";
 
 export const Route = createFileRoute("/_protected/album/places/")({
@@ -47,9 +42,6 @@ type Props = Readonly<{
 // Broad places first, and within a level the ones with the most photos
 const sortPlaces = (albums: PlaceAlbumList) => orderBy(albums, ["geolocation_level", "photo_count"], ["asc", "desc"]);
 
-// Where the map opens when there is nothing to fit it to
-const WORLD_VIEW = { longitude: 0, latitude: 40, zoom: 2 };
-
 // The map (or its placeholder) above the grid, and the padding under it
 const MAP_HEIGHT = 240;
 const MAP_BLOCK_HEIGHT = MAP_HEIGHT + 10;
@@ -58,53 +50,8 @@ const MAP_BLOCK_HEIGHT = MAP_HEIGHT + 10;
 // "geojson" is always its own GeoJSONSource
 const isGeoJSONSource = (source: MapSource | undefined): source is GeoJSONSource => source?.type === "geojson";
 
-// Layer styles for clustered points
-const clusterLayer: CircleLayerSpecification = {
-  id: "clusters",
-  type: "circle",
-  source: "locations",
-  filter: ["has", "point_count"],
-  paint: {
-    "circle-color": [
-      "step",
-      ["get", "point_count"],
-      MAP_CLUSTER_COLORS.small,
-      10,
-      MAP_CLUSTER_COLORS.medium,
-      50,
-      MAP_CLUSTER_COLORS.large,
-    ],
-    "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 50, 25],
-  },
-};
-
-const clusterCountLayer: SymbolLayerSpecification = {
-  id: "cluster-count",
-  type: "symbol",
-  source: "locations",
-  filter: ["has", "point_count"],
-  layout: {
-    "text-field": "{point_count_abbreviated}",
-    "text-font": ["Open Sans Bold"],
-    "text-size": 12,
-  },
-  paint: {
-    "text-color": MAP_CLUSTER_TEXT_COLOR,
-  },
-};
-
-const unclusteredPointLayer: CircleLayerSpecification = {
-  id: "unclustered-point",
-  type: "circle",
-  source: "locations",
-  filter: ["!", ["has", "point_count"]],
-  paint: {
-    "circle-color": MAP_POINT_COLOR,
-    "circle-radius": 8,
-    "circle-stroke-width": 2,
-    "circle-stroke-color": MAP_POINT_STROKE_COLOR,
-  },
-};
+// The padding keeps edge points strictly inside the bounds the grid filters by
+const FIT_PLACES = { padding: 40, maxZoom: 10 };
 
 function AlbumPlace({ height = 0 }: Props) {
   const { width } = useViewportSize();
@@ -139,21 +86,9 @@ function AlbumPlace({ height = 0 }: Props) {
 
   // Open on every place rather than a fixed view of Europe: the grid lists only
   // what the map shows, so places outside that view were missing until a pan.
-  const initialViewState = useMemo(() => {
-    const coordinates = geojsonData.features.map(feature => feature.geometry.coordinates);
-    if (coordinates.length === 0) return WORLD_VIEW;
-    const longitudes = coordinates.flatMap(([lng]) => (lng === undefined ? [] : [lng]));
-    const latitudes = coordinates.flatMap(([, lat]) => (lat === undefined ? [] : [lat]));
-    const bounds: [[number, number], [number, number]] = [
-      [Math.min(...longitudes), Math.min(...latitudes)],
-      [Math.max(...longitudes), Math.max(...latitudes)],
-    ];
-    return {
-      bounds,
-      // The padding keeps edge points strictly inside the bounds the grid filters by
-      fitBoundsOptions: { padding: 40, maxZoom: 10 },
-    };
-  }, [geojsonData]);
+  const initialViewState = useMemo(() => initialViewForClusters(geojsonData, FIT_PLACES), [geojsonData]);
+  const layerColors = useMapLayerColors();
+  const layers = useMemo(() => clusterLayers(layerColors), [layerColors]);
 
   const updateVisibleAlbums = useCallback(
     (map: MapRef) => {
@@ -259,34 +194,32 @@ function AlbumPlace({ height = 0 }: Props) {
             {mapStyle === null ? (
               <MapDisabledPlaceholder height={MAP_HEIGHT} />
             ) : (
-              <FeatureBoundary name="map">
-                <MapGL
-                  ref={setMapRef}
-                  initialViewState={initialViewState}
-                  style={{ width: "100%", height: MAP_HEIGHT }}
-                  mapStyle={mapStyle}
-                  onMoveEnd={onMoveEnd}
-                  onLoad={onMapLoad}
-                  onClick={onClick}
-                  interactiveLayerIds={["clusters"]}
-                  attributionControl={false}
+              <ThemedMap
+                ref={setMapRef}
+                h={MAP_HEIGHT}
+                initialViewState={initialViewState}
+                mapStyle={mapStyle}
+                onMoveEnd={onMoveEnd}
+                onLoad={onMapLoad}
+                onClick={onClick}
+                interactiveLayerIds={["clusters"]}
+                attributionControl={false}
+              >
+                <NavigationControl position="top-right" />
+                <AttributionControl compact={true} />
+                <Source
+                  id="locations"
+                  type="geojson"
+                  data={geojsonData}
+                  cluster={true}
+                  clusterMaxZoom={14}
+                  clusterRadius={50}
                 >
-                  <NavigationControl position="top-right" />
-                  <AttributionControl compact={true} />
-                  <Source
-                    id="locations"
-                    type="geojson"
-                    data={geojsonData}
-                    cluster={true}
-                    clusterMaxZoom={14}
-                    clusterRadius={50}
-                  >
-                    <Layer {...clusterLayer} />
-                    <Layer {...clusterCountLayer} />
-                    <Layer {...unclusteredPointLayer} />
-                  </Source>
-                </MapGL>
-              </FeatureBoundary>
+                  <Layer {...layers.clusters} />
+                  <Layer {...layers.clusterCount} />
+                  <Layer {...layers.unclusteredPoint} />
+                </Source>
+              </ThemedMap>
             )}
           </div>
           {/* Only the places inside the map bounds; laid out like the other album grids:
