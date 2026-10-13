@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.c430c90c.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.2f92ac2f.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -36,7 +36,8 @@ of the Docker deployments.</p>
 folder in your home directory.</li>
 <li class="">Double-click <code>librephotos.exe</code>. No window opens: LibrePhotos runs in the background with an icon
 in the notification area (the tray, bottom right), and after the first migrations your browser
-opens <code>http://localhost:8000/</code>.</li>
+opens <code>http://localhost:8000/</code>. Windows 11 may put a new icon behind the <strong>^</strong> arrow next to the
+clock; drag it onto the taskbar to keep it in view.</li>
 <li class="">Create the admin account on the first-time setup screen, then set the scan directory of your user
 (Admin area → Users) to the folder with your photos and start a scan.</li>
 </ol>
@@ -45,11 +46,23 @@ scan, into the data directory below; that needs an internet connection once.</p>
 <p>Right-click the tray icon for <strong>Open LibrePhotos</strong> (also a plain click), <strong>Open data folder</strong>,
 <strong>Open logs</strong> and <strong>Quit LibrePhotos</strong>. Quitting stops everything: the workers and the machine
 learning processes are children of <code>librephotos.exe</code> and go down with it, also when it is ended
-from Task Manager. Starting it a second time just opens the browser on the running instance. If it
-cannot start, a message box says why: for example that another program already uses port 8000 (see
-<a href="#using-another-port" class="">Using another port</a>).</p>
+from Task Manager. If it cannot start, a message box says why: for example that another program
+already uses port 8000 (see <a href="#using-another-port" class="">Using another port</a>).</p>
+<p>Not released yet: the icon appears right after the double-click. While LibrePhotos starts, the
+first, greyed line of its menu and its tooltip say what it is doing: <strong>Starting...</strong>, <strong>Updating
+the database (3 of 7)</strong> after an update with database changes, <strong>Starting services...</strong>, and
+finally <strong>Running at <a href="http://127.0.0.1:8000/" target="_blank" rel="noopener noreferrer" class="">http://127.0.0.1:8000/</a></strong>. The first start after such an update also shows a
+notification, because updating the database can take a few minutes. <strong>Quit LibrePhotos</strong> works
+during the start too.</p>
+<p>Only one LibrePhotos runs per data folder. Starting it a second time, also while the first one is
+still starting, shows the notification &quot;LibrePhotos is already starting&quot; and then opens the browser
+on the running one; nothing else happens. Up to 1.3.0 a second start during the first one&#x27;s database
+update started a second copy, which could show an error and stop the first copy&#x27;s background
+services.</p>
 <p>Started from a terminal instead, it prints its log there and Ctrl-C stops it; <code>--no-tray</code> leaves the
-icon out. Without a terminal that output goes to <code>console.log</code> in the logs folder. Because
+icon out. Without a terminal that output goes to <code>console.log</code> in the logs folder; the log of the
+start before is kept as <code>console.previous.log</code> next to it (not released yet), so a failed start can
+still be explained after you tried again. Because
 <code>librephotos.exe</code> is a Windows GUI program, <code>cmd</code> and PowerShell do not wait for it: for commands
 whose output you want to read in order, use <code>start /wait librephotos.exe manage ...</code> in <code>cmd</code>, or pipe
 it (<code>librephotos.exe manage ... | more</code>).</p>
