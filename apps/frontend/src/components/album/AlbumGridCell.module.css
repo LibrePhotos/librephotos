@@ -4,3 +4,22 @@
   border-radius: var(--mantine-radius-md);
   overflow: hidden;
 }
+
+/* In place of the cover when an album has none, as on the Tags page. */
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-default-hover);
+}
+
+/* A title that opens its album too, so a tile never depends on its cover alone (#2234). */
+.titleLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.titleLink:hover,
+.titleLink:focus-visible {
+  text-decoration: underline;
+}

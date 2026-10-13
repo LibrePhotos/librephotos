@@ -295,24 +295,37 @@ function AlbumPlace({ height = 0 }: Props) {
             items={shownAlbums}
             getKey={place => place.id}
             sizing={sizing}
-            renderItem={(place, size) =>
-              place.cover_photos.slice(0, 1).map(photo => (
-                <Link key={place.id} to="/album/places/$id" params={{ id: String(place.id) }}>
-                  <Tile
-                    className={gridClasses.cover}
-                    video={photo.video === true}
-                    height={size}
-                    width={size}
-                    image_hash={photo.image_hash}
-                  />
+            renderItem={(place, size) => {
+              // A cover or a placeholder, so a place never depends on its cover to open (#2234)
+              const cover = place.cover_photos[0];
+              return (
+                <Link to="/album/places/$id" params={{ id: String(place.id) }} aria-label={place.title}>
+                  {cover ? (
+                    <Tile
+                      className={gridClasses.cover}
+                      video={cover.video === true}
+                      height={size}
+                      width={size}
+                      image_hash={cover.image_hash}
+                    />
+                  ) : (
+                    <div
+                      className={`${gridClasses.cover} ${gridClasses.placeholder}`}
+                      style={{ width: size, height: size }}
+                    >
+                      <Map2 size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
+                    </div>
+                  )}
                 </Link>
-              ))
-            }
+              );
+            }}
             renderCaption={place => (
               <Flex gap={0} justify="flex-start" direction="column" px={8}>
-                <Text size="sm" fw={500} lineClamp={1} title={place.title}>
-                  {place.title}
-                </Text>
+                <Link to="/album/places/$id" params={{ id: String(place.id) }} className={gridClasses.titleLink}>
+                  <Text size="sm" fw={500} lineClamp={1} title={place.title}>
+                    {place.title}
+                  </Text>
+                </Link>
                 <Text size="xs">{t("numberofphotos", { count: place.photo_count, number: place.photo_count })}</Text>
               </Flex>
             )}

@@ -57,7 +57,13 @@ const stubs = vi.hoisted(() => ({
   albums: [
     { id: 1, title: "Paris", cover_photos: [{ image_hash: "hash1" }], photo_count: 12, geolocation_level: 2 },
     { id: 2, title: "Berlin", cover_photos: [{ image_hash: "hash2" }], photo_count: 3, geolocation_level: 2 },
-  ],
+  ] as {
+    id: number;
+    title: string;
+    cover_photos: { image_hash: string }[];
+    photo_count: number;
+    geolocation_level: number;
+  }[],
   mapStyle: { mapStyle: "https://example.invalid/style.json", mapsDisabled: false } as {
     mapStyle: unknown;
     mapsDisabled: boolean;
@@ -75,7 +81,10 @@ vi.mock("@tanstack/react-router", () => ({
     return route;
   },
   useNavigate: () => () => {},
-  Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  // The href the real Link builds from `to` and `params`
+  Link: ({ children, to, params }: { children?: React.ReactNode; to: string; params?: { id: string } }) => (
+    <a href={to.replace("$id", params?.id ?? "")}>{children}</a>
+  ),
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({
@@ -141,7 +150,10 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
+const ALBUMS = [...stubs.albums];
+
 beforeEach(() => {
+  stubs.albums = [...ALBUMS];
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };
   stubs.fetching = false;
 });
@@ -161,6 +173,7 @@ async function renderPage() {
   });
   return {
     container,
+    links: (href: string) => Array.from(container.querySelectorAll(`a[href="${href}"]`)),
     // Each place card titles its (clamped) name with the full one
     titles: () => Array.from(container.querySelectorAll("p[title]")).map(el => el.getAttribute("title")),
     subtitle: () => container.textContent ?? "",
@@ -207,6 +220,20 @@ describe("the places page on first mount", () => {
     // There is no map, and the count is every place
     expect(page.subtitle()).toContain("2 places");
     expect(page.subtitle()).not.toContain("on the map");
+    await page.unmount();
+  });
+});
+
+// #2234: the tile linked to its album only through the cover, and a place
+// without one rendered no link at all.
+describe("a place without a cover photo", () => {
+  it("still opens from its tile and its title", async () => {
+    stubs.albums = [{ id: 1, title: "Paris", cover_photos: [], photo_count: 12, geolocation_level: 2 }];
+    const page = await renderPage();
+
+    const links = page.links("/album/places/1");
+    expect(links).toHaveLength(2);
+    expect(links.some(link => link.textContent?.includes("Paris"))).toBe(true);
     await page.unmount();
   });
 });
