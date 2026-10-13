@@ -9,6 +9,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
 import { SelectionActions } from "./SelectionActions";
 
 type Props = React.ComponentProps<typeof SelectionActions>;
@@ -222,6 +223,67 @@ describe("the add-to menu", () => {
 
     expect(callbacks.onAddToAlbum).toHaveBeenCalledTimes(1);
     expect(callbacks.onAddTags).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** Opens the photo actions ("⋮") menu and returns the item with `label`. */
+async function photoAction(label: string): Promise<HTMLButtonElement> {
+  await act(async () => defined(container.querySelectorAll("button")[1]).click());
+  const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
+    button => button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim() === label
+  );
+  return defined(item, label);
+}
+
+/** Off, says why, and still in the menu's arrow-key order (Mantine skips `data-disabled` items, #2592). */
+function expectReachableWithReason(item: HTMLElement, reason: string) {
+  expectDisabledWithReason(item, reason);
+  expect(item.hasAttribute("data-disabled")).toBe(false);
+}
+
+const SELECT_FIRST = "Select at least one photo first";
+const NOT_WITH_SELECT_ALL = "Not available with Select all: select the photos one by one";
+const stackActions = ["Create Stack", "Merge Stacks", "Break Apart Stacks"];
+
+// #2608: these items were plain `disabled`: greyed out with no reason, and skipped by the arrow keys.
+describe("a disabled item says why", () => {
+  it.each([
+    ...items.map(([label]) => label),
+    "Mark as photo",
+    "Mark as document",
+    "Download",
+    "Sharing",
+    ...stackActions,
+  ])("%s asks for a selection first, and does nothing", async label => {
+    await render({ selectedItems: [] });
+
+    const item = await photoAction(label);
+    expectReachableWithReason(item, SELECT_FIRST);
+    await act(async () => item.click());
+
+    for (const stub of Object.values(stubs)) expect(stub).not.toHaveBeenCalled();
+    expect(callbacks.onSharePhotos).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain("confirm download");
+  });
+
+  it.each(stackActions)("%s is not offered after Select all", async label => {
+    await render({ selectAllMode: true, selectAllQuery: { person: 5 } });
+
+    expectReachableWithReason(await photoAction(label), NOT_WITH_SELECT_ALL);
+  });
+
+  it("Create Stack needs two photos", async () => {
+    await render({ selectedItems: [photo(1)] });
+
+    const item = await photoAction("Create Stack");
+    expectReachableWithReason(item, "Select at least two photos to stack them");
+    expect(await focusAndReadTooltip(item)).toContain("Select at least two photos to stack them");
+  });
+
+  it.each(["Merge Stacks", "Break Apart Stacks"])("%s needs a photo in a manual stack", async label => {
+    await render({ selectedItems: [photo(1), photo(2)] });
+
+    expectReachableWithReason(await photoAction(label), "None of the selected photos is in a manual stack");
   });
 });
 

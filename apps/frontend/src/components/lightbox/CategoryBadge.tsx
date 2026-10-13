@@ -16,6 +16,7 @@ import {
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
+import { DisabledReason } from "../common/DisabledReason";
 import { savedTimelineFilter, timelineFilterShows } from "../photolist/timelineFilter";
 
 // What the control shows for one photo: the category, who set it, and the
@@ -181,19 +182,23 @@ export function CategoryBadge({ photoDetail }: Props) {
           const ItemIcon = ICONS[category];
           const current = category === state.category;
           return (
-            <Menu.Item
+            <DisabledReason
               key={category}
-              leftSection={<ItemIcon size={16} color={`var(--mantine-color-${COLORS[category]}-6)`} />}
-              rightSection={current ? <Check size={14} /> : null}
-              aria-current={current || undefined}
               // The server never makes a video a screenshot or a document.
-              disabled={photoDetail.video && category !== "photo"}
-              onClick={() => {
-                if (!current) apply(pickedState(state.imageHash, category), state);
-              }}
+              reason={photoDetail.video && category !== "photo" && t("lightbox.category.videoonlyphoto")}
+              position="left"
             >
-              {t(`lightbox.category.${category}`)}
-            </Menu.Item>
+              <Menu.Item
+                leftSection={<ItemIcon size={16} color={`var(--mantine-color-${COLORS[category]}-6)`} />}
+                rightSection={current ? <Check size={14} /> : null}
+                aria-current={current || undefined}
+                onClick={() => {
+                  if (!current) apply(pickedState(state.imageHash, category), state);
+                }}
+              >
+                {t(`lightbox.category.${category}`)}
+              </Menu.Item>
+            </DisabledReason>
           );
         })}
         <Menu.Divider />

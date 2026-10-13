@@ -163,9 +163,11 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item leftSection={<Refresh size="1rem" />} onClick={onRescan} disabled={!!scanReason}>
-                {t("settings.statusrescanphotosfalse")}
-              </Menu.Item>
+              <DisabledReason reason={scanReason} position="left">
+                <Menu.Item leftSection={<Refresh size="1rem" />} onClick={onRescan}>
+                  {t("settings.statusrescanphotosfalse")}
+                </Menu.Item>
+              </DisabledReason>
             </Menu.Dropdown>
           </Menu>
         </Group>

@@ -160,13 +160,11 @@ export function LibraryActions({ busyReason, isAdmin, isOcrEnabled }: LibraryAct
                 </ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item
-                  leftSection={<TextRecognition size="1rem" />}
-                  onClick={() => generateOcr.mutate(true)}
-                  disabled={!!ocrReason}
-                >
-                  {t("settings.ocrfullbutton")}
-                </Menu.Item>
+                <DisabledReason reason={ocrReason} position="left">
+                  <Menu.Item leftSection={<TextRecognition size="1rem" />} onClick={() => generateOcr.mutate(true)}>
+                    {t("settings.ocrfullbutton")}
+                  </Menu.Item>
+                </DisabledReason>
               </Menu.Dropdown>
             </Menu>
           </Group>

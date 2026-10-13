@@ -52,6 +52,7 @@ const planted = {
   "date-constructor": `const plantedDate = new Date(value);`,
   "unknown-person-literal": `const plantedName = person.name === "Unknown - Other";`,
   "tooltip-disabled-control": `const plantedTooltip = <Tooltip label="Why"><Button disabled>Go</Button></Tooltip>;`,
+  "menu-item-disabled": `const plantedMenuItem = <Menu.Item disabled={true}>Go</Menu.Item>;`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,

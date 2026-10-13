@@ -527,11 +527,6 @@
       "count": 1
     }
   },
-  "src/components/photolist/SelectionActions.tsx": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
   "src/components/photolist/useTimelineFilter.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2

@@ -11,6 +11,7 @@ import type { SetPhotosCategoryRequest } from "../../api_client/photos/hooks/use
 import i18n from "../../i18n";
 import type { ToastOptions } from "../../service/notifications/toast";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { CategoryBadge } from "./CategoryBadge";
 import { makePhoto } from "./photoFixture.test-utils";
 
@@ -239,8 +240,15 @@ describe("CategoryBadge", () => {
     // A screen recording detected as a screenshot: only Photo is offered.
     const flagged = await renderSection({ ...screenshot, video: true });
     expect(await current(flagged)).toBe("Screenshot");
-    expect((await item(flagged, "Photo")).disabled).toBe(false);
-    expect((await item(flagged, "Document")).disabled).toBe(true);
+    const photoItem = await item(flagged, "Photo");
+    expect(photoItem.disabled).toBe(false);
+    expect(photoItem.hasAttribute("aria-disabled")).toBe(false);
+    // Says why the others are off, and stays in the arrow-key order (#2608).
+    for (const label of ["Screenshot", "Document"]) {
+      const option = await item(flagged, label);
+      expectDisabledWithReason(option, "A video can only be marked as a photo");
+      expect(option.hasAttribute("data-disabled")).toBe(false);
+    }
   });
 
   it("says a trashed item is not in the timeline", async () => {
