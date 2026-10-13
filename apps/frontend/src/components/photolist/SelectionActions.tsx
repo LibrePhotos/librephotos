@@ -44,12 +44,12 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
-import { DisabledReason } from "../common/DisabledReason";
+import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
-import { RemoveFromAlbumMenuItem } from "./RemoveFromAlbumMenuItem";
+import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 
 /** The albums whose cover the selection can set. */
-export type AlbumCoverType = "person" | "useralbum";
+export type AlbumCoverType = AlbumPageKind;
 
 type Props = {
   selectedItems: PigPhoto[];
@@ -157,6 +157,8 @@ export function SelectionActions(props: Readonly<Props>) {
 
   // Download modal state
   const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
+  const [isRemoveFromPersonOpen, { open: openRemoveFromPerson, close: closeRemoveFromPerson }] = useDisclosure(false);
+  const albumPage = albumPageKind(location.pathname);
 
   // In select-all mode the modal can only show an upper bound, because the
   // server-side query is the source of truth and the excluded set may contain
@@ -193,6 +195,16 @@ export function SelectionActions(props: Readonly<Props>) {
         onRequestClose={() => closeDownloadModal()}
         onConfirm={handleDownloadConfirm}
       />
+      {albumPage === "person" && (
+        <PersonRemovePhotosModal
+          opened={isRemoveFromPersonOpen}
+          onClose={closeRemoveFromPerson}
+          personId={`${albumID ?? ""}`}
+          personName={title}
+          photoIds={selectedItems.filter(i => !i.isTemp).map(i => i.id)}
+          onRemoved={resetSelection}
+        />
+      )}
       <Menu width={200}>
         <Menu.Target>
           <ActionIcon
@@ -553,54 +565,24 @@ export function SelectionActions(props: Readonly<Props>) {
             {t("selectionactions.breakapartstacks")}
           </Menu.Item>
 
-          {/* Album Actions - only show on album pages */}
-          {(location.pathname.startsWith("/album/persons/") || location.pathname.startsWith("/album/user/")) && (
-            <>
-              <Menu.Divider />
-
-              <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
-
-              <DisabledReason
-                reason={(selectedItems.length > 1 || selectAllMode) && t("selectionactions.albumcovermultiselect")}
-                position="left"
-              >
-                <Menu.Item
-                  leftSection={<Photo size={ICON_SIZE.menu} />}
-                  onClick={() => {
-                    if (location.pathname.startsWith("/album/persons/")) {
-                      setAlbumCover("person");
-                    }
-                    if (location.pathname.startsWith("/album/user/")) {
-                      setAlbumCover("useralbum");
-                    }
-                    // Only clear selection if exactly 1 item was selected (used directly)
-                    if (selectedItems.length === 1) {
-                      resetSelection();
-                    }
-                  }}
-                >
-                  {t("selectionactions.albumcover")}
-                </Menu.Item>
-              </DisabledReason>
-
-              {location.pathname.startsWith("/album/user/") && (
-                <>
-                  <Menu.Item leftSection={<Share size={ICON_SIZE.menu} />} onClick={onShareAlbum}>
-                    {t("selectionactions.sharing")}
-                  </Menu.Item>
-
-                  <RemoveFromAlbumMenuItem
-                    hasSelection={hasSelection}
-                    selectAllMode={selectAllMode}
-                    albumLocked={albumLocked}
-                    onRemove={() => {
-                      removePhotosFromAlbum.mutate({ id: `${albumID ?? ""}`, title, photos: getImageHashes() });
-                      resetSelection();
-                    }}
-                  />
-                </>
-              )}
-            </>
+          {albumPage && (
+            <AlbumSelectionActions
+              kind={albumPage}
+              selectedCount={selectedItems.length}
+              selectAllMode={selectAllMode}
+              albumLocked={albumLocked}
+              onSetCover={() => {
+                setAlbumCover(albumPage);
+                // Only clear selection if exactly 1 item was selected (used directly)
+                if (selectedItems.length === 1) resetSelection();
+              }}
+              onShareAlbum={onShareAlbum}
+              onRemoveFromAlbum={() => {
+                removePhotosFromAlbum.mutate({ id: `${albumID ?? ""}`, title, photos: getImageHashes() });
+                resetSelection();
+              }}
+              onRemoveFromPerson={openRemoveFromPerson}
+            />
           )}
         </Menu.Dropdown>
       </Menu>

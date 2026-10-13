@@ -28,6 +28,21 @@ export const PersonAlbum = z.object({
 });
 export type PersonAlbum = z.infer<typeof PersonAlbum>;
 
-export type RenamePersonAlbumParams = { id: number; name: string; newName: string };
+export type RenamePersonAlbumParams = {
+  id: number;
+  name: string;
+  newName: string;
+};
+/** `POST /persons/{id}/remove-photos/`: the person's faces on the photos went back to unknown. */
+export const PersonRemovePhotosResponse = z.object({
+  /** How many of the person's faces were unlabelled. */
+  removed: z.number(),
+  /** How many photos no longer show the person. */
+  photo_count: z.number(),
+  /** Why some face tags did not reach their files; the faces are unlabelled either way. */
+  write_error: z.string().nullable(),
+});
+export type PersonRemovePhotosResponse = z.infer<typeof PersonRemovePhotosResponse>;
+
 export type DeletePersonAlbumParams = { id: number; name: string };
 export type SetPersonAlbumCoverParams = { person_id: number; photo: string };

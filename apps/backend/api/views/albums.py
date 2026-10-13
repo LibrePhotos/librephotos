@@ -5,6 +5,7 @@ from typing import Any
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import filters, mixins, serializers, viewsets
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
     SAFE_METHODS,
@@ -21,13 +22,15 @@ from api.drf.pagination import (
     DayAlbumPagination,
     WholeListPagination,
 )
-from api.drf.params import parse_query
+from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
+from api.faces.labels import relabel_faces
 from api.models import (
     AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
+    Face,
     Person,
     Photo,
     User,
@@ -61,7 +64,12 @@ from api.serializers.album_user import (
     AlbumUserSerializer,
     with_album_user_list_relations,
 )
-from api.serializers.person import PersonSerializer, first_face_of_person
+from api.serializers.person import (
+    PersonRemovePhotosRequest,
+    PersonRemovePhotosResponseSerializer,
+    PersonSerializer,
+    first_face_of_person,
+)
 from api.serializers.photos import (
     PhotoSummarySerializer,
 )
@@ -75,7 +83,6 @@ from api.views.mixins import PartialUpdateModelMixin
 logger = logging.getLogger(__name__)
 
 
-# Retrieve has no client yet; #2207 (person detail page) needs it.
 class PersonViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -120,6 +127,34 @@ class PersonViewSet(
         )
 
         return qs
+
+    @extend_schema(
+        description=(
+            "Take this person off the given photos: the person's faces on them "
+            'go back to unknown, as "Not this person" does in the face '
+            "dashboard. Photos that are not the requester's, or that do not "
+            "show this person, are ignored."
+        ),
+        request=PersonRemovePhotosRequest,
+        responses={200: PersonRemovePhotosResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="remove-photos")
+    def remove_photos(self, request: Request, pk: str | None = None) -> Response:
+        user = request_user(request)
+        person = self.get_object()
+        photo_ids = parse_body(request, PersonRemovePhotosRequest)["photo_ids"]
+        result = relabel_faces(
+            user,
+            Face.objects.owned_by(user).filter(person=person, photo_id__in=photo_ids),
+            None,
+        )
+        return Response(
+            {
+                "removed": len(result.faces),
+                "photo_count": len(result.photos),
+                "write_error": result.write_error,
+            }
+        )
 
 
 def _get_active_tag_thing_types() -> list[str]:

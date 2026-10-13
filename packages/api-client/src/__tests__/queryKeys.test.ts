@@ -40,6 +40,24 @@ describe("query key factories", () => {
     expect(client.getQueryCache().findAll({ queryKey: family })).toHaveLength(2);
   });
 
+  it("refreshes one photoset's day lists, and only those, through dateAlbumLists", () => {
+    const client = new QueryClient();
+    client.setQueryData(photoGridKeys.dateAlbumList([Photoset.PERSON, 4, undefined, undefined, "all", "none"]), 0);
+    client.setQueryData(photoGridKeys.dateAlbumList([Photoset.PERSON, 4, undefined, undefined, "videos", "none"]), 0);
+    client.setQueryData(photoGridKeys.dateAlbumListRaw(Photoset.PERSON), 0);
+    client.setQueryData(
+      photoGridKeys.dateAlbumList([Photoset.TIMESTAMP, undefined, undefined, undefined, "all", "none"]),
+      0
+    );
+    expect(client.getQueryCache().findAll({ queryKey: photoGridKeys.dateAlbumLists(Photoset.PERSON) })).toHaveLength(3);
+  });
+
+  it("keys one person under the people list, so a rename refreshes both", () => {
+    const client = new QueryClient();
+    client.setQueryData(albumKeys.person(4), 0);
+    expect(client.getQueryCache().findAll({ queryKey: albumKeys.peopleAlbums() })).toHaveLength(1);
+  });
+
   it("keys a user's details by the id as a string, number or not", () => {
     expect(userKeys.selfDetail(3)).toEqual(userKeys.selfDetail("3"));
   });

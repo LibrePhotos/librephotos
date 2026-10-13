@@ -11,7 +11,22 @@ function deletePerson() {
   toast.success(i18n.t("toasts.deleteperson"), { title: i18n.t("toasts.deletepersontitle") });
 }
 
+function removePhotosFromPerson(name: string, count: number) {
+  toast.success(i18n.t("toasts.removefromperson", { count }), {
+    title: i18n.t("toasts.removefrompersontitle", { name }),
+  });
+}
+
+/** The faces are saved; their tags did not reach some files (a read-only library). */
+function faceTagsNotWritten(error: string) {
+  toast.warning(i18n.t("toasts.facetagsnotwritten", { error }), {
+    title: i18n.t("toasts.facetagsnotwrittentitle"),
+  });
+}
+
 export const people = {
   deletePerson,
+  faceTagsNotWritten,
+  removePhotosFromPerson,
   renamePerson,
 };

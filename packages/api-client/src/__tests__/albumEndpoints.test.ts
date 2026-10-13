@@ -234,6 +234,41 @@ describe("people", () => {
   });
 });
 
+describe("person page", () => {
+  it("reads one person", async () => {
+    const { client, requests } = fakeServer({
+      name: "Ann",
+      face_url: "",
+      face_count: 0,
+      face_photo_url: "",
+      video: false,
+      id: 5,
+    });
+    await expect(endpoints.fetchPerson(client, 5)).resolves.toMatchObject({ id: 5, name: "Ann" });
+    expect(defined(requests[0])).toMatchObject({ url: "https://demo.example.com/api/persons/5/", method: "GET" });
+  });
+
+  it("takes a person off photos by id", async () => {
+    const { client, requests } = fakeServer({ removed: 3, photo_count: 2, write_error: null });
+    const ids = ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"];
+    await expect(endpoints.removePhotosFromPerson(client, "5", ids)).resolves.toEqual({
+      removed: 3,
+      photo_count: 2,
+      write_error: null,
+    });
+    expect(defined(requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/persons/5/remove-photos/",
+      method: "POST",
+      body: { photo_ids: ids },
+    });
+  });
+
+  it("refuses an answer without the counts", async () => {
+    const { client } = fakeServer({ removed: 3 });
+    await expect(endpoints.removePhotosFromPerson(client, 5, [])).rejects.toBeInstanceOf(ResponseParseError);
+  });
+});
+
 describe("places and folders", () => {
   it("reads the location clusters", async () => {
     const clusters = [

@@ -536,6 +536,29 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
             ["Alice", "Carol"], [face[4] for face in self._faces_read_back(photo)]
         )
 
+    # #2207: taking a person off a photo from the person page writes the
+    # region again, without the name.
+    def test_removing_a_photo_from_a_person_writes_the_face_tags(self):
+        path = self.make_image(".jpg")
+        photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
+        write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
+        person = photo.faces.get().person
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with self._original_untouched(path):
+            response = client.post(
+                f"/api/persons/{person.pk}/remove-photos/",
+                {"photo_ids": [str(photo.pk)]},
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertIsNone(response.json()["write_error"])
+        self.assertWritesLanded(expected=2)
+        names = [face[4] for face in self._faces_read_back(photo)]
+        self.assertNotIn("Alice", names)
+
     def test_nothing_is_written_with_the_face_tag_switch_off(self):
         path = self.make_image(".jpg")
         photo = self._face_photo(path, MEDIA_FILE, FACE_LANDSCAPE)

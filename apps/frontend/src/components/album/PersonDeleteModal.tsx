@@ -1,34 +1,35 @@
-import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import type { Person } from "../../api_client/albums/hooks";
+import { ConfirmModal } from "../modals/ConfirmModal";
 
 type Props = Readonly<{
   opened: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  /** Named in the question, and its faces in what happens to them. */
+  person: Pick<Person, "name" | "face_count">;
 }>;
 
-export function PersonDeleteModal({ opened, onClose, onConfirm }: Props) {
+/** Asks before deleting a person: from the People page and from the person's own page. */
+export function PersonDeleteModal({ opened, onClose, onConfirm, person }: Props) {
   const { t } = useTranslation();
   return (
-    <Modal opened={opened} title={t("personalbum.deleteperson")} onClose={onClose} returnFocus={false}>
-      <Stack>
-        <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button
-            color="red"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-          >
-            {t("delete")}
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
+    <ConfirmModal
+      opened={opened}
+      onClose={onClose}
+      onConfirm={() => {
+        onConfirm();
+        onClose();
+      }}
+      title={t("personalbum.deletepersonnamed", { name: person.name })}
+      message={
+        <>
+          {t("personalbum.deletepersonremoved", { name: person.name })}{" "}
+          {person.face_count > 0 && t("personalbum.deletepersonfaces", { count: person.face_count, name: person.name })}
+        </>
+      }
+      confirmLabel={t("personalbum.deleteperson")}
+    />
   );
 }

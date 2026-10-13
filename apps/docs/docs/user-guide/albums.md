@@ -16,6 +16,16 @@ Albums you create manually to organize photos however you like. You can add any 
 ### People Albums
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
 
+A person's page has a **⋮** button (**Person actions**) at the right of its header:
+
+- **Rename** renames the person, with the same check for a name that is already taken as on the People page.
+- **Manage faces** opens the face dashboard.
+- **Delete person** removes the person from People and takes you back there. The photos stay in your library; the faces labelled with that person go back to the unknown faces, where you can label them again.
+
+A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album Actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
+
+*Not released yet: up to 1.3.0, a person's page had no menu, a photo could only be taken off a person in the face dashboard, and a deleted or unknown person's page said "Loading" for good instead of "Person not found".*
+
 ### Events
 Albums that group your photos into events based on when they were taken. Grouping is purely chronological: a photo joins the current event if it was taken less than **1 day and 12 hours** after the previous photo already in that event, so a continuous trip stays a single event however long it runs. An event needs at least two photos — a single photo on its own produces no album. Location and recognized people are not used for the grouping itself; they only feed the album's generated title (for example "Weekend in Paris") and its position on the map.
 

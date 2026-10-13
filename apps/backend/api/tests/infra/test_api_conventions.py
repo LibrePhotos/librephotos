@@ -106,12 +106,13 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/albums/thing": {"GET retrieve"},
     "api/albums/place": {"GET retrieve"},
     "api/albums/user": {"GET retrieve", "PATCH partial_update", "DELETE destroy"},
-    # Retrieve has no client yet: kept for the person page (#2207).
+    # Retrieve loads the person page (#2207).
     "api/persons": {
         "GET list",
         "GET retrieve",
         "PATCH partial_update",
         "DELETE destroy",
+        "POST remove_photos",
     },
     "api/tags": {
         "GET list",

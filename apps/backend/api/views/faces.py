@@ -14,7 +14,6 @@ from django.db.models import (
     Value,
     When,
 )
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -30,6 +29,11 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
+from api.faces.labels import (
+    recreate_search_captions,
+    relabel_faces,
+    write_face_tags_of,
+)
 from api.faces.photo_faces import (
     DetectedFace,
     overlaps_existing_face,
@@ -37,11 +41,8 @@ from api.faces.photo_faces import (
 )
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
-from api.metadata.photo_writer import write_photo_metadata, write_target
-from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
-from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import missing_models_prerequisites
@@ -310,36 +311,6 @@ class FaceIncompleteListViewSet(ListViewSet):
         return Response(real_persons, status=status.HTTP_200_OK)
 
 
-def _write_face_tags(photo: Photo, use_sidecar: bool) -> str | None:
-    """Write the photo's face regions to disk; why that failed, or None.
-
-    The faces are saved either way: a file LibrePhotos cannot write (a
-    read-only library) does not undo the user's labelling.
-    """
-    try:
-        write_photo_metadata(
-            photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
-        )
-    except MetadataWriteError as error:
-        logger.warning(
-            "The face tags of photo %s were not written: %s", photo.image_hash, error
-        )
-        return str(error)
-    except Exception:
-        logger.exception("Failed to write face tags for photo %s", photo.image_hash)
-        return "the face tags could not be written to the file"
-    return None
-
-
-def _summarize_write_errors(errors: list[str], photos: int) -> str | None:
-    """One message for the face-tag writes that failed, or None."""
-    if not errors:
-        return None
-    if len(errors) == 1 and photos == 1:
-        return errors[0]
-    return f"{len(errors)} of {photos} photos were not written: {errors[0]}"
-
-
 class SetFacePersonLabel(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -350,8 +321,6 @@ class SetFacePersonLabel(APIView):
         user = request_user(request)
         data = parse_body(request, SetFacePersonLabelRequest)
         person: Person | None = None
-        cluster_person: Person | None = None
-        classification_person: Person | None = None
         # Person.name carries a MinLengthValidator, but get_or_create() does not run
         # field validators, so a blank name would quietly create a nameless person
         # and an album to go with it. Surrounding whitespace is trimmed for the same
@@ -388,86 +357,15 @@ class SetFacePersonLabel(APIView):
                 name=person_name, owner=user, kind=Person.KIND_USER
             )
 
-        # Everything the loop below touches is pulled in up front: the ownership
-        # check needs the photo and its owner, rebuilding the search captions
-        # needs the caption, metadata and file rows. Fetching them lazily costs
-        # several queries per face, which is what makes tagging a large
-        # selection of faces run into the gateway timeout.
-        # Only the requester's own faces are loaded: a foreign face id must
-        # not come back serialized in ``not_updated`` (it carried the photo id
-        # and the face crop path of someone else's photo).
-        faces = (
-            Face.objects.owned_by(user)
-            .select_related(
-                "photo__owner",
-                "photo__main_file",
-                "photo__metadata",
-                "photo__caption_instance",
-            )
-            .prefetch_related(
-                "photo__files",
-                Prefetch(
-                    "photo__faces",
-                    queryset=Face.objects.select_related("person"),
-                ),
-            )
-            .in_bulk(data["face_ids"])
+        # Only the requester's own faces are relabelled (relabel_faces scopes
+        # them again): a foreign face id must not come back serialized in
+        # ``not_updated`` (it carried the photo id and the face crop path of
+        # someone else's photo).
+        result = relabel_faces(
+            user, Face.objects.owned_by(user).filter(pk__in=data["face_ids"]), person
         )
-
-        updated = []
+        updated = [FaceListSerializer(face).data for face in result.faces]
         not_updated: list[dict[str, object]] = []
-        relabeled_faces = []
-        affected_person_ids = set()
-        for face in faces.values():
-            if face.person_id is not None:
-                affected_person_ids.add(face.person_id)
-            face.person = person
-            if not person:
-                face.cluster_person = cluster_person
-                face.classification_person = classification_person
-            relabeled_faces.append(face)
-            updated.append(FaceListSerializer(face).data)
-        Face.objects.bulk_update(
-            relabeled_faces, ["person", "cluster_person", "classification_person"]
-        )
-        if person:
-            affected_person_ids.add(person.id)
-        for affected_person in Person.objects.filter(id__in=affected_person_ids):
-            affected_person._calculate_face_count()
-            affected_person._set_default_cover_photo()
-
-        # Every photo we relabeled needs its captions rebuilt, not just the one
-        # the loop happened to end on.
-        updated_photos: dict[uuid.UUID, Photo] = {}
-        for face in relabeled_faces:
-            # Selected by photo__owner above, so every face has its photo.
-            assert face.photo is not None
-            updated_photos[face.photo.pk] = face.photo
-
-        # The faces behind `photo.faces` were prefetched before the relabel, so
-        # those cached rows still carry the old person. They are different
-        # instances from the ones we just updated, so copy the new person across
-        # before rebuilding the captions from them.
-        relabeled_by_pk = {face.pk: face for face in relabeled_faces}
-        for photo in updated_photos.values():
-            for cached_face in photo.faces.all():
-                relabeled = relabeled_by_pk.get(cached_face.pk)
-                if relabeled is not None:
-                    cached_face.person = relabeled.person
-
-        self._recreate_search_captions(list(updated_photos.values()))
-
-        # Write face regions to the sidecar or the file if the user opted in to
-        # both face tags and syncing metadata to disk (#2293).
-        write_errors: list[str] = []
-        use_sidecar = write_target(user)
-        if user.save_face_tags_to_disk and use_sidecar is not None:
-            with one_exiftool_process():
-                for photo in updated_photos.values():
-                    error = _write_face_tags(photo, use_sidecar)
-                    if error is not None:
-                        write_errors.append(error)
-
         return Response(
             {
                 "status": True,
@@ -476,45 +374,8 @@ class SetFacePersonLabel(APIView):
                 "not_updated": not_updated,
                 # The labels are saved; their face tags did not reach these
                 # files (#2294).
-                "write_error": _summarize_write_errors(
-                    write_errors, len(updated_photos)
-                ),
+                "write_error": result.write_error,
             }
-        )
-
-    @staticmethod
-    def _recreate_search_captions(photos: list[Photo]) -> None:
-        """Rebuild the search captions of the given photos in one batch.
-
-        Doing a ``get_or_create()`` and a ``save()`` per photo would put the
-        query count of the request back into the thousands.
-        """
-        search_instances = PhotoSearch.objects.in_bulk([photo.pk for photo in photos])
-
-        to_create: list[PhotoSearch] = []
-        to_update: list[PhotoSearch] = []
-        for photo in photos:
-            search_instance = search_instances.get(photo.pk)
-            if search_instance:
-                # Reuse the photo we already have instead of selecting it again.
-                search_instance.photo = photo
-                search_instance.updated_at = timezone.now()
-                to_update.append(search_instance)
-            else:
-                search_instance = PhotoSearch(photo=photo)
-                to_create.append(search_instance)
-            search_instance.recreate_search_captions()
-
-        # Two clients labelling faces on the same photo can race to create its
-        # search row, so fall back to updating the row the other one won with.
-        PhotoSearch.objects.bulk_create(
-            to_create,
-            update_conflicts=True,
-            update_fields=["search_captions", "search_folded", "updated_at"],
-            unique_fields=["photo"],
-        )
-        PhotoSearch.objects.bulk_update(
-            to_update, ["search_captions", "search_folded", "updated_at"]
         )
 
 
@@ -629,12 +490,9 @@ class AddFaceView(APIView):
 
         # The person's name is part of what the photo can be found by.
         photo.refresh_from_db()
-        SetFacePersonLabel._recreate_search_captions([photo])
+        recreate_search_captions([photo])
 
-        write_error = None
-        use_sidecar = write_target(user)
-        if user.save_face_tags_to_disk and use_sidecar is not None:
-            write_error = _write_face_tags(photo, use_sidecar)
+        write_error = write_face_tags_of(user, [photo])
 
         return Response(
             {
@@ -763,7 +621,7 @@ class DeleteFaces(APIView):
                     Prefetch("faces", queryset=Face.objects.select_related("person")),
                 )
             )
-            SetFacePersonLabel._recreate_search_captions(list(photos))
+            recreate_search_captions(list(photos))
 
         return Response(
             {

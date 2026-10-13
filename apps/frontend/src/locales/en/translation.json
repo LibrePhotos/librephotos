@@ -613,6 +613,8 @@
     "albumsharingdescription": "Open sharing panel for the current album",
     "removephotos": "Remove Photos",
     "removephotosdescription": "Remove the selected photos from the current album",
+    "removefromperson": "Remove from this person",
+    "removefrompersonselectall": "Select the photos one by one to remove them from this person",
     "album": "Album",
     "stackactions": "Stack Actions",
     "createstack": "Create Stack",
@@ -1432,6 +1434,15 @@
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name",
     "managefaces": "Manage Faces",
+    "personactions": "Person actions",
+    "deletepersonnamed": "Delete {{name}}?",
+    "deletepersonremoved": "{{name}} is removed from People. The photos stay in your library.",
+    "deletepersonfaces_one": "The {{count}} face labelled {{name}} goes back to unknown faces, where you can label it again.",
+    "deletepersonfaces_other": "The {{count}} faces labelled {{name}} go back to unknown faces, where you can label them again.",
+    "removephotostitle_one": "Remove {{count}} photo from {{name}}?",
+    "removephotostitle_other": "Remove {{count}} photos from {{name}}?",
+    "removephotosdescription_one": "The face of {{name}} on this photo is unlabelled and goes back to unknown faces. The photo stays in your library and in any albums.",
+    "removephotosdescription_other": "The faces of {{name}} on these photos are unlabelled and go back to unknown faces. The photos stay in your library and in any albums.",
     "numberofpeople_one": "{{count}} person",
     "numberofpeople_other": "{{count}} people"
   },
@@ -1640,6 +1651,11 @@
     "renamepersontitle": "Rename person",
     "deleteperson": "Person deleted",
     "deletepersontitle": "Delete person",
+    "removefromperson_one": "{{count}} photo. Its face is in unknown faces now.",
+    "removefromperson_other": "{{count}} photos. Their faces are in unknown faces now.",
+    "removefrompersontitle": "Removed from {{name}}",
+    "facetagsnotwritten": "The faces are saved, but their tags did not reach every file: {{error}}",
+    "facetagsnotwrittentitle": "Face tags not written",
     "setcoverphoto": "Cover photo set",
     "setcoverphototitle": "Set cover photo",
     "sharephoto": "{{numberOfPhotos}} photo(s) were shared with {{username}}",
@@ -1933,6 +1949,11 @@
       "title": "Album not found",
       "description": "It may have been deleted or rebuilt, or it is no longer shared with you.",
       "action": "Show all albums"
+    },
+    "personnotfound": {
+      "title": "Person not found",
+      "description": "The person may have been deleted or merged into someone else.",
+      "action": "Show all people"
     },
     "tagnotfound": {
       "title": "Tag not found",
