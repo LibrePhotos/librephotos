@@ -29,23 +29,38 @@ const ListAnswer = z.union([
  * The rows are not parsed: callers parse them with the list's zod schema.
  */
 export async function fetchAllPages(client: ApiClient, endpoint: string): Promise<unknown[]> {
+  return (await fetchAllPagesWithFirst(client, endpoint)).rows;
+}
+
+/**
+ * fetchAllPages, plus the first answer as the server sent it, for a list whose
+ * page envelope carries more than the rows (the folder listing's own paths).
+ * Neither is parsed.
+ */
+export async function fetchAllPagesWithFirst(
+  client: ApiClient,
+  endpoint: string
+): Promise<{ first: unknown; rows: unknown[] }> {
   const path = endpoint.split("?")[0] ?? endpoint;
   const rows: unknown[] = [];
   const seen = new Set<string>();
+  let first: unknown;
   let current: string | null = endpoint;
   while (current !== null) {
     if (seen.has(current)) {
       throw new ResponseParseError(endpoint, `next repeats ${current}`);
     }
     seen.add(current);
-    const parsed = ListAnswer.safeParse(await client.get<unknown>(current));
+    const raw = await client.get<unknown>(current);
+    if (current === endpoint) first = raw;
+    const parsed = ListAnswer.safeParse(raw);
     if (!parsed.success) {
       throw new ResponseParseError(endpoint, "(root): expected a list or a page with results");
     }
     const answer = parsed.data;
-    if (Array.isArray(answer)) return answer;
+    if (Array.isArray(answer)) return { first, rows: answer };
     rows.push(...answer.results);
     current = answer.next ? `${path}${new URL(answer.next, "http://next.invalid").search}` : null;
   }
-  return rows;
+  return { first, rows };
 }

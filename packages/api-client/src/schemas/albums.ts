@@ -259,6 +259,9 @@ export const FolderSubfoldersResponse = z.object({
 });
 export type FolderSubfoldersResponse = z.infer<typeof FolderSubfoldersResponse>;
 
+/** Every subfolder of a folder (all pages of GET /folders/subfolders/), with the folder's own paths. */
+export type FolderSubfolderListing = Pick<FolderSubfoldersResponse, "current_path" | "parent_path" | "results">;
+
 /* ---- Mutation params (platform-agnostic) ------------------------------ */
 
 export type CreateUserAlbumParams = { title: string; photos: string[] };
