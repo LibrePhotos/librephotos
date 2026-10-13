@@ -387,4 +387,11 @@ one and rotating a photo also return the reason as `write_error` in the API resp
 `POST /api/savemetadata` and `manage.py save_metadata` count the photos they could not write
 as errors.
 
-_Not released yet: up to 1.3.0, a failed write looked like a success and was not logged._
+In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
+orange **Not written to the file** notice next to the usual confirmation: "Saved in LibrePhotos,
+but not written to the file", followed by the reason. It stays until you close it. Changing a
+date or a rating writes the file after the edit is saved, so a failure there is only in the
+backend log.
+
+_Not released yet: up to 1.3.0, a failed write looked like a success and was not logged, and the
+web app showed no notice._

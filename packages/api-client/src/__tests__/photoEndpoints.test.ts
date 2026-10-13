@@ -196,6 +196,18 @@ describe("photo edits", () => {
     });
   });
 
+  it("keeps why a rotation did not reach the file (#2564)", async () => {
+    const reason = "HEIC and RAW originals are never rewritten";
+    const { client } = fakeServer({
+      status: true,
+      image_hash: "h1",
+      local_orientation: 6,
+      last_modified: "2026-10-12T17:00:00Z",
+      write_error: reason,
+    });
+    expect((await endpoints.rotatePhoto(client, "h1", 90)).write_error).toBe(reason);
+  });
+
   it("asks for a generated caption", async () => {
     const { client, requests } = fakeServer({ status: true });
     await endpoints.generatePhotoCaption(client, "h1");

@@ -1713,6 +1713,8 @@
     "servererror": "Something went wrong on the server ({{endpoint}}). Please report this issue on GitHub.",
     "requestfailedtitle": "Could not save the change",
     "requestfailed": "The server did not answer or refused the change. Try again in a moment.",
+    "notwrittentofiletitle": "Not written to the file",
+    "notwrittentofile": "Saved in LibrePhotos, but not written to the file: {{reason}}",
     "parseerrortitle": "Unexpected server response",
     "reportissue": "{{detail}}. Please report this issue on GitHub."
   },

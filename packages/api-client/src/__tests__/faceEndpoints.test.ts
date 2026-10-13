@@ -155,6 +155,36 @@ describe("face writes", () => {
     expect(added.face.location.right).toBe(480);
   });
 
+  it("keeps why a face edit did not reach the file (#2564)", async () => {
+    const reason = "the folder /photos is read-only";
+    const face = { id: 3, person: 4, person_name: "Dave" };
+    const labelled = fakeServer({
+      status: true,
+      results: [face],
+      updated: [face],
+      not_updated: [],
+      write_error: reason,
+    });
+    expect((await endpoints.labelFaces(labelled.client, [3], "Dave")).write_error).toBe(reason);
+
+    const drawn = fakeServer(
+      {
+        status: true,
+        write_error: reason,
+        face: {
+          face_id: 11,
+          face_url: "/media/faces/11.jpg",
+          person: 4,
+          person_name: "Dave",
+          location: { top: 1, right: 2, bottom: 3, left: 0 },
+        },
+      },
+      201
+    );
+    const box = { top: 0.25, right: 0.6, bottom: 0.75, left: 0.4 };
+    expect((await endpoints.addFace(drawn.client, "h1", "Dave", box)).write_error).toBe(reason);
+  });
+
   it("starts a face scan", async () => {
     const { client, requests } = fakeServer({ status: true, job_id: "j1", job_ids: ["j1"] });
     const started = await endpoints.scanFaces(client);

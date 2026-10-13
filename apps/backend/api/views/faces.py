@@ -47,6 +47,7 @@ from api.runtime.features import feature_enabled
 from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.face import (
     AddFaceRequest,
+    AddFaceResponse,
     FaceIdsRequest,
     FaceIncompleteListQuery,
     FaceListQuery,
@@ -54,6 +55,7 @@ from api.serializers.face import (
     IncompletePersonFaceListSerializer,
     PersonFaceListSerializer,
     SetFacePersonLabelRequest,
+    SetFacePersonLabelResponse,
 )
 from api.views.custom_api_view import ListViewSet
 from api.views.photos import _get_photo_filter_kwargs
@@ -341,7 +343,9 @@ def _summarize_write_errors(errors: list[str], photos: int) -> str | None:
 class SetFacePersonLabel(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetFacePersonLabelRequest)
+    @extend_schema(
+        request=SetFacePersonLabelRequest, responses=SetFacePersonLabelResponse
+    )
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, SetFacePersonLabelRequest)
@@ -538,7 +542,7 @@ class AddFaceView(APIView):
     # A box smaller than this in big-thumbnail pixels is a stray drag, not a face.
     MIN_SIDE_PIXELS = 12
 
-    @extend_schema(request=AddFaceRequest)
+    @extend_schema(request=AddFaceRequest, responses={201: AddFaceResponse})
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, AddFaceRequest)

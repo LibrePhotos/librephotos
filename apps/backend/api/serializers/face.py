@@ -124,6 +124,22 @@ class SetFacePersonLabelRequest(FaceIdsRequest):
     person_name = required_string("person_name must not be empty")
 
 
+class SetFacePersonLabelResponse(serializers.Serializer[None]):
+    """The answer of POST /api/labelfaces: the relabelled faces."""
+
+    status = serializers.BooleanField()
+    results = FaceListSerializer(many=True)
+    updated = FaceListSerializer(many=True)
+    not_updated = FaceListSerializer(many=True)
+    write_error = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Why the edit, saved in LibrePhotos, was not written to the file or "
+            "its sidecar; null when it was written or writing is off (#2294)"
+        ),
+    )
+
+
 class AddFaceRequest(serializers.Serializer[None]):
     person_name = required_string("person_name must not be empty")
     photo = required_string(
@@ -133,3 +149,34 @@ class AddFaceRequest(serializers.Serializer[None]):
         required=False,
         help_text="top, right, bottom and left as fractions of the displayed image",
     )
+
+
+class FaceBoxPixels(serializers.Serializer[None]):
+    """A face box in big-thumbnail pixels."""
+
+    top = serializers.IntegerField()
+    right = serializers.IntegerField()
+    bottom = serializers.IntegerField()
+    left = serializers.IntegerField()
+
+
+class AddedFace(serializers.Serializer[None]):
+    face_id = serializers.IntegerField()
+    face_url = serializers.CharField()
+    person = serializers.IntegerField()
+    person_name = serializers.CharField()
+    location = FaceBoxPixels()
+
+
+class AddFaceResponse(serializers.Serializer[None]):
+    """The answer of POST /api/addface (201): the face drawn by hand."""
+
+    status = serializers.BooleanField()
+    write_error = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Why the edit, saved in LibrePhotos, was not written to the file or "
+            "its sidecar; null when it was written or writing is off (#2294)"
+        ),
+    )
+    face = AddedFace()

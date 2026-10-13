@@ -1237,6 +1237,24 @@ class RotatePhotoRequest(serializers.Serializer[None]):
     flip_horizontal = serializers.BooleanField(default=False)
 
 
+class RotatePhotoResponse(serializers.Serializer[None]):
+    """The answer of POST /api/photosedit/rotate/: the photo's new orientation."""
+
+    status = serializers.BooleanField()
+    image_hash = serializers.CharField()
+    local_orientation = serializers.IntegerField(
+        help_text="The new EXIF orientation code, 1 to 8"
+    )
+    last_modified = serializers.DateTimeField()
+    write_error = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Why the edit, saved in LibrePhotos, was not written to the file or "
+            "its sidecar; null when it was written or writing is off (#2294)"
+        ),
+    )
+
+
 SHARE_ACTIONS = ("enable", "rotate", "disable")
 
 

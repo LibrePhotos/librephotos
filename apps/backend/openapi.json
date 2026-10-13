@@ -42,8 +42,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "No response body"
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddFaceResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2859,7 +2866,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetFacePersonLabelResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -5312,7 +5326,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotatePhotoResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7882,6 +7903,55 @@
           "photo"
         ]
       },
+      "AddFaceResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/addface (201): the face drawn by hand.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "write_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
+          },
+          "face": {
+            "$ref": "#/components/schemas/AddedFace"
+          }
+        },
+        "required": [
+          "face",
+          "status",
+          "write_error"
+        ]
+      },
+      "AddedFace": {
+        "type": "object",
+        "properties": {
+          "face_id": {
+            "type": "integer"
+          },
+          "face_url": {
+            "type": "string"
+          },
+          "person": {
+            "type": "integer"
+          },
+          "person_name": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/FaceBoxPixels"
+          }
+        },
+        "required": [
+          "face_id",
+          "face_url",
+          "location",
+          "person",
+          "person_name"
+        ]
+      },
       "AlbumAuto": {
         "type": "object",
         "properties": {
@@ -9284,6 +9354,30 @@
           }
         }
       },
+      "FaceBoxPixels": {
+        "type": "object",
+        "description": "A face box in big-thumbnail pixels.",
+        "properties": {
+          "top": {
+            "type": "integer"
+          },
+          "right": {
+            "type": "integer"
+          },
+          "bottom": {
+            "type": "integer"
+          },
+          "left": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bottom",
+          "left",
+          "right",
+          "top"
+        ]
+      },
       "FaceIdsRequestRequest": {
         "type": "object",
         "properties": {
@@ -9296,6 +9390,60 @@
         },
         "required": [
           "face_ids"
+        ]
+      },
+      "FaceList": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "face_url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "photo": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true,
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
+          },
+          "person": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true
+          },
+          "person_label_probability": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          },
+          "person_name": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "face_url",
+          "id",
+          "image",
+          "person",
+          "person_label_probability",
+          "person_name",
+          "photo",
+          "timestamp"
         ]
       },
       "GenerateOcrRequestRequest": {
@@ -12440,6 +12588,38 @@
           "image_hash"
         ]
       },
+      "RotatePhotoResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/photosedit/rotate/: the photo's new orientation.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "image_hash": {
+            "type": "string"
+          },
+          "local_orientation": {
+            "type": "integer",
+            "description": "The new EXIF orientation code, 1 to 8"
+          },
+          "last_modified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "write_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
+          }
+        },
+        "required": [
+          "image_hash",
+          "last_modified",
+          "local_orientation",
+          "status",
+          "write_error"
+        ]
+      },
       "SaveMetadataRequestRequest": {
         "type": "object",
         "properties": {
@@ -12509,6 +12689,45 @@
         "required": [
           "face_ids",
           "person_name"
+        ]
+      },
+      "SetFacePersonLabelResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/labelfaces: the relabelled faces.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaceList"
+            }
+          },
+          "updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaceList"
+            }
+          },
+          "not_updated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaceList"
+            }
+          },
+          "write_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
+          }
+        },
+        "required": [
+          "not_updated",
+          "results",
+          "status",
+          "updated",
+          "write_error"
         ]
       },
       "SetMainFileRequestRequest": {

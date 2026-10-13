@@ -64,6 +64,11 @@ export const RotatePhotoResponse = z.object({
   image_hash: z.string(),
   local_orientation: z.number(),
   last_modified: z.string(),
+  /**
+   * Why the edit, saved in LibrePhotos, did not reach the file or its sidecar (read-only library, a
+   * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
+   */
+  write_error: z.string().nullable().optional(),
 });
 export type RotatePhotoResponse = z.infer<typeof RotatePhotoResponse>;
 
