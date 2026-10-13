@@ -25,7 +25,7 @@ function AppShellProtected() {
     return <PageLoader />;
   }
 
-  if (!isAuthenticated && !isLoading) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" search={{ redirect: pathname + search }} replace />;
   }
 
