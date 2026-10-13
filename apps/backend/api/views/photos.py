@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.albums.timeline_filter import timeline_filter_q
 from api.classification import captioning
 from api.drf.exceptions import ServiceUnavailable
 from api.drf.pagination import (
@@ -29,7 +30,7 @@ from api.drf.pagination import (
     PhotoGridPagination,
     WholeListPagination,
 )
-from api.drf.params import parse_body
+from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user, scope_user
 from api.metadata import edits
 from api.metadata.photo_writer import (
@@ -62,6 +63,7 @@ from api.serializers.photos import (
     PhotoCaptionRequest,
     PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
+    PhotoMediaQuery,
     PhotoSelectionRequest,
     PhotoSerializer,
     PhotoSummarySerializer,
@@ -122,8 +124,23 @@ def _detect_content_type(path: str) -> str:
         return "application/octet-stream"
 
 
+def _media_filtered_photos(request: Request) -> QuerySet[Photo]:
+    """The requester's visible photos narrowed by the ``PhotoMediaQuery`` flags.
+
+    Only the explicit flags are read, so a saved timeline default (which
+    applies to ``/`` only) never filters these lists.
+    """
+    media = parse_query(request, PhotoMediaQuery)
+    return Photo.visible.owned_by(scope_user(request)).filter(
+        *timeline_filter_q(request.user, media)
+    )
+
+
 class RecentlyAddedPhotoListViewSet(ListViewSet):
-    """Every photo added on the day of the latest upload, in one answer."""
+    """Every photo added on the day of the latest upload, in one answer.
+
+    With a media filter, the day is the latest upload day of a matching photo.
+    """
 
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
@@ -136,13 +153,15 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         latest_date = latest_photo.added_on
 
         return with_photo_summary_relations(
-            Photo.visible.owned_by(scope_user(self.request)).filter(
+            _media_filtered_photos(self.request).filter(
                 Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(added_on__date=latest_date.date())
             )
         ).order_by("-added_on")
 
-    @extend_schema(responses=RecentlyAddedPhotosSerializer)
+    @extend_schema(
+        parameters=[PhotoMediaQuery], responses=RecentlyAddedPhotosSerializer
+    )
     def list(self, *args: Any, **kwargs: Any) -> Response:
         queryset = self.get_queryset()
         latest_photo = self._get_latest_photo()
@@ -153,7 +172,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     def _get_latest_photo(self) -> Photo | None:
         if not hasattr(self, "_latest_photo"):
             self._latest_photo = (
-                Photo.visible.owned_by(scope_user(self.request))
+                _media_filtered_photos(self.request)
                 .only("added_on")
                 .order_by("-added_on")
                 .first()
@@ -162,6 +181,8 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
 
 
 class NoTimestampPhotoViewSet(ListViewSet):
+    """The photos without a capture time, first added first, a page at a time."""
+
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
     pagination_class = DefaultPagination
@@ -174,9 +195,10 @@ class NoTimestampPhotoViewSet(ListViewSet):
 
     def get_queryset(self) -> QuerySet[Photo]:
         return with_photo_summary_relations(
-            Photo.visible.owned_by(scope_user(self.request)).filter(exif_timestamp=None)
+            _media_filtered_photos(self.request).filter(exif_timestamp=None)
         ).order_by("added_on")
 
+    @extend_schema(parameters=[PhotoMediaQuery])
     def list(self, *args: Any, **kwargs: Any) -> Response:
         return super().list(*args, **kwargs)
 

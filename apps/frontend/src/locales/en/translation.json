@@ -388,6 +388,7 @@
     "photos": "Photos",
     "videos": "Videos",
     "screenshots": "Screenshots",
+    "documents": "Documents",
     "albums": "Albums",
     "memories": "Memories",
     "people": "People",
@@ -939,6 +940,7 @@
     "favorite": "Favorite Photos",
     "videos": "Videos",
     "screenshots": "Screenshots",
+    "documents": "Documents",
     "deleted": "Trash"
   },
   "phototile": {
@@ -1073,6 +1075,8 @@
       "hidden": "Go to Hidden",
       "videos": "Go to Videos",
       "screenshots": "Go to Screenshots",
+      "documents": "Go to Documents",
+      "documentsDesc": "Receipts, letters and scanned paper",
       "trash": "Go to Trash",
       "recent": "Go to Recently Added",
       "noTimestamp": "Go to Photos Without Timestamps",
@@ -1710,6 +1714,10 @@
       "title": "No screenshots yet",
       "description": "Scan your library to see your screenshots here."
     },
+    "documents": {
+      "title": "No documents yet",
+      "description": "Photos of receipts, letters and other paper show up here once your library is scanned. You can also mark a photo as a document in its details."
+    },
     "recent": {
       "title": "No recently added photos",
       "description": "Recently scanned photos will appear here."
@@ -1826,9 +1834,14 @@
   "continue": "Continue",
   "mediafilter": {
     "all": "All",
+    "allmedia": "All media",
     "photos": "Photos only",
     "videos": "Videos only",
-    "screenshots": "Screenshots only"
+    "screenshots": "Screenshots only",
+    "documents": "Documents only",
+    "title": "Media type",
+    "button": "Media type: {{current}}",
+    "showall": "Show all"
   },
   "upload": {
     "button": "Upload photos and videos",

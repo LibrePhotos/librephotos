@@ -30,6 +30,7 @@ describe("buildDateAlbumFilter — photosetType", () => {
       photo: undefined,
       video: true,
       is_screenshot: undefined,
+      is_document: undefined,
     });
   });
 
@@ -42,6 +43,20 @@ describe("buildDateAlbumFilter — photosetType", () => {
       photo: undefined,
       video: undefined,
       is_screenshot: true,
+      is_document: undefined,
+    });
+  });
+
+  test("DOCUMENTS sets only is_document", () => {
+    expect(buildDateAlbumFilter(Photoset.DOCUMENTS)).toEqual({
+      favorite: undefined,
+      public: undefined,
+      hidden: undefined,
+      in_trashcan: undefined,
+      photo: undefined,
+      video: undefined,
+      is_screenshot: undefined,
+      is_document: true,
     });
   });
 
@@ -74,6 +89,13 @@ describe("buildDateAlbumFilter — mediaType toggle layered on a neutral surface
     expect(params.is_screenshot).toBe(true);
     expect(params.photo).toBeUndefined();
     expect(params.video).toBeUndefined();
+  });
+
+  test("mediaType 'documents' sets is_document", () => {
+    const params = buildDateAlbumFilter(Photoset.IN_TRASHCAN, "documents");
+    expect(params.is_document).toBe(true);
+    expect(params.in_trashcan).toBe(true);
+    expect(params.is_screenshot).toBeUndefined();
   });
 
   test("mediaType 'all' / undefined sets no media flag", () => {

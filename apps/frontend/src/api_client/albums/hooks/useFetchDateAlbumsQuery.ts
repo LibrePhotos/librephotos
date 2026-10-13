@@ -85,8 +85,8 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
 // Maps the active Photoset plus an optional, independent media-type filter onto
 // the backend's boolean filters (sent as "true", or left out). photosetType picks
 // the surface (favorites, videos, screenshots, ...); mediaType is the per-view
-// All/Photos/Videos/Screenshots toggle that layers on top (e.g. a person album
-// filtered to screenshots), so photo/video/is_screenshot react to either source.
+// All/Photos/Videos/Screenshots/Documents filter that layers on top (e.g. a person
+// album filtered to screenshots), so each media flag reacts to either source.
 export function buildDateAlbumFilter(photosetType: Photoset, mediaType?: MediaType): DateAlbumFilter {
   return {
     favorite: Photoset.FAVORITES === photosetType || undefined,
@@ -96,6 +96,7 @@ export function buildDateAlbumFilter(photosetType: Photoset, mediaType?: MediaTy
     photo: Photoset.PHOTOS === photosetType || mediaType === "photos" || undefined,
     video: Photoset.VIDEOS === photosetType || mediaType === "videos" || undefined,
     is_screenshot: Photoset.SCREENSHOTS === photosetType || mediaType === "screenshots" || undefined,
+    is_document: Photoset.DOCUMENTS === photosetType || mediaType === "documents" || undefined,
   };
 }
 

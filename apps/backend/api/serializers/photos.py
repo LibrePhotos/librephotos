@@ -13,6 +13,7 @@ from api.drf.params import (
     JsonBooleanField,
     JsonIntegerField,
     JsonStringField,
+    TristateFlagField,
     required_string,
 )
 from api.drf.request_user import request_user
@@ -194,6 +195,22 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
     def get_items(self, obj: PhotosGroupedByDate) -> list[dict[str, Any]]:
         summary = shared_serializer(self, PhotoSummarySerializer)
         return [summary.to_representation(photo) for photo in obj.photos]
+
+
+class PhotoMediaQuery(serializers.Serializer[None]):
+    """The media filter of the Recently added and No timestamp lists.
+
+    The same flags as the per-view media filter on the date-album endpoints,
+    resolved by ``api.albums.timeline_filter``. Only these four are read, so
+    the user's saved timeline default (``apply_default``) never applies here.
+    """
+
+    photo = TristateFlagField(help_text="Only photos (false: no photos)")
+    video = TristateFlagField(help_text="Only videos (false: no videos)")
+    is_screenshot = TristateFlagField(
+        help_text="Only screenshots (false: no screenshots)"
+    )
+    is_document = TristateFlagField(help_text="Only documents (false: no documents)")
 
 
 # The two unpaginated photo lists answer one object around their rows; these

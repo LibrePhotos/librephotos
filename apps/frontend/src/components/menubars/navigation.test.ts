@@ -18,6 +18,8 @@ describe("isNavItemActive", () => {
     expect(isNavItemActive(photos, "/")).toBe(true);
     expect(isNavItemActive(photos, "/favorites")).toBe(true);
     expect(isNavItemActive(photos, "/videos")).toBe(true);
+    expect(isNavItemActive(photos, "/screenshots")).toBe(true);
+    expect(isNavItemActive(photos, "/documents")).toBe(true);
     expect(isNavItemActive(photos, "/album")).toBe(false);
     expect(isNavItemActive(photos, "/deleted")).toBe(false);
   });

@@ -40,7 +40,7 @@ Photos you've hidden from the main timeline. Hiding a photo removes it from the 
 
 ### Recently Added
 
-Shows only your most recent batch of imports — the photos whose *added* date falls on the same calendar day as the most recently added photo in your library. They appear in a single flat grid under one **"Added on …"** line in the page header; there is no per-day grouping. Older imports are not listed here — use the Timeline to browse your whole library.
+Shows only your most recent batch of imports — the photos whose *added* date falls on the same calendar day as the most recently added photo in your library. They appear in a single flat grid under one **"Added on …"** line in the page header; there is no per-day grouping. Older imports are not listed here — use the Timeline to browse your whole library. With a [media filter](#media-filter), the page shows the latest day a matching photo was added, for example the last day you imported videos.
 
 ### Photos Only
 
@@ -49,6 +49,26 @@ Shows only still photos, filtering out all videos.
 ### Videos Only
 
 Shows only video files, filtering out all still photos.
+
+### Screenshots and Documents
+
+**Screenshots** lists the photos detected or marked as screenshots. **Documents** lists the photos of receipts, letters, forms and other paper (see [Documents](./text-recognition.md#documents)). Both are in the Photos view switcher in the page header and in the command palette (`Ctrl+K`). When a photo is in the wrong one, change its [Category](#category).
+
+:::note
+The Documents page is not in a release yet; it ships with the first release after 1.3.0.
+:::
+
+### Filtering a list by media type {#media-filter}
+
+:::note
+The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp and folder pages are not in a release yet; they ship with the first release after 1.3.0.
+:::
+
+Favorites, Hidden, Trash, Recently Added, Without Timestamp, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
+
+The choice is part of the page address (for example `?media=videos`), so it survives a reload and can be bookmarked. Every page starts with all media: the saved default of the [timeline filter](#filtering-the-timeline) never applies here.
+
+Selecting all photos on a filtered list selects only what it shows. In Trash, filter to **Videos only**, then **Select all** and **Delete permanently** removes the trashed videos and leaves every other photo in the trash.
 
 ### Without Timestamp
 

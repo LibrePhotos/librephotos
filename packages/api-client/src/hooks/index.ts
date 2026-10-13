@@ -120,7 +120,8 @@ export function useDateAlbumQuery(
 export function useRecentlyAddedPhotosQuery() {
   const client = useApiClient();
   return useQuery({
-    queryKey: photoGridKeys.recentlyAdded(),
+    // The web's unfiltered view: the same answer under the same key.
+    queryKey: photoGridKeys.recentlyAddedView("all"),
     queryFn: () => endpoints.fetchRecentlyAddedPhotos(client),
   });
 }
@@ -203,7 +204,7 @@ export function useTagAlbumQuery(id: string | number | undefined) {
 export function usePhotosWithoutTimestampQuery(page: number) {
   const client = useApiClient();
   return useQuery({
-    queryKey: photoGridKeys.withoutTimestamp(page),
+    queryKey: photoGridKeys.withoutTimestamp(page, "all"),
     queryFn: () => endpoints.fetchPhotosWithoutTimestamp(client, page),
   });
 }

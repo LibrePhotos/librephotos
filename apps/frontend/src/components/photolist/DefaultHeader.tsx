@@ -22,6 +22,7 @@ import {
   IconClock as Clock,
   IconCopy as Copy,
   IconEyeOff as EyeOff,
+  IconFileText as FileText,
   IconGlobe as Globe,
   IconFolderSearch,
   IconPhoto as Photo,
@@ -60,6 +61,9 @@ type Props = Readonly<{
   countsVideos?: boolean;
   // See PhotoListView's `titleOrder`.
   titleOrder?: 1 | 2;
+  // A line under the count saying what the page's media filter shows; also
+  // shown when the filter matches nothing.
+  filterHint?: React.ReactNode;
 }>;
 
 // Its own component so the stats are only fetched once the dropdown is open.
@@ -106,6 +110,7 @@ export function DefaultHeader(props: Props) {
     isPublic,
     countsVideos,
     titleOrder,
+    filterHint,
   } = props;
 
   // Don't fetch user data on public pages
@@ -128,7 +133,8 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/user/") ||
       path.startsWith("/photos") ||
       path.startsWith("/videos") ||
-      path.startsWith("/screenshots")
+      path.startsWith("/screenshots") ||
+      path.startsWith("/documents")
     );
   };
 
@@ -155,9 +161,12 @@ export function DefaultHeader(props: Props) {
         return null;
       }
       return (
-        <Text ta="left" c="dimmed">
-          {t("defaultheader.noimages")}
-        </Text>
+        <div>
+          <Text ta="left" c="dimmed">
+            {t("defaultheader.noimages")}
+          </Text>
+          {filterHint}
+        </div>
       );
     }
 
@@ -169,6 +178,7 @@ export function DefaultHeader(props: Props) {
             : ""}
           {numPhotos} {t(countsVideos ? "defaultheader.videos" : "defaultheader.photos", { count: numPhotos })}
         </Text>
+        {filterHint}
         {additionalSubHeader}
       </div>
     );
@@ -308,6 +318,14 @@ export function DefaultHeader(props: Props) {
             onClick={() => navigate({ to: "/screenshots" })}
           >
             {t("sidemenu.screenshots")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<FileText color={theme.colors.orange[7]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/documents")}
+            onClick={() => void navigate({ to: "/documents" })}
+          >
+            {t("sidemenu.documents")}
           </Menu.Item>
 
           <Menu.Item

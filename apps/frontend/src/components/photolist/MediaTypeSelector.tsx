@@ -1,56 +1,88 @@
 import type { MediaType } from "@librephotos/api-client";
-import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconLayoutGrid, IconPhoto, IconScreenshot, IconVideo } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
-import type { ParseKeys } from "i18next";
+import { ActionIcon, Button, Indicator, Menu, useMantineTheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useMediaTypeFilter } from "./useMediaTypeFilter";
+import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { DEFAULT_MEDIA_TYPE, MEDIA_TYPES } from "./mediaTypeFilter";
+import { MEDIA_TYPE_OPTIONS } from "./mediaTypeOptions";
+import { useMediaTypeFilter, useSetMediaTypeFilter } from "./useMediaTypeFilter";
 
-const OPTIONS: ReadonlyArray<{ value: MediaType; icon: typeof IconPhoto; labelKey: ParseKeys }> = [
-  { value: "all", icon: IconLayoutGrid, labelKey: "mediafilter.all" },
-  { value: "photos", icon: IconPhoto, labelKey: "mediafilter.photos" },
-  { value: "videos", icon: IconVideo, labelKey: "mediafilter.videos" },
-  { value: "screenshots", icon: IconScreenshot, labelKey: "mediafilter.screenshots" },
-];
+// Screenshots and documents are categories rather than file kinds: a divider sets them apart.
+// Mantine gives every item role="menuitem"; the button's name says which one is current.
+const FIRST_CATEGORY: MediaType = "screenshots";
 
-// A compact All / Photos / Videos toggle. Self-contained: it reads the active
-// value from the current route's `?media` param and writes back via navigate,
-// so a surface only needs to render it (no props) plus read useMediaTypeFilter()
-// to feed its own data hook.
+function MediaTypeMenuItem({ value, current }: Readonly<{ value: MediaType; current: MediaType }>) {
+  const { t } = useTranslation();
+  const select = useSetMediaTypeFilter();
+  const { icon: Icon, color, labelKey } = MEDIA_TYPE_OPTIONS[value];
+  const checked = value === current;
+  return (
+    <>
+      {value === FIRST_CATEGORY && <Menu.Divider />}
+      <Menu.Item
+        leftSection={<Icon size={ICON_SIZE.inline} color={color} />}
+        rightSection={checked ? <IconCheck size={ICON_SIZE.menu} /> : null}
+        onClick={() => select(value)}
+      >
+        {t(labelKey)}
+      </Menu.Item>
+    </>
+  );
+}
+
+// The per-view media filter (#2215, #2216): one menu button that names the
+// current choice, like the timeline's Filter button beside it in the app. It
+// reads and writes the current route's `?media` param, so a surface only
+// renders it and reads useMediaTypeFilter() to feed its own data hook.
 export function MediaTypeSelector() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const theme = useMantineTheme();
+  // On a phone the header has no room for a labelled button next to the title.
+  const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   const current = useMediaTypeFilter();
-
-  const select = (value: MediaType) => {
-    navigate({
-      // The current page: navigate resolves a missing `to` to "." as well.
-      to: ".",
-      // Clear the param for the default so the URL stays clean.
-      search: prev => ({ ...prev, media: value === "all" ? undefined : value }),
-    });
-  };
+  const filtered = current !== DEFAULT_MEDIA_TYPE;
+  const { icon: Icon, labelKey } = MEDIA_TYPE_OPTIONS[current];
+  const variant = filtered ? "light" : "subtle";
+  const color = filtered ? "blue" : "gray";
 
   return (
-    <ActionIcon.Group>
-      {OPTIONS.map(({ value, icon: Icon, labelKey }) => {
-        const active = current === value;
-        return (
-          <Tooltip key={value} label={t(labelKey)} position="bottom">
+    <Menu position="bottom-end" shadow="md">
+      {compact ? (
+        // The dot goes on the Indicator, outside the target, so the ActionIcon
+        // itself carries the menu's aria attributes.
+        <Indicator size={8} disabled={!filtered}>
+          <Menu.Target>
             <ActionIcon
-              variant={active ? "filled" : "subtle"}
-              color="gray"
+              variant={variant}
+              color={color}
               size="lg"
-              aria-label={t(labelKey)}
-              aria-pressed={active}
-              onClick={() => select(value)}
+              aria-label={t("mediafilter.button", { current: t(labelKey) })}
             >
-              <Icon size={20} />
+              <Icon size={ICON_SIZE.toolbar} />
             </ActionIcon>
-          </Tooltip>
-        );
-      })}
-    </ActionIcon.Group>
+          </Menu.Target>
+        </Indicator>
+      ) : (
+        <Menu.Target>
+          <Button
+            variant={variant}
+            color={color}
+            h={TOOLBAR_CONTROL_HEIGHT}
+            leftSection={<Icon size={18} />}
+            rightSection={<IconChevronDown size={ICON_SIZE.menu} />}
+            aria-label={t("mediafilter.button", { current: t(labelKey) })}
+          >
+            {t(labelKey)}
+          </Button>
+        </Menu.Target>
+      )}
+      <Menu.Dropdown aria-label={t("mediafilter.title")}>
+        {MEDIA_TYPES.map(value => (
+          <MediaTypeMenuItem key={value} value={value} current={current} />
+        ))}
+      </Menu.Dropdown>
+    </Menu>
   );
 }
