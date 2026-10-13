@@ -300,6 +300,20 @@ The backend talks to its helper services (thumbnails, metadata, faces, tags, cap
 
 *Releases before 1.2.0 listen on `0.0.0.0`.*
 
+Each helper service has its own port. In Docker nothing else runs in the container, so they never need to move. On the [Windows standalone](windows-standalone.md) build and other installs without Docker, another program on the PC may already use one of them; the service then cannot start, the log and the **Services** list in the Admin area name the program holding the port, and one of these variables moves the service to a free port. Set it for the whole backend (every process reads it), not for one service alone. Not released yet.
+
+| Variable | Default | Service |
+| --- | --- | --- |
+| `SIDECAR_PORT_IMAGE_SIMILARITY` | `8002` | Similar photos and the second step of semantic search |
+| `SIDECAR_PORT_THUMBNAIL` | `8003` | Thumbnails of RAW files |
+| `SIDECAR_PORT_FACE_RECOGNITION` | `8005` | Face detection and recognition |
+| `SIDECAR_PORT_IMAGE_CAPTIONING` | `8007` | Captions |
+| `SIDECAR_PORT_EXIF` | `8010` | Reading and writing metadata (ExifTool) |
+| `SIDECAR_PORT_TAGS` | `8011` | Tags and search embeddings (OpenCLIP) |
+| `SIDECAR_PORT_OCR` | `8012` | Text recognition |
+
+A value that is not a port number between 1 and 65535 stops the backend with a message naming the variable.
+
 ### Which Nextcloud servers may be contacted
 
 With the Nextcloud integration switched on, every user enters their own Nextcloud server address, and it is the backend that connects to it. So that this cannot be used to make the backend reach things only it can reach, LibrePhotos looks up the address before each connection and before saving it, and refuses it if the host name resolves to any of these:

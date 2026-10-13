@@ -120,12 +120,16 @@ export type ServicesList = z.infer<typeof ServicesList>;
 /**
  * `GET /services/{name}/` (admin). `enabled` and `feature_flag` are optional so that a backend
  * predating them reads as an ordinary always-on service rather than failing the parse.
+ * `port_conflict` says, in English, which program holds the port of an enabled service that is
+ * down, e.g. "port 8010 is used by python.exe (process ID 4321)" (#2324); null when nothing else
+ * holds it, absent on older backends.
  */
 export const ServiceHealth = z.object({
   service_name: z.string(),
   healthy: z.boolean(),
   enabled: z.boolean().optional(),
   feature_flag: z.string().nullable().optional(),
+  port_conflict: z.string().nullable().optional(),
 });
 export type ServiceHealth = z.infer<typeof ServiceHealth>;
 

@@ -123,6 +123,23 @@ Any free port above 1024 works. Windows keeps some port ranges for Hyper-V, WSL 
 message box says LibrePhotos cannot use the port, pick another one (`netsh interface ipv4 show
 excludedportrange protocol=tcp` lists the reserved ranges).
 
+The background services use ports 8002 to 8012 on `127.0.0.1`. If another program holds one of
+them, LibrePhotos does not start either, and the message box lists each blocked port with the
+program holding it, for example `Port 8010 (exif): python.exe, process ID 4321`. Close that
+program, or move the service with its `SIDECAR_PORT_<NAME>` variable (the name in brackets, see
+[Environment variables](environment-variables.md#internal-service-address)). Environment
+variables do not fit in a shortcut, so start LibrePhotos from a small `.cmd` file next to it
+instead, for example `LibrePhotos.cmd`:
+
+```bat
+@echo off
+set SIDECAR_PORT_EXIF=18010
+start "" "%~dp0librephotos.exe"
+```
+
+Not released yet: up to 1.3.0, LibrePhotos started anyway, and the service failed for every photo
+of the next scan with the reason only in `console.log`.
+
 ### Updating
 
 Quit LibrePhotos, unzip the new release over the old folder (or into a new one) and start `librephotos.exe` again. Not released yet: when the new release brings database migrations, it first copies the database into `db\backups` in the data folder, then migrates, so the first start after an update can take a few minutes. If the update goes wrong, [restore that backup](upgrading.md#restore) and start the release named in its file name. An older release refuses to start on a database a newer one has migrated, see [Going back to an older release](upgrading.md#downgrade).

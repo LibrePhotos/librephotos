@@ -140,6 +140,35 @@ describe("ServiceList", () => {
     await unmount();
   });
 
+  it("says why a service that is down cannot start (#2324)", async () => {
+    health.thumbnail = {
+      service_name: "thumbnail",
+      healthy: false,
+      enabled: true,
+      feature_flag: null,
+      port_conflict: "port 8003 is used by python.exe (process ID 4321)",
+    };
+
+    const { container, unmount } = await render();
+
+    const row = serviceRow(container, "services.label_thumbnail");
+    expect(row.textContent).toContain("services.cannot_start");
+    expect(t).toHaveBeenCalledWith("services.cannot_start", {
+      reason: "port 8003 is used by python.exe (process ID 4321)",
+    });
+    expect(startButtons(row)).toHaveLength(1);
+
+    await unmount();
+  });
+
+  it("shows no reason when the backend knows none", async () => {
+    const { container, unmount } = await render();
+
+    expect(container.textContent).not.toContain("services.cannot_start");
+
+    await unmount();
+  });
+
   it("offers no Start button while the health status is still loading", async () => {
     // Before the health check answers every service looks stopped, also the switched-off ones.
     healthQuery.data = undefined;

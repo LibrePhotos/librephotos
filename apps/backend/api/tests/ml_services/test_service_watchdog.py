@@ -19,12 +19,13 @@ import requests
 from django.test import SimpleTestCase
 
 from api.runtime import supervisor
+from api.tests.ml_services.sidecar_starts import fake_sidecar_starts
 
 
-def _health(**body):
+def _health(service="tags", **body):
     response = MagicMock()
     response.status_code = 200
-    response.json.return_value = {"status": "OK", **body}
+    response.json.return_value = {"status": "OK", "service": service, **body}
     return response
 
 
@@ -98,7 +99,7 @@ class IdleSidecarTest(SimpleTestCase):
     )
     @patch("api.runtime.supervisor.requests.get")
     def test_a_failed_unload_is_only_logged(self, get, _unload):
-        get.return_value = _health(last_request_time=0.0, model_loaded=True)
+        get.return_value = _health("ocr", last_request_time=0.0, model_loaded=True)
 
         with (
             patch(
@@ -117,6 +118,7 @@ class ProcessHandleTest(SimpleTestCase):
         supervisor._processes.clear()
         self.addCleanup(supervisor._processes.clear)
 
+    @fake_sidecar_starts
     @patch("api.runtime.supervisor.subprocess.Popen")
     def test_start_keeps_the_handle(self, popen):
         supervisor.start_service("thumbnail")

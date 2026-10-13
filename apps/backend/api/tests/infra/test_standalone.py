@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from api.runtime import supervisor
+from api.tests.ml_services.sidecar_starts import fake_sidecar_starts
 from librephotos import standalone
 
 FAKE_COMPILED = SimpleNamespace(
@@ -188,6 +189,7 @@ class PrepareEnvironmentTest(SimpleTestCase):
             self.assertEqual(self._prepare_with_build_info(content), (None, None))
 
 
+@fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
     def test_from_source_the_script_runs_under_python(self, popen):
@@ -333,6 +335,7 @@ class NamedExecutableTest(SimpleTestCase):
             len(set(standalone.PROCESS_NAMES.values())), len(standalone.PROCESS_NAMES)
         )
 
+    @fake_sidecar_starts
     def test_sidecars_start_under_their_name(self):
         with (
             # Whether face detection is switched on is not this test's

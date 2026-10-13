@@ -27,6 +27,7 @@ from api.runtime.supervisor import (
     is_service_enabled,
     start_service,
 )
+from api.tests.ml_services.sidecar_starts import fake_sidecar_starts
 from api.tests.utils import api_error, create_test_user
 
 # The site settings that have to say yes before the services they gate are
@@ -166,6 +167,7 @@ class ServiceSiteSettingTest(TestCase):
         )
 
 
+@fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class StartServiceTest(TestCase):
     def test_an_enabled_service_is_spawned(self, popen_mock):
@@ -197,6 +199,7 @@ class StartServiceTest(TestCase):
 
 
 @EVERY_MODEL_SELECTED
+@fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class StartAllCommandTest(TestCase):
     """`manage.py start_service all` is what the Docker entrypoints run."""
@@ -308,6 +311,7 @@ class CheckServicesTest(TestCase):
         )
 
 
+@fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class OcrSiteGateTest(TestCase):
     """OCR's switch is a site setting, not an environment flag.
@@ -379,6 +383,7 @@ class OcrSiteGateTest(TestCase):
         self.assertFalse([line for line in logs.output if "None is disabled" in line])
 
 
+@fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class CaptioningSiteGateTest(TestCase):
     """With "None" as captioning model the captioner is not downloaded (#2218),
@@ -450,6 +455,7 @@ class ServiceAdminApiTest(TestCase):
                 "healthy": True,
                 "enabled": True,
                 "feature_flag": "FEATURE_FACE_DETECTION",
+                "port_conflict": None,
             },
             response.json(),
         )

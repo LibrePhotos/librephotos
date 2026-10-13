@@ -170,6 +170,19 @@ describe("services", () => {
     expect(health.enabled).toBeUndefined();
   });
 
+  it("reads why a service cannot start", async () => {
+    const answer = {
+      service_name: "exif",
+      healthy: false,
+      enabled: true,
+      feature_flag: null,
+      port_conflict: "port 8010 is used by python.exe (process ID 4321)",
+    };
+    const { client } = fakeServer(answer);
+    const health = await endpoints.fetchServiceHealth(client, "exif");
+    expect(health.port_conflict).toBe(answer.port_conflict);
+  });
+
   it.each(["start", "stop"] as const)("POSTs a %s", async action => {
     const { client, requests } = fakeServer({ message: `Service ocr ${action}ed successfully` });
     const result = await endpoints.runServiceAction(client, "ocr", action);

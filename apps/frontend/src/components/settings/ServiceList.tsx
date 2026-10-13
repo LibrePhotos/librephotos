@@ -1,5 +1,5 @@
 import { serviceKeys } from "@librephotos/api-client";
-import { ActionIcon, Badge, Button, Card, Group, Loader, Table, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Button, Card, Group, Loader, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlay as Play, IconRefresh as Refresh, IconPlayerStop as Stop } from "@tabler/icons-react";
 import React, { useState } from "react";
@@ -108,6 +108,12 @@ export function ServiceList() {
                         <Badge color={healthy ? "green" : "red"} variant="filled" style={{ minWidth: "max-content" }}>
                           {healthy ? t("services.healthy") : t("services.unhealthy")}
                         </Badge>
+                      )}
+                      {/* Visible rather than in a tooltip: the admin has to act on it, also on a phone. */}
+                      {!disabled && !healthy && health?.port_conflict && (
+                        <Text size="xs" c="red" mt={4} maw={260}>
+                          {t("services.cannot_start", { reason: health.port_conflict })}
+                        </Text>
                       )}
                     </Table.Td>
                     <Table.Td>

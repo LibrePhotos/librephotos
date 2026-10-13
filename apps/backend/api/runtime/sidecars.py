@@ -4,7 +4,8 @@ Addresses
     ``SERVICES`` is the only place a sidecar's port is written down: the
     backend builds its URLs from it (``sidecar_url``), api.runtime.supervisor starts and
     watches the processes it lists, and the sidecars bind to it
-    (service._common.serve). The sidecars listen on IPv4 loopback only
+    (service._common.serve). ``SIDECAR_PORT_<NAME>`` (``SIDECAR_PORT_EXIF``)
+    moves one off its default port, for when another program holds it. The sidecars listen on IPv4 loopback only
     (127.0.0.1 unless SERVICE_HOST says otherwise). ``localhost`` resolves to
     ``::1`` first, and Windows retries a refused connection for about two
     seconds before it falls back to 127.0.0.1, so every sidecar request on a
@@ -36,21 +37,47 @@ from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import BaseHTTPResponse
 from urllib3.util.retry import Retry
 
+from librephotos.env import EnvError, env_int
+
 if TYPE_CHECKING:
     # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
     from typing import Self
 
 SIDECAR_HOST = "http://127.0.0.1"
 
-SERVICES = {
-    "image_similarity": 8002,
-    "thumbnail": 8003,
-    "face_recognition": 8005,
-    "image_captioning": 8007,
-    "exif": 8010,
-    "tags": 8011,
-    "ocr": 8012,
-}
+HIGHEST_PORT = 65535
+
+
+def port_variable(service: str) -> str:
+    """The environment variable that moves *service* to another port."""
+    return f"SIDECAR_PORT_{service.upper()}"
+
+
+def _valid_ports(ports: dict[str, int]) -> dict[str, int]:
+    for service, port in ports.items():
+        if not 0 < port <= HIGHEST_PORT:
+            raise EnvError(
+                f"{port_variable(service)} must be a port between 1 and "
+                f"{HIGHEST_PORT}, got {port}"
+            )
+    return ports
+
+
+# Read once at import, in every process alike: the backend, the job workers
+# and each sidecar inherit the same environment. SIDECAR_PORT_<NAME> moves one
+# when another program holds its port (#2324); the names are literals so the
+# environment-variables docs guard sees them.
+SERVICES = _valid_ports(
+    {
+        "image_similarity": env_int("SIDECAR_PORT_IMAGE_SIMILARITY", 8002),
+        "thumbnail": env_int("SIDECAR_PORT_THUMBNAIL", 8003),
+        "face_recognition": env_int("SIDECAR_PORT_FACE_RECOGNITION", 8005),
+        "image_captioning": env_int("SIDECAR_PORT_IMAGE_CAPTIONING", 8007),
+        "exif": env_int("SIDECAR_PORT_EXIF", 8010),
+        "tags": env_int("SIDECAR_PORT_TAGS", 8011),
+        "ocr": env_int("SIDECAR_PORT_OCR", 8012),
+    }
+)
 
 # Three attempts in all, about a second apart at most: long enough to ride
 # out a sidecar the watchdog is restarting, short enough that a dead one fails
