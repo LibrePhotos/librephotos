@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.ae35853a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.778695fc.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -51,7 +51,14 @@
 <p>Captions, tags and locations are not written yet; they stay in LibrePhotos whatever you choose. Face names are written only with <code>Write face tags to image files</code> (see <a href="#face-options" class="">Face Options</a>). The tags each edit writes are listed in <a class="" href="/docs/user-guide/exif-data#what-librephotos-writes">EXIF Data</a>. While you edit a date, caption, tags or location in the <a class="" href="/docs/user-guide/viewing-photos#photo-details-sidebar">photo details sidebar</a>, a line under the editor says whether that edit reaches the file. Photos imported from <a class="" href="/docs/user-guide/library#nextcloud-integration">Nextcloud</a> are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos. <em>Not released yet: up to 1.3.0, this setting was called <code>Synchronize metadata to disk</code>.</em></p>
 </li>
 <li class="">
-<p><code>Minimum image rating to interpret as favorite</code> will change how favorites are read and saved. EXIF only supports the rating field and does not have a favorite field. Default <code>4</code></p>
+<p><code>Rating style</code> (not released yet) picks how you rate photos on the web. Default <code>Favorites</code>.</p>
+<ul>
+<li class=""><code>Favorites</code>: one star toggle. Adding a favorite sets the photo&#x27;s rating to the minimum rating below; removing a favorite sets the rating to 0. That also clears a star rating the photo had, for example a 5-star rating from Lightroom or digiKam, and with <code>Write edits to files</code> on, the 0 is written to the file too.</li>
+<li class=""><code>Stars</code>: rate photos with 1 to 5 stars in the photo viewer (keys <code>0</code> to <code>5</code>) and on the photo page, see their stars on the grid, and set them for a selection with <strong>Set rating</strong>. The favorite toggle is gone in this mode, so a rating only changes when you set it. See <a class="" href="/docs/user-guide/viewing-photos#rating-photos-with-stars">Rating photos with stars</a>.</li>
+</ul>
+</li>
+<li class="">
+<p><code>Minimum image rating to interpret as favorite</code> will change how favorites are read and saved. EXIF only supports the rating field and does not have a favorite field. In <code>Stars</code> mode it still decides which photos the Favorites page and the timeline&#x27;s favorites filter show. Default <code>4</code></p>
 </li>
 <li class="">
 <p><code>Default timezone</code> is used by the <a class="" href="/docs/user-guide/settings/date-rules">date rules</a> that say &quot;in user default timezone&quot; (for example video creation times, which cameras store in UTC, and file times), and to decide which day <a class="" href="/docs/user-guide/memories">Memories</a> counts as today. It does not change how dates are displayed, and LibrePhotos never writes it to your files. Changing it does not re-date photos already in your library: run <strong>Rescan</strong> afterwards. Default <code>UTC</code></p>
