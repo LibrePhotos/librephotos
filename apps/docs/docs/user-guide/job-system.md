@@ -72,6 +72,10 @@ Runs after each scan to fix RAW files that were scanned as their own photos. For
 
 Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. It rebuilds the thumbnails of every HDR video, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). It does the same for every video not stored as ordinary 8-bit 4:2:0, such as 10-bit clips or the 4:2:2 Motion JPEG files older cameras record, whose animated thumbnails an older version made in a form no browser plays. For each of these videos it also drops any converted copy kept from before, so the next playback converts it again. If a rebuild fails, the old thumbnail is kept. A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Since 1.3.0.
 
+### Extract Text (OCR)
+
+Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
+
 ### Detect Duplicate Photos
 
 Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page, where you can review and manage them; the button that starts this job there is called **Detect Duplicates**. See [Duplicate Detection](./duplicate-detection.md) for more details.

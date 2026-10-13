@@ -76,6 +76,7 @@ When you perform a search (either from the spotlight or the search bar), LibrePh
 - File paths
 - Camera and lens information
 - File type
+- Text recognised in the photo, when [text recognition](./text-recognition.md) is on and has read the photo (receipts, signs, screenshots)
 - Date fragments in ISO form (e.g. `2024`, `2024-01`, `2024-01-15`) — the timestamp is matched as plain text, so month or weekday names such as "January" or "Thursday" do not match
 
 Every word in your query must match, though not necessarily in the same field: searching `beach sunset` returns only photos where both `beach` and `sunset` appear somewhere in the indexed text (caption, person name, location, file path, camera, and so on). Commas separate words the same way spaces do. To search for an exact phrase, wrap it in quotes — `"golden gate bridge"` matches only photos containing that whole phrase.

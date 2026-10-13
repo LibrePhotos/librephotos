@@ -117,3 +117,13 @@ The **Embedded media** switch is checked only the first time a file is imported.
     <td>Not planned</td>
   </tr>
 </table>
+
+## Switches in Site Settings {#switches-in-site-settings}
+
+Some features are not switched with environment variables, but by an administrator in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
+
+- **Captioning Model**: `None` turns automatic captioning off. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
+- **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
+- **Map Tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site Settings](./settings/index.md#site-settings).
+
+Single sign-on is switched on with the `OIDC_*` environment variables, which are not feature toggles. See [Single Sign-On](./settings/single-sign-on.md).

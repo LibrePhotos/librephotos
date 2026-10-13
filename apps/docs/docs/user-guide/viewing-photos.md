@@ -79,6 +79,7 @@ When you click on any photo in LibrePhotos, it opens in the photo viewer (also k
 The toolbar at the top provides quick actions. From left to right:
 
 - **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
+- **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
 - **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
@@ -213,6 +214,7 @@ Click on any similar photo to view it directly.
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
 | `s` | Start / stop slideshow |
+| `t` | Select text in the photo / stop selecting it (only on your own photos where [text was recognised](./text-recognition.md#selecting-text-in-the-photo-viewer)) |
 | `Ctrl` + `c` (`⌘` + `c` on macOS) | Copy the photo to the clipboard (still images only; when text is selected, the browser copies the text instead) |
 
 The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages.
