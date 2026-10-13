@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
@@ -14,6 +15,19 @@ from api.models.user import User, get_deleted_user
 logger = logging.getLogger(__name__)
 
 STUCK_JOB_HOURS = 24
+
+
+class JobCancelledError(Exception):
+    """The job's row was cancelled while its task ran.
+
+    Raised by ``LongRunningJob.stop_if_cancelled`` from inside the work; the
+    job's task catches it at its top level and returns without completing or
+    failing the row, which ``cancel()`` has already finished (#2198).
+    """
+
+    def __init__(self, job_id: str) -> None:
+        super().__init__(f"job {job_id} was cancelled")
+        self.job_id = job_id
 
 
 class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
@@ -71,6 +85,9 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
 
 class LongRunningJob(models.Model):
     STUCK_JOB_HOURS = STUCK_JOB_HOURS
+    # How often ``stop_if_cancelled`` reads the row: a loop may call it on
+    # every item without a query per item.
+    CANCEL_CHECK_SECONDS = 1.0
 
     JOB_SCAN_PHOTOS = 1
     JOB_GENERATE_AUTO_ALBUMS = 2
@@ -185,6 +202,9 @@ class LongRunningJob(models.Model):
     # What the conditional writes below re-read when the row was cancelled.
     _FINISH_FIELDS = ("cancelled", "failed", "finished", "finished_at", "result")
 
+    # When ``stop_if_cancelled`` last read the row (``time.monotonic()``).
+    _cancel_checked_at: float | None = None
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Insert a new row; an existing row is written field by field only.
 
@@ -256,6 +276,26 @@ class LongRunningJob(models.Model):
         self.finished_at = timezone.now()
         self.result = {"status": "cancelled"}
         self.save(update_fields=["cancelled", "finished", "finished_at", "result"])
+
+    def stop_if_cancelled(self) -> None:
+        """Raise ``JobCancelledError`` when the job was cancelled while it ran.
+
+        Cancelling only marks the row (``cancel()``); the work stops where it
+        calls this. The row is read at most every ``CANCEL_CHECK_SECONDS``.
+        A progress write that found the row cancelled (``set_result``,
+        ``complete``) has re-read it already, so the next call raises
+        without a query.
+        """
+        if not self.cancelled:
+            now = time.monotonic()
+            last = self._cancel_checked_at
+            if last is not None and now - last < self.CANCEL_CHECK_SECONDS:
+                return
+            self._cancel_checked_at = now
+            if not type(self).objects.filter(pk=self.pk, cancelled=True).exists():
+                return
+            self.refresh_from_db(fields=list(self._FINISH_FIELDS))
+        raise JobCancelledError(self.job_id)
 
     def update_progress(
         self, current: int, target: int | None = None, step: str | None = None

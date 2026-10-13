@@ -11,6 +11,7 @@ from uuid import UUID
 
 from api.directory_watcher.file_grouping import find_matching_jpeg_photo
 from api.models import File, LongRunningJob, Photo, User
+from api.models.long_running_job import JobCancelledError
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ def repair_ungrouped_file_variants(user: User, job_id: UUID) -> None:
         fixed_main_file_count = 0
 
         for raw_photo in raw_only_photos:
+            lrj.stop_if_cancelled()
             if _promote_image_main_file(raw_photo):
                 fixed_main_file_count += 1
             elif _merge_raw_into_jpeg_photo(raw_photo, user, job_id):
@@ -92,6 +94,8 @@ def repair_ungrouped_file_variants(user: User, job_id: UUID) -> None:
         )
         lrj.complete()
 
+    except JobCancelledError:
+        logger.info("job %s: repairing file variants was cancelled", job_id)
     except Exception as e:
         logger.exception("job %s: Error repairing file variants: %s", job_id, e)
         lrj.fail(error=e)

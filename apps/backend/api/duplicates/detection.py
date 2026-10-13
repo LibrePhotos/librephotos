@@ -34,7 +34,7 @@ from api.lazy_import import LazyModule
 from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
-from api.models.long_running_job import LongRunningJob
+from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.user import User
 
 if TYPE_CHECKING:
@@ -438,7 +438,9 @@ def detect_visual_duplicates(
     groups = uf.get_groups()
     duplicates_created = 0
 
-    for group in groups:
+    for index, group in enumerate(groups):
+        if progress_callback and index % 100 == 0:
+            progress_callback(total, total, pairs_found)
         if len(group) < 2:
             continue
 
@@ -518,6 +520,7 @@ def batch_detect_duplicates(
                         "found": found,
                     }
                 )
+                job.stop_if_cancelled()
 
             exact_count = detect_exact_copies(user, progress_exact)
             total_found += exact_count
@@ -534,6 +537,7 @@ def batch_detect_duplicates(
                         "found": found,
                     }
                 )
+                job.stop_if_cancelled()
 
             visual_count = detect_visual_duplicates(
                 user, visual_threshold, progress_visual, batch_size
@@ -548,6 +552,8 @@ def batch_detect_duplicates(
             total_found,
         )
 
+    except JobCancelledError:
+        logger.info("Duplicate detection job %s was cancelled", job.job_id)
     except Exception as e:
         logger.error("Duplicate detection failed for %s: %s", user.username, e)
         job.fail(error=e)

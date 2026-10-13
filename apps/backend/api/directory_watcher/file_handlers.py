@@ -25,7 +25,7 @@ from api.directory_watcher.file_grouping import (
     get_sidecar_grouping_keys,
     select_main_file,
 )
-from api.directory_watcher.utils import update_scan_counter
+from api.directory_watcher.utils import is_job_cancelled, update_scan_counter
 from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
@@ -714,6 +714,9 @@ def handle_new_image(
     """
     error = None
     try:
+        if is_job_cancelled(job_id):
+            logger.info("job %s was cancelled, skipping %s", job_id, path)
+            return
         start = datetime.datetime.now()
         if photo is None:
             photo = create_new_image(user, path)
@@ -779,6 +782,12 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
     """
     error = None
     try:
+        # Cancelling a scan does not take the groups the cluster has already
+        # pulled off the queue back, so each one checks the flag itself and
+        # only counts toward the target (#2198).
+        if is_job_cancelled(job_id):
+            logger.info("job %s was cancelled, skipping a file group", job_id)
+            return
         start = datetime.datetime.now()
 
         files = _collect_file_records(user, file_paths)

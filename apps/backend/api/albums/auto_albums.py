@@ -17,6 +17,7 @@ from api.models import (
     Photo,
     User,
 )
+from api.models.long_running_job import JobCancelledError
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 
 if TYPE_CHECKING:
@@ -69,6 +70,7 @@ def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
         for idx, au in enumerate(aus):
+            lrj.stop_if_cancelled()
             logger.debug("job %s: %s", job_id, idx)
             au._generate_title()
             au.save()
@@ -77,6 +79,8 @@ def regenerate_event_titles(user: User, job_id: uuid.UUID | str) -> int:
         lrj.complete()
         logger.info("job %s: updated lrj entry to db", job_id)
 
+    except JobCancelledError:
+        logger.info("job %s: regenerating event titles was cancelled", job_id)
     except Exception as e:
         logger.exception("An error occurred")
         lrj.fail(error=e)
@@ -207,6 +211,7 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
 
         date_format = "%Y:%m:%d %H:%M:%S"
         for idx, group in enumerate(groups):
+            lrj.stop_if_cancelled()
             key = _taken_at(group[0]) - timedelta(hours=11, minutes=59)
             last_key = _taken_at(group[-1]) + timedelta(hours=11, minutes=59)
             logger.info(
@@ -223,6 +228,8 @@ def generate_event_albums(user: User, job_id: uuid.UUID | str) -> int:
 
         lrj.complete()
 
+    except JobCancelledError:
+        logger.info("job %s: generating event albums was cancelled", job_id)
     except Exception as e:
         logger.exception("An error occurred")
         lrj.fail(error=e)
