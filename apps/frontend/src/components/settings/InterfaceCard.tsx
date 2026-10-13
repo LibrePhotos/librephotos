@@ -1,6 +1,7 @@
 import { Card, Flex, Select, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 const SLIDESHOW_INTERVALS = [3, 5, 10, 15, 30];
@@ -12,6 +13,7 @@ export function InterfaceCard({ user, onChange }: UserSettingsCardProps) {
     <Card shadow="md">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.interface" />
+        <SectionLink />
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
         <Select

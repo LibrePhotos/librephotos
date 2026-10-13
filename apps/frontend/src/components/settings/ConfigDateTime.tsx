@@ -19,6 +19,7 @@ import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/us
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { describeRuleType, getRuleExtraInfo } from "./dateTimeSettings";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
+import { SectionLink } from "./SettingsSection";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
 import { UnreadableSavedEntries } from "./UnreadableSavedEntries";
 
@@ -132,6 +133,7 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     <>
       <Title order={4} mb="xs">
         {t("settings.configdatetime")}
+        <SectionLink />
       </Title>
 
       <Text size="sm" c="dimmed" mb="md">

@@ -2,6 +2,7 @@ import { PublicSharingDefaults } from "@librephotos/api-client";
 import { Card, Stack, Switch, Text, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 type SharingSwitch = keyof PublicSharingDefaults;
@@ -25,6 +26,7 @@ export function PublicSharingDefaultsCard({ user, onChange }: UserSettingsCardPr
       <Stack>
         <Title order={4}>
           <Trans i18nKey="settings.publicsharingdefaults" />
+          <SectionLink />
         </Title>
         <Text size="sm" c="dimmed">
           {t("settings.publicsharingdefaultsdesc")}

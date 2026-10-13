@@ -266,3 +266,10 @@ describe("EmailSettings validation", () => {
     expect(container.textContent).toContain("emailsettings.errorport");
   });
 });
+
+describe("EmailSettings anchor", () => {
+  // SiteSettings renders this card, so it names its own anchor for /admin#admin-email (#2226).
+  it("is a section of the admin page's navigation", () => {
+    expect(container.querySelector("section")?.id).toBe("admin-email");
+  });
+});

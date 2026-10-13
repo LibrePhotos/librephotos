@@ -2,6 +2,7 @@ import { User } from "@librephotos/api-client";
 import { Card, Flex, Group, Radio, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 const DuplicateSensitivity = User.shape.duplicate_sensitivity.unwrap();
@@ -13,6 +14,7 @@ export function DuplicateDetectionCard({ user, onChange }: UserSettingsCardProps
     <Card shadow="md">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.duplicatedetection" />
+        <SectionLink />
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
         <Radio.Group

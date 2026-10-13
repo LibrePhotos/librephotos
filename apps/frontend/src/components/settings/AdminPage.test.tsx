@@ -2,8 +2,10 @@
  * - /admin showed a bare, untranslated "Unauthorized" to everyone while the
  *   profile loaded, so admins saw it flash on every reload.
  * - "Delete all auto created albums" deleted every event album on one click.
+ * - Every card has an anchor for the section navigation (#2226).
  */
 import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +23,10 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => () => {} }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => async () => {},
+  useLocation: ({ select }: { select: (location: { hash: string }) => string }) => select({ hash: "" }),
+}));
 vi.mock("../../api_client/albums/hooks", () => ({
   useDeleteAllAutoAlbumsMutation: () => ({ mutate: mocks.deleteAll, isPending: false }),
 }));
@@ -50,6 +55,12 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
+  // jsdom has no ResizeObserver; the chip row's ScrollArea needs it.
+  globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 });
 
 let container: HTMLDivElement;
@@ -73,9 +84,11 @@ async function render() {
   await act(async () => {
     root.render(
       // No transitions, so the confirmation shows without waiting for animation frames.
-      <MantineProvider theme={{ components: { Modal: { defaultProps: { transitionProps: { duration: 0 } } } } }}>
-        <AdminPage />
-      </MantineProvider>
+      <QueryClientProvider client={new QueryClient()}>
+        <MantineProvider theme={{ components: { Modal: { defaultProps: { transitionProps: { duration: 0 } } } } }}>
+          <AdminPage />
+        </MantineProvider>
+      </QueryClientProvider>
     );
   });
 }
@@ -99,6 +112,26 @@ describe("AdminPage", () => {
     expect(container.textContent).toContain("adminarea.unauthorized");
     expect(container.textContent).toContain("adminarea.unauthorizeddescription");
     expect(buttonByText("publicalbum.goHome")).toHaveLength(1);
+  });
+
+  it("gives every card a stable id and lists it in the section navigation", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+
+    // admin-email is inside SiteSettings (mocked here); EmailSettings.test checks it.
+    for (const id of ["admin-site", "admin-tools", "admin-logs", "admin-services", "admin-users", "admin-jobs"]) {
+      expect(document.getElementById(id)?.tagName, id).toBe("SECTION");
+    }
+    const toc = defined(container.querySelector("nav"), "the section navigation");
+    expect([...toc.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual([
+      "#admin-site",
+      "#admin-email",
+      "#admin-tools",
+      "#admin-logs",
+      "#admin-services",
+      "#admin-users",
+      "#admin-jobs",
+    ]);
   });
 
   it("asks before deleting all auto created albums", async () => {

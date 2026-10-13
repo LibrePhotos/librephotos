@@ -25,6 +25,8 @@ import {
 } from "../../api_client/settings/hooks/useEmailConfig";
 import { notification } from "../../service/notifications";
 import { makeEmailSettingsSchema } from "./EmailSettings.schema";
+import { ADMIN_SECTIONS } from "./sectionIds";
+import { SectionLink, SettingsSection } from "./SettingsSection";
 
 // "disabled" and "custom" are labelled with translated text at render time.
 const PROVIDERS = [
@@ -162,138 +164,142 @@ export function EmailSettings(): React.JSX.Element {
   };
 
   return (
-    <Card shadow="md" component="form" onSubmit={form.onSubmit(onSave)}>
-      <Stack>
-        <Title order={4} mb={4}>
-          {t("emailsettings.header")}
-        </Title>
-        <Text fz="sm" c="dimmed">
-          {t("emailsettings.description")}
-        </Text>
+    // Rendered inside SiteSettings, so it names its own anchor on the admin page.
+    <SettingsSection id={ADMIN_SECTIONS.email}>
+      <Card shadow="md" component="form" onSubmit={form.onSubmit(onSave)}>
+        <Stack>
+          <Title order={4} mb={4}>
+            {t("emailsettings.header")}
+            <SectionLink />
+          </Title>
+          <Text fz="sm" c="dimmed">
+            {t("emailsettings.description")}
+          </Text>
 
-        <Grid justify="flex-end" align="center">
-          <Grid.Col span={LABEL_SPAN}>
-            <Text>{t("emailsettings.provider")}</Text>
-          </Grid.Col>
-          <Grid.Col span={CONTROL_SPAN}>
-            <Select
-              data={providers}
-              value={provider}
-              onChange={value => form.setFieldValue("provider", value || "disabled")}
-              allowDeselect={false}
-            />
-          </Grid.Col>
+          <Grid justify="flex-end" align="center">
+            <Grid.Col span={LABEL_SPAN}>
+              <Text>{t("emailsettings.provider")}</Text>
+            </Grid.Col>
+            <Grid.Col span={CONTROL_SPAN}>
+              <Select
+                data={providers}
+                value={provider}
+                onChange={value => form.setFieldValue("provider", value || "disabled")}
+                allowDeselect={false}
+              />
+            </Grid.Col>
 
-          {provider !== "disabled" && (
-            <>
-              <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.from_email")}</Text>
-              </Grid.Col>
-              <Grid.Col span={CONTROL_SPAN}>
-                <TextInput placeholder="LibrePhotos <no-reply@example.org>" {...form.getInputProps("from_email")} />
-              </Grid.Col>
-
-              {NEEDS_HOST.has(provider) && (
-                <>
-                  <Grid.Col span={LABEL_SPAN}>
-                    <Text>{t("emailsettings.host")}</Text>
-                  </Grid.Col>
-                  <Grid.Col span={CONTROL_SPAN}>
-                    <TextInput
-                      placeholder={provider === "ses" ? "email-smtp.us-east-1.amazonaws.com" : "smtp.example.org"}
-                      {...form.getInputProps("host")}
-                    />
-                  </Grid.Col>
-                </>
-              )}
-
-              {!NEEDS_HOST.has(provider) && presetHost && (
-                <Grid.Col span={12}>
-                  <Text fz="sm" c="dimmed">
-                    {t("emailsettings.presethost", { host: presetHost })}{" "}
-                    {helpUrl && (
-                      <a href={helpUrl} target="_blank" rel="noreferrer">
-                        {t("emailsettings.getkey")}
-                      </a>
-                    )}
-                  </Text>
+            {provider !== "disabled" && (
+              <>
+                <Grid.Col span={LABEL_SPAN}>
+                  <Text>{t("emailsettings.from_email")}</Text>
                 </Grid.Col>
-              )}
+                <Grid.Col span={CONTROL_SPAN}>
+                  <TextInput placeholder="LibrePhotos <no-reply@example.org>" {...form.getInputProps("from_email")} />
+                </Grid.Col>
 
-              {IS_CUSTOM(provider) && (
-                <>
-                  <Grid.Col span={LABEL_SPAN}>
-                    <Text>{t("emailsettings.port")}</Text>
-                  </Grid.Col>
-                  <Grid.Col span={CONTROL_SPAN}>
-                    <TextInput
-                      type="number"
-                      {...form.getInputProps("port")}
-                      onChange={e => form.setFieldValue("port", Number(e.currentTarget.value) || 0)}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, xs: 6 }}>
-                    <Switch
-                      label={t("emailsettings.use_tls")}
-                      {...form.getInputProps("use_tls", { type: "checkbox" })}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, xs: 6 }}>
-                    <Switch
-                      label={t("emailsettings.use_ssl")}
-                      {...form.getInputProps("use_ssl", { type: "checkbox" })}
-                    />
-                  </Grid.Col>
-                </>
-              )}
-
-              <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.username")}</Text>
-                {provider === "sendgrid" && (
-                  <Text fz="xs" c="dimmed">
-                    {t("emailsettings.sendgrid_username")}
-                  </Text>
+                {NEEDS_HOST.has(provider) && (
+                  <>
+                    <Grid.Col span={LABEL_SPAN}>
+                      <Text>{t("emailsettings.host")}</Text>
+                    </Grid.Col>
+                    <Grid.Col span={CONTROL_SPAN}>
+                      <TextInput
+                        placeholder={provider === "ses" ? "email-smtp.us-east-1.amazonaws.com" : "smtp.example.org"}
+                        {...form.getInputProps("host")}
+                      />
+                    </Grid.Col>
+                  </>
                 )}
-              </Grid.Col>
-              <Grid.Col span={CONTROL_SPAN}>
-                <TextInput {...form.getInputProps("username")} />
-              </Grid.Col>
 
-              <Grid.Col span={LABEL_SPAN}>
-                <Text>{t("emailsettings.secret")}</Text>
-              </Grid.Col>
-              <Grid.Col span={CONTROL_SPAN}>
-                <PasswordInput
-                  placeholder={hasSecret ? t("emailsettings.secret_set") : ""}
-                  {...form.getInputProps("secret")}
-                />
-              </Grid.Col>
-              {hasSecret && (
-                <Grid.Col span={12}>
-                  <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={onClearSecret}>
-                    {t("emailsettings.clear_secret")}
-                  </Anchor>
+                {!NEEDS_HOST.has(provider) && presetHost && (
+                  <Grid.Col span={12}>
+                    <Text fz="sm" c="dimmed">
+                      {t("emailsettings.presethost", { host: presetHost })}{" "}
+                      {helpUrl && (
+                        <a href={helpUrl} target="_blank" rel="noreferrer">
+                          {t("emailsettings.getkey")}
+                        </a>
+                      )}
+                    </Text>
+                  </Grid.Col>
+                )}
+
+                {IS_CUSTOM(provider) && (
+                  <>
+                    <Grid.Col span={LABEL_SPAN}>
+                      <Text>{t("emailsettings.port")}</Text>
+                    </Grid.Col>
+                    <Grid.Col span={CONTROL_SPAN}>
+                      <TextInput
+                        type="number"
+                        {...form.getInputProps("port")}
+                        onChange={e => form.setFieldValue("port", Number(e.currentTarget.value) || 0)}
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, xs: 6 }}>
+                      <Switch
+                        label={t("emailsettings.use_tls")}
+                        {...form.getInputProps("use_tls", { type: "checkbox" })}
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, xs: 6 }}>
+                      <Switch
+                        label={t("emailsettings.use_ssl")}
+                        {...form.getInputProps("use_ssl", { type: "checkbox" })}
+                      />
+                    </Grid.Col>
+                  </>
+                )}
+
+                <Grid.Col span={LABEL_SPAN}>
+                  <Text>{t("emailsettings.username")}</Text>
+                  {provider === "sendgrid" && (
+                    <Text fz="xs" c="dimmed">
+                      {t("emailsettings.sendgrid_username")}
+                    </Text>
+                  )}
                 </Grid.Col>
-              )}
-            </>
+                <Grid.Col span={CONTROL_SPAN}>
+                  <TextInput {...form.getInputProps("username")} />
+                </Grid.Col>
+
+                <Grid.Col span={LABEL_SPAN}>
+                  <Text>{t("emailsettings.secret")}</Text>
+                </Grid.Col>
+                <Grid.Col span={CONTROL_SPAN}>
+                  <PasswordInput
+                    placeholder={hasSecret ? t("emailsettings.secret_set") : ""}
+                    {...form.getInputProps("secret")}
+                  />
+                </Grid.Col>
+                {hasSecret && (
+                  <Grid.Col span={12}>
+                    <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={onClearSecret}>
+                      {t("emailsettings.clear_secret")}
+                    </Anchor>
+                  </Grid.Col>
+                )}
+              </>
+            )}
+          </Grid>
+
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onTest} loading={isTesting} disabled={!config?.is_configured}>
+              {t("emailsettings.sendtest")}
+            </Button>
+            <Button type="submit" loading={isSaving} disabled={!isDirty}>
+              {t("save")}
+            </Button>
+          </Group>
+
+          {testResult && (
+            <Alert color={testResult.ok ? "green" : "red"} variant="light">
+              {testResult.message}
+            </Alert>
           )}
-        </Grid>
-
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onTest} loading={isTesting} disabled={!config?.is_configured}>
-            {t("emailsettings.sendtest")}
-          </Button>
-          <Button type="submit" loading={isSaving} disabled={!isDirty}>
-            {t("save")}
-          </Button>
-        </Group>
-
-        {testResult && (
-          <Alert color={testResult.ok ? "green" : "red"} variant="light">
-            {testResult.message}
-          </Alert>
-        )}
-      </Stack>
-    </Card>
+        </Stack>
+      </Card>
+    </SettingsSection>
   );
 }

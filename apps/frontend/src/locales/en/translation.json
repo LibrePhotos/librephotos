@@ -1015,6 +1015,11 @@
     "errorthrottled": "Too many reset requests. Please wait a while and try again.",
     "errorgeneric": "Something went wrong. Please try again."
   },
+  "sectionnav": {
+    "onthispage": "On this page",
+    "copylink": "Copy link to this section",
+    "linkcopied": "Link copied"
+  },
   "emailsettings": {
     "header": "Email (SMTP)",
     "description": "Configure outgoing email so the server can send password-reset links and other notifications. The credential is encrypted before it is stored.",

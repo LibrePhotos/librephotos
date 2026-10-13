@@ -5,6 +5,8 @@
  * The Caption Context card reads its title and main switch from the
  * settings.captioncontext* keys (#2219), so translations made for the old
  * "Large Language Model" wording no longer show up there.
+ *
+ * Every card has an anchor for the section navigation (#2226).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,6 +21,10 @@ const mocks = vi.hoisted(() => ({
   mutate: vi.fn<(user: unknown) => void>(),
 }));
 
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => async () => {},
+  useLocation: ({ select }: { select: (location: { hash: string }) => string }) => select({ hash: "" }),
+}));
 vi.mock("../../api_client/auth", () => ({
   useAccessToken: () => ({ data: { access: { user_id: 1 } } }),
 }));
@@ -94,6 +100,30 @@ afterEach(async () => {
     root.unmount();
   });
   container.remove();
+});
+
+describe("Settings section anchors", () => {
+  it("gives every card a stable id and lists it in the section navigation", () => {
+    const ids = [
+      "settings-scan",
+      "settings-metadata",
+      "settings-faces",
+      "settings-datetime",
+      "settings-burst",
+      "settings-experimental",
+      "settings-captions",
+      "settings-sharing",
+      "settings-interface",
+      "settings-duplicates",
+    ];
+    for (const id of ids) {
+      expect(document.getElementById(id)?.tagName, id).toBe("SECTION");
+    }
+    const toc = container.querySelector('nav[aria-label="On this page"]');
+    expect([...(toc?.querySelectorAll("a") ?? [])].map(link => link.getAttribute("href"))).toEqual(
+      ids.map(id => `#${id}`)
+    );
+  });
 });
 
 describe("Settings face options", () => {

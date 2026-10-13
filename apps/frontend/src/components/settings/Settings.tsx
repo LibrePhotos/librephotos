@@ -20,6 +20,9 @@ import { MetadataOptionsCard } from "./MetadataOptionsCard";
 import { PublicSharingDefaultsCard } from "./PublicSharingDefaultsCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanOptionsCard } from "./ScanOptionsCard";
+import { SETTINGS_SECTIONS } from "./sectionIds";
+import { SectionNav } from "./SectionNav";
+import { SettingsSection } from "./SettingsSection";
 
 export function Settings() {
   const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
@@ -58,32 +61,67 @@ export function Settings() {
   const edit = (patch: Partial<User>) => setEditedUserDetails({ ...editedUserDetails, ...patch });
   const cardProps = { user: editedUserDetails, onChange: edit };
 
+  const sections = [
+    { id: SETTINGS_SECTIONS.scan, label: t("settings.scanoptions") },
+    { id: SETTINGS_SECTIONS.metadata, label: t("settings.metadata") },
+    { id: SETTINGS_SECTIONS.faces, label: t("settings.face_options") },
+    { id: SETTINGS_SECTIONS.datetime, label: t("settings.configdatetime") },
+    { id: SETTINGS_SECTIONS.burst, label: t("settings.burst.title") },
+    { id: SETTINGS_SECTIONS.experimental, label: t("settings.experimentaloptions") },
+    { id: SETTINGS_SECTIONS.captions, label: t("settings.captioncontext") },
+    { id: SETTINGS_SECTIONS.sharing, label: t("settings.publicsharingdefaults") },
+    { id: SETTINGS_SECTIONS.interface, label: t("settings.interface") },
+    { id: SETTINGS_SECTIONS.duplicates, label: t("settings.duplicatedetection") },
+  ];
+
   return (
-    <Container>
+    <Container size="lg">
       <PageHeader icon={SettingIcon} title={t("settings.header")} />
-      <Stack>
-        <ScanOptionsCard {...cardProps} />
-        <MetadataOptionsCard {...cardProps} />
-        <FaceOptionsCard {...cardProps} />
-        <Card shadow="md">
-          <ConfigDateTime
-            value={editedUserDetails.datetime_rules}
-            onChange={value => edit({ datetime_rules: value || "[]" })}
-          />
-        </Card>
-        <Card shadow="md">
-          <ConfigBurstDetection
-            value={editedUserDetails.burst_detection_rules}
-            onChange={value => edit({ burst_detection_rules: value })}
-          />
-        </Card>
-        <ExperimentalOptionsCard {...cardProps} />
-        <CaptionContextCard {...cardProps} />
-        <PublicSharingDefaultsCard {...cardProps} />
-        <InterfaceCard {...cardProps} />
-        <DuplicateDetectionCard {...cardProps} />
-        <Space h="xl" />
-      </Stack>
+      <SectionNav sections={sections}>
+        <Stack>
+          <SettingsSection id={SETTINGS_SECTIONS.scan}>
+            <ScanOptionsCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.metadata}>
+            <MetadataOptionsCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.faces}>
+            <FaceOptionsCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.datetime}>
+            <Card shadow="md">
+              <ConfigDateTime
+                value={editedUserDetails.datetime_rules}
+                onChange={value => edit({ datetime_rules: value || "[]" })}
+              />
+            </Card>
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.burst}>
+            <Card shadow="md">
+              <ConfigBurstDetection
+                value={editedUserDetails.burst_detection_rules}
+                onChange={value => edit({ burst_detection_rules: value })}
+              />
+            </Card>
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.experimental}>
+            <ExperimentalOptionsCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.captions}>
+            <CaptionContextCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.sharing}>
+            <PublicSharingDefaultsCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.interface}>
+            <InterfaceCard {...cardProps} />
+          </SettingsSection>
+          <SettingsSection id={SETTINGS_SECTIONS.duplicates}>
+            <DuplicateDetectionCard {...cardProps} />
+          </SettingsSection>
+          <Space h="xl" />
+        </Stack>
+      </SectionNav>
       <SaveChangesDialog
         opened={isOpenUpdateDialog}
         saving={updateUser.isPending}

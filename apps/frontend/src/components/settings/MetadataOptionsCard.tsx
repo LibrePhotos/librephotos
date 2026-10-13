@@ -2,6 +2,7 @@ import { Card, Flex, Group, Radio, Select, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
@@ -12,6 +13,7 @@ export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
     <Card shadow="md">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.metadata" />
+        <SectionLink />
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
         <Radio.Group

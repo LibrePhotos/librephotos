@@ -1,6 +1,7 @@
 import { Card, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 export function ExperimentalOptionsCard({ user, onChange }: UserSettingsCardProps) {
@@ -10,6 +11,7 @@ export function ExperimentalOptionsCard({ user, onChange }: UserSettingsCardProp
     <Card shadow="md">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.experimentaloptions" />
+        <SectionLink />
       </Title>
       <Switch
         label={t("settings.transcodevideo")}

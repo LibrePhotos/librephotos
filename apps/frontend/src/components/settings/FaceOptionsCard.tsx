@@ -1,7 +1,8 @@
 import { Card, Group, Radio, Stack, Switch, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { UserSettingsCardProps } from "./userSettingsCard";
+import { SectionLink } from "./SettingsSection";
+import { choiceOf, type UserSettingsCardProps } from "./userSettingsCard";
 
 export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
@@ -12,12 +13,13 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
     <Card shadow="md">
       <Title order={4} mb={16}>
         {t("settings.face_options")}
+        <SectionLink />
       </Title>
       <Stack gap="md">
         <Radio.Group
           label={t("settings.min_cluster_size")}
           description={t("settings.min_cluster_size_help")}
-          value={user.min_cluster_size ? user.min_cluster_size.toString() : "0"}
+          value={choiceOf(user.min_cluster_size, "0")}
           onChange={value => onChange({ min_cluster_size: parseInt(value, 10) || 0 })}
         >
           <Group mt="xs">
@@ -31,7 +33,7 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <Radio.Group
           label={t("settings.min_samples")}
           description={t("settings.min_samples_help")}
-          value={user.min_samples ? user.min_samples.toString() : "1"}
+          value={choiceOf(user.min_samples, "1")}
           onChange={value => onChange({ min_samples: parseInt(value, 10) || 0 })}
         >
           <Group mt="xs">
@@ -45,7 +47,7 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <Radio.Group
           label={t("settings.cluster_selection_epsilon")}
           description={t("settings.cluster_selection_epsilon_help")}
-          value={user.cluster_selection_epsilon ? user.cluster_selection_epsilon.toString() : "0.1"}
+          value={choiceOf(user.cluster_selection_epsilon, "0.1")}
           onChange={value => onChange({ cluster_selection_epsilon: parseFloat(value) || 0 })}
         >
           <Group mt="xs">

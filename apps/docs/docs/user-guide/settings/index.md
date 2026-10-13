@@ -22,6 +22,12 @@ Here you can change your name, photo, e-mail address, password and language. You
 
 These settings are user specific and will affect how scanning and saving works. At the bottom, you can also find experimental settings.
 
+### Finding a section
+
+Both the Settings page and the Admin Area have an **On this page** list (not released yet). On a wide screen it sits to the right of the cards; on a phone or a narrow window it is a row of buttons under the top bar that scrolls sideways. The entry of the card you are looking at is highlighted, and picking one scrolls to its card.
+
+Every card also has its own link. Hover over a card's title and click the **#** next to it to copy the link, for example `https://photos.example.com/settings#settings-faces` or `/admin#admin-services`. Opening such a link scrolls straight to that card and outlines it for a moment, which is handy when you point someone to a setting.
+
 ### Scan Confidence
 
 This setting affect how much certainty is needed for a tag to be added to a picture. Default `Standard`

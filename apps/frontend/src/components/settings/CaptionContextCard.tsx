@@ -1,6 +1,7 @@
 import { Card, Stack, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 type LlmSwitch = "enabled" | "add_person" | "add_location";
@@ -37,6 +38,7 @@ export function CaptionContextCard({ user, onChange }: UserSettingsCardProps) {
       <Stack>
         <Title order={4}>
           <Trans i18nKey="settings.captioncontext" />
+          <SectionLink />
         </Title>
         <Switch
           label={t("settings.captioncontextenable")}

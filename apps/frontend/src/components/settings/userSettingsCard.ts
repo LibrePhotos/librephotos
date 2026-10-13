@@ -8,3 +8,8 @@ export type UserSettingsCardProps = {
   user: User;
   onChange: (patch: Partial<User>) => void;
 };
+
+/** A radio group's value: the stored number as text, or `fallback` while it is 0 or missing. */
+export function choiceOf(value: number | undefined, fallback: string): string {
+  return value ? value.toString() : fallback;
+}

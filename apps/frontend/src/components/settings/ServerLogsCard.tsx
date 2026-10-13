@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { fetchServerLogFile, useFetchServerLogsViewQuery } from "../../api_client/server/hooks";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
+import { SectionLink } from "./SettingsSection";
 
 function downloadLogsBlob(data: unknown) {
   let blob: Blob;
@@ -88,6 +89,7 @@ export function ServerLogsCard() {
           <Flex align="center" gap="xs" wrap="nowrap">
             <Title order={4} style={{ whiteSpace: "nowrap" }}>
               {t("adminarea.serverlogs")}
+              <SectionLink />
             </Title>
             {isFetching && <Loader size="xs" />}
           </Flex>
