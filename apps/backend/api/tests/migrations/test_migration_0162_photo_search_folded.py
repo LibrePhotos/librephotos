@@ -10,7 +10,7 @@ from api.models.photo_search import fold
 from api.tests.utils import create_test_photo, create_test_user
 
 # The module name starts with a digit, so a plain import cannot load it.
-migration_0160 = importlib.import_module("api.migrations.0160_photo_search_folded")
+migration_0162 = importlib.import_module("api.migrations.0162_photo_search_folded")
 
 
 class FillSearchFoldedMigrationTest(TestCase):
@@ -24,7 +24,7 @@ class FillSearchFoldedMigrationTest(TestCase):
 
     def _fill(self):
         # The editor is only asked for its connection: no context, no DDL.
-        migration_0160.fill_search_folded(global_apps, connection.schema_editor())
+        migration_0162.fill_search_folded(global_apps, connection.schema_editor())
 
     def _forget_folded(self):
         PhotoSearch.objects.update(search_folded="")
@@ -46,7 +46,7 @@ class FillSearchFoldedMigrationTest(TestCase):
         ]
         self._forget_folded()
 
-        with patch.object(migration_0160, "BATCH_SIZE", 2):
+        with patch.object(migration_0162, "BATCH_SIZE", 2):
             self._fill()
 
         for n, photo in enumerate(photos):
@@ -62,4 +62,4 @@ class FillSearchFoldedMigrationTest(TestCase):
     def test_the_frozen_fold_matches_the_app(self):
         for text in ("Zürich", "Łódź", "Straße", "ﬁle", "Ærø", "がっこう", "한국"):
             with self.subTest(text=text):
-                self.assertEqual(migration_0160.fold(text), fold(text))
+                self.assertEqual(migration_0162.fold(text), fold(text))

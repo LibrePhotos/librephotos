@@ -13,7 +13,7 @@ accent-sensitive until it finished.
 
 ``fold`` is a frozen copy of ``api.models.photo_search.fold`` as of this
 migration, so a later change there does not change what this migration did;
-``api/tests/migrations/test_migration_0160_photo_search_folded.py`` checks
+``api/tests/migrations/test_migration_0162_photo_search_folded.py`` checks
 that the two agree today.
 """
 
@@ -73,7 +73,7 @@ def fill_search_folded(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> N
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0159_merge_photos_sharing_a_main_file"),
+        ("api", "0161_photo_metadata_read_at"),
     ]
 
     operations = [
