@@ -381,16 +381,24 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         for key, expected in (("X", y), ("Y", 1 - x), ("W", h), ("H", w)):
             self.assertAlmostEqual(expected, area[key], places=2, msg=key)
 
-    # #2292: the write fetches the orientation as the number 6 and compares it
-    # with ExifTool's display strings, so the region is written in display
+    # #2292: the write fetched the orientation as the number 6 and compared it
+    # with ExifTool's display strings, so the region was written in display
     # coordinates and read back somewhere else.
-    @unittest.expectedFailure
     def test_portrait_jpeg_into_the_sidecar(self):
         self._portrait_round_trip(SIDECAR)
 
-    @unittest.expectedFailure  # #2292, as above
     def test_portrait_jpeg_into_the_media_file(self):
         self._portrait_round_trip(MEDIA_FILE)
+
+    def test_every_rotated_orientation_reads_back_the_same_box(self):
+        # The portrait tests above pin where 6 is written; libvips pins the
+        # transforms themselves (test_face_region_orientation).
+        for orientation in (5, 7, 8):
+            with self.subTest(orientation=orientation):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"o{orientation}")
+                self.tag(path, f"-EXIF:Orientation#={orientation}")
+                self._round_trip(path, MEDIA_FILE, FACE_PORTRAIT)
 
     def _scan_keywords(self, photo):
         """The photo's keywords as the next scan reads them."""

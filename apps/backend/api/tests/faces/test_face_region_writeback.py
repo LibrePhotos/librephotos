@@ -6,7 +6,6 @@ from django.test import TestCase
 from api.metadata.face_regions import (
     build_face_region_exiftool_args,
     get_face_region_tags,
-    reverse_orientation_transform,
     thumbnail_coords_to_normalized,
 )
 from api.metadata.photo_writer import write_photo_metadata
@@ -60,97 +59,6 @@ class TestThumbnailCoordsToNormalized(TestCase):
         self.assertAlmostEqual(y, 0.05)
         self.assertAlmostEqual(w, 0.1)
         self.assertAlmostEqual(h, 0.1)
-
-
-class TestReverseOrientationTransform(TestCase):
-    def test_identity_for_normal_orientation(self):
-        """Normal orientation should be a no-op."""
-        x, y, w, h = reverse_orientation_transform(
-            0.5, 0.3, 0.2, 0.1, "Horizontal (normal)"
-        )
-        self.assertAlmostEqual(x, 0.5)
-        self.assertAlmostEqual(y, 0.3)
-        self.assertAlmostEqual(w, 0.2)
-        self.assertAlmostEqual(h, 0.1)
-
-    def test_identity_for_none_orientation(self):
-        """None orientation should be a no-op."""
-        x, y, w, h = reverse_orientation_transform(0.5, 0.3, 0.2, 0.1, None)
-        self.assertAlmostEqual(x, 0.5)
-        self.assertAlmostEqual(y, 0.3)
-        self.assertAlmostEqual(w, 0.2)
-        self.assertAlmostEqual(h, 0.1)
-
-    def test_round_trip_rotate_90_cw(self):
-        """Forward then reverse for Rotate 90 CW should return original coords."""
-        self._test_round_trip("Rotate 90 CW")
-
-    def test_round_trip_mirror_horizontal(self):
-        self._test_round_trip("Mirror horizontal")
-
-    def test_round_trip_rotate_180(self):
-        self._test_round_trip("Rotate 180")
-
-    def test_round_trip_mirror_vertical(self):
-        self._test_round_trip("Mirror vertical")
-
-    def test_round_trip_rotate_270_cw(self):
-        self._test_round_trip("Rotate 270 CW")
-
-    def test_round_trip_mirror_horizontal_rotate_90_cw(self):
-        self._test_round_trip("Mirror horizontal and rotate 90 CW")
-
-    def _test_round_trip(self, orientation):
-        """Apply forward transform (from api.faces.extractor) then reverse, verify identity."""
-        orig_x, orig_y, orig_w, orig_h = 0.4, 0.3, 0.2, 0.15
-
-        # Apply forward transform (ORIENTATION_TRANSFORMS in api/faces/extractor.py)
-        correct_x, correct_y = orig_x, orig_y
-        correct_w, correct_h = orig_w, orig_h
-        if orientation == "Rotate 90 CW":
-            temp_x = correct_x
-            correct_x = 1 - correct_y
-            correct_y = temp_x
-            correct_w, correct_h = correct_h, correct_w
-        elif orientation == "Mirror horizontal":
-            correct_x = 1 - correct_x
-        elif orientation == "Rotate 180":
-            correct_x = 1 - correct_x
-            correct_y = 1 - correct_y
-        elif orientation == "Mirror vertical":
-            correct_y = 1 - correct_y
-        elif orientation == "Mirror horizontal and rotate 270 CW":
-            temp_x = correct_x
-            correct_x = 1 - correct_y
-            correct_y = temp_x
-            correct_w, correct_h = correct_h, correct_w
-        elif orientation == "Mirror horizontal and rotate 90 CW":
-            temp_x = correct_x
-            correct_x = correct_y
-            correct_y = 1 - temp_x
-            correct_w, correct_h = correct_h, correct_w
-        elif orientation == "Rotate 270 CW":
-            temp_x = correct_x
-            correct_x = correct_y
-            correct_y = 1 - temp_x
-            correct_w, correct_h = correct_h, correct_w
-
-        # Now reverse
-        rx, ry, rw, rh = reverse_orientation_transform(
-            correct_x, correct_y, correct_w, correct_h, orientation
-        )
-        self.assertAlmostEqual(
-            rx, orig_x, places=10, msg=f"x mismatch for {orientation}"
-        )
-        self.assertAlmostEqual(
-            ry, orig_y, places=10, msg=f"y mismatch for {orientation}"
-        )
-        self.assertAlmostEqual(
-            rw, orig_w, places=10, msg=f"w mismatch for {orientation}"
-        )
-        self.assertAlmostEqual(
-            rh, orig_h, places=10, msg=f"h mismatch for {orientation}"
-        )
 
 
 class TestBuildFaceRegionExiftoolArgs(TestCase):
@@ -326,6 +234,43 @@ class TestGetFaceRegionTags(TestCase):
         )
         # The person name is added to XMP:Subject
         self.assertEqual(tags["XMP:Subject+"], ["Alice"])
+
+    @patch("api.metadata.face_regions.get_metadata")
+    @patch("api.metadata.face_regions.PIL.Image.open")
+    def test_rotated_photo_is_written_in_stored_coordinates(
+        self, mock_pil_open, mock_get_metadata
+    ):
+        """The orientation arrives as a number, as the exif service returns it (#2292)."""
+        photo = create_test_photo(
+            owner=self.user, thumbnail_big="thumbnails_big/test.jpg"
+        )
+        person = create_test_person(
+            name="Alice", kind=Person.KIND_USER, cluster_owner=self.user
+        )
+        # Display (thumbnail) box: centre (0.3125, 0.375), 0.125 x 0.125.
+        create_test_face(
+            photo=photo,
+            person=person,
+            location_top=250,
+            location_right=300,
+            location_bottom=350,
+            location_left=200,
+        )
+
+        mock_img = MagicMock()
+        mock_img.size = (800, 800)
+        mock_pil_open.return_value = mock_img
+        mock_get_metadata.side_effect = lambda media_file, tags, **kwargs: [
+            {**FILE_METADATA, Tags.ORIENTATION: 6}.get(tag) for tag in tags
+        ]
+
+        tags = get_face_region_tags(photo, use_sidecar=False)
+
+        # Orientation 6 shows stored (x, y) at (1 - y, x): stored is (y', 1 - x').
+        self.assertIn(
+            "Area={X=0.375000,Y=0.687500,W=0.125000,H=0.125000,Unit=normalized}",
+            tags["XMP-mwg-rs:RegionInfo"],
+        )
 
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")

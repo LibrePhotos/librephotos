@@ -7,6 +7,7 @@ import PIL
 
 from api.faces.recognition import detect_faces
 from api.lazy_import import LazyModule
+from api.metadata.orientation import normalize_orientation, region_to_display
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 
@@ -30,17 +31,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-ORIENTATION_TRANSFORMS = {
-    "Rotate 90 CW": lambda x, y, w, h: (1 - y, x, h, w),
-    "Mirror horizontal": lambda x, y, w, h: (1 - x, y, w, h),
-    "Rotate 180": lambda x, y, w, h: (1 - x, 1 - y, w, h),
-    "Mirror vertical": lambda x, y, w, h: (x, 1 - y, w, h),
-    "Mirror horizontal and rotate 270 CW": lambda x, y, w, h: (1 - y, x, h, w),
-    "Mirror horizontal and rotate 90 CW": lambda x, y, w, h: (y, 1 - x, h, w),
-    "Rotate 270 CW": lambda x, y, w, h: (y, 1 - x, h, w),
-}
-
-
 def _is_number(value: float | str | None) -> bool:
     """Whether ``float(value)`` works: a number or a numeric string, not None."""
     if value is None:
@@ -62,17 +52,17 @@ def has_normalized_area(
 
 
 def to_face_box(
-    area: dict[str, Any], orientation: str | None, image_width: int, image_height: int
+    area: dict[str, Any], orientation: int, image_width: int, image_height: int
 ) -> tuple[int, int, int, int] | None:
+    """The face box (top, right, bottom, left) in the displayed thumbnail of
+    an MWG-RS ``area``, which is in the stored image's coordinates."""
     # Values may be missing (None); the _is_number check below rules that out.
     values: list[Any] = [area.get(key) for key in ("X", "Y", "W", "H")]
     if not all(_is_number(value) for value in values):
         return None
 
     x, y, w, h = (float(value) for value in values)
-    transform = None if orientation is None else ORIENTATION_TRANSFORMS.get(orientation)
-    if transform:
-        x, y, w, h = transform(x, y, w, h)
+    x, y, w, h = region_to_display((x, y, w, h), orientation)
 
     half_width = (w * image_width) / 2
     half_height = (h * image_height) / 2
@@ -113,7 +103,7 @@ def extract_from_exif(
 
         box = to_face_box(
             area,
-            orientation,
+            normalize_orientation(orientation),
             big_thumbnail_image.shape[1],
             big_thumbnail_image.shape[0],
         )

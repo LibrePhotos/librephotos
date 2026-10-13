@@ -159,7 +159,7 @@ sidebar_position: 18
         <td>Faces</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Synchronize metadata to disk" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions.</td>
+        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Synchronize metadata to disk" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions. The areas are in the coordinates of the stored image, as the standard asks, so on a rotated photo (most phone portraits) other apps show them on the faces. <em>Not released yet</em>: earlier versions wrote the regions of rotated photos in the wrong place; <code>python manage.py save_metadata --types face_tags</code> rewrites them.</td>
     </tr>
     <tr>
         <td>XMP:Subject</td>

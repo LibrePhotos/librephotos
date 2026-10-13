@@ -205,14 +205,21 @@ class ExtractFromExifOrientationTest(ExtractFromExifBaseTest):
     def test_mirror_vertical(self):
         self.assert_box("Mirror vertical", (5, 70, 45, 30))
 
+    # 5 is a transpose and 7 a transverse; they used to be mapped like 6 and
+    # 8 (#2292).
     def test_mirror_horizontal_and_rotate_270_cw(self):
-        self.assert_box("Mirror horizontal and rotate 270 CW", (15, 90, 35, 10))
+        self.assert_box("Mirror horizontal and rotate 270 CW", (15, 190, 35, 110))
 
     def test_mirror_horizontal_and_rotate_90_cw(self):
-        self.assert_box("Mirror horizontal and rotate 90 CW", (65, 190, 85, 110))
+        self.assert_box("Mirror horizontal and rotate 90 CW", (65, 90, 85, 10))
 
     def test_rotate_270_cw(self):
         self.assert_box("Rotate 270 CW", (65, 190, 85, 110))
+
+    def test_numeric_orientation_is_the_same_as_its_name(self):
+        """ExifTool answers with the number when read without -struct (#2292)."""
+        self.assert_box(6, (15, 90, 35, 10))
+        self.assert_box(5, (15, 190, 35, 110))
 
     def test_horizontal_normal_is_untouched(self):
         self.assert_box("Horizontal (normal)", (55, 70, 95, 30))
