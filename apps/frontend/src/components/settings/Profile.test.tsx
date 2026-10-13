@@ -30,6 +30,8 @@ vi.mock("../../api_client/user/hooks", () => ({
   useUpdateAvatarMutation: () => ({ mutate: () => {} }),
   useUpdateUserMutation: () => ({ mutate: stubs.updateUser, isPending: false }),
 }));
+// Leaving the page is covered in SaveChangesDialog.leaving.test.tsx, under a real router.
+vi.mock("./useUnsavedChangesGuard", () => ({ useUnsavedChangesGuard: () => ({ status: "idle" }) }));
 vi.mock("react-avatar-editor", () => ({ default: () => null }));
 vi.mock("react-dropzone", () => ({ default: () => null }));
 

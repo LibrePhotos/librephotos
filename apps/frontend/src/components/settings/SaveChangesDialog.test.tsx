@@ -13,6 +13,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
+// Leaving the page is covered in SaveChangesDialog.leaving.test.tsx, under a real router.
+vi.mock("./useUnsavedChangesGuard", () => ({ useUnsavedChangesGuard: () => ({ status: "idle" }) }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 let desktop = false;

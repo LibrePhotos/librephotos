@@ -100,6 +100,8 @@ vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { ge
 vi.mock("../modals/ModalNextcloudScanDirectoryEdit", () => ({
   ModalNextcloudScanDirectoryEdit: () => null,
 }));
+// Leaving the page is covered in SaveChangesDialog.leaving.test.tsx, under a real router.
+vi.mock("./useUnsavedChangesGuard", () => ({ useUnsavedChangesGuard: () => ({ status: "idle" }) }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
 
 beforeAll(() => {
