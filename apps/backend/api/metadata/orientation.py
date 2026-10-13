@@ -1,11 +1,15 @@
 """EXIF orientation arithmetic.
 
-Composing an orientation with a rotation or flip, and moving a face region
-between the stored image and the image as displayed.
+Composing an orientation with a rotation or flip, the orientation a file is
+shown under, and moving a face region between the stored image and the image
+as displayed.
 """
 
 import logging
 from collections.abc import Callable
+
+from api.metadata.tags import Tags
+from api.mime import HEIF_EXTENSIONS, extension
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +98,78 @@ def normalize_orientation(value: int | str | None) -> int:
     else:
         number = value if isinstance(value, int) else 1
     return number if number in _ORIENTATION_TO_PARAMS else 1
+
+
+# HEIF ``irot`` counts quarter turns anticlockwise. ExifTool prints the four
+# values with the EXIF names of the same turns, which ``normalize_orientation``
+# reads; ``-n`` answers with the count itself.
+_IROT_TO_ORIENTATION = {0: 1, 1: 8, 2: 3, 3: 6}
+# HEIF ``imir``: axis 1 (ExifTool prints "Horizontal") mirrors left to right,
+# axis 0 ("Vertical") top to bottom, as libheif renders them.
+_IMIR_AXES = {"horizontal": 1, "vertical": 0}
+# (orientation of the irot turn, imir axis) -> the orientation of both. MIAF
+# orders the properties irot, then imir, and libheif applies them in that order.
+_MIRRORED = {
+    (1, 1): 2,
+    (6, 1): 5,
+    (3, 1): 4,
+    (8, 1): 7,
+    (1, 0): 4,
+    (6, 0): 7,
+    (3, 0): 2,
+    (8, 0): 5,
+}
+
+
+def _heif_turn(rotation: int | str | None) -> int:
+    if isinstance(rotation, str) and not rotation.strip().isdigit():
+        return normalize_orientation(rotation)
+    if isinstance(rotation, (int, str)):
+        return _IROT_TO_ORIENTATION.get(int(rotation), 1)
+    return 1
+
+
+def _heif_mirror_axis(mirroring: int | str | None) -> int | None:
+    if isinstance(mirroring, str):
+        text = mirroring.strip()
+        return int(text) if text.isdigit() else _IMIR_AXES.get(text.lower())
+    return mirroring
+
+
+def heif_orientation(rotation: int | str | None, mirroring: int | str | None) -> int:
+    """The EXIF Orientation (1-8) a HEIF image is shown under.
+
+    ``rotation`` and ``mirroring`` are ``Tags.HEIF_ROTATION`` and
+    ``Tags.HEIF_MIRRORING`` as ExifTool answers them, as numbers or as its
+    print strings; None when the property is absent.
+    """
+    turn = _heif_turn(rotation)
+    axis = _heif_mirror_axis(mirroring)
+    if axis is None:
+        return turn
+    return _MIRRORED.get((turn, axis), turn)
+
+
+# What ``shown_orientation`` reads, in its argument order.
+SHOWN_ORIENTATION_TAGS = [Tags.ORIENTATION, Tags.HEIF_ROTATION, Tags.HEIF_MIRRORING]
+
+
+def shown_orientation(
+    path: str,
+    exif_orientation: int | str | None,
+    heif_rotation: int | str | None,
+    heif_mirroring: int | str | None,
+) -> int:
+    """The orientation (1-8) the stored image of ``path`` is shown under.
+
+    The values are ``SHOWN_ORIENTATION_TAGS`` as read from ``path``. A HEIF
+    image (HEIC, AVIF) is shown under its irot/imir properties: libheif
+    applies them and ignores the EXIF tag, which a tool may have rewritten
+    to disagree (#2615). Any other file is shown under its EXIF Orientation.
+    """
+    if extension(path) in HEIF_EXTENSIONS:
+        return heif_orientation(heif_rotation, heif_mirroring)
+    return normalize_orientation(exif_orientation)
 
 
 # A region: its centre x and y, width and height, normalized to the image

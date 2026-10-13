@@ -136,6 +136,10 @@ CV2_DECODABLE_EXTENSIONS = frozenset(
 EXIF_ORIENTED_EXTENSIONS = frozenset(
     {".jfif", ".jpe", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
 )
+# Subset of IMAGE_EXTENSIONS: HEIF containers (HEVC or AV1). libheif shows
+# them under their irot/imir properties and ignores the EXIF Orientation,
+# which a tool may have rewritten to disagree (#2615).
+HEIF_EXTENSIONS = frozenset({".avif", ".heic", ".heif", ".hif"})
 # Subset of VIDEO_EXTENSIONS: the motion half of an Apple Live Photo.
 LIVE_PHOTO_VIDEO_EXTENSIONS = frozenset({".mov"})
 

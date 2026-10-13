@@ -54,7 +54,8 @@ class ExtractFromExifBaseTest(TestCase):
         self.addCleanup(open_patcher.stop)
 
     def run_extract(self, region_info, orientation=None):
-        self.mock_get_metadata.return_value = (region_info, orientation)
+        # A JPEG: no HEIF irot or imir.
+        self.mock_get_metadata.return_value = (region_info, orientation, None, None)
         return extractor.extract_from_exif(IMAGE_PATH, THUMB_PATH)
 
 
@@ -63,7 +64,12 @@ class ExtractFromExifMetadataTest(ExtractFromExifBaseTest):
         self.run_extract({"RegionList": []})
         self.mock_get_metadata.assert_called_once_with(
             IMAGE_PATH,
-            tags=[Tags.REGION_INFO, Tags.ORIENTATION],
+            tags=[
+                Tags.REGION_INFO,
+                Tags.ORIENTATION,
+                Tags.HEIF_ROTATION,
+                Tags.HEIF_MIRRORING,
+            ],
             try_sidecar=True,
             struct=True,
             sidecar_files=None,

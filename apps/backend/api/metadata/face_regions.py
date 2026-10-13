@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING, TypedDict
 
 import PIL.Image
 
-from api.metadata.orientation import normalize_orientation, region_to_stored
+from api.metadata.orientation import (
+    SHOWN_ORIENTATION_TAGS,
+    region_to_stored,
+    shown_orientation,
+)
 from api.metadata.reader import (
     get_metadata,
     sidecar_files_for_photo,
@@ -233,9 +237,9 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     # in the displayed thumbnail, the regions go into the file as stored.
     assert photo.main_file is not None
     sidecar_files = sidecar_files_for_photo(photo)
-    (orientation_value, image_width, image_height) = get_metadata(
+    (image_width, image_height, *orientation_values) = get_metadata(
         photo.main_file.path,
-        tags=[Tags.ORIENTATION, Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT],
+        tags=[Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT, *SHOWN_ORIENTATION_TAGS],
         sidecar_files=sidecar_files,
     )
     # The face regions as the scan reads them, for the names they had.
@@ -245,10 +249,11 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         struct=True,
         sidecar_files=sidecar_files,
     )
-    # The thumbnail shows the file under its own orientation with the user's
-    # LibrePhotos rotation on top (#2606).
+    # The thumbnail shows the file under its own orientation (#2615) with the
+    # user's LibrePhotos rotation on top (#2606).
     orientation = exif_orientation_showing(
-        normalize_orientation(orientation_value), photo.local_orientation
+        shown_orientation(photo.main_file.path, *orientation_values),
+        photo.local_orientation,
     )
 
     # Convert each face's coordinates

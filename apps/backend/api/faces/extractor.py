@@ -7,7 +7,11 @@ import PIL.Image
 
 from api.faces.recognition import detect_faces
 from api.lazy_import import LazyModule
-from api.metadata.orientation import normalize_orientation, region_to_display
+from api.metadata.orientation import (
+    SHOWN_ORIENTATION_TAGS,
+    region_to_display,
+    shown_orientation,
+)
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.thumbnails.render import exif_orientation_showing
@@ -82,11 +86,12 @@ def extract_from_exif(
     """Face regions in the file or its sidecars; *sidecar_files* as in ``get_metadata``.
 
     The boxes are in the big thumbnail, which shows the file under its own
-    orientation with the photo's ``local_orientation`` on top (#2606).
+    orientation (``shown_orientation``, #2615) with the photo's
+    ``local_orientation`` on top (#2606).
     """
-    (region_info, orientation) = get_metadata(
+    (region_info, *orientation_values) = get_metadata(
         image_path,
-        tags=[Tags.REGION_INFO, Tags.ORIENTATION],
+        tags=[Tags.REGION_INFO, *SHOWN_ORIENTATION_TAGS],
         try_sidecar=True,
         struct=True,
         sidecar_files=sidecar_files,
@@ -108,7 +113,7 @@ def extract_from_exif(
         box = to_face_box(
             area,
             exif_orientation_showing(
-                normalize_orientation(orientation), local_orientation
+                shown_orientation(image_path, *orientation_values), local_orientation
             ),
             big_thumbnail_image.shape[1],
             big_thumbnail_image.shape[0],
