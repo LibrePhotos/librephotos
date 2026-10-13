@@ -105,6 +105,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
   invalidation and toasts. Package schemas, types and keys are imported from `@librephotos/api-client`
   where they are used, never re-exported (`ban/api-client-reexport`); a domain's `types.ts` holds only
   web-only types (hook parameters, UI shapes).
+  A value the server gives meaning to (the unknown group's name, `UNKNOWN_PERSON_NAME`) is the package's
+  constant, never a typed copy (`ban/unknown-person-literal`).
 - Two hooks share a key only when they cache the same value: where a web hook reshapes an answer
   (groups, sorts, placeholders), the package hook keys the raw answer with the `...Raw` entry in the same
   family (`src/api_client/hookConvergence.test.tsx`). Changing a key value moves mobile too: `src/api_client/queryKeys.test.ts`

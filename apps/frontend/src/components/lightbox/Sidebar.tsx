@@ -1,3 +1,4 @@
+import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import {
   ActionIcon,
   Box,
@@ -14,7 +15,7 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { UNKNOWN_PERSON_NAME, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";

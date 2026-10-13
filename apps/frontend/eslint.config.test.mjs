@@ -49,6 +49,7 @@ const planted = {
   "date-parse": `const plantedInstant = DateTime.fromISO(value);`,
   "date-set-locale": `const plantedLabel = plantedInstant.setLocale("de").toFormat("D");`,
   "date-constructor": `const plantedDate = new Date(value);`,
+  "unknown-person-literal": `const plantedName = person.name === "Unknown - Other";`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,

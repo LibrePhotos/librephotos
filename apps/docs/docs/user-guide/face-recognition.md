@@ -56,6 +56,8 @@ If you click on the blue button (the barbell icon) in the face dashboard, or the
 
 The dashboard has three tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), and **Labeled** (faces you have already named). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about — use the **% confident** filter in the toolbar to lower this threshold and surface weaker recommendations (the filter applies to both the Inferred and Unknown tabs).
 
+Each tab shows how many faces it holds. Hover over a tab to see how many people (and, on the Inferred tab, groups) those faces belong to. The numbers follow the sort, Clusters/Classifications and confidence settings, so they always match the faces on screen.
+
 To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the green plus button in the toolbar to add them to the person. To reject faces, select them and click the orange person-off button in the toolbar, which moves them back to "Unknown - Other".
 
 ## Delete faces

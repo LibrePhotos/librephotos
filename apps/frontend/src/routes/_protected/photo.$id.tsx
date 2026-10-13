@@ -1,3 +1,4 @@
+import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { Anchor, Box, Button, Center, Divider, Grid, Group, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle, IconPhoto } from "@tabler/icons-react";
@@ -88,7 +89,7 @@ function SinglePhotoView() {
     : t("lightbox.sidebar.withouttimestamp");
 
   const notThisPerson = (faceId: number) => {
-    setFacesPersonLabel({ faceIds: [faceId], personName: "Unknown - Other" });
+    setFacesPersonLabel({ faceIds: [faceId], personName: UNKNOWN_PERSON_NAME });
     notification.removeFacesFromPerson(1);
   };
 
