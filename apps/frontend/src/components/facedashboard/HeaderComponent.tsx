@@ -20,6 +20,7 @@ import {
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { PersonRenameForm } from "../album/PersonRenameModal";
+import { canConfirmFace, isNamedPerson } from "./faceActionRules";
 import classes from "./HeaderComponent.module.css";
 import { isLoadedFace } from "./hooks/useVirtualizedGrid";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
@@ -137,7 +138,7 @@ export function HeaderComponent({
         >
           {cell.name}
         </Chip>
-        {activeTab === "inferred" && !(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
+        {canConfirmFace(activeTab, cell) && (
           <Tooltip label={t("facesdashboard.explanationvalidate")}>
             <ActionIcon
               variant="light"
@@ -149,7 +150,7 @@ export function HeaderComponent({
             </ActionIcon>
           </Tooltip>
         )}
-        {!(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
+        {isNamedPerson(cell) && (
           // Its items open dialogs: handing focus back to the trigger took it from the dialog's input
           <Menu position="bottom-end" returnFocus={false}>
             <Menu.Target>

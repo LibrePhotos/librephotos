@@ -2,7 +2,8 @@ import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { describe, expect, it } from "vitest";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { calculateFaceGridCells } from "../../util/gridUtils";
-import { canConfirmFace, groupsByRow, wrongMatchFor } from "./faceActionRules";
+import { canConfirmFace, groupsByRow, isNamedPerson, wrongMatchFor } from "./faceActionRules";
+import { isUnknownGroup } from "./facesTab";
 
 function group(id: number, name: string, kind: string, faceCount = 0): CompletePersonFace {
   return {
@@ -35,6 +36,20 @@ describe("per-face Confirm (#599)", () => {
   it("is not offered on the Labeled and Unknown tabs, where nothing is a guess", () => {
     expect(canConfirmFace("labeled", ANNA)).toBe(false);
     expect(canConfirmFace("unknown", ANNA)).toBe(false);
+  });
+});
+
+describe("which group is which (#2600)", () => {
+  it("tells the unknown group by its name, whose kind is its name too", () => {
+    expect(isUnknownGroup(OTHER)).toBe(true);
+    expect(isUnknownGroup(ANNA)).toBe(false);
+    expect(isUnknownGroup(group(3, "Unknown 002", "UNKNOWN"))).toBe(false);
+  });
+
+  it("counts only user-named people as named, never the unknown group", () => {
+    expect(isNamedPerson(ANNA)).toBe(true);
+    expect(isNamedPerson(OTHER)).toBe(false);
+    expect(isNamedPerson(CLUSTER)).toBe(false);
   });
 });
 
