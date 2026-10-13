@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, NamedTuple
 
 from api.video import transcode_cache
 
@@ -146,3 +147,37 @@ def remove_photo(photo: Photo) -> None:
             for remaining_photo in duplicate.photos.all():
                 remaining_photo.duplicates.remove(duplicate)
             duplicate.delete()
+
+
+class Removal(NamedTuple):
+    """What ``remove_photos`` did: how many photos went, which ones failed."""
+
+    removed: int
+    failed: list[Photo]
+
+
+def remove_photos(
+    photos: Iterable[Photo], progress: Callable[[int], None] | None = None
+) -> Removal:
+    """``remove_photo`` each photo, logging and skipping one that fails.
+
+    One unreadable file or broken row must not stop the rest: Delete
+    permanently, Empty trash and the trash retention all go through here.
+    ``progress`` gets the number of photos handled so far after each one; an
+    exception it raises (a job's cancel) stops the loop.
+    """
+    removed = 0
+    failed: list[Photo] = []
+    for done, photo in enumerate(photos, start=1):
+        try:
+            remove_photo(photo)
+        except Exception:
+            logger.exception(
+                "Could not delete photo %s, skipping it.", photo.image_hash
+            )
+            failed.append(photo)
+        else:
+            removed += 1
+        if progress is not None:
+            progress(done)
+    return Removal(removed, failed)

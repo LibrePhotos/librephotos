@@ -122,3 +122,46 @@ class SiteSettingsRequestTest(TestCase):
                 self.assert_rejected(
                     {"scan_missing_max_fraction": value}, "scan_missing_max_fraction"
                 )
+
+    def test_trash_retention_is_stored(self, _models):
+        for value in (0, 30, 36500):
+            with self.subTest(value=value):
+                response = self.post({"trash_retention_days": value})
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(config.TRASH_RETENTION_DAYS, value)
+                self.assertEqual(response.json()["trash_retention_days"], value)
+
+    def test_trash_retention_must_be_a_whole_number_of_days(self, _models):
+        for value in ("30", True, None, -1, 1.5, 36501, [30]):
+            with self.subTest(value=value):
+                self.assert_rejected(
+                    {"trash_retention_days": value}, "trash_retention_days"
+                )
+
+
+class TrashRetentionSettingTest(TestCase):
+    """Everyone reads the trash retention; only an admin changes it (#2203)."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_it_is_off_by_default(self):
+        self.assertEqual(config.TRASH_RETENTION_DAYS, 0)
+
+    @override_config(TRASH_RETENTION_DAYS=14)
+    def test_a_user_reads_it_for_the_trash_page(self):
+        self.client.force_authenticate(user=create_test_user())
+
+        response = self.client.get("/api/sitesettings")
+
+        self.assertEqual(response.json()["trash_retention_days"], 14)
+
+    def test_a_user_cannot_change_it(self):
+        self.client.force_authenticate(user=create_test_user())
+
+        response = self.client.post(
+            "/api/sitesettings", data={"trash_retention_days": 1}, format="json"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(config.TRASH_RETENTION_DAYS, 0)

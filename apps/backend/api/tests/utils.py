@@ -393,6 +393,10 @@ def create_test_photo(**kwargs):
             if new_name is not None:  # Skip fields that don't exist in new model
                 metadata_fields[new_name] = value
 
+    # A photo in the trash has a trashed_at, as trash_photos would set it.
+    if kwargs.get("in_trashcan") and "trashed_at" not in kwargs:
+        kwargs["trashed_at"] = timezone.now()
+
     # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=image_hash, **kwargs)
     photo.main_file = main_file

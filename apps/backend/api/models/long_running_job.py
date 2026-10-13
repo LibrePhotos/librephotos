@@ -139,6 +139,7 @@ class LongRunningJob(models.Model):
     # 20 and 21 are planned for the upload and Nextcloud import jobs (#2191).
     JOB_DETECT_STACKS = 22
     JOB_STRIP_THUMBNAIL_METADATA = 23
+    JOB_EMPTY_TRASH = 24
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -162,6 +163,7 @@ class LongRunningJob(models.Model):
         (JOB_PROBE_VIDEOS, "Probe Videos"),
         (JOB_DETECT_STACKS, "Detect Stacks"),
         (JOB_STRIP_THUMBNAIL_METADATA, "Remove Photo Details from Thumbnails"),
+        (JOB_EMPTY_TRASH, "Empty Trash"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

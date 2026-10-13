@@ -92,6 +92,10 @@ Finds duplicate photos in your library using perceptual hashing. It detects both
 
 Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin Area > Admin Tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. Not released yet: up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
 
+### Empty Trash
+
+_Not released yet._ Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

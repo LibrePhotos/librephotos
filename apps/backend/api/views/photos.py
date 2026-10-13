@@ -1,7 +1,6 @@
 import logging
 import os
 import uuid
-from collections import defaultdict
 from typing import Any
 
 from django.db.models import F, Prefetch, Q, QuerySet
@@ -46,9 +45,10 @@ from api.models.album_thing import (
     refresh_album_thing_photo_counts,
 )
 from api.models.person import Person
+from api.models.photo import restore_photos, trash_photos
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.photos.files import remove_photo
+from api.photos.files import remove_photos
 from api.photos.selection import not_in_own_album_q
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
@@ -268,7 +268,7 @@ class BulkPhotoMutationView(APIView):
     optional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the
     requester owns are touched. A subclass declares the field, which photos
     the value would change (``differs``) and the columns it sets
-    (``new_values``).
+    (``new_values``, or a ``write`` of its own).
 
     The answer is ``count`` (photos changed) and, for ``image_hashes``, the
     hashes that changed and those that already had the value. It used to carry
@@ -302,14 +302,18 @@ class BulkPhotoMutationView(APIView):
         """The columns to UPDATE, besides ``last_modified``."""
         raise NotImplementedError
 
+    def write(self, user: User, photos: QuerySet[Photo], value: object) -> int:
+        """The UPDATE itself: ``new_values`` plus ``last_modified``."""
+        return photos.update(
+            **self.new_values(user, value), last_modified=timezone.now()
+        )
+
     def apply(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         """UPDATE ``photos`` to ``value``; return the number of rows changed."""
         if self.refreshes_tag_counts:
             affected_tag_ids = tag_ids_for_photos(photos)
             affected_thing_ids = album_thing_ids_for_photos(photos)
-        count = photos.update(
-            **self.new_values(user, value), last_modified=timezone.now()
-        )
+        count = self.write(user, photos, value)
         if self.refreshes_tag_counts:
             refresh_tag_photo_counts(affected_tag_ids)
             refresh_album_thing_photo_counts(affected_thing_ids)
@@ -405,8 +409,9 @@ class SetPhotosDeleted(BulkPhotoMutationView):
     def differs(self, user: User, value: object) -> Q:
         return ~Q(in_trashcan=value)
 
-    def new_values(self, user: User, value: object) -> dict[str, object]:
-        return {"in_trashcan": value}
+    def write(self, user: User, photos: QuerySet[Photo], value: object) -> int:
+        # Through the trash helpers, which set and clear trashed_at with it.
+        return trash_photos(photos) if value else restore_photos(photos)
 
 
 class RatingMutationView(BulkPhotoMutationView):
@@ -998,29 +1003,21 @@ class DeletePhotos(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # Each photo goes through remove_photo for proper cleanup
-            deleted_count = 0
-            failed_count = 0
             # build_photo_queryset is already bound to the requester's photos.
-            for photo in photos_qs:
-                try:
-                    remove_photo(photo)
-                except Exception:
-                    logger.exception(
-                        "Could not delete photo %s, skipping it.", photo.image_hash
-                    )
-                    failed_count += 1
-                else:
-                    deleted_count += 1
+            removal = remove_photos(photos_qs)
 
             logger.info(
                 "%s photos were permanently deleted via select_all for user %s.",
-                deleted_count,
+                removal.removed,
                 user.id,
             )
 
             return Response(
-                {"status": True, "count": deleted_count, "failed_count": failed_count}
+                {
+                    "status": True,
+                    "count": removal.removed,
+                    "failed_count": len(removal.failed),
+                }
             )
 
         # Individual hashes. Only the requester's trashed photos are eligible;
@@ -1028,29 +1025,15 @@ class DeletePhotos(APIView):
         # reported as not deleted, all alike. image_hash is not unique, so
         # every matching row of the requester's is deleted.
         image_hashes = list(dict.fromkeys(data["image_hashes"]))
-        photos_by_hash: defaultdict[str, list[Photo]] = defaultdict(list)
-        for photo in Photo.objects.owned_by(user).filter(
-            image_hash__in=image_hashes, in_trashcan=True
-        ):
-            photos_by_hash[photo.image_hash].append(photo)
-
-        deleted: list[str] = []
-        not_deleted: list[str] = []
-        for image_hash in image_hashes:
-            photos = photos_by_hash.get(image_hash)
-            if not photos:
-                not_deleted.append(image_hash)
-                continue
-            failed = False
-            for photo in photos:
-                try:
-                    remove_photo(photo)
-                except Exception:
-                    logger.exception(
-                        "Could not delete photo %s, skipping it.", image_hash
-                    )
-                    failed = True
-            (not_deleted if failed else deleted).append(image_hash)
+        photos = list(
+            Photo.objects.owned_by(user).filter(
+                image_hash__in=image_hashes, in_trashcan=True
+            )
+        )
+        found = {photo.image_hash for photo in photos}
+        failed = {photo.image_hash for photo in remove_photos(photos).failed}
+        deleted = [h for h in image_hashes if h in found and h not in failed]
+        not_deleted = [h for h in image_hashes if h not in found or h in failed]
 
         return Response(
             {

@@ -5189,6 +5189,35 @@
         }
       }
     },
+    "/api/photosedit/empty-trash/": {
+      "post": {
+        "operationId": "api_photosedit_empty_trash_create",
+        "description": "Permanently delete every photo in the requester's trash, as a job (#2203).\n\nDelete permanently on a select-all deletes in the request and runs into\nthe gateway timeout on a large trash. This answers at once with the job;\nthe job deletes the photos and their files. Only the requester's own\nphotos; a second start while one runs is a 409.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photosedit/favorite/": {
       "post": {
         "operationId": "api_photosedit_favorite_create",
@@ -5283,7 +5312,7 @@
     "/api/photosedit/hide/": {
       "post": {
         "operationId": "api_photosedit_hide_create",
-        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
+        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``, or a ``write`` of its own).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
         "tags": [
           "api"
         ],
@@ -5333,7 +5362,7 @@
     "/api/photosedit/makepublic/": {
       "post": {
         "operationId": "api_photosedit_makepublic_create",
-        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
+        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``, or a ``write`` of its own).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
         "tags": [
           "api"
         ],
@@ -5523,7 +5552,7 @@
     "/api/photosedit/setdeleted/": {
       "post": {
         "operationId": "api_photosedit_setdeleted_create",
-        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
+        "description": "Set one flag on many of the requester's photos in a single UPDATE.\n\nThe body carries the new value under ``value_field`` and names the photos\neither as ``image_hashes`` or as ``select_all`` with a ``query`` (and\noptional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the\nrequester owns are touched. A subclass declares the field, which photos\nthe value would change (``differs``) and the columns it sets\n(``new_values``, or a ``write`` of its own).\n\nThe answer is ``count`` (photos changed) and, for ``image_hashes``, the\nhashes that changed and those that already had the value. It used to carry\na full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks\nthe similarity sidecar over HTTP: one call per photo, inside the request.",
         "tags": [
           "api"
         ],
@@ -9778,10 +9807,11 @@
           18,
           19,
           22,
-          23
+          23,
+          24
         ],
         "type": "integer",
-        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails"
+        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash"
       },
       "KindEnum": {
         "enum": [
@@ -11085,6 +11115,11 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "trashed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "video": {
             "type": "boolean"
           },
@@ -11481,6 +11516,11 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "trashed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "shared_to": {
             "type": "array",
             "items": {
@@ -11676,6 +11716,7 @@
           "square_thumbnail_url",
           "stacks",
           "subjectDistance",
+          "trashed_at",
           "video",
           "video_playback_type",
           "width"
@@ -12341,6 +12382,11 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "trashed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "video": {
             "type": "boolean"
           },
@@ -12582,6 +12628,11 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "trashed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "stacks": {
             "type": "array",
             "items": {},
@@ -12619,6 +12670,7 @@
           "rating",
           "removed",
           "stacks",
+          "trashed_at",
           "type",
           "url",
           "video_length"
@@ -13569,6 +13621,10 @@
             "type": "number",
             "format": "double"
           },
+          "trash_retention_days": {
+            "type": "integer",
+            "description": "Days a photo stays in the trash before the daily cleanup deletes it and its files; 0 means never. Sent to everyone: the trash page says when a photo goes."
+          },
           "email_configured": {
             "type": "boolean"
           },
@@ -13600,7 +13656,8 @@
           "ocr_model",
           "scan_missing_max_fraction",
           "skip_patterns",
-          "tagging_model"
+          "tagging_model",
+          "trash_retention_days"
         ]
       },
       "SiteSettingsRequestRequest": {
@@ -13646,6 +13703,12 @@
             "maximum": 1.0,
             "minimum": 0.0,
             "description": "Largest share of a user's photos a scan may flag missing at once (0 to 1); 1 turns the check off."
+          },
+          "trash_retention_days": {
+            "type": "integer",
+            "maximum": 36500,
+            "minimum": 0,
+            "description": "Days a photo stays in the trash before it and its files are deleted for good; 0 keeps it until its owner empties the trash."
           },
           "video_enabled": {
             "type": "boolean"

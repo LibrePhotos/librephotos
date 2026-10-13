@@ -4,7 +4,12 @@ from collections.abc import Mapping
 
 from rest_framework import serializers
 
-from api.drf.params import JsonBooleanField, JsonFractionField, JsonStringField
+from api.drf.params import (
+    JsonBooleanField,
+    JsonFractionField,
+    JsonIntegerField,
+    JsonStringField,
+)
 from api.runtime.features import (
     FEATURES,
     Feature,
@@ -22,6 +27,11 @@ def feature_field(feature: Feature) -> str:
 def feature_key(feature: Feature) -> str:
     """The feature's key in the answer's ``features`` object."""
     return feature.lower()
+
+
+# A hundred years: far past any real retention, well inside what a timedelta
+# can subtract from today.
+MAX_TRASH_RETENTION_DAYS = 36500
 
 
 class SiteSettingsRequest(serializers.Serializer[None]):
@@ -46,6 +56,13 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         required=False,
         help_text="Largest share of a user's photos a scan may flag missing at once"
         " (0 to 1); 1 turns the check off.",
+    )
+    trash_retention_days = JsonIntegerField(
+        required=False,
+        min_value=0,
+        max_value=MAX_TRASH_RETENTION_DAYS,
+        help_text="Days a photo stays in the trash before it and its files are"
+        " deleted for good; 0 keeps it until its owner empties the trash.",
     )
     # The feature switches (api/runtime/features.py). A switch the server
     # environment turned off is locked: writing it is a 400 naming the field.
@@ -133,6 +150,11 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     nextcloud_enabled = serializers.BooleanField()
     auto_create_user_directory = serializers.BooleanField()
     scan_missing_max_fraction = serializers.FloatField()
+    trash_retention_days = serializers.IntegerField(
+        help_text="Days a photo stays in the trash before the daily cleanup deletes"
+        " it and its files; 0 means never. Sent to everyone: the trash page says"
+        " when a photo goes."
+    )
     email_configured = serializers.BooleanField()
     features = SiteFeaturesSerializer(required=False)
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)

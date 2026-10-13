@@ -759,6 +759,14 @@ export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobSt
   return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
 }
 
+/**
+ * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
+ * Returns the queued (or already running) job.
+ */
+export async function emptyTrash(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/photosedit/empty-trash/", S.JobStartedResponse, "empty trash");
+}
+
 /** Make event albums from the photos added or changed since the last run, and title them. */
 export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");

@@ -316,6 +316,7 @@ urlpatterns = [
     re_path(r"^api/deletefaces/?$", faces.DeleteFaces.as_view()),
     re_path(r"^api/savemetadata/?$", photos.SaveMetadataView.as_view()),
     re_path(r"^api/photosedit/delete/?$", photos.DeletePhotos.as_view()),
+    path("api/photosedit/empty-trash/", scan_triggers.EmptyTrashView.as_view()),
     re_path(r"^api/photosedit/setdeleted/?$", photos.SetPhotosDeleted.as_view()),
     re_path(r"^api/photosedit/favorite/?$", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/rating/?$", photos.SetPhotosRating.as_view()),

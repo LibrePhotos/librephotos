@@ -11,6 +11,7 @@ A bulk favorite also used to skip the XMP/EXIF rating write that a single
 edit gets from ``Photo.save()``; it now queues that write as a job.
 """
 
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -20,8 +21,18 @@ from rest_framework.test import APIClient
 from api.metadata.jobs import write_photo_ratings
 from api.metadata.tags import Tags
 from api.models import Photo, User
+from api.models.photo import trash_photos
 from api.photos.selection import build_photo_queryset
-from api.tests.utils import create_test_photos, create_test_stack, create_test_user
+from api.serializers.photos import (
+    PhotoSummarySerializer,
+    with_photo_summary_relations,
+)
+from api.tests.utils import (
+    create_test_duplicate,
+    create_test_photos,
+    create_test_stack,
+    create_test_user,
+)
 
 ENDPOINTS = (
     ("/api/photosedit/favorite/", "favorite"),
@@ -283,3 +294,83 @@ class NoTimestampSelectAllTest(TestCase):
                     self.user, {"no_timestamp": value, "show_all_stack_photos": True}
                 )
                 self.assertEqual(selected.count(), 7)
+
+
+class TrashedAtTest(TestCase):
+    """Every path that sets ``in_trashcan`` sets ``trashed_at`` with it (#2203)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.photos = create_test_photos(number_of_photos=2, owner=self.user)
+        self.hashes = [p.image_hash for p in self.photos]
+
+    def set_deleted(self, body):
+        response = self.client.post("/api/photosedit/setdeleted/", body, format="json")
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def trashed_at(self):
+        return [Photo.objects.get(pk=photo.pk).trashed_at for photo in self.photos]
+
+    def test_trashing_by_hash_stamps_the_time_and_restoring_clears_it(self):
+        before = timezone.now()
+        self.set_deleted({"image_hashes": self.hashes, "deleted": True})
+        for trashed_at in self.trashed_at():
+            self.assertIsNotNone(trashed_at)
+            self.assertGreaterEqual(trashed_at, before)
+
+        self.set_deleted({"image_hashes": self.hashes, "deleted": False})
+        self.assertEqual(self.trashed_at(), [None, None])
+
+    def test_select_all_trashes_and_restores_with_the_date(self):
+        self.set_deleted({"select_all": True, "query": {}, "deleted": True})
+        self.assertNotIn(None, self.trashed_at())
+
+        self.set_deleted(
+            {"select_all": True, "query": {"in_trashcan": True}, "deleted": False}
+        )
+        self.assertEqual(self.trashed_at(), [None, None])
+
+    def test_trashing_again_keeps_the_first_date(self):
+        long_ago = timezone.now() - timedelta(days=40)
+        Photo.objects.filter(pk=self.photos[0].pk).update(
+            in_trashcan=True, trashed_at=long_ago
+        )
+
+        trash_photos(Photo.objects.filter(pk__in=[p.pk for p in self.photos]))
+
+        first, second = self.trashed_at()
+        self.assertEqual(first, long_ago)
+        self.assertIsNotNone(second)
+
+    def test_resolving_a_duplicate_stamps_the_trashed_photos(self):
+        kept, other = self.photos
+        duplicate = create_test_duplicate(owner=self.user)
+        duplicate.photos.add(kept, other)
+
+        duplicate.resolve(kept)
+
+        self.assertEqual(duplicate.trashed_count, 1)
+        kept_at, other_at = self.trashed_at()
+        self.assertIsNone(kept_at)
+        self.assertIsNotNone(other_at)
+
+        duplicate.revert()
+
+        self.assertEqual(self.trashed_at(), [None, None])
+        self.assertFalse(Photo.objects.get(pk=other.pk).in_trashcan)
+
+    def test_the_photo_summary_carries_trashed_at(self):
+        self.set_deleted({"image_hashes": self.hashes[:1], "deleted": True})
+
+        rows = PhotoSummarySerializer(
+            with_photo_summary_relations(
+                Photo.objects.filter(pk__in=[p.pk for p in self.photos])
+            ),
+            many=True,
+        ).data
+
+        by_hash = {row["image_hash"]: row["trashed_at"] for row in rows}
+        self.assertIsNotNone(by_hash[self.hashes[0]])
+        self.assertIsNone(by_hash[self.hashes[1]])

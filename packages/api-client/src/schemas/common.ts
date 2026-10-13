@@ -106,6 +106,9 @@ export const PigPhoto = z.object({
   exif_gps_lon: z.number().nullable().optional(),
   removed: z.boolean().optional(),
   in_trashcan: z.boolean().optional(),
+  // When the photo went to the trash (ISO date-time), null outside it (#2203).
+  // Optional: older backends do not send it.
+  trashed_at: z.string().nullable().optional(),
   stacks: PhotoStackSummary.array().nullable().optional(),
   has_raw_variant: z.boolean().optional().default(false),
   // The user's rotation (an EXIF orientation value, 1 = none). Optional:
