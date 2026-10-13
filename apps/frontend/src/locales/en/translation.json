@@ -362,6 +362,7 @@
       "classify_media": "Classify Media Categories",
       "generate_ocr": "Extract Text (OCR)",
       "probe_videos": "Probe Videos",
+      "detect_stacks": "Detect Stacks",
       "unknown": "Other job ({{name}})"
     }
   },

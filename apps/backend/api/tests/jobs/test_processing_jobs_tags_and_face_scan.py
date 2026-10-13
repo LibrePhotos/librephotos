@@ -114,7 +114,7 @@ class GenerateTagsCharacterizationTest(TestCase):
 
     # ---- incremental vs full scan -----------------------------------
 
-    def test_incremental_scan_only_processes_photos_added_after_last_scan(self):
+    def _previous_tags_run(self, outcome):
         now = timezone.now()
         last = LongRunningJob.create_job(
             user=self.user,
@@ -123,51 +123,37 @@ class GenerateTagsCharacterizationTest(TestCase):
         )
         last.started_at = now - timedelta(hours=1)
         last.save(update_fields=["started_at"])
-        last.complete()
+        getattr(last, outcome)()
 
+    def _photos_before_and_after_the_previous_run(self):
+        now = timezone.now()
         old = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
         new = create_test_photo(owner=self.user)
         Photo.objects.filter(pk=new.pk).update(added_on=now)
+        return old, new
+
+    def test_a_photo_a_cancelled_run_left_untagged_is_tagged_next_time(self):
+        """#2212: the cancelled run never reached it."""
+        self._previous_tags_run("cancel")
+        old, new = self._photos_before_and_after_the_previous_run()
 
         with patch.object(processing_jobs, "enqueue_task") as async_task:
-            generate_tags(self.user, self.job_id, full_scan=False)
+            generate_tags(self.user, self.job_id)
 
-        self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1], new.pk)
+        queued = {call.args[1] for call in async_task.call_args_list}
+        self.assertEqual(queued, {old.pk, new.pk})
 
-    def test_full_scan_ignores_last_scan_cutoff(self):
-        now = timezone.now()
-        last = LongRunningJob.create_job(
-            user=self.user,
-            job_type=LongRunningJob.JOB_GENERATE_TAGS,
-            start_now=True,
-        )
-        last.started_at = now - timedelta(hours=1)
-        last.save(update_fields=["started_at"])
-        last.complete()
-
-        old = create_test_photo(owner=self.user)
-        Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
-        create_test_photo(owner=self.user)
+    def test_every_untagged_photo_is_selected_after_a_completed_run(self):
+        """Tags select by need: a photo the last run failed on is retried."""
+        self._previous_tags_run("complete")
+        old, new = self._photos_before_and_after_the_previous_run()
 
         with patch.object(processing_jobs, "enqueue_task") as async_task:
-            generate_tags(self.user, self.job_id, full_scan=True)
+            generate_tags(self.user, self.job_id)
 
-        self.assertEqual(async_task.call_count, 2)
-
-    def test_unfinished_previous_job_is_not_treated_as_last_scan(self):
-        LongRunningJob.create_job(
-            user=self.user,
-            job_type=LongRunningJob.JOB_GENERATE_TAGS,
-            start_now=True,
-        )  # never completed -> not a cutoff
-        create_test_photo(owner=self.user)
-
-        with patch.object(processing_jobs, "enqueue_task") as async_task:
-            generate_tags(self.user, self.job_id, full_scan=False)
-
-        self.assertEqual(async_task.call_count, 1)
+        queued = {call.args[1] for call in async_task.call_args_list}
+        self.assertEqual(queued, {old.pk, new.pk})
 
     # ---- cancellation / error ---------------------------------------
 

@@ -86,7 +86,7 @@ class QueuedTasksCarryPrimaryKeysTest(TestCase):
 
     def _queued_payload(self, dispatcher):
         with patch.object(processing_jobs, "enqueue_task") as async_task:
-            dispatcher(self.user, uuid.uuid4(), True)
+            dispatcher(self.user, uuid.uuid4())
         self.assertEqual(async_task.call_count, 1)
         return async_task.call_args.args[1]
 

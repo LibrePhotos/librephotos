@@ -323,11 +323,11 @@ class BatchDetectStacksTestCase(TestCase):
 
         batch_detect_stacks(self.user)
 
-        job = LongRunningJob.objects.filter(
-            started_by=self.user,
-            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        ).first()
-        self.assertIsNotNone(job)
+        # Its own type: a Scan Photos row would become the incremental
+        # scan's baseline (#2192).
+        job = LongRunningJob.objects.get(started_by=self.user)
+        self.assertEqual(job.job_type, LongRunningJob.JOB_DETECT_STACKS)
+        self.assertEqual(job.get_job_type_display(), "Detect Stacks")
 
     @patch("api.stacks.detection.detect_burst_sequences")
     def test_handles_exception(self, mock_burst):

@@ -116,6 +116,21 @@ class ScanQueuedTest(TestCase):
             response = self.client.post("/api/scanphotos/")
         self.assertEqual(response.status_code, 200)
 
+    def test_stack_detection_and_a_scan_do_not_block_each_other(self):
+        with (
+            patch("api.jobs.queue.AsyncTask"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            stacks = self.client.post("/api/stacks/detect/", {}, format="json")
+            scan = self.client.post("/api/scanphotos/")
+            again = self.client.post("/api/stacks/detect/", {}, format="json")
+
+        self.assertEqual(stacks.status_code, 202)
+        self.assertEqual(scan.status_code, 200)
+        # A second stack detection is refused like any other duplicate start.
+        self.assertEqual(again.status_code, 409)
+        self.assertEqual(api_error(again)["job_id"], stacks.json()["job_id"])
+
 
 class DetectionJobIdTest(TestCase):
     def setUp(self):
@@ -156,6 +171,7 @@ class DetectionJobIdTest(TestCase):
 
         job = LongRunningJob.objects.get()
         self.assertEqual(job.job_id, job_id)
+        self.assertEqual(job.job_type, LongRunningJob.JOB_DETECT_STACKS)
         self.assertIsNotNone(job.started_at)
         self.assertTrue(job.finished)
 

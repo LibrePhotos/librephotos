@@ -373,7 +373,7 @@ def batch_detect_stacks(
 
     # The row queued with the task (api.jobs.queue); None when it was
     # cancelled while it waited.
-    job = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_PHOTOS, job_id)
+    job = LongRunningJob.claim(user, LongRunningJob.JOB_DETECT_STACKS, job_id)
     if job is None:
         return
 

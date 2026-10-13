@@ -355,6 +355,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             queued_at=timezone.now(),
             started_at=timezone.now() - datetime.timedelta(days=2, hours=1),
             finished=True,
+            result={"library_scan": True},
             finished_at=timezone.now() - datetime.timedelta(days=2),
         )
         newest = create_test_job(
@@ -364,6 +365,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             queued_at=timezone.now(),
             started_at=timezone.now() - datetime.timedelta(hours=1),
             finished=True,
+            result={"library_scan": True},
             finished_at=timezone.now(),
         )
         res = self.run_scan(walk_result=["/p/a.jpg"])
@@ -380,6 +382,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             started_at=timezone.now() - datetime.timedelta(days=1, hours=1),
             finished=True,
+            result={"library_scan": True},
             finished_at=timezone.now() - datetime.timedelta(days=1),
         )
         never_started = create_test_job(
@@ -414,6 +417,7 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             queued_at=timezone.now(),
             finished=True,
+            result={"library_scan": True},
             finished_at=timezone.now(),
         )
         res = self.run_scan(walk_result=["/p/a.jpg"])
@@ -480,9 +484,11 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         geo = res["tasks"].find(scan_jobs.add_geolocation)
         self.assertEqual(len(tags), 1)
         self.assertEqual(len(geo), 1)
-        # (user,), with job_id and full_scan by name
+        # (user,), with job_id by name; tags select by need, geolocation
+        # takes full_scan.
         self.assertEqual(tags[0][1], (self.user,))
-        self.assertTrue(tags[0][2]["full_scan"])
+        self.assertNotIn("full_scan", tags[0][2])
+        self.assertTrue(geo[0][2]["full_scan"])
         tags_job = LongRunningJob.objects.get(job_id=tags[0][2]["job_id"])
         self.assertEqual(tags_job.job_type, LongRunningJob.JOB_GENERATE_TAGS)
         self.assertIsNone(tags_job.started_at)

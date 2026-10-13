@@ -98,17 +98,14 @@ def _limit_to_photos_added_since_last_scan(
     job_type: int,
     full_scan: bool,
 ) -> QuerySet[Photo]:
-    """Narrow ``existing_photos`` to the photos an incremental run should cover."""
+    """Narrow ``existing_photos`` to the photos an incremental run should cover.
+
+    Those added since the last run that went through all of its photos
+    started; a cancelled or aborted run is not a baseline (#2212).
+    """
     if full_scan:
         return existing_photos
-    # A run cancelled or timed out while queued finished without starting.
-    last_scan = (
-        LongRunningJob.objects.filter(finished=True, started_at__isnull=False)
-        .filter(job_type=job_type)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
+    last_scan = LongRunningJob.baseline_for(user, job_type)
     if not last_scan:
         return existing_photos
     return existing_photos.filter(added_on__gt=last_scan.started_at)
@@ -185,26 +182,24 @@ def _untagged_photos(user: User) -> QuerySet[Photo]:
     )
 
 
-def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
+def generate_tags(user: User, job_id: UUID) -> None:
     """
-    Generate image tags with the active tagging model for photos.
+    Generate image tags with the active tagging model for every untagged photo.
+
+    The photos are selected by need, not by when they were added: a photo a
+    cancelled or failed run did not reach is picked up by the next one
+    (#2212), like the search embeddings job does.
 
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
-        full_scan: If True, process all photos; otherwise only new ones
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_TAGS, job_id)
     if lrj is None:
         return
 
     try:
-        existing_photos = _limit_to_photos_added_since_last_scan(
-            _untagged_photos(user),
-            user,
-            LongRunningJob.JOB_GENERATE_TAGS,
-            full_scan,
-        )
+        existing_photos = _untagged_photos(user)
         if not _begin_photo_scan(lrj, existing_photos):
             return
 
@@ -298,22 +293,15 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
             lrj.complete()
             return
 
-        # Baseline for the incremental delta: the most recent finished OCR run
-        # that actually had work to do. Zero-target runs (a disabled no-op, or a
-        # pass over an empty/fully-done library) are excluded so they never
+        # Baseline for the incremental delta: the most recent OCR run that
+        # went through its work and actually had some. Zero-target runs (a
+        # disabled no-op, or a pass over an empty/fully-done library) never
         # establish a watermark -- otherwise enabling OCR later, then running
         # incrementally, would skip every pre-existing photo because they all
         # predate the placeholder job. A stale (older-than-ideal) baseline can
         # only widen the candidate scan; the engine-exclude below still prevents
         # any already-done photo from being reprocessed, so this is safe.
-        last_scan = (
-            LongRunningJob.objects.filter(finished=True)
-            .filter(job_type=LongRunningJob.JOB_GENERATE_OCR)
-            .filter(started_by=user)
-            .exclude(progress_target=0)
-            .order_by("-finished_at")
-            .first()
-        )
+        last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_GENERATE_OCR)
 
         existing_photos = Photo.objects.owned_by(user).filter(video=False)
         if not full_scan:

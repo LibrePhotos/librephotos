@@ -4,8 +4,6 @@
 # (api/models/scopes.py) and lower the count in the same change. Never add a file.
 api/albums/auto_albums.py: 2
 api/directory_watcher/file_handlers.py: 2
-api/directory_watcher/processing_jobs.py: 2
-api/directory_watcher/scan_jobs.py: 1
 api/duplicates/detection.py: 1
 api/faces/classify.py: 12
 api/models/album_date.py: 3

@@ -536,6 +536,27 @@ class GenerateOcrJobTest(TestCase):
         self.assertEqual(mock_post.call_count, 1)
 
     @patch("api.runtime.sidecars.http.post")
+    def test_a_cancelled_run_is_not_the_baseline(self, mock_post):
+        """#2212: a run cancelled before it reached the photo leaves it for the next."""
+        mock_post.return_value = _ok_response()
+        photo = create_test_photo(owner=self.user)
+        later = timezone.now() + timedelta(hours=1)
+        create_test_job(
+            started_by=self.user,
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            started_at=later,
+            finished=True,
+            finished_at=later,
+            cancelled=True,
+            progress_target=5,
+            progress_current=1,
+        )
+
+        self._run()
+
+        self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
+
+    @patch("api.runtime.sidecars.http.post")
     def test_cancellation_stops_dispatch(self, mock_post):
         mock_post.return_value = _ok_response()
         create_test_photo(owner=self.user)

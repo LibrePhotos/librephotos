@@ -9263,10 +9263,11 @@
           16,
           17,
           18,
-          19
+          19,
+          22
         ],
         "type": "integer",
-        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos"
+        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks"
       },
       "KindEnum": {
         "enum": [

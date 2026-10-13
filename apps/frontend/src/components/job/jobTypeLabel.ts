@@ -23,6 +23,7 @@ const JOB_TYPE_KEYS: Partial<Record<number, ParseKeys>> = {
   17: "jobs.type.classify_media",
   18: "jobs.type.generate_ocr",
   19: "jobs.type.probe_videos",
+  22: "jobs.type.detect_stacks",
 };
 
 /**
