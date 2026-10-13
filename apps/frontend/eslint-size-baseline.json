@@ -8,6 +8,6 @@
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 427, "function": 408 },
   "src/components/lightbox/VideoPlayer.tsx": { "lines": 416, "function": 367 },
   "src/components/settings/Profile.tsx": { "function": 328 },
-  "src/components/react-pig/index.tsx": { "function": 320 },
+  "src/components/react-pig/index.tsx": { "function": 318 },
   "src/components/modals/ModalUserEdit.tsx": { "function": 251 }
 }
