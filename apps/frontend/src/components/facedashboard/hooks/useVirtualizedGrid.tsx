@@ -7,6 +7,8 @@ import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
 import { FacesTab } from "../facesTab";
+import { needsCoverPage } from "../personCover";
+import { PAGE_SIZE } from "./useFaceDataFetching";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */
 export type GridCell = CompletePersonFace | PersonFace;
@@ -34,6 +36,19 @@ export function isLoadedFace(cell: GridCell): cell is FaceCell {
 }
 
 type RenderedSection = SectionRenderedParams;
+
+/**
+ * The page (of its person's faces) that a rendered cell needs: a placeholder face its own page, a
+ * collapsed cluster the first page, for its cover face (#860).
+ */
+function pageNeededBy(cell: GridCell, collapsed: ReadonlySet<number>): { page: number; person: number } | null {
+  if (isPersonCell(cell)) {
+    return collapsed.has(cell.id) && needsCoverPage(cell) ? { page: 1, person: cell.id } : null;
+  }
+  // fetchIncompleteFaces gives each placeholder its person's id, and its index as its id
+  if (!cell.isTemp || typeof cell.person !== "number") return null;
+  return { page: Math.ceil((cell.id + 1) / PAGE_SIZE), person: cell.person };
+}
 
 // Custom hook to manage grid functionality
 export function useVirtualizedGrid(
@@ -159,24 +174,23 @@ export function useVirtualizedGrid(
       const startIndex = flatCells.indexOf(startPoint);
       const endIndex = flatCells.indexOf(endPoint);
 
-      const relevantInfos = flatCells
-        .slice(startIndex, endIndex + 1)
-        // The placeholders, which fetchIncompleteFaces gives their person's id
-        .filter(
-          (cell): cell is PersonFace & { person: number } =>
-            !isPersonCell(cell) && !!cell.isTemp && typeof cell.person === "number"
-        )
-        .map(i => ({
-          // A placeholder's id is its index in the person's faces
-          page: Math.ceil((i.id + 1) / 100),
-          person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
-          inferred: activeTab !== FacesTab.enum.labeled,
-          method: analysisMethod,
-        }));
+      const relevantInfos = flatCells.slice(startIndex, endIndex + 1).flatMap(cell => {
+        const needed = pageNeededBy(cell, collapsedPersons[activeTab]);
+        return needed
+          ? [
+              {
+                page: needed.page,
+                person: activeTab === FacesTab.enum.unknown ? 0 : needed.person,
+                inferred: activeTab !== FacesTab.enum.labeled,
+                method: analysisMethod,
+              },
+            ]
+          : [];
+      });
 
       onSectionChange(uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
     },
-    [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]
+    [activeTab, analysisMethod, collapsedPersons, getCellContentsForTab, getEndpointCell, onSectionChange]
   );
 
   // Handle section rendering and detect visible cells

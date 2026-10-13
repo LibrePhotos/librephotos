@@ -450,11 +450,6 @@
       "count": 1
     }
   },
-  "src/components/facedashboard/HeaderButtons.tsx": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 3
-    }
-  },
   "src/components/facedashboard/TabComponent.tsx": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1

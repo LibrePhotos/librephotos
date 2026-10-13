@@ -35,7 +35,7 @@ export function FaceDashboard() {
 
   const navigate = useNavigate();
   const search = routeApi.useSearch();
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence, personOrder } = search;
 
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
@@ -64,7 +64,8 @@ export function FaceDashboard() {
     activeTab,
     analysisMethod,
     orderBy,
-    minConfidence
+    minConfidence,
+    personOrder
   );
 
   const showLightbox = useCallback(
@@ -309,6 +310,7 @@ export function FaceDashboard() {
             onToggleCollapse={handleToggleCollapse}
             faceActions={faceActions.actions}
             pendingFaceIds={faceActions.pendingFaceIds}
+            showScrubber={personOrder === "name"}
           />
         )}
         <ModalPersonEdit

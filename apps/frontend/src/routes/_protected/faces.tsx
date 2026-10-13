@@ -2,7 +2,7 @@ import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
-import { FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
+import { FacesPersonOrder, FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
 
 // Default values for URL parameters
 const DEFAULT_VALUES = {
@@ -10,6 +10,7 @@ const DEFAULT_VALUES = {
   analysisMethod: FaceAnalysisMethod.enum.clustering,
   orderBy: FaceOrderBy.enum.confidence,
   minConfidence: 0.7,
+  personOrder: FacesPersonOrder.enum.name,
 };
 
 // Every parameter may be left out of a link, and one that is missing or invalid gets its
@@ -32,6 +33,8 @@ const FacesSearch = z.object({
     .transform(value => Math.min(1, Math.max(0, value)))
     .default(DEFAULT_VALUES.minConfidence)
     .catch(DEFAULT_VALUES.minConfidence),
+  // The order of the people, not of their faces (#764)
+  personOrder: FacesPersonOrder.default(DEFAULT_VALUES.personOrder).catch(DEFAULT_VALUES.personOrder),
 });
 
 export const Route = createFileRoute("/_protected/faces")({

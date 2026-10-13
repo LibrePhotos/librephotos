@@ -12,6 +12,7 @@ type FacesSearch = {
   method: string;
   orderBy: string;
   minConfidence: number;
+  personOrder: string;
 };
 
 // The Standard Schema interface TanStack Router validates the search with
@@ -98,7 +99,20 @@ describe("faces route search", () => {
     expect(validate({ orderBy: "CONFIDENCE" }).orderBy).toBe("confidence");
   });
 
+  it("keeps a known person order and falls back to name order for any other (#764)", () => {
+    expect(validate({}).personOrder).toBe("name");
+    expect(validate({ personOrder: "count" }).personOrder).toBe("count");
+    expect(validate({ personOrder: "bogus" }).personOrder).toBe("name");
+    expect(validate({ personOrder: 3 }).personOrder).toBe("name");
+  });
+
   it("fills in every default for a link without search params", () => {
-    expect(validate({})).toEqual({ tab: "inferred", method: "clustering", orderBy: "confidence", minConfidence: 0.7 });
+    expect(validate({})).toEqual({
+      tab: "inferred",
+      method: "clustering",
+      orderBy: "confidence",
+      minConfidence: 0.7,
+      personOrder: "name",
+    });
   });
 });

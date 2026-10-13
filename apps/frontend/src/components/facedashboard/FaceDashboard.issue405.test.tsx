@@ -32,6 +32,7 @@ import { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
+import { PersonCell } from "./PersonCell";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -101,40 +102,60 @@ type HeaderProps = React.ComponentProps<typeof HeaderComponent>;
 const nameOf = (cell: GridCell | undefined) => (cell && isPersonCell(cell) ? cell.name : undefined);
 const isPlaceholderFace = (cell: GridCell): cell is PersonFace => !isPersonCell(cell) && cell.isTemp === true;
 
-async function renderHeader(
-  cell: HeaderProps["cell"],
-  isCollapsed: boolean,
-  onToggleCollapse: () => void,
-  setSelectedFaces: HeaderProps["setSelectedFaces"] = () => {}
-) {
+async function renderInContainer(element: React.ReactElement) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(
-      <MantineProvider>
-        <HeaderComponent
-          cell={cell}
-          style={{}}
-          selectedFaces={[]}
-          setSelectedFaces={setSelectedFaces}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={onToggleCollapse}
-        />
-      </MantineProvider>
-    );
+    root.render(<MantineProvider>{element}</MantineProvider>);
   });
-  const toggle = container.querySelector<HTMLButtonElement>("button[aria-expanded]");
   return {
-    toggle,
-    selectAll: container.querySelector<HTMLInputElement>("input[type='checkbox']"),
-    text: container.textContent ?? "",
+    container,
     cleanup: async () => {
       await act(async () => {
         root.unmount();
       });
       container.remove();
     },
+  };
+}
+
+async function renderPersonCell(cell: CompletePersonFace, onExpand: () => void) {
+  const view = await renderInContainer(
+    <PersonCell
+      person={cell}
+      coverUrl={undefined}
+      style={{}}
+      entrySquareSize={131}
+      onExpand={onExpand}
+      takeFocus={false}
+      onFocused={() => {}}
+    />
+  );
+  return { ...view, toggle: view.container.querySelector<HTMLButtonElement>("button[aria-expanded]") };
+}
+
+async function renderHeader(
+  cell: HeaderProps["cell"],
+  onToggleCollapse: () => void,
+  setSelectedFaces: HeaderProps["setSelectedFaces"] = () => {}
+) {
+  const view = await renderInContainer(
+    <HeaderComponent
+      cell={cell}
+      style={{}}
+      selectedFaces={[]}
+      setSelectedFaces={setSelectedFaces}
+      onToggleCollapse={onToggleCollapse}
+      coverUrl={undefined}
+      takeFocus={false}
+      onFocused={() => {}}
+    />
+  );
+  return {
+    ...view,
+    toggle: view.container.querySelector<HTMLButtonElement>("button[aria-expanded]"),
+    selectAll: view.container.querySelector<HTMLInputElement>("input[type='checkbox']"),
   };
 }
 
@@ -246,11 +267,11 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     expect(nameOf(cellContents[1]?.[0])).toBe("Bob");
   });
 
-  it("keeps every person reachable when all groups are collapsed", () => {
+  it("keeps every person reachable when all groups are collapsed, side by side (#860)", () => {
     const { cellContents } = calculateFaceGridCells(PEOPLE, ITEMS_PER_ROW, new Set([1, 2]));
 
-    expect(cellContents).toHaveLength(PEOPLE.length);
-    expect(cellContents.map(row => nameOf(row[0]))).toEqual(["Alice", "Bob"]);
+    expect(cellContents).toHaveLength(1);
+    expect(defined(cellContents[0], "the row of people").map(nameOf)).toEqual(["Alice", "Bob"]);
   });
 
   it("stops the lazy loader from paging in the faces of a collapsed person", () => {
@@ -264,10 +285,10 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
 
   it("shows the face count and an expandable toggle while collapsed", async () => {
     const toggled: number[] = [];
-    const { toggle, text, cleanup } = await renderHeader(ALICE, true, () => toggled.push(ALICE.id));
+    const { toggle, container, cleanup } = await renderPersonCell(ALICE, () => toggled.push(ALICE.id));
 
     // Collapsed, the count is the only remaining signal of how big the group is
-    expect(text).toContain("9 Faces");
+    expect(container.textContent).toContain("9 Faces");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
     expect(toggle?.getAttribute("aria-label")).toBe("Expand Alice");
 
@@ -280,7 +301,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
   });
 
   it("labels the toggle as collapsible while expanded", async () => {
-    const { toggle, cleanup } = await renderHeader(ALICE, false, () => {});
+    const { toggle, cleanup } = await renderHeader(ALICE, () => {});
 
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
     expect(toggle?.getAttribute("aria-label")).toBe("Collapse Alice");
@@ -301,7 +322,6 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     const selections: Parameters<HeaderProps["setSelectedFaces"]>[0][] = [];
     const { selectAll, cleanup } = await renderHeader(
       alice,
-      false,
       () => {},
       faces => selections.push(faces)
     );

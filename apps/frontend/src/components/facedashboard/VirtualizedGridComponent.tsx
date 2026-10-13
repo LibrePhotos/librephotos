@@ -1,5 +1,5 @@
 import cx from "clsx";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
@@ -12,8 +12,11 @@ import type { FaceActionHandlers } from "./faceActionRules";
 import { FaceComponent } from "./FaceComponent";
 import type { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
+import { usePeopleCovers } from "./hooks/usePeopleCovers";
 import type { FaceCell, FaceSelection, GridCell, GridRows } from "./hooks/useVirtualizedGrid";
 import { isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
+import { PersonCell } from "./PersonCell";
+import { coverFaceUrl } from "./personCover";
 import classes from "./VirtualizedGridComponent.module.css";
 
 type VirtualizedGridComponentProps = {
@@ -38,7 +41,11 @@ type VirtualizedGridComponentProps = {
   onToggleCollapse: (personId: number) => void;
   faceActions: FaceActionHandlers;
   pendingFaceIds: ReadonlySet<number>;
+  /** The A-Z scrubber only fits the name order (#764). */
+  showScrubber: boolean;
 };
+
+const NO_SCROLL_POSITIONS: ScrollerData[] = [];
 
 export function VirtualizedGridComponent({
   containerRef,
@@ -62,8 +69,21 @@ export function VirtualizedGridComponent({
   onToggleCollapse,
   faceActions,
   pendingFaceIds,
+  showScrubber,
 }: VirtualizedGridComponentProps) {
   const rows = getCellContentsForTab(activeTab);
+  // The People page's cover of each person, for the headers and the grid of people (#860)
+  const ownCovers = usePeopleCovers();
+  // Folding swaps a person's header for a cell (and back): the person whose new control takes focus
+  const [focusPerson, setFocusPerson] = useState<number | null>(null);
+  const toggleCollapse = useCallback(
+    (personId: number) => {
+      setFocusPerson(personId);
+      onToggleCollapse(personId);
+    },
+    [onToggleCollapse]
+  );
+  const focusTaken = useCallback(() => setFocusPerson(null), []);
   // A face's actions depend on its group (person, cluster or unknown), which is the header above it
   const rowGroups = useMemo(() => groupsByRow(rows), [rows]);
 
@@ -74,15 +94,30 @@ export function VirtualizedGridComponent({
       if (!cell) return null;
 
       if (isPersonCell(cell)) {
-        return (
+        const coverUrl = coverFaceUrl(cell, ownCovers.get(cell.id));
+        // A collapsed person is one cell of a grid of people (#860)
+        return collapsedPersons.has(cell.id) ? (
+          <PersonCell
+            key={key}
+            style={style}
+            person={cell}
+            coverUrl={coverUrl}
+            entrySquareSize={entrySquareSize}
+            onExpand={() => toggleCollapse(cell.id)}
+            takeFocus={focusPerson === cell.id}
+            onFocused={focusTaken}
+          />
+        ) : (
           <HeaderComponent
             key={key}
             style={style}
             cell={cell}
             selectedFaces={selectedFaces}
             setSelectedFaces={setSelectedFaces}
-            isCollapsed={collapsedPersons.has(cell.id)}
-            onToggleCollapse={() => onToggleCollapse(cell.id)}
+            onToggleCollapse={() => toggleCollapse(cell.id)}
+            coverUrl={coverUrl}
+            takeFocus={focusPerson === cell.id}
+            onFocused={focusTaken}
           />
         );
       }
@@ -121,7 +156,10 @@ export function VirtualizedGridComponent({
       rowGroups,
       setSelectedFaces,
       collapsedPersons,
-      onToggleCollapse,
+      toggleCollapse,
+      focusPerson,
+      focusTaken,
+      ownCovers,
       faceActions,
       pendingFaceIds,
     ]
@@ -132,7 +170,7 @@ export function VirtualizedGridComponent({
       <AutoSizer>
         {({ height, width: gridWidth }) => (
           <ScrollScrubber
-            scrollPositions={getScrollPositions()}
+            scrollPositions={showScrubber ? getScrollPositions() : NO_SCROLL_POSITIONS}
             scrollToY={handleScrubberScroll}
             targetHeight={gridHeight}
             type={ScrollerType.enum.alphabet}

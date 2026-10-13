@@ -3,13 +3,13 @@ import { useDisclosure } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { CompletePersonFace } from "../../api_client/faces/types";
-import { mediaUrl } from "../../api_client/media/mediaUrl";
 import type { FaceActionHandlers } from "./faceActionRules";
 import { FaceActions } from "./FaceActions";
 import classes from "./FaceComponent.module.css";
 import type { FacesTab } from "./facesTab";
 import { FaceTooltip } from "./FaceTooltip";
 import type { FaceCell } from "./hooks/useVirtualizedGrid";
+import { faceImageUrl } from "./personCover";
 
 type Props = Readonly<{
   cell: FaceCell;
@@ -33,12 +33,6 @@ export const calculateProbabiltyColor = (labelProbability: number) => {
   if (labelProbability > 0.7) return "orange";
   return "red";
 };
-
-function getFaceImageUrl(image: string): string {
-  // image is a URL, e.g. http://backend/path/to/file.jpg
-  const fileName = image.split("/").at(-1) ?? "";
-  return mediaUrl.face(fileName);
-}
 
 export function FaceComponent({
   cell,
@@ -94,7 +88,7 @@ export function FaceComponent({
               }}
             >
               {/* A paged-in face always has its image; null would only be a placeholder's */}
-              <Avatar radius="md" src={cell.image ? getFaceImageUrl(cell.image) : undefined} size={entrySize} />
+              <Avatar radius="md" src={cell.image ? faceImageUrl(cell.image) : undefined} size={entrySize} />
             </UnstyledButton>
           </Indicator>
         </FaceTooltip>

@@ -18,3 +18,8 @@
 .nameChipIcon {
   flex-shrink: 0;
 }
+
+/* The cover face keeps its size when a long name squeezes the row */
+.cover {
+  flex-shrink: 0;
+}
