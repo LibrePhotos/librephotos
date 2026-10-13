@@ -59,7 +59,9 @@ afterEach(async () => {
 });
 
 describe("PublicAlbumsGrid", () => {
-  it("mounts fewer than 100 of 500 public albums", async () => {
+  // Legitimately heavy: it hands the grid all 500 albums and lets it measure and mount the first
+  // rows, about 1.1 s of CPU. The default 5 s left no room on a busy machine.
+  it("mounts fewer than 100 of 500 public albums", { timeout: 15_000 }, async () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     const gridRoot = createRoot(container);

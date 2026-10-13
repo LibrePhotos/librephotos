@@ -156,7 +156,9 @@ const selectAll = () =>
     "the Select All checkbox"
   );
 
-describe("deleting duplicate groups", () => {
+// The whole page with its menus and confirmation dialogs, and the first test of the file also pays
+// the cold start of rendering it: up to 1 s of CPU. The default 5 s left no room on a busy machine.
+describe("deleting duplicate groups", { timeout: 15_000 }, () => {
   it("asks before deleting a single group", async () => {
     await render();
     // Each card's icon-only "..." menu holds Delete Group (the filter menus have labels)

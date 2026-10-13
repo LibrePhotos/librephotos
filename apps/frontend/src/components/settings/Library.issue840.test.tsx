@@ -179,7 +179,10 @@ async function renderLibraryIn(language: string) {
 }
 
 describe("issue #840 - library dashboard buttons in long languages", () => {
-  it("reserves room for the localized label of every action button", async () => {
+  // Legitimately heavy: it renders the whole Library page twice, in English and in French, and
+  // reads the computed style of every button label: about 1.4 s of CPU. The default 5 s left no
+  // room on a busy machine.
+  it("reserves room for the localized label of every action button", { timeout: 15_000 }, async () => {
     const english = await renderLibraryIn("en");
     const french = await renderLibraryIn("fr");
 
