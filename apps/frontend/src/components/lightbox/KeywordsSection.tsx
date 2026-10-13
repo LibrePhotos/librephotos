@@ -38,8 +38,9 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
   };
 
   const handleSave = () => {
+    const cleaned = draftKeywords.map(keyword => keyword.trim()).filter(keyword => keyword.length > 0);
     updateMetadata(
-      { photoId: photoDetail.id, updates: { keywords: draftKeywords } },
+      { photoId: photoDetail.id, updates: { keywords: [...new Set(cleaned)] } },
       {
         onSuccess: () => {
           setEditing(false);
@@ -103,7 +104,7 @@ function KeywordsEditor({ photoDetail }: KeywordsSectionProps) {
           value={draftKeywords}
           onChange={setDraftKeywords}
           placeholder={t("lightbox.sidebar.addKeyword")}
-          splitChars={[",", " "]}
+          splitChars={[","]}
           clearable
         />
       ) : keywords.length > 0 ? (
