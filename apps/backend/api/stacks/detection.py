@@ -29,7 +29,7 @@ from typing import TypedDict
 from django.db.models import Q
 
 from api.models import Photo
-from api.models.long_running_job import LongRunningJob
+from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.photo_stack import PhotoStack
 from api.models.user import User
 from api.stacks.burst_rules import (
@@ -269,45 +269,34 @@ def _detect_bursts_soft_criteria(
             # Get rule-specific parameters or use defaults
             interval_ms = rule.params.get("interval_ms", default_interval_ms)
             require_same_camera = rule.params.get("require_same_camera", True)
-
             groups = group_photos_by_timestamp(
                 photos_list, interval_ms, require_same_camera
             )
-
-            for group in groups:
-                # Filter out photos already in burst stacks
-                photos_to_stack = [
-                    p
-                    for p in group
-                    if not p.stacks.filter(
-                        stack_type=PhotoStack.StackType.BURST_SEQUENCE
-                    ).exists()
-                ]
-                if len(photos_to_stack) >= 2:
-                    stack = _create_burst_stack(user, photos_to_stack)
-                    if stack:
-                        stacks_created += 1
-
         elif rule.rule_type == BurstRuleTypes.VISUAL_SIMILARITY:
             similarity_threshold = rule.params.get("similarity_threshold", 15)
-
             groups = group_photos_by_visual_similarity(
                 photos_list, similarity_threshold
             )
+        else:
+            continue
 
-            for group in groups:
-                # Filter out photos already in burst stacks
-                photos_to_stack = [
-                    p
-                    for p in group
-                    if not p.stacks.filter(
-                        stack_type=PhotoStack.StackType.BURST_SEQUENCE
-                    ).exists()
-                ]
-                if len(photos_to_stack) >= 2:
-                    stack = _create_burst_stack(user, photos_to_stack)
-                    if stack:
-                        stacks_created += 1
+        for index, group in enumerate(groups):
+            # The grouping itself is in memory; the stacks are written here,
+            # which is where a cancelled job stops.
+            if progress_callback and index % 100 == 0:
+                progress_callback(index, len(groups), stacks_created)
+            # Filter out photos already in burst stacks
+            photos_to_stack = [
+                p
+                for p in group
+                if not p.stacks.filter(
+                    stack_type=PhotoStack.StackType.BURST_SEQUENCE
+                ).exists()
+            ]
+            if len(photos_to_stack) >= 2:
+                stack = _create_burst_stack(user, photos_to_stack)
+                if stack:
+                    stacks_created += 1
 
     logger.info("Soft criteria burst detection: found %s stacks", stacks_created)
     return stacks_created
@@ -392,6 +381,7 @@ def batch_detect_stacks(
                         "found": found,
                     }
                 )
+                job.stop_if_cancelled()
 
             burst_count = detect_burst_sequences(user, progress_callback=progress_burst)
             total_found += burst_count
@@ -404,6 +394,8 @@ def batch_detect_stacks(
             total_found,
         )
 
+    except JobCancelledError:
+        logger.info("Stack detection job %s was cancelled", job.job_id)
     except Exception as e:
         logger.error("Stack detection failed for %s: %s", user.username, e)
         job.fail(error=e)

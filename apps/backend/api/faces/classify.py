@@ -17,6 +17,7 @@ from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
+from api.models.long_running_job import JobCancelledError
 from api.models.user import User, get_deleted_user
 from api.runtime.features import feature_enabled
 
@@ -149,6 +150,11 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
     lrj.update_progress(current=0, target=1)
 
     try:
+        # The clusters are deleted and then built again, so a cancel is only
+        # honoured before the deletes: stopping in between would leave the
+        # user without clusters. A cancel during the rebuild still skips the
+        # training follow-up (complete() below).
+        lrj.stop_if_cancelled()
         delete_clustered_people(user)
         delete_clusters(user)
         delete_persons_without_faces()
@@ -162,6 +168,9 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         enqueue_followup(user, LongRunningJob.JOB_TRAIN_FACES, train_faces, user)
         return True
 
+    except JobCancelledError:
+        logger.info("Face clustering job %s was cancelled", lrj.job_id)
+        return False
     except Exception as err:
         logger.exception("Face clustering job %s failed", lrj.job_id)
         lrj.fail(error=err)
@@ -481,6 +490,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
     lrj.update_progress(current=1, target=2)
     try:
         data_known, data_unknown = split_faces_by_label(user)
+        lrj.stop_if_cancelled()
 
         if len(data_known["id"]) == 0:
             classifier = None
@@ -497,6 +507,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
         )
 
         # Fit the classifier based on the "known" faces, including the simulated clusters
+        lrj.stop_if_cancelled()
         logger.info("Before cluster fitting")
         cluster_classifier = fit_mlp(filtered_encodings, filtered_ids)
         logger.info("After cluster fitting")
@@ -514,8 +525,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
         if target_count == 0:
             logger.info("No clusters found")
             lrj.update_progress(current=2, target=2)
-            lrj.complete()
-            return True
+            return lrj.complete()
         logger.info("Number of Cluster: %s", target_count)
 
         classifiers = _Classifiers(
@@ -524,6 +534,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
             unknown_cluster=get_unknown_cluster(user=user),
         )
         for start in range(0, len(data_unknown["encoding"]), 100):
+            lrj.stop_if_cancelled()
             classify_face_page(
                 classifiers,
                 data_unknown["encoding"][start : start + 100],
@@ -533,9 +544,11 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
             )
 
         lrj.update_progress(current=target_count, target=target_count)
-        lrj.complete()
-        return True
+        return lrj.complete()
 
+    except JobCancelledError:
+        logger.info("Face training job %s was cancelled", lrj.job_id)
+        return False
     except Exception as err:
         logger.exception("Face training job %s failed", lrj.job_id)
         lrj.fail(error=err)

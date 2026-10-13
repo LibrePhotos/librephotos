@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from django.db.models import Q, QuerySet
 
 from api.jobs.queue import enqueue_followup
-from api.models.long_running_job import LongRunningJob
+from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.photo import Photo
 from api.models.user import User
 from api.search.semantic import (
@@ -138,11 +138,46 @@ def batch_calculate_clip_embedding(
     if converting:
         logger.info("re-embedding photos of user %s with %s", user.id, OPENCLIP)
         _rebuild_index_while_converting(user)
-    since_rebuild = 0
 
+    try:
+        _embed_batches(user, lrj, missing, converting, with_tags)
+    except JobCancelledError:
+        # What was embedded so far is stored; the next run picks up the rest
+        # and rebuilds the index then. Mid-conversion the index only answers
+        # from the photos converted so far, so it takes those in now.
+        logger.info("Search embeddings job %s was cancelled", lrj.job_id)
+        if converting:
+            _rebuild_index_while_converting(user)
+        return
+
+    try:
+        build_image_similarity_index(user)
+    except Exception as e:
+        # The embeddings are stored; only the index is stale. Say so rather
+        # than report a job that left similar-photo search behind as done.
+        logger.error("Error building the similarity index: %s", e)
+        lrj.fail(e)
+        raise
+    lrj.complete()
+
+
+def _embed_batches(
+    user: User,
+    lrj: LongRunningJob,
+    missing: QuerySet[Photo],
+    converting: bool,
+    with_tags: bool,
+) -> None:
+    """Embed ``missing`` in batches, reporting progress on ``lrj``.
+
+    Raises ``JobCancelledError`` between batches once the job was cancelled.
+    """
+    count = lrj.progress_target
+    since_rebuild = 0
     done_count = 0
     last_pk: uuid.UUID | None = None
     while done_count < count:
+        lrj.stop_if_cancelled()
         batch = missing if last_pk is None else missing.filter(pk__gt=last_pk)
         objs = list(batch[:BATCH_SIZE])
         if not objs:
@@ -168,16 +203,6 @@ def batch_calculate_clip_embedding(
         if converting and since_rebuild >= INDEX_REBUILD_EVERY and done_count < count:
             _rebuild_index_while_converting(user)
             since_rebuild = 0
-
-    try:
-        build_image_similarity_index(user)
-    except Exception as e:
-        # The embeddings are stored; only the index is stale. Say so rather
-        # than report a job that left similar-photo search behind as done.
-        logger.error("Error building the similarity index: %s", e)
-        lrj.fail(e)
-        raise
-    lrj.complete()
 
 
 def queue_semantic_search_conversion() -> list[int]:

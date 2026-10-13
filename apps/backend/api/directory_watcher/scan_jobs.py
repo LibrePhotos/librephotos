@@ -33,6 +33,7 @@ from api.directory_watcher.processing_jobs import (
 )
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
+    CANCELLATION_CHECK_INTERVAL,
     SkippedDirectory,
     finish_job_if_complete,
     is_job_cancelled,
@@ -162,6 +163,8 @@ def photo_scanner(
 
     Used primarily for metadata files after the main scan.
     """
+    if is_job_cancelled(job_id):
+        return
     files_to_check = [path]
     files_to_check.extend(existing_sidecars(path))
     if (
@@ -312,7 +315,9 @@ def _queue_scan_work(
     remaining ones have nothing to wait for and are queued directly.
     """
     image_group_id = str(uuid.uuid4())
-    for _, paths in _videos_first(groups_to_process):
+    for idx, (_, paths) in enumerate(_videos_first(groups_to_process)):
+        if _queuing_cancelled(idx, job_id):
+            return
         enqueue_task(handle_file_group, user, paths, job_id, group=image_group_id)
 
     if metadata_paths:
@@ -320,8 +325,18 @@ def _queue_scan_work(
             "Processing %s metadata files for photos outside this scan",
             len(metadata_paths),
         )
-    for path in metadata_paths:
+    for idx, path in enumerate(metadata_paths):
+        if _queuing_cancelled(idx, job_id):
+            return
         photo_scanner(user, last_scan, full_scan, path, job_id)
+
+
+def _queuing_cancelled(idx: int, job_id: UUID | str) -> bool:
+    """Whether the scan was cancelled, checked every so many queued items."""
+    if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+        logger.info("job %s was cancelled, not queuing the rest of the scan", job_id)
+        return True
+    return False
 
 
 # Key in the scan job's ``result`` holding what its follow-ups need. The scan

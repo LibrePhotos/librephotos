@@ -13,6 +13,7 @@ from django.db import models
 
 from api.directory_watcher import handle_new_image
 from api.models import File, LongRunningJob, Photo, User
+from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import is_metadata, is_raw
 from api.photos.paths import folder_path_q, nextcloud_media_root
 from api.search.similarity import build_image_similarity_index
@@ -318,6 +319,7 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
 
         to_add_count = len(paths)
         for idx, image_path in enumerate(paths):
+            lrj.stop_if_cancelled()
             logger.info("begin handling of photo %d/%d", idx + 1, to_add_count)
             handle_new_image(user, image_path, job_id)
             lrj.update_progress(current=idx + 1, target=to_add_count)
@@ -326,6 +328,9 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
         build_image_similarity_index(user)
 
         lrj.complete()
+    except JobCancelledError:
+        logger.info("Nextcloud scan job %s was cancelled", lrj.job_id)
+        return {"status": False}
     except Exception as e:
         logger.exception(str(e))
         lrj.fail(error=e)
