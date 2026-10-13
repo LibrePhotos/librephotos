@@ -1,45 +1,25 @@
-import { PublicSharingDefaults, User, userKeys } from "@librephotos/api-client";
-import { Card, Container, Flex, Group, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
+import { userKeys, type User } from "@librephotos/api-client";
+import { Card, Container, Space, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
-import { useFetchTimezonesQuery } from "../../api_client/settings";
 import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
+import { CaptionContextCard } from "./CaptionContextCard";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
+import { DuplicateDetectionCard } from "./DuplicateDetectionCard";
+import { ExperimentalOptionsCard } from "./ExperimentalOptionsCard";
+import { FaceOptionsCard } from "./FaceOptionsCard";
+import { InterfaceCard } from "./InterfaceCard";
+import { MetadataOptionsCard } from "./MetadataOptionsCard";
+import { PublicSharingDefaultsCard } from "./PublicSharingDefaultsCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
-
-const SLIDESHOW_INTERVALS = [3, 5, 10, 15, 30];
-
-const DuplicateSensitivity = User.shape.duplicate_sensitivity.unwrap();
-
-type LlmSwitch = "enabled" | "add_person" | "add_location";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/**
- * One switch of the stored caption context (llm_settings, which holds whatever a client saved).
- * Each switch is read on its own, so a bad value under another key does not turn it off.
- */
-function llmSwitchOf(settings: unknown, key: LlmSwitch): boolean | undefined {
-  const value = isRecord(settings) ? settings[key] : undefined;
-  return typeof value === "boolean" ? value : undefined;
-}
-
-/**
- * The stored caption context with one switch changed. The other keys keep their values and their
- * order, so switching back gives the saved JSON again and the "Save changes?" prompt closes.
- */
-function withLlmSwitch(settings: unknown, key: LlmSwitch, value: boolean): Record<string, unknown> {
-  return { ...(isRecord(settings) ? settings : {}), [key]: value };
-}
+import { ScanOptionsCard } from "./ScanOptionsCard";
 
 export function Settings() {
   const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
@@ -47,7 +27,6 @@ export function Settings() {
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t } = useTranslation();
-  const { data: timezoneList = [] } = useFetchTimezonesQuery();
   const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const queryClient = useQueryClient();
 
@@ -76,388 +55,33 @@ export function Settings() {
     return null;
   }
 
-  const llmEnabled = llmSwitchOf(editedUserDetails.llm_settings, "enabled");
-  // Face tags are written where the metadata sync writes, so not at all while it is Off (#2293).
-  const metadataSyncOff = (editedUserDetails.save_metadata_to_disk ?? "OFF") === "OFF";
-  // The server always sends the defaults; all off is what it assumes when they are missing.
-  const sharingDefaults = editedUserDetails.public_sharing_defaults ?? PublicSharingDefaults.parse({});
+  const edit = (patch: Partial<User>) => setEditedUserDetails({ ...editedUserDetails, ...patch });
+  const cardProps = { user: editedUserDetails, onChange: edit };
 
   return (
     <Container>
       <PageHeader icon={SettingIcon} title={t("settings.header")} />
       <Stack>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            <Trans i18nKey="settings.scanoptions" />
-          </Title>
-          <Flex align="flex-start" direction="column" gap="md">
-            <Radio.Group
-              description={t("settings.sceneconfidencedescription")}
-              label={t("settings.sceneconfidence")}
-              value={editedUserDetails.confidence?.toString() || "0"}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, confidence: parseFloat(value) || 0 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="0.5" label={t("settings.confidence.high")} />
-                <Radio value="0.1" label={t("settings.confidence.standard")} />
-                <Radio value="0.05" label={t("settings.confidence.low")} />
-                <Radio value="0" label={t("settings.confidence.none")} />
-              </Group>
-            </Radio.Group>
-            <Radio.Group
-              label={t("settings.semanticsearchheader")}
-              description={t("settings.semanticsearch.description")}
-              value={editedUserDetails.semantic_search_topk?.toString()}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, semantic_search_topk: parseInt(value, 10) || 0 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="100" label={t("settings.semanticsearch.top100")} />
-                <Radio value="50" label={t("settings.semanticsearch.top50")} />
-                <Radio value="10" label={t("settings.semanticsearch.top10")} />
-                <Radio value="0" label={t("settings.semanticsearch.top0")} />
-              </Group>
-            </Radio.Group>
-          </Flex>
-        </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            <Trans i18nKey="settings.metadata" />
-          </Title>
-          <Flex align="flex-start" direction="column" gap="md">
-            <Radio.Group
-              label={t("settings.sync")}
-              value={editedUserDetails.save_metadata_to_disk}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, save_metadata_to_disk: value || "OFF" });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} />
-                <Radio value="SIDECAR_FILE" label={t("settings.favoritesyncoptions.sidecar")} />
-                <Radio value="MEDIA_FILE" label={t("settings.favoritesyncoptions.mediafile")} />
-              </Group>
-            </Radio.Group>
-            <Radio.Group
-              label={t("settings.favoriteminimum")}
-              value={editedUserDetails.favorite_min_rating?.toString()}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, favorite_min_rating: parseInt(value, 10) || 3 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="1" label="1" />
-                <Radio value="2" label="2" />
-                <Radio value="3" label="3" />
-                <Radio value="4" label="4" />
-                <Radio value="5" label="5" />
-              </Group>
-            </Radio.Group>
-            <Select
-              label={t("defaulttimezone")}
-              description={t("timezoneexplain")}
-              value={editedUserDetails.default_timezone}
-              placeholder={t("defaulttimezone")}
-              searchable
-              allowDeselect={false}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, default_timezone: value ?? "UTC" });
-              }}
-              data={timezoneList}
-            />
-          </Flex>
-        </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            {t("settings.face_options")}
-          </Title>
-          <Stack gap="md">
-            <Radio.Group
-              label={t("settings.min_cluster_size")}
-              description={t("settings.min_cluster_size_help")}
-              value={editedUserDetails.min_cluster_size ? editedUserDetails.min_cluster_size.toString() : "0"}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, min_cluster_size: parseInt(value, 10) || 0 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="0" label={t("settings.size.auto")} />
-                <Radio value="2" label={2} />
-                <Radio value="4" label={4} />
-                <Radio value="8" label={8} />
-                <Radio value="16" label={16} />
-              </Group>
-            </Radio.Group>
-            <Radio.Group
-              label={t("settings.min_samples")}
-              description={t("settings.min_samples_help")}
-              value={editedUserDetails.min_samples ? editedUserDetails.min_samples.toString() : "1"}
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, min_samples: parseInt(value, 10) || 0 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="1" label={1} />
-                <Radio value="2" label={2} />
-                <Radio value="4" label={4} />
-                <Radio value="8" label={8} />
-                <Radio value="16" label={16} />
-              </Group>
-            </Radio.Group>
-            <Radio.Group
-              label={t("settings.cluster_selection_epsilon")}
-              description={t("settings.cluster_selection_epsilon_help")}
-              value={
-                editedUserDetails.cluster_selection_epsilon
-                  ? editedUserDetails.cluster_selection_epsilon.toString()
-                  : "0.1"
-              }
-              onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, cluster_selection_epsilon: parseFloat(value) || 0 });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="0" label={t("settings.size.off")} />
-                <Radio value="0.025" label={t("settings.size.small")} />
-                <Radio value="0.05" label={t("settings.size.normal")} />
-                <Radio value="0.1" label={t("settings.size.high")} />
-                <Radio value="0.2" label={t("settings.size.veryhigh")} />
-              </Group>
-            </Radio.Group>
-            <Switch
-              label={t("settings.save_face_tags_to_disk")}
-              description={
-                metadataSyncOff
-                  ? t("settings.save_face_tags_to_disk_needs_sync")
-                  : t("settings.save_face_tags_to_disk_help")
-              }
-              checked={editedUserDetails.save_face_tags_to_disk || false}
-              disabled={metadataSyncOff}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  save_face_tags_to_disk: event.currentTarget.checked,
-                });
-              }}
-            />
-          </Stack>
-        </Card>
+        <ScanOptionsCard {...cardProps} />
+        <MetadataOptionsCard {...cardProps} />
+        <FaceOptionsCard {...cardProps} />
         <Card shadow="md">
           <ConfigDateTime
             value={editedUserDetails.datetime_rules}
-            onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, datetime_rules: value || "[]" });
-            }}
+            onChange={value => edit({ datetime_rules: value || "[]" })}
           />
         </Card>
         <Card shadow="md">
           <ConfigBurstDetection
             value={editedUserDetails.burst_detection_rules}
-            onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, burst_detection_rules: value });
-            }}
+            onChange={value => edit({ burst_detection_rules: value })}
           />
         </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            <Trans i18nKey="settings.experimentaloptions" />
-          </Title>
-          <Switch
-            label={t("settings.transcodevideo")}
-            description={t("settings.transcodevideodescription")}
-            checked={editedUserDetails.transcode_videos}
-            onChange={event => {
-              setEditedUserDetails({
-                ...editedUserDetails,
-                transcode_videos: event.currentTarget.checked,
-              });
-            }}
-          />
-        </Card>
-        <Card shadow="md">
-          <Stack>
-            <Title order={4}>
-              <Trans i18nKey="settings.captioncontext" />
-            </Title>
-            <Switch
-              label={t("settings.captioncontextenable")}
-              checked={llmEnabled}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  llm_settings: withLlmSwitch(editedUserDetails.llm_settings, "enabled", event.currentTarget.checked),
-                });
-              }}
-            />
-            <Switch
-              label={t("settings.addperson")}
-              checked={llmSwitchOf(editedUserDetails.llm_settings, "add_person")}
-              disabled={!llmEnabled}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  llm_settings: withLlmSwitch(
-                    editedUserDetails.llm_settings,
-                    "add_person",
-                    event.currentTarget.checked
-                  ),
-                });
-              }}
-            />
-            <Switch
-              label={t("settings.addlocation")}
-              checked={llmSwitchOf(editedUserDetails.llm_settings, "add_location")}
-              disabled={!llmEnabled}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  llm_settings: withLlmSwitch(
-                    editedUserDetails.llm_settings,
-                    "add_location",
-                    event.currentTarget.checked
-                  ),
-                });
-              }}
-            />
-          </Stack>
-        </Card>
-        <Card shadow="md">
-          <Stack>
-            <Title order={4}>
-              <Trans i18nKey="settings.publicsharingdefaults" />
-            </Title>
-            <Text size="sm" c="dimmed">
-              {t("settings.publicsharingdefaultsdesc")}
-            </Text>
-            <Switch
-              label={t("sharing.shareTimestamps")}
-              checked={sharingDefaults.share_timestamps}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  public_sharing_defaults: {
-                    ...sharingDefaults,
-                    share_timestamps: event.currentTarget.checked,
-                  },
-                });
-              }}
-            />
-            <Switch
-              label={t("sharing.shareLocation")}
-              checked={sharingDefaults.share_location}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  public_sharing_defaults: {
-                    ...sharingDefaults,
-                    share_location: event.currentTarget.checked,
-                  },
-                });
-              }}
-            />
-            <Switch
-              label={t("sharing.shareCameraInfo")}
-              checked={sharingDefaults.share_camera_info}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  public_sharing_defaults: {
-                    ...sharingDefaults,
-                    share_camera_info: event.currentTarget.checked,
-                  },
-                });
-              }}
-            />
-            <Switch
-              label={t("sharing.shareCaptions")}
-              checked={sharingDefaults.share_captions}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  public_sharing_defaults: {
-                    ...sharingDefaults,
-                    share_captions: event.currentTarget.checked,
-                  },
-                });
-              }}
-            />
-            <Switch
-              label={t("sharing.shareFaces")}
-              checked={sharingDefaults.share_faces}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  public_sharing_defaults: {
-                    ...sharingDefaults,
-                    share_faces: event.currentTarget.checked,
-                  },
-                });
-              }}
-            />
-          </Stack>
-        </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            <Trans i18nKey="settings.interface" />
-          </Title>
-          <Flex align="flex-start" direction="column" gap="md">
-            <Select
-              label={t("settings.slideshowinterval")}
-              description={t("settings.slideshowintervaldesc")}
-              value={(editedUserDetails.slideshow_interval ?? 5).toString()}
-              allowDeselect={false}
-              onChange={value => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  slideshow_interval: parseInt(value || "5", 10),
-                });
-              }}
-              data={SLIDESHOW_INTERVALS.map(seconds => ({
-                value: seconds.toString(),
-                label: t("settings.slideshowseconds", { count: seconds }),
-              }))}
-            />
-          </Flex>
-        </Card>
-        <Card shadow="md">
-          <Title order={4} mb={16}>
-            <Trans i18nKey="settings.duplicatedetection" />
-          </Title>
-          <Flex align="flex-start" direction="column" gap="md">
-            <Radio.Group
-              label={t("settings.duplicatesensitivity")}
-              description={t("settings.duplicatesensitivityhelp")}
-              value={editedUserDetails.duplicate_sensitivity || "normal"}
-              onChange={value => {
-                const sensitivity = DuplicateSensitivity.safeParse(value);
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  duplicate_sensitivity: sensitivity.success ? sensitivity.data : "normal",
-                });
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="strict" label={t("settings.sensitivity.strict")} />
-                <Radio value="normal" label={t("settings.sensitivity.normal")} />
-                <Radio value="loose" label={t("settings.sensitivity.loose")} />
-              </Group>
-            </Radio.Group>
-            <Switch
-              label={t("settings.duplicateclearexisting")}
-              description={t("settings.duplicateclearexistinghelp")}
-              checked={editedUserDetails.duplicate_clear_existing || false}
-              onChange={event => {
-                setEditedUserDetails({
-                  ...editedUserDetails,
-                  duplicate_clear_existing: event.currentTarget.checked,
-                });
-              }}
-            />
-          </Flex>
-        </Card>
+        <ExperimentalOptionsCard {...cardProps} />
+        <CaptionContextCard {...cardProps} />
+        <PublicSharingDefaultsCard {...cardProps} />
+        <InterfaceCard {...cardProps} />
+        <DuplicateDetectionCard {...cardProps} />
         <Space h="xl" />
       </Stack>
       <SaveChangesDialog
