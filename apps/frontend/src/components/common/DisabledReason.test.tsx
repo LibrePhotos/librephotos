@@ -11,6 +11,7 @@ import { DisabledReason } from "./DisabledReason";
 import {
   expectDisabledWithReason,
   focusAndReadTooltip,
+  hover,
   hoverAndReadTooltip,
   tooltipText,
 } from "./disabledReason.test-utils";
@@ -141,7 +142,8 @@ describe("DisabledReason", () => {
     expect(onClick).toHaveBeenCalledOnce();
     expect(button.hasAttribute("aria-disabled")).toBe(false);
     expect(button.hasAttribute("aria-describedby")).toBe(false);
-    expect(await hoverAndReadTooltip(button)).toBe("");
+    await hover(button);
+    expect(tooltipText()).toBe("");
   });
 
   it("keeps an enabled control's own label as its tooltip", async () => {

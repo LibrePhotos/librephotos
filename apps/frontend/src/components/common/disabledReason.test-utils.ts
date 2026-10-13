@@ -8,13 +8,18 @@ export function tooltipText(): string {
     .join("|");
 }
 
-/** Lets the tooltip's open state and its transition settle. */
-async function settle() {
-  await act(async () => {
-    await new Promise(resolve => {
-      setTimeout(resolve, 60);
+/**
+ * Waits until a tooltip shows (its open state and transition settle on their own schedule, slower on
+ * a busy CI runner), for at most a second. Only for a tooltip that should appear.
+ */
+async function waitForTooltip() {
+  for (let waited = 0; waited < 1000 && tooltipText() === ""; waited += 25) {
+    await act(async () => {
+      await new Promise(resolve => {
+        setTimeout(resolve, 25);
+      });
     });
-  });
+  }
 }
 
 /** Moves keyboard focus to the control, as Tab would, and returns the tooltips then shown. */
@@ -22,18 +27,23 @@ export async function focusAndReadTooltip(control: HTMLElement): Promise<string>
   await act(async () => {
     control.focus();
   });
-  await settle();
+  await waitForTooltip();
   return tooltipText();
 }
 
-/** Points at the control and returns the tooltips then shown. */
-export async function hoverAndReadTooltip(control: HTMLElement): Promise<string> {
+/** Points at the control. */
+export async function hover(control: HTMLElement) {
   await act(async () => {
     // floating-ui's hover listens for the native mouseenter on the target.
     control.dispatchEvent(new MouseEvent("mouseenter"));
     control.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
   });
-  await settle();
+}
+
+/** Points at the control and returns the tooltips then shown. */
+export async function hoverAndReadTooltip(control: HTMLElement): Promise<string> {
+  await hover(control);
+  await waitForTooltip();
   return tooltipText();
 }
 

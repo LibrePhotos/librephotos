@@ -8,7 +8,7 @@ import type { useRemovePhotoFromUserAlbumMutation } from "../../api_client/album
 import type { useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
+import { expectDisabledWithReason, hoverAndReadTooltip } from "../common/disabledReason.test-utils";
 import { SelectionActions } from "./SelectionActions";
 
 type Props = React.ComponentProps<typeof SelectionActions>;
@@ -128,7 +128,8 @@ describe("locked album selection actions", () => {
     const { menuItem, cleanup } = await openActionsMenu({ albumLocked: true });
     try {
       const remove = defined(menuItem("selectionactions.removephotos"), "remove");
-      expect(await focusAndReadTooltip(remove)).toContain(i18n.t("useralbum.albumIsLocked"));
+      // Hover, not focus: the menu moves focus itself, and its arrow keys skip a disabled item.
+      expect(await hoverAndReadTooltip(remove)).toContain(i18n.t("useralbum.albumIsLocked"));
     } finally {
       await cleanup();
     }

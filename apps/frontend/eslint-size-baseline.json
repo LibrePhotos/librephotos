@@ -1,7 +1,7 @@
 {
   "src/components/charts/LocationLink.tsx": { "lines": 635, "function": 476 },
   "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
-  "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
+  "src/components/photolist/SelectionActions.tsx": { "lines": 535, "function": 469 },
   "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
   "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 450, "function": 397 },
