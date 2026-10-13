@@ -356,6 +356,16 @@ export const syntaxBans = [
     message:
       "Wrap the Menu.Item in <DisabledReason reason={...}> (components/common/DisabledReason) instead of setting `disabled`: it says why and stays reachable with the arrow keys.",
   },
+  {
+    // A `disabled` button that opens a menu (the + of the selection toolbar, a split button's chevron)
+    // never says why and drops out of the Tab order (#2621). DisabledReason around the Menu.Target says
+    // why and keeps the menu shut. A Tooltip's own `disabled` (hidden while the menu is open) is fine.
+    id: "menu-target-disabled",
+    selector:
+      "JSXElement[openingElement.name.object.name='Menu'][openingElement.name.property.name='Target'] > JSXElement > JSXOpeningElement:not([name.name='Tooltip']) > JSXAttribute[name.name='disabled']",
+    message:
+      "Wrap the Menu.Target in <DisabledReason reason={...}> (components/common/DisabledReason) instead of disabling its button: it says why and keeps the menu shut.",
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure

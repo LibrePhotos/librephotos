@@ -189,6 +189,8 @@ const buttonByText = (text: string) =>
     [...document.body.querySelectorAll("button")].find(button => button.textContent?.trim() === text),
     `button "${text}"`
   );
+const chevronByLabel = (label: string) =>
+  found(container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`), `chevron "${label}"`);
 const click = async (element: HTMLElement) => {
   await act(async () => {
     element.click();
@@ -326,6 +328,19 @@ describe("Library while a job runs", () => {
     expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
   });
 
+  // #2621: the chevrons beside Scan and text recognition were a plain `disabled`: no reason, no focus.
+  it("gives the scan and OCR chevrons the reason too, and keeps their menus shut", async () => {
+    await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: null } });
+
+    for (const label of ["Rescan", "Extract text again for all photos"]) {
+      const chevron = chevronByLabel(label);
+      expectDisabledWithReason(chevron, i18n.t("jobs.queuebusy.reason"));
+      expect(await focusAndReadTooltip(chevron)).toContain(i18n.t("jobs.queuebusy.reason"));
+      await click(chevron);
+      expect(chevron.getAttribute("aria-expanded")).toBe("false");
+    }
+  });
+
   it("does not report the queue busy before the worker status has loaded", async () => {
     await rerender({ data: undefined });
 
@@ -354,6 +369,23 @@ describe("Library actions", () => {
     await click(help);
 
     expect(help.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens the rescan menu from its chevron", async () => {
+    const chevron = chevronByLabel("Rescan");
+    expect(chevron.getAttribute("aria-disabled")).toBeNull();
+
+    await click(chevron);
+
+    expect(chevron.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("says why the OCR chevron is off while text recognition is off", async () => {
+    const chevron = chevronByLabel("Extract text again for all photos");
+
+    expectDisabledWithReason(chevron, i18n.t("settings.ocrdisabled"));
+    await click(chevron);
+    expect(chevron.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("announces the scan and OCR chevrons as menu buttons", () => {

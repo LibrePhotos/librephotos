@@ -228,3 +228,50 @@ describe("DisabledReason on a menu item", () => {
     expect(menuItem("Set as album cover")).toBeTruthy();
   });
 });
+
+describe("DisabledReason on a menu's button", () => {
+  // Around Menu.Target, not inside it: Menu.Target hands its props to the button, so the reason's
+  // click handler replaces the one that opens the menu (#2621).
+  async function renderMenuButton(reason: string | false) {
+    return render(
+      <Menu transitionProps={{ duration: 0 }}>
+        <DisabledReason reason={reason}>
+          <Menu.Target>
+            <ActionIcon aria-label="Add to">+</ActionIcon>
+          </Menu.Target>
+        </DisabledReason>
+        <Menu.Dropdown>
+          <Menu.Item onClick={onClick}>Album</Menu.Item>
+        </Menu.Dropdown>
+      </Menu>,
+      "test"
+    );
+  }
+
+  it("says why and keeps the menu shut, by mouse and by keyboard", async () => {
+    const button = await renderMenuButton("Select photos first");
+
+    expectDisabledWithReason(button, "Select photos first");
+    expect(button.hasAttribute("data-disabled")).toBe(true);
+    expect(await focusAndReadTooltip(button)).toContain("Select photos first");
+    await act(async () => {
+      button.click();
+    });
+    await press("Enter");
+    await press("ArrowDown");
+
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector("[role='menuitem']")).toBeNull();
+  });
+
+  it("opens the menu without a reason", async () => {
+    const button = await renderMenuButton(false);
+
+    await act(async () => {
+      button.click();
+    });
+
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(menuItem("Album")).toBeTruthy();
+  });
+});

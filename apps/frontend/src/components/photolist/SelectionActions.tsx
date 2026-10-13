@@ -1,8 +1,7 @@
 import type { BulkPhotoQuery, PhotoCategory, PigPhoto } from "@librephotos/api-client";
-import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
-  IconAlbum as Album,
   IconDotsVertical as DotsVertical,
   IconDownload as Download,
   IconEye as Eye,
@@ -11,10 +10,8 @@ import {
   IconGlobe as Globe,
   IconKey as Key,
   IconPhoto as Photo,
-  IconPlus as Plus,
   IconScreenshot as Screenshot,
   IconShare as Share,
-  IconTag as Tag,
   IconTrash as Trash,
 } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
@@ -37,6 +34,7 @@ import { copyToClipboard } from "../../util/util";
 import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
 import { DisabledReason } from "../common/DisabledReason";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
+import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { StackSelectionActions } from "./StackSelectionActions";
@@ -182,47 +180,12 @@ export function SelectionActions(props: Readonly<Props>) {
           onRemoved={resetSelection}
         />
       )}
-      <Menu width={200}>
-        <Menu.Target>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size={TOOLBAR_ACTION_SIZE}
-            disabled={!hasSelection}
-            aria-label={t("selectionactions.addto")}
-          >
-            <Plus size={ICON_SIZE.toolbar} />
-          </ActionIcon>
-        </Menu.Target>
-
-        <Menu.Dropdown>
-          <Menu.Label>
-            {t("selectionactions.album")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
-            {t("selectionactions.selected")})
-          </Menu.Label>
-
-          <Menu.Divider />
-
-          <Menu.Item leftSection={<Album size={ICON_SIZE.menu} />} onClick={() => hasSelection && onAddToAlbum()}>
-            {t("selectionactions.album")}
-          </Menu.Item>
-
-          {/* No `disabled`: this menu only opens with a selection (its button is disabled without one). */}
-          <Tooltip label={t("selectionactions.tagdescription")} position="left">
-            <Menu.Item
-              leftSection={<Tag size={ICON_SIZE.menu} />}
-              rightSection={
-                <Text size="xs" c="dimmed">
-                  t
-                </Text>
-              }
-              onClick={() => hasSelection && onAddTags()}
-            >
-              {t("selectionactions.tag")}
-            </Menu.Item>
-          </Tooltip>
-        </Menu.Dropdown>
-      </Menu>
+      <AddToMenu
+        reason={noSelection}
+        selectedCount={selectAllMode ? t("selectionbar.all") : selectedItems.length}
+        onAddToAlbum={onAddToAlbum}
+        onAddTags={onAddTags}
+      />
 
       <Menu width={200}>
         <Menu.Target>

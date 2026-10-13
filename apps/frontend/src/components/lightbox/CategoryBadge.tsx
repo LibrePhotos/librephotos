@@ -156,21 +156,23 @@ export function CategoryBadge({ photoDetail }: Props) {
   const Icon = ICONS[state.category];
   return (
     <Menu position="bottom-end" width={260} shadow="md">
-      <Menu.Target>
-        <Badge
-          component="button"
-          type="button"
-          variant="light"
-          color={COLORS[state.category]}
-          leftSection={<Icon size={12} />}
-          rightSection={<ChevronDown size={12} />}
-          aria-label={t("lightbox.category.change", { category: t(`lightbox.category.${state.category}`) })}
-          disabled={setCategory.isPending}
-          style={{ flex: "none", cursor: "pointer" }}
-        >
-          {t(`lightbox.category.${state.category}`)}
-        </Badge>
-      </Menu.Target>
+      {/* Outside Menu.Target, so its click handler replaces the one that opens the menu. */}
+      <DisabledReason reason={setCategory.isPending && t("lightbox.sidebar.saving")}>
+        <Menu.Target>
+          <Badge
+            component="button"
+            type="button"
+            variant="light"
+            color={COLORS[state.category]}
+            leftSection={<Icon size={12} />}
+            rightSection={<ChevronDown size={12} />}
+            aria-label={t("lightbox.category.change", { category: t(`lightbox.category.${state.category}`) })}
+            style={{ flex: "none", cursor: "pointer" }}
+          >
+            {t(`lightbox.category.${state.category}`)}
+          </Badge>
+        </Menu.Target>
+      </DisabledReason>
       <Menu.Dropdown>
         <Menu.Label>
           {state.source === "user" ? t("lightbox.category.setbyyou") : t("lightbox.category.detected")}

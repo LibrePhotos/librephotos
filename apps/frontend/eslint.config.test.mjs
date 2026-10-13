@@ -54,6 +54,7 @@ const planted = {
   "tooltip-disabled-control": `const plantedTooltip = <Tooltip label="Why"><Button disabled>Go</Button></Tooltip>;`,
   "menu-item-disabled": `const plantedMenuItem = <Menu.Item disabled={true}>Go</Menu.Item>;`,
   "action-icon-name": `const plantedIcon = <ActionIcon onClick={go}><IconTrash /></ActionIcon>;`,
+  "menu-target-disabled": `const plantedMenuTarget = <Menu.Target><ActionIcon aria-label="Add" disabled={!ready}>+</ActionIcon></Menu.Target>;`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,

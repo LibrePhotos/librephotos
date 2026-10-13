@@ -145,23 +145,26 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
             </Button>
           </DisabledReason>
           <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
-            <Menu.Target>
-              <ActionIcon
-                variant="filled"
-                color="blue"
-                size={36}
-                disabled={!!scanReason}
-                aria-label={t("settings.statusrescanphotosfalse")}
-                style={{
-                  borderTopLeftRadius: 0,
-                  borderBottomLeftRadius: 0,
-                  border: 0,
-                  borderLeft: colorScheme === "dark" ? `1px solid ${theme.colors.dark[7]}` : `1px solid ${theme.white}`,
-                }}
-              >
-                <ChevronDown size="1rem" />
-              </ActionIcon>
-            </Menu.Target>
+            {/* Outside Menu.Target, so its click handler replaces the one that opens the menu. */}
+            <DisabledReason reason={scanReason}>
+              <Menu.Target>
+                <ActionIcon
+                  variant="filled"
+                  color="blue"
+                  size={36}
+                  aria-label={t("settings.statusrescanphotosfalse")}
+                  style={{
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                    border: 0,
+                    borderLeft:
+                      colorScheme === "dark" ? `1px solid ${theme.colors.dark[7]}` : `1px solid ${theme.white}`,
+                  }}
+                >
+                  <ChevronDown size="1rem" />
+                </ActionIcon>
+              </Menu.Target>
+            </DisabledReason>
             <Menu.Dropdown>
               <DisabledReason reason={scanReason} position="left">
                 <Menu.Item leftSection={<Refresh size="1rem" />} onClick={onRescan}>

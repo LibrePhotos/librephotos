@@ -23,7 +23,10 @@ type DisabledReasonProps = Readonly<{
   position?: TooltipProps["position"];
   /** Holds the enabled control's tooltip open, e.g. to confirm a copy. */
   opened?: boolean;
-  /** One control, without a `disabled` prop: DisabledReason disables it. */
+  /**
+   * One control, without a `disabled` prop: DisabledReason disables it. A menu's button goes in with
+   * its Menu.Target around it, so the reason's click handler replaces the one that opens the menu.
+   */
   children: React.ReactElement<ControlProps>;
 }>;
 
@@ -38,7 +41,8 @@ const REASON_EVENTS = { hover: true, focus: true, touch: true };
  * on hover, keyboard focus and touch; screen readers get it through `aria-describedby`.
  * A Menu.Item gets no `data-disabled`, which Mantine's arrow keys skip (#2592): it keeps its place in
  * the keyboard order, takes the disabled look from DisabledReason.module.css and leaves the menu open.
- * Lint (`ban/tooltip-disabled-control`) bans a Tooltip around a `disabled` control.
+ * Lint bans a Tooltip around a `disabled` control (`ban/tooltip-disabled-control`), a `disabled`
+ * Menu.Item (`ban/menu-item-disabled`) and a `disabled` menu button (`ban/menu-target-disabled`, #2621).
  */
 export function DisabledReason({ reason, label, position, opened, children }: DisabledReasonProps) {
   const reasonId = useId();
