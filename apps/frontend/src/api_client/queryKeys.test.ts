@@ -271,8 +271,8 @@ const domains: Record<string, Domain> = {
         after: photoGridKeys.withoutTimestamp(2, "all"),
       },
       useFetchPhotosWithoutLocationQuery: {
-        before: ["photoGrid", "withoutLocation", 2],
-        after: photoGridKeys.withoutLocation(2),
+        before: ["photoGrid", "withoutLocation", 2, "all"],
+        after: photoGridKeys.withoutLocation(2, "all"),
       },
       useFetchSharedPhotosByMeQuery: { before: ["photoGrid", "sharedByMe"], after: photoGridKeys.sharedByMe() },
       useFetchSharedPhotosWithMeQuery: { before: ["photoGrid", "sharedWithMe"], after: photoGridKeys.sharedWithMe() },

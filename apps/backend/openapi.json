@@ -4559,8 +4559,24 @@
     "/api/photos/nolocation/": {
       "get": {
         "operationId": "api_photos_nolocation_list",
-        "description": "The requester's photos without GPS coordinates, oldest added first.\n\nA photo whose coordinates did not reverse geocode still has a location, so\nonly a missing latitude or longitude counts, not an empty\n``geolocation_json``.",
+        "description": "The requester's photos without GPS coordinates, oldest added first.\n\nTakes the same media filter as the No timestamp list (``PhotoMediaQuery``).\n\nA photo whose coordinates did not reverse geocode still has a location, so\nonly a missing latitude or longitude counts, not an empty\n``geolocation_json``.",
         "parameters": [
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
           {
             "name": "page",
             "required": false,
@@ -4580,6 +4596,14 @@
             }
           },
           {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -4587,6 +4611,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
           }
         ],
         "tags": [

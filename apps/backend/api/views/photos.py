@@ -206,6 +206,8 @@ class NoTimestampPhotoViewSet(ListViewSet):
 class NoLocationPhotoViewSet(ListViewSet):
     """The requester's photos without GPS coordinates, oldest added first.
 
+    Takes the same media filter as the No timestamp list (``PhotoMediaQuery``).
+
     A photo whose coordinates did not reverse geocode still has a location, so
     only a missing latitude or longitude counts, not an empty
     ``geolocation_json``.
@@ -223,10 +225,14 @@ class NoLocationPhotoViewSet(ListViewSet):
 
     def get_queryset(self) -> QuerySet[Photo]:
         return with_photo_summary_relations(
-            Photo.visible.owned_by(scope_user(self.request)).filter(
+            _media_filtered_photos(self.request).filter(
                 Q(exif_gps_lat__isnull=True) | Q(exif_gps_lon__isnull=True)
             )
         ).order_by("added_on")
+
+    @extend_schema(parameters=[PhotoMediaQuery])
+    def list(self, *args: Any, **kwargs: Any) -> Response:
+        return super().list(*args, **kwargs)
 
 
 class BulkPhotoMutationView(APIView):

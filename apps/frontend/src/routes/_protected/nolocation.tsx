@@ -5,21 +5,27 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotosWithoutLocationQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutLocationQuery";
 import { useListFailure } from "../../components/common/useListFailure";
+import { validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { addTempElementsToFlatList } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/nolocation")({
   component: NoLocationPhotosView,
+  validateSearch: validateMediaSearch,
+  // A new filter starts over at page 1 with a fresh list of placeholders.
+  remountDeps: ({ search }) => search.media,
 });
 
 function NoLocationPhotosView() {
   const { t } = useTranslation();
+  const mediaType = useMediaTypeFilter();
   const [page, setPage] = useState(1);
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   // Fetch actual photos
-  const photosQuery = useFetchPhotosWithoutLocationQuery(page);
+  const photosQuery = useFetchPhotosWithoutLocationQuery(page, mediaType);
   const { data: photosData, isPlaceholderData, status } = photosQuery;
   const listFailure = useListFailure(photosQuery);
 
@@ -69,8 +75,9 @@ function NoLocationPhotosView() {
       numberOfItems={photosFlat?.length}
       updateItems={getImages}
       selectable
-      emptyStateConfig={emptyStateConfig}
+      emptyStateConfig={mediaType === "all" ? emptyStateConfig : undefined}
       error={listFailure}
+      mediaType={mediaType}
     />
   );
 }

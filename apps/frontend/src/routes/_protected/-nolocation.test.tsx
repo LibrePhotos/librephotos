@@ -6,9 +6,12 @@
  * Those must not be spliced in at the new page's offset, or the list shows the previous page
  * twice until the real one lands.
  *
+ * The media filter (?media=..., #2216) goes into the query, and a filter that matches nothing
+ * does not claim the library has no photos without a location.
+ *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
-import type { PigPhoto } from "@librephotos/api-client";
+import type { MediaType, PigPhoto } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -24,6 +27,9 @@ const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   pages: {} as Record<number, PageResult>,
   requestedPages: [] as number[],
+  requestedMedia: [] as MediaType[],
+  media: "all" as MediaType,
+  props: undefined as PhotoListViewProps | undefined,
   photoset: [] as PigPhoto[],
   updateItems: undefined as PhotoListViewProps["updateItems"],
 }));
@@ -43,15 +49,18 @@ vi.mock("@tanstack/react-router", () => ({
   },
 }));
 vi.mock("../../api_client/photos/hooks/useFetchPhotosWithoutLocationQuery", () => ({
-  useFetchPhotosWithoutLocationQuery: (page: number) => {
+  useFetchPhotosWithoutLocationQuery: (page: number, mediaType: MediaType) => {
     stubs.requestedPages.push(page);
+    stubs.requestedMedia.push(mediaType);
     return { status: "success", ...stubs.pages[page] };
   },
 }));
+vi.mock("../../components/photolist/useMediaTypeFilter", () => ({ useMediaTypeFilter: () => stubs.media }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
-  PhotoListView: ({ photoset, updateItems }: Pick<PhotoListViewProps, "photoset" | "updateItems">) => {
-    stubs.photoset = flatList(photoset);
-    stubs.updateItems = updateItems;
+  PhotoListView: (props: PhotoListViewProps) => {
+    stubs.photoset = flatList(props.photoset);
+    stubs.updateItems = props.updateItems;
+    stubs.props = props;
     return null;
   },
 }));
@@ -103,5 +112,31 @@ describe("the no-location page", () => {
     await act(async () => {
       root.unmount();
     });
+  });
+
+  it("asks for the media filter in the URL and drops the empty state while it filters", async () => {
+    stubs.pages = { 1: { data: { count: 0, results: [] }, isPlaceholderData: false } };
+    const NoLocation = defined(stubs.component);
+    const root = createRoot(document.createElement("div"));
+
+    await act(async () => {
+      root.render(<NoLocation />);
+    });
+    expect(stubs.requestedMedia.at(-1)).toBe("all");
+    expect(stubs.props?.mediaType).toBe("all");
+    expect(stubs.props?.emptyStateConfig).toBeDefined();
+
+    stubs.media = "videos";
+    await act(async () => {
+      root.render(<NoLocation />);
+    });
+    expect(stubs.requestedMedia.at(-1)).toBe("videos");
+    expect(stubs.props?.mediaType).toBe("videos");
+    expect(stubs.props?.emptyStateConfig).toBeUndefined();
+
+    await act(async () => {
+      root.unmount();
+    });
+    stubs.media = "all";
   });
 });

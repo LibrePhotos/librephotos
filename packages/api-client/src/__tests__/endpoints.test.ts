@@ -101,6 +101,12 @@ describe("photo list media filters", () => {
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/notimestamp/?page=2&video=true");
   });
 
+  it("passes the media-type filter to No location after the page", async () => {
+    const { client, calls } = harness({ count: 0, next: null, previous: null, results: [] });
+    await endpoints.fetchPhotosWithoutLocation(client, 2, { is_screenshot: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/nolocation/?page=2&is_screenshot=true");
+  });
+
   it("asks a date-album list for documents only", async () => {
     const { client, calls } = harness({ results: [] });
     await endpoints.fetchDateAlbumsList(client, { in_trashcan: true, is_document: true });
