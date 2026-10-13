@@ -4,7 +4,6 @@
  * the first photo's date: editing the next photo's day copied the first one's
  * time of day, and Undo wrote the first photo's old date onto the next one.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

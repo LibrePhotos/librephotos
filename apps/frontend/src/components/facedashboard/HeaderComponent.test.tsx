@@ -4,7 +4,6 @@
  * nothing reports, so Rename must stay disabled until there is a name, and the
  * name is sent trimmed. The dialog is a form, so Enter renames as well.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

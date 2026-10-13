@@ -20,7 +20,6 @@
  * Both tests below render the real page with both queries already resolved and assert
  * that the places are on screen on first mount.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

@@ -3,7 +3,6 @@
  * renders no cells at all for an empty list: the page was blank under its
  * header. The leading "-" keeps the router plugin from taking this for a route.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

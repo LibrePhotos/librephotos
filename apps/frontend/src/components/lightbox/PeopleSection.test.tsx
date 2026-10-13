@@ -5,7 +5,6 @@
  * detector never found has to be addable -- which is exactly the case where the
  * section used to render nothing at all, because it bailed out on an empty list.
  */
-import "@mantine/core/styles.css";
 import type { PhotoPerson } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

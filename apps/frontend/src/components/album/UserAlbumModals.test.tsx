@@ -10,7 +10,6 @@
  * server refused (a 400, or a 502 while the backend is down) just looked like nothing
  * happened (#2222). They now stay open until the server answered, and say why it failed.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";

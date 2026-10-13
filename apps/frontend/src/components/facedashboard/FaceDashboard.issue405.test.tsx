@@ -18,7 +18,6 @@
  * cells behind a range that does not itself move - has to re-request the newly revealed pages
  * on its own, or the faces it uncovers stay blank until the next scroll.
  */
-import "@mantine/core/styles.css";
 import { FaceAnalysisMethod } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

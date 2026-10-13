@@ -36,6 +36,15 @@ import type { UploadCompleteInput, UploadFileInput, UploadTransport } from "@/sy
 const USER_ID = 7;
 
 /**
+ * The worker, the camera-roll scan and the hash pass yield to the event loop with a `setTimeout(0)`
+ * between jobs, pages and assets: 1-15 ms of wall time each (timer resolution, a busy machine) and
+ * no CPU. A run here takes a few hundred of them, so the real yields alone could use up the 5 s test
+ * budget. The order of work stays the same: the yield only lets the app's UI breathe, the queue
+ * decides what runs next.
+ */
+const fastYield = () => Promise.resolve();
+
+/**
  * The user tapping "All Photos" on the Backup screen: mark the synthetic
  * whole-library album selected *before* the scan runs. `upsertLocalAlbum`
  * preserves `backup_selection` across the scan's upsert, so the choice survives.
@@ -94,6 +103,7 @@ function seams(
   } = {}
 ): SyncAllOptions {
   return {
+    yield: fastYield,
     budgets: { scan: hooks.scan ?? 40, hash: hooks.hash ?? 10, uploadWindow: 2 },
     backupEnabled: () => true,
     scanChunk: async (ctx, budget) => {
@@ -102,6 +112,7 @@ function seams(
         log: ctx.log,
         pageSize: 20,
         maxAssetsPerRun: budget,
+        yield: fastYield,
       });
       return { complete: r.complete, added: r.added, scanned: r.scanned };
     },
@@ -112,6 +123,7 @@ function seams(
         log: ctx.log,
         maxAssets: budget,
         batchSize: budget,
+        yield: fastYield,
       });
       enqueueBackups(ctx.db);
       hooks.onHash?.(hasher.order.length);

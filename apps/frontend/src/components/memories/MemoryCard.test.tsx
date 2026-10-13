@@ -3,7 +3,6 @@
  * still, but settles for a video). Its square thumbnail is an MP4, which the
  * card put in an <img>: a broken image on the memories page.
  */
-import "@mantine/core/styles.css";
 import type { Memory } from "@librephotos/api-client";
 import { Media, MemoryType, type PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";

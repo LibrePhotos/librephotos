@@ -6,7 +6,7 @@ import { globSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import config, {
   globalBans,
   importBans,
@@ -42,6 +42,7 @@ const planted = {
   "tile-index": `const plantedIndex = rowIndex * columns + columnIndex;`,
   "query-key-literal": `const plantedQuery = { queryKey: ["photoDetails", hash] };`,
   "api-client-reexport": `export type { Photo as PlantedPhoto } from "@librephotos/api-client";`,
+  "test-mantine-stylesheet": `import "@mantine/core/styles.css";`,
   "untyped-mock": `const plantedMock = vi.fn();`,
   "open-state": `const [modalOpen, setModalOpen] = useState(false);`,
   "route-modal": `const plantedDialog = <Modal opened onClose={close} />;`,
@@ -113,6 +114,13 @@ const eslint = new ESLint({
   ruleFilter: ({ ruleId }) => ruleId.startsWith("ban/"),
 });
 
+// An ESLint instance loads the config, its plugins and the TypeScript parser on its first lint: about a
+// second alone, several times that next to a parallel run. Each describe pays it in a hook, which has
+// room for it, instead of inside its first test's 5 s.
+const LOAD_TIMEOUT = 60_000;
+const loadConfig = instance =>
+  instance.lintText("export {};", { filePath: path.join(cwd, "src/components/Sample.tsx") });
+
 async function firedBans(code, filePath) {
   const [result] = await eslint.lintText(code, { filePath: path.join(cwd, filePath) });
   const fatal = result.messages.filter(message => message.fatal);
@@ -121,6 +129,8 @@ async function firedBans(code, filePath) {
 }
 
 describe("eslint.config.mjs convention bans", () => {
+  beforeAll(() => loadConfig(eslint), LOAD_TIMEOUT);
+
   it("has a planted violation for every ban, and no rule-setting outside the ban blocks", () => {
     expect(Object.keys(planted).sort()).toEqual(bans.map(ban => ban.id).sort());
 
@@ -273,6 +283,7 @@ describe("eslint.config.mjs React Query rules", () => {
     overrideConfig: { languageOptions: { parserOptions: { project: null } } },
     ruleFilter: ({ ruleId }) => ruleId.startsWith("@tanstack/query/") || ruleId.startsWith("ban/query-"),
   });
+  beforeAll(() => loadConfig(queryLint), LOAD_TIMEOUT);
   const lint = async code => {
     const [result] = await queryLint.lintText(
       `import { useQuery } from "@tanstack/react-query";
@@ -321,6 +332,7 @@ describe("eslint.config.mjs size limits", () => {
     overrideConfig: { languageOptions: { parserOptions: { project: null } } },
     ruleFilter: ({ ruleId }) => [...Object.values(SIZE_RULES), "react/no-multi-comp"].includes(ruleId),
   });
+  beforeAll(() => loadConfig(sizeLint), LOAD_TIMEOUT);
   const lint = async (code, file) => {
     const [result] = await sizeLint.lintText(code, { filePath: path.join(cwd, file) });
     expect(result.messages.filter(message => message.fatal)).toEqual([]);

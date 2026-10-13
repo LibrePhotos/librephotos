@@ -13,7 +13,6 @@
  * The result is a silent failure: the modal closes, no error is shown and the
  * old path quietly stays in place.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

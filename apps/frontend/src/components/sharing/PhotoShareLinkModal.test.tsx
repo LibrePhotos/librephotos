@@ -5,7 +5,6 @@
  * request returns: by then the click that started it is gone, and Safari
  * refuses the clipboard write.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

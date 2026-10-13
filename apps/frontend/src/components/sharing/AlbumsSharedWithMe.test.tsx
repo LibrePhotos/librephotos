@@ -4,7 +4,6 @@
  * came out wider than the page, cutting off its last column, and never followed a resize.
  * They now size the columns from the width their own container gets.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

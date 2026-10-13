@@ -87,7 +87,9 @@ async function filter(value: string) {
   });
 }
 
-describe("FolderListModal", () => {
+// Legitimately heavy: each test mounts the capped list itself, 100 links in a focus-trapped modal,
+// about 1.3 s of CPU in React's development build. The default 5 s left no room on a busy machine.
+describe("FolderListModal", { timeout: 15_000 }, () => {
   it("mounts at most the cap of 2000 loaded subfolders, and says so", async () => {
     await renderDialog();
 

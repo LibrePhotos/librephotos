@@ -11,7 +11,6 @@
  * - Saving a user that has no id yet (the dialog opened before the details
  *   loaded) sends nothing, but still says the save failed.
  */
-import "@mantine/core/styles.css";
 import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

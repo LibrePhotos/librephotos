@@ -10,7 +10,6 @@
  * a route (its `routeFileIgnorePrefix`); without it every build warns that the
  * file exports no Route.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

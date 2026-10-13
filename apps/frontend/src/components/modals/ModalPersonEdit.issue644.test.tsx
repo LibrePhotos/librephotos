@@ -19,7 +19,6 @@
  * same id to a string, so the MRU has to normalize before it can resolve an
  * entry back to a person.
  */
-import "@mantine/core/styles.css";
 import type { ApiClient } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";

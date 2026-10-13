@@ -128,11 +128,14 @@ describe("useAllFolderSubfolders", () => {
     await settle(() => !result.isFetching);
     expect(stubs.get).toHaveBeenCalledTimes(2);
 
+    // A focus refetch calls the queryFn while the focus event is handled, so one macrotask is
+    // enough to see it. Waiting on a call that should never come spun the whole second of
+    // `settle` on every run.
     await act(async () => {
       focusManager.setFocused(false);
       focusManager.setFocused(true);
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
-    await settle(() => stubs.get.mock.calls.length > 2);
     focusManager.setFocused(undefined);
 
     expect(stubs.get).toHaveBeenCalledTimes(2);

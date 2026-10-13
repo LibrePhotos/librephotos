@@ -3,7 +3,6 @@
  * typeable, kept the unsaved draft on screen as if it were saved, and carried
  * both over to the next photo.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import type { TiptapEditorHTMLElement } from "@tiptap/core";
 import React, { act } from "react";

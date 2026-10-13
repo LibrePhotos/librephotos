@@ -3,7 +3,6 @@
  * new filter up, the button shows how many filters are active, and the footer
  * offers Reset / Save as default only when the view differs from the default.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

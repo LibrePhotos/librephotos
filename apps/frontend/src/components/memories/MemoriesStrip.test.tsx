@@ -1,4 +1,3 @@
-import "@mantine/core/styles.css";
 import { MemoryType, type Memory } from "@librephotos/api-client";
 import type { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";

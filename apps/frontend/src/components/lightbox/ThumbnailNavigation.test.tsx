@@ -2,7 +2,6 @@
  * The lightbox's neighbour thumbnails (#2359): their look and hover effect come from
  * ThumbnailNavigation.module.css (`:hover`), not from mouse handlers that write `style`.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

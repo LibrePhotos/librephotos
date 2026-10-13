@@ -6,7 +6,6 @@
  * - Burst sequences are the only thing the detection job looks for, so with that
  *   option unchecked Detect would start a job that does nothing: it is disabled.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
