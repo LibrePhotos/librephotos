@@ -225,11 +225,10 @@ class ExtractExifDataHappyPathTestCase(ExtractExifDataBaseTestCase):
         self.assertEqual(metadata.source, PhotoMetadata.Source.USER_EDIT)
         self.assertEqual(metadata.aperture, 5.6)
 
-    def test_shutter_speed_faster_than_1_over_1000_collapses_to_zero(self):
-        """KNOWN QUIRK: limit_denominator(1000) turns 1/8000s into the string
-        "0" rather than clamping to "1/1000". Pinned as current behaviour."""
+    def test_a_shutter_speed_faster_than_1_over_1000_is_kept(self):
+        """It used to become "0" (#2275)."""
         metadata = self.extract(shutter_speed=1 / 8000)
-        self.assertEqual(metadata.shutter_speed, "0")
+        self.assertEqual(metadata.shutter_speed, "1/8000")
 
     def test_subsec_time_original_truncated_to_ten_characters(self):
         metadata = self.extract(subsec_time_original="12345678901234")

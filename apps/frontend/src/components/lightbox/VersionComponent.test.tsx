@@ -1,7 +1,8 @@
 /**
  * The file row of the info panel: it printed height × width (a landscape photo
  * read as portrait), showed a Windows backend's sub-path instead of the file
- * name, and built its "+N formats" plural in English code.
+ * name, and built its "+N formats" plural in English code. Its camera row
+ * printed a long exposure as a bare "2.5", which reads like 1/2.5 (#2275).
  */
 import type { FileVariant, Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -84,5 +85,19 @@ describe("VersionComponent", () => {
   it("counts other formats with a translated plural", async () => {
     expect(await renderText({ file_variants: [variant("a")] })).toContain("+1 format |");
     expect(await renderText({ file_variants: [variant("a"), variant("b")] })).toContain("+2 formats");
+  });
+});
+
+describe("CameraInfoSection", () => {
+  it("gives a long exposure its unit", async () => {
+    expect(await renderText({ camera: "X-T5", shutter_speed: "2.5" })).toContain("| 2.5 s |");
+  });
+
+  it("keeps a fast shutter speed as a fraction", async () => {
+    expect(await renderText({ camera: "X-T5", shutter_speed: "1/4000" })).toContain("| 1/4000 |");
+  });
+
+  it("leaves out an older backend's 0", async () => {
+    expect(await renderText({ camera: "X-T5", shutter_speed: "0", iso: 100 })).not.toContain("| 0 |");
   });
 });

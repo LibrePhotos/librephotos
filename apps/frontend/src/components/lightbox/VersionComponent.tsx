@@ -5,6 +5,7 @@ import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
+import { formatShutterSpeed } from "../../util/shutterSpeed";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";
 
@@ -131,7 +132,7 @@ export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoT
             {!!photoDetail.lens && <FileInfoComponent info={photoDetail.lens.toString()} />}
             {!!photoDetail.subjectDistance && <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />}
             {!!photoDetail.fstop && <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />}
-            {!!photoDetail.shutter_speed && <FileInfoComponent info={`${photoDetail.shutter_speed}`} />}
+            <FileInfoComponent info={formatShutterSpeed(photoDetail.shutter_speed) ?? undefined} />
             {!!photoDetail.focal_length && <FileInfoComponent info={`${Math.round(photoDetail.focal_length)} mm`} />}
             {!!photoDetail.iso && <FileInfoComponent info={`ISO${photoDetail.iso.toString()}`} />}
           </Group>

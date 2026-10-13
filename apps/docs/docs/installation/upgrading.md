@@ -88,6 +88,22 @@ On the [Windows standalone](windows-standalone.md) build, run `start /wait libre
 
 The command only rewrites thumbnails that still carry metadata, and keeps their pixels and colour profile, so running it again is safe. Add `--dry-run` to only count them. See [Management Commands](../user-guide/library.md#management-commands).
 
+## After upgrading from 1.3.0 or older {#refresh-exposure-time}
+
+_Not released yet._ Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so read the exposure time of those photos again, once:
+
+```sh
+# Standard Docker setup, from the folder with your docker-compose.yml and .env
+docker compose exec backend python manage.py refresh_exposure_time
+
+# Single container deployment
+docker exec librephotos python manage.py refresh_exposure_time
+```
+
+On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage refresh_exposure_time` in `cmd`.
+
+It reads only the exposure time and writes only the shutter speed, so running it again is safe. Add `--dry-run` to only count the photos. A Rescan from the Library page fixes them too.
+
 ## Upgrading from a release older than 2026w10 {#old-releases}
 
 Releases after 1.1.0 combine the first 100 database migrations into a single one. That keeps new installs and the test suite fast, but it means these releases can no longer bring a database from an older release up to date on their own.
