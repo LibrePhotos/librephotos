@@ -1,4 +1,4 @@
-import { useVirtualizer, type Rect } from "@tanstack/react-virtual";
+import { defaultRangeExtractor, useVirtualizer, type Range, type Rect } from "@tanstack/react-virtual";
 import React, {
   forwardRef,
   useCallback,
@@ -9,6 +9,8 @@ import React, {
   useRef,
 } from "react";
 import type { CSSProperties, ReactNode, UIEvent } from "react";
+import { sectionBounds, useGridFocus, withPinnedRow } from "./useGridFocus";
+import classes from "./VirtualGrid.module.css";
 
 export type GridCellProps = Readonly<{
   columnIndex: number;
@@ -53,6 +55,13 @@ type VirtualGridProps = Readonly<{
   onSectionRendered?: (params: SectionRenderedParams) => void;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Keep the row holding keyboard focus rendered while it scrolls out of view, so focus (and an
+   * open menu anchored there) is not dropped onto the page when the row would unmount; and when
+   * the focused control goes away with its cell's content, focus the same control (by its
+   * `data-focus-key`) once the cell shows new content. See useGridFocus.
+   */
+  keepFocusedRowMounted?: boolean;
 }>;
 
 /**
@@ -87,10 +96,16 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     onSectionRendered,
     className,
     style,
+    keepFocusedRowMounted = false,
   },
   ref
 ) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { pinnedRow, handleFocus } = useGridFocus(keepFocusedRowMounted, scrollRef);
+  const rangeExtractor = useCallback(
+    (range: Range) => withPinnedRow(defaultRangeExtractor(range), pinnedRow, range.count),
+    [pinnedRow]
+  );
 
   // The viewport size comes from props, as react-virtualized's did, so the rendered rows do not
   // depend on a layout measurement (jsdom has none) and follow a resize in the same render.
@@ -120,6 +135,7 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     estimateSize,
     getItemKey,
     overscan: overscanRowCount,
+    rangeExtractor,
     initialRect: viewport.current,
     observeElementRect,
   });
@@ -144,8 +160,10 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
   // react-virtualized rendered every column index below it, and so does this.
   const renderedColumns = Math.max(0, Math.ceil(columnCount));
   const rows = virtualizer.getVirtualItems();
-  const firstRow = rows[0]?.index ?? -1;
-  const lastRow = rows[rows.length - 1]?.index ?? -1;
+  const [firstRow, lastRow] = sectionBounds(
+    rows.map(row => row.index),
+    pinnedRow
+  );
 
   const sectionCallback = useRef(onSectionRendered);
   sectionCallback.current = onSectionRendered;
@@ -179,6 +197,7 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
       // Focusable so the arrow and page keys scroll it, as react-virtualized's Grid was.
       tabIndex={0}
       onScroll={handleScroll}
+      onFocus={keepFocusedRowMounted ? handleFocus : undefined}
       style={{
         boxSizing: "border-box",
         direction: "ltr",
@@ -201,8 +220,8 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
           maxHeight: totalHeight,
         }}
       >
-        {rows.map(row =>
-          Array.from({ length: renderedColumns }, (_unused, columnIndex) => {
+        {rows.map(row => {
+          const cells = Array.from({ length: renderedColumns }, (_unused, columnIndex) => {
             const key = `${row.index}-${columnIndex}`;
             return (
               <React.Fragment key={key}>
@@ -220,8 +239,16 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
                 })}
               </React.Fragment>
             );
-          })
-        )}
+          });
+          // A wrapper without a box (display: contents) tells which row a focused cell is in
+          return keepFocusedRowMounted ? (
+            <div key={row.index} className={classes.row} data-virtual-row={row.index}>
+              {cells}
+            </div>
+          ) : (
+            cells
+          );
+        })}
       </div>
     </div>
   );

@@ -13,9 +13,11 @@ import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
+import { FaceActionDialogs } from "./FaceActionDialogs";
 import { FacesTab } from "./facesTab";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
+import { useFaceActions } from "./hooks/useFaceActions";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
@@ -83,6 +85,9 @@ export function FaceDashboard() {
   // Mutations
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
   const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
+  // Confirm, Not this person, Label as… and Delete on one face (#599)
+  const faceActions = useFaceActions();
+  const { clearPending } = faceActions;
 
   // Event handlers
   const handleShowClick = useCallback(
@@ -204,9 +209,10 @@ export function FaceDashboard() {
       // The tabs show different faces: a selection carried over would let Delete,
       // Not this person and Add act on faces that are no longer on screen
       clearSelection();
+      clearPending();
       prevTabRef.current = activeTab;
     }
-  }, [activeTab, tabPositions, clearSelection]);
+  }, [activeTab, tabPositions, clearSelection, clearPending]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
@@ -301,6 +307,8 @@ export function FaceDashboard() {
             activeTab={activeTab}
             collapsedPersons={collapsedInActiveTab}
             onToggleCollapse={handleToggleCollapse}
+            faceActions={faceActions.actions}
+            pendingFaceIds={faceActions.pendingFaceIds}
           />
         )}
         <ModalPersonEdit
@@ -311,6 +319,7 @@ export function FaceDashboard() {
           }}
           selectedFaces={selectedFaces}
         />
+        <FaceActionDialogs state={faceActions} />
         {lightboxOpen && (
           <Lightbox
             isPublic={false}

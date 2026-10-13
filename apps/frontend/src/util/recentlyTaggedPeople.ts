@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { PersonList } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
 import { readStored, STORAGE_KEYS, subscribeStored, writeStored } from "./storage";
 
-// How many people the "Recently tagged" shortcut keeps around.
-export const RECENTLY_TAGGED_PEOPLE_LIMIT = 5;
+// How many people the "Recently tagged" shortcut keeps around: two rows of its grid (#865).
+export const RECENTLY_TAGGED_PEOPLE_LIMIT = 10;
 
 // Faces carry a numeric person id, people albums coerce the same id to a string.
 // The MRU stores strings and normalizes at the boundary.

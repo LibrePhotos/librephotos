@@ -1,5 +1,5 @@
 import cx from "clsx";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
@@ -7,6 +7,8 @@ import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
 import { AutoSizer } from "../virtual/AutoSizer";
 import { VirtualGrid } from "../virtual/VirtualGrid";
 import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "../virtual/VirtualGrid";
+import { groupsByRow } from "./faceActionRules";
+import type { FaceActionHandlers } from "./faceActionRules";
 import { FaceComponent } from "./FaceComponent";
 import type { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
@@ -34,6 +36,8 @@ type VirtualizedGridComponentProps = {
   activeTab: FacesTab;
   collapsedPersons: ReadonlySet<number>;
   onToggleCollapse: (personId: number) => void;
+  faceActions: FaceActionHandlers;
+  pendingFaceIds: ReadonlySet<number>;
 };
 
 export function VirtualizedGridComponent({
@@ -56,11 +60,17 @@ export function VirtualizedGridComponent({
   activeTab,
   collapsedPersons,
   onToggleCollapse,
+  faceActions,
+  pendingFaceIds,
 }: VirtualizedGridComponentProps) {
+  const rows = getCellContentsForTab(activeTab);
+  // A face's actions depend on its group (person, cluster or unknown), which is the header above it
+  const rowGroups = useMemo(() => groupsByRow(rows), [rows]);
+
   // Cell renderer for the virtualized grid
   const cellRenderer = useCallback(
     ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-      const cell: GridCell | undefined = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
+      const cell: GridCell | undefined = rows[rowIndex]?.[columnIndex];
       if (!cell) return null;
 
       if (isPersonCell(cell)) {
@@ -88,6 +98,10 @@ export function VirtualizedGridComponent({
             handleClick={handleCellClick}
             handleShowClick={handleShowClick}
             cell={cell}
+            group={rowGroups[rowIndex]}
+            tab={activeTab}
+            actions={faceActions}
+            pending={pendingFaceIds.has(cell.id)}
             isScrollingFast={false}
             selectMode={selectMode}
             isSelected={selectedFaces.some(face => face.face_id === cell.id)}
@@ -103,10 +117,13 @@ export function VirtualizedGridComponent({
       handleCellClick,
       handleShowClick,
       selectMode,
-      getCellContentsForTab,
+      rows,
+      rowGroups,
       setSelectedFaces,
       collapsedPersons,
       onToggleCollapse,
+      faceActions,
+      pendingFaceIds,
     ]
   );
 
@@ -130,9 +147,11 @@ export function VirtualizedGridComponent({
               onSectionRendered={onSectionRendered}
               height={height}
               width={gridWidth}
-              rowCount={getCellContentsForTab(activeTab).length}
+              rowCount={rows.length}
               scrollTop={scrollPosition} // Only defined for programmatic scrolls
               onScroll={onScroll}
+              // The face menus and buttons are focusable: scrolling away from one keeps it
+              keepFocusedRowMounted
             />
           </ScrollScrubber>
         )}

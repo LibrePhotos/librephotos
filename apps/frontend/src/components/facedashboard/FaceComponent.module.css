@@ -16,9 +16,55 @@
     background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-9));
   }
 
-  .action {
-    left: 7px;
-    bottom: 7px;
-    position: absolute;
+  /* Confirmed, rejected or deleted: on its way out of the grid */
+  &[data-pending] {
+    opacity: 0.4;
+    pointer-events: none;
   }
+}
+
+/* The face and its buttons: the buttons sit on the face's corners, not the cell's */
+.face {
+  position: relative;
+}
+
+.faceButton {
+  display: block;
+  border-radius: var(--mantine-radius-md);
+
+  &:focus-visible {
+    outline: 3px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * Shown on hover and while anything in the face has keyboard focus, so tabbing reaches them;
+ * always shown where there is no hover (touch screens).
+ */
+.actions {
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .box:hover &,
+  .box:focus-within &,
+  &[data-menu-opened] {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+}
+
+.menuButton {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+}
+
+.confirmButton {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
 }

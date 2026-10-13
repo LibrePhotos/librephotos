@@ -8,6 +8,8 @@ sidebar_position: 7
 
 To label a face, click on the green plus button. A pop-up titled **Label faces** will show up where you can either search for an already existing person or add a new person. We want to add a new person, so type the name into the **Person Name** field under **New person** and click **Add Person** (the button stays disabled until you enter a name that does not already exist). Now the face is associated with the person.
 
+Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name.
+
 ### Writing face tags to your files
 
 By default, labelling a face only updates the LibrePhotos database — your image files are not touched.
@@ -60,9 +62,22 @@ Each tab shows how many faces it holds. Hover over a tab to see how many people 
 
 To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the green plus button in the toolbar to add them to the person. To reject faces, select them and click the orange person-off button in the toolbar, which moves them back to "Unknown - Other".
 
+### Act on one face
+
+You can also review faces one at a time, without selecting them first. Point at a face (or move to it with the **Tab** key) and two buttons appear on it; on a phone or tablet they are always shown:
+
+- The round green check-person button in the bottom-right corner confirms the face as the person of its group, in one click. It is only there on the Inferred tab, and only in the groups of people that have a name: a cluster such as "Unknown 001" names nobody, so there is nothing to confirm.
+- The ⋮ button in the top-left corner opens the face's menu (a right click on the face opens it too, and so does a long press on Android):
+  - **Not _name_** sends a wrongly matched face back to "Unknown - Other". In a cluster it reads **Move to Unknown - Other**.
+  - **Label as…** opens the **Label faces** dialog for just this face, to give it the right person straight away.
+  - **Show photo** opens the photo the face is in.
+  - **Delete face** removes the face after you confirm, as described in [Delete faces](#delete-faces).
+
+A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
+
 ## Delete faces
 
-Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. This cannot be undone from the interface. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan.
+Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. This cannot be undone from the interface. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan.
 
 ## Re-scan faces
 

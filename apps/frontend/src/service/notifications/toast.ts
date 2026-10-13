@@ -1,4 +1,4 @@
-import { hideNotification, showNotification } from "@mantine/notifications";
+import { hideNotification, showNotification, updateNotification } from "@mantine/notifications";
 import type { ReactNode } from "react";
 
 /** The optional parts of a toast. A second toast with the same `id` is ignored while the first one is up. */
@@ -18,10 +18,35 @@ function show(color: string, message: ReactNode, { title, id, autoClose }: Toast
   showNotification({ message, color, title, id, autoClose });
 }
 
+/** The counted toasts on screen, by id, with the total each one shows. */
+const countedToasts = new Map<string, number>();
+
+/**
+ * A success toast that adds up: while one with this id is on screen, a repeat raises the number it
+ * shows instead of stacking another toast, so confirming faces one by one says "3 faces" once.
+ */
+function successCounted(
+  id: string,
+  count: number,
+  message: (total: number) => ReactNode,
+  { title, autoClose }: Omit<ToastOptions, "id"> = {}
+): void {
+  const shown = countedToasts.get(id);
+  const total = (shown ?? 0) + count;
+  countedToasts.set(id, total);
+  if (shown === undefined) {
+    const onClose = () => countedToasts.delete(id);
+    showNotification({ id, color: "teal", title, autoClose, message: message(total), onClose });
+  } else {
+    updateNotification({ id, color: "teal", title, autoClose, message: message(total) });
+  }
+}
+
 export const toast = {
   success: (message: ReactNode, options?: ToastOptions) => show("teal", message, options),
   warning: (message: ReactNode, options?: ToastOptions) => show("orange", message, options),
   error: (message: ReactNode, options?: ToastOptions) => show("red", message, options),
+  successCounted,
   hide: (id: string) => {
     hideNotification(id);
   },

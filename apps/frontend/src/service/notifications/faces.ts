@@ -17,20 +17,35 @@ function rescanFacesFailed() {
   toast.error(i18n.t("toasts.rescanfacesfailed"), { title: i18n.t("toasts.rescanfacestitle") });
 }
 
+// The face actions run once per face on the dashboard (#599): these toasts add up while on screen
+
 function deleteFaces(numberOfFaces: number) {
-  toast.success(i18n.t("toasts.deletefaces", { numberOfFaces }), { title: i18n.t("toasts.deletefacestitle") });
+  toast.successCounted(
+    "faces-deleted",
+    numberOfFaces,
+    total => i18n.t("toasts.deletefaces", { numberOfFaces: total }),
+    {
+      title: i18n.t("toasts.deletefacestitle"),
+    }
+  );
 }
 
 function addFacesToPerson(personName: string, numberOfFaces: number) {
-  toast.success(i18n.t("toasts.addfacestoperson", { numberOfFaces, personName }), {
-    title: i18n.t("toasts.addfacestopersontitle"),
-  });
+  toast.successCounted(
+    `faces-labeled-${personName}`,
+    numberOfFaces,
+    total => i18n.t("toasts.addfacestoperson", { numberOfFaces: total, personName }),
+    { title: i18n.t("toasts.addfacestopersontitle") }
+  );
 }
 
 function removeFacesFromPerson(numberOfFaces: number) {
-  toast.success(i18n.t("toasts.removefacestoperson", { numberOfFaces }), {
-    title: i18n.t("toasts.removefacestopersontitle"),
-  });
+  toast.successCounted(
+    "faces-unlabeled",
+    numberOfFaces,
+    total => i18n.t("toasts.removefacestoperson", { numberOfFaces: total }),
+    { title: i18n.t("toasts.removefacestopersontitle") }
+  );
 }
 
 export const faces = {

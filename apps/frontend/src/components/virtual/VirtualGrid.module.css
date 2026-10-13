@@ -1,0 +1,4 @@
+/* Groups a row's cells without a box of its own: the cells stay positioned against the canvas */
+.row {
+  display: contents;
+}

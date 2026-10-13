@@ -23,7 +23,15 @@ type Toast = (message: ReactNode, options?: ToastOptions) => void;
 const toasts = vi.hoisted(() => ({ success: vi.fn<Toast>(), error: vi.fn<Toast>() }));
 
 vi.mock("../../../service/notifications/toast", () => ({
-  toast: { success: toasts.success, error: toasts.error, warning: () => {}, hide: () => {} },
+  toast: {
+    success: toasts.success,
+    // The face toasts add up while on screen (#599); here each one is a plain success toast
+    successCounted: (_id: string, count: number, message: (total: number) => ReactNode, options?: ToastOptions) =>
+      toasts.success(message(count), options),
+    error: toasts.error,
+    warning: () => {},
+    hide: () => {},
+  },
 }));
 vi.mock("../../urls", () => ({ serverAddress: "" }));
 vi.mock("@tanstack/react-router", () => ({
