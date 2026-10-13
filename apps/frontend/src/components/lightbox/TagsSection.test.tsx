@@ -68,14 +68,14 @@ afterEach(async () => {
 const tag = (id: number, name: string): Tag => ({ id, name, photo_count: 1 });
 const markerLabel = () => i18n.t("lightbox.sidebar.tagFromFile");
 
-async function renderTags() {
+async function renderTags(props: Partial<React.ComponentProps<typeof TagsSection>> = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <TagsSection photoDetail={makePhoto({ image_hash: "a" })} />
+        <TagsSection photoDetail={makePhoto({ image_hash: "a" })} {...props} />
       </MantineProvider>
     );
   });
@@ -175,5 +175,21 @@ describe("TagsSection", () => {
 
     expect(pillMarkers(container)).toEqual({ family: false });
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.tagsFromFileHint"));
+  });
+
+  it("shows a card's heading in place of its own, next to the pencil", async () => {
+    const container = await renderTags({ heading: <h2>Tags card</h2> });
+
+    expect(container.querySelector("h2")?.textContent).toBe("Tags card");
+    expect(container.querySelector("h4")).toBeNull();
+    await openEditor(container);
+    expect(container.querySelector("input")).not.toBeNull();
+  });
+
+  it("opens the editor at once when asked to", async () => {
+    const container = await renderTags({ startEditing: true });
+
+    expect(container.querySelector("input")).not.toBeNull();
+    expect(container.querySelector(`button[aria-label="${i18n.t("lightbox.sidebar.save")}"]`)).not.toBeNull();
   });
 });

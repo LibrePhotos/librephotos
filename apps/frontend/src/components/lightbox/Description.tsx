@@ -31,6 +31,13 @@ type Props = Readonly<{
   isPublic: boolean;
   /** All the editor reads: a public page hands it the shared subset of the details. */
   photoDetail: Pick<PhotoType, "image_hash" | "captions_json">;
+  /**
+   * Shown instead of the section's own icon and title, next to its edit
+   * controls: the photo page's cards bring their own heading.
+   */
+  heading?: React.ReactNode;
+  /** Open the editor at once: the photo page's "Add ..." asked for it. */
+  startEditing?: boolean;
 }>;
 
 /** Captions are saved as plain text; the editor shows their hashtags as mentions. */
@@ -45,7 +52,7 @@ export function Description(props: Props) {
 }
 
 function CaptionEditor(props: Props) {
-  const { photoDetail, isPublic } = props;
+  const { photoDetail, isPublic, heading, startEditing = false } = props;
   const { t } = useTranslation();
   // Only the owner edits, so only the owner needs the hashtag suggestions; a
   // public visitor's request for them is refused anyway.
@@ -58,7 +65,7 @@ function CaptionEditor(props: Props) {
   const autoTags = autoTagsOf(photoDetail.captions_json, taggingModel);
   const savedCaption = userCaptionOf(photoDetail.captions_json);
 
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(startEditing && !isPublic);
   const [imageCaption, setImageCaption] = useState<string | null>(null);
   const { mutate: updateCaption } = useSavePhotoCaptionMutation();
   const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } =
@@ -73,6 +80,7 @@ function CaptionEditor(props: Props) {
 
   const editor = useEditor({
     editable: editMode,
+    autofocus: editMode ? "end" : false,
     extensions: [
       Document,
       Paragraph,
@@ -147,11 +155,13 @@ function CaptionEditor(props: Props) {
   return (
     <Stack>
       <Stack gap="xs">
-        <Group justify="space-between">
-          <Group>
-            <Note />
-            <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
-          </Group>
+        <Group justify="space-between" wrap="nowrap">
+          {heading ?? (
+            <Group>
+              <Note />
+              <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+            </Group>
+          )}
           {/* Same controls, in the same place, as the tags and keywords below. */}
           {!editMode && !isPublic && (
             <Tooltip label={t("lightbox.sidebar.editCaption")}>
@@ -236,12 +246,19 @@ function CaptionEditor(props: Props) {
       </Stack>
       {autoTags && autoTags.length > 0 && (
         <Stack gap="xs">
-          <Group>
-            <Tags />
-            {/* The tagging model's own output (Things, as in the album list),
-                not the user's tags -- both used to render as "Tags" here. */}
-            <Title order={4}>{t("things")}</Title>
-          </Group>
+          {/* The tagging model's own output (Things, as in the album list),
+              not the user's tags -- both used to render as "Tags" here. In a
+              card it is a label under the card's heading, not a heading. */}
+          {heading ? (
+            <Text size="xs" c="dimmed" fw={500}>
+              {t("things")}
+            </Text>
+          ) : (
+            <Group>
+              <Tags />
+              <Title order={4}>{t("things")}</Title>
+            </Group>
+          )}
           <Group gap="xs">
             {autoTags.map(tag =>
               // Search needs a login, so a public page's tags are just labels;

@@ -1,0 +1,8 @@
+.video {
+  /* Block: inline, the box would grow by a line's descent below it. */
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+}

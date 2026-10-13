@@ -125,7 +125,8 @@ describe("MediaDisplay video size", () => {
 
     // Not from the stored width and height: they ignore a phone video's rotation.
     expect(props.height).toBe("auto");
-    expect(props.maxHeight).toBe("70vh");
+    // As tall as the page's mat lets it be (70vh where no page sets it).
+    expect(props.maxHeight).toBe("var(--page-media-max-height, 70vh)");
   });
 });
 

@@ -18,10 +18,8 @@ function fileNameOf(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
-/**
- * Get file variant type badge color and label
- */
-function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
+/** The badge colour and label of a file variant's type (JPG, RAW, VIDEO, META). */
+export function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
   const unknownBadge = { color: "gray", label: "FILE" };
   const typeMap: Record<string, { color: string; label: string }> = {
     image: { color: "blue", label: "JPG" },

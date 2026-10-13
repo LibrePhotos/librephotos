@@ -1,12 +1,12 @@
 {
   "src/components/charts/LocationLink.tsx": { "lines": 635, "function": 476 },
-  "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
   "src/components/photolist/SelectionActions.tsx": { "lines": 521, "function": 455 },
+  "src/components/lightbox/ContentViewer.tsx": { "lines": 485, "function": 431 },
   "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
-  "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 450, "function": 397 },
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 417, "function": 397 },
-  "src/components/lightbox/VideoPlayer.tsx": { "lines": 416, "function": 367 },
+  "src/components/lightbox/VideoPlayer.tsx": { "lines": 415, "function": 365 },
+  "src/components/lightbox/LightboxControls.tsx": { "lines": 411, "function": 361 },
   "src/components/react-pig/index.tsx": { "function": 318 },
   "src/components/modals/ModalUserEdit.tsx": { "function": 251 }
 }

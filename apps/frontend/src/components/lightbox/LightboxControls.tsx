@@ -32,22 +32,15 @@ import {
   IconZoomIn as ZoomIn,
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
-import type { TFunction } from "i18next";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useFetchPhotoSharesQuery,
-  useMarkPhotosDeletedMutation,
-  useSetFavoritePhotosMutation,
-  useSetPhotosHiddenMutation,
-} from "../../api_client/photos/hooks";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
+import { usePhotoActions } from "./usePhotoActions";
 
 // Interval options for slideshow
 const INTERVAL_OPTIONS = [
@@ -57,10 +50,6 @@ const INTERVAL_OPTIONS = [
   { value: "15", label: "15s" },
   { value: "30", label: "30s" },
 ];
-
-function favoriteLabel(t: TFunction, isFavorite: boolean) {
-  return isFavorite ? t("lightbox.toolbar.removeFromFavorites") : t("lightbox.toolbar.addToFavorites");
-}
 
 export function LightboxControls({
   photoDetail,
@@ -94,93 +83,45 @@ export function LightboxControls({
   // into a menu there instead of wrapping the toolbar onto a second row.
   const isNarrow = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
-  // Fetch user details for favorite min rating
-  const { data: userDetails } = useCurrentUserSelfDetailsQuery();
-  const favoriteMinRating = userDetails?.favorite_min_rating ?? 0;
-
-  // Mutations for photo actions
-  const setPhotosHidden = useSetPhotosHiddenMutation();
-  // Whether this photo has a live share link, for the globe's colour.
-  const { data: photoShares } = useFetchPhotoSharesQuery(!isPublic);
-  const isShared = !!photoDetail && !!photoShares?.some(share => share.photo_id === photoDetail.id);
-  const [sharingPhotoId, setSharingPhotoId] = useState<string | null>(null);
-  const setFavoritePhotos = useSetFavoritePhotosMutation();
-  const markPhotosDeleted = useMarkPhotosDeletedMutation();
+  // Favourite, hide, share link and trash, as the photo page has them too.
+  const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle });
   const intervalRef = useRef<HTMLInputElement>(null);
-
-  // Keyboard shortcut handlers
-  const handleFavoriteShortcut = useCallback(() => {
-    if (photoDetail && !isPublic) {
-      const { image_hash: imageHash } = photoDetail;
-      const val = !(photoDetail.rating >= favoriteMinRating);
-      setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
-    }
-  }, [photoDetail, isPublic, favoriteMinRating, setFavoritePhotos]);
-
-  const handleHideShortcut = useCallback(() => {
-    if (photoDetail && !isPublic) {
-      const { image_hash: imageHash } = photoDetail;
-      const val = !photoDetail.hidden;
-      setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
-    }
-  }, [photoDetail, isPublic, setPhotosHidden]);
-
-  // A share link carries its own random slug, so it can be rotated or
-  // revoked later; the old thumbnails_big URL came from the file content and
-  // could never be withdrawn (issue #2028). It is independent of the photo's
-  // "public" flag, which the bulk Make Public action still controls.
-  const handlePublicShortcut = useCallback(() => {
-    if (photoDetail && !isPublic) {
-      setSharingPhotoId(photoDetail.id);
-    }
-  }, [photoDetail, isPublic]);
-
-  // In the trash the same button and D restore the photo instead: trashing
-  // it again was a no-op that reported "0 photos moved to trash".
-  const inTrash = !!photoDetail?.in_trashcan;
-  const handleToggleTrash = useCallback(() => {
-    if (photoDetail && !isPublic) {
-      const { image_hash: imageHash } = photoDetail;
-      markPhotosDeleted.mutate(
-        { image_hashes: [imageHash], deleted: !inTrash },
-        { onSuccess: () => onAfterTrashToggle?.() }
-      );
-    }
-  }, [photoDetail, isPublic, inTrash, markPhotosDeleted, onAfterTrashToggle]);
 
   // The keyboard shortcuts of the lightbox that owns this toolbar
   const commands = useLightboxCommands();
   useEffect(() => {
     const unsubscribers = [
-      commands.on("favorite", handleFavoriteShortcut),
-      commands.on("hide", handleHideShortcut),
-      commands.on("public", handlePublicShortcut),
-      commands.on("delete", handleToggleTrash),
+      commands.on("favorite", actions.toggleFavorite),
+      commands.on("hide", actions.toggleHidden),
+      commands.on("public", actions.openShareLink),
+      commands.on("delete", actions.toggleTrash),
     ];
     return () => unsubscribers.forEach(off => off());
-  }, [commands, handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleToggleTrash]);
+  }, [commands, actions.toggleFavorite, actions.toggleHidden, actions.openShareLink, actions.toggleTrash]);
 
   const slideshowLabel = isSlideshowActive ? t("lightbox.controls.stopslideshow") : t("lightbox.controls.slideshow");
   const liveTextLabel = showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext");
   const copyLabel = t("lightbox.controls.copy", { shortcut: copyKeyLabel() });
   const fullscreenLabel = isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen");
   const infoLabel = lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel");
-  const hideLabel = photoDetail?.hidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto");
-  const trashLabel = inTrash ? t("lightbox.toolbar.restorePhoto") : t("lightbox.toolbar.deletePhoto");
-  const isFavorite = !!photoDetail && photoDetail.rating >= favoriteMinRating;
+  const { toggleHidden, toggleTrash } = actions;
+  const hideLabel = actions.isHidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto");
+  const trashLabel = actions.inTrash ? t("lightbox.toolbar.restorePhoto") : t("lightbox.toolbar.deletePhoto");
+  const favoriteLabel = actions.isFavorite
+    ? t("lightbox.toolbar.removeFromFavorites")
+    : t("lightbox.toolbar.addToFavorites");
+  const shareLabel = t("sharing.shareLinkShortcut");
   // The server refuses to rotate a video, and the player would not show it.
   const canRotate = type !== "video";
-  const toggleHidden = () => {
-    if (!photoDetail) return;
-    setPhotosHidden.mutate({ image_hashes: [photoDetail.image_hash], hidden: !photoDetail.hidden });
-  };
-  const hideIcon = photoDetail?.hidden ? (
+  const hideIcon = actions.isHidden ? (
     <EyeOff size={ICON_SIZE.lightbox} color="var(--mantine-color-red-6)" />
   ) : (
     <Eye size={ICON_SIZE.lightbox} />
   );
-  const shareIcon = <Globe size={ICON_SIZE.lightbox} color={isShared ? "var(--mantine-color-green-6)" : undefined} />;
-  const trashIcon = inTrash ? <Restore size={ICON_SIZE.lightbox} /> : <Trash size={ICON_SIZE.lightbox} />;
+  const shareIcon = (
+    <Globe size={ICON_SIZE.lightbox} color={actions.isShared ? "var(--mantine-color-green-6)" : undefined} />
+  );
+  const trashIcon = actions.inTrash ? <Restore size={ICON_SIZE.lightbox} /> : <Trash size={ICON_SIZE.lightbox} />;
   // Copy and fullscreen join the menu on a phone too, to leave room for it.
   const actionsInMenu = !!isNarrow && !isPublic;
   const canZoom = enableZoom && type === "photo";
@@ -348,17 +289,15 @@ export function LightboxControls({
               </Tooltip>
             )}
             {photoDetail && (
-              <Tooltip label={favoriteLabel(t, isFavorite)} position="bottom" withArrow>
+              <Tooltip label={favoriteLabel} position="bottom" withArrow>
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   size={28}
-                  aria-label={favoriteLabel(t, isFavorite)}
-                  onClick={() => {
-                    setFavoritePhotos.mutate({ image_hashes: [photoDetail.image_hash], favorite: !isFavorite });
-                  }}
+                  aria-label={favoriteLabel}
+                  onClick={actions.toggleFavorite}
                 >
-                  {isFavorite ? (
+                  {actions.isFavorite ? (
                     <StarFilled size={ICON_SIZE.lightbox} color={FAVORITE_COLOR} />
                   ) : (
                     <Star size={ICON_SIZE.lightbox} />
@@ -367,13 +306,13 @@ export function LightboxControls({
               </Tooltip>
             )}
             {photoDetail && !actionsInMenu && (
-              <Tooltip label={t("sharing.shareLinkShortcut")} position="bottom" withArrow>
+              <Tooltip label={shareLabel} position="bottom" withArrow>
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   size={28}
-                  aria-label={t("sharing.shareLinkShortcut")}
-                  onClick={() => setSharingPhotoId(photoDetail.id)}
+                  aria-label={shareLabel}
+                  onClick={actions.openShareLink}
                 >
                   {shareIcon}
                 </ActionIcon>
@@ -381,7 +320,7 @@ export function LightboxControls({
             )}
             {photoDetail && !actionsInMenu && (
               <Tooltip label={trashLabel} position="bottom" withArrow>
-                <ActionIcon variant="subtle" color="gray" size={28} aria-label={trashLabel} onClick={handleToggleTrash}>
+                <ActionIcon variant="subtle" color="gray" size={28} aria-label={trashLabel} onClick={toggleTrash}>
                   {trashIcon}
                 </ActionIcon>
               </Tooltip>
@@ -427,12 +366,12 @@ export function LightboxControls({
                     </Menu.Item>
                   )}
                   {photoDetail && (
-                    <Menu.Item leftSection={shareIcon} onClick={() => setSharingPhotoId(photoDetail.id)}>
-                      {t("sharing.shareLinkShortcut")}
+                    <Menu.Item leftSection={shareIcon} onClick={actions.openShareLink}>
+                      {shareLabel}
                     </Menu.Item>
                   )}
                   {photoDetail && (
-                    <Menu.Item leftSection={trashIcon} onClick={handleToggleTrash}>
+                    <Menu.Item leftSection={trashIcon} onClick={toggleTrash}>
                       {trashLabel}
                     </Menu.Item>
                   )}
@@ -465,7 +404,7 @@ export function LightboxControls({
           </Group>
         </>
       )}
-      {!isPublic && <PhotoShareLinkModal photoId={sharingPhotoId} onClose={() => setSharingPhotoId(null)} />}
+      {!isPublic && <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />}
 
       {/* Group 4: Panel controls - Info toggle & Close (sidebar toggle right next to X).
           Its divider is not part of group 3, which a public page and a photo

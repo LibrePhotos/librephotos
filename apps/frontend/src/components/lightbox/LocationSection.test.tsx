@@ -12,7 +12,7 @@ import i18n from "../../i18n";
 import { LocationSection } from "./LocationSection";
 
 vi.mock("../LocationMap", () => ({ LocationMap: () => <div data-testid="map" /> }));
-vi.mock("../map/LocationPickerModal", () => ({ LocationPickerModal: () => null }));
+vi.mock("../map/LocationPickerModal", () => ({ LocationPickerModal: () => <div data-testid="picker" /> }));
 
 beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -29,20 +29,24 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-async function renderSection(photoDetail: React.ComponentProps<typeof LocationSection>["photoDetail"]) {
+async function renderSection(
+  photoDetail: React.ComponentProps<typeof LocationSection>["photoDetail"],
+  props: Partial<React.ComponentProps<typeof LocationSection>> = {}
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <LocationSection photoDetail={photoDetail} />
+        <LocationSection photoDetail={photoDetail} {...props} />
       </MantineProvider>
     );
   });
   return {
     text: container.textContent ?? "",
     hasMap: container.querySelector('[data-testid="map"]') !== null,
+    container,
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
@@ -97,6 +101,30 @@ describe("LocationSection", () => {
 
     expect(section.text).toContain(i18n.t("lightbox.sidebar.no_location"));
     expect(section.hasMap).toBe(false);
+    await section.unmount();
+  });
+
+  it("shows a card's heading in place of its own, next to the pencil", async () => {
+    const section = await renderSection(
+      { image_hash: "h1", exif_gps_lat: null, exif_gps_lon: null, search_location: "Madrid, Spain" },
+      { heading: <h2>Place card</h2> }
+    );
+
+    expect(section.container.querySelector("h2")?.textContent).toBe("Place card");
+    expect(section.text).toContain("Madrid, Spain");
+    expect(
+      section.container.querySelector(`[aria-label="${i18n.t("lightbox.sidebar.update_location")}"]`)
+    ).not.toBeNull();
+    await section.unmount();
+  });
+
+  it("opens the location picker at once when asked to", async () => {
+    const section = await renderSection(
+      { image_hash: "h1", exif_gps_lat: null, exif_gps_lon: null, search_location: "" },
+      { startEditing: true }
+    );
+
+    expect(document.querySelector('[data-testid="picker"]')).not.toBeNull();
     await section.unmount();
   });
 });

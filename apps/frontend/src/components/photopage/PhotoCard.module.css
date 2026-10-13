@@ -1,0 +1,17 @@
+.card {
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md) var(--mantine-spacing-md);
+}
+
+.headingRow {
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+.heading {
+  min-width: 0;
+}
+
+/* An h2 for the outline, sized like a card title rather than a page section. */
+.title {
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.3;
+}

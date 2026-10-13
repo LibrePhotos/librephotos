@@ -13,11 +13,24 @@ type LocationSectionProps = {
     Partial<Pick<PhotoType, "search_location">>;
   mapHeight?: number;
   isPublic?: boolean;
+  /**
+   * Shown instead of the section's own icon and title, next to its edit
+   * controls: the photo page's cards bring their own heading.
+   */
+  heading?: React.ReactNode;
+  /** Open the location picker at once: the photo page's "Add a place" asked for it. */
+  startEditing?: boolean;
 };
 
-export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false }: LocationSectionProps) {
+export function LocationSection({
+  photoDetail,
+  mapHeight = 250,
+  isPublic = false,
+  heading,
+  startEditing = false,
+}: LocationSectionProps) {
   const { t } = useTranslation();
-  const [opened, { open, close }] = useDisclosure(false);
+  const [opened, { open, close }] = useDisclosure(startEditing && !isPublic);
   // The picker's removal confirmation owns Escape while it is open; both dialogs would close.
   const [nestedOpened, nested] = useDisclosure(false);
   const { exif_gps_lat: lat, exif_gps_lon: lon } = photoDetail;
@@ -25,32 +38,46 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
   const label =
     photoDetail.search_location ||
     (lat != null && lon != null ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : t("lightbox.sidebar.no_location"));
+  const editButton = !isPublic && (
+    <Tooltip label={t("lightbox.sidebar.update_location")}>
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        size="sm"
+        aria-label={t("lightbox.sidebar.update_location")}
+        onClick={open}
+      >
+        <IconPencil size={16} />
+      </ActionIcon>
+    </Tooltip>
+  );
   return (
     <Group>
       <Stack w="100%">
-        <Group wrap="nowrap" align="center">
-          <MapPin />
-          <Text
-            c={photoDetail.search_location ? undefined : "dimmed"}
-            title={label}
-            style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-          >
-            {label}
-          </Text>
-          {!isPublic && (
-            <Tooltip label={t("lightbox.sidebar.update_location")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                aria-label={t("lightbox.sidebar.update_location")}
-                onClick={open}
-              >
-                <IconPencil size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </Group>
+        {heading ? (
+          // In a card the whole address shows, under the card's heading.
+          <>
+            <Group justify="space-between" wrap="nowrap">
+              {heading}
+              {editButton}
+            </Group>
+            <Text size="sm" c={photoDetail.search_location ? undefined : "dimmed"}>
+              {label}
+            </Text>
+          </>
+        ) : (
+          <Group wrap="nowrap" align="center">
+            <MapPin />
+            <Text
+              c={photoDetail.search_location ? undefined : "dimmed"}
+              title={label}
+              style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {label}
+            </Text>
+            {editButton}
+          </Group>
+        )}
         {/* != null: a photo on the equator or the prime meridian has a map too (#2283). */}
         {lat != null && lon != null && (
           <Box h={mapHeight}>
