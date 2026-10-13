@@ -170,6 +170,13 @@ export const PhotosWithoutTimestampResponse = z.object({
 });
 export type PhotosWithoutTimestampResponse = z.infer<typeof PhotosWithoutTimestampResponse>;
 
+/** GET /api/photos/nolocation/: DRF page-number pagination, 100 per page. */
+export const PhotosWithoutLocationResponse = z.object({
+  ...PageFields,
+  results: PigPhoto.array(),
+});
+export type PhotosWithoutLocationResponse = z.infer<typeof PhotosWithoutLocationResponse>;
+
 /** Body describing a photoset for server-side "select all" bulk operations. */
 export const BulkPhotoQuery = z.object({
   favorite: z.boolean().optional(),

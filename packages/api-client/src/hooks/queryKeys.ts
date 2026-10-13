@@ -38,6 +38,7 @@ type PhotoGridKind =
   | "tagAlbum"
   | "search"
   | "withoutTimestamp"
+  | "withoutLocation"
   | "sharedByMe"
   | "sharedWithMe";
 
@@ -81,6 +82,7 @@ export const photoGridKeys = {
   search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped") =>
     [...gridKind("search"), term, mediaType, mode] as const,
   withoutTimestamp: (page: number) => [...gridKind("withoutTimestamp"), page] as const,
+  withoutLocation: (page: number) => [...gridKind("withoutLocation"), page] as const,
   /** The photos I shared, grouped by recipient (web). */
   sharedByMe: () => gridKind("sharedByMe"),
   /** The photos I shared, one row per share as the server sends them. */

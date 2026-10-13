@@ -21,6 +21,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
     schema: S.PhotosWithoutTimestampResponse,
     components: ["PaginatedPhotoSummaryList"],
   },
+  PhotosWithoutLocationResponse: {
+    schema: S.PhotosWithoutLocationResponse,
+    components: ["PaginatedPhotoSummaryList"],
+  },
   SharedFromMePhoto: { schema: S.SharedFromMePhoto, components: ["SharedFromMePhotoThrough"] },
   PhotoMetadata: { schema: S.PhotoMetadata, components: ["PhotoMetadata"] },
   MetadataEdit: { schema: S.MetadataEdit, components: ["MetadataEdit"] },

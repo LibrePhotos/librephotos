@@ -51,6 +51,7 @@ describe("query key factories", () => {
       photoGridKeys.recentlyAdded(),
       photoGridKeys.thingsAlbum("1", "all"),
       photoGridKeys.search("tram", "all", "grouped"),
+      photoGridKeys.withoutLocation(1),
       photoGridKeys.sharedByMeRaw(),
     ];
     grids.forEach(queryKey => client.setQueryData(queryKey, 0));
