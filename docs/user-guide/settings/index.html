@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.254547ba.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.fb0394c6.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -141,7 +141,7 @@
 <li class=""><code>Provider</code> chooses how mail is sent: <code>Disabled</code>, <code>Custom SMTP server</code>, <code>SendGrid</code>, <code>Mailgun</code>, <code>Postmark</code>, <code>Brevo</code>, <code>SMTP2GO</code> or <code>Amazon SES</code>. The hosted providers use built-in server presets, so you only supply a <code>From address</code>, <code>Username</code> and API key. <code>Custom SMTP server</code> (and <code>Amazon SES</code>, for the host) additionally shows the <code>SMTP host</code>; <code>Custom SMTP server</code> also shows <code>Port</code>, <code>Use STARTTLS</code> and <code>Use implicit SSL</code>.</li>
 <li class=""><code>From address</code> is the address mail is sent from.</li>
 <li class=""><code>Username</code> is the login for the provider. For SendGrid, leave this blank — it uses the literal username <code>apikey</code>.</li>
-<li class=""><code>Password / API key</code> is write-only: it is encrypted before it is stored and never returned by the API. Leaving the field blank keeps the existing credential unchanged; use <strong>Remove the stored credential</strong> to delete it.</li>
+<li class=""><code>Password / API key</code> is write-only: it is encrypted before it is stored and never returned by the API. Leaving the field blank keeps the existing credential unchanged; use <strong>Remove the stored credential</strong> to delete it (it asks first, since most providers refuse to send mail, password reset links included, until a credential is entered again).</li>
 <li class=""><strong>Send test email</strong> sends a test message to your own account&#x27;s e-mail address to check the configuration end to end. It stays disabled until the configuration is valid.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="admin-tools">Admin Tools<a href="#admin-tools" class="hash-link" aria-label="Direct link to Admin Tools" title="Direct link to Admin Tools" translate="no">​</a></h2>
