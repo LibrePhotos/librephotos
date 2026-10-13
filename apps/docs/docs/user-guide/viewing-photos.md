@@ -54,6 +54,14 @@ Shows only video files, filtering out all still photos.
 
 Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
 
+### Without Location
+
+:::note
+This view is not in a release yet; it ships with the first release after 1.3.0.
+:::
+
+Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
+
 ### My Public Photos
 
 Photos you've marked as publicly visible, accessible at your public profile URL.

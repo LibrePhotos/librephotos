@@ -24,6 +24,7 @@ describe("invalidatePhotoLists", () => {
       photoGridKeys.tagAlbumView("11", "all"),
       photoGridKeys.search("beach", "all", "semantic"),
       photoGridKeys.withoutTimestamp(1),
+      photoGridKeys.withoutLocation(1),
       photoGridKeys.sharedByMe(),
       photoGridKeys.sharedWithMe(),
     ];

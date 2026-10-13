@@ -381,6 +381,7 @@
     "name": "LibrePhotos",
     "withtimestamp": "With Timestamp",
     "withouttimestamp": "Without Timestamp",
+    "withoutlocation": "Without Location",
     "recentlyadded": "Recently Added",
     "hidden": "Hidden",
     "favorites": "Favorites",
@@ -935,6 +936,7 @@
     "addedon": "Added on ",
     "photos": "Photos",
     "notimestamp": "Photos without Timestamps",
+    "nolocation": "Photos without Location",
     "hidden": "Hidden Photos",
     "favorite": "Favorite Photos",
     "videos": "Videos",
@@ -1077,6 +1079,7 @@
       "trash": "Go to Trash",
       "recent": "Go to Recently Added",
       "noTimestamp": "Go to Photos Without Timestamps",
+      "noLocation": "Go to Photos Without Location",
       "events": "Go to Events",
       "folders": "Go to Folders",
       "myAlbums": "Go to My Albums",
@@ -1774,6 +1777,10 @@
     "notimestamp": {
       "title": "No photos without timestamps",
       "description": "Photos without date information will appear here."
+    },
+    "nolocation": {
+      "title": "No photos without location",
+      "description": "Photos without GPS coordinates will appear here."
     },
     "events": {
       "title": "No events detected",

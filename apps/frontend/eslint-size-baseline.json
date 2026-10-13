@@ -1,6 +1,5 @@
 {
   "src/components/charts/LocationLink.tsx": { "lines": 635, "function": 476 },
-  "src/components/spotlight/useSpotlightActions.ts": { "lines": 593, "function": 463 },
   "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
   "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
   "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
