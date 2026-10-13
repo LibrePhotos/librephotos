@@ -17,7 +17,6 @@ import { AlbumsSection } from "../../components/lightbox/AlbumsSection";
 import { CameraInfoComponent } from "../../components/lightbox/CameraInfoComponent";
 import { Description } from "../../components/lightbox/Description";
 import { FileInfoComponent } from "../../components/lightbox/FileInfoComponent";
-import { KeywordsSection } from "../../components/lightbox/KeywordsSection";
 import { LocationSection } from "../../components/lightbox/LocationSection";
 import { PeopleSection } from "../../components/lightbox/PeopleSection";
 import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSection";
@@ -155,7 +154,6 @@ function SinglePhotoView() {
                 />
                 <Description photoDetail={photoDetail} isPublic={false} />
                 <TagsSection photoDetail={photoDetail} />
-                <KeywordsSection photoDetail={photoDetail} />
               </Stack>
             </Grid.Col>
 
