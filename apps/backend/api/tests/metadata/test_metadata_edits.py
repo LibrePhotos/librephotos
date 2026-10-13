@@ -18,11 +18,16 @@ from rest_framework.test import APIClient
 
 from api.metadata import edits
 from api.metadata.jobs import queue_field_write, write_photo_fields
+from api.metadata.reader import MetadataReadError
 from api.models import Photo, User
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.models.photo_metadata import (
+    IMPORTED_DESCRIPTION_KEY,
+    MetadataEdit,
+    PhotoMetadata,
+)
 from api.models.photo_search import PhotoSearch
 from api.models.tag import Tag
 from api.tests.utils import (
@@ -665,6 +670,24 @@ class QueuedFieldWriteTest(TestCase):
             failures = write_photo_fields([self.photo.id], "caption", False)
 
         self.assertEqual(1, failures)
+
+    def test_a_caption_whose_description_cannot_be_read_back_still_counts(self):
+        edits._apply_caption(self.photo, "typed", self.user)
+
+        with (
+            patch("api.metadata.photo_writer.write_metadata") as write,
+            patch(
+                "api.metadata.photo_writer.get_metadata",
+                side_effect=MetadataReadError("exif service down"),
+            ),
+            self.assertLogs("api.metadata.photo_writer", "WARNING"),
+        ):
+            failures = write_photo_fields([self.photo.id], "caption", False)
+
+        self.assertEqual(0, failures)
+        write.assert_called_once()
+        captions = PhotoCaption.objects.get(photo=self.photo).captions_json
+        self.assertNotIn(IMPORTED_DESCRIPTION_KEY, captions)
 
     def test_a_nextcloud_copy_is_not_written(self):
         with (

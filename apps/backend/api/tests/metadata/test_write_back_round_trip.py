@@ -410,6 +410,22 @@ class CaptionRoundTripTest(RealExifToolTestCase):
 
         self.assertEqual(CAPTION, self._user_caption(photo))
 
+    def test_a_caption_cleared_in_the_sidecar_stays_cleared_after_rescans(self):
+        # Clearing removes the sidecar's description, so the file again says
+        # what the original says. The rescan must not import that as new.
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Description=From the camera")
+        photo = self._photo(path, SIDECAR)
+        extract_exif_data(photo, commit=True)
+
+        self._caption(photo, CAPTION)
+        extract_exif_data(Photo.objects.get(pk=photo.pk), commit=True)
+        self._caption(photo, "")
+        extract_exif_data(Photo.objects.get(pk=photo.pk), commit=True)
+
+        self.assertEqual("", self._user_caption(photo))
+        self.assertEqual("From the camera", self._description_the_scan_reads(photo))
+
     def _user_caption(self, photo):
         return PhotoCaption.objects.get(photo=photo).captions_json["user_caption"]
 

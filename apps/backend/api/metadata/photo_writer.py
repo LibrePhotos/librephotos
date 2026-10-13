@@ -15,7 +15,12 @@ from typing import TYPE_CHECKING
 from django.db import transaction
 
 from api.metadata.orientation import compose_orientation
-from api.metadata.reader import existing_sidecars
+from api.metadata.reader import (
+    MetadataReadError,
+    existing_sidecars,
+    get_metadata,
+    sidecar_files_for_photo,
+)
 from api.metadata.tags import Tags
 from api.metadata.writer import (
     MetadataWriteError,
@@ -24,6 +29,11 @@ from api.metadata.writer import (
     write_metadata,
 )
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_metadata import (
+    DESCRIPTION_SOURCES,
+    IMPORTED_DESCRIPTION_KEY,
+    description_of,
+)
 from api.models.user import User
 from api.photos.paths import is_nextcloud_copy
 
@@ -163,12 +173,53 @@ def write_caption(photo: Photo, use_sidecar: bool) -> None:
         .first()
     )
     caption = captions.get("user_caption") if isinstance(captions, dict) else None
-    _write_edit(
+    if _write_edit(
         photo,
         caption_tags(caption if isinstance(caption, str) else "", use_sidecar),
         use_sidecar,
         options=(WriteOption.MWG, WriteOption.MULTILINE),
-    )
+    ):
+        _remember_file_description(photo)
+
+
+def _remember_file_description(photo: Photo) -> None:
+    """Record the description the file gives now as the one last imported.
+
+    A rescan imports a file description only when it differs from the one it
+    imported last (``PhotoMetadata._import_description_to_caption``). After
+    a caption is cleared in sidecar mode the file again says what the
+    original says; without this, the next rescan would bring that back as
+    the caption.
+    """
+    from api.metadata.photo_reader import EXIF_FIELDS
+
+    assert photo.main_file is not None
+    names = (*DESCRIPTION_SOURCES, "camera")
+    tag_of = dict(EXIF_FIELDS)
+    try:
+        values = get_metadata(
+            photo.main_file.path,
+            tags=[tag_of[name] for name in names],
+            sidecar_files=sidecar_files_for_photo(photo),
+        )
+    except MetadataReadError as error:
+        logger.warning(
+            "The description of photo %s could not be read back: %s",
+            photo.image_hash,
+            error,
+        )
+        return
+    description = description_of(dict(zip(names, values)))
+    with transaction.atomic():
+        caption = PhotoCaption.objects.select_for_update().filter(photo=photo).first()
+        if caption is None:
+            return
+        captions = dict(caption.captions_json or {})
+        captions.pop(IMPORTED_DESCRIPTION_KEY, None)
+        if description:
+            captions[IMPORTED_DESCRIPTION_KEY] = description
+        caption.captions_json = captions
+        caption.save(update_fields=["captions_json"])
 
 
 def _degrees(value: float) -> str:
@@ -266,19 +317,21 @@ def _write_edit(
     tags: dict[str, TagValue],
     use_sidecar: bool,
     options: tuple[WriteOption, ...] = (),
-) -> None:
+) -> bool:
     """Write one edited field's ``tags`` into the photo's file or sidecar.
 
-    A removal from a sidecar that does not exist has nothing to do.
+    Returns whether ExifTool wrote; a removal from a sidecar that does not
+    exist has nothing to do.
     """
     if not _keeps_edits(photo):
-        return
+        return False
     assert photo.main_file is not None
     path = photo.main_file.path
     removes_only = all(value == "" for value in tags.values())
     if use_sidecar and removes_only and not existing_sidecars(path):
-        return
+        return False
     write_metadata(path, tags, use_sidecar=use_sidecar, options=options)
+    return True
 
 
 def _write_rating(photo: Photo, use_sidecar: bool) -> None:
