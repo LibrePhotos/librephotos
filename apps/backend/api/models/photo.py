@@ -100,6 +100,10 @@ class Photo(models.Model):
     # full. None while a read failed, so the next incremental scan reads the
     # file again instead of skipping it as known and unchanged (#2271).
     metadata_read_at = models.DateTimeField(null=True, blank=True)
+    # When face detection last ran on the picture, or failed in a way asking
+    # again would not change (#2199). None until then, and again after the
+    # file is replaced: an incremental Scan Faces covers exactly those photos.
+    faces_scanned_at = models.DateTimeField(null=True, blank=True)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)

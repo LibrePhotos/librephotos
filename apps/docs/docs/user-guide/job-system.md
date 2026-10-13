@@ -48,7 +48,9 @@ Looks up place names for each photo's GPS coordinates (reverse geocoding) so the
 
 ### Scan Faces
 
-Looks for faces in the images and save them to the database
+Looks for faces in your photos and saves them. It runs automatically after each scan and looks at every photo whose faces have not been looked for yet: new photos, photos whose file was replaced, and photos the face recognition service failed on last time, for example because it was restarting or ran out of memory. Each such failure is listed in the job's errors, and the photo is tried again on the next run. A picture the service cannot read at all is listed once and not tried again. When the service cannot be reached for 20 photos in a row, the job stops with the error "Face service unreachable" and the remaining photos wait for the next run. **Rescan Faces** looks at every photo again.
+
+Not released yet: up to 1.3.0, a face recognition error counted as "no faces in this photo", the job reported no error, and only **Rescan Faces** found those faces later. If the face recognition service had trouble while your library was scanned, run **Rescan Faces** once after updating.
 
 ### Generate Face Embeddings
 

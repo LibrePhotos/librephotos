@@ -13,6 +13,7 @@ import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
+import requests
 from django.test import TestCase
 from django.utils import timezone
 
@@ -359,7 +360,8 @@ class ScanFacesCharacterizationTest(TestCase):
         self.assertEqual(job.progress_target, 1)
         self.assertFalse(job.finished)
 
-    def test_unexpected_error_fails_job_but_still_runs_tail_calls(self):
+    def test_unexpected_error_fails_job_and_skips_tail_calls(self):
+        """#2199: a job that failed before its photo loop clusters nothing."""
         create_test_photo(owner=self.user)
         embed, cluster = self._patches()
 
@@ -380,26 +382,31 @@ class ScanFacesCharacterizationTest(TestCase):
         self.assertTrue(job.failed)
         self.assertTrue(job.finished)
         self.assertEqual(job.result, {"status": "failed", "error": "boom"})
-        # NOTE: unlike the cancel/empty paths, the failure path falls through
-        # to the tail calls.
-        mock_embed.assert_called_once()
-        mock_cluster.assert_called_once()
+        mock_embed.assert_not_called()
+        mock_cluster.assert_not_called()
 
-    def test_incremental_scan_only_processes_photos_added_after_last_scan(self):
-        now = timezone.now()
+    def _completed_face_scan_an_hour_ago(self):
         last = LongRunningJob.create_job(
             user=self.user,
             job_type=LongRunningJob.JOB_SCAN_FACES,
             start_now=True,
         )
-        last.started_at = now - timedelta(hours=1)
+        last.started_at = timezone.now() - timedelta(hours=1)
         last.save(update_fields=["started_at"])
         last.complete()
 
-        old = create_test_photo(owner=self.user)
-        Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
+    def test_incremental_scan_only_processes_photos_not_scanned_yet(self):
+        """#2199: what was scanned decides, not when the photo was added."""
+        self._completed_face_scan_an_hour_ago()
+        now = timezone.now()
+        scanned = create_test_photo(owner=self.user)
+        Photo.objects.filter(pk=scanned.pk).update(
+            added_on=now - timedelta(hours=2), faces_scanned_at=now
+        )
+        # Added before the last scan, which failed on it or never got to it.
+        missed = create_test_photo(owner=self.user)
+        Photo.objects.filter(pk=missed.pk).update(added_on=now - timedelta(hours=2))
         new = create_test_photo(owner=self.user)
-        Photo.objects.filter(pk=new.pk).update(added_on=now)
 
         embed, cluster = self._patches()
         seen = []
@@ -415,21 +422,12 @@ class ScanFacesCharacterizationTest(TestCase):
         ):
             scan_faces(self.user, self.job_id, full_scan=False)
 
-        self.assertEqual(seen, [new.pk])
+        self.assertCountEqual(seen, [missed.pk, new.pk])
 
-    def test_full_scan_ignores_last_scan_cutoff(self):
-        now = timezone.now()
-        last = LongRunningJob.create_job(
-            user=self.user,
-            job_type=LongRunningJob.JOB_SCAN_FACES,
-            start_now=True,
-        )
-        last.started_at = now - timedelta(hours=1)
-        last.save(update_fields=["started_at"])
-        last.complete()
-
-        old = create_test_photo(owner=self.user)
-        Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
+    def test_full_scan_covers_photos_already_scanned(self):
+        self._completed_face_scan_an_hour_ago()
+        scanned = create_test_photo(owner=self.user)
+        Photo.objects.filter(pk=scanned.pk).update(faces_scanned_at=timezone.now())
         create_test_photo(owner=self.user)
 
         embed, cluster = self._patches()
@@ -442,26 +440,47 @@ class ScanFacesCharacterizationTest(TestCase):
 
         self.assertEqual(extract.call_count, 2)
 
-    def test_last_scan_of_a_different_job_type_is_ignored(self):
-        now = timezone.now()
-        other = LongRunningJob.create_job(
-            user=self.user,
-            job_type=LongRunningJob.JOB_GENERATE_TAGS,
-            start_now=True,
-        )
-        other.started_at = now
-        other.save(update_fields=["started_at"])
-        other.complete()
-
-        old = create_test_photo(owner=self.user)
-        Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
-
+    def test_scan_stops_when_the_face_service_stays_unreachable(self):
+        """#2199: one job error, not a timeout for every photo left."""
+        limit = processing_jobs.FACE_SERVICE_UNREACHABLE_LIMIT
+        for _ in range(limit + 2):
+            create_test_photo(owner=self.user)
         embed, cluster = self._patches()
+
+        with (
+            embed as mock_embed,
+            cluster as mock_cluster,
+            patch.object(
+                processing_jobs,
+                "extract_faces",
+                side_effect=requests.ConnectionError("Connection refused"),
+            ) as extract,
+        ):
+            scan_faces(self.user, self.job_id)
+
+        self.assertEqual(extract.call_count, limit)
+        job = _job(self.job_id)
+        self.assertTrue(job.failed)
+        self.assertIn("Face service unreachable", job.result["error"])
+        mock_embed.assert_not_called()
+        mock_cluster.assert_not_called()
+
+    def test_a_reachable_photo_resets_the_unreachable_count(self):
+        limit = processing_jobs.FACE_SERVICE_UNREACHABLE_LIMIT
+        for _ in range(limit + 1):
+            create_test_photo(owner=self.user)
+        down = requests.ConnectionError("Connection refused")
+        answers = [down] * (limit - 1) + [None, down]
+        embed, cluster = self._patches()
+
         with (
             embed,
             cluster,
-            patch.object(processing_jobs, "extract_faces") as extract,
+            patch.object(
+                processing_jobs, "extract_faces", side_effect=answers
+            ) as extract,
         ):
-            scan_faces(self.user, self.job_id, full_scan=False)
+            scan_faces(self.user, self.job_id)
 
-        self.assertEqual(extract.call_count, 1)
+        self.assertEqual(extract.call_count, limit + 1)
+        self.assertNotIn("Face service unreachable", _job(self.job_id).result["error"])

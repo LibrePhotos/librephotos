@@ -11,19 +11,14 @@ class FaceExtractorTest(TestCase):
     """Test face extraction functionality."""
 
     @patch("api.faces.extractor.detect_faces")
-    def test_extract_from_face_service_handles_exception(self, mock_detect_faces):
-        """Test that extract_from_face_service returns empty list on exception."""
-        # Setup: make detect_faces raise an exception
-        mock_detect_faces.side_effect = Exception("Test exception")
+    def test_extract_from_face_service_propagates_errors(self, mock_detect_faces):
+        """A face-service error is not "no faces" (#2199): the scan records and retries it."""
+        mock_detect_faces.side_effect = ConnectionError("Connection refused")
 
-        # Call the function
-        result = extractor.extract_from_face_service(
-            image_path="/path/to/image.jpg",
-            big_thumbnail_path="/path/to/thumbnail.jpg",
-        )
-
-        # Verify that it returns an empty list instead of raising UnboundLocalError
-        self.assertEqual(result, [])
+        with self.assertRaises(ConnectionError):
+            extractor.extract_from_face_service(
+                big_thumbnail_path="/path/to/thumbnail.jpg"
+            )
 
     @patch("api.faces.extractor.detect_faces")
     def test_extract_from_face_service_success(self, mock_detect_faces):
@@ -36,7 +31,6 @@ class FaceExtractorTest(TestCase):
 
         # Call the function
         result = extractor.extract_from_face_service(
-            image_path="/path/to/image.jpg",
             big_thumbnail_path="/path/to/thumbnail.jpg",
         )
 

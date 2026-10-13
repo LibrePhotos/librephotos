@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-import PIL
+import PIL.Image
 
 from api.faces.recognition import detect_faces
 from api.lazy_import import LazyModule
@@ -118,18 +118,17 @@ def extract_from_exif(
     return face_locations
 
 
-def extract_from_face_service(
-    image_path: str, big_thumbnail_path: str
-) -> list[FaceLocation]:
-    """Detected faces as (top, right, bottom, left, None, encoding)."""
-    faces: list[tuple[Any, Any]]
-    try:
-        faces = detect_faces(big_thumbnail_path)
-    except Exception:
-        logger.exception("Can't extract face information on photo: %s", image_path)
-        faces = []
+def extract_from_face_service(big_thumbnail_path: str) -> list[FaceLocation]:
+    """Detected faces as (top, right, bottom, left, None, encoding).
 
-    return [(*location, None, encoding) for location, encoding in faces]
+    A face-service error propagates: answering "no faces" for it would mark
+    the photo as scanned and it would never be scanned again (#2199).
+    """
+    face_locations: list[FaceLocation] = []
+    for location, encoding in detect_faces(big_thumbnail_path):
+        top, right, bottom, left = location
+        face_locations.append((top, right, bottom, left, None, encoding))
+    return face_locations
 
 
 def extract(
@@ -140,5 +139,5 @@ def extract(
 ) -> list[FaceLocation]:
     exif = extract_from_exif(image_path, big_thumbnail_path, sidecar_files)
     if not exif:
-        return extract_from_face_service(image_path, big_thumbnail_path)
+        return extract_from_face_service(big_thumbnail_path)
     return exif

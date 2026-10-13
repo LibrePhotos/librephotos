@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pyvips
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from PIL import Image
 
 import api.thumbnails.decoding  # noqa: F401  registers the HEIF opener _write_image(format="HEIF") needs
@@ -157,6 +158,7 @@ class ReplacedFileRescanTest(ReplacedFileTestCase):
         photo.thumbnail.dominant_color = "[1,2,3]"
         photo.thumbnail.save()
         create_test_face(photo=photo)
+        Photo.objects.filter(pk=photo.pk).update(faces_scanned_at=timezone.now())
 
         _write_image(self.path, 2)
         with patch("api.video.transcode_cache.discard") as discard:
@@ -165,9 +167,11 @@ class ReplacedFileRescanTest(ReplacedFileTestCase):
         discard.assert_called_once_with(old_hash)
         self.assertEqual(0, rescanned.faces.count())
         self.assertIsNone(rescanned.thumbnail.dominant_color)
-        # The tag, geolocation and face jobs select on added_on, so the photo
-        # has to look new again for them to re-derive anything.
+        # The tag and geolocation jobs select on added_on, so the photo has
+        # to look new again for them to re-derive anything; Scan Faces
+        # selects photos whose faces were not scanned (#2199).
         self.assertGreater(rescanned.added_on, old_added_on)
+        self.assertIsNone(rescanned.faces_scanned_at)
 
     def test_unchanged_file_keeps_its_record(self):
         _write_image(self.path, 1)

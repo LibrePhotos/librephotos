@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 from flask.typing import ResponseReturnValue
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from librephotos.env import data_models_root
 from service._common import create_app, json_fields, logger, serve_forever
@@ -163,7 +163,16 @@ def create_face_locations() -> ResponseReturnValue:
     source, model_name = json_fields("source", model_name=None)
 
     try:
-        image = np.array(Image.open(source).convert("RGB"))
+        picture = Image.open(source)
+    except (UnidentifiedImageError, Image.DecompressionBombError) as exc:
+        # Not a picture this service can read: asking again gives the same
+        # answer, so the backend marks the photo scanned instead of retrying
+        # it on every Scan Faces (#2199). Every other failure is a 500.
+        log.error("cannot read %s: %s", source, exc)
+        return {"error": str(exc)}, 422
+
+    try:
+        image = np.array(picture.convert("RGB"))
         face_analysis = _get_face_analysis(model_name)
         faces = face_analysis.get(image)
         face_locations = [_to_face_location(face.bbox) for face in faces]

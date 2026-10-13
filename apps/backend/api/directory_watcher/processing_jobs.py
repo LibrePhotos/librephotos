@@ -10,6 +10,7 @@ import traceback
 from collections.abc import Callable
 from uuid import UUID
 
+import requests
 from django import db
 from django.db.models import Q, QuerySet
 
@@ -428,7 +429,6 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     Raises on a non-OK service response so the caller records a per-photo
     failure (the job continues with the remaining photos).
     """
-    import requests
     from constance import config as site_config
 
     from api.runtime.http_timeouts import OCR
@@ -741,15 +741,36 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID) -> None:
     update_scan_counter(job_id, failed, error)
 
 
-def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> None:
-    failed = False
+# Consecutive photos the face service could not be reached for before Scan
+# Faces gives up: each one already waited through the sidecar client's
+# retries, and the photos left over are scanned by the next run (#2199).
+FACE_SERVICE_UNREACHABLE_LIMIT = 20
+
+
+def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> Exception | None:
+    """Detect the photo's faces, counting it on the job; the error, if any."""
+    failure = None
     error = None
     try:
         extract_faces(photo)
     except Exception as err:
-        failed = True
+        failure = err
         error = _record_photo_error(photo, err)
-    update_scan_counter(job_id, failed, error)
+    update_scan_counter(job_id, failure is not None, error)
+    return failure
+
+
+def _faces_to_scan(user: User, full_scan: bool) -> QuerySet[Photo]:
+    """The photos a Scan Faces covers: every one, or those not scanned yet.
+
+    Not scanned: new, the face service failed on them (#2199), or their file
+    was replaced. A window of photos added since the last run would miss the
+    last two.
+    """
+    photos = Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False)
+    if full_scan:
+        return photos
+    return photos.filter(faces_scanned_at__isnull=True)
 
 
 def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
@@ -759,29 +780,37 @@ def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
-        full_scan: If True, process all photos; otherwise only new ones
+        full_scan: If True, process all photos; otherwise those not scanned yet
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_FACES, job_id)
     if lrj is None:
         return
 
     try:
-        existing_photos = _limit_to_photos_added_since_last_scan(
-            Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False),
-            user,
-            LongRunningJob.JOB_SCAN_FACES,
-            full_scan,
-        )
+        existing_photos = _faces_to_scan(user, full_scan)
         if not _begin_photo_scan(lrj, existing_photos):
             return
 
+        unreachable = 0
         for idx, photo in enumerate(existing_photos):
             if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
                 return
-            _extract_faces_for_photo(photo, job_id)
+            failure = _extract_faces_for_photo(photo, job_id)
+            if isinstance(failure, requests.ConnectionError | requests.Timeout):
+                unreachable += 1
+            else:
+                unreachable = 0
+            if unreachable >= FACE_SERVICE_UNREACHABLE_LIMIT:
+                logger.error("Scan faces job %s: face service unreachable", job_id)
+                lrj.fail(
+                    error=f"Face service unreachable: {unreachable} photos in a "
+                    f"row failed with: {failure}"
+                )
+                return
     except Exception as err:
         logger.exception("An error occurred: ")
         lrj.fail(error=err)
+        return
 
     generate_face_embeddings(user)
     cluster_all_faces(user)
