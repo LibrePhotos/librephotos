@@ -14,9 +14,11 @@ happen. The task is queued on commit; the tests run those callbacks.
 
 import os
 import tempfile
+from contextlib import nullcontext
+from pathlib import Path
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from api.models import LongRunningJob
@@ -90,12 +92,18 @@ class ScanViewTestBase(TestCase):
         RecordingChain.run_error = run_error
         request = getattr(self.factory, method)("/api/scanphotos")
         force_authenticate(request, user=user if user is not None else self.user)
+        # models_exist=None checks the real model folder (MEDIA_ROOT).
+        models_check = (
+            nullcontext()
+            if models_exist is None
+            else patch(
+                "api.runtime.ml_models.do_all_models_exist", return_value=models_exist
+            )
+        )
         with (
             patch("api.jobs.queue.Chain", RecordingChain),
             patch("api.jobs.queue.AsyncTask", RecordingTask),
-            patch(
-                "api.runtime.ml_models.do_all_models_exist", return_value=models_exist
-            ),
+            models_check,
             patch(f"{MODULE}.scan_photos", autospec=True) as scan_photos,
             self.captureOnCommitCallbacks(execute=True),
         ):
@@ -196,6 +204,38 @@ class ScanPhotosViewHappyPathTest(ScanViewTestBase):
         # The download writes its own row when it runs.
         self.assertEqual(first_kwargs, {})
         self.assertIs(chain.appended[1][0][0], self.scan_photos_mock)
+
+    def _media_root_with_only_openclip(self):
+        media_root = Path(self.scan_directory) / "protected_media"
+        bundle = media_root / "data_models" / "openclip_vitb32"
+        bundle.mkdir(parents=True)
+        for name in (
+            "visual.onnx",
+            "textual.onnx",
+            "tokenizer.json",
+            "preprocess.json",
+            "LICENSE",
+        ):
+            (bundle / name).write_bytes(b"model")
+        return str(media_root)
+
+    @override_settings(FEATURE_FACE_DETECTION=False, FEATURE_IMAGE_CAPTIONING=False)
+    def test_only_openclip_is_needed_with_faces_and_captioning_off(self):
+        """No face pack or captioner download is chained (#2218)."""
+        with override_settings(MEDIA_ROOT=self._media_root_with_only_openclip()):
+            response = self.call_view(ScanPhotosView, models_exist=None)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.chain.appended), 1)
+        self.assertIs(self.chain.appended[0][0][0], self.scan_photos_mock)
+
+    @override_settings(FEATURE_IMAGE_CAPTIONING=False)
+    def test_a_missing_face_pack_is_downloaded_while_faces_are_on(self):
+        with override_settings(MEDIA_ROOT=self._media_root_with_only_openclip()):
+            response = self.call_view(ScanPhotosView, models_exist=None)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIs(self.chain.appended[0][0][0], download_models)
 
     def test_post_and_get_share_the_same_implementation(self):
         post_response = self.call_view(ScanPhotosView, method="post")

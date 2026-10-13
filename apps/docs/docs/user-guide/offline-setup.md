@@ -8,15 +8,15 @@ To enable LibrePhotos to run its machine learning features offline, you can manu
 
 ### Step 1: Download the Models Manually
 
-Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links:
+Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links. OpenCLIP is always needed. _Not released yet:_ the captioning and face recognition models are optional; skip the ones whose feature you turned off (see [Running with minimal machine learning](./feature-toggles.md#minimal-machine-learning)), and LibrePhotos does not ask for them either.
 
-1. **openclip_vitb32** (Tags, semantic search and similar photos)
+1. **openclip_vitb32** (Tags, semantic search and similar photos; always required)
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/visual.onnx`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/textual.onnx`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/tokenizer.json`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/preprocess.json`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/LICENSE`
-2. **lfm2_vl_450m** (Captioning)
+2. **lfm2_vl_450m** (Captioning; optional, not needed with `FEATURE_IMAGE_CAPTIONING=false` or **Captioning Model** `None`)
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx`
@@ -24,7 +24,7 @@ Manually download the necessary models from their respective URLs. Below is a li
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data`
    - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
-3. **buffalo_sc** (Face recognition — default model)
+3. **buffalo_sc** (Face recognition — default model; optional, not needed with `FEATURE_FACE_DETECTION=false`)
    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
    - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 

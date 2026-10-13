@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from constance.test import override_config
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -97,6 +98,32 @@ class PhotoCaptionsTest(TestCase):
         self.assertEqual(error["code"], "model_downloading")
         self.assertIn("downloaded", error["message"])
         start_download_mock.assert_called_once_with(self.user1)
+        generate_caption_mock.assert_not_called()
+
+    @override_config(CAPTIONING_MODEL="none")
+    @patch("api.views.photos.start_model_download", autospec=True)
+    @patch("api.classification.captioning.generate_photo_caption", autospec=True)
+    def test_no_captioning_model_refuses_without_starting_a_download(
+        self, generate_caption_mock, start_download_mock
+    ):
+        """With "None" the captioner is never downloaded (#2218): starting a
+        download would skip it and answer model_downloading forever."""
+        photo = create_test_photo(owner=self.user1)
+        with (
+            TemporaryDirectory() as empty_media,
+            override_settings(MEDIA_ROOT=empty_media),
+        ):
+            response = self.client.post(
+                "/api/photosedit/generateim2txt/",
+                format="json",
+                data={"image_hash": photo.image_hash},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        error = api_error(response)
+        self.assertEqual(error["code"], "permission_denied")
+        self.assertEqual(error["message"], "Image captioning is disabled")
+        start_download_mock.assert_not_called()
         generate_caption_mock.assert_not_called()
 
     def test_generate_captions_for_my_photo_of_another_user(self):

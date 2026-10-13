@@ -75,11 +75,27 @@ def _ocr_model_selected() -> bool:
         return True
 
 
-# Services whose switch is a site setting rather than an environment flag. The
-# per-minute watchdog re-reads these, so selecting an OCR model starts the
-# sidecar without a restart.
+def _captioning_model_selected() -> bool:
+    """Whether a captioning model other than "None" is picked (#2218).
+
+    With "None" the captioner is not downloaded, so a sidecar started anyway
+    would have nothing to load. Fails open on an unreadable configuration,
+    like _ocr_model_selected.
+    """
+    try:
+        from api.runtime.ml_models import captioning_model_selected
+
+        return captioning_model_selected()
+    except DatabaseError:
+        return True
+
+
+# Services that also need a site setting to say yes: a model picked for them.
+# The per-minute watchdog re-reads these, so selecting an OCR or captioning
+# model starts the sidecar without a restart.
 SERVICE_SITE_GATES = {
     "ocr": _ocr_model_selected,
+    "image_captioning": _captioning_model_selected,
 }
 
 

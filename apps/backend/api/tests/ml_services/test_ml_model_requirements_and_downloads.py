@@ -13,6 +13,7 @@ from constance.test import override_config
 from django.test import TestCase, TransactionTestCase, override_settings
 
 from api.models.long_running_job import LongRunningJob
+from api.runtime.features import forget_site_switches
 from api.runtime.ml_models import (
     ML_MODELS,
     MlTypes,
@@ -582,15 +583,6 @@ class MlModelSelectionTest(TestCase):
         CAPTIONING_MODEL="none",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
-    def test_captioner_is_required_even_when_captioning_is_off(self):
-        """The one captioner is always kept available."""
-        self.assertIn("lfm2_vl_450m", self._selected_model_names())
-        self.assertNotIn("moondream", self._selected_model_names())
-
-    @override_config(
-        CAPTIONING_MODEL="none",
-        FACE_RECOGNITION_MODEL="buffalo_sc",
-    )
     def test_captioning_model_exists_needs_every_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             model_root = Path(tmp) / "data_models"
@@ -649,3 +641,154 @@ class MlModelSelectionTest(TestCase):
                 # Every file counts, the weights next to the graphs included.
                 (model_root / "lfm2_vl_450m" / "tokenizer.json").unlink()
                 self.assertFalse(do_all_models_exist())
+
+
+class DisabledFeatureModelSelectionTest(TestCase):
+    """A feature that is turned off downloads no model (#2218).
+
+    Small and offline installs (#443) would otherwise pay the disk space, and
+    without network every scan would chain a download that fails for a model
+    the deployment never uses.
+    """
+
+    def setUp(self):
+        forget_site_switches()
+        self.addCleanup(forget_site_switches)
+        self.user = create_test_user()
+
+    def _selected_model_names(self):
+        return [model["name"] for model in _iter_required_models()]
+
+    def _face_models_selected(self):
+        return [
+            model["name"]
+            for model in _iter_required_models()
+            if model["type"] == MlTypes.FACE_RECOGNITION
+        ]
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    def test_captioner_is_selected_when_captioning_is_on_and_a_model_is_picked(self):
+        self.assertIn("lfm2_vl_450m", self._selected_model_names())
+
+    @override_config(CAPTIONING_MODEL="none")
+    def test_captioner_is_not_selected_while_no_captioning_model_is_picked(self):
+        self.assertNotIn("lfm2_vl_450m", self._selected_model_names())
+
+    @override_config(CAPTIONING_MODEL="None")
+    def test_the_capitalised_none_also_leaves_the_captioner_out(self):
+        self.assertNotIn("lfm2_vl_450m", self._selected_model_names())
+
+    @override_settings(FEATURE_IMAGE_CAPTIONING=False)
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    def test_captioner_is_not_selected_when_the_environment_turns_captioning_off(
+        self,
+    ):
+        self.assertNotIn("lfm2_vl_450m", self._selected_model_names())
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m", IMAGE_CAPTIONING_ENABLED=False)
+    def test_captioner_is_not_selected_when_the_site_setting_turns_captioning_off(
+        self,
+    ):
+        self.assertNotIn("lfm2_vl_450m", self._selected_model_names())
+
+    @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
+    def test_the_picked_face_pack_is_selected_while_face_detection_is_on(self):
+        self.assertEqual(["buffalo_sc"], self._face_models_selected())
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
+    def test_no_face_pack_is_selected_when_the_environment_turns_faces_off(self):
+        self.assertEqual([], self._face_models_selected())
+
+    @override_config(FACE_RECOGNITION_MODEL="buffalo_sc", FACE_DETECTION_ENABLED=False)
+    def test_no_face_pack_is_selected_when_the_site_setting_turns_faces_off(self):
+        self.assertEqual([], self._face_models_selected())
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    def test_all_models_exist_without_a_face_pack_when_faces_are_off(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            model_root = media_root / "data_models"
+            _create_openclip(model_root)
+            _create_captioner(model_root)
+
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                self.assertTrue(do_all_models_exist())
+
+    @override_settings(FEATURE_FACE_DETECTION=False, FEATURE_IMAGE_CAPTIONING=False)
+    def test_openclip_alone_is_enough_with_faces_and_captioning_off(self):
+        """The minimal machine learning setup still needs OpenCLIP for search."""
+        self.assertEqual(["openclip_vitb32"], self._selected_model_names())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                self.assertFalse(do_all_models_exist())
+                _create_openclip(media_root / "data_models")
+                self.assertTrue(do_all_models_exist())
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @override_config(CAPTIONING_MODEL="none")
+    def test_the_download_job_skips_the_models_of_disabled_features(self):
+        handed = []
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch(
+                    "api.runtime.ml_models.download_model",
+                    side_effect=lambda model: handed.append(model["name"]),
+                ):
+                    download_models(self.user)
+
+        self.assertEqual(["openclip_vitb32"], handed)
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertFalse(job.failed)
+
+    @override_settings(FEATURE_FACE_DETECTION=False, FEATURE_IMAGE_CAPTIONING=False)
+    def test_models_already_on_disk_are_kept_when_their_feature_is_off(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            model_root = media_root / "data_models"
+            _create_openclip(model_root)
+            _create_captioner(model_root)
+            face_pack = model_root / "face_recognition" / "models" / "buffalo_sc"
+            face_pack.mkdir(parents=True)
+            (face_pack / "w600k_mbf.onnx").write_bytes(b"model")
+
+            with (
+                override_settings(MEDIA_ROOT=str(media_root)),
+                patch("api.runtime.ml_models._download_file") as download_file,
+            ):
+                download_models(self.user)
+
+            download_file.assert_not_called()
+            self.assertTrue((face_pack / "w600k_mbf.onnx").exists())
+            self.assertTrue((model_root / "lfm2_vl_450m" / LFM_FILES[0]).exists())
+
+    @override_config(
+        CAPTIONING_MODEL="lfm2_vl_450m",
+        FACE_RECOGNITION_MODEL="buffalo_sc",
+        FACE_DETECTION_ENABLED=False,
+    )
+    def test_face_detection_turned_on_while_the_job_runs_fetches_the_pack(self):
+        """The second pass picks up a feature switched on mid-download."""
+        fetched = []
+
+        def fake_download_model(model):
+            if not _is_model_selected(model):
+                return
+            fetched.append(model["name"])
+            if model["name"] == "lfm2_vl_450m":
+                # Switched on once the loop has passed the face pack's entry.
+                site_config.FACE_DETECTION_ENABLED = True
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch(
+                    "api.runtime.ml_models.download_model",
+                    side_effect=fake_download_model,
+                ):
+                    download_models(self.user)
+
+        self.assertEqual(fetched[-1], "buffalo_sc")
+        self.assertEqual(fetched.count("buffalo_sc"), 1)

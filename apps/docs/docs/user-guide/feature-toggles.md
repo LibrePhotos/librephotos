@@ -93,6 +93,8 @@ All of these default to on. See [Advanced docker-compose usage](../installation/
 
 Turning off face detection, image captioning or Things also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from. (Since 1.2.0; on 1.1.0 the switches stop the processing, but the services still start.)
 
+_Not released yet._ Turning off face detection or image captioning also skips their model downloads: the **Download Models** job no longer fetches the face recognition model or the captioning model, and a scan no longer waits for them. That saves the disk space, and an offline server no longer fails a download for a model it never uses. Turning the feature back on downloads the model then: saving the site settings starts the download, and so does the next scan or a click on "Generate caption". Models that were already downloaded stay on disk; delete their folder under `data_models/` by hand if you want the space back (see [Offline Usage](./offline-setup.md#step-2-place-the-models-in-the-correct-location) for where each one lives).
+
 ### Site settings switches
 
 _Not released yet._ Every feature in the table except **Embedded media** also has a switch in the site settings, which an admin can change without restarting anything. The two layers combine like this:
@@ -140,8 +142,19 @@ The **Embedded media** switch is checked only the first time a file is imported.
 
 Some features are not switched with environment variables, but by an administrator in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
 
-- **Captioning Model**: `None` turns automatic captioning off. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
+- **Captioning Model**: `None` turns automatic captioning off. _Not released yet:_ it also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
 - **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
 - **Map Tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site Settings](./settings/index.md#site-settings).
 
 Single sign-on is switched on with the `OIDC_*` environment variables, which are not feature toggles. See [Single Sign-On](./settings/single-sign-on.md).
+
+## Running with minimal machine learning {#minimal-machine-learning}
+
+_Not released yet._ On a small server, or one without Internet access, you can turn off the machine learning you do not need. Set these in your `.env` (or the site settings switches above):
+
+- `FEATURE_FACE_DETECTION=false`: no face detection, no face recognition service, no face recognition model download.
+- `FEATURE_IMAGE_CAPTIONING=false` (or **Captioning Model** `None`): no automatic captions, no captioning service, no captioning model download (about 370 MB).
+- `FEATURE_SCENE_CLASSIFICATION=false`: no tags for the Things albums.
+- Leave **Text Recognition (OCR) Model** at `None`, the default: no OCR service and no OCR model download.
+
+What still runs and is still downloaded: OpenCLIP ViT-B/32 (about 600 MB). It makes the embeddings behind semantic search and similar photos, so the `tags` service keeps running even with Things turned off, and there is no switch for it. The thumbnail, EXIF and similarity services also keep running; they hold no large models. There is no separate image without the machine learning runtime.

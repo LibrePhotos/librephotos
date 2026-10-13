@@ -379,6 +379,51 @@ class OcrSiteGateTest(TestCase):
         self.assertFalse([line for line in logs.output if "None is disabled" in line])
 
 
+@patch("api.runtime.supervisor.subprocess.Popen")
+class CaptioningSiteGateTest(TestCase):
+    """With "None" as captioning model the captioner is not downloaded (#2218),
+    so its sidecar is not started either; the watchdog starts it once a model
+    is picked."""
+
+    def setUp(self):
+        forget_site_switches()
+        self.addCleanup(forget_site_switches)
+
+    @override_config(CAPTIONING_MODEL="none")
+    def test_no_captioning_model_keeps_the_sidecar_down(self, popen_mock):
+        self.assertFalse(is_service_enabled("image_captioning"))
+
+    @override_config(CAPTIONING_MODEL="None")
+    def test_the_capitalised_none_also_keeps_it_down(self, popen_mock):
+        self.assertFalse(is_service_enabled("image_captioning"))
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    def test_a_picked_model_enables_it(self, popen_mock):
+        self.assertTrue(is_service_enabled("image_captioning"))
+
+    @override_config(CAPTIONING_MODEL="none")
+    def test_start_all_skips_it_while_no_model_is_picked(self, popen_mock):
+        call_command("start_service", "all")
+
+        self.assertNotIn("image_captioning", spawned_services(popen_mock))
+
+    @override_config(CAPTIONING_MODEL="none")
+    def test_the_reason_names_the_model_setting(self, popen_mock):
+        reason = disabled_reason("image_captioning")
+
+        self.assertIn("no model is selected", reason)
+        self.assertNotIn("IMAGE_CAPTIONING", reason)
+
+    @override_settings(FEATURE_IMAGE_CAPTIONING=False)
+    @override_config(CAPTIONING_MODEL="none")
+    def test_the_environment_flag_still_wins_the_reason(self, popen_mock):
+        self.assertIn("FEATURE_IMAGE_CAPTIONING", disabled_reason("image_captioning"))
+
+    def test_an_unreadable_configuration_leaves_the_service_enabled(self, popen_mock):
+        with UNREADABLE_CONFIG:
+            self.assertTrue(is_service_enabled("image_captioning"))
+
+
 class ServiceAdminApiTest(TestCase):
     """The admin Services page has to tell "switched off" from "crashed".
 
