@@ -1,11 +1,15 @@
+import logging
 import os
 import os.path
+import stat
 from typing import Any
 
 import requests
 
-from api.mime import METADATA_EXTENSIONS
+from api.mime import METADATA_EXTENSIONS, XMP_EXTENSION
 from api.runtime import sidecars
+
+logger = logging.getLogger(__name__)
 
 
 class MetadataReadError(RuntimeError):
@@ -13,9 +17,11 @@ class MetadataReadError(RuntimeError):
 
 
 def get_sidecar_files_in_priority_order(media_file: str) -> list[str]:
-    """Returns a list of possible XMP sidecar files for *media_file*, ordered
-    by priority.
+    """Every name an XMP sidecar of *media_file* may have, best first.
 
+    ``IMG.xmp`` (LibrePhotos' old name, Lightroom's) before ``IMG.jpg.xmp``
+    (digiKam, darktable, Immich), each in lower and upper case. Most of them
+    do not exist; ``existing_sidecars`` returns the ones that do.
     """
     image_basename = os.path.splitext(media_file)[0]
     # Looked up on disk, so each spelling is tried, lower case first.
@@ -29,17 +35,64 @@ def get_sidecar_files_in_priority_order(media_file: str) -> list[str]:
     ]
 
 
+def existing_sidecars(media_file: str) -> list[str]:
+    """The XMP sidecars of *media_file* on disk, each once, best first.
+
+    The first one's values win on read (``get_metadata``) and it is the one
+    a write-back goes to (``sidecar_for_write``), so the value written is the
+    value read back. On a case-insensitive file system ``IMG.xmp`` also
+    "exists" as ``IMG.XMP``; the file identity check keeps it once.
+    """
+    found: list[str] = []
+    seen: set[object] = set()
+    for candidate in get_sidecar_files_in_priority_order(media_file):
+        try:
+            status = os.stat(candidate)
+        except OSError:
+            continue
+        if not stat.S_ISREG(status.st_mode):
+            continue
+        # Some file systems report no inode number; fall back to the name the
+        # platform compares (case-folded on Windows).
+        identity: object = (
+            (status.st_dev, status.st_ino)
+            if status.st_ino
+            else os.path.normcase(os.path.abspath(candidate))
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        found.append(candidate)
+    return found
+
+
+def sidecar_for_write(media_file: str) -> str:
+    """The XMP sidecar a write-back of *media_file* goes to (#2286).
+
+    The existing sidecar the reader ranks first, so a digiKam or darktable
+    ``IMG.jpg.xmp`` is updated in place instead of getting a second sidecar
+    next to it. Without one, a new ``IMG.jpg.xmp``: the name other apps use,
+    and the only one that cannot be mistaken for the sidecar of a RAW file
+    grouped with the JPEG (``IMG.CR2`` + ``IMG.jpg``).
+    """
+    sidecars_on_disk = existing_sidecars(media_file)
+    if len(sidecars_on_disk) > 1:
+        logger.warning(
+            "%d XMP sidecars describe one file; writing to the one read first: %s",
+            len(sidecars_on_disk),
+            ", ".join(os.path.basename(sidecar) for sidecar in sidecars_on_disk),
+        )
+    if sidecars_on_disk:
+        return sidecars_on_disk[0]
+    return media_file + XMP_EXTENSION
+
+
 def _get_existing_metadata_files_reversed(
     media_file: str, include_sidecar_files: bool
 ) -> list[str]:
+    """*media_file* and its sidecars, the file that wins last."""
     if include_sidecar_files:
-        files = [
-            file
-            for file in get_sidecar_files_in_priority_order(media_file)
-            if os.path.exists(file)
-        ]
-        files.append(media_file)
-        return list(reversed(files))
+        return [media_file, *reversed(existing_sidecars(media_file))]
     return [media_file]
 
 

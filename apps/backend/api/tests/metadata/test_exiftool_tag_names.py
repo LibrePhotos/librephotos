@@ -20,7 +20,7 @@ import PIL.Image
 from django.test import SimpleTestCase, TestCase
 
 from api.metadata.photo_writer import write_photo_metadata
-from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.metadata.reader import sidecar_for_write
 from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.photos.media_files import get_or_create_file
@@ -196,7 +196,7 @@ class TimestampWriteBackRoundTripTest(TestCase):
 
     def test_round_trips_into_the_sidecar(self):
         photo, image = self._photo_on_disk("sidecar.jpg")
-        sidecar = get_sidecar_files_in_priority_order(image)[0]
+        sidecar = sidecar_for_write(image)
 
         write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=True)
 

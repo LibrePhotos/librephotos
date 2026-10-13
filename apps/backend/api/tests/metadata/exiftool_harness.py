@@ -42,7 +42,7 @@ import PIL.Image
 import requests
 from django.test import TestCase, override_settings
 
-from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.metadata.reader import existing_sidecars, sidecar_for_write
 from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
@@ -352,7 +352,7 @@ class RealExifToolTestCase(TestCase):
         return self.exiftool.read(path, *tags)
 
     def sidecar_of(self, path: str) -> str:
-        return get_sidecar_files_in_priority_order(path)[0]
+        return sidecar_for_write(path)
 
     def assertWritesLanded(self, expected: int | None = None) -> None:
         """Every recorded write reached its target with every tag it was given."""
@@ -376,12 +376,7 @@ class RealExifToolTestCase(TestCase):
         yield
         with open(path, "rb") as handle:
             self.assertEqual(before, handle.read(), f"{path} was rewritten")
-        sidecars_now = [
-            sidecar
-            for sidecar in get_sidecar_files_in_priority_order(path)
-            if os.path.exists(sidecar)
-        ]
-        self.assertEqual([], sidecars_now, "a sidecar was created")
+        self.assertEqual([], existing_sidecars(path), "a sidecar was created")
         self.assertEqual(
             [],
             self.exiftool.writes[writes_before:],
