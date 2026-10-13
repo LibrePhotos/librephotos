@@ -23,6 +23,7 @@ Backend paths are relative to `apps/backend`.
 | File | `File` (`api/models/file.py`), one file on disk, keyed by `File.hash`; a photo has `files` and a `main_file` | `file_variants` on a photo | |
 | File variant | Another `File` of the same photo: RAW next to JPEG, a live photo's video | `file_variants`, `api/photos/<image_hash>/file/<file_hash>/` | the `raw_jpeg` and `live_photo` stack types |
 | Embedded media | `File.embedded_media`, a clip extracted from a motion photo | `embedded_media[].id` (a `File.hash`) | |
+| File copy | `FileCopy` (`api/models/file.py`), another path holding the exact bytes of a `File`; it shares that row, and the scan treats the path as known | | |
 | Thumbnail | `Thumbnail` (`api/models/thumbnail.py`), sizes in `SQUARE_THUMBNAIL_HEIGHTS` (`api/thumbnails/render.py`) and the `BIG_THUMBNAIL_HEIGHT` setting: big 1080 px by default, grid 500 px and 250 px high, aspect ratio kept (videos: short mp4) | `big_thumbnail_url`, `/media/` | `square_thumbnails`, `square_thumbnails_small` (directories, `/media/` paths), `square_thumbnail_url`, `small_square_thumbnail_url`, api-client `squareThumbnailUrl`, `squareThumbnailSmallUrl`: not square, kept so files and shipped apps keep working |
 | Stack | `PhotoStack` (`api/models/photo_stack.py`): burst, exposure bracket or manual | `api/stacks/` | |
 | Duplicate | `Duplicate` (`api/models/duplicate.py`): exact copies or visual duplicates, reviewed by the user | `api/duplicates/` | |

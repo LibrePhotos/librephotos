@@ -9,7 +9,7 @@ from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
 from api.models.face import Face
-from api.models.file import File
+from api.models.file import File, FileCopy
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
@@ -49,4 +49,5 @@ __all__ = [
     "Thumbnail",
     "User",
     "File",
+    "FileCopy",
 ]
