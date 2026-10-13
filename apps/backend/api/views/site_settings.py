@@ -44,6 +44,7 @@ SETTING_KEYS = (
     "NEXTCLOUD_ENABLED",
     "AUTO_CREATE_USER_DIRECTORY",
     "SCAN_MISSING_MAX_FRACTION",
+    "TRASH_RETENTION_DAYS",
     *(site_setting_key(feature) for feature in FEATURES),
 )
 
@@ -141,6 +142,8 @@ class SiteSettingsView(APIView):
         out["nextcloud_enabled"] = config["NEXTCLOUD_ENABLED"]
         out["auto_create_user_directory"] = config["AUTO_CREATE_USER_DIRECTORY"]
         out["scan_missing_max_fraction"] = config["SCAN_MISSING_MAX_FRACTION"]
+        # Not staff-only: every user's trash page says when its photos go.
+        out["trash_retention_days"] = config["TRASH_RETENTION_DAYS"]
         out["email_configured"] = email_is_configured()
         if request.user.is_staff:
             # The Features card's state: admin-only, like the settings it shows.

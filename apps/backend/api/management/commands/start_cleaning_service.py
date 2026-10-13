@@ -13,6 +13,11 @@ class Command(BaseCommand):
     help = "Start the cleanup service."
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
+        # The trash retention (#2203). Deletes nothing until an admin sets
+        # TRASH_RETENTION_DAYS; runs before the removed-photo cleanup.
+        ensure_schedule(
+            "api.photos.retention.empty_expired_trash", schedule_type=Schedule.DAILY
+        )
         ensure_schedule(
             "api.photos.retention.cleanup_deleted_photos", schedule_type=Schedule.DAILY
         )

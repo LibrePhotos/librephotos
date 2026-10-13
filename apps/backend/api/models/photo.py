@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q, QuerySet, Value
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from api.models.duplicate import Duplicate
 from api.models.file import File
@@ -48,6 +50,35 @@ def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:
         (F("metadata__width") * F("metadata__height")).desc(nulls_last=True),
         F("size").desc(),
         "pk",
+    )
+
+
+def trash_photos(photos: QuerySet[Photo]) -> int:
+    """Move ``photos`` to the trash and stamp when (``trashed_at``).
+
+    Every writer of ``in_trashcan`` goes through this or ``restore_photos``,
+    so the trash retention (``api.photos.retention.empty_expired_trash``)
+    always knows how long a photo has been there. A photo already in the
+    trash keeps its date: trashing it again does not restart its retention.
+    ``last_modified`` is bumped by hand (a queryset update skips
+    ``auto_now``) so the delta-sync feed carries the change. Returns the
+    number of rows updated.
+    """
+    now = timezone.now()
+    return photos.update(
+        in_trashcan=True,
+        trashed_at=Coalesce(F("trashed_at"), Value(now, models.DateTimeField())),
+        last_modified=now,
+    )
+
+
+def restore_photos(photos: QuerySet[Photo]) -> int:
+    """Take ``photos`` out of the trash and clear ``trashed_at``.
+
+    The counterpart of ``trash_photos``; returns the number of rows updated.
+    """
+    return photos.update(
+        in_trashcan=False, trashed_at=None, last_modified=timezone.now()
     )
 
 
@@ -135,6 +166,9 @@ class Photo(models.Model):
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
     in_trashcan = models.BooleanField(default=False, db_index=True)
+    # When the photo went to the trash; None outside it. Set and cleared only
+    # by trash_photos/restore_photos. The trash retention purges by it.
+    trashed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     removed = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)

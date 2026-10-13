@@ -55,6 +55,9 @@ export const SiteSettings = z.object({
   auto_create_user_directory: z.boolean().default(false),
   // Largest share of a user's photos a scan may mark missing (0 to 1, #2195); older backends lack it.
   scan_missing_max_fraction: z.number().optional(),
+  // Days a photo stays in the trash before the daily cleanup deletes it and its files; 0 = never
+  // (#2203). Sent to every user for the trash page; older backends lack it.
+  trash_retention_days: z.number().optional(),
   email_configured: z.boolean().optional(),
   // Always 0: the setting is gone; older clients still read the key.
   heavyweight_process: z.number().optional(),

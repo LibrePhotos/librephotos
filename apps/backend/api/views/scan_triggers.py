@@ -16,6 +16,7 @@ from api.drf.request_user import request_user
 from api.jobs.start import start_job
 from api.models import LongRunningJob
 from api.models.user import User
+from api.photos.retention import empty_trash_job
 from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.job import GenerateOcrRequest, JobStartedResponseSerializer
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
@@ -163,4 +164,27 @@ class StripThumbnailMetadataView(APIView):
             strip_thumbnail_metadata_job,
             user,
             description="the thumbnail metadata cleanup",
+        )
+
+
+class EmptyTrashView(APIView):
+    """Permanently delete every photo in the requester's trash, as a job (#2203).
+
+    Delete permanently on a select-all deletes in the request and runs into
+    the gateway timeout on a large trash. This answers at once with the job;
+    the job deletes the photos and their files. Only the requester's own
+    photos; a second start while one runs is a 409.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        return start_job(
+            user,
+            LongRunningJob.JOB_EMPTY_TRASH,
+            empty_trash_job,
+            user,
+            description="emptying the trash",
         )

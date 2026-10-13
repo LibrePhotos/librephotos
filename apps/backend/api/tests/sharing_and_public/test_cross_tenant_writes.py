@@ -346,6 +346,9 @@ class CrossTenantWriteTest(TestCase):
             "/api/photosedit/share", val_shared=True, target_user_id=self.target.id
         )
         cases += self._bulk("/api/photosedit/delete", method="delete")
+        # Queues a job on the attacker's own trash (the job itself is held to
+        # that in api/tests/jobs/test_empty_trash_job.py).
+        cases += [("post", "/api/photosedit/empty-trash/", {})]
         cases += self._bulk("/api/photos/download")
         cases += [
             (

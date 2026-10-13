@@ -360,6 +360,12 @@ CONSTANCE_CONFIG = {
         " whether the library is mounted. 1 turns the check off.",
         float,
     ),
+    "TRASH_RETENTION_DAYS": (
+        0,
+        "Days a photo stays in the trash before it is deleted for good, files"
+        " included. 0 keeps photos in the trash until their owner empties it.",
+        int,
+    ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "nominatim"),
         "Map Provider",

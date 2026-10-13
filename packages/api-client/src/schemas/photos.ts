@@ -125,6 +125,9 @@ export const Photo = z.object({
   hidden: z.boolean(),
   public: z.boolean(),
   in_trashcan: z.boolean(),
+  // When the photo went to the trash (ISO date-time), null outside it (#2203).
+  // Optional: older backends do not send it.
+  trashed_at: z.string().nullable().optional(),
   removed: z.boolean(),
   size: z.number(),
   shared_to: z.number().nullable().array(),

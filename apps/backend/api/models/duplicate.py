@@ -202,17 +202,14 @@ class Duplicate(models.Model):
             other_photos = self.photos.exclude(pk=kept_photo.pk)
             # Trashing takes these photos out of their tags' counts, and a
             # plain UPDATE fires no m2m signal to say so.
+            from api.models.photo import trash_photos
             from api.models.tag import (
                 refresh_tag_photo_counts,
                 tag_ids_for_photos,
             )
 
             affected_tag_ids = tag_ids_for_photos(other_photos)
-            # A queryset update skips auto_now; bump last_modified by hand so
-            # the delta-sync feed (api/views/sync.py) carries the change.
-            self.trashed_count = other_photos.update(
-                in_trashcan=True, last_modified=timezone.now()
-            )
+            self.trashed_count = trash_photos(other_photos)
             refresh_tag_photo_counts(affected_tag_ids)
 
         self.save()
@@ -236,9 +233,9 @@ class Duplicate(models.Model):
             return 0
 
         # Restore trashed photos in this duplicate group
-        restored_count = self.photos.filter(in_trashcan=True).update(
-            in_trashcan=False, last_modified=timezone.now()
-        )
+        from api.models.photo import restore_photos
+
+        restored_count = restore_photos(self.photos.filter(in_trashcan=True))
 
         # Reset to pending
         self.review_status = self.ReviewStatus.PENDING
