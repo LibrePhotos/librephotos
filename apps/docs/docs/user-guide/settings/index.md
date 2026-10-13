@@ -38,9 +38,14 @@ If you set this to `Top 100`,`Top 50`, `Top 10` you will get semantic search res
 
 ### Metadata Options
 
-- `Synchronize metadata to disk` can enable the saving of the metadata to file or an xmp file. Default `Off`. Photos imported from [Nextcloud](../library.md#nextcloud-integration) are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos.
+- `Write edits to files` copies some of your edits into your files, so other apps see them. Each option says what it writes. Default `Off`.
+  - `Off`: edits stay in LibrePhotos. Your files are never changed.
+  - `Save to sidecar`: ratings, dates and rotations are written to an `.xmp` file next to the photo. The photo itself is not changed.
+  - `Save to media file`: ratings, dates and rotations are written into the photo file itself. This changes your originals, so keep a backup. HEIC, AVIF and RAW files keep their rotation in LibrePhotos.
+
+  Captions, tags and locations are not written yet; they stay in LibrePhotos whatever you choose. Face names are written only with `Write face tags to image files` (see [Face Options](#face-options)). The tags each edit writes are listed in [EXIF Data](../exif-data.md#what-librephotos-writes). While you edit a date, caption, tags or location in the [photo details sidebar](../viewing-photos.md#photo-details-sidebar), a line under the editor says whether that edit reaches the file. Photos imported from [Nextcloud](../library.md#nextcloud-integration) are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos. _Not released yet: up to 1.3.0, this setting was called `Synchronize metadata to disk`._
 - `Minimum image rating to interpret as favorite` will change how favorites are read and saved. EXIF only supports the rating field and does not have a favorite field. Default `4`
-- `Default timezone` sets how the exif timestamps should be read and written. Default `UTC`
+- `Default timezone` is used by the [date rules](./date-rules) that say "in user default timezone" (for example video creation times, which cameras store in UTC, and file times), and to decide which day [Memories](../memories.md) counts as today. It does not change how dates are displayed, and LibrePhotos never writes it to your files. Changing it does not re-date photos already in your library: run **Rescan** afterwards. Default `UTC`
 
 ### Set date & time parsing rules
 
@@ -86,17 +91,17 @@ Most of these settings control how [face clustering](../face-recognition.md) gro
 - `Minimum Cluster Size` changes how clusters form; a smaller value results in more clusters. Options are `Auto`, `2`, `4`, `8` and `16`. Default `Auto`, which lets LibrePhotos choose for you.
 - `Minimum Samples` changes how conservative clustering is; a smaller value is less conservative. Options are `1`, `2`, `4`, `8` and `16`. Default `1`
 - `Cluster Selection Epsilon` merges clusters whose faces are this close; a higher value merges more of one person's clusters, and `Very High` can also join look-alikes such as siblings. Options are `Off` (0), `Small` (0.9), `Normal` (0.95), `High` (1.0) and `Very High` (1.05), distances between face encodings scaled to length 1 (two photos of one person are about 0.9 apart). Default `Normal`. (Not released yet: up to 1.3.0 the options were 0.025 to 0.2, too small to merge anything at all. A saved choice keeps its name when you update.)
-- `Write face tags to image files` when enabled, face labels are written as XMP MWG-RS region tags to a sidecar file or to your image files, as chosen under `Synchronize metadata to disk`, whenever you label a face (with that setting `Off` the switch is disabled and nothing is written), so face data stays portable across apps like Lightroom, digiKam and XnView. Default `Off`
+- `Write face tags to image files` when enabled, face labels are written as XMP MWG-RS region tags to a sidecar file or to your image files, as chosen under `Write edits to files`, whenever you label a face (with that setting `Off` the switch is disabled and nothing is written), so face data stays portable across apps like Lightroom, digiKam and XnView. Default `Off`
 
 ### Public Sharing Defaults
 
-Configure default visibility settings for publicly shared albums. These defaults apply to all new public album shares but can be overridden per-album:
+These switches decide what public links show. Photo links always use them, including links you already created, so turning one off hides that detail on every public photo link at once. Album links use them unless the album's own link settings override them. All are off by default.
 
-- `Show location` - Whether to display photo location data
-- `Show camera info` - Whether to display camera/lens information
-- `Show timestamps` - Whether to display photo timestamps
-- `Show captions` - Whether to display photo captions
-- `Show faces` - Whether to display recognized faces
+- `Share photo timestamps`: show when photos were taken.
+- `Share location information`: show where photos were taken.
+- `Share camera information`: show the camera make, model and settings.
+- `Share captions`: show photo descriptions.
+- `Share detected faces`: show the people recognised in photos.
 
 ### Duplicate Detection
 

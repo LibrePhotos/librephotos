@@ -19,7 +19,7 @@ sidebar_position: 18
         <td>Favorites</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Synchronize metadata to disk" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment. A scan only reads the rating and never writes it back. <em>Not released yet: up to 1.3.0, a scan wrote a rating it found in the file back to disk, which in sidecar mode created an <code>.xmp</code> holding just that rating; such sidecars are harmless unless the rating is later changed in the original by another app.</em></td>
+        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Write edits to files" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment. A scan only reads the rating and never writes it back. <em>Not released yet: up to 1.3.0, a scan wrote a rating it found in the file back to disk, which in sidecar mode created an <code>.xmp</code> holding just that rating; such sidecars are harmless unless the rating is later changed in the original by another app.</em></td>
     </tr>
     <tr>
         <td>ImageHeight</td>
@@ -229,7 +229,7 @@ sidebar_position: 18
         <td>Faces</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Synchronize metadata to disk" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions. The areas are in the coordinates of the stored image, as the standard asks, so on a rotated photo (most phone portraits) other apps show them on the faces. <em>Not released yet</em>: earlier versions wrote the regions of rotated photos in the wrong place; <code>python manage.py save_metadata --types face_tags</code> rewrites them.</td>
+        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Write edits to files" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions. The areas are in the coordinates of the stored image, as the standard asks, so on a rotated photo (most phone portraits) other apps show them on the faces. <em>Not released yet</em>: earlier versions wrote the regions of rotated photos in the wrong place; <code>python manage.py save_metadata --types face_tags</code> rewrites them.</td>
     </tr>
     <tr>
         <td>XMP:Subject</td>
@@ -306,7 +306,7 @@ sidebar_position: 18
         <td>Orientation</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read to transform face-region coordinates, and to store the size a photo is shown at: an orientation of 5-8 turns the photo a quarter, so its width and height are swapped, as they are when you rotate it a quarter yourself. <em>Not released yet; the update fixes the size of photos scanned before.</em> Written back (composed with your rotation) when you rotate a photo, but only if "Synchronize metadata to disk" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format. HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
+        <td>Read to transform face-region coordinates, and to store the size a photo is shown at: an orientation of 5-8 turns the photo a quarter, so its width and height are swapped, as they are when you rotate it a quarter yourself. <em>Not released yet; the update fixes the size of photos scanned before.</em> Written back (composed with your rotation) when you rotate a photo, but only if "Write edits to files" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format. HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
     </tr>
     <tr>
         <td>EXIF:SubSecTimeOriginal</td>
@@ -357,9 +357,27 @@ in your settings.
 
 To back-fill an existing library with face tags, run
 `python manage.py save_metadata --types face_tags`. Each photo is written where its owner's
-"Synchronize metadata to disk" setting says (XMP sidecar or media file), and photos of users
+"Write edits to files" setting says (XMP sidecar or media file), and photos of users
 who have it Off are skipped. `--sidecar` or `--media-file` overrides the setting for the one
 user named with `--user`.
+
+## What LibrePhotos writes
+
+With **Settings → Metadata Options → Write edits to files** set to `Save to sidecar` or `Save to
+media file`, these edits are also written to the photo's `.xmp` sidecar or into the photo file
+itself. With `Off`, the default, nothing is written. _Not released yet: up to 1.3.0, the setting
+was called "Synchronize metadata to disk"._
+
+| Edit | Written | Tag |
+|---|---|---|
+| Rating and favorite | yes | `Rating` |
+| Date and time | yes | `XMP:DateCreated` |
+| Rotation | yes, except into HEIC, AVIF and RAW originals | `XMP-tiff:Orientation` in the sidecar, `EXIF:Orientation` in the file |
+| Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject` |
+| Caption, tags, location | no, they stay in LibrePhotos | |
+
+The date editor, the caption and tags editors and the **Pick location** dialog say the same in a
+line under the editor, with a link to the setting.
 
 ## XMP sidecars
 
@@ -368,7 +386,7 @@ upper case: `IMG_2.xmp` (Lightroom, older LibrePhotos versions) and `IMG_2.jpg.x
 (digiKam, darktable, Immich). A value in a sidecar overrides the same tag in the photo, and
 when both sidecars exist, `IMG_2.xmp` wins.
 
-With "Synchronize metadata to disk" set to the sidecar, an edit is written to the sidecar
+With "Write edits to files" set to the sidecar, an edit is written to the sidecar
 that already exists, so a digiKam or darktable sidecar is updated in place and keeps its other
 tags. When both exist, the edit goes to `IMG_2.xmp`, the one that is read. When there is none,
 LibrePhotos creates `IMG_2.jpg.xmp`, which other apps also read and which cannot be mistaken

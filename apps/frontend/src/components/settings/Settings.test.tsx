@@ -7,6 +7,9 @@
  * "Large Language Model" wording no longer show up there.
  *
  * Every card has an anchor for the section navigation (#2226).
+ *
+ * "Write edits to files" says what each option writes, the default time zone what it is used for,
+ * and each public sharing switch what it shows (#2273, #2281).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -180,11 +183,70 @@ describe("Settings face tags write-back", () => {
   });
 });
 
-describe("Settings metadata sync", () => {
-  it("says that HEIC, AVIF and RAW rotations stay in LibrePhotos (#2297)", () => {
-    expect(container.textContent).toContain("Synchronize metadata to disk");
-    expect(container.textContent).toContain(
-      '"Save to media file" does not rewrite HEIC, AVIF or RAW files when you rotate them'
+describe("Settings write edits to files (#2281)", () => {
+  /** The text of the radio option labelled `label`, its description included. */
+  function optionText(label: string): string {
+    const labelElement = Array.from(container.querySelectorAll("label")).find(element => element.textContent === label);
+    const root = labelElement?.closest(".mantine-Radio-root");
+    if (!root) throw new Error(`no radio option labelled "${label}"`);
+    return root.textContent ?? "";
+  }
+
+  it("is called Write edits to files and names what stays in LibrePhotos", () => {
+    expect(container.textContent).toContain("Write edits to files");
+    expect(container.textContent).not.toContain("Synchronize metadata to disk");
+    expect(container.textContent).toContain("Not written yet: captions, tags, and locations.");
+  });
+
+  it("says what each option writes, from the one list of written fields", () => {
+    expect(optionText("Off")).toContain("Your files are never changed.");
+    expect(optionText("Save to sidecar")).toContain(
+      "Writes ratings, dates, and rotations to an .xmp file next to the photo. The photo itself is not changed."
     );
+    expect(optionText("Save to media file")).toContain(
+      "Writes ratings, dates, and rotations into the photo file itself."
+    );
+  });
+
+  it("warns that the media file option changes the originals", () => {
+    expect(optionText("Save to media file")).toContain("This changes your originals, so keep a backup.");
+  });
+
+  it("says that HEIC, AVIF and RAW rotations stay in LibrePhotos (#2297)", () => {
+    expect(optionText("Save to media file")).toContain("HEIC, AVIF and RAW files keep their rotation in LibrePhotos.");
+  });
+
+  it("points the face tag switch at the renamed setting", () => {
+    expect(container.textContent).toContain('under "Write edits to files"');
+  });
+});
+
+describe("Settings default time zone (#2273)", () => {
+  it("explains what the time zone is used for", () => {
+    expect(container.textContent).toContain('Used by date rules that say "in user default timezone"');
+    expect(container.textContent).toContain("It does not change how dates are displayed.");
+    expect(container.textContent).toContain("Run Rescan after changing it to re-date existing photos.");
+  });
+});
+
+describe("Settings public sharing (#2273)", () => {
+  it("says the switches apply to links already created", () => {
+    expect(container.textContent).toContain(
+      "Photo links always use these settings, including links you already created."
+    );
+  });
+
+  it("describes each of the five switches", () => {
+    const card = document.getElementById("settings-sharing");
+    const descriptions = Array.from(card?.querySelectorAll(".mantine-Switch-description") ?? []).map(
+      element => element.textContent
+    );
+    expect(descriptions).toEqual([
+      "Show when photos were taken",
+      "Show where photos were taken",
+      "Show camera make, model, and settings",
+      "Show photo descriptions",
+      "Show recognized people in photos",
+    ]);
   });
 });

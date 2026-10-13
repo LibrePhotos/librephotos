@@ -21,6 +21,10 @@ const mutation = { isPending: false };
 vi.mock("../../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: updatePhoto, isPending: mutation.isPending }),
 }));
+// The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
+vi.mock("./WriteBackHint", () => ({
+  WriteBackHint: ({ field }: { field: string }) => <span data-write-back-hint={field} />,
+}));
 
 const PHOTO_A = { image_hash: "photoA", exif_timestamp: "2024-05-01T08:15:00+00:00" };
 const PHOTO_B = { image_hash: "photoB", exif_timestamp: "2019-11-20T19:40:00+00:00" };
@@ -102,6 +106,15 @@ function dayCell(container: HTMLElement, day: string) {
 }
 
 describe("TimestampItem", () => {
+  it("says in the editor whether the date reaches the file (#2281)", async () => {
+    const { container, root } = mount();
+    await render(root, PHOTO_A);
+    expect(container.querySelector("[data-write-back-hint]")).toBeNull();
+
+    await click(button(container, "Edit date and time"));
+    expect(container.querySelector("[data-write-back-hint]")?.getAttribute("data-write-back-hint")).toBe("date");
+  });
+
   it("edits the photo it is showing after the photo changes", async () => {
     const { container, root } = mount();
     await render(root, PHOTO_A);

@@ -28,6 +28,10 @@ vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: undefined }),
 }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+// The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
+vi.mock("./WriteBackHint", () => ({
+  WriteBackHint: ({ field }: { field: string }) => <span data-write-back-hint={field} />,
+}));
 
 type DescribedPhoto = React.ComponentProps<typeof Description>["photoDetail"];
 
@@ -130,6 +134,15 @@ describe("Description", () => {
     await render(root, photo("a", ""));
 
     expect(container.textContent).toContain("No caption");
+  });
+
+  it("says while editing whether the caption reaches the file (#2281)", async () => {
+    const { container, root } = mount();
+    await render(root, photo("a", "Saved text"));
+    expect(container.querySelector("[data-write-back-hint]")).toBeNull();
+
+    await clickLabelled(container, "Edit caption");
+    expect(container.querySelector("[data-write-back-hint]")?.getAttribute("data-write-back-hint")).toBe("caption");
   });
 
   it("is read-only again after Cancel, showing the saved caption", async () => {

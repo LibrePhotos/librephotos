@@ -31,6 +31,10 @@ vi.mock("../../api_client/tags/hooks", () => ({
   useRemovePhotosFromTagMutation: () => ({ mutateAsync: vi.fn<() => Promise<void>>(), isPending: false }),
 }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
+// The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
+vi.mock("./WriteBackHint", () => ({
+  WriteBackHint: ({ field }: { field: string }) => <span data-write-back-hint={field} />,
+}));
 
 beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -115,6 +119,14 @@ async function openEditor(container: HTMLElement) {
 }
 
 describe("TagsSection", () => {
+  it("says while editing whether the tags reach the file (#2281)", async () => {
+    const container = await renderTags();
+    expect(container.querySelector("[data-write-back-hint]")).toBeNull();
+
+    await openEditor(container);
+    expect(container.querySelector("[data-write-back-hint]")?.getAttribute("data-write-back-hint")).toBe("tags");
+  });
+
   it("marks a tag that came from the file's keywords, not one added by hand", async () => {
     stubs.tags = [tag(1, "family"), tag(2, "Beach")];
     // Matched case-insensitively and trimmed, as a scan names the tag.

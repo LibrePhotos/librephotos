@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { parsePickerDate, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
 import { DisabledReason } from "../common/DisabledReason";
 import { makeTimestampFormSchema, WHOLE_TIME } from "./TimestampForm.schema";
+import { WriteBackHint } from "./WriteBackHint";
 
 type Props = Readonly<{
   /** The photo's date when the editor opened. */
@@ -117,6 +118,7 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
         {/* The month shown comes only from defaultDate, never from value. */}
         <DatePicker value={day} defaultDate={day ?? undefined} onChange={onChangeDay} />
         <TimeInput withSeconds placeholder={MIDNIGHT} {...form.getInputProps("time")} />
+        <WriteBackHint field="date" />
         {canRemove && (
           <Stack gap={4} align="flex-start">
             <Button

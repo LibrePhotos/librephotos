@@ -146,7 +146,7 @@ Rotation in LibrePhotos is **non-destructive**:
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
 
-Your **Synchronize metadata to disk** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
+Your **Write edits to files** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
 
 - **Off**, the default: only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
 - **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that read sidecars (digiKam, darktable, Lightroom) can show the photo turned the same way.
@@ -157,6 +157,8 @@ _Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save
 ## Photo Details Sidebar
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
+
+While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. Of these edits, only the date is written to files; captions, tags and locations stay in LibrePhotos. _Not released yet._
 
 ### Timestamp
 

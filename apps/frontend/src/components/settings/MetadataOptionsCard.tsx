@@ -1,9 +1,40 @@
-import { Card, Flex, Group, Radio, Select, Title } from "@mantine/core";
+import { Card, Flex, Group, Radio, Select, Stack, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
+import { fieldsNeverWritten, listFields, WRITTEN_FIELDS, type WriteMode } from "./metadataWrite";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
+
+/** "Write edits to files": each option says which edits it writes, from WRITTEN_FIELDS (#2281). */
+function WriteEditsChoice({ user, onChange }: UserSettingsCardProps) {
+  const { t, i18n } = useTranslation();
+  const fields = (mode: WriteMode) => listFields(WRITTEN_FIELDS[mode], t, i18n.language);
+
+  return (
+    <Radio.Group
+      label={t("settings.sync")}
+      description={t("settings.syncdescription", { fields: listFields(fieldsNeverWritten(), t, i18n.language) })}
+      value={user.save_metadata_to_disk}
+      onChange={value => onChange({ save_metadata_to_disk: value || "OFF" })}
+    >
+      {/* Stacked: each option carries a description. */}
+      <Stack mt="xs" gap="sm">
+        <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} description={t("settings.writeedits.off")} />
+        <Radio
+          value="SIDECAR_FILE"
+          label={t("settings.favoritesyncoptions.sidecar")}
+          description={t("settings.writeedits.sidecar", { fields: fields("SIDECAR_FILE") })}
+        />
+        <Radio
+          value="MEDIA_FILE"
+          label={t("settings.favoritesyncoptions.mediafile")}
+          description={t("settings.writeedits.mediafile", { fields: fields("MEDIA_FILE") })}
+        />
+      </Stack>
+    </Radio.Group>
+  );
+}
 
 export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
@@ -16,18 +47,7 @@ export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <SectionLink />
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
-        <Radio.Group
-          label={t("settings.sync")}
-          description={t("settings.syncdescription")}
-          value={user.save_metadata_to_disk}
-          onChange={value => onChange({ save_metadata_to_disk: value || "OFF" })}
-        >
-          <Group mt="xs">
-            <Radio value="OFF" label={t("settings.favoritesyncoptions.off")} />
-            <Radio value="SIDECAR_FILE" label={t("settings.favoritesyncoptions.sidecar")} />
-            <Radio value="MEDIA_FILE" label={t("settings.favoritesyncoptions.mediafile")} />
-          </Group>
-        </Radio.Group>
+        <WriteEditsChoice user={user} onChange={onChange} />
         <Radio.Group
           label={t("settings.favoriteminimum")}
           value={user.favorite_min_rating?.toString()}
