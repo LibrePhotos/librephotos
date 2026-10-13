@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.models.album_place import AlbumPlace
+from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -70,3 +72,94 @@ class EditPhotoDetailsTest(TestCase):
         self.assertNotEqual(payload["in_trashcan"], data["in_trashcan"])
         self.assertNotEqual(payload["video"], data["video"])
         extract_date_time_from_exif_mock.assert_not_called()
+
+
+LISBON = {
+    "features": [{"text": "Lisbon"}, {"text": "Portugal"}],
+    "places": ["Lisbon", "Portugal"],
+    "address": "Lisbon, Portugal",
+}
+MADRID = {
+    "features": [{"text": "Madrid"}, {"text": "Spain"}],
+    "places": ["Madrid", "Spain"],
+    "address": "Madrid, Spain",
+}
+
+
+class MoveLocationWithoutGeocodeTest(TestCase):
+    """#2253: a moved photo kept its old place when the geocoder gave nothing.
+
+    The new coordinates were saved, but the address, the search location and
+    the Places albums stayed those of the old coordinates, and the response
+    said nothing about it.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+        with patch("api.metadata.edits.reverse_geocode", return_value=dict(LISBON)):
+            response = self._move(38.7, -9.1)
+        self.assertTrue(response.json()["geocoded"])
+        self.lisbon = AlbumPlace.objects.get(owner=self.user, title="Lisbon")
+
+    def _move(self, lat, lon):
+        response = self.client.patch(
+            f"/api/photos/edit/{self.photo.image_hash}/",
+            {"exif_gps_lat": lat, "exif_gps_lon": lon},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def _search_location(self):
+        return PhotoSearch.objects.get(photo=self.photo).search_location
+
+    def assert_old_place_forgotten(self, response):
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (self.photo.exif_gps_lat, self.photo.exif_gps_lon), (36.5, -6.3)
+        )
+        self.assertEqual(self.photo.geolocation_json, {})
+        self.assertEqual(self._search_location(), "")
+        self.assertFalse(self.lisbon.photos.filter(pk=self.photo.pk).exists())
+        self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
+        self.assertIs(response.json()["geocoded"], False)
+
+    def test_an_empty_geocode_result_forgets_the_old_place(self):
+        with patch("api.metadata.edits.reverse_geocode", return_value={}):
+            response = self._move(36.5, -6.3)
+
+        self.assert_old_place_forgotten(response)
+
+    def test_a_geocoder_error_forgets_the_old_place(self):
+        with patch(
+            "api.metadata.edits.reverse_geocode", side_effect=RuntimeError("boom")
+        ):
+            response = self._move(36.5, -6.3)
+
+        self.assert_old_place_forgotten(response)
+
+    @override_settings(FEATURE_REVERSE_GEOCODING=False)
+    def test_reverse_geocoding_turned_off_forgets_the_old_place(self):
+        response = self._move(36.5, -6.3)
+
+        self.assert_old_place_forgotten(response)
+
+    def test_a_geocoded_move_sets_the_new_place(self):
+        with patch("api.metadata.edits.reverse_geocode", return_value=dict(MADRID)):
+            response = self._move(40.4, -3.7)
+
+        self.assertIs(response.json()["geocoded"], True)
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.geolocation_json["address"], "Madrid, Spain")
+        self.assertEqual(self._search_location(), "Madrid, Spain")
+        self.assertEqual(
+            set(
+                AlbumPlace.objects.filter(photos=self.photo).values_list(
+                    "title", flat=True
+                )
+            ),
+            {"Madrid", "Spain"},
+        )

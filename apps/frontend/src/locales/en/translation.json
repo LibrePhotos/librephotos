@@ -1548,6 +1548,7 @@
     "finaldeletephototitle": "Delete Images",
     "editphoto": "Photo edited",
     "editphototitle": "Edit photo",
+    "locationsavedwithoutplace": "Location saved. The place name could not be looked up.",
     "rotatephoto": "{{numberOfPhotos}} photo(s) rotated by {{rotation}}°.",
     "rotatephototitle": "Rotate photo",
     "uploadsuccess": "Upload successful",

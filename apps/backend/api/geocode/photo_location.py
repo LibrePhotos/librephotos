@@ -8,6 +8,7 @@ takes the photo as its first argument.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from django.db.models import Q, QuerySet
@@ -78,6 +79,12 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
 
     res = _reverse_geocode_safely(new_gps_lat, new_gps_lon)
     if not res:
+        # The place of the old coordinates no longer applies (#2253); for the
+        # same coordinates it still does.
+        if (old_gps_lat, old_gps_lon) != (photo.exif_gps_lat, photo.exif_gps_lon):
+            forget_place(photo, old_album_places)
+            if commit:
+                photo.save(update_fields=["geolocation_json", "last_modified"])
         return
 
     photo.geolocation_json = res
@@ -86,6 +93,26 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
 
     if commit:
         photo.save(update_fields=["geolocation_json", "last_modified"])
+
+
+def forget_place(photo: Photo, album_places: Iterable[AlbumPlace]) -> None:
+    """Undo what the photo's previous place set: its Places albums, its search
+    location and its ``geolocation_json``.
+
+    ``geolocation_json`` becomes ``{}``, "coordinates not geocoded", as a new
+    photo starts out. The caller saves the photo.
+    """
+    for album_place in album_places:
+        album_place.photos.remove(photo)
+        album_place.save()
+    photo.geolocation_json = {}
+    _update_search_location(photo, None)
+
+
+def has_place(photo: Photo) -> bool:
+    """Whether the photo's coordinates have a reverse-geocoded place."""
+    geolocation = photo.geolocation_json or {}
+    return bool(geolocation.get("features") or geolocation.get("address"))
 
 
 def _has_current_geolocation(photo: Photo) -> bool:
@@ -105,7 +132,7 @@ def _reverse_geocode_safely(lat: float, lon: float) -> dict[str, object] | None:
         return None
 
 
-def _update_search_location(photo: Photo, res: dict[str, object]) -> None:
+def _update_search_location(photo: Photo, res: dict[str, object] | None) -> None:
     from api.models.photo_search import PhotoSearch
 
     search_instance, _ = PhotoSearch.objects.get_or_create(photo=photo)

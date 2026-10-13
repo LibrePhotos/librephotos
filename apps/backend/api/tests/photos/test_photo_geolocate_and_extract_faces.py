@@ -218,10 +218,11 @@ class GeolocateCharacterizationTest(TestCase):
         geolocate_photo(self.photo)
         self.photo.refresh_from_db()
 
-        # Coordinates were committed before the geocoder ran.
+        # Coordinates were committed before the geocoder ran; they are new,
+        # so the photo has no place rather than the old one (#2253).
         self.assertEqual(self.photo.exif_gps_lat, 52.5)
-        self.assertIsNone(self.photo.geolocation_json)
-        self.assertFalse(PhotoSearch.objects.filter(photo=self.photo).exists())
+        self.assertEqual(self.photo.geolocation_json, {})
+        self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
 
     @patch(
@@ -233,7 +234,49 @@ class GeolocateCharacterizationTest(TestCase):
         self.photo.refresh_from_db()
 
         self.assertEqual(self.photo.exif_gps_lon, 13.4)
-        self.assertIsNone(self.photo.geolocation_json)
+        self.assertEqual(self.photo.geolocation_json, {})
+
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(48.85, 2.35))
+    def test_moved_coordinates_without_a_result_forget_the_old_place(self, _meta, _rev):
+        # #2253: the file's GPS changed and the geocoder failed; the photo
+        # kept the address, search text and Places albums of its old fix.
+        self._place_in_berlin()
+
+        geolocate_photo(self.photo)
+        self.photo.refresh_from_db()
+
+        self.assertEqual(self.photo.exif_gps_lat, 48.85)
+        self.assertEqual(self.photo.geolocation_json, {})
+        self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
+        self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
+
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
+    def test_same_coordinates_without_a_result_keep_their_place(self, _meta, _rev):
+        # A stale geocode version is retried; failing that, the place of the
+        # unchanged coordinates still applies.
+        self._place_in_berlin(version="0")
+
+        geolocate_photo(self.photo)
+        self.photo.refresh_from_db()
+
+        self.assertEqual(self.photo.geolocation_json["places"], ["Berlin", "Germany"])
+        self.assertTrue(
+            AlbumPlace.objects.filter(title="Berlin", photos=self.photo).exists()
+        )
+
+    def _place_in_berlin(self, version="1"):
+        Photo.objects.filter(pk=self.photo.pk).update(
+            exif_gps_lat=52.5,
+            exif_gps_lon=13.4,
+            geolocation_json={**GEO_RESULT, "_v": version},
+        )
+        self.photo.refresh_from_db()
+        get_album_place("Berlin", owner=self.user).photos.add(self.photo)
+        PhotoSearch.objects.update_or_create(
+            photo=self.photo, defaults={"search_location": "Berlin, Germany"}
+        )
 
     # ---- concurrent writers ---------------------------------------------
     #

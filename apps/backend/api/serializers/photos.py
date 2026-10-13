@@ -16,6 +16,7 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
+from api.geocode.photo_location import has_place
 from api.metadata import edits
 from api.models import AlbumDate, File, Photo, User
 from api.models.photo_caption import PhotoCaption
@@ -288,6 +289,8 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
+    geocoded = serializers.SerializerMethodField()
+
     class Meta:
         model = Photo
         fields = (
@@ -306,10 +309,20 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             "is_screenshot",
             "is_document",
             "category_source",
+            "geocoded",
         )
         # category_source is server-managed: it is set to "user" whenever a
         # category flag is written through the API, and is never client-settable.
         read_only_fields = ("category_source",)
+
+    def get_geocoded(self, obj: Photo) -> bool:
+        """Whether the photo's coordinates have a place name.
+
+        False after a location edit the geocoder could not name, so the
+        client can say the place was not looked up.
+        """
+        # #2253: the edit used to answer 200 and keep the old place.
+        return has_place(obj)
 
     def update(self, instance: Photo, validated_data: dict[str, Any]) -> Photo:
         self._apply_category_override(instance, validated_data)

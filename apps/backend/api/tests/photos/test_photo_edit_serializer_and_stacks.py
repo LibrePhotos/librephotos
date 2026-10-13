@@ -220,9 +220,9 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         self.photo.refresh_from_db()
         self.assertEqual(float(self.photo.exif_gps_lat), 52.5)
         self.assertEqual(float(self.photo.exif_gps_lon), 13.4)
-        # geolocation_json untouched, no PhotoSearch and no AlbumPlace created
-        self.assertIn(self.photo.geolocation_json, (None, {}))
-        self.assertFalse(PhotoSearch.objects.filter(photo=self.photo).exists())
+        # No place: an empty geolocation_json and search location, no AlbumPlace
+        self.assertEqual(self.photo.geolocation_json, {})
+        self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
         self.assertIs(result, self.photo)
 
