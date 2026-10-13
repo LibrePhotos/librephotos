@@ -86,6 +86,18 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PersonEditResponse: { schema: S.PersonEditResponse, components: ["Person"] },
   PersonRemovePhotosResponse: { schema: S.PersonRemovePhotosResponse, components: ["PersonRemovePhotosResponse"] },
   PersonMergeResponse: { schema: S.PersonMergeResponse, components: ["PersonMergeResponse"] },
+  ClusterFacesResponse: { schema: S.ClusterFacesResponse, components: ["ClusterFacesResponse"] },
+  // statistics
+  CountStats: { schema: S.CountStats, components: ["CountStats"] },
+  WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
+  SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
+  PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },
+  LocationTimelineSpan: { schema: S.LocationTimelineSpan, components: ["LocationTimelineSpan"] },
+  // server
+  ImageTag: { schema: S.ImageTag, components: ["ImageTag"] },
+  StorageStats: { schema: S.StorageStats, components: ["StorageStats"] },
+  ServerLogs: { schema: S.ServerLogs, components: ["ServerLogs"] },
+  ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
 };
 
 /** Exported zod objects that are not compared, and why. */
@@ -247,14 +259,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   SharedPhoto:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); a PublicPhotoDetailSerializer row with the hash-derived fields swapped for slug URLs",
   SharedPhotoResponse: "the {results} envelope of SharedPhoto (see there)",
-  CountStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  WordCloudResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SocialGraph: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ClusterFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ImageTag: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  StorageStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ServerLogs: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ServerStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ServicesList:
     "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ServiceHealth:

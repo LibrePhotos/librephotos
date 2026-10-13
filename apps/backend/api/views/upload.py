@@ -17,6 +17,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -189,6 +190,19 @@ def validate_scan_directory(user: User) -> None:
 class UploadPhotoExists(viewsets.ViewSet):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.STR,
+                OpenApiParameter.PATH,
+                description=(
+                    "The file's image_hash: its MD5 hex digest followed by "
+                    "the user's id (calculate_hash)"
+                ),
+            )
+        ]
+    )
     def retrieve(self, request: Request, pk: str) -> Response:
         # Only the requester's own library counts: answering for other users'
         # hashes would tell anyone which files someone else has uploaded.

@@ -107,7 +107,7 @@ export type FaceAnalysisMethod = z.infer<typeof FaceAnalysisMethod>;
 const ClusterFacePoint = z.object({
   person_id: z.number(),
   person_name: z.string(),
-  person_label_is_inferred: z.boolean().nullable(),
+  person_label_is_inferred: z.boolean(),
   color: z.string(),
   face_url: z.string(),
   value: z.object({

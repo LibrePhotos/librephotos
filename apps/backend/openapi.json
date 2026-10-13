@@ -287,8 +287,9 @@
             "in": "path",
             "name": "id",
             "schema": {
-              "type": "string"
+              "type": "integer"
             },
+            "description": "The day album's id (from /api/albums/date/list/)",
             "required": true
           },
           {
@@ -1541,7 +1542,14 @@
         "deprecated": true,
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterFacesResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -1560,7 +1568,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterFacesResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -1778,7 +1793,7 @@
     },
     "/api/duplicates/": {
       "get": {
-        "operationId": "api_duplicates_retrieve",
+        "operationId": "api_duplicates_list",
         "description": "List all duplicate groups for the current user with pagination and filters.",
         "parameters": [
           {
@@ -1834,7 +1849,7 @@
     },
     "/api/duplicates/{duplicate_id}/": {
       "get": {
-        "operationId": "api_duplicates_retrieve_2",
+        "operationId": "api_duplicates_retrieve",
         "description": "Get details of a specific duplicate group with all photos.",
         "parameters": [
           {
@@ -2192,6 +2207,7 @@
             "schema": {
               "type": "string"
             },
+            "description": "The file's image_hash: its MD5 hex digest followed by the user's id (calculate_hash)",
             "required": true
           }
         ],
@@ -2629,7 +2645,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2646,7 +2669,24 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2663,7 +2703,24 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheck"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2680,7 +2737,24 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReady"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReady"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2702,7 +2776,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiHelp"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2723,7 +2804,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageTag"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2949,14 +3037,21 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationSunburst"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
     },
     "/api/locationtimeline/": {
       "get": {
-        "operationId": "api_locationtimeline_retrieve",
+        "operationId": "api_locationtimeline_list",
         "tags": [
           "api"
         ],
@@ -2970,7 +3065,17 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationTimelineSpan"
+                  }
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2991,7 +3096,30 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "description": "[latitude, longitude, place name]"
+                  }
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -3579,7 +3707,7 @@
     },
     "/api/photomonthcounts/": {
       "get": {
-        "operationId": "api_photomonthcounts_retrieve",
+        "operationId": "api_photomonthcounts_list",
         "tags": [
           "api"
         ],
@@ -3593,7 +3721,17 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PhotoMonthCount"
+                  }
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -5968,6 +6106,12 @@
         ],
         "security": [
           {
+            "jwtAuth": []
+          },
+          {
+            "jwtCookieAuth": []
+          },
+          {
             "basicAuth": []
           },
           {}
@@ -6374,7 +6518,15 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "The log file, as an attachment"
           }
         }
       }
@@ -6406,7 +6558,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerLogs"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -6427,14 +6586,21 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerStats"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
     },
     "/api/services/": {
       "get": {
-        "operationId": "api_services_retrieve",
+        "operationId": "api_services_list",
         "tags": [
           "api"
         ],
@@ -6455,7 +6621,7 @@
     },
     "/api/services/{id}/": {
       "get": {
-        "operationId": "api_services_retrieve_2",
+        "operationId": "api_services_retrieve",
         "parameters": [
           {
             "in": "path",
@@ -6463,6 +6629,7 @@
             "schema": {
               "type": "string"
             },
+            "description": "The service's name, a key of the list's services",
             "required": true
           }
         ],
@@ -6494,6 +6661,7 @@
             "schema": {
               "type": "string"
             },
+            "description": "The service's name, a key of the list's services",
             "required": true
           }
         ],
@@ -6525,6 +6693,7 @@
             "schema": {
               "type": "string"
             },
+            "description": "The service's name, a key of the list's services",
             "required": true
           }
         ],
@@ -6636,14 +6805,21 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialGraph"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
     },
     "/api/stacks/": {
       "get": {
-        "operationId": "api_stacks_retrieve",
+        "operationId": "api_stacks_list",
         "description": "List all photo stacks for the current user with pagination and filters.",
         "parameters": [
           {
@@ -6691,7 +6867,7 @@
     },
     "/api/stacks/{stack_id}/": {
       "get": {
-        "operationId": "api_stacks_retrieve_2",
+        "operationId": "api_stacks_retrieve",
         "description": "Get details of a specific photo stack with all photos.",
         "parameters": [
           {
@@ -7107,7 +7283,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountStats"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7128,7 +7311,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageStats"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -8161,7 +8351,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordCloud"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -8194,6 +8391,12 @@
           "media"
         ],
         "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "jwtCookieAuth": []
+          },
           {
             "basicAuth": []
           },
@@ -8899,6 +9102,151 @@
           "title"
         ]
       },
+      "ApiHelp": {
+        "type": "object",
+        "description": "``GET /api/help``: how to sign in to the API, with absolute URLs.",
+        "properties": {
+          "about": {
+            "type": "string"
+          },
+          "authentication": {
+            "$ref": "#/components/schemas/ApiHelpAuthentication"
+          },
+          "useful_endpoints": {
+            "$ref": "#/components/schemas/ApiHelpEndpoints"
+          },
+          "documentation": {
+            "$ref": "#/components/schemas/ApiHelpDocumentation"
+          },
+          "examples": {
+            "$ref": "#/components/schemas/ApiHelpExamples"
+          }
+        },
+        "required": [
+          "about",
+          "authentication",
+          "documentation",
+          "examples",
+          "useful_endpoints"
+        ]
+      },
+      "ApiHelpAuthentication": {
+        "type": "object",
+        "properties": {
+          "default_authentication_classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "jwt": {
+            "$ref": "#/components/schemas/ApiHelpJwt"
+          },
+          "basic": {
+            "$ref": "#/components/schemas/ApiHelpBasic"
+          }
+        },
+        "required": [
+          "basic",
+          "default_authentication_classes",
+          "jwt"
+        ]
+      },
+      "ApiHelpBasic": {
+        "type": "object",
+        "properties": {
+          "how_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "how_to"
+        ]
+      },
+      "ApiHelpDocumentation": {
+        "type": "object",
+        "properties": {
+          "api_authentication": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_authentication"
+        ]
+      },
+      "ApiHelpEndpoints": {
+        "type": "object",
+        "properties": {
+          "api_root": {
+            "type": "string"
+          },
+          "help": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "openapi_schema": {
+            "type": "string",
+            "description": "DEBUG only"
+          },
+          "swagger_ui": {
+            "type": "string",
+            "description": "DEBUG only"
+          },
+          "redoc": {
+            "type": "string",
+            "description": "DEBUG only"
+          }
+        },
+        "required": [
+          "api_root",
+          "help",
+          "photos",
+          "search"
+        ]
+      },
+      "ApiHelpExamples": {
+        "type": "object",
+        "properties": {
+          "obtain_token_curl": {
+            "type": "string"
+          },
+          "call_api_with_bearer": {
+            "type": "string"
+          },
+          "call_api_with_basic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "call_api_with_basic",
+          "call_api_with_bearer",
+          "obtain_token_curl"
+        ]
+      },
+      "ApiHelpJwt": {
+        "type": "object",
+        "properties": {
+          "obtain": {
+            "type": "string"
+          },
+          "refresh": {
+            "type": "string"
+          },
+          "how_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "how_to",
+          "obtain",
+          "refresh"
+        ]
+      },
       "CancelJobResponse": {
         "type": "object",
         "description": "The answer of POST /api/jobs/{id}/cancel/: the cancelled job, nested.",
@@ -8924,6 +9272,249 @@
         ],
         "type": "string",
         "description": "* `photo` - photo\n* `screenshot` - screenshot\n* `document` - document\n* `auto` - auto"
+      },
+      "ClusterFacePoint": {
+        "type": "object",
+        "description": "One face on the face cluster chart (``api.faces.classify.build_scatter_point``).",
+        "properties": {
+          "person_id": {
+            "type": "integer",
+            "description": "-1 for a face without a person"
+          },
+          "person_name": {
+            "type": "string",
+            "description": "\"unknown\" without a person"
+          },
+          "person_label_is_inferred": {
+            "type": "boolean",
+            "description": "True when the face has no person"
+          },
+          "color": {
+            "type": "string",
+            "description": "The person's colour, #rrggbb"
+          },
+          "face_url": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/ClusterFacePosition"
+          }
+        },
+        "required": [
+          "color",
+          "face_url",
+          "person_id",
+          "person_label_is_inferred",
+          "person_name",
+          "value"
+        ]
+      },
+      "ClusterFacePosition": {
+        "type": "object",
+        "description": "A face's encoding projected onto three axes (PCA).",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "size": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "size",
+          "x",
+          "y"
+        ]
+      },
+      "ClusterFacesResponse": {
+        "type": "object",
+        "description": "The answer of /api/clusterfaces: every face with an encoding, on the chart.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClusterFacePoint"
+            }
+          }
+        },
+        "required": [
+          "data",
+          "status"
+        ]
+      },
+      "CountStats": {
+        "type": "object",
+        "description": "``GET /api/stats/`` (``api.dataviz.stats.get_count_stats``).",
+        "properties": {
+          "num_photos": {
+            "type": "integer"
+          },
+          "num_screenshots": {
+            "type": "integer"
+          },
+          "num_documents": {
+            "type": "integer"
+          },
+          "num_missing_photos": {
+            "type": "integer"
+          },
+          "num_faces": {
+            "type": "integer"
+          },
+          "num_people": {
+            "type": "integer"
+          },
+          "num_unknown_faces": {
+            "type": "integer"
+          },
+          "num_labeled_faces": {
+            "type": "integer"
+          },
+          "num_inferred_faces": {
+            "type": "integer"
+          },
+          "num_albumauto": {
+            "type": "integer"
+          },
+          "num_albumdate": {
+            "type": "integer"
+          },
+          "num_albumuser": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "num_albumauto",
+          "num_albumdate",
+          "num_albumuser",
+          "num_documents",
+          "num_faces",
+          "num_inferred_faces",
+          "num_labeled_faces",
+          "num_missing_photos",
+          "num_people",
+          "num_photos",
+          "num_screenshots",
+          "num_unknown_faces"
+        ]
+      },
+      "CpuInfo": {
+        "type": "object",
+        "description": "py-cpuinfo's ``get_cpu_info()`` with numeric cache sizes\n(``api.dataviz.stats._get_cpu_info``).\n\nOnly the first seven keys are always there: py-cpuinfo drops every key it\ncannot read, or reads as empty or 0.",
+        "properties": {
+          "python_version": {
+            "type": "string"
+          },
+          "cpuinfo_version": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cpuinfo_version_string": {
+            "type": "string"
+          },
+          "arch": {
+            "type": "string"
+          },
+          "bits": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "arch_string_raw": {
+            "type": "string"
+          },
+          "vendor_id_raw": {
+            "type": "string"
+          },
+          "hardware_raw": {
+            "type": "string"
+          },
+          "brand_raw": {
+            "type": "string"
+          },
+          "uname_string_raw": {
+            "type": "string"
+          },
+          "processor_type": {
+            "type": "string"
+          },
+          "hz_advertised_friendly": {
+            "type": "string"
+          },
+          "hz_actual_friendly": {
+            "type": "string"
+          },
+          "hz_advertised": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "hz_actual": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "stepping": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "integer"
+          },
+          "family": {
+            "type": "integer"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "l3_cache_size": {
+            "type": "integer",
+            "description": "Bytes"
+          },
+          "l2_cache_size": {
+            "type": "integer",
+            "description": "Bytes"
+          },
+          "l1_data_cache_size": {
+            "type": "integer",
+            "description": "Bytes"
+          },
+          "l1_instruction_cache_size": {
+            "type": "integer",
+            "description": "Bytes"
+          },
+          "l2_cache_line_size": {
+            "type": "integer"
+          },
+          "l2_cache_associativity": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "arch",
+          "arch_string_raw",
+          "bits",
+          "count",
+          "cpuinfo_version",
+          "cpuinfo_version_string",
+          "python_version"
+        ]
       },
       "CreateManualStackRequestRequest": {
         "type": "object",
@@ -9810,6 +10401,40 @@
         ],
         "type": "string"
       },
+      "GroupStats": {
+        "type": "object",
+        "description": "How many groups there are and their members per group: photos per\nalbum, faces per person (``api.dataviz.stats._aggregate_stats``).\n\nmin, max and mean are null when there is no group or every group is\nempty; median is null only when there is no group.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer",
+            "nullable": true
+          },
+          "max": {
+            "type": "integer",
+            "nullable": true
+          },
+          "mean": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "median": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "required": [
+          "count",
+          "max",
+          "mean",
+          "median",
+          "min"
+        ]
+      },
       "GroupedPhotos": {
         "type": "object",
         "properties": {
@@ -9877,6 +10502,79 @@
         ],
         "type": "string",
         "description": "* `large` - Large\n* `normal` - Normal\n* `small` - Small"
+      },
+      "HealthCheck": {
+        "type": "object",
+        "description": "One dependency's state, as ``_check_postgresql`` and ``_check_queue`` report it.",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatusEnum"
+          },
+          "error": {
+            "type": "string",
+            "description": "Which dependency did not answer; only when status is error"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "HealthChecks": {
+        "type": "object",
+        "properties": {
+          "postgresql": {
+            "$ref": "#/components/schemas/HealthCheck"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/HealthCheck"
+          }
+        },
+        "required": [
+          "postgresql",
+          "queue"
+        ]
+      },
+      "HealthReady": {
+        "type": "object",
+        "description": "The readiness probe: error (and 503) when any dependency is down.",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatusEnum"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/HealthChecks"
+          }
+        },
+        "required": [
+          "checks",
+          "status"
+        ]
+      },
+      "HealthStatusEnum": {
+        "enum": [
+          "ok",
+          "error"
+        ],
+        "type": "string",
+        "description": "* `ok` - ok\n* `error` - error"
+      },
+      "ImageTag": {
+        "type": "object",
+        "description": "``GET /api/imagetag/``: the build the server runs.",
+        "properties": {
+          "image_tag": {
+            "type": "string",
+            "description": "IMAGE_TAG; empty when unset"
+          },
+          "git_hash": {
+            "type": "string",
+            "description": "GIT_HASH, else the checkout's commit, else image_tag or unknown"
+          }
+        },
+        "required": [
+          "git_hash",
+          "image_tag"
+        ]
       },
       "IncompleteAlbumDate": {
         "type": "object",
@@ -10016,6 +10714,71 @@
         },
         "required": [
           "album_id"
+        ]
+      },
+      "LocationSunburst": {
+        "type": "object",
+        "description": "A node of ``GET /api/locationsunburst/`` (``SunburstNode``): the root, a\nplace with the places in it, or a leaf with its photo count.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hex": {
+            "type": "string",
+            "description": "Absent on the root"
+          },
+          "value": {
+            "type": "integer",
+            "description": "Leaves only"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationSunburst"
+            },
+            "description": "Absent on leaves"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "LocationTimelineSpan": {
+        "type": "object",
+        "description": "One stretch of ``GET /api/locationtimeline/``: photos taken in one place in a row.",
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "loc": {
+            "type": "string",
+            "description": "The place (the last geocoding feature)"
+          },
+          "start": {
+            "type": "number",
+            "format": "double",
+            "description": "Unix timestamp"
+          },
+          "end": {
+            "type": "number",
+            "format": "double",
+            "description": "Unix timestamp: the next stretch's start"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "One value: the duration in seconds"
+          }
+        },
+        "required": [
+          "color",
+          "data",
+          "end",
+          "loc",
+          "start"
         ]
       },
       "LongRunningJob": {
@@ -12148,6 +12911,62 @@
           "image_hash"
         ]
       },
+      "PhotoGroupStats": {
+        "type": "object",
+        "description": "``GroupStats`` of photos per album, plus the same over videos only\n(``api.dataviz.stats._photo_group_stats``).",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer",
+            "nullable": true
+          },
+          "max": {
+            "type": "integer",
+            "nullable": true
+          },
+          "mean": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "median": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "min_videos": {
+            "type": "integer",
+            "nullable": true
+          },
+          "max_videos": {
+            "type": "integer",
+            "nullable": true
+          },
+          "mean_videos": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "median_videos": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "required": [
+          "count",
+          "max",
+          "max_videos",
+          "mean",
+          "mean_videos",
+          "median",
+          "median_videos",
+          "min",
+          "min_videos"
+        ]
+      },
       "PhotoHashList": {
         "type": "object",
         "properties": {
@@ -12587,6 +13406,23 @@
           "shutter_speed",
           "source",
           "version"
+        ]
+      },
+      "PhotoMonthCount": {
+        "type": "object",
+        "description": "One month of ``GET /api/photomonthcounts/``, every month from the first to the last.",
+        "properties": {
+          "month": {
+            "type": "string",
+            "description": "\"YYYY-M\", the month not zero-padded"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "month"
         ]
       },
       "PhotoRequest": {
@@ -13156,6 +13992,86 @@
         },
         "required": [
           "results"
+        ]
+      },
+      "ServerLogs": {
+        "type": "object",
+        "description": "``GET /api/serverlogs/view``: the last lines of the server log.",
+        "properties": {
+          "logs": {
+            "type": "string",
+            "description": "The lines, joined"
+          },
+          "count": {
+            "type": "integer",
+            "description": "How many lines logs holds"
+          }
+        },
+        "required": [
+          "count",
+          "logs"
+        ]
+      },
+      "ServerStats": {
+        "type": "object",
+        "description": "``GET /api/serverstats/`` (``api.dataviz.stats.get_server_stats``).",
+        "properties": {
+          "cpu_info": {
+            "$ref": "#/components/schemas/CpuInfo"
+          },
+          "image_tag": {
+            "type": "string"
+          },
+          "available_ram_in_mb": {
+            "type": "integer"
+          },
+          "gpu_name": {
+            "type": "string",
+            "description": "Empty when there is no NVIDIA GPU"
+          },
+          "gpu_memory_in_mb": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  ""
+                ]
+              }
+            ]
+          },
+          "total_storage_in_mb": {
+            "type": "integer"
+          },
+          "used_storage_in_mb": {
+            "type": "integer"
+          },
+          "free_storage_in_mb": {
+            "type": "integer"
+          },
+          "number_of_users": {
+            "type": "integer"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserStats"
+            }
+          }
+        },
+        "required": [
+          "available_ram_in_mb",
+          "cpu_info",
+          "free_storage_in_mb",
+          "gpu_memory_in_mb",
+          "gpu_name",
+          "image_tag",
+          "number_of_users",
+          "total_storage_in_mb",
+          "used_storage_in_mb",
+          "users"
         ]
       },
       "SetFacePersonLabelRequestRequest": {
@@ -13983,6 +14899,67 @@
           }
         }
       },
+      "SocialGraph": {
+        "type": "object",
+        "description": "``GET /api/socialgraph/``: people laid out on a plane, linked when they share a photo.",
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialGraphNode"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialGraphLink"
+            }
+          }
+        },
+        "required": [
+          "links",
+          "nodes"
+        ]
+      },
+      "SocialGraphLink": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "A person's name"
+          },
+          "source": {
+            "type": "string",
+            "description": "A person's name"
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ]
+      },
+      "SocialGraphNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The person's name"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "id",
+          "x",
+          "y"
+        ]
+      },
       "SourceEnum": {
         "enum": [
           "embedded",
@@ -14006,6 +14983,26 @@
         },
         "required": [
           "photo_hashes"
+        ]
+      },
+      "StorageStats": {
+        "type": "object",
+        "description": "``GET /api/storagestats/``: the disk that holds the data directory, in bytes.",
+        "properties": {
+          "total_storage": {
+            "type": "integer"
+          },
+          "used_storage": {
+            "type": "integer"
+          },
+          "free_storage": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "free_storage",
+          "total_storage",
+          "used_storage"
         ]
       },
       "Tag": {
@@ -14389,6 +15386,134 @@
           "username"
         ]
       },
+      "UserStats": {
+        "type": "object",
+        "description": "One user's library (``api.dataviz.stats._get_user_stats``).",
+        "properties": {
+          "date_joined": {
+            "type": "string",
+            "description": "DD-MM-YYYY"
+          },
+          "total_file_size_in_mb": {
+            "type": "integer"
+          },
+          "number_of_photos": {
+            "type": "integer"
+          },
+          "number_of_videos": {
+            "type": "integer"
+          },
+          "number_of_screenshots": {
+            "type": "integer"
+          },
+          "number_of_documents": {
+            "type": "integer"
+          },
+          "number_of_captions": {
+            "type": "integer"
+          },
+          "number_of_generated_captions": {
+            "type": "integer"
+          },
+          "album": {
+            "$ref": "#/components/schemas/PhotoGroupStats"
+          },
+          "person": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GroupStats"
+              }
+            ],
+            "description": "Faces per person"
+          },
+          "number_of_clusters": {
+            "type": "integer"
+          },
+          "places": {
+            "$ref": "#/components/schemas/PhotoGroupStats"
+          },
+          "things": {
+            "$ref": "#/components/schemas/PhotoGroupStats"
+          },
+          "events": {
+            "$ref": "#/components/schemas/PhotoGroupStats"
+          },
+          "number_of_favorites": {
+            "type": "integer"
+          },
+          "number_of_hidden": {
+            "type": "integer"
+          },
+          "number_of_public": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "album",
+          "date_joined",
+          "events",
+          "number_of_captions",
+          "number_of_clusters",
+          "number_of_documents",
+          "number_of_favorites",
+          "number_of_generated_captions",
+          "number_of_hidden",
+          "number_of_photos",
+          "number_of_public",
+          "number_of_screenshots",
+          "number_of_videos",
+          "person",
+          "places",
+          "things",
+          "total_file_size_in_mb"
+        ]
+      },
+      "WordCloud": {
+        "type": "object",
+        "description": "``GET /api/wordcloud/``: the 100 most frequent OpenCLIP tags, people and places.",
+        "properties": {
+          "captions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordCloudEntry"
+            }
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordCloudEntry"
+            }
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WordCloudEntry"
+            }
+          }
+        },
+        "required": [
+          "captions",
+          "locations",
+          "people"
+        ]
+      },
+      "WordCloudEntry": {
+        "type": "object",
+        "properties": {
+          "y": {
+            "type": "number",
+            "format": "double",
+            "description": "The natural log of the label's count"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "y"
+        ]
+      },
       "ZipDownloadRequestRequest": {
         "type": "object",
         "description": "The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.\n\nLike the other bulk actions (``PhotoSelectionRequest``): the ``query`` is\nthe filter of ``api.photos.selection.build_photo_queryset``, minus\n``excluded_hashes``.",
@@ -14439,6 +15564,11 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "jwtCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "jwt"
       }
     }
   }
