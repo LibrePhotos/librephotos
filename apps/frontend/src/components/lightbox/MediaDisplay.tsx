@@ -17,8 +17,14 @@ export const LIGHTBOX_PHOTO_HEIGHT = "82vh";
 // bottom edge, so on a short window the video stops short of the strip instead
 // of running under it.
 export const LIGHTBOX_VIDEO_HEIGHT = "min(82vh, calc(100vh - 160px))";
-/** The tallest a video gets outside the lightbox. */
-const PAGE_VIDEO_MAX_HEIGHT = "70vh";
+/**
+ * The tallest a photo or video gets outside the lightbox (`fullHeight`). The
+ * photo page sets `--page-media-max-height` to the height of its mat, so the
+ * whole picture fits the window, portrait or landscape.
+ */
+const PAGE_MEDIA_MAX_HEIGHT = "var(--page-media-max-height, 70vh)";
+/** The tallest a photo gets: the page's mat, or 82vh in the lightbox. */
+const PHOTO_MAX_HEIGHT = "var(--page-media-max-height, 82vh)";
 
 /**
  * What MediaDisplay reads from the photo's details. The neighbouring slides and
@@ -120,11 +126,11 @@ export function MediaDisplay({
 
   const currentType = isMainContent ? type : "photo";
   // Outside the lightbox (the photo page) there is no box to fill: the video
-  // takes the page's width at its own shape, capped like the photo there. A
+  // keeps its own shape within the page's width, capped like the photo there. A
   // fixed box left bands around a landscape clip, and the stored width and
   // height cannot shape one, since they ignore a phone video's rotation.
   const videoContainerHeight = fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT;
-  const videoMaxHeight = fullHeight ? PAGE_VIDEO_MAX_HEIGHT : undefined;
+  const videoMaxHeight = fullHeight ? PAGE_MEDIA_MAX_HEIGHT : undefined;
   const thumbnailUrl = mediaUrl.bigThumbnail(mediaHash);
 
   if (currentType === "video" || currentType === "embedded") {
@@ -215,7 +221,8 @@ export function MediaDisplay({
             // Block display so the wrapper matches the image exactly — the
             // inline baseline gap would offset the overlays a few pixels.
             display: "block",
-            maxHeight: "82vh",
+            // The photo page's mat sets the variable; the lightbox, a portal outside it, never has it.
+            maxHeight: PHOTO_MAX_HEIGHT,
             maxWidth: "100%",
             borderRadius: 8,
             opacity: isMainContent ? 1 : 0.9,

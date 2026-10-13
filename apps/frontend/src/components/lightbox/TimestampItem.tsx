@@ -1,21 +1,17 @@
-import type { Photo } from "@librephotos/api-client";
 import { ActionIcon, Box, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArrowBackUp as ArrowBackUp, IconCalendar as Calendar, IconPencil } from "@tabler/icons-react";
 import { DateTime } from "luxon";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { TimestampForm } from "./TimestampForm";
+import type { TimestampEditor as Editor, TimestampPhoto } from "./useTimestampEditor";
+import { useTimestampEditor } from "./useTimestampEditor";
 
 type Props = Readonly<{
-  /** Only the hash is always there: a viewer who is not the owner may have no date. */
-  photoDetail: Pick<Photo, "image_hash"> & Partial<Pick<Photo, "exif_timestamp" | "date_set_by_user">>;
+  photoDetail: TimestampPhoto;
   isPublic: boolean;
 }>;
-
-/** The body that puts a photo's date back as it was before the last change. */
-type DateChange = { exif_timestamp: string | null };
 
 export function TimestampItem(props: Props) {
   // The edit state belongs to one photo: remount when the photo changes, or a
@@ -24,38 +20,58 @@ export function TimestampItem(props: Props) {
   return <TimestampEditor key={props.photoDetail.image_hash} {...props} />;
 }
 
-function TimestampEditor({ photoDetail, isPublic }: Props) {
-  const [editMode, setEditMode] = useState(false);
-  // Set once a change is saved: what Undo sends.
-  const [undo, setUndo] = useState<DateChange | null>(null);
-  const { mutate: updatePhoto, isPending } = useUpdatePhotoMutation();
+/** The date editor of `useTimestampEditor`, open while its `editMode` is. */
+export function TimestampEditForm({ editor }: Readonly<{ editor: Editor }>) {
+  return (
+    <TimestampForm
+      exifTimestamp={editor.exifTimestamp}
+      canRemove={editor.canRemove}
+      saving={editor.isPending}
+      onSave={editor.save}
+      onRemove={editor.remove}
+      onCancel={editor.close}
+    />
+  );
+}
+
+/** Undo (after a save) and the pencil that opens the date editor. */
+export function TimestampEditActions({ editor }: Readonly<{ editor: Editor }>) {
   const { t } = useTranslation();
-  const exifTimestamp = photoDetail.exif_timestamp ?? null;
+  return (
+    <Group gap="xs" wrap="nowrap">
+      {editor.canUndo && (
+        <Tooltip label={t("lightbox.sidebar.undotimestampmodification")}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            loading={editor.isPending}
+            aria-label={t("lightbox.sidebar.undotimestampmodification")}
+            onClick={editor.onUndo}
+          >
+            <ArrowBackUp size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      <Tooltip label={t("lightbox.sidebar.editdatetime")}>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          size="sm"
+          aria-label={t("lightbox.sidebar.editdatetime")}
+          onClick={editor.open}
+        >
+          <IconPencil size={16} />
+        </ActionIcon>
+      </Tooltip>
+    </Group>
+  );
+}
 
-  // The photo's date as it is now. A date read from the file is not one to put back: the user had
-  // set none, so Undo removes the date set since (servers before #2280 do not say, Undo pins it).
-  const currentChange = (): DateChange => ({
-    exif_timestamp: photoDetail.date_set_by_user === false ? null : exifTimestamp,
-  });
-
-  // The query holds the date shown: the editor closes, and Undo appears, once the server took it.
-  const save = (data: DateChange) => {
-    const before = currentChange();
-    updatePhoto(
-      { id: photoDetail.image_hash, data },
-      {
-        onSuccess: () => {
-          setUndo(before);
-          setEditMode(false);
-        },
-      }
-    );
-  };
-
-  const onUndo = () => {
-    if (!undo) return;
-    updatePhoto({ id: photoDetail.image_hash, data: undo }, { onSuccess: () => setUndo(null) });
-  };
+function TimestampEditor({ photoDetail, isPublic }: Props) {
+  const editor = useTimestampEditor(photoDetail);
+  const { t } = useTranslation();
+  const { exifTimestamp } = editor;
 
   const getDateTimeLabel = () => {
     if (!exifTimestamp) return t("lightbox.sidebar.withouttimestamp");
@@ -83,17 +99,8 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
     return t("lightbox.sidebar.invalidtimestamp");
   };
 
-  if (editMode) {
-    return (
-      <TimestampForm
-        exifTimestamp={exifTimestamp}
-        canRemove={photoDetail.date_set_by_user === true}
-        saving={isPending}
-        onSave={exif_timestamp => save({ exif_timestamp })}
-        onRemove={() => save({ exif_timestamp: null })}
-        onCancel={() => setEditMode(false)}
-      />
-    );
+  if (editor.editMode) {
+    return <TimestampEditForm editor={editor} />;
   }
 
   return (
@@ -106,40 +113,12 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
         {isPublic ? (
           <Box fz="sm">{getDateTimeLabel()}</Box>
         ) : (
-          <UnstyledButton fz="sm" onClick={() => setEditMode(true)}>
+          <UnstyledButton fz="sm" onClick={editor.open}>
             {getDateTimeLabel()}
           </UnstyledButton>
         )}
       </Group>
-      {!isPublic && (
-        <Group gap="xs" wrap="nowrap">
-          {undo && (
-            <Tooltip label={t("lightbox.sidebar.undotimestampmodification")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                loading={isPending}
-                aria-label={t("lightbox.sidebar.undotimestampmodification")}
-                onClick={onUndo}
-              >
-                <ArrowBackUp size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-          <Tooltip label={t("lightbox.sidebar.editdatetime")}>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size="sm"
-              aria-label={t("lightbox.sidebar.editdatetime")}
-              onClick={() => setEditMode(true)}
-            >
-              <IconPencil size={16} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      )}
+      {!isPublic && <TimestampEditActions editor={editor} />}
     </Group>
   );
 }

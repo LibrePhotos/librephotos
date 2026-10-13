@@ -1,0 +1,52 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: var(--mantine-spacing-xs);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 60px;
+  padding: 8px 4px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tile:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+/* A favourite or a photo with a live share link shows it on its tile. */
+.tile[data-active] {
+  border-color: var(--mantine-color-yellow-filled);
+  background: var(--mantine-color-yellow-light);
+}
+
+.tile[data-shared] {
+  border-color: var(--mantine-color-green-filled);
+  background: var(--mantine-color-green-light);
+}
+
+.tile[data-shared] .icon {
+  color: var(--mantine-color-green-light-color);
+}
+
+.icon {
+  display: flex;
+  line-height: 0;
+}
+
+.label {
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}

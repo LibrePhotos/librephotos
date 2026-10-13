@@ -1,0 +1,125 @@
+/*
+ * Two columns from md up: the photo on its mat, sticky and as tall as the
+ * window, and a 400px column that reads like a caption. Below md they stack,
+ * the photo first.
+ */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--mantine-spacing-md);
+  align-items: start;
+  padding-top: 10px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+  min-width: 0;
+}
+
+/* The page gutter (PAGE_GUTTER) above and below the mat. */
+.mat {
+  --mat-height: calc(100dvh - var(--app-shell-header-offset, 0px) - 20px);
+  /* MediaDisplay sizes the photo or video to this: the mat less its top and bottom bars. */
+  --page-media-max-height: calc(var(--mat-height) - 104px);
+
+  position: sticky;
+  top: calc(var(--app-shell-header-offset, 0px) + 10px);
+  display: flex;
+  flex-direction: column;
+  height: var(--mat-height);
+  padding: 52px var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+  background: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-9));
+}
+
+.media {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media > * {
+  width: 100%;
+}
+
+.back {
+  position: absolute;
+  top: var(--mantine-spacing-sm);
+  left: var(--mantine-spacing-sm);
+  z-index: 2;
+}
+
+.tools {
+  position: absolute;
+  right: var(--mantine-spacing-sm);
+  bottom: var(--mantine-spacing-sm);
+  z-index: 2;
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+}
+
+@media (max-width: 61.99em) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, the mat scrolls away with the page; the photo still fits the screen. */
+  .mat {
+    --page-media-max-height: 70vh;
+
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 240px;
+  }
+}
+
+/* A phone: the photo runs edge to edge, the buttons float on it. */
+@media (max-width: 47.99em) {
+  .layout {
+    padding-top: 0;
+  }
+
+  .mat {
+    --page-media-max-height: 75vh;
+
+    margin-inline: -10px;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  /* Up by Back: at the bottom they would cover a video's own controls. */
+  .tools {
+    top: var(--mantine-spacing-sm);
+    bottom: auto;
+  }
+}
+
+/* The camera card's exposure values. */
+.exposureCell {
+  padding: 6px 8px;
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.fileName {
+  overflow-wrap: anywhere;
+}
+
+.inlineIcon {
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+
+.formatBadge {
+  flex-shrink: 0;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}

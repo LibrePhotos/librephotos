@@ -715,6 +715,7 @@ describe("VideoPlayer size", () => {
     const { container, unmount } = await renderPlayer();
     const video = defined(container.querySelector("video"));
 
+    expect(video.style.width).toBe("100%");
     expect(video.style.height).toBe("80vh");
     expect(video.style.maxHeight).toBe("");
     await unmount();
@@ -724,7 +725,8 @@ describe("VideoPlayer size", () => {
     const { container, unmount } = await renderPlayer({ height: "auto", maxHeight: "70vh" });
     const video = defined(container.querySelector("video"));
 
-    expect(video.style.width).toBe("100%");
+    // As wide as the picture, so a portrait clip's control bar is not page-wide.
+    expect(video.style.width).toBe("auto");
     expect(video.style.height).toBe("auto");
     expect(video.style.maxHeight).toBe("70vh");
     await unmount();

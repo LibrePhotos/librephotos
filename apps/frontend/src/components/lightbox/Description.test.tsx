@@ -76,11 +76,16 @@ function mount() {
   return { container, root: createRoot(container) };
 }
 
-async function render(root: Root, photoDetail: DescribedPhoto, isPublic = false) {
+async function render(
+  root: Root,
+  photoDetail: DescribedPhoto,
+  isPublic = false,
+  props: Partial<React.ComponentProps<typeof Description>> = {}
+) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <Description photoDetail={photoDetail} isPublic={isPublic} />
+        <Description photoDetail={photoDetail} isPublic={isPublic} {...props} />
       </MantineProvider>
     );
   });
@@ -202,5 +207,31 @@ describe("Description", () => {
     expect(navigate).not.toHaveBeenCalled();
     // Nor may they list the owner's hashtag albums: the query is skipped.
     expect(fetchThingsAlbums).toHaveBeenLastCalledWith(true);
+  });
+
+  it("shows a card's heading in place of its own, and Things as a label under it", async () => {
+    const { container, root } = mount();
+    await render(
+      root,
+      { image_hash: "a", captions_json: { user_caption: "", openclip_vitb32: { tags: ["beach"] } } },
+      false,
+      { heading: <h2>Caption card</h2> }
+    );
+
+    expect(container.querySelector("h2")?.textContent).toBe("Caption card");
+    expect(container.querySelector("h4")).toBeNull();
+    expect(container.textContent).toContain("beach");
+    expect(container.querySelector('button[aria-label="Edit caption"]')).not.toBeNull();
+  });
+
+  it("opens the editor at once when asked to, but never for a public page", async () => {
+    const { container, root } = mount();
+    await render(root, photo("a", ""), false, { startEditing: true });
+    expect(editorElement(container).getAttribute("contenteditable")).toBe("true");
+
+    const shared = mount();
+    await render(shared.root, photo("b", ""), true, { startEditing: true });
+    expect(shared.container.textContent).toContain("No caption");
+    expect(shared.container.querySelector('button[aria-label="Save"]')).toBeNull();
   });
 });

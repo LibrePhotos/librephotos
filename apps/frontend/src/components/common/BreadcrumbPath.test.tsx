@@ -30,11 +30,11 @@ vi.mock("@tanstack/react-router", () => ({
 let root: Root;
 let container: HTMLDivElement;
 
-const render = async (fullPath: string) => {
+const render = async (fullPath: string, basePath?: string) => {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <BreadcrumbPath fullPath={fullPath} />
+        <BreadcrumbPath fullPath={fullPath} basePath={basePath} />
       </MantineProvider>
     );
   });
@@ -90,6 +90,20 @@ describe("BreadcrumbPath", () => {
       encodeURIComponent("C:/Photos"),
       encodeURIComponent("C:/Photos/x"),
     ]);
+  });
+
+  it("lists only the folders below the base folder, still linking to their full paths", async () => {
+    const links = await render("C:/Photos/2024/Trip", "C:/Photos/");
+
+    expect(links).toEqual([
+      { label: "2024", to: "/album/folder/$id", id: encodeURIComponent("C:/Photos/2024") },
+      { label: "Trip", to: "/album/folder/$id", id: encodeURIComponent("C:/Photos/2024/Trip") },
+    ]);
+  });
+
+  it("lists the whole path when it is not below the base folder, or is the base folder", async () => {
+    expect((await render("/media/other/x", "/home/photos")).map(link => link.label)).toEqual(["media", "other", "x"]);
+    expect((await render("/home/photos", "/home/photos")).map(link => link.label)).toEqual(["home", "photos"]);
   });
 
   it("renders nothing without a path", async () => {

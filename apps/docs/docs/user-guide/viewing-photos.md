@@ -1,6 +1,6 @@
 ---
 title: "🖼️ Viewing Photos"
-description: "Photo views, the lightbox, and the photo details sidebar"
+description: "Photo views, the lightbox, the photo details sidebar and the photo page"
 sidebar_position: 2
 ---
 
@@ -238,6 +238,42 @@ Displays photos that are visually similar to the current one. This is useful for
 - Browsing photos with similar content
 
 Click on any similar photo to view it directly.
+
+## Photo Page
+
+Every photo also has a page of its own at `/photo/<id>`. You get there from a link to the photo, by `Ctrl` + clicking (`⌘` + click on macOS) a photo in a grid, and from a similar photo in the details.
+
+:::note
+The page described here is not in a release yet; it ships with the first release after 1.3.0. Up to 1.3.0 the page was titled with the file name and its full folder path and had no actions.
+:::
+
+The photo or video is shown as large as the window allows on a neutral background, with **Back** above it (to where you came from, or to the timeline when you opened a link) and **Open in viewer** below it. Open in viewer shows the photo in the [lightbox](#photo-viewer-lightbox), for zoom, fullscreen, the slideshow and the keyboard shortcuts. When [text recognition](./text-recognition.md) found text in one of your photos, a **Select text in photo** button lays it over the photo there too.
+
+Beside the photo (below it on a phone), the page title is the date the photo was taken, with the time and the place under it. On your own photos the pencil next to the date opens the date editor described under [Timestamp](#timestamp).
+
+Under the title, labelled buttons hold the photo's actions:
+
+- **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one.
+- **Share**: create a revocable link to this photo, as the globe in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
+- **Album**: add the photo to one of your albums, or to a new one.
+- **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
+- **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
+
+A photo in the trash or hidden from the timeline says so above these buttons, with a button to restore it or show it again.
+
+Then each subject has a card, with the same editors as the [details sidebar](#photo-details-sidebar):
+
+- **People**: the faces in the photo. Hovering one marks it on the photo; you can name a face, confirm a suggested name, mark it as not this person, delete it, or mark a face the scan missed with the button at the top of the card.
+- **Caption**: your caption, with the **Things** found in the photo under it.
+- **Tags**: your tags, marked when they came from the file's keywords.
+- **Place**: the address and a map; the pencil opens **Pick location**.
+- **Camera**: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO.
+- **File**: the file name (it opens the original), its size, the [Category](#category) badge, the photo's other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.
+- **Albums** and **Similar Photos**, when there are any.
+
+Details a photo does not have yet are not listed as empty cards: they are buttons in one **Add details** card (**Add a caption**, **Add tags**, **Add a place**, **Mark a face**). Each opens its editor straight away.
+
+On a photo someone shared with you, the page shows the photo, its date and the name of its place, **Open in viewer** and **Copy image**, and says who shared it. Everything else stays with the owner, as in the lightbox.
 
 ## Keyboard Shortcuts
 

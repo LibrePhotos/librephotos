@@ -156,4 +156,12 @@ describe("adding a face the scan missed", () => {
     expect(container.querySelector("h4")).toBeNull();
     expect(container.textContent).not.toContain("No faces were found");
   });
+
+  it("shows a card's heading in place of its own, keeping the add-face button", async () => {
+    const container = await renderSection({ heading: <h2>People card</h2> });
+
+    expect(container.querySelector("h2")?.textContent).toBe("People card");
+    expect(container.querySelector("h4")).toBeNull();
+    expect(addButton(container)).toBeDefined();
+  });
 });

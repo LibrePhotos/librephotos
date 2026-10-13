@@ -11,6 +11,11 @@ type PeopleSectionProps = {
   photoDetail: Pick<PhotoType, "people">;
   isPublic: boolean;
   showTitle?: boolean;
+  /**
+   * Shown instead of the section's own icon and title, next to its edit
+   * controls: the photo page's cards bring their own heading.
+   */
+  heading?: React.ReactNode;
   setFaceLocation: (location: FaceLocationType) => void;
   onPersonEdit: (faceId: number, faceUrl: string) => void;
   notThisPerson: (faceId: number) => void;
@@ -26,6 +31,7 @@ export function PeopleSection({
   photoDetail,
   isPublic,
   showTitle = true,
+  heading,
   setFaceLocation,
   onPersonEdit,
   notThisPerson,
@@ -47,11 +53,13 @@ export function PeopleSection({
   return (
     <div>
       {showTitle && (
-        <Group justify="space-between">
-          <Group>
-            <IconUsers />
-            <Title order={4}>{t("lightbox.sidebar.people")}</Title>
-          </Group>
+        <Group justify="space-between" wrap="nowrap">
+          {heading ?? (
+            <Group>
+              <IconUsers />
+              <Title order={4}>{t("lightbox.sidebar.people")}</Title>
+            </Group>
+          )}
           {canAddFace && !isDrawingFace && (
             <DisabledReason label={t("lightbox.addface.tooltip")} reason={addFaceBlockedReason}>
               <ActionIcon

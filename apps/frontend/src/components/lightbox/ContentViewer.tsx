@@ -1,4 +1,3 @@
-import type { NormalizedFaceBox } from "@librephotos/api-client";
 import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
@@ -6,9 +5,7 @@ import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAddFaceMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
-import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -29,6 +26,8 @@ import { LightboxControls } from "./LightboxControls";
 import { LIGHTBOX_PHOTO_HEIGHT, LIGHTBOX_VIDEO_HEIGHT, MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
+import { useFaceDrawing } from "./useFaceDrawing";
+import { usePhotoRotation } from "./usePhotoRotation";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
 
 /** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
@@ -97,19 +96,8 @@ export function ContentViewer({
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<EmblaApi | null>(null);
   const [playing, setPlaying] = useState(true);
-  const [rotationAngle, setRotationAngle] = useState(0);
-  const [imageCacheKey, setImageCacheKey] = useState(0);
   // "Live text": overlay selectable OCR text on the photo
   const [showOcrText, setShowOcrText] = useState(false);
-  // Marking a face the detector missed: first the user drags a box over the
-  // photo, then names whoever is in it.
-  const [isDrawingFace, setIsDrawingFace] = useState(false);
-  const [drawnFaceBox, setDrawnFaceBox] = useState<NormalizedFaceBox | null>(null);
-  // Tracks whether we should skip the rotation CSS transition on next render
-  // (used to silently reset angle to 0 once the server-rotated image has loaded)
-  const [suppressRotationTransition, setSuppressRotationTransition] = useState(false);
-  // True while we are waiting for the newly reloaded image to arrive after a rotation
-  const pendingRotationReset = useRef(false);
 
   // Slideshow state
   const [isSlideshowActive, setIsSlideshowActive] = useState(startSlideshow);
@@ -137,45 +125,20 @@ export function ContentViewer({
   const mediaBoxHeight =
     mainType === "video" || mainType === "embedded" ? LIGHTBOX_VIDEO_HEIGHT : LIGHTBOX_PHOTO_HEIGHT;
   const { t } = useTranslation();
-  const { mutate: addFace } = useAddFaceMutation();
+  // The rotate buttons only show once the details are in.
+  const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = usePhotoRotation(
+    mainSrcHash,
+    mainSrc
+  );
+  // Marking a face the detector missed; the hover box of a listed face would cover the drawing.
+  const clearFaceLocation = useCallback(() => setFaceLocation(null), []);
+  const faceDrawing = useFaceDrawing(mainSrcHash, clearFaceLocation);
 
   // A drawn box is read against the layer's on-screen rect, which stays right
   // through zoom and pan but not through rotation: the rect of a rotated
   // rectangle is its bounding box, so the fractions would not line up.
   const isRotated = rotationAngle % 360 !== 0;
   const addFaceBlockedReason = isRotated ? t("lightbox.addface.rotated") : undefined;
-
-  const startDrawingFace = useCallback(() => {
-    setFaceLocation(null);
-    setIsDrawingFace(true);
-  }, []);
-
-  const cancelDrawingFace = useCallback(() => {
-    setIsDrawingFace(false);
-    setDrawnFaceBox(null);
-  }, []);
-
-  const handleFaceDrawn = useCallback((box: NormalizedFaceBox) => {
-    setIsDrawingFace(false);
-    setDrawnFaceBox(box);
-  }, []);
-
-  const handleFacePersonChosen = useCallback(
-    (personName: string) => {
-      if (!drawnFaceBox || !mainSrcHash) return;
-      addFace({ photo: mainSrcHash, personName, box: drawnFaceBox });
-      setDrawnFaceBox(null);
-    },
-    [addFace, drawnFaceBox, mainSrcHash]
-  );
-
-  // Leaving the photo mid-drag would otherwise land the box on the next one.
-  useEffect(() => {
-    setIsDrawingFace(false);
-    setDrawnFaceBox(null);
-  }, [mainSrcHash]);
-
-  const rotatePhotos = useRotatePhotosMutation();
 
   // Copy to clipboard: a toolbar button and Ctrl/Cmd+C, for still photos on
   // pages that have an image clipboard at all (secure contexts only).
@@ -193,11 +156,7 @@ export function ContentViewer({
   useEffect(() => {
     setPlaying(true);
     setSlideshowProgress(0);
-    setRotationAngle(0);
-    setImageCacheKey(0);
     setShowOcrText(false);
-    pendingRotationReset.current = false;
-    setSuppressRotationTransition(false);
     // A zoom (or pinch) left over from the last photo would also keep swiping
     // off, and a video next has no zoom button to undo it.
     setIsZoomed(false);
@@ -256,52 +215,6 @@ export function ContentViewer({
 
   const toggleOcrText = useCallback(() => {
     setShowOcrText(prev => !prev);
-  }, []);
-
-  // Re-enable the CSS rotation transition after we have silently snapped back to 0.
-  // We do this in the next animation frame so the suppression is in effect for exactly
-  // one render cycle (the one that resets rotationAngle to 0).
-  useEffect(() => {
-    if (!suppressRotationTransition) return;
-    const raf = requestAnimationFrame(() => setSuppressRotationTransition(false));
-    return () => cancelAnimationFrame(raf);
-  }, [suppressRotationTransition]);
-
-  // Handle rotation with optimistic update.
-  // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention);
-  // the mutation turns it into the server's angle.
-  const handleRotate = useCallback(
-    (angle: number) => {
-      if (!photoDetails?.image_hash) return;
-      setRotationAngle(prev => prev + angle);
-      rotatePhotos.mutate(
-        { image_hash: photoDetails.image_hash, clockwiseDegrees: angle },
-        {
-          onSuccess: () => {
-            // Don't reset the angle here — the image is still loading.
-            // Signal that we should snap back to 0 once the new image arrives.
-            pendingRotationReset.current = true;
-            setImageCacheKey(Date.now());
-          },
-          onError: () => {
-            // On error the image won't reload, so animate back immediately.
-            setRotationAngle(0);
-          },
-        }
-      );
-    },
-    [photoDetails, rotatePhotos]
-  );
-
-  // Called when the main image finishes loading.  When a rotation just completed
-  // and the server has physically baked the new orientation into the file, we
-  // instantly (no transition) snap the CSS angle back to 0 so the swap is invisible.
-  const handleImageLoad = useCallback(() => {
-    if (!pendingRotationReset.current) return;
-    pendingRotationReset.current = false;
-    // Suppress the transition for this one render so the angle change is instant.
-    setSuppressRotationTransition(true);
-    setRotationAngle(0);
   }, []);
 
   // Setup slide change handler for Embla
@@ -527,7 +440,7 @@ export function ContentViewer({
                 isZoomed={isZoomed}
                 toggleZoom={toggleZoom}
                 onCloseRequest={handleClose}
-                onRotate={handleRotate}
+                onRotate={rotate}
                 playing={playing}
                 setPlaying={setPlaying}
                 isFullscreen={isFullscreen}
@@ -622,12 +535,12 @@ export function ContentViewer({
                           rotationAngle={rotationAngle}
                           imageCacheKey={imageCacheKey}
                           suppressRotationTransition={suppressRotationTransition}
-                          onImageLoad={handleImageLoad}
+                          onImageLoad={onImageLoad}
                           ocrBlocks={ocrBlocks ?? undefined}
                           showOcrText={showOcrText}
-                          drawingFace={isDrawingFace}
-                          onFaceDrawn={handleFaceDrawn}
-                          onCancelDrawFace={cancelDrawingFace}
+                          drawingFace={faceDrawing.isDrawing}
+                          onFaceDrawn={faceDrawing.onDrawn}
+                          onCancelDrawFace={faceDrawing.cancel}
                           isPublic={isPublic}
                           {...(photoDetails ? { photoDetails } : {})}
                         />
@@ -675,20 +588,20 @@ export function ContentViewer({
                 gridItem={gridItem}
                 setFaceLocation={setFaceLocation}
                 onPhotoSelect={onPhotoSelect}
-                onAddFaceRequest={type === "photo" ? startDrawingFace : undefined}
-                onCancelAddFace={cancelDrawingFace}
-                isDrawingFace={isDrawingFace}
+                onAddFaceRequest={type === "photo" ? faceDrawing.start : undefined}
+                onCancelAddFace={faceDrawing.cancel}
+                isDrawingFace={faceDrawing.isDrawing}
                 addFaceBlockedReason={addFaceBlockedReason}
               />
             )}
             {/* Only an owner adds faces; mounted on a public page, its people query would 401. */}
             {!isPublic && (
               <ModalPersonEdit
-                isOpen={!!drawnFaceBox}
-                onRequestClose={cancelDrawingFace}
+                isOpen={!!faceDrawing.drawnBox}
+                onRequestClose={faceDrawing.cancel}
                 selectedFaces={[]}
                 prompt={t("lightbox.addface.whoisit")}
-                onPersonChosen={handleFacePersonChosen}
+                onPersonChosen={faceDrawing.onPersonChosen}
               />
             )}
           </Modal.Body>

@@ -8,6 +8,7 @@ import { useMediaDiagnosticsQuery } from "../../api_client/media";
 import { probeMedia } from "../../api_client/media/mediaUrl";
 import { copyToClipboard } from "../../util/util";
 import { useLightboxCommands } from "./lightboxCommands";
+import classes from "./VideoPlayer.module.css";
 
 type VideoPlayerProps = {
   url: string;
@@ -20,8 +21,8 @@ type VideoPlayerProps = {
   posterUrl?: string;
   height: string;
   /**
-   * With `height` "auto": the video takes the full width at its own shape, up
-   * to this tall, instead of filling a fixed box.
+   * With `height` "auto": the video keeps its own shape, as large as the
+   * width and this height allow, instead of filling a fixed box.
    */
   maxHeight?: string;
   controls: boolean;
@@ -529,14 +530,13 @@ export const VideoPlayer = memo(function VideoPlayer({
         crossOrigin="use-credentials"
         controlsList="nodownload"
         playsInline
+        className={classes.video}
         style={{
-          // Block: inline, the box would grow by a line's descent below it.
-          display: "block",
-          width: "100%",
+          // At its own shape ("auto"), the element is as wide as the picture,
+          // so a portrait clip's control bar is not stretched across the page.
+          width: height === "auto" ? "auto" : "100%",
           height,
           maxHeight,
-          objectFit: "contain",
-          borderRadius: "8px",
         }}
       />
     </div>

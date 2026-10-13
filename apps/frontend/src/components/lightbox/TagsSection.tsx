@@ -20,6 +20,13 @@ import classes from "./TagsSection.module.css";
 
 type TagsSectionProps = {
   photoDetail: PhotoType;
+  /**
+   * Shown instead of the section's own icon and title, next to its edit
+   * controls: the photo page's cards bring their own heading.
+   */
+  heading?: React.ReactNode;
+  /** Open the editor at once: the photo page's "Add ..." asked for it. */
+  startEditing?: boolean;
 };
 
 /** How a name is compared with the file's keywords: a scan makes a tag of each keyword, trimmed. */
@@ -86,9 +93,10 @@ function TagBadge({ tag, fromFile }: { tag: Tag; fromFile: boolean }) {
   );
 }
 
-function TagsEditor({ photoDetail }: TagsSectionProps) {
+function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionProps) {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
+  // Only ever started on a photo without tags, so the empty draft is right.
+  const [editing, setEditing] = useState(startEditing);
   const [draftTags, setDraftTags] = useState<string[]>([]);
 
   const { data: photoTags } = useFetchPhotoTagsQuery(photoDetail.id);
@@ -149,11 +157,13 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
 
   return (
     <Stack gap="xs">
-      <Group justify="space-between">
-        <Group>
-          <IconTag />
-          <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
-        </Group>
+      <Group justify="space-between" wrap="nowrap">
+        {heading ?? (
+          <Group>
+            <IconTag />
+            <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
+          </Group>
+        )}
         {!editing ? (
           <Tooltip label={t("lightbox.sidebar.editTags")}>
             <ActionIcon

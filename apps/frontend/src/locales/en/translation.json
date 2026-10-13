@@ -2141,7 +2141,65 @@
     "noid": "No photo ID provided",
     "loading": "Loading photo details…",
     "notfound": "This photo could not be found, or you do not have access to it.",
-    "unknownfilename": "Unknown filename"
+    "unknownfilename": "Unknown filename",
+    "back": "Back",
+    "openinviewer": "Open in viewer",
+    "openinviewerhint": "Open in the viewer: zoom, fullscreen and keyboard shortcuts",
+    "livetext": "Select text in photo",
+    "livetextoff": "Stop selecting text",
+    "place": "Place",
+    "sharedby": "Shared by {{name}}",
+    "actions": {
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "share": "Share link",
+      "hide": "Hide photo",
+      "show": "Show photo",
+      "trash": "Move to trash",
+      "restore": "Restore from trash"
+    },
+    "tiles": {
+      "label": "Photo actions",
+      "favorite": "Favorite",
+      "share": "Share",
+      "album": "Album",
+      "albumhint": "Add to album",
+      "download": "Download",
+      "more": "More"
+    },
+    "more": {
+      "copy": "Copy image"
+    },
+    "download": {
+      "original": "Original ({{name}})",
+      "format": "{{format}} ({{name}})"
+    },
+    "camera": {
+      "title": "Camera",
+      "aperture": "Aperture",
+      "shutter": "Shutter",
+      "focallength": "Focal length",
+      "equivalent": "{{value}} mm in 35 mm",
+      "iso": "ISO",
+      "distance": "Subject distance {{value}} m"
+    },
+    "file": {
+      "title": "File",
+      "formats": "Other formats of this photo",
+      "folder": "Folder",
+      "downloadfile": "Download {{name}}"
+    },
+    "add": {
+      "title": "Add details",
+      "caption": "Add a caption",
+      "tags": "Add tags",
+      "place": "Add a place",
+      "face": "Mark a face"
+    },
+    "status": {
+      "trashed": "This photo is in the trash.",
+      "hidden": "This photo is hidden from the timeline."
+    }
   },
   "download": {
     "title": "Download Photos",
