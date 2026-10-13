@@ -378,9 +378,8 @@ class DiscardTest(CacheDirectoryTestCase):
         self.assertFalse(os.path.exists(part))
 
 
-@override_settings(SERVE_FRONTEND=True)
-class ServingACachedTranscodeTest(CacheDirectoryTestCase):
-    """What the media endpoint does once a seekable copy exists."""
+class TranscodingUserTestCase(CacheDirectoryTestCase):
+    """A user with "Always transcode videos" on, a video and a signed-in client."""
 
     def setUp(self):
         super().setUp()
@@ -393,6 +392,25 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         self.photo.save()
         self.client = APIClient()
         self.client.cookies["jwt"] = str(RefreshToken.for_user(self.user).access_token)
+
+
+def _live_conversion(chunks, copy_can_start=False):
+    """Patches standing in for a live conversion that streams ``chunks``.
+
+    ``copy_can_start`` is what the conversion says about starting the copy
+    beside it: False while it is not far enough ahead of the viewer.
+    """
+    transcoder = mock.MagicMock()
+    transcoder.copy_can_start.return_value = copy_can_start
+    return (
+        mock.patch.object(media, "VideoTranscoder", return_value=transcoder),
+        mock.patch.object(media, "gen", return_value=iter(chunks)),
+    )
+
+
+@override_settings(SERVE_FRONTEND=True)
+class ServingACachedTranscodeTest(TranscodingUserTestCase):
+    """What the media endpoint does once a seekable copy exists."""
 
     def test_the_file_is_served_instead_of_a_conversion_being_started(self):
         _write(transcode_cache.final_path(self.photo.image_hash), b"cached mp4")
@@ -437,11 +455,8 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         self.assertEqual(response["Content-Type"], "video/mp4")
 
     def test_the_first_play_still_streams_live(self):
-        with (
-            mock.patch.object(media, "VideoTranscoder"),
-            mock.patch.object(media.transcode_cache, "ensure_cached"),
-            mock.patch.object(media, "gen", return_value=iter([b"live"])),
-        ):
+        video, gen = _live_conversion([b"live"])
+        with video, gen, mock.patch.object(media.transcode_cache, "ensure_cached"):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
             self.assertEqual(response.status_code, 200)
@@ -452,29 +467,35 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
             self.assertEqual(response["Cache-Control"], "no-store")
             self.assertEqual(b"".join(response.streaming_content), b"live")
 
-    def test_the_copy_is_written_after_the_live_stream_and_not_beside_it(self):
+    def test_the_copy_is_not_written_beside_a_live_stream_that_is_not_ahead(self):
         # The live conversion has to keep ahead of playback. A second ffmpeg
         # started next to it takes a share of the machine away from the one
         # thing somebody is waiting for -- on two cores, half of it, which is
         # enough to make a video that used to start at once look stuck.
+        video, gen = _live_conversion([b"a", b"b", b"c"])
         with (
-            mock.patch.object(media, "VideoTranscoder"),
+            video,
+            gen,
             mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
-            mock.patch.object(media, "gen", return_value=iter([b"x"])),
         ):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
             ensure_cached.assert_not_called()
-            b"".join(response.streaming_content)
+            chunks = iter(response.streaming_content)
+            next(chunks)
+            next(chunks)
+            ensure_cached.assert_not_called()
+            list(chunks)
             ensure_cached.assert_called_once()
 
     def test_a_viewer_who_leaves_early_still_gets_a_copy_written(self):
         # Closing the response closes the generator, so the copy is asked for
         # whether the video ran to the end or the tab was shut after a second.
+        video, gen = _live_conversion([b"a", b"b", b"c"])
         with (
-            mock.patch.object(media, "VideoTranscoder"),
+            video,
+            gen,
             mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
-            mock.patch.object(media, "gen", return_value=iter([b"a", b"b", b"c"])),
         ):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
@@ -482,3 +503,53 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
             ensure_cached.assert_not_called()
             response.close()
             ensure_cached.assert_called_once()
+
+
+@override_settings(SERVE_FRONTEND=True)
+class CopyStartsOnceTheLiveConversionIsAheadTest(TranscodingUserTestCase):
+    """#2002: the copy no longer waits for the viewer to close the video.
+
+    The live conversion runs at -readrate 2, so it takes half the video's
+    length, and the viewer can keep the stream open for all of it. Once the
+    live one has finished, or is far enough ahead of anything the viewer can
+    have reached, a second ffmpeg no longer takes what playback needs.
+    """
+
+    def _play(self, ensure_cached, started=True):
+        ensure_cached.return_value = started
+        response = self.client.get(f"/media/photos/{self.photo.image_hash}")
+        self.addCleanup(response.close)
+        return response, iter(response.streaming_content)
+
+    def test_the_copy_starts_while_the_stream_is_still_open(self):
+        video, gen = _live_conversion([b"a", b"b", b"c"], copy_can_start=True)
+        with (
+            video,
+            gen,
+            mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
+        ):
+            response, chunks = self._play(ensure_cached)
+            next(chunks)
+            next(chunks)
+
+            ensure_cached.assert_called_once_with(self.photo)
+
+            list(chunks)
+            response.close()
+            ensure_cached.assert_called_once()
+
+    def test_the_copy_is_asked_for_once_and_not_for_every_chunk(self):
+        video, gen = _live_conversion([b"a"] * 50, copy_can_start=True)
+        with (
+            video,
+            gen,
+            mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
+        ):
+            response, chunks = self._play(ensure_cached, started=False)
+            for _ in range(49):
+                next(chunks)
+            ensure_cached.assert_called_once()
+
+            # Turned away (too many conversions, no room): asked again at the end.
+            list(chunks)
+            self.assertEqual(ensure_cached.call_count, 2)

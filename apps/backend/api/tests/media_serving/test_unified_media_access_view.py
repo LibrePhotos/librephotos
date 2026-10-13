@@ -592,6 +592,8 @@ class UnifiedTranscodeBranchTest(TestCase):
             mock.patch("api.views.media.gen", return_value=iter([b"abc"])),
             mock.patch("api.video.transcode_cache.ensure_cached") as ensure_cached,
         ):
+            # Not far enough ahead of the viewer to start the copy beside it.
+            transcoder.return_value.copy_can_start.return_value = False
             response = _unified("photos", self.video.image_hash, user=self.owner)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response["Content-Type"], "video/mp4")

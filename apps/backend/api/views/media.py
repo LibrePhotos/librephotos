@@ -4,7 +4,9 @@ avatars and embedded media, plus the live video transcoder behind them."""
 import collections
 import logging
 import os
+import re
 import threading
+import time
 from collections.abc import Iterator
 from urllib.parse import quote
 
@@ -40,6 +42,20 @@ from api.serving.http_range import file_size, ranged_response
 from api.video import color, ffmpeg_budget, transcode_cache
 
 logger = logging.getLogger(__name__)
+
+# How far ahead of the viewer a rate-limited live conversion has to be before
+# the seekable copy may start beside it (#2002). Playback runs at real time at
+# most, so this much converted video is a minute nobody can have reached yet:
+# room for the copy to take its (niced, capped) share without playback
+# catching up. At the default -readrate 2 with a 30 s burst it is reached
+# about 30 s in; a host too slow to get that far ahead never reaches it, and
+# the copy waits for the end of the stream as before.
+COPY_LEAD_SECONDS = 60.0
+
+# A line of ffmpeg's -progress output: "key=value", the value at most padded
+# in front ("speed= 2.6x"). Its error lines have spaces between words, so they
+# stay apart from it.
+_PROGRESS_LINE = re.compile(rb"[a-z0-9_]+= *\S*")
 
 
 def _url_segment_traverses(*segments: str) -> bool:
@@ -126,6 +142,13 @@ def build_live_command(path: str, transfer: str | None = None) -> list[str]:
     # bug reachable only on long videos into one reachable on ordinary ones.
     command = [binaries.ffmpeg(), "-nostdin", "-loglevel", "error", "-threads", threads]
 
+    # How far the conversion has got, as "key=value" lines on stderr, which
+    # VideoTranscoder reads anyway: it decides when the seekable copy may
+    # start (#2002). A few hundred bytes a second, and not a log message, so
+    # -loglevel error above does not silence it.
+    if ffmpeg_budget.supports("progress"):
+        command += ["-progress", "pipe:2"]
+
     # -threads does not govern the filter pool, which defaults to one thread per
     # core: on a many-core host the scale filter alone can spawn as many threads
     # as the machine has, straight past the cap. Measured on a 4-core host,
@@ -202,6 +225,12 @@ class VideoTranscoder:
 
     def __init__(self, path: str, transfer: str | None = None) -> None:
         command = build_live_command(path, transfer)
+        # Written by the drain thread from ffmpeg's -progress lines, read by
+        # copy_can_start in the request's thread.
+        self.converted_seconds = 0.0
+        self.converted_all = False
+        self.rate_limited = "-readrate" in command
+        self.started = time.monotonic()
         # No timeout: it runs as long as the video plays, and is killed when the
         # client goes away (__del__, once the response drops the generator).
         self.process = binaries.start_tool(
@@ -214,10 +243,51 @@ class VideoTranscoder:
         self._drain.start()
 
     def _read_stderr(self) -> None:
+        """Keep what ffmpeg says, apart from its progress lines, which are read."""
         assert self.process is not None and self.process.stderr is not None
         read = self.process.stderr.read
-        for chunk in iter(lambda: read(4096), b""):
-            self._stderr_tail.extend(chunk)
+        pending = b""
+        # A buffered read waits until it has all it asked for, so a small one:
+        # the -progress lines come at a few hundred bytes a second, and 4 KB
+        # of them would be read eight seconds late.
+        for chunk in iter(lambda: read(512), b""):
+            *lines, pending = (pending + chunk).split(b"\n")
+            for line in lines:
+                if not self._read_progress(line.rstrip(b"\r")):
+                    self._stderr_tail.extend(line + b"\n")
+            # A line that never ends is kept like any other output, not held.
+            if len(pending) > self.STDERR_TAIL_BYTES:
+                self._stderr_tail.extend(pending)
+                pending = b""
+        self._stderr_tail.extend(pending)
+
+    def _read_progress(self, line: bytes) -> bool:
+        """Note a -progress line; False when ``line`` is not one."""
+        if not _PROGRESS_LINE.fullmatch(line):
+            return False
+        key, _, value = line.partition(b"=")
+        # out_time_ms is in microseconds too: older ffmpeg misnamed it.
+        if key in (b"out_time_us", b"out_time_ms") and value.isdigit():
+            self.converted_seconds = int(value) / 1_000_000
+        elif key == b"progress" and value == b"end":
+            self.converted_all = True
+        return True
+
+    def copy_can_start(self) -> bool:
+        """Whether the seekable copy may now run beside this conversion (#2002).
+
+        Once this one has converted everything it takes nothing more. Before
+        that only while it is rate limited -- a conversion running flat out
+        takes its whole share, and a second one beside it is the race #1991
+        measured -- and COPY_LEAD_SECONDS ahead of anything the viewer can have
+        reached.
+        """
+        if self.converted_all:
+            return True
+        if not self.rate_limited:
+            return False
+        watched = time.monotonic() - self.started
+        return self.converted_seconds - watched >= COPY_LEAD_SECONDS
 
     def stderr_tail(self) -> str:
         """What ffmpeg last said, once there is no more of it coming.
@@ -381,7 +451,7 @@ class MediaServingView(APIView):
 
         response = StreamingHttpResponse(
             self._cache_after_streaming(
-                gen(VideoTranscoder(_original_path(photo), photo.video_color_transfer)),
+                VideoTranscoder(_original_path(photo), photo.video_color_transfer),
                 photo,
             ),
             content_type="video/mp4",
@@ -394,24 +464,36 @@ class MediaServingView(APIView):
 
     @staticmethod
     def _cache_after_streaming(
-        stream: Iterator[bytes], photo: Photo
+        transcoder: VideoTranscoder, photo: Photo
     ) -> Iterator[bytes]:
-        """Stream the live conversion, and only then start writing the copy.
+        """Stream the live conversion, and start writing the copy once it is safe.
 
-        Not alongside it. The live conversion has to keep ahead of playback, and
-        a second ffmpeg started next to it takes a share of the machine away
-        from the one thing somebody is actually waiting for -- on a two-core
-        server, half of it, which is enough to turn a video that used to start
-        at once into one that looks stuck.
+        Not as the stream starts. The live conversion has to keep ahead of
+        playback, and a second ffmpeg started next to it takes a share of the
+        machine away from the one thing somebody is actually waiting for -- on
+        a two-core server, half of it, which is enough to turn a video that
+        used to start at once into one that looks stuck (#1991).
 
-        Waiting costs nothing, because the copy is for the *next* play. The
-        generator is closed either way, whether the video ran to the end or the
-        viewer left after five seconds, so the copy still gets written.
+        Nor only when the stream closes, though: at -readrate 2 the live
+        conversion takes half the video's length, and a viewer can hold the
+        stream open for all of it, so a forty-minute video waited twenty
+        before its copy began (#2002). The copy starts as soon as the live
+        conversion is done or far enough ahead (``copy_can_start``), and
+        otherwise when the generator is closed -- which happens whether the
+        video ran to the end or the viewer left after five seconds.
         """
+        asked = started = False
         try:
-            yield from stream
+            for chunk in gen(transcoder):
+                yield chunk
+                if not asked and transcoder.copy_can_start():
+                    # Asked once: ensure_cached lists the cache directory, and
+                    # this runs for every chunk.
+                    asked = True
+                    started = transcode_cache.ensure_cached(photo)
         finally:
-            transcode_cache.ensure_cached(photo)
+            if not started:
+                transcode_cache.ensure_cached(photo)
 
     def _thumbnail_field_for(self, photo: Photo, path: str) -> FieldFile | None:
         """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
