@@ -16,6 +16,8 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 
 - A user-facing feature, setting or env var ships with its docs in `apps/docs` in the same PR.
   Docs deploy from `dev` before a release, so say when something is not released yet.
+- Release notes follow `.github/release-notes-template.md`: plain "What's new for you" and "After you update"
+  blocks above the technical part, UI labels from `locales/en`, no em dashes.
 - Name new code, UI strings and docs after the terms in `apps/docs/docs/development/glossary.md`
   (Event, Thing, Tag, Keyword, Person, Face, ...). Its legacy names stay only where clients depend on them.
 - Edit only English strings (`apps/frontend/src/locales/en`). Weblate owns the other languages.
