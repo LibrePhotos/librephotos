@@ -7,12 +7,15 @@ I/O (#2336): the values are read here, through the exif sidecar, and
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from django.db.models import Q, QuerySet
+
 from api.geocode.photo_location import apply_file_position
-from api.metadata.reader import get_metadata, sidecar_files_for_photo
+from api.metadata.reader import MetadataReadError, get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
-from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_metadata import PhotoMetadata, format_exposure_time
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -112,3 +115,66 @@ def read_file_values(photo: Photo) -> dict[str, object]:
         )
     )
     return values
+
+
+def misread_exposure_times() -> QuerySet[PhotoMetadata]:
+    """The rows whose shutter speed an older version may have stored wrongly (#2275).
+
+    It was ``Fraction(seconds).limit_denominator(1000)``: "0" for anything
+    faster than about 1/2000 s, "1/1000" for 1/1250 to 1/2000 s, and a
+    fraction like "5/2" or "3/10" from 0.3 s up. A real 1/1000 s is read
+    again too, and stays "1/1000".
+    """
+    return (
+        PhotoMetadata.objects.filter(
+            Q(shutter_speed__in=("0", "1/1000"))
+            | (Q(shutter_speed__contains="/") & ~Q(shutter_speed__startswith="1/"))
+        )
+        .select_related("photo__main_file")
+        .order_by("pk")
+    )
+
+
+@dataclass
+class ExposureTimeRefresh:
+    checked: int = 0
+    updated: int = 0
+    unreadable: int = 0
+
+
+def refresh_exposure_times(
+    metadata_rows: QuerySet[PhotoMetadata],
+) -> ExposureTimeRefresh:
+    """Read ExposureTime again for ``metadata_rows`` and store it as
+    ``format_exposure_time`` prints it, and in seconds. Only that one tag is
+    read and only the two shutter speed columns are written: no other field
+    of the photo changes."""
+    result = ExposureTimeRefresh()
+    for metadata in metadata_rows.iterator():
+        result.checked += 1
+        photo = metadata.photo
+        if photo.main_file is None:
+            result.unreadable += 1
+            continue
+        try:
+            (seconds,) = get_metadata(
+                photo.main_file.path,
+                tags=[Tags.EXPOSURE_TIME],
+                sidecar_files=sidecar_files_for_photo(photo),
+            )
+        except MetadataReadError:
+            result.unreadable += 1
+            continue
+        shutter_speed = format_exposure_time(seconds)
+        if shutter_speed is None:
+            continue
+        if (shutter_speed, seconds) == (
+            metadata.shutter_speed,
+            metadata.shutter_speed_seconds,
+        ):
+            continue
+        metadata.shutter_speed = shutter_speed
+        metadata.shutter_speed_seconds = float(seconds)
+        metadata.save(update_fields=["shutter_speed", "shutter_speed_seconds"])
+        result.updated += 1
+    return result

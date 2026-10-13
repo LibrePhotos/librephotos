@@ -173,7 +173,7 @@ sidebar_position: 18
         <td>Shutter Speed</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Shown as Shutter Speed in Info (stored as a fraction, e.g. 1/250)</td>
+        <td>Shown as Shutter Speed in Info the way ExifTool prints it: <code>1/4000</code> up to a quarter second, then seconds (<code>0.3 s</code>, <code>2.5 s</code>, <code>30 s</code>). <em>Not released yet: up to 1.3.0, anything faster than about 1/2000 s was stored as <code>0</code>, 1/1250 to 1/2000 s as <code>1/1000</code>, and long exposures as fractions such as <code>5/2</code>.</em> <code>python manage.py refresh_exposure_time</code> reads just the exposure time of those photos again; a Rescan from the Library page also fixes them.</td>
     </tr>
     <tr>
         <td>EXIF:ISOSpeedRatings</td>

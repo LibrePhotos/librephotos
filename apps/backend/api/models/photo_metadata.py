@@ -17,7 +17,6 @@ import numbers
 import re
 import uuid
 from collections.abc import Iterable, Mapping
-from fractions import Fraction
 from typing import TYPE_CHECKING
 
 from django.core.serializers.json import DjangoJSONEncoder
@@ -165,6 +164,23 @@ def with_maker(make: str | None, name: str | None) -> str | None:
             return name
         return f"{_short_maker(make)} {name}"
     return name or make
+
+
+def format_exposure_time(value: object) -> str | None:
+    """An exposure time in seconds as ExifTool prints it: "1/4000" up to a
+    quarter second, then seconds with at most one decimal ("0.3", "2.5", "30").
+
+    The exif service reads ExposureTime with -n, so it arrives as seconds.
+    None for anything that is not a positive number.
+    """
+    seconds = _positive_number(value)
+    if seconds is None:
+        return None
+    # ExifTool's PrintExposureTime, including its rounding.
+    if seconds < 0.25001:
+        return f"1/{int(0.5 + 1 / seconds)}"
+    text = f"{seconds:.1f}"
+    return text.removesuffix(".0")
 
 
 # The field name of the "restore from file" marker revert-all records; only
@@ -320,7 +336,7 @@ class PhotoMetadata(models.Model):
     # Aperture (f-stop), e.g., 2.8
     aperture = models.FloatField(null=True, blank=True, db_index=True)
 
-    # Shutter speed as a string fraction, e.g., "1/250"
+    # Exposure time as ExifTool prints it: "1/250", "0.3", "2.5", "30"
     shutter_speed = models.CharField(max_length=20, null=True, blank=True)
 
     # Shutter speed in seconds (for queries), e.g., 0.004
@@ -485,7 +501,7 @@ class PhotoMetadata(models.Model):
 
         image_number = values["image_number"]
         # ExifTool's JSON holds only ints and floats here; the narrower check
-        # is what lets int() and Fraction() below type-check.
+        # is what lets int() below type-check.
         if image_number is not None and isinstance(image_number, int | float):
             photo.image_sequence_number = int(image_number)
 
@@ -507,11 +523,9 @@ class PhotoMetadata(models.Model):
         _assign_string(metadata, "camera_model", values["camera"])
         _assign_string(metadata, "lens_model", values["lens"])
 
-        shutter_speed = values["shutter_speed"]
-        if shutter_speed and isinstance(shutter_speed, int | float):
-            metadata.shutter_speed = str(
-                Fraction(shutter_speed).limit_denominator(1000)
-            )
+        shutter_speed = format_exposure_time(values["shutter_speed"])
+        if shutter_speed is not None:
+            metadata.shutter_speed = shutter_speed
 
         PhotoMetadata._apply_camera_fields(metadata, values)
 

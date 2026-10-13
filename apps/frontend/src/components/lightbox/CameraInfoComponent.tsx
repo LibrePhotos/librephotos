@@ -2,6 +2,7 @@ import type { Photo as PhotoType } from "@librephotos/api-client";
 import { Group, Text } from "@mantine/core";
 import { IconCamera as Camera } from "@tabler/icons-react";
 import React from "react";
+import { formatShutterSpeed } from "../../util/shutterSpeed";
 import { FileInfoComponent } from "./FileInfoComponent";
 
 /**
@@ -20,7 +21,7 @@ export function CameraInfoComponent({ photoDetail }: { photoDetail: PhotoType })
             <FileInfoComponent info={photoDetail.lens?.toString()} />
             <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
             <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
-            <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
+            <FileInfoComponent info={formatShutterSpeed(photoDetail.shutter_speed) ?? undefined} />
             <FileInfoComponent info={`${Math.round(photoDetail.focal_length ?? 0)} mm`} />
             <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
           </Group>
