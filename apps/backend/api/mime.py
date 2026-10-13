@@ -162,14 +162,44 @@ def _is_mpeg_ts(path: str) -> bool:
     )
 
 
+_3GPP_BRANDS = ((b"3gp", "video/3gpp"), (b"3g2", "video/3gpp2"))
+
+
+def _3gpp_mime_type(path: str) -> str | None:
+    """filetype 1.2.0's 3GP matcher never matches; old phones' 3GPs need one (#2418).
+
+    It compares ``ftyp3gp`` with the first bytes, where an ISO-BMFF file keeps
+    the box size, so a 3GP was only caught by the MP4 matcher through an
+    ``isom``/``mp41``/``mp42`` brand. Old phones list 3GPP brands only. The
+    ``ftyp`` box is size, ``ftyp``, the major brand, a minor version, then the
+    compatible brands; the first 3GPP or 3GPP2 one names the type.
+    """
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(64)
+    except OSError:
+        return None
+    if len(head) < 12 or head[4:8] != b"ftyp":
+        return None
+    end = min(int.from_bytes(head[:4], "big"), len(head))
+    brands = [head[8:12]] + [head[i : i + 4] for i in range(16, end - 3, 4)]
+    for brand in brands:
+        for prefix, mime in _3GPP_BRANDS:
+            if brand.startswith(prefix):
+                return mime
+    return None
+
+
 def sniffed_mime_type(path: str) -> str | None:
     """MIME type from the file's magic bytes, or None when nothing recognises them."""
     try:
         sniffed = filetype.guess_mime(path)
     except OSError:
         return None
-    if sniffed is None and _is_mpeg_ts(path):
-        return "video/mp2t"
+    if sniffed is None:
+        if _is_mpeg_ts(path):
+            return "video/mp2t"
+        return _3gpp_mime_type(path)
     return sniffed
 
 
