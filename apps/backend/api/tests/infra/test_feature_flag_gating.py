@@ -285,10 +285,10 @@ class FaceDetectionFeatureFlagTest(TestCase):
     @patch("api.faces.photo_faces.PIL.Image.open")
     @patch("api.faces.photo_faces.extractor")
     def test_faces_are_extracted_by_default(self, face_extractor_mock, image_open_mock):
-        face_extractor_mock.extract.return_value = []
+        face_extractor_mock.extract_from_face_service.return_value = []
 
         extract_faces(self.photo)
-        face_extractor_mock.extract.assert_called_once()
+        face_extractor_mock.extract_from_face_service.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
     @patch("api.faces.photo_faces.PIL.Image.open")
@@ -299,7 +299,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         """The upload pipeline calls this directly, bypassing the scan gates."""
         extract_faces(self.photo)
 
-        face_extractor_mock.extract.assert_not_called()
+        face_extractor_mock.extract_from_face_service.assert_not_called()
         self.assertEqual(0, Face.objects.filter(photo=self.photo).count())
 
     @override_config(FACE_DETECTION_ENABLED=False)
@@ -310,7 +310,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
     ):
         extract_faces(self.photo)
 
-        face_extractor_mock.extract.assert_not_called()
+        face_extractor_mock.extract_from_face_service.assert_not_called()
 
     @patch("api.faces.photo_faces.PIL.Image.open")
     @patch("api.faces.photo_faces.extractor")
@@ -318,7 +318,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self, face_extractor_mock, image_open_mock
     ):
         """extract_faces runs once per photo: no switch query per photo."""
-        face_extractor_mock.extract.return_value = []
+        face_extractor_mock.extract_from_face_service.return_value = []
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
         forget_site_switches()
         with patch(
@@ -329,7 +329,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
                 extract_faces(photo)
 
         read_mock.assert_called_once()
-        self.assertEqual(30, face_extractor_mock.extract.call_count)
+        self.assertEqual(30, face_extractor_mock.extract_from_face_service.call_count)
 
     @override_config(FACE_DETECTION_ENABLED=False)
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)

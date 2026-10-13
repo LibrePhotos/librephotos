@@ -1,8 +1,8 @@
 """Finding the faces in a photo and saving them as ``Face`` rows.
 
-``api.faces.extractor`` locates faces (face service or XMP regions); this
-module crops and persists them for a photo, reconciling XMP names with faces
-already found. Moved out of ``Photo``; every function taking a photo takes it
+``api.faces.extractor`` locates faces (XMP regions and the face service);
+this module crops and persists them for a photo, reconciling XMP names and
+detected encodings with faces already found. Moved out of ``Photo``; every function taking a photo takes it
 as its first argument.
 """
 
@@ -118,58 +118,117 @@ def _mark_faces_scanned(photo: Photo) -> None:
 def _detect_and_save_faces(
     photo: Photo, unknown_cluster: api.models.cluster.Cluster
 ) -> None:
-    big_thumbnail_image = np.array(PIL.Image.open(photo.thumbnail.thumbnail_big.path))
+    """Save the photo's face regions from XMP, then the faces the service finds.
+
+    Both, always (#2260): a desktop photo manager stores regions only for
+    the faces someone tagged there. Regions go first, since they carry the
+    names, and are saved before the face service is asked, so a service
+    error (re-raised, the photo is scanned again) does not lose them. A
+    detection overlapping a saved face is that face: it is not saved again,
+    and gives the face its encoding if it has none.
+    """
+    thumbnail_path = photo.thumbnail.thumbnail_big.path
+    scan = _FaceScan(
+        photo,
+        np.array(PIL.Image.open(thumbnail_path)),
+        unknown_cluster,
+        # Fetched once to avoid repeated DB queries; grows with every saved face.
+        list(
+            api.models.face.Face.objects.filter(photo=photo).values_list(
+                "location_top", "location_right", "location_bottom", "location_left"
+            )
+        ),
+    )
 
     assert photo.main_file is not None
-    face_locations = extractor.extract(
-        photo.main_file.path,
-        photo.thumbnail.thumbnail_big.path,
-        photo.owner,
-        sidecar_files_for_photo(photo),
+    regions = extractor.extract_from_exif(
+        photo.main_file.path, thumbnail_path, sidecar_files_for_photo(photo)
     )
+    _save_new_faces(scan, regions or [])
+    _save_new_faces(scan, extractor.extract_from_face_service(thumbnail_path))
+    logger.info("image %s: %s face(s) saved", photo.image_hash, scan.saved)
 
-    if len(face_locations) == 0:
-        return
 
-    # Fetch existing face locations once to avoid repeated DB queries.
-    existing_face_locations = list(
-        api.models.face.Face.objects.filter(photo=photo).values_list(
-            "location_top", "location_right", "location_bottom", "location_left"
-        )
-    )
+@dataclass
+class _FaceScan:
+    """One photo's face detection: its big thumbnail and the faces it has."""
 
-    for idx_face, face_location in enumerate(face_locations):
+    photo: Photo
+    big_thumbnail_image: npt.NDArray[np.uint8]
+    unknown_cluster: api.models.cluster.Cluster
+    # (top, right, bottom, left) of every face of the photo.
+    face_locations: list[tuple[int, int, int, int]]
+    # Faces saved by this scan; also numbers the crops' file names.
+    saved: int = 0
+
+
+def _save_new_faces(
+    scan: _FaceScan, face_locations: list[extractor.FaceLocation]
+) -> None:
+    """Save each face that overlaps no face of the photo yet."""
+    photo = scan.photo
+    for face_location in face_locations:
         # Faces from the face service carry their encoding; XMP regions
-        # get one later from generate_face_embeddings.
+        # get one from an overlapping detection or generate_face_embeddings.
         top, right, bottom, left, person_name, *encoding = face_location
+        location = (top, right, bottom, left)
         person = _get_or_create_named_person(photo, person_name)
         encoding_array = encoding[0] if encoding else None
         # The face service sends each encoding as a numpy array (face_recognition.detect_faces).
         assert encoding_array is None or isinstance(encoding_array, np.ndarray)
 
-        face_image = PIL.Image.fromarray(big_thumbnail_image[top:bottom, left:right])
-
-        image_path = photo.image_hash + "_" + str(idx_face) + ".jpg"
-
-        if overlaps_existing_face(existing_face_locations, top, right, bottom, left):
+        if overlaps_existing_face(scan.face_locations, *location):
             if person is not None:
-                _reconcile_xmp_face_name(
-                    photo, person, person_name, (top, right, bottom, left)
-                )
+                _reconcile_xmp_face_name(photo, person, person_name, location)
+            if encoding_array is not None:
+                _give_encoding_to_overlapping_face(photo, location, encoding_array)
             continue
 
+        face_image = PIL.Image.fromarray(
+            scan.big_thumbnail_image[top:bottom, left:right]
+        )
         save_detected_face(
             photo,
-            DetectedFace(face_image, (top, right, bottom, left), encoding_array),
-            image_path,
+            DetectedFace(face_image, location, encoding_array),
+            photo.image_hash + "_" + str(scan.saved) + ".jpg",
             person,
-            unknown_cluster,
+            scan.unknown_cluster,
         )
+        scan.saved += 1
         if person is not None:
             person._calculate_face_count()
             person._set_default_cover_photo()
-        existing_face_locations.append((top, right, bottom, left))
-    logger.info("image %s: %s face(s) saved", photo.image_hash, len(face_locations))
+        scan.face_locations.append(location)
+
+
+def _give_encoding_to_overlapping_face(
+    photo: Photo,
+    location: tuple[int, int, int, int],
+    encoding: npt.NDArray[float64],
+) -> None:
+    """Store a detection's encoding on the face it overlaps most, if it has none.
+
+    That face came from an XMP region, which has no encoding of its own.
+    """
+    best_face = None
+    best_iou = FACE_OVERLAP_IOU_THRESHOLD
+    for face in api.models.face.Face.objects.filter(photo=photo):
+        iou = calculate_iou(
+            location,
+            (
+                face.location_top,
+                face.location_right,
+                face.location_bottom,
+                face.location_left,
+            ),
+        )
+        if iou >= best_iou:
+            best_face, best_iou = face, iou
+    if best_face is None or best_face.encoding:
+        return
+    # As save_detected_face and generate_face_encoding store it.
+    best_face.encoding = encoding.tobytes().hex()
+    best_face.save(update_fields=["encoding"])
 
 
 def _get_or_create_named_person(
