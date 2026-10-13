@@ -29,7 +29,6 @@ from typing import TypedDict
 
 from django.db.models import Q
 
-from api.metadata.tags import Tags
 from api.models import Photo
 from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.photo_stack import PhotoStack
@@ -45,8 +44,6 @@ from api.stacks.burst_rules import (
     get_soft_rules,
     group_photos_by_timestamp,
     group_photos_by_visual_similarity,
-    sequence_position,
-    split_into_bursts,
 )
 
 logger = logging.getLogger(__name__)
@@ -190,7 +187,7 @@ def _detect_bursts_hard_criteria(
     # Group photos by burst group_key, with the rule that matched them
     burst_groups: defaultdict[str, list[Photo]] = defaultdict(list)
     group_rules: dict[str, BurstDetectionRule] = {}
-    # MakerNotes:SequenceNumber of the photos the sequence rule matched
+    # The frame numbers (sequence number, file counter) of the matched photos
     positions: dict[object, int | None] = {}
 
     for i, photo in enumerate(photos):
@@ -214,10 +211,7 @@ def _detect_bursts_hard_criteria(
             rule, group_key = match
             burst_groups[group_key].append(photo)
             group_rules[group_key] = rule
-            if rule.rule_type == BurstRuleTypes.EXIF_SEQUENCE_NUMBER:
-                positions[photo.pk] = sequence_position(
-                    exif_tags.get(Tags.SEQUENCE_NUMBER)
-                )
+            positions[photo.pk] = rule.frame_number(photo, exif_tags)
 
         if progress_callback and i % 100 == 0:
             progress_callback(i, total, len(burst_groups))
@@ -225,10 +219,8 @@ def _detect_bursts_hard_criteria(
     # Create stacks from the bursts of 2+ photos in each group
     stacks_created = 0
     for group_key, photos_in_group in burst_groups.items():
-        bursts = split_into_bursts(
-            photos_in_group,
-            group_rules[group_key].burst_interval(),
-            lambda photo: positions.get(photo.pk),
+        bursts = group_rules[group_key].split_bursts(
+            photos_in_group, lambda photo: positions.get(photo.pk)
         )
         for burst in bursts:
             if len(burst) < 2:
