@@ -8,7 +8,9 @@ from api.runtime.supervisor import (
     SERVICES,
     disabled_reason,
     is_service_enabled,
+    start_error,
     start_service,
+    start_services,
 )
 
 
@@ -27,15 +29,24 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **kwargs: Any) -> None:
         service = kwargs["service"]
         if service == "all":
+            enabled = []
             for svc in SERVICES.keys():
                 if not is_service_enabled(svc):
                     self.stdout.write(f"Skipping {svc}: {disabled_reason(svc)}")
                     continue
-                start_service(svc)
+                enabled.append(svc)
+            self._summarise(start_services(enabled))
             ensure_schedule(
                 "api.runtime.supervisor.check_services",
                 schedule_type=Schedule.MINUTES,
                 minutes=1,
             )
         else:
-            start_service(service)
+            self._summarise({service: start_service(service)})
+
+    def _summarise(self, results: dict[str, bool]) -> None:
+        """One line per sidecar that did not come up, with the reason (#2324)."""
+        for svc, started in results.items():
+            if not started:
+                reason = start_error(svc) or "see the log above"
+                self.stdout.write(f"Service {svc} could not start: {reason}")

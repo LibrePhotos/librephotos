@@ -663,6 +663,43 @@ def check_port(host: str, port: int) -> None:
         raise StartupError(port_unavailable_message(port, error))
 
 
+def check_sidecar_ports() -> None:
+    """Raise StartupError when another program holds an enabled sidecar's port.
+
+    A sidecar that cannot bind its port exits at once, and every photo of the
+    next scan then misses what it does (thumbnails of RAW files, dates and
+    places, faces, tags), with the reason only in console.log (#2324). This
+    instance has not started any sidecar yet, so whatever listens there is
+    someone else: another program, or a LibrePhotos with another data folder.
+    Needs Django set up: whether a sidecar is enabled is a site setting.
+    """
+    from api.runtime.ports import bind_error, port_owner
+    from api.runtime.sidecars import port_variable
+    from api.runtime.supervisor import LOOPBACK, SERVICES, is_service_enabled
+
+    blocked: list[str] = []
+    first_variable = ""
+    for service, port in SERVICES.items():
+        if not is_service_enabled(service) or bind_error(LOOPBACK, port) is None:
+            continue
+        owner = port_owner(port)
+        holder = "another program"
+        if owner is not None:
+            holder = f"{owner.name or 'unknown name'}, process ID {owner.pid}"
+        blocked.append(f"Port {port} ({service}): {holder}")
+        first_variable = first_variable or f"{port_variable(service)}={port + 10000}"
+    if not blocked:
+        return
+    listing = "\n".join(blocked)
+    raise StartupError(
+        "Ports LibrePhotos needs for its background services are already used "
+        f"by other programs:\n\n{listing}\n\n"
+        "Close those programs and start LibrePhotos again, or move the services "
+        f"to free ports, for example with {first_variable} (see "
+        '"Using another port" in the LibrePhotos documentation for Windows).'
+    )
+
+
 def _set_console_title(title: str) -> None:
     if sys.platform == "win32":
         import ctypes
@@ -698,6 +735,7 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
     _take_children_down_with_us()
     prepare_database()
     django.setup()
+    check_sidecar_ports()
     for command in STARTUP_COMMANDS:
         run_manage(command)
 

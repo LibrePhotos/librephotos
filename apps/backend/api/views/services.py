@@ -12,6 +12,8 @@ from api.runtime.supervisor import (
     disabled_reason,
     is_healthy,
     is_service_enabled,
+    port_conflict,
+    start_error,
     start_service,
     stop_service,
 )
@@ -33,12 +35,18 @@ class ServiceViewSet(viewsets.ViewSet):
         # A switched-off service is not probed, for the same reason the watchdog
         # does not probe it: nothing is listening, and every probe costs a
         # connection refusal and a stack trace in the log.
+        healthy = is_healthy(service_name) if enabled else False
+        # Why an enabled sidecar is down, when another program holds its port
+        # (#2324); asked now rather than remembered from the last start, which
+        # ran in another process (the job cluster's watchdog) anyway.
+        conflict = port_conflict(service_name) if enabled and not healthy else None
         return Response(
             {
                 "service_name": service_name,
-                "healthy": is_healthy(service_name) if enabled else False,
+                "healthy": healthy,
                 "enabled": enabled,
                 "feature_flag": SERVICE_FEATURE_FLAGS.get(service_name),
+                "port_conflict": conflict,
             }
         )
 
@@ -67,7 +75,9 @@ class ServiceViewSet(viewsets.ViewSet):
                 status=status.HTTP_200_OK,
             )
         else:
-            raise APIException(f"Failed to start service {service_name}")
+            reason = start_error(service_name)
+            detail = f": {reason}" if reason else ""
+            raise APIException(f"Failed to start service {service_name}{detail}")
 
     @action(detail=True, methods=["post"])
     def stop(self, request: Request, pk: str | None = None) -> Response:
