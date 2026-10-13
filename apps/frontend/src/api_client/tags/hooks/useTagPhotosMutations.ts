@@ -1,10 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, tagKeys } from "@librephotos/api-client";
+import type { TagPhotosParams } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { tagKeys } from "../keys";
-import type { TagPhotosParams } from "../types";
 
 export const useAddPhotosToTagMutation = () =>
   useMutation({

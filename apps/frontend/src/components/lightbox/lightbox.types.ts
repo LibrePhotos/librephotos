@@ -1,4 +1,4 @@
-import type { Photo } from "../../api_client/photos/types";
+import type { Photo } from "@librephotos/api-client";
 
 export type FaceLocationType = {
   top: number;

@@ -3,11 +3,11 @@
  * hundreds of them mounted hundreds of covers. It goes through TileGrid now, which mounts the
  * rows in view.
  */
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import i18n from "../../i18n";
 import { PublicAlbumsGrid } from "./PublicAlbumsGrid";
 

@@ -4,13 +4,13 @@
  * trigger it. Saving clears them; that must not put the old server values back before the
  * refetch lands.
  */
+import { UserAlbum } from "@librephotos/api-client";
+import type { PublicSharingOptions } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PublicSharingOptions } from "../../api_client/albums/hooks";
-import { UserAlbum } from "../../api_client/albums/types";
 import { AlbumSlugSection } from "./AlbumSlugSection";
 
 type SaveCallbacks = { onSuccess?: () => void; onError?: (error: unknown) => void };

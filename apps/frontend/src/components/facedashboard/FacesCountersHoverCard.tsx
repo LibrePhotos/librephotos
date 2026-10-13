@@ -1,7 +1,8 @@
+import { FaceAnalysisMethod } from "@librephotos/api-client";
 import { HoverCard, Stack, Text } from "@mantine/core";
 import { t } from "i18next";
 import React from "react";
-import { FaceAnalysisMethod, useFetchIncompleteFacesQuery } from "../../api_client/faces";
+import { useFetchIncompleteFacesQuery } from "../../api_client/faces";
 import { FacesTab } from "./facesTab";
 
 type Props = Readonly<{

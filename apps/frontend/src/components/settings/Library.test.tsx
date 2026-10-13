@@ -9,11 +9,11 @@
  * - A rejected save closed the "Save changes?" dialog without a word.
  * - "Regenerate Event Titles" ran Generate Event Albums instead.
  */
+import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { Library } from "./Library";

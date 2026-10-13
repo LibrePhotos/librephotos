@@ -1,9 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, tagKeys } from "@librephotos/api-client";
+import type { CreateTagParams } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { tagKeys } from "../keys";
-import type { CreateTagParams } from "../types";
 
 export const useCreateTagMutation = () =>
   useMutation({

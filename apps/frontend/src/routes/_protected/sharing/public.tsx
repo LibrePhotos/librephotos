@@ -1,9 +1,9 @@
+import type { ListUserList } from "@librephotos/api-client";
 import { Avatar, NavLink, Stack, Text } from "@mantine/core";
 import { IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { ListUserList } from "../../../api_client/user";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { PageHeader } from "../../../components/PageHeader";

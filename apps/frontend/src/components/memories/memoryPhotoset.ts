@@ -1,5 +1,4 @@
-import type { Memory } from "../../api_client/memories";
-import type { PigPhoto } from "../../api_client/photos/types";
+import type { Memory, PigPhoto } from "@librephotos/api-client";
 
 /**
  * Turning memories into the shapes the shared photo list wants.

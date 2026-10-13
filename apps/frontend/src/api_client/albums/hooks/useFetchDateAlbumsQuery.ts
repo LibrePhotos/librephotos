@@ -1,6 +1,12 @@
-import { endpoints, type DateAlbumFilter } from "@librephotos/api-client";
+import {
+  endpoints,
+  photoGridKeys,
+  Photoset,
+  type DateAlbumFilter,
+  type DateAlbumsListKey,
+} from "@librephotos/api-client";
+import type { IncompleteDatePhotosGroup, MediaType, PigPhoto } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import {
   timelineFilterKey,
   timelineFilterToBulkQuery,
@@ -8,9 +14,6 @@ import {
 } from "../../../components/photolist/timelineFilter";
 import { addTempElementsToGroups } from "../../../util/util";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys, type DateAlbumsListKey } from "../../photos/keys";
-import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
-import { Photoset } from "../../photos/types";
 
 export const DATE_ALBUM_PAGE_SIZE = 100;
 

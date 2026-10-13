@@ -1,3 +1,4 @@
+import type { BulkPhotoQuery } from "@librephotos/api-client";
 import {
   ActionIcon,
   Avatar,
@@ -16,7 +17,6 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { parseInstant } from "../../util/dateUtils";

@@ -1,3 +1,4 @@
+import type { PhotoPerson } from "@librephotos/api-client";
 import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff, IconUserQuestion } from "@tabler/icons-react";
@@ -5,7 +6,6 @@ import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
-import type { PhotoPerson } from "../../api_client/photos/types";
 import { serverAddress } from "../../api_client/urls";
 import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";

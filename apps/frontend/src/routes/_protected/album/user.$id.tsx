@@ -1,10 +1,10 @@
+import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { Text } from "@mantine/core";
 import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
-import type { DatePhotosGroup, PigPhoto } from "../../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";

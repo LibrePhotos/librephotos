@@ -1,4 +1,4 @@
-import type { Photo } from "../../api_client/photos/types";
+import type { Photo } from "@librephotos/api-client";
 
 /**
  * A photo detail for tests: every field at its empty value (null, "", 0,

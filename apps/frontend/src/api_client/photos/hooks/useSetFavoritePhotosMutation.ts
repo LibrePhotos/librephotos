@@ -1,9 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { photoKeys } from "../keys";
 import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
 
 type FavoritePhotosRequest = PhotoSelection & { favorite: boolean };

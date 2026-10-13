@@ -1,8 +1,8 @@
+import { Media } from "@librephotos/api-client";
 import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-react";
 import { Duration } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Media } from "../../api_client/photos/types";
 import { TileBadge } from "./TileBadge";
 
 type Props = Readonly<{

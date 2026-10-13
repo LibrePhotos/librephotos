@@ -1,6 +1,6 @@
+import { NO_TIMELINE_FILTER, type BulkPhotoQuery } from "@librephotos/api-client";
+import type { User } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
-import type { BulkPhotoQuery } from "../../api_client/photos/types";
-import type { User } from "../../api_client/user/types";
 
 // The main timeline's filter (issue #2130). The same four keys are saved as
 // the user's default (User.default_timeline_filter) and resolved by the
@@ -128,11 +128,12 @@ export function timelineFilterToBulkQuery(filter: TimelineFilter): BulkPhotoQuer
   return query;
 }
 
-// A stable query-key slot for the filter; "none" when nothing filters.
+// A stable query-key slot for the filter; NO_TIMELINE_FILTER ("none") when nothing filters, the same
+// slot the package's unfiltered date-album queries use.
 export function timelineFilterKey(filter: TimelineFilter | undefined): string {
   const params = timelineFilterToParams(filter);
   const keys = Object.keys(params).sort();
-  return keys.length ? keys.map(key => `${key}=${params[key]}`).join("&") : "none";
+  return keys.length ? keys.map(key => `${key}=${params[key]}`).join("&") : NO_TIMELINE_FILTER;
 }
 
 // A short description, e.g. "photos, no screenshots", for the popover footer

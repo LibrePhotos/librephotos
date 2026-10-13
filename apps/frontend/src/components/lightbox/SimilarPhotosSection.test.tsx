@@ -3,11 +3,11 @@
  * They are router links to the photo page now, also inside the lightbox, whose
  * navigation lists key photos by id while a similar photo only has its hash.
  */
+import { Media } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { Media } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";

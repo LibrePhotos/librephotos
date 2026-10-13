@@ -1,19 +1,15 @@
+import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
+import { type PublicSharingDefaults } from "@librephotos/api-client";
 import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useSlugAvailabilityQuery,
-  useToggleUserAlbumPublicMutation,
-  type PublicSharingOptions,
-} from "../../api_client/albums/hooks";
-import type { UserAlbum } from "../../api_client/albums/types";
+import { useSlugAvailabilityQuery, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/api";
 import { shareAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { type PublicSharingDefaults } from "../../api_client/user/types";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
 import { copyToClipboard } from "../../util/util";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";

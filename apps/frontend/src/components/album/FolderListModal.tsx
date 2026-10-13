@@ -1,3 +1,4 @@
+import type { FolderSubfolder } from "@librephotos/api-client";
 import {
   Avatar,
   Badge,
@@ -16,11 +17,10 @@ import { Link } from "@tanstack/react-router";
 import React, { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchFolderSubfoldersInfiniteQuery } from "../../api_client/albums/hooks";
-import type { SubfolderInfo } from "../../api_client/albums/hooks";
 import classes from "./FolderListModal.module.css";
 
 type FolderButtonProps = {
-  subfolder: SubfolderInfo;
+  subfolder: FolderSubfolder;
   folderSearch: string;
   onClose?: () => void;
 };

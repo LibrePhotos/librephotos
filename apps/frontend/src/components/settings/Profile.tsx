@@ -1,3 +1,5 @@
+import type { User as UserDetails } from "@librephotos/api-client";
+import { userKeys } from "@librephotos/api-client";
 import {
   Button,
   Card,
@@ -22,13 +24,11 @@ import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { serverAddress } from "../../api_client/urls";
-import type { User as UserDetails } from "../../api_client/user";
 import {
   useFetchUserSelfDetailsQuery,
   useUpdateAvatarMutation,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
-import { userKeys } from "../../api_client/user/keys";
 import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { dataUrlToFile } from "../../util/dataUrl";

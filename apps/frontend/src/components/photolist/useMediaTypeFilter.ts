@@ -1,5 +1,6 @@
+import type { MediaType } from "@librephotos/api-client";
 import { useSearch } from "@tanstack/react-router";
-import { DEFAULT_MEDIA_TYPE, type MediaType } from "./mediaTypeFilter";
+import { DEFAULT_MEDIA_TYPE } from "./mediaTypeFilter";
 
 // Reads the per-view media-type filter from the current route's `?media` search
 // param. Reset-per-view by design: the value lives in the URL, so it survives

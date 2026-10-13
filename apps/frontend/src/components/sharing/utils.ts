@@ -1,4 +1,4 @@
-import type { User } from "../../api_client/user/types";
+import type { User } from "@librephotos/api-client";
 import { fuzzyMatch } from "../../util/util";
 
 // The shared matcher escapes what it is given: a local copy built a RegExp

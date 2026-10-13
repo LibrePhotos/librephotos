@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { authKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { authKeys } from "../keys";
 
 /**
  * What the login screen needs to know about single sign-on: whether to offer it,

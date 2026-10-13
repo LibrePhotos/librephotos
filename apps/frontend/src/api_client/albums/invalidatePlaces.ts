@@ -1,6 +1,5 @@
+import { albumKeys, photoGridKeys } from "@librephotos/api-client";
 import { queryClient } from "../api";
-import { photoGridKeys } from "../photos/keys";
-import { albumKeys } from "./keys";
 
 // A photo's new location re-geocodes it on the server and moves it between
 // place albums at once; without this the Places page, its map and the albums

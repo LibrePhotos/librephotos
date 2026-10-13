@@ -1,9 +1,8 @@
+import type { ListUser, UserAlbum } from "@librephotos/api-client";
 import { Avatar, Group, Switch, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_client/albums/hooks";
-import type { UserAlbum } from "../../api_client/albums/types";
-import type { ListUser } from "../../api_client/user/types";
 import { parseInstant } from "../../util/dateUtils";
 import { avatarSrc } from "./avatarSrc";
 

@@ -57,6 +57,26 @@ describe("FaceTaggingScreen", () => {
     await waitFor(() => expect(body).toEqual({ face_ids: [10], person_name: "Alice" }));
   });
 
+  // The face lists are the package's useFacesQuery; labelling refreshes them through faceKeys.
+  it("reloads the suggested faces after accepting one", async () => {
+    let suggestedLoads = 0;
+    const api = makeMockClient(async (url) => {
+      if (url.includes("/faces/?") && url.includes("inferred=true")) {
+        suggestedLoads += 1;
+        return jsonResponse(INFERRED);
+      }
+      if (url.endsWith("/labelfaces")) return jsonResponse({ status: true, results: [], updated: [], not_updated: [] });
+      return jsonResponse({}, 404);
+    });
+    const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, api);
+
+    await waitFor(() => expect(getByTestId("face-accept-10")).toBeTruthy());
+    expect(suggestedLoads).toBe(1);
+    fireEvent.press(getByTestId("face-accept-10"));
+
+    await waitFor(() => expect(suggestedLoads).toBe(2));
+  });
+
   it("assigns a new name to selected unknown faces", async () => {
     let body: unknown;
     const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, client((b) => (body = b)));

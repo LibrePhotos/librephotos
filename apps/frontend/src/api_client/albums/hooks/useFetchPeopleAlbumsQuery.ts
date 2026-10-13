@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { orderBy } from "lodash-es";
 import { apiClient } from "../../api";
-import { albumKeys } from "../keys";
 
 /** A person as the people pages show them: the id as a string, no nulls. */
 export type Person = {

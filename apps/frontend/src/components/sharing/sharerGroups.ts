@@ -1,4 +1,4 @@
-import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
+import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 
 type NamedUser = Readonly<{ id: number; username: string; first_name: string; last_name: string }>;
 

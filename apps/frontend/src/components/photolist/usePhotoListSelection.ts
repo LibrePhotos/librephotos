@@ -1,6 +1,6 @@
+import type { BulkPhotoQuery, MediaType, PigPhoto } from "@librephotos/api-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
-import type { MediaType } from "./mediaTypeFilter";
+import type { SelectionState } from "../../api_client/photos/types";
 
 // The selection of a photo list: the selected tiles, select mode, and select all
 // (which then tracks the excluded tiles instead).

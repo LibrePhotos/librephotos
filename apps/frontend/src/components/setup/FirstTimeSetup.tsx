@@ -1,3 +1,4 @@
+import { userKeys } from "@librephotos/api-client";
 import {
   Button,
   Card,
@@ -25,7 +26,6 @@ import { useScanPhotosMutation } from "../../api_client/jobs";
 import { useGetSettingsQuery } from "../../api_client/settings";
 import { useUpdateSettingsMutation } from "../../api_client/settings/hooks/useUpdateSettingsMutation";
 import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../../api_client/user/hooks";
-import { userKeys } from "../../api_client/user/keys";
 import { makeSignupSchema } from "../../routes/-signup.schema";
 import { SIGN_UP_GRADIENT } from "../../theme/brandGradients";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";

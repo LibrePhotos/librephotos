@@ -1,7 +1,6 @@
-import { endpoints, type SiteSettings } from "@librephotos/api-client";
+import { endpoints, settingsKeys, type SiteSettings } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { settingsKeys } from "../keys";
 
 export const useUpdateSettingsMutation = () =>
   useMutation({

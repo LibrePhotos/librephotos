@@ -4,12 +4,12 @@
  * a photo leaves for the trash. Everything it renders is stubbed; only the
  * decisions ContentViewer makes itself are under test.
  */
+import type { Photo } from "@librephotos/api-client";
 import type { CarouselProps } from "@mantine/carousel";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { Photo } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { ContentViewer, escapeTargetsLightbox } from "./ContentViewer";
 import type { LightboxControlsProps } from "./lightbox.types";

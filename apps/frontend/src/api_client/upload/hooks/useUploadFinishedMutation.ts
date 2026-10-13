@@ -1,9 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, serverKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { serverKeys } from "../../server/keys";
-import { statsKeys } from "../../stats/keys";
 
 type UploadFinishedOptions = {
   formData: FormData;

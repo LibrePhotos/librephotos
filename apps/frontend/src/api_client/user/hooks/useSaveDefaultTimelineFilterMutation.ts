@@ -1,11 +1,10 @@
-import { endpoints, type User } from "@librephotos/api-client";
+import { endpoints, userKeys, type User } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import type { TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { userKeys } from "../keys";
 
 type SaveDefaultTimelineFilterRequest = {
   userId: number;

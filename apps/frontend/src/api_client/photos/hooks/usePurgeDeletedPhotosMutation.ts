@@ -1,11 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { duplicateKeys, endpoints, photoGridKeys, serverKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { duplicateKeys } from "../../duplicates/keys";
-import { serverKeys } from "../../server/keys";
-import { statsKeys } from "../../stats/keys";
-import { photoGridKeys } from "../keys";
 import { selectionArgs, type PhotoSelection } from "../photoSelection";
 
 export const usePurgeDeletedPhotosMutation = () =>

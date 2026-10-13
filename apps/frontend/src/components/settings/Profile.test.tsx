@@ -4,12 +4,12 @@
  * goes with the save only while they are unlocked, and Cancel or a save leaves them locked and
  * empty again (#2197).
  */
+import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { User } from "../../api_client/user";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { Profile } from "./Profile";

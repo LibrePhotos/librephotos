@@ -19,11 +19,11 @@
  * on its own, or the faces it uncovers stay blank until the next scroll.
  */
 import "@mantine/core/styles.css";
+import { FaceAnalysisMethod } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { FaceAnalysisMethod } from "../../api_client/faces/types";
 import type { CompletePersonFace, PersonFace } from "../../api_client/faces/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";

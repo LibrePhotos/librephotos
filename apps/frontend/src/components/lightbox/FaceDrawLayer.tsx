@@ -1,6 +1,6 @@
+import type { NormalizedFaceBox } from "@librephotos/api-client";
 import { Box } from "@mantine/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { NormalizedFaceBox } from "../../api_client/faces/types";
 
 type Props = {
   /** Receives the drawn box with each side as a fraction of the image. */

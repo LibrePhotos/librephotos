@@ -1,3 +1,4 @@
+import type { DuplicatePhoto } from "@librephotos/api-client";
 import { Box, Button, Divider, Group, Modal, ScrollArea, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp, IconCheck, IconX } from "@tabler/icons-react";
@@ -9,7 +10,6 @@ import {
   useResolveDuplicateMutation,
   useRevertDuplicateMutation,
 } from "../../api_client/duplicates";
-import type { DuplicatePhoto } from "../../api_client/duplicates/types";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox";
 import { DuplicatePhotoCard } from "./DuplicatePhotoCard";

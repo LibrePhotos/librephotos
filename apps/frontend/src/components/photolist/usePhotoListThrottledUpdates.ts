@@ -1,6 +1,6 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { throttle } from "lodash-es";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { GroupedImageItem, PigVisibleGroup } from "./PhotoListView";
 
 // Only the paginated date lists' groups carry the date album id that names the

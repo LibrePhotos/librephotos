@@ -1,11 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints, jobKeys, serverKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { serverKeys } from "../../server/keys";
-import { statsKeys } from "../../stats/keys";
-import { jobKeys } from "../keys";
 import { startJob } from "../startJob";
 
 export const useScanPhotosMutation = () =>

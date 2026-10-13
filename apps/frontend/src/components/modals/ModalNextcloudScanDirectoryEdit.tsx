@@ -1,9 +1,9 @@
+import type { DirTree, DirTreeResponse } from "@librephotos/api-client";
 import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
-import type { DirTree, DirTreeResponse } from "../../api_client/folders/types";
 import { Leaf } from "./Leaf";
 import { makeNextcloudScanDirectorySchema } from "./ModalNextcloudScanDirectoryEdit.schema";
 import { modalTitleStyles } from "./modalTitleStyles";

@@ -1,7 +1,7 @@
+import type { DuplicateListItem } from "@librephotos/api-client";
 import { ActionIcon, Badge, Card, Checkbox, Group, Image, Menu, Tooltip } from "@mantine/core";
 import { IconDots, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import type { Duplicate } from "../../api_client/duplicates/types";
 import { serverAddress } from "../../api_client/urls";
 import { buttonRoleProps } from "../../util/a11y";
 import { formatFileSize } from "../../util/fileSize";
@@ -16,7 +16,7 @@ export function DuplicateCard({
   isSelected = false,
   onToggleSelect,
 }: {
-  duplicate: Duplicate;
+  duplicate: DuplicateListItem;
   onClick: () => void;
   onDelete: () => void;
   isSelected?: boolean;

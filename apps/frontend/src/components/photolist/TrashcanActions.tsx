@@ -1,3 +1,4 @@
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
@@ -5,7 +6,7 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { SelectionState } from "../../api_client/photos/types";
 
 type Props = {
   selectedItems: PigPhoto[];

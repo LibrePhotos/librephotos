@@ -1,10 +1,10 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, stackKeys } from "@librephotos/api-client";
+import type { DetectStacksRequest } from "@librephotos/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
 import { invalidatePhotoLists } from "../photos/invalidatePhotoLists";
-import { stackKeys } from "./keys";
-import type { DetectStacksRequest, StackPhotosRequest } from "./types";
+import type { StackPhotosRequest } from "./types";
 
 type StackListParams = { page?: number; page_size?: number; stack_type?: string; ordering?: string };
 

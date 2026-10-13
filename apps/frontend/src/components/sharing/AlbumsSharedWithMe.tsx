@@ -1,3 +1,4 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { Anchor, Avatar, Box, Stack, Text } from "@mantine/core";
 import { IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -5,7 +6,6 @@ import cx from "clsx";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize } from "../../util/gridUtils";
 import gridClasses from "../album/AlbumGridCell.module.css";

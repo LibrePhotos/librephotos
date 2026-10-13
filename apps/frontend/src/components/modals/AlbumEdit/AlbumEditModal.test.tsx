@@ -5,13 +5,13 @@
  * modal mounted, so a typed title must not survive into the next opening.
  * A locked album (#867) is listed but cannot take new photos.
  */
+import type { UserAlbumInfo } from "@librephotos/api-client";
+import { Media } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useAddPhotoToUserAlbumMutation, useCreateUserAlbumMutation } from "../../../api_client/albums/hooks";
-import type { UserAlbumInfo } from "../../../api_client/albums/types";
-import { Media } from "../../../api_client/photos/types";
 import i18n from "../../../i18n";
 import { defined } from "../../../util/defined.test-utils";
 import { AlbumEditModal } from "./AlbumEditModal";

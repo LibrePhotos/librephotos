@@ -14,6 +14,8 @@
  * The items handed to the lightbox dropped date and location, so a non-owner's
  * details panel never showed when or where a photo was taken.
  */
+import { Media } from "@librephotos/api-client";
+import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,8 +24,6 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { Media } from "../../api_client/photos/types";
-import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { defined } from "../../util/defined.test-utils";
 import type { Lightbox } from "../lightbox/Lightbox";

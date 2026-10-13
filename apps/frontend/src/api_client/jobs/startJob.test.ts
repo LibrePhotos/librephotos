@@ -3,9 +3,8 @@
  * `job_already_running` carrying the running job's id (issue #2333). That is shown as
  * "already running" and the page follows the running job; it is not an error.
  */
-import { ApiError } from "@librephotos/api-client";
+import { ApiError, jobKeys } from "@librephotos/api-client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { jobKeys } from "./keys";
 import { startJob } from "./startJob";
 
 const stubs = vi.hoisted(() => ({

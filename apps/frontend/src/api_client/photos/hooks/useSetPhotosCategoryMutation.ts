@@ -1,13 +1,9 @@
-import { endpoints, type PhotoCategory } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, photoKeys, statsKeys, type PhotoCategory } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { statsKeys } from "../../stats/keys";
-import { photoGridKeys, photoKeys } from "../keys";
 import { selectionArgs, type PhotoSelection } from "../photoSelection";
-
-export type { PhotoCategory } from "@librephotos/api-client";
 
 type CategoryFields = {
   // A category is pinned as set by the user, which rescans leave alone.

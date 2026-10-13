@@ -1,9 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, ApiError } from "../../api";
-import { albumKeys } from "../keys";
-
-export type { FolderSubfolder as SubfolderInfo } from "@librephotos/api-client";
 
 /**
  * A 4xx answer (a folder outside the scan directory gets 403) does not change

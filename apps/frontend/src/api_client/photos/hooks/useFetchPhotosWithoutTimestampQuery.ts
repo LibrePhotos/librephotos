@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { photoGridKeys } from "../keys";
 
 // Fetch photos without timestamp
 export const useFetchPhotosWithoutTimestampQuery = (page: number) =>

@@ -3,8 +3,8 @@
  * a RegExp straight from the input, so "(", "+", "[" or a trailing "\" threw
  * during render and replaced the page with "Something went wrong!".
  */
+import type { User } from "@librephotos/api-client";
 import { describe, expect, it } from "vitest";
-import type { User } from "../../api_client/user/types";
 import filterUsers from "./utils";
 
 // Only the fields the filter reads: the user list gives non-admins no more.

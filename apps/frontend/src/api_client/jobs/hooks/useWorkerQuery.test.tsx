@@ -2,13 +2,12 @@
  * An idle tab must not ask for the worker status every two seconds: it checks at the idle
  * cadence and only speeds up while a job is running.
  */
-import { POLL_ACTIVE_MS, POLL_IDLE_MS } from "@librephotos/api-client";
+import { jobKeys, POLL_ACTIVE_MS, POLL_IDLE_MS } from "@librephotos/api-client";
+import type { WorkerAvailabilityResponse } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { jobKeys } from "../keys";
-import type { WorkerAvailabilityResponse } from "../types";
 import { useWorkerQuery } from "./useWorkerQuery";
 
 const stubs = vi.hoisted(() => ({

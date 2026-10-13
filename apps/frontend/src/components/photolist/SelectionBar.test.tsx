@@ -2,12 +2,12 @@
  * The select-all button counted an empty grid as "all selected" (0 === 0), so
  * it was labelled "Deselect all" while a click selected all.
  */
+import { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { SelectionBar } from "./SelectionBar";
 

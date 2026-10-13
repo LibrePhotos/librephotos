@@ -1,12 +1,8 @@
-import { endpoints, invalidateAfter } from "@librephotos/api-client";
+import { albumKeys, endpoints, faceKeys, invalidateAfter, photoKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { photoKeys } from "../../photos/keys";
-import { statsKeys } from "../../stats/keys";
-import { faceKeys } from "../keys";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
 

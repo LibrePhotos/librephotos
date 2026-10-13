@@ -1,5 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import React from "react";
-import type { PigPhoto } from "../../api_client/photos/types";
 import { Lightbox } from "../lightbox/Lightbox";
 import { useSlideshowSelection } from "./useSlideshowSelection";
 

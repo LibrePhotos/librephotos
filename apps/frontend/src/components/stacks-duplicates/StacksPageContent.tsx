@@ -7,6 +7,7 @@
  * - Manual stacks: User-created groupings
  * RAW + JPEG pairs and Live Photos are file variants of one photo, not stacks.
  */
+import { countListedStacks, StackType } from "@librephotos/api-client";
 import {
   ActionIcon,
   Badge,
@@ -43,7 +44,6 @@ import {
   useStacksQuery,
   useStackStatsQuery,
 } from "../../api_client/stacks";
-import { countListedStacks, StackType } from "../../api_client/stacks/types";
 import { serverAddress } from "../../api_client/urls";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";

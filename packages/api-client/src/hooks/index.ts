@@ -5,10 +5,21 @@ import { Photoset } from "../schemas";
 import type { JobsResponse, LoginPost, WorkerAvailabilityResponse } from "../schemas";
 import type { ApiClient } from "../transport/types";
 import { useApiClient } from "./context";
-import { queryKeys } from "./queryKeys";
+import {
+  albumKeys,
+  faceKeys,
+  jobKeys,
+  NO_TIMELINE_FILTER,
+  photoGridKeys,
+  photoKeys,
+  settingsKeys,
+  tagKeys,
+  userKeys,
+  type DateAlbumsListKey,
+} from "./queryKeys";
 
 export { ApiClientProvider, useApiClient } from "./context";
-export { queryKeys } from "./queryKeys";
+export * from "./queryKeys";
 
 /** Whether a query has the id it loads: an id that is not missing or empty. */
 function hasId(id: string | number | undefined): id is string | number {
@@ -58,7 +69,7 @@ export function useLogoutMutation(options?: {
 export function useUserSelfDetailsQuery(userId: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.userSelfDetails(userId ?? ""),
+    queryKey: userKeys.selfDetail(userId ?? ""),
     queryFn: () => {
       if (!hasId(userId)) throw missing("user");
       return endpoints.fetchUserSelfDetails(client, userId);
@@ -70,17 +81,22 @@ export function useUserSelfDetailsQuery(userId: string | number | undefined) {
 export function useUserListQuery() {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.userList(),
+    queryKey: userKeys.list(),
     queryFn: () => endpoints.fetchUserList(client),
   });
 }
 
 /* ---- timeline (date albums) ------------------------------------------- */
 
+/** A photoset's list key without the web's person, user, folder, media and timeline filters. */
+function unfilteredDateAlbums(photoset: Photoset): DateAlbumsListKey {
+  return [photoset, undefined, undefined, undefined, "all", NO_TIMELINE_FILTER];
+}
+
 export function useDateAlbumsQuery(photoset: Photoset = Photoset.TIMESTAMP) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.dateAlbums(photoset),
+    queryKey: photoGridKeys.dateAlbumListRaw(photoset),
     queryFn: () => endpoints.fetchDateAlbumsList(client, endpoints.photosetToFilter(photoset)),
   });
 }
@@ -93,7 +109,7 @@ export function useDateAlbumQuery(
 ) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.dateAlbum(photoset, albumDateId, page),
+    queryKey: photoGridKeys.dateAlbumDay(unfilteredDateAlbums(photoset), albumDateId, page),
     queryFn: () => endpoints.fetchDateAlbum(client, albumDateId, page, endpoints.photosetToFilter(photoset)),
     enabled: options?.enabled ?? true,
   });
@@ -104,7 +120,7 @@ export function useDateAlbumQuery(
 export function useRecentlyAddedPhotosQuery() {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.recentlyAddedPhotos(),
+    queryKey: photoGridKeys.recentlyAdded(),
     queryFn: () => endpoints.fetchRecentlyAddedPhotos(client),
   });
 }
@@ -112,7 +128,7 @@ export function useRecentlyAddedPhotosQuery() {
 export function usePhotoDetailsQuery(imageHash: string | undefined) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.photoDetails(imageHash ?? ""),
+    queryKey: photoKeys.detail(imageHash ?? ""),
     queryFn: () => {
       if (!imageHash) throw missing("photo");
       return endpoints.fetchPhotoDetails(client, imageHash);
@@ -125,33 +141,33 @@ export function usePhotoDetailsQuery(imageHash: string | undefined) {
 
 export function useUserAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.userAlbums(), queryFn: () => endpoints.fetchUserAlbumsList(client) });
+  return useQuery({ queryKey: albumKeys.userAlbums(), queryFn: () => endpoints.fetchUserAlbumsList(client) });
 }
 
 export function useAutoAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.autoAlbums(), queryFn: () => endpoints.fetchAutoAlbumsList(client) });
+  return useQuery({ queryKey: albumKeys.autoAlbums(), queryFn: () => endpoints.fetchAutoAlbumsList(client) });
 }
 
 export function useThingAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.thingAlbums(), queryFn: () => endpoints.fetchThingAlbumsList(client) });
+  return useQuery({ queryKey: albumKeys.thingsAlbums(), queryFn: () => endpoints.fetchThingAlbumsList(client) });
 }
 
 export function usePlaceAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.placeAlbums(), queryFn: () => endpoints.fetchPlaceAlbumsList(client) });
+  return useQuery({ queryKey: albumKeys.placesAlbums(), queryFn: () => endpoints.fetchPlaceAlbumsList(client) });
 }
 
 export function useTagAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.tagAlbums(), queryFn: () => endpoints.fetchTagAlbumsList(client) });
+  return useQuery({ queryKey: tagKeys.list(), queryFn: () => endpoints.fetchTagAlbumsList(client) });
 }
 
 export function useThingAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.thingAlbum(id ?? ""),
+    queryKey: photoGridKeys.thingsAlbum(String(id ?? ""), "all"),
     queryFn: () => {
       if (!hasId(id)) throw missing("thing album");
       return endpoints.fetchThingAlbum(client, id);
@@ -163,7 +179,7 @@ export function useThingAlbumQuery(id: string | number | undefined) {
 export function usePlaceAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.placeAlbum(id ?? ""),
+    queryKey: photoGridKeys.placeAlbum(String(id ?? ""), "all"),
     queryFn: () => {
       if (!hasId(id)) throw missing("place album");
       return endpoints.fetchPlaceAlbum(client, id);
@@ -175,7 +191,7 @@ export function usePlaceAlbumQuery(id: string | number | undefined) {
 export function useTagAlbumQuery(id: string | number | undefined) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.tagAlbum(id ?? ""),
+    queryKey: photoGridKeys.tagAlbumView(String(id ?? ""), "all"),
     queryFn: () => {
       if (!hasId(id)) throw missing("tag album");
       return endpoints.fetchTagAlbum(client, id);
@@ -187,7 +203,7 @@ export function useTagAlbumQuery(id: string | number | undefined) {
 export function usePhotosWithoutTimestampQuery(page: number) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.photosWithoutTimestamp(page),
+    queryKey: photoGridKeys.withoutTimestamp(page),
     queryFn: () => endpoints.fetchPhotosWithoutTimestamp(client, page),
   });
 }
@@ -196,7 +212,7 @@ export function usePhotosWithoutTimestampQuery(page: number) {
 
 export function usePeopleAlbumsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.peopleAlbums(), queryFn: () => endpoints.fetchPeopleAlbums(client) });
+  return useQuery({ queryKey: albumKeys.peopleAlbumsRaw(), queryFn: () => endpoints.fetchPeopleAlbums(client) });
 }
 
 /* ---- search ------------------------------------------------------------ */
@@ -204,7 +220,7 @@ export function usePeopleAlbumsQuery() {
 /** A photo search. A semantic search answers with a flat list, a plain one with date groups. */
 export function searchPhotosQueryOptions(client: ApiClient, searchTerm: string, semantic = false) {
   return queryOptions({
-    queryKey: queryKeys.searchPhotos(searchTerm, semantic),
+    queryKey: photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped"),
     queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic),
     enabled: searchTerm.length > 0,
   });
@@ -219,7 +235,7 @@ export function useSearchPhotosQuery(searchTerm: string, semantic = false) {
 
 export function useSiteSettingsQuery() {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.siteSettings(), queryFn: () => endpoints.fetchSiteSettings(client) });
+  return useQuery({ queryKey: settingsKeys.site(), queryFn: () => endpoints.fetchSiteSettings(client) });
 }
 
 /** The job list's cadence: active only while a job on the page is unfinished; idle otherwise, so a job that starts elsewhere is still picked up. */
@@ -236,7 +252,7 @@ export function jobsQueryOptions(
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 20;
   return queryOptions({
-    queryKey: queryKeys.jobList(page, pageSize),
+    queryKey: jobKeys.list({ page, pageSize }),
     queryFn: () => endpoints.fetchJobs(client, page, pageSize),
     refetchInterval: jobListRefetchInterval,
     enabled: options.enabled ?? true,
@@ -257,7 +273,7 @@ export const workerRefetchInterval = pollWhile<WorkerAvailabilityResponse>(worke
  */
 export function workerAvailabilityQueryOptions(client: ApiClient, options: { enabled?: boolean } = {}) {
   return queryOptions({
-    queryKey: queryKeys.workerAvailability(),
+    queryKey: jobKeys.worker(),
     queryFn: () => endpoints.fetchWorkerAvailability(client),
     refetchInterval: workerRefetchInterval,
     enabled: options.enabled ?? true,
@@ -274,7 +290,7 @@ export function useWorkerAvailabilityQuery(options?: { enabled?: boolean }) {
 export function useSharedPhotosByMeQuery(enabled = true) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.sharedPhotosByMe(),
+    queryKey: photoGridKeys.sharedByMeRaw(),
     queryFn: () => endpoints.fetchSharedPhotosByMe(client),
     enabled,
   });
@@ -283,7 +299,7 @@ export function useSharedPhotosByMeQuery(enabled = true) {
 export function useSharedPhotosWithMeQuery(enabled = true) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.sharedPhotosWithMe(),
+    queryKey: photoGridKeys.sharedWithMeRaw(),
     queryFn: () => endpoints.fetchSharedPhotosWithMe(client),
     enabled,
   });
@@ -292,7 +308,7 @@ export function useSharedPhotosWithMeQuery(enabled = true) {
 export function useSharedAlbumsByMeQuery(enabled = true) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.sharedAlbumsByMe(),
+    queryKey: albumKeys.sharedByMeRaw(),
     queryFn: () => endpoints.fetchSharedAlbumsByMe(client),
     enabled,
   });
@@ -301,7 +317,7 @@ export function useSharedAlbumsByMeQuery(enabled = true) {
 export function useSharedAlbumsWithMeQuery(enabled = true) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.sharedAlbumsWithMe(),
+    queryKey: albumKeys.sharedWithMeRaw(),
     queryFn: () => endpoints.fetchSharedAlbumsWithMe(client),
     enabled,
   });
@@ -314,7 +330,7 @@ export function useFacesQuery(params: { person?: number; inferred?: boolean; pag
   // Only the values in the key go to the request (fetchFaces has the same defaults).
   const { person = 0, inferred = false, page = 1 } = params;
   return useQuery({
-    queryKey: queryKeys.faces(person, inferred, page),
+    queryKey: faceKeys.personFacePageRaw({ person, inferred, page }),
     queryFn: () => endpoints.fetchFaces(client, { person, inferred, page }),
     enabled,
   });
@@ -323,7 +339,7 @@ export function useFacesQuery(params: { person?: number; inferred?: boolean; pag
 export function useIncompleteFacesQuery(inferred = false, enabled = true) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.incompleteFaces(inferred),
+    queryKey: faceKeys.incompleteListRaw(inferred),
     queryFn: () => endpoints.fetchIncompleteFaces(client, { inferred }),
     enabled,
   });

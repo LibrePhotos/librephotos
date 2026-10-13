@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { apiClient } from "../../api";
-import { photoGridKeys } from "../keys";
 
 export const useFetchSharedPhotosByMeQuery = () =>
   useQuery({

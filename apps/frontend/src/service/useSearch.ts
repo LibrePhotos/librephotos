@@ -1,4 +1,4 @@
-import type { PlaceAlbumInfo, ThingAlbumInfo } from "@librephotos/api-client";
+import type { PlaceAlbumInfo, ThingAlbumInfo, UserAlbumInfo } from "@librephotos/api-client";
 import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import {
   useFetchPeopleAlbumsQuery,
@@ -7,7 +7,6 @@ import {
   useFetchUserAlbumsQuery,
 } from "../api_client/albums/hooks";
 import type { Person } from "../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
-import type { UserAlbumInfo } from "../api_client/albums/types";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 

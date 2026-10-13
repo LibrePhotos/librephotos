@@ -1,9 +1,9 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { Anchor, Flex, Group, Title } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 
 type SimilarPhotosSectionProps = {

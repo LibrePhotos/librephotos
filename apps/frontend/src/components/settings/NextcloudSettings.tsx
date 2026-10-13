@@ -1,3 +1,4 @@
+import type { User } from "@librephotos/api-client";
 import { Badge, Button, Divider, Grid, Stack, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -11,7 +12,6 @@ import {
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useScanNextcloudPhotosMutation } from "../../api_client/jobs/hooks";
-import type { User } from "../../api_client/user/types";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 

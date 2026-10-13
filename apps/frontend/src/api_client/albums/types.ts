@@ -1,8 +1,6 @@
 import type { BulkPhotoQuery, UserAlbumInfo } from "@librephotos/api-client";
 
-// The album schemas are shared with the mobile app and live in
-// packages/api-client; this module re-exports them under their old names.
-export { AutoAlbumInfo, UserAlbum, UserAlbumInfo } from "@librephotos/api-client";
+// The web's album hook parameters. The album schemas and types are in @librephotos/api-client.
 
 export type UserAlbumList = UserAlbumInfo[];
 

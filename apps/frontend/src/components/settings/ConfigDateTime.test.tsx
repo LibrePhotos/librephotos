@@ -9,11 +9,11 @@
  *   the rules, and can be deleted.
  * - Reordering moves the rules among the slots rules hold; every other entry keeps its place.
  */
+import type { DateTimeRule } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { DateTimeRule } from "../../api_client/settings/types";
 import i18n from "../../i18n";
 import { ConfigDateTime } from "./ConfigDateTime";
 

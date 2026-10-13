@@ -1,3 +1,4 @@
+import type { AutoAlbumInfo } from "@librephotos/api-client";
 import { ActionIcon, Flex, Group, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -10,7 +11,6 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
-import type { AutoAlbumInfo } from "../../../api_client/albums/types";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { AutoAlbumDeleteModal } from "../../../components/album/AutoAlbumDeleteModal";

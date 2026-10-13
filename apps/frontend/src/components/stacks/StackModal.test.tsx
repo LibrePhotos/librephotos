@@ -1,9 +1,9 @@
+import { PhotoStack } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { PhotoStack } from "../../api_client/stacks/types";
 import i18n from "../../i18n";
 import { StackModal } from "./StackModal";
 

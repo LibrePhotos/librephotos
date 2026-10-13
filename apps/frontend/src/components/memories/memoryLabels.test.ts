@@ -1,7 +1,7 @@
+import type { Memory } from "@librephotos/api-client";
+import { MemoryType } from "@librephotos/api-client";
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test } from "vitest";
-import type { Memory } from "../../api_client/memories";
-import { MemoryType } from "../../api_client/memories";
 import { memoryDayLabel, memoryMonthLabel } from "./memoryLabels";
 
 /**

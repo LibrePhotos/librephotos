@@ -5,6 +5,7 @@
  * - Duplicates: Finding and removing duplicate photos to save storage space
  * - Stacks: Organizing related photos together (bursts, brackets, manual stacks)
  */
+import { countListedStacks } from "@librephotos/api-client";
 import { Badge, Stack, Tabs } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCopy, IconLayersSubtract } from "@tabler/icons-react";
@@ -13,7 +14,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useStackStatsQuery } from "../../api_client/stacks";
-import { countListedStacks } from "../../api_client/stacks/types";
 import { PageHeader } from "../../components/PageHeader";
 import { DuplicatesPageContent } from "../../components/stacks-duplicates/DuplicatesPageContent";
 import { StacksPageContent } from "../../components/stacks-duplicates/StacksPageContent";

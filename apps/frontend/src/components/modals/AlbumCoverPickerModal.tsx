@@ -1,9 +1,9 @@
+import type { PigPhoto } from "@librephotos/api-client";
+import { Media } from "@librephotos/api-client";
 import { Box, Button, Group, Modal, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconInfoCircle, IconPhoto } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { PigPhoto } from "../../api_client/photos/types";
-import { Media } from "../../api_client/photos/types";
 import { Tile } from "../Tile";
 import classes from "./AlbumCoverPickerModal.module.css";
 import { modalTitleStyles } from "./modalTitleStyles";

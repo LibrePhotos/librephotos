@@ -1,3 +1,4 @@
+import type { FaceAnalysisMethod } from "@librephotos/api-client";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
@@ -5,7 +6,6 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { FaceAnalysisMethod } from "../../api_client/faces";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";

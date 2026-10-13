@@ -1,9 +1,9 @@
+import { userKeys } from "@librephotos/api-client";
+import type { User } from "@librephotos/api-client";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
-import { userKeys } from "../../api_client/user/keys";
-import type { User } from "../../api_client/user/types";
 
 export type HeaderSize = "large" | "normal" | "small";
 

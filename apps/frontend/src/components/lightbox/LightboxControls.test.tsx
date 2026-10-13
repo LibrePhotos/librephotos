@@ -4,11 +4,11 @@
  * instead of trashing it again, and a phone gets one row with the owner's
  * actions in a menu.
  */
+import type { Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { Photo } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";

@@ -1,8 +1,7 @@
-import { endpoints, type FolderSubfolder, type FolderSubfoldersResponse } from "@librephotos/api-client";
+import { albumKeys, endpoints, type FolderSubfolder, type FolderSubfoldersResponse } from "@librephotos/api-client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { apiClient } from "../../api";
-import { albumKeys } from "../keys";
 import { retryFolderRequest } from "./useFetchFolderAlbumsQuery";
 
 export const useFetchFolderSubfoldersInfiniteQuery = (

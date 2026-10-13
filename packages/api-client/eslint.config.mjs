@@ -17,12 +17,12 @@ const pollIntervalBan = {
   message: "Poll with pollWhile(...) or a POLL_*_MS constant from src/polling.ts, not a number.",
 };
 
-// A query key comes from the queryKeys factory (src/hooks/queryKeys.ts), so one prefix invalidates a
+// A query key comes from a domain factory in src/hooks/queryKeys.ts, so one prefix invalidates a
 // family and a key typo cannot drop an invalidation. Same rule as apps/frontend's ban/query-key-literal.
 const queryKeyLiteralBan = {
   selector:
     "Property[key.name='queryKey'] > ArrayExpression.value, CallExpression[callee.property.name=/^(getQueryData|setQueryData|getQueryState|fetchQuery|prefetchQuery|ensureQueryData)$/] > ArrayExpression.arguments:first-child",
-  message: "Build the key with the queryKeys factory (src/hooks/queryKeys.ts); add the key there.",
+  message: "Build the key with its domain's factory (src/hooks/queryKeys.ts); add the key there.",
 };
 
 const timerBan = {
@@ -45,7 +45,7 @@ export default tseslint.config(
       // src/hooks is React Query hooks; same hook rules as apps/frontend.
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
-      // Every value a queryFn reads is part of its key (a queryKeys call's arguments count). The API
+      // Every value a queryFn reads is part of its key (a key factory call's arguments count). The API
       // client from useApiClient() is the same for every query, so it stays out of the keys.
       "@tanstack/query/exhaustive-deps": ["error", { allowlist: { variables: ["client"] } }],
       "@tanstack/query/no-unstable-deps": "error",

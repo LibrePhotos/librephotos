@@ -1,7 +1,7 @@
+import { Media, type BulkPhotoQuery, type PigPhoto } from "@librephotos/api-client";
 import { Badge, Button, Divider, Group, Modal, Stack, TagsInput, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Media, type BulkPhotoQuery, type PigPhoto } from "../../api_client/photos/types";
 import { useFetchTagsQuery, useTagPhotosByNameMutation } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";

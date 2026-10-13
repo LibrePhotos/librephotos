@@ -1,10 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints, faceKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { faceKeys } from "../../faces/keys";
-import { statsKeys } from "../../stats/keys";
-import { albumKeys } from "../keys";
 
 type RenamePersonAlbumParams = {
   id: string;

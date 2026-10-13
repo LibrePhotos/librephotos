@@ -1,3 +1,5 @@
+import { Photoset } from "@librephotos/api-client";
+import type { ListUserList } from "@librephotos/api-client";
 import { Avatar, Box, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronRight, IconDownload, IconLink, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
@@ -15,9 +17,7 @@ import {
   useFetchSharedPhotosByMeQuery,
   useFetchSharedPhotosWithMeQuery,
 } from "../../../api_client/photos/hooks";
-import { Photoset } from "../../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
-import type { ListUserList } from "../../../api_client/user/types";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { PageHeader } from "../../../components/PageHeader";
 import { AlbumShareButton } from "../../../components/sharing/AlbumShareButton";

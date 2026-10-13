@@ -1,15 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, faceKeys } from "@librephotos/api-client";
+import type { IncompletePersonFaceListRequest } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { faceKeys } from "../keys";
-import type { CompletePersonFace, CompletePersonFaceList, FaceAnalysisMethod, FacesOrderOption } from "../types";
-
-export type IncompletePersonFaceListRequest = {
-  inferred: boolean;
-  method?: FaceAnalysisMethod;
-  orderBy: FacesOrderOption;
-  minConfidence?: number;
-};
+import type { CompletePersonFace, CompletePersonFaceList } from "../types";
 
 /** Every person with a placeholder per face; the grid swaps them for real faces page by page. */
 const fetchIncompleteFaces = async (params: IncompletePersonFaceListRequest): Promise<CompletePersonFaceList> => {

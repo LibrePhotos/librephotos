@@ -5,15 +5,13 @@
  * It updates the cached user; the timeline already sends its filter in full,
  * so its queries are left alone. A failed save says so.
  */
+import { photoGridKeys, Photoset, userKeys } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { SHOW_EVERYTHING } from "../../../components/photolist/timelineFilter";
 import { defined } from "../../../util/defined.test-utils";
-import { photoGridKeys } from "../../photos/keys";
-import { Photoset } from "../../photos/types";
-import { userKeys } from "../keys";
 
 const stubs = await vi.hoisted(async () => {
   const { QueryClient } = await import("@tanstack/react-query");

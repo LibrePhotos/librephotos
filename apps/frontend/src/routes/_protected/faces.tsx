@@ -1,6 +1,6 @@
+import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces";
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
 import { FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
 
@@ -8,7 +8,7 @@ import { FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesT
 const DEFAULT_VALUES = {
   activeTab: FacesTab.enum.inferred,
   analysisMethod: FaceAnalysisMethod.enum.clustering,
-  orderBy: FacesOrderOption.enum.confidence,
+  orderBy: FaceOrderBy.enum.confidence,
   minConfidence: 0.7,
 };
 

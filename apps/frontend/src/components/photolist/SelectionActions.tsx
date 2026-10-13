@@ -1,3 +1,4 @@
+import type { BulkPhotoQuery, PhotoCategory, PigPhoto } from "@librephotos/api-client";
 import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -34,9 +35,8 @@ import {
   useSetPhotosCategoryMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
-  type PhotoCategory,
 } from "../../api_client/photos/hooks";
-import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { SelectionState } from "../../api_client/photos/types";
 import {
   useCreateManualStackMutation,
   useMergeStacksMutation,

@@ -8,13 +8,13 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
+import { Media } from "@librephotos/api-client";
+import type { PigPhoto } from "@librephotos/api-client";
 import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { Media } from "../../api_client/photos/types";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
 import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";

@@ -1,9 +1,9 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Box, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPencil, IconMapPin as MapPin } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 

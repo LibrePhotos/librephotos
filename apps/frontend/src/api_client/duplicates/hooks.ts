@@ -1,9 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { duplicateKeys, endpoints } from "@librephotos/api-client";
+import type { DetectDuplicatesRequest, DuplicateType, ReviewStatus } from "@librephotos/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api";
 import { startJob } from "../jobs/startJob";
-import { duplicateKeys } from "./keys";
-import type { DetectDuplicatesRequest, DuplicateType, ReviewStatus } from "./types";
 
 // Fetch duplicate groups list with pagination
 const useFetchDuplicatesQuery = (

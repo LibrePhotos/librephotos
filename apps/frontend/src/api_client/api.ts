@@ -17,8 +17,6 @@ const API_BASE_URL = PUBLIC_URL + "/api";
 // The error every request rejects with (its own module, so media/mediaUrl can throw it without this one).
 export { ApiError } from "./apiError";
 
-export type { ResponseType } from "@librephotos/api-client";
-
 export type RequestOptions = SharedRequestOptions;
 
 /** The web keeps its JWTs in (script-readable) cookies. */

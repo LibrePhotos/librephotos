@@ -1,3 +1,4 @@
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { Badge, Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React from "react";
@@ -8,7 +9,6 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
-import type { BulkPhotoQuery, PigPhoto } from "../../../api_client/photos/types";
 import { fuzzyMatch } from "../../../util/util";
 import { AlbumListItem } from "../../album/AlbumListItem";
 import { Tile } from "../../Tile";

@@ -1,9 +1,9 @@
+import type { Photo } from "@librephotos/api-client";
 import { Box, Image } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
 import { mediaUrl } from "../api_client/media/mediaUrl";
-import type { Photo } from "../api_client/photos/types";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
 import { FeatureBoundary } from "./common/FeatureBoundary";

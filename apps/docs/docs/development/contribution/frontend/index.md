@@ -128,7 +128,8 @@ Everything below is relative to
   one folder per domain (`photos`, `albums`, `faces`, …) holds the TanStack Query hooks the
   components actually call (`useFetch…Query`, `use…Mutation`): each wraps an
   `endpoints.<name>(apiClient, …)` call and adds the web's cache invalidation and notifications, with
-  keys from the domain's `keys.ts`. Files under `/media/` (thumbnails, originals, videos) get their
+  keys from the domain's key factory in `packages/api-client/src/hooks/queryKeys.ts`, which the mobile
+  app's hooks share. Files under `/media/` (thumbnails, originals, videos) get their
   URLs from `mediaUrl` and are fetched with `fetchMedia`, both in `api_client/media/mediaUrl.ts`. A
   component never calls `apiClient` or `fetch` itself: when it needs a request, add the endpoint and
   its schema (with a fixture test) to `packages/api-client`, then a hook to the domain's folder. Lint

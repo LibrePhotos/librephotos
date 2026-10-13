@@ -194,14 +194,25 @@ export const syntaxBans = [
     message: "Poll with pollWhile(...) or a POLL_*_MS constant from @librephotos/api-client, not a number.",
   },
   {
-    // A query key comes from its domain's factory (src/api_client/<domain>/keys.ts, photoGridKeys for
-    // every photo grid), so one prefix invalidates a family and a key typo cannot drop an
-    // invalidation. No array literal as a queryKey, or as the key of a cache read or write.
+    // A query key comes from its domain's factory in @librephotos/api-client
+    // (packages/api-client/src/hooks/queryKeys.ts, photoGridKeys for every photo grid), shared with the
+    // mobile app, so one prefix invalidates a family and a key typo cannot drop an invalidation. No
+    // array literal as a queryKey, or as the key of a cache read or write.
     id: "query-key-literal",
     selector:
       "Property[key.name='queryKey'] > ArrayExpression.value, CallExpression[callee.property.name=/^(getQueryData|setQueryData|getQueryState|fetchQuery|prefetchQuery|ensureQueryData)$/] > ArrayExpression.arguments:first-child",
     message:
-      "Build the key with its domain's factory (src/api_client/<domain>/keys.ts, photoGridKeys for photo grids); add the key there.",
+      "Build the key with its domain's factory from @librephotos/api-client (packages/api-client/src/hooks/queryKeys.ts, photoGridKeys for photo grids); add the key there.",
+  },
+  {
+    // A schema, type, key factory or endpoint of the shared package has one import path: the package.
+    // A re-export gives it a second path (often a second name), which is how the web's api_client
+    // types.ts and keys.ts files drifted from the package (#2347).
+    id: "api-client-reexport",
+    files: APP_FILES,
+    selector:
+      "ExportNamedDeclaration[source.value='@librephotos/api-client'], ExportAllDeclaration[source.value='@librephotos/api-client']",
+    message: "Import it from @librephotos/api-client where it is used; do not re-export the shared package.",
   },
   {
     // Files under /media/ (thumbnails, originals, videos, faces, archives) get their URL from

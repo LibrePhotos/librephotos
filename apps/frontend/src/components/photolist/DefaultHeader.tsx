@@ -1,3 +1,4 @@
+import type { User } from "@librephotos/api-client";
 import {
   Badge,
   Box,
@@ -38,7 +39,6 @@ import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import type { User } from "../../api_client/user/types";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { parseInstant } from "../../util/dateUtils";
 import { ModalUserEdit } from "../modals/ModalUserEdit";

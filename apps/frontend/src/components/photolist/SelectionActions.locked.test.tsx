@@ -1,3 +1,4 @@
+import { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import type { ParseKeys } from "i18next";
 import React, { act } from "react";
@@ -5,7 +6,6 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import type { useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
-import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { SelectionActions } from "./SelectionActions";

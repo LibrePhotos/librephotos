@@ -1,4 +1,4 @@
-import type { SavedBurstDetectionRule } from "../../api_client/settings/types";
+import type { SavedBurstDetectionRule } from "@librephotos/api-client";
 
 // Whether the list shows a rule as enabled: only with enabled set to true
 export function isRuleEnabled(rule: SavedBurstDetectionRule): boolean {

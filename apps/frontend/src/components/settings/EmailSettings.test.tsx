@@ -4,11 +4,11 @@
  * - A 401 raised a "could not be saved" toast on top of the auth handling.
  * - Removing the stored credential failed without a word.
  */
+import type { EmailConfigUpdate } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
 import { EmailSettings } from "./EmailSettings";
 
 /** The mutate options EmailSettings passes when it saves. */

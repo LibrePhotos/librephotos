@@ -54,7 +54,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
   `fetch` and importing `apiClient` outside the API layer). Media URLs come from `mediaUrl` and media files from
   `fetchMedia`/`probeMedia` (`src/api_client/media/mediaUrl.ts`, `ban/media-url` on a `/media/` string), so
   paths, cookies and errors are handled in one place.
-- React Query keys come from the domain's factory in `src/api_client/<domain>/keys.ts`, and every photo grid's
+- React Query keys come from the domain's factory (`albumKeys`, `userKeys`, ...) in `@librephotos/api-client`
+  (`packages/api-client/src/hooks/queryKeys.ts`, shared with the mobile app's hooks), and every photo grid's
   from `photoGridKeys` (root `["photoGrid"]`): add the key to the factory, invalidate by prefix
   (`photoGridKeys.all` refreshes every grid), never write a key literal (`ban/query-key-literal`); every value
   a `queryFn` reads goes into the key (`@tanstack/query/exhaustive-deps`). Hooks get the client from
@@ -97,8 +98,14 @@ green CI run. To develop against a local backend, copy `.env.development.example
 - Decided in #2347: `packages/api-client` owns every request. One endpoint function per call in
   `packages/api-client/src/endpoints` parses the answer with its zod schema (`src/schemas`) and returns
   the parsed type, so web and mobile share one typed copy. `src/api_client/<domain>` keeps thin hooks:
-  `useQuery`/`useMutation` around `endpoints.<name>(apiClient, ...)`, keys from `keys.ts`, invalidation
-  and toasts; its `types.ts` only re-exports package types.
+  `useQuery`/`useMutation` around `endpoints.<name>(apiClient, ...)`, keys from the package's factories,
+  invalidation and toasts. Package schemas, types and keys are imported from `@librephotos/api-client`
+  where they are used, never re-exported (`ban/api-client-reexport`); a domain's `types.ts` holds only
+  web-only types (hook parameters, UI shapes).
+- Two hooks share a key only when they cache the same value: where a web hook reshapes an answer
+  (groups, sorts, placeholders), the package hook keys the raw answer with the `...Raw` entry in the same
+  family (`src/api_client/hookConvergence.test.tsx`). Changing a key value moves mobile too: `src/api_client/queryKeys.test.ts`
+  pins which queries each invalidation refreshes.
 - A new call: schema (plus its `contract-map.ts` entry), endpoint and a fixture test in
   `packages/api-client/src/__tests__`, then the hook. Run the package's and `apps/mobile`'s checks too: the
   package ships to mobile. A parse failure throws `ResponseParseError`, which the QueryClient in `api.ts`

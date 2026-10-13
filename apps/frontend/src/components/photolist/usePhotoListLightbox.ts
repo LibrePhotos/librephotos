@@ -1,7 +1,7 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { useDisclosure } from "@mantine/hooks";
 import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { PigHandle } from "./PhotoListView";
 
 // The lightbox over a photo list: which photo it shows, and keeping the grid

@@ -1,14 +1,10 @@
+import type { IncompletePersonFaceListRequest, PersonFaceListRequest } from "@librephotos/api-client";
+import { faceKeys } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryClient } from "../../../api_client/api";
-import type {
-  CompletePersonFaceList,
-  IncompletePersonFaceListRequest,
-  PersonFaceList,
-  PersonFaceListRequest,
-} from "../../../api_client/faces";
-import { faceKeys } from "../../../api_client/faces/keys";
+import type { CompletePersonFaceList, PersonFaceList } from "../../../api_client/faces";
 import { defined } from "../../../util/defined.test-utils";
 import { FacesTab } from "../facesTab";
 import { useFaceDataFetching } from "./useFaceDataFetching";

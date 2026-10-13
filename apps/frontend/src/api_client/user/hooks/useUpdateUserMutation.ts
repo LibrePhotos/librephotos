@@ -1,9 +1,7 @@
-import { endpoints, type User } from "@librephotos/api-client";
+import { endpoints, folderKeys, userKeys, type User } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { folderKeys } from "../../folders/keys";
-import { userKeys } from "../keys";
 
 type UpdateUserOptions = {
   /** Skip the success toast, e.g. for the photo grid's debounced display preferences. */

@@ -1,3 +1,4 @@
+import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
 import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -15,7 +16,7 @@ import {
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
+import { useTrainFacesMutation } from "../../api_client/faces";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
@@ -82,17 +83,17 @@ export function HeaderButtons({
               value={orderBy}
               onChange={value => {
                 // Picking the selected option again clears it (null): the route then falls back to its default
-                navigate({ to: "/faces", search: { ...search, orderBy: FacesOrderOption.safeParse(value).data } });
+                navigate({ to: "/faces", search: { ...search, orderBy: FaceOrderBy.safeParse(value).data } });
               }}
               leftSection={<SortDescending size={16} />}
               data={[
                 {
                   label: t("facesdashboard.sortbyconfidence"),
-                  value: FacesOrderOption.enum.confidence,
+                  value: FaceOrderBy.enum.confidence,
                 },
                 {
                   label: t("facesdashboard.sortbydate"),
-                  value: FacesOrderOption.enum.date,
+                  value: FaceOrderBy.enum.date,
                 },
               ]}
             />

@@ -1,6 +1,6 @@
+import { authKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { getAuthCookie } from "../../authCookies";
-import { authKeys } from "../keys";
 
 export const useIsAuthenticatedQuery = () =>
   useQuery({

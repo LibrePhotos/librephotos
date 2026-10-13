@@ -1,8 +1,9 @@
+import type { FaceAnalysisMethod } from "@librephotos/api-client";
+import { faceKeys } from "@librephotos/api-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
-import type { CompletePersonFaceList, FaceAnalysisMethod } from "../../../api_client/faces";
+import type { CompletePersonFaceList } from "../../../api_client/faces";
 import { fetchFaces, useFetchIncompleteFacesQuery } from "../../../api_client/faces";
-import { faceKeys } from "../../../api_client/faces/keys";
 import { FacesTab, type FacesRouteOrder } from "../facesTab";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */

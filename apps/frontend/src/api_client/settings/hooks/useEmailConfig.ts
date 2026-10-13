@@ -1,9 +1,6 @@
-import { endpoints, type EmailConfigUpdate } from "@librephotos/api-client";
+import { endpoints, settingsKeys, type EmailConfigUpdate } from "@librephotos/api-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { settingsKeys } from "../keys";
-
-export type { EmailConfigUpdate } from "@librephotos/api-client";
 
 export const useGetEmailConfigQuery = () =>
   useQuery({

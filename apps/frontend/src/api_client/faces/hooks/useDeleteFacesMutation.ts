@@ -1,10 +1,6 @@
-import { endpoints, invalidateAfter } from "@librephotos/api-client";
+import { albumKeys, endpoints, faceKeys, invalidateAfter, photoKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { photoKeys } from "../../photos/keys";
-import { statsKeys } from "../../stats/keys";
-import { faceKeys } from "../keys";
 
 const DeleteFacesMutationKey = ["deleteFaces"] as const;
 

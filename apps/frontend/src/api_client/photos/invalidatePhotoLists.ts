@@ -1,5 +1,5 @@
+import { photoGridKeys } from "@librephotos/api-client";
 import type { QueryClient } from "@tanstack/react-query";
-import { photoGridKeys } from "./keys";
 
 // Every query that feeds a photo grid sits under photoGridKeys.all. A change
 // to a photo's favourite, hidden or trash state (or its date, or its stack)

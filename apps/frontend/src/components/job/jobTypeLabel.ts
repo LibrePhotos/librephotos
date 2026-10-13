@@ -1,5 +1,5 @@
+import type { JobDetail } from "@librephotos/api-client";
 import type { ParseKeys, TFunction } from "i18next";
-import type { JobDetail } from "../../api_client/jobs/types";
 
 // LongRunningJob.JOB_TYPES in apps/backend/api/models/long_running_job.py, by number. The keys are
 // named after the backend's JOB_* constants.

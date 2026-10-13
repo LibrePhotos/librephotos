@@ -1,6 +1,6 @@
+import type { Memory } from "@librephotos/api-client";
+import { MemoryType } from "@librephotos/api-client";
 import { DateTime } from "luxon";
-import type { Memory } from "../../api_client/memories";
-import { MemoryType } from "../../api_client/memories";
 import { parseInstant } from "../../util/dateUtils";
 
 /** What the labels read off a memory. */

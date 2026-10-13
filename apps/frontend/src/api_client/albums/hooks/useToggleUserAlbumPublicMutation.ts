@@ -1,10 +1,6 @@
-import { endpoints, type PublicSharingOptions } from "@librephotos/api-client";
+import { albumKeys, endpoints, photoGridKeys, type PublicSharingOptions } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { albumKeys } from "../keys";
-
-export type { PublicSharingOptions } from "@librephotos/api-client";
 
 type ToggleUserAlbumPublicParams = {
   albumId: string;

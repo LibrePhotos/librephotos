@@ -7,10 +7,10 @@
  * follows the image aspect ratio, so x and y share one scale and the invisible
  * selectable glyphs line up with the printed text underneath.
  */
+import type { PhotoOcrBlock } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { PhotoOcrBlock } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { OcrTextOverlay, placeBlock } from "./OcrTextOverlay";
 

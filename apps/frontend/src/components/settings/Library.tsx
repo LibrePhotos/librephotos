@@ -1,3 +1,4 @@
+import type { User } from "@librephotos/api-client";
 import { Card, Container, Space, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconBook as Book } from "@tabler/icons-react";
@@ -12,7 +13,6 @@ import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { serverAddress } from "../../api_client/urls";
 import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import type { User } from "../../api_client/user/types";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageLoader } from "../common/PageLoader";

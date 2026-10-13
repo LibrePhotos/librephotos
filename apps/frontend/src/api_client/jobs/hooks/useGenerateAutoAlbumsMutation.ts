@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
 import { startJob } from "../startJob";
 

@@ -1,9 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, jobKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { jobKeys } from "../keys";
 
 export const useCancelJobMutation = () =>
   useMutation({

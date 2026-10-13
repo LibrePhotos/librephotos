@@ -2,14 +2,13 @@
  * Merging stacks and creating a manual stack invalidated ["photos"], a key no query uses, so the
  * photo grids kept showing the old stack badges and covers until a reload.
  */
+import { photoGridKeys, Photoset } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { queryClient } from "../api";
-import { photoGridKeys } from "../photos/keys";
-import { Photoset } from "../photos/types";
 import { useCreateManualStackMutation, useMergeStacksMutation } from "./hooks";
 
 const stubs = vi.hoisted(() => ({

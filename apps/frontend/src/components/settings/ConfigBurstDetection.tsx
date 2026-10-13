@@ -1,4 +1,5 @@
 import { arrayMove } from "@dnd-kit/sortable";
+import { SavedBurstDetectionRule, type BurstDetectionRule } from "@librephotos/api-client";
 import {
   Badge,
   Button,
@@ -17,7 +18,6 @@ import type { TFunction } from "i18next";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedBurstRulesQuery";
-import { SavedBurstDetectionRule, type BurstDetectionRule } from "../../api_client/settings/types";
 import { ModalConfigBurstDetection } from "../modals/ModalConfigBurstDetection";
 import { isHardRule, isRuleEnabled } from "./burstDetectionRules";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";

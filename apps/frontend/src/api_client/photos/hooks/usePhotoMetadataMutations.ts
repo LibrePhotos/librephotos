@@ -2,12 +2,10 @@
  * React Query mutation hooks for photo metadata operations
  */
 
-import { endpoints, type PhotoMetadataUpdate } from "@librephotos/api-client";
+import { endpoints, photoKeys, tagKeys, type PhotoMetadataUpdate } from "@librephotos/api-client";
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { tagKeys } from "../../tags/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { photoKeys } from "../keys";
 
 /**
  * Refresh everything a metadata edit can change.

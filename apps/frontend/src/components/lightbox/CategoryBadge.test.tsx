@@ -3,13 +3,12 @@
  * from its menu, who set it, where the item shows up, an Undo, and owner-only.
  */
 import "@mantine/core/styles.css";
+import type { Photo, User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SetPhotosCategoryRequest } from "../../api_client/photos/hooks/useSetPhotosCategoryMutation";
-import type { Photo } from "../../api_client/photos/types";
-import type { User } from "../../api_client/user/types";
 import i18n from "../../i18n";
 import type { ToastOptions } from "../../service/notifications/toast";
 import { defined } from "../../util/defined.test-utils";
