@@ -135,6 +135,7 @@ class PreflightTest(SimpleTestCase):
         with (
             listening_socket() as blocker,
             patch.object(standalone, "_already_running", return_value=False),
+            patch.object(standalone.instance_lock, "acquire", return_value=MagicMock()),
             patch.object(standalone, "_capture_console_output"),
             patch.object(standalone, "_take_children_down_with_us") as job,
             patch.object(standalone, "run_teed", return_value=(0, [])) as teed,
@@ -155,6 +156,7 @@ class PreflightTest(SimpleTestCase):
             listening_socket() as blocker,
             patch.object(standalone, "prepare_environment"),
             patch.object(standalone, "_already_running", return_value=False),
+            patch.object(standalone.instance_lock, "acquire", return_value=MagicMock()),
             patch.object(standalone, "_capture_console_output"),
             patch.object(standalone, "run_teed") as teed,
             patch.object(standalone, "_report_failure") as report,
@@ -188,7 +190,9 @@ class ServerExitTest(SimpleTestCase):
             patch("api.runtime.ports.port_owner", return_value=PortOwner(9, "x.exe")),
         ):
             try:
-                standalone._serve(server, cluster, "http://x/", False, False)
+                standalone._serve(
+                    server, cluster, "http://x/", False, standalone.Startup()
+                )
             finally:
                 shutdown.assert_called_once_with(cluster)
 
@@ -228,4 +232,6 @@ class ServerExitTest(SimpleTestCase):
             patch.object(standalone, "_shutdown"),
             self.assertRaises(SystemExit),
         ):
-            standalone._serve(server, object(), "http://x/", False, False)
+            standalone._serve(
+                server, object(), "http://x/", False, standalone.Startup()
+            )

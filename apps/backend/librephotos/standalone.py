@@ -35,12 +35,15 @@ from collections import deque
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
+from librephotos import instance_lock
+
 if TYPE_CHECKING:
     # Only for annotations: the GUI and the server modules are imported lazily
     # inside the functions that use them.
-    import pystray
     import uvicorn
     from PIL import Image
+
+    from librephotos.tray import Tray
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
@@ -50,6 +53,9 @@ ALTERNATIVE_PORT = 8080
 # and that of every child goes instead (see bootstrap_process).
 CONSOLE_LOG_ENV = "LIBREPHOTOS_CONSOLE_LOG"
 CONSOLE_LOG_NAME = "console.log"
+# The previous start's console.log, kept so a failed start can still be
+# explained after the next attempt (#2316).
+PREVIOUS_CONSOLE_LOG_NAME = "console.previous.log"
 SUBCOMMANDS = ("run", "manage", "service")
 # Written next to the binary by scripts/build_standalone.py: the release and
 # commit it was built from, which the Docker images get from build arguments.
@@ -386,6 +392,51 @@ def _open_browser_when_up(url: str, timeout: float = 120) -> None:
     webbrowser.open(url)
 
 
+# The job object of _take_children_down_with_us, once it holds this process.
+_job_handles: list[int] = []
+# JobObjectBasicProcessIdList; room for more processes than LibrePhotos starts.
+_JOB_PROCESS_ID_LIST = 3
+_JOB_PROCESS_ID_ROOM = 1024
+
+
+def _job_process_ids() -> set[int] | None:
+    """Every process in this instance's job, or None without one."""
+    if sys.platform != "win32" or not _job_handles:
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    class JOBOBJECT_BASIC_PROCESS_ID_LIST(ctypes.Structure):
+        _fields_ = [
+            ("NumberOfAssignedProcesses", wintypes.DWORD),
+            ("NumberOfProcessIdsInList", wintypes.DWORD),
+            ("ProcessIdList", ctypes.c_size_t * _JOB_PROCESS_ID_ROOM),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.QueryInformationJobObject.restype = wintypes.BOOL
+    kernel32.QueryInformationJobObject.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.c_void_p,
+    ]
+    listing = JOBOBJECT_BASIC_PROCESS_ID_LIST()
+    if not kernel32.QueryInformationJobObject(
+        _job_handles[0],
+        _JOB_PROCESS_ID_LIST,
+        ctypes.byref(listing),
+        ctypes.sizeof(listing),
+        None,
+    ):
+        return None
+    return {
+        int(listing.ProcessIdList[index])
+        for index in range(listing.NumberOfProcessIdsInList)
+    }
+
+
 def _take_children_down_with_us() -> None:
     """Put this process in a Windows job that kills its descendants with it.
 
@@ -474,6 +525,9 @@ def _take_children_down_with_us() -> None:
             "stop LibrePhotos with Ctrl-C so the sidecars are shut down too",
             flush=True,
         )
+    else:
+        # Kept for _job_process_ids: the job lists this instance's processes.
+        _job_handles.append(job)
     # The handle is deliberately never closed: closing it is what kills the job.
 
 
@@ -487,59 +541,148 @@ def _already_running(url: str) -> bool:
 
 
 def _tray_image() -> Image.Image:
-    from PIL import Image
+    from librephotos.tray import tray_image
 
-    candidates = (
-        os.path.join(install_root(), "frontend_build", "favicon.ico"),
-        os.path.join(BACKEND_ROOT, os.pardir, "frontend", "public", "favicon.ico"),
-    )
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return Image.open(candidate)
-    return Image.new("RGB", (64, 64), (30, 120, 200))
-
-
-def _start_tray(url: str, server: uvicorn.Server) -> pystray.Icon | None:
-    """An icon in the notification area: the application's only surface once
-    there is no console window. Returns the icon, or None when it cannot be
-    shown (pystray missing, no desktop session); the server runs either way."""
-    # Windows-only (os.startfile, the notification area); run_server calls this
-    # only on win32, and there is no icon anywhere else.
-    if sys.platform != "win32":
-        return None
-    try:
-        import pystray
-
-        def open_folder(path: str) -> Callable[[object, object], None]:
-            return lambda icon, item: os.startfile(path)
-
-        def quit_app(icon: pystray.Icon, item: pystray.MenuItem) -> None:
-            server.should_exit = True
-            icon.stop()
-
-        icon = pystray.Icon(
-            "librephotos",
-            _tray_image(),
-            f"LibrePhotos - {url}",
-            menu=pystray.Menu(
-                pystray.MenuItem(
-                    "Open LibrePhotos",
-                    lambda icon, item: webbrowser.open(url),
-                    default=True,
-                ),
-                pystray.MenuItem(
-                    "Open data folder", open_folder(os.environ["BASE_DATA"])
-                ),
-                pystray.MenuItem("Open logs", open_folder(os.environ["BASE_LOGS"])),
-                pystray.Menu.SEPARATOR,
-                pystray.MenuItem("Quit LibrePhotos", quit_app),
-            ),
+    return tray_image(
+        (
+            os.path.join(install_root(), "frontend_build", "favicon.ico"),
+            os.path.join(BACKEND_ROOT, os.pardir, "frontend", "public", "favicon.ico"),
         )
-        threading.Thread(target=icon.run, daemon=True, name="tray").start()
-        return icon
-    except Exception as error:
-        print(f"No notification area icon: {error!r}", flush=True)
-        return None
+    )
+
+
+# What the tray icon says while LibrePhotos starts (#2316): its tooltip and the
+# first, greyed line of its menu.
+STATUS_STARTING = "Starting..."
+STATUS_DATABASE_UPDATE = "Updating the database ({done} of {total})"
+STATUS_DATABASE_SETUP = "Setting up the database ({done} steps done)"
+STATUS_SERVICES = "Starting services..."
+STATUS_RUNNING = "Running at {url}"
+STATUS_WAITING = "Waiting for LibrePhotos to finish starting..."
+# Notifications, once each: (title, text).
+NOTICE_UPDATE = (
+    "Updating the database",
+    "LibrePhotos is updating its database after the update. "
+    "This can take a few minutes.",
+)
+NOTICE_SETUP = (
+    "Setting up the database",
+    "LibrePhotos is setting up its database. The first start takes a minute or two.",
+)
+NOTICE_ALREADY_STARTING = (
+    "LibrePhotos is already starting",
+    "It opens in your browser when it is ready.",
+)
+# How long a second start waits for the first one to answer, and how often it asks.
+OTHER_INSTANCE_TIMEOUT_SECONDS = 600.0
+_OTHER_INSTANCE_POLL_SECONDS = 2.0
+
+
+class StartupCancelledError(Exception):
+    """Quit was chosen in the tray while LibrePhotos was still starting."""
+
+
+class Startup:
+    """One start of LibrePhotos: its tray icon, the start-up child it waits
+    for, the server once there is one, and whether Quit was chosen.
+
+    The tray exists from the first second, so Quit has to work before there
+    is a server to stop (#2316): it terminates the running migrate (or backup)
+    child, and every later step checks ``check()`` before it begins.
+    """
+
+    def __init__(self) -> None:
+        self.tray: Tray | None = None
+        self.server: uvicorn.Server | None = None
+        self._child: subprocess.Popen[str] | None = None
+        self._cancelled = threading.Event()
+        self._lock = threading.Lock()
+
+    @property
+    def cancelled(self) -> bool:
+        return self._cancelled.is_set()
+
+    def show_tray(self, url: str, status: str = STATUS_STARTING) -> None:
+        """The notification area icon (Windows only; nothing elsewhere)."""
+        if sys.platform != "win32" or self.tray is not None:
+            return
+        try:
+            from librephotos.tray import Tray
+
+            self.tray = Tray(
+                url,
+                _tray_image(),
+                status,
+                self.quit,
+                (os.environ["BASE_DATA"], os.environ["BASE_LOGS"]),
+            )
+        except Exception as error:
+            # pystray missing, no desktop session: LibrePhotos runs anyway.
+            print(f"No notification area icon: {error!r}", flush=True)
+
+    def status(self, text: str) -> None:
+        print(f"LibrePhotos: {text}", flush=True)
+        if self.tray is not None:
+            self.tray.set_status(text)
+
+    def notify(self, title: str, message: str) -> None:
+        if self.tray is not None:
+            self.tray.notify(title, message)
+
+    def track(self, child: subprocess.Popen[str] | None) -> None:
+        """The start-up child that Quit has to terminate, or None once it ended."""
+        with self._lock:
+            self._child = child
+            if child is not None and self.cancelled:
+                child.terminate()
+
+    def quit(self) -> None:
+        with self._lock:
+            self._cancelled.set()
+            if self._child is not None and self._child.poll() is None:
+                self._child.terminate()
+            if self.server is not None:
+                self.server.should_exit = True
+
+    def wait(self, seconds: float) -> bool:
+        """Sleep up to ``seconds``; True when Quit was chosen meanwhile."""
+        return self._cancelled.wait(seconds)
+
+    def check(self) -> None:
+        if self.cancelled:
+            raise StartupCancelledError
+
+    def close(self) -> None:
+        if self.tray is not None:
+            self.tray.stop()
+            self.tray = None
+
+
+class MigrationProgress:
+    """Turns migrate's "Applying ..." lines into the tray status (#2316).
+
+    ``total`` is the number of pending migrations the backup step reported, or
+    None on a first start, which has no database to back up.
+    """
+
+    def __init__(self, startup: Startup, total: int | None) -> None:
+        self.startup = startup
+        self.total = total
+        self.done = 0
+
+    def __call__(self, line: str) -> None:
+        if not line.lstrip().startswith("Applying "):
+            return
+        self.done += 1
+        if self.done == 1:
+            self.startup.notify(*(NOTICE_UPDATE if self.total else NOTICE_SETUP))
+        if self.total:
+            done = min(self.done, self.total)
+            self.startup.status(
+                STATUS_DATABASE_UPDATE.format(done=done, total=self.total)
+            )
+        else:
+            self.startup.status(STATUS_DATABASE_SETUP.format(done=self.done))
 
 
 def _report_failure(message: str) -> None:
@@ -549,9 +692,14 @@ def _report_failure(message: str) -> None:
     if sys.platform == "win32" and not _has_console_window():
         import ctypes
 
-        log = os.path.join(os.environ.get("BASE_LOGS", ""), CONSOLE_LOG_NAME)
+        logs = os.environ.get("BASE_LOGS", "")
+        log = os.path.join(logs, CONSOLE_LOG_NAME)
+        previous = os.path.join(logs, PREVIOUS_CONSOLE_LOG_NAME)
         ctypes.windll.user32.MessageBoxW(
-            None, f"{message}\n\nDetails: {log}", "LibrePhotos", 0x10
+            None,
+            f"{message}\n\nDetails: {log}\nThe start before this one: {previous}",
+            "LibrePhotos",
+            0x10,
         )
 
 
@@ -585,12 +733,18 @@ def failure_detail(lines: Sequence[str]) -> str | None:
     return None
 
 
-def run_teed(argv: list[str]) -> tuple[int, list[str]]:
+def run_teed(
+    argv: list[str],
+    startup: Startup | None = None,
+    on_line: Callable[[str], None] | None = None,
+) -> tuple[int, list[str]]:
     """Run a child with its output copied to ours line by line, as it comes.
 
     Returns its exit code and its last lines, which say why it failed. The
     output is still all there in the console or console.log; a child whose
     stdout is a pipe does not redirect itself (see bootstrap_process).
+    ``startup`` can terminate the child (the tray's Quit); ``on_line`` sees
+    each line as it comes.
     """
     tail: deque[str] = deque(maxlen=_FAILURE_TAIL_LINES)
     environment = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
@@ -603,18 +757,34 @@ def run_teed(argv: list[str]) -> tuple[int, list[str]]:
         encoding="utf-8",
         errors="replace",
     ) as process:
-        for line in process.stdout or ():
-            sys.stdout.write(line)
-            tail.append(line.rstrip("\r\n"))
-        sys.stdout.flush()
+        if startup is not None:
+            startup.track(process)
+        try:
+            for line in process.stdout or ():
+                sys.stdout.write(line)
+                tail.append(line.rstrip("\r\n"))
+                if on_line is not None:
+                    on_line(line)
+            sys.stdout.flush()
+        finally:
+            if startup is not None:
+                startup.track(None)
     return process.returncode, list(tail)
 
 
-def run_startup_step(argv: list[str], failure: str) -> None:
-    """Run ``manage <argv>`` in a child; raise StartupError saying why when it fails."""
-    returncode, lines = run_teed(child_command("manage", *argv))
+def run_startup_step(
+    argv: list[str],
+    failure: str,
+    startup: Startup | None = None,
+    on_line: Callable[[str], None] | None = None,
+) -> list[str]:
+    """Run ``manage <argv>`` in a child and return its last lines; raise
+    StartupError saying why when it fails, StartupCancelledError after a Quit."""
+    returncode, lines = run_teed(child_command("manage", *argv), startup, on_line)
+    if startup is not None:
+        startup.check()
     if returncode == 0:
-        return
+        return lines
     detail = failure_detail(lines)
     raise StartupError(f"{failure}\n\n{detail}" if detail else failure)
 
@@ -707,7 +877,13 @@ def _set_console_title(title: str) -> None:
         ctypes.windll.kernel32.SetConsoleTitleW(title)
 
 
-def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> None:
+def run_server(
+    host: str,
+    port: int,
+    open_browser: bool,
+    tray: bool = True,
+    startup: Startup | None = None,
+) -> None:
     """migrate, start the sidecars, the job cluster and the API server.
 
     The cluster is a child process (django-q2 forks workers of its own) so
@@ -715,14 +891,25 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
     runs in-process with a single worker: more would need multiprocessing
     spawn through the binary, and one worker with WEB_THREADS threads is
     enough for a desktop.
+
+    The data folder's lock comes first (#2316): a second start from the same
+    folder touches neither console.log, nor the database, nor any process,
+    and only waits for the first one to answer.
     """
     import django
 
+    startup = startup or Startup()
     shown_host = "localhost" if host in ("0.0.0.0", "::") else host
     url = f"http://{shown_host}:{port}/"
+    data_dir = os.environ["BASE_DATA"]
+    # Held until this process ends; the OS drops it then, however it ends.
+    lock = instance_lock.acquire(data_dir, url)
+    if lock is None:
+        _wait_for_other_instance(data_dir, url, open_browser, tray, startup)
+        return
     if _already_running(url):
-        # A second double-click: show the instance that is there instead of
-        # failing on its port where nobody would see it.
+        # LibrePhotos from another data folder on this port: show it instead
+        # of failing on its port where nobody would see it.
         print(f"LibrePhotos is already running at {url}", flush=True)
         if open_browser:
             webbrowser.open(url)
@@ -732,12 +919,23 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
     # Something else answers on the port, or nothing does but the port is
     # still not ours to take (#2323): say so before doing any work.
     check_port(host, port)
+    if tray:
+        startup.show_tray(url)
     _take_children_down_with_us()
-    prepare_database()
+    prepare_database(startup)
+    startup.status(STATUS_SERVICES)
     django.setup()
-    check_sidecar_ports()
-    for command in STARTUP_COMMANDS:
-        run_manage(command)
+    try:
+        check_sidecar_ports()
+        for command in STARTUP_COMMANDS:
+            startup.check()
+            run_manage(command)
+        startup.check()
+    except BaseException:
+        # Sidecars a Quit or a failure left behind; the job object would
+        # also take them down, but without letting them finish a request.
+        _shutdown(None)
+        raise
 
     import uvicorn
 
@@ -752,18 +950,69 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
         )
     )
     cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
-    _serve(server, cluster, url, open_browser, tray)
+    startup.server = server
+    _serve(server, cluster, url, open_browser, startup)
+
+
+def _wait_for_other_instance(
+    data_dir: str, url: str, open_browser: bool, tray: bool, startup: Startup
+) -> None:
+    """Another process holds the data folder: wait for it to answer, then
+    open the browser on it. Changes nothing on disk (#2316)."""
+    other = instance_lock.holder_url(data_dir) or url
+    print(f"LibrePhotos is already starting from {data_dir} at {other}", flush=True)
+    if not _already_running(other):
+        if tray:
+            startup.show_tray(other, STATUS_WAITING)
+        startup.notify(*NOTICE_ALREADY_STARTING)
+        deadline = time.monotonic() + OTHER_INSTANCE_TIMEOUT_SECONDS
+        while not _already_running(other):
+            if time.monotonic() >= deadline:
+                raise StartupError(
+                    "LibrePhotos is already starting from this data folder, "
+                    f"but it has not answered at {other} for "
+                    f"{OTHER_INSTANCE_TIMEOUT_SECONDS / 60:.0f} minutes."
+                )
+            if startup.wait(_OTHER_INSTANCE_POLL_SECONDS):
+                return
+    if open_browser:
+        webbrowser.open(other)
 
 
 def _capture_console_output() -> None:
-    """Without a console, send this process's output and its children's to console.log."""
+    """Without a console, send this process's output and its children's to
+    console.log, keeping the previous start's as console.previous.log.
+
+    Only the holder of the data folder's lock gets here, so no other start is
+    still writing to the file it renames (#2316).
+    """
     if standalone_executable() is not None and _output_is_discarded():
-        console_log = os.path.join(os.environ["BASE_LOGS"], CONSOLE_LOG_NAME)
+        logs = os.environ["BASE_LOGS"]
+        console_log = os.path.join(logs, CONSOLE_LOG_NAME)
+        try:
+            os.replace(console_log, os.path.join(logs, PREVIOUS_CONSOLE_LOG_NAME))
+        except OSError:
+            # None yet (a first start), or still open somewhere: start over.
+            pass
         _redirect_output(console_log, "w")
         os.environ[CONSOLE_LOG_ENV] = console_log
 
 
-def prepare_database() -> None:
+# The backup step's report when an update brings migrations
+# (api.runtime.db_backup.backup_database).
+_PENDING_MIGRATIONS = re.compile(r"before applying (\d+) pending migration")
+
+
+def pending_migration_count(lines: Sequence[str]) -> int | None:
+    """How many migrations the backup step said are pending, if it said."""
+    for line in reversed(lines):
+        match = _PENDING_MIGRATIONS.search(line)
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def prepare_database(startup: Startup | None = None) -> None:
     """Back up the database when migrations are due, then migrate, each in a child.
 
     The backup (SQLite only, issue #2314) runs before any other process opens
@@ -778,14 +1027,21 @@ def prepare_database() -> None:
     takes that path. A database a newer release migrated stops it with
     librephotos.E002 (issue #2315), which the message box then quotes.
     """
-    run_startup_step(
+    startup = startup or Startup()
+    lines = run_startup_step(
         ["backup_database", "--if-pending-migrations"],
         "LibrePhotos could not back up your database before updating it, "
         "so it did not start.",
+        startup,
     )
+    total = pending_migration_count(lines)
+    if total:
+        startup.status(STATUS_DATABASE_UPDATE.format(done=0, total=total))
     run_startup_step(
         ["migrate", "--noinput"],
         "LibrePhotos could not update its database, so it did not start.",
+        startup,
+        MigrationProgress(startup, total),
     )
 
 
@@ -794,15 +1050,18 @@ def _serve(
     cluster: subprocess.Popen[bytes],
     url: str,
     open_browser: bool,
-    tray: bool,
+    startup: Startup,
 ) -> None:
-    """Run the API server until it stops, with the tray icon; then stop the rest."""
-    icon = None
+    """Run the API server until it stops; then stop the rest."""
+    stopped = threading.Event()
     try:
         _set_console_title(f"LibrePhotos - {url} - close this window to stop")
         print(f"LibrePhotos is starting at {url}", flush=True)
-        if tray and sys.platform == "win32":
-            icon = _start_tray(url, server)
+        threading.Thread(
+            target=_say_when_running,
+            args=(server, url, startup, stopped),
+            daemon=True,
+        ).start()
         if open_browser:
             threading.Thread(
                 target=_open_browser_when_up, args=(url,), daemon=True
@@ -818,9 +1077,18 @@ def _serve(
         if not server.started:
             raise _server_start_failure(server.config.host, server.config.port)
     finally:
-        if icon is not None:
-            icon.stop()
+        stopped.set()
         _shutdown(cluster)
+
+
+def _say_when_running(
+    server: uvicorn.Server, url: str, startup: Startup, stopped: threading.Event
+) -> None:
+    """Set the tray status to "Running" once uvicorn has started."""
+    while not server.started:
+        if stopped.wait(0.5) or startup.cancelled:
+            return
+    startup.status(STATUS_RUNNING.format(url=url))
 
 
 def _server_start_failure(host: str, port: int) -> Exception:
@@ -834,17 +1102,41 @@ def _server_start_failure(host: str, port: int) -> Exception:
     return RuntimeError(f"The server could not start on {host}:{port}")
 
 
-def _shutdown(cluster: subprocess.Popen[bytes]) -> None:
+def _shutdown(cluster: subprocess.Popen[bytes] | None) -> None:
+    """Stop this instance's sidecars and job cluster, and nobody else's.
+
+    stop_service alone stops every process running a sidecar, whichever
+    LibrePhotos started it (#2316): a second instance on its way out took the
+    first one's sidecars down with it.
+    """
     from api.runtime.supervisor import SERVICES, stop_service
 
+    own = own_process_ids()
     for service in SERVICES:
-        stop_service(service)
-    if cluster.poll() is None:
+        stop_service(service, only=own)
+    if cluster is not None and cluster.poll() is None:
         cluster.terminate()
         try:
             cluster.wait(timeout=15)
         except subprocess.TimeoutExpired:
             cluster.kill()
+
+
+def own_process_ids() -> set[int]:
+    """The processes this instance started, directly or not.
+
+    On Windows that is the job object of _take_children_down_with_us: it
+    also holds a sidecar the watchdog restarted from a django-q worker that
+    has exited since, which no longer descends from this process. Elsewhere,
+    or without a job, this process's descendants.
+    """
+    pids = _job_process_ids()
+    if pids is None:
+        import psutil
+
+        pids = {child.pid for child in psutil.Process().children(recursive=True)}
+    pids.discard(os.getpid())
+    return pids
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -896,8 +1188,13 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "service":
         run_service(args.name)
     else:
+        startup = Startup()
         try:
-            run_server(args.host, args.port, not args.no_browser, not args.no_tray)
+            run_server(
+                args.host, args.port, not args.no_browser, not args.no_tray, startup
+            )
+        except StartupCancelledError:
+            print("LibrePhotos was quit while it was starting", flush=True)
         except StartupError as error:
             # The child's own output, already in the console or console.log,
             # is the traceback; the message box gets the plain reason.
@@ -909,6 +1206,9 @@ def main(argv: list[str] | None = None) -> None:
             traceback.print_exc()
             _report_failure(f"LibrePhotos could not start: {error}")
             raise SystemExit(1) from error
+        finally:
+            # After the message box: the icon stays while it is open.
+            startup.close()
 
 
 # Also at import, not only from the entry script: this module is imported in

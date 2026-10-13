@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import time
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from typing import Any
 
 import requests
@@ -536,9 +536,10 @@ def _exited_during_start(service: str, returncode: int) -> None:
     )
 
 
-def stop_service(service: str) -> bool:
+def stop_service(service: str, only: Collection[int] | None = None) -> bool:
     """Stop every process running the sidecar: SIGTERM, then SIGKILL for any
-    still there after STOP_GRACE_SECONDS.
+    still there after STOP_GRACE_SECONDS. With ``only``, just the processes
+    among those PIDs: the standalone build's own (#2316).
 
     psutil rather than `ps | grep | kill`: the standalone build runs on Windows,
     where neither exists, and its sidecars are the binary itself, which no
@@ -549,7 +550,8 @@ def stop_service(service: str) -> bool:
     processes = []
     try:
         for process in psutil.process_iter(["pid", "cmdline"]):
-            if process.info["pid"] == os.getpid():
+            pid = process.info["pid"]
+            if pid == os.getpid() or (only is not None and pid not in only):
                 continue
             if not _is_service_process(process.info["cmdline"], service):
                 continue
