@@ -522,6 +522,18 @@ class CrossTenantWriteTest(TestCase):
                 f"/api/persons/{self.a_person.pk}/remove-photos/",
                 {"photo_ids": self._ids()},
             ),
+            # Pulling the victim's person (and its faces) into the attacker's,
+            # and pushing the attacker's into the victim's.
+            (
+                "post",
+                f"/api/persons/{self.a_person.pk}/merge/",
+                {"person": self.v_person.pk},
+            ),
+            (
+                "post",
+                f"/api/persons/{self.v_person.pk}/merge/",
+                {"person": self.a_person.pk},
+            ),
             (
                 "post",
                 "/api/labelfaces",

@@ -563,6 +563,16 @@ export async function removePhotosFromPerson(
   return parseResponse(S.PersonRemovePhotosResponse, res, "remove photos from person");
 }
 
+/** Merge `sourceId` into `targetId`: its faces move over, the target keeps its name and cover, and the source is deleted. */
+export async function mergePerson(
+  client: ApiClient,
+  targetId: number | string,
+  sourceId: number | string
+): Promise<S.PersonMergeResponse> {
+  const res = await client.post<unknown>(`/persons/${targetId}/merge/`, { person: Number(sourceId) });
+  return parseResponse(S.PersonMergeResponse, res, "merge person");
+}
+
 /** Rename a person. */
 export async function renamePerson(
   client: ApiClient,

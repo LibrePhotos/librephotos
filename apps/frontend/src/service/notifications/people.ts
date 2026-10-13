@@ -17,6 +17,12 @@ function removePhotosFromPerson(name: string, count: number) {
   });
 }
 
+function mergePerson(sourceName: string, targetName: string) {
+  toast.success(i18n.t("toasts.mergeperson", { sourceName, targetName }), {
+    title: i18n.t("toasts.mergepersontitle"),
+  });
+}
+
 /** The faces are saved; their tags did not reach some files (a read-only library). */
 function faceTagsNotWritten(error: string) {
   toast.warning(i18n.t("toasts.facetagsnotwritten", { error }), {
@@ -27,6 +33,7 @@ function faceTagsNotWritten(error: string) {
 export const people = {
   deletePerson,
   faceTagsNotWritten,
+  mergePerson,
   removePhotosFromPerson,
   renamePerson,
 };

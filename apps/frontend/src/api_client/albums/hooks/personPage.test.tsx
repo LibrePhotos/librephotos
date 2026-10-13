@@ -1,7 +1,8 @@
 /**
  * The person page's data (#2207): the person by id (null for a 404, so the page can say "Person
- * not found"), and taking the person off photos, which refreshes the person's grid, the people
- * list and the face lists once the server answered.
+ * not found"), taking the person off photos, which refreshes the person's grid, the people list
+ * and the face lists once the server answered, and merging two people (#2206), which refreshes
+ * the same.
  */
 import { albumKeys, faceKeys, photoGridKeys, Photoset } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api";
 import { useFetchPersonQuery } from "./useFetchPersonQuery";
+import { useMergePersonMutation } from "./useMergePersonMutation";
 import { useRemovePhotosFromPersonMutation } from "./useRemovePhotosFromPersonMutation";
 
 const stubs = vi.hoisted(() => ({
@@ -17,6 +19,7 @@ const stubs = vi.hoisted(() => ({
   post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
   removePhotosFromPerson: vi.fn<(name: string, count: number) => void>(),
   faceTagsNotWritten: vi.fn<(error: string) => void>(),
+  mergePerson: vi.fn<(sourceName: string, targetName: string) => void>(),
 }));
 
 vi.mock("../../api", async importOriginal => ({
@@ -30,6 +33,7 @@ vi.mock("../../../service/notifications", () => ({
   notification: {
     removePhotosFromPerson: stubs.removePhotosFromPerson,
     faceTagsNotWritten: stubs.faceTagsNotWritten,
+    mergePerson: stubs.mergePerson,
   },
 }));
 
@@ -152,5 +156,51 @@ describe("useRemovePhotosFromPersonMutation", () => {
     await remove({ removed: 2, photo_count: 2, write_error: "1 of 2 photos were not written: read-only" });
 
     expect(stubs.faceTagsNotWritten).toHaveBeenCalledWith("1 of 2 photos were not written: read-only");
+  });
+});
+
+describe("useMergePersonMutation", () => {
+  it("merges, says so and refreshes what the merged faces moved between", async () => {
+    stubs.post.mockResolvedValue({ moved: 4, photo_count: 3, write_queued: false });
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    let mutate: ReturnType<typeof useMergePersonMutation>["mutateAsync"] | undefined;
+    function Harness() {
+      mutate = useMergePersonMutation().mutateAsync;
+      return null;
+    }
+    const root = await mount(Harness);
+    await act(async () => {
+      await mutate?.({ targetId: "5", targetName: "Robert", sourceId: "9", sourceName: "Bob" });
+    });
+    await act(async () => root.unmount());
+
+    expect(stubs.post).toHaveBeenCalledWith("/persons/5/merge/", { person: 9 });
+    expect(stubs.mergePerson).toHaveBeenCalledWith("Bob", "Robert");
+    expect(invalidate.mock.calls.map(([filters]) => filters?.queryKey)).toEqual(
+      expect.arrayContaining([
+        photoGridKeys.dateAlbumLists(Photoset.PERSON),
+        albumKeys.peopleAlbums(),
+        faceKeys.personFaces(),
+        faceKeys.incomplete(),
+      ])
+    );
+  });
+
+  it("says nothing when the merge fails", async () => {
+    stubs.post.mockRejectedValue(new ApiError("Not found", 404));
+    let mutate: ReturnType<typeof useMergePersonMutation>["mutateAsync"] | undefined;
+    function Harness() {
+      mutate = useMergePersonMutation().mutateAsync;
+      return null;
+    }
+    const root = await mount(Harness);
+    await act(async () => {
+      await expect(
+        mutate?.({ targetId: "5", targetName: "Robert", sourceId: "9", sourceName: "Bob" })
+      ).rejects.toBeInstanceOf(ApiError);
+    });
+    await act(async () => root.unmount());
+
+    expect(stubs.mergePerson).not.toHaveBeenCalled();
   });
 });

@@ -33,6 +33,12 @@ export function uniqueName(existingNames: Iterable<string>, message: NameMessage
   });
 }
 
+/** The item whose name `name` reads as, compared the way `uniqueName` compares. */
+export function findByName<Item extends { name: string }>(items: Iterable<Item>, name: string): Item | undefined {
+  const key = nameKey(name);
+  return Array.from(items).find(item => nameKey(item.name) === key);
+}
+
 /**
  * A new name for a person, album or tag: trimmed, not blank, and not one of `existingNames`. The
  * schema's output is the trimmed name; a form hands it on through `transformValues`.

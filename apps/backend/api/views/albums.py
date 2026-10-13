@@ -6,6 +6,7 @@ from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import filters, mixins, serializers, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import (
     SAFE_METHODS,
@@ -25,6 +26,7 @@ from api.drf.pagination import (
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.faces.labels import relabel_faces
+from api.faces.merge import merge_people
 from api.models import (
     AlbumDate,
     AlbumPlace,
@@ -65,6 +67,8 @@ from api.serializers.album_user import (
     with_album_user_list_relations,
 )
 from api.serializers.person import (
+    PersonMergeRequest,
+    PersonMergeResponseSerializer,
     PersonRemovePhotosRequest,
     PersonRemovePhotosResponseSerializer,
     PersonSerializer,
@@ -153,6 +157,38 @@ class PersonViewSet(
                 "removed": len(result.faces),
                 "photo_count": len(result.photos),
                 "write_error": result.write_error,
+            }
+        )
+
+    @extend_schema(
+        description=(
+            "Merge another person into this one: all of their faces (labelled "
+            "and suggested) and clusters move here, this person keeps their "
+            "name and cover, and the merged person is deleted. Both must be "
+            "the requester's own named people."
+        ),
+        request=PersonMergeRequest,
+        responses={200: PersonMergeResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="merge")
+    def merge(self, request: Request, pk: str | None = None) -> Response:
+        user = request_user(request)
+        target = self.get_object()
+        source_id = parse_body(request, PersonMergeRequest)["person"]
+        source = self.get_queryset().filter(pk=source_id).first()
+        if source is None:
+            raise NotFound()
+        if source.pk == target.pk:
+            raise ValidationError(
+                {"person": "A person cannot be merged into themselves"},
+                code="self_merge",
+            )
+        result = merge_people(user, source, target)
+        return Response(
+            {
+                "moved": result.moved,
+                "photo_count": result.photo_count,
+                "write_queued": result.write_queued,
             }
         )
 

@@ -1,6 +1,7 @@
 /**
  * The person page's "⋮" (#2207): Rename and Delete open the People page's dialogs, Delete goes
- * back to People once the person is gone, Manage faces opens the face dashboard.
+ * back to People once the person is gone, Manage faces opens the face dashboard, and "Merge
+ * into…" picks another person, asks, and goes on to that person once merged (#2206).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient } from "@tanstack/react-query";
@@ -9,26 +10,39 @@ import type { ParseKeys } from "i18next";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Person, useDeletePersonAlbumMutation, useRenamePersonAlbumMutation } from "../../api_client/albums/hooks";
+import type {
+  Person,
+  useDeletePersonAlbumMutation,
+  useMergePersonMutation,
+  useRenamePersonAlbumMutation,
+} from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { PersonHeaderMenu } from "./PersonHeaderMenu";
 
 type Rename = ReturnType<typeof useRenamePersonAlbumMutation>["mutate"];
 type Delete = ReturnType<typeof useDeletePersonAlbumMutation>["mutate"];
+type Merge = ReturnType<typeof useMergePersonMutation>["mutate"];
 
 const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
   rename: vi.fn<Rename>(),
   remove: vi.fn<Delete>(),
+  merge: vi.fn<Merge>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
-  useFetchPeopleAlbumsQuery: () => ({ data: [{ name: "Anna Becker" }, { name: "Jonas" }] }),
+  useFetchPeopleAlbumsQuery: () => ({
+    data: [
+      { id: "5", name: "Anna Becker" },
+      { id: "6", name: "Jonas" },
+    ],
+  }),
   useRenamePersonAlbumMutation: () => ({ mutate: stubs.rename }),
   useDeletePersonAlbumMutation: () => ({ mutate: stubs.remove }),
+  useMergePersonMutation: () => ({ mutate: stubs.merge, isPending: false }),
 }));
 
 const anna: Person = {
@@ -52,6 +66,15 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
+  // jsdom has no ResizeObserver, the merge picker's dropdown needs it
+  globalThis.ResizeObserver = class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  };
+  Element.prototype.scrollIntoView = () => {};
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -62,6 +85,7 @@ beforeEach(async () => {
   stubs.navigate.mockReset();
   stubs.rename.mockReset();
   stubs.remove.mockReset();
+  stubs.merge.mockReset();
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -96,7 +120,7 @@ describe("PersonHeaderMenu", () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Manage Faces", "Delete Person"]);
+    expect(items).toEqual(["Rename", "Merge into…", "Manage Faces", "Delete Person"]);
   });
 
   it("opens the face dashboard", async () => {
@@ -141,5 +165,50 @@ describe("PersonHeaderMenu", () => {
     expect(id).toBe("5");
     act(() => options?.onSuccess?.(undefined, "5", undefined, { client: new QueryClient(), meta: undefined }));
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/album/persons" });
+  });
+
+  it("merges into a chosen person after asking, then shows that person", async () => {
+    await pick("personalbum.mergeintomenu");
+
+    expect(document.body.textContent).toContain("Merge Anna Becker into…");
+    const search = defined(document.body.querySelector<HTMLInputElement>("input"), "the person search");
+    // The person merged away is no choice
+    await act(async () => search.click());
+    const options = Array.from(document.body.querySelectorAll('[role="option"]')).map(el => el.textContent);
+    expect(options).toEqual(["Jonas"]);
+    await act(async () => (defined(document.body.querySelector('[role="option"]'), "Jonas") as HTMLElement).click());
+    await act(async () => button("Continue").click());
+
+    expect(document.body.textContent).toContain("Merge Anna Becker into Jonas?");
+    expect(stubs.merge).not.toHaveBeenCalled();
+    await act(async () => button("Merge people").click());
+
+    const [params, options_] = defined(stubs.merge.mock.calls[0]);
+    expect(params).toEqual({ targetId: "6", targetName: "Jonas", sourceId: "5", sourceName: "Anna Becker" });
+    const answer = { moved: 3, photo_count: 2, write_queued: false };
+    act(() => options_?.onSuccess?.(answer, params, undefined, { client: new QueryClient(), meta: undefined }));
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/album/persons/$id", params: { id: "6" } });
+  });
+
+  it("offers the merge when renaming to another person's name", async () => {
+    await pick("rename");
+    const input = defined(document.body.querySelector<HTMLInputElement>("input"), "the name input");
+    const setValue = defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set);
+    await act(async () => {
+      setValue.call(input, "jonas");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => button("Merge into Jonas").click());
+    await act(async () => button("Merge people").click());
+
+    const [params, options] = defined(stubs.merge.mock.calls[0]);
+    expect(params).toMatchObject({ targetId: "6", sourceId: "5" });
+    act(() =>
+      options?.onSuccess?.({ moved: 3, photo_count: 2, write_queued: true }, params, undefined, {
+        client: new QueryClient(),
+        meta: undefined,
+      })
+    );
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/album/persons/$id", params: { id: "6" } });
   });
 });

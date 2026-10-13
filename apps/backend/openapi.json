@@ -3393,6 +3393,66 @@
         }
       }
     },
+    "/api/persons/{id}/merge/": {
+      "post": {
+        "operationId": "api_persons_merge_create",
+        "description": "Merge another person into this one: all of their faces (labelled and suggested) and clusters move here, this person keeps their name and cover, and the merged person is deleted. Both must be the requester's own named people.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this person.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonMergeRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonMergeRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonMergeRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonMergeResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/persons/{id}/remove-photos/": {
       "post": {
         "operationId": "api_persons_remove_photos_create",
@@ -11469,6 +11529,40 @@
           "photo",
           "photo_image_hash",
           "timestamp"
+        ]
+      },
+      "PersonMergeRequestRequest": {
+        "type": "object",
+        "properties": {
+          "person": {
+            "type": "integer",
+            "description": "The person to merge into this one; it is deleted"
+          }
+        },
+        "required": [
+          "person"
+        ]
+      },
+      "PersonMergeResponse": {
+        "type": "object",
+        "properties": {
+          "moved": {
+            "type": "integer",
+            "description": "How many faces moved from the merged person to this one"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "How many photos now show this person instead"
+          },
+          "write_queued": {
+            "type": "boolean",
+            "description": "Whether the face tags of those photos are being written to their files in the background (the owner's face tag setting)"
+          }
+        },
+        "required": [
+          "moved",
+          "photo_count",
+          "write_queued"
         ]
       },
       "PersonRemovePhotosRequestRequest": {

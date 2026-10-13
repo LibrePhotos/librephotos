@@ -192,3 +192,28 @@ class PersonRemovePhotosResponseSerializer(serializers.Serializer[None]):
         allow_null=True,
         help_text="Why some face tags were not written to their files, or null",
     )
+
+
+class PersonMergeRequest(serializers.Serializer[None]):
+    person = serializers.IntegerField(
+        error_messages={
+            "required": "No person provided",
+            "null": "No person provided",
+        },
+        help_text="The person to merge into this one; it is deleted",
+    )
+
+
+class PersonMergeResponseSerializer(serializers.Serializer[None]):
+    moved = serializers.IntegerField(
+        help_text="How many faces moved from the merged person to this one"
+    )
+    photo_count = serializers.IntegerField(
+        help_text="How many photos now show this person instead"
+    )
+    write_queued = serializers.BooleanField(
+        help_text=(
+            "Whether the face tags of those photos are being written to their "
+            "files in the background (the owner's face tag setting)"
+        )
+    )
