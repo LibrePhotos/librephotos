@@ -2,18 +2,19 @@
 
 ``GET /api/rqavailable/`` used to treat any ``finished=False`` row as busy,
 so orphaned jobs blocked every heavyweight action forever. Age filtering
-matches ``LongRunningJob.cleanup_stuck_jobs`` / ``STUCK_JOB_HOURS``. See #1919.
+matches ``LongRunningJob.cleanup_stuck_jobs`` / ``settings.STUCK_JOB_HOURS``. See #1919.
 """
 
 import uuid
 from datetime import timedelta
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_job, create_test_user
 
 J = LongRunningJob
 RQ_AVAILABLE_URL = "/api/rqavailable/"
@@ -46,14 +47,14 @@ class QueueAvailabilityStuckJobsTest(TestCase):
         self.assertIsNotNone(response.data["job_detail"])
 
     def test_stuck_started_job_does_not_block_queue(self):
-        self._unfinished_job(hours_ago=J.STUCK_JOB_HOURS + 1, started=True)
+        self._unfinished_job(hours_ago=settings.STUCK_JOB_HOURS + 1, started=True)
         response = self.client.get(RQ_AVAILABLE_URL)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["queue_can_accept_job"])
         self.assertIsNone(response.data["job_detail"])
 
     def test_stuck_never_started_job_does_not_block_queue(self):
-        self._unfinished_job(hours_ago=J.STUCK_JOB_HOURS + 1, started=False)
+        self._unfinished_job(hours_ago=settings.STUCK_JOB_HOURS + 1, started=False)
         response = self.client.get(RQ_AVAILABLE_URL)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["queue_can_accept_job"])
@@ -64,3 +65,23 @@ class QueueAvailabilityStuckJobsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["queue_can_accept_job"])
         self.assertIsNone(response.data["job_detail"])
+
+
+class QueueAvailabilityLongJobTest(TestCase):
+    """A job that runs for days but still reports progress keeps the queue busy (#2248)."""
+
+    def test_old_job_with_recent_progress_blocks_queue(self):
+        user = create_test_user()
+        client = APIClient()
+        client.force_authenticate(user=user)
+        now = timezone.now()
+        job = create_test_job(
+            user,
+            queued_at=now - timedelta(hours=30),
+            started_at=now - timedelta(hours=30),
+        )
+        job.update_progress(current=1, target=100)
+        response = client.get(RQ_AVAILABLE_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["queue_can_accept_job"])
+        self.assertIsNotNone(response.data["job_detail"])

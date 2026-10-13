@@ -6,7 +6,10 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
+from django.conf import settings
 from django.db import models
+from django.db.models.functions import Coalesce
+from django.db.models.lookups import GreaterThanOrEqual, LessThan
 from django.utils import timezone
 
 from api.models.scopes import OwnedQuerySet
@@ -14,7 +17,20 @@ from api.models.user import User, get_deleted_user
 
 logger = logging.getLogger(__name__)
 
-STUCK_JOB_HOURS = 24
+
+def stuck_job_hours() -> int:
+    """Hours without progress after which an unfinished job counts as stuck.
+
+    ``STUCK_JOB_HOURS`` (default 24), for hosts where one item of a job can
+    take longer than that.
+    """
+    hours: int = settings.STUCK_JOB_HOURS
+    return hours
+
+
+def _last_sign_of_life() -> Coalesce:
+    """A job's last progress, else its start, else its queueing."""
+    return Coalesce("last_progress_at", "started_at", "queued_at")
 
 
 class JobCancelledError(Exception):
@@ -39,16 +55,29 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
         """Jobs that are queued or running: unfinished and not stuck.
 
         A row is written when the job is queued (``api.jobs.queue``), so a
-        queued job counts as running. Unfinished rows past the stuck-job
-        threshold are left out, so an orphan (OOM, restart, uncaught
-        exception) does not block anything while it waits for the hourly
-        ``cleanup_stuck_jobs`` (#1919). Duplicate-start refusal and
-        ``/api/rqavailable/`` both read this.
+        queued job counts as running. Rows that ``stuck()`` would return are
+        left out, so an orphan (OOM, restart, uncaught exception) does not
+        block anything while it waits for the hourly ``cleanup_stuck_jobs``
+        (#1919). Duplicate-start refusal and ``/api/rqavailable/`` both read
+        this.
         """
-        cutoff = timezone.now() - timedelta(hours=STUCK_JOB_HOURS)
-        return self.filter(finished=False).filter(
-            models.Q(started_at__gte=cutoff)
-            | models.Q(started_at__isnull=True, queued_at__gte=cutoff)
+        cutoff = timezone.now() - timedelta(hours=stuck_job_hours())
+        return self.filter(GreaterThanOrEqual(_last_sign_of_life(), cutoff)).filter(
+            finished=False
+        )
+
+    def stuck(self, hours: int | None = None) -> LongRunningJobQuerySet:
+        """Unfinished jobs that have shown no sign of life for ``hours``.
+
+        A sign of life is the last progress the job reported, else its start,
+        else its queueing. A scan of a large library can run for days, so
+        the age of the job itself says nothing (#2248).
+        """
+        if hours is None:
+            hours = stuck_job_hours()
+        cutoff = timezone.now() - timedelta(hours=hours)
+        return self.filter(LessThan(_last_sign_of_life(), cutoff)).filter(
+            finished=False
         )
 
     def baselines(self, job_type: int) -> LongRunningJobQuerySet:
@@ -84,7 +113,6 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
 
 
 class LongRunningJob(models.Model):
-    STUCK_JOB_HOURS = STUCK_JOB_HOURS
     # How often ``stop_if_cancelled`` reads the row: a loop may call it on
     # every item without a query per item.
     CANCEL_CHECK_SECONDS = 1.0
@@ -163,6 +191,9 @@ class LongRunningJob(models.Model):
     )
     progress_current = models.PositiveIntegerField(default=0)
     progress_target = models.PositiveIntegerField(default=0)
+    # When the job last reported progress; the stuck-job cleanup counts from
+    # here (#2248).
+    last_progress_at = models.DateTimeField(null=True, blank=True)
     # New fields for detailed progress reporting
     progress_step = models.CharField(
         max_length=100, null=True, blank=True
@@ -304,8 +335,9 @@ class LongRunningJob(models.Model):
 
         Only the progress fields are written, so a cancel stays in place.
         """
-        update_fields = ["progress_current"]
+        update_fields = ["progress_current", "last_progress_at"]
         self.progress_current = current
+        self.last_progress_at = timezone.now()
         if target is not None:
             self.progress_target = target
             update_fields.append("progress_target")
@@ -320,7 +352,8 @@ class LongRunningJob(models.Model):
         Returns False when the job had been cancelled; the row is left as is.
         """
         self.result = result
-        return self._write_unless_cancelled(["result"])
+        self.last_progress_at = timezone.now()
+        return self._write_unless_cancelled(["result", "last_progress_at"])
 
     @classmethod
     def baseline_for(cls, user: User, job_type: int) -> LongRunningJob | None:
@@ -419,35 +452,35 @@ class LongRunningJob(models.Model):
 
     @classmethod
     def cleanup_stuck_jobs(cls, hours: int | None = None) -> int:
-        """
-        Mark jobs as failed if they've been running (or queued) for too long.
+        """Mark jobs failed that have reported no progress for ``hours``.
 
-        Jobs with finished=False are considered stuck when:
-        - started_at is set and older than the threshold, or
-        - started_at is null and queued_at is older than the threshold
-          (never-started orphans from crashed workers).
+        See ``LongRunningJobQuerySet.stuck``: a job is stuck when it is
+        unfinished and neither reported progress nor started (a never-started
+        orphan: nor was queued) within ``hours``. The error is added to the
+        job's ``result``, so what it recorded (errors, the scan's follow-up
+        options) stays visible.
 
         Args:
-            hours: Hours after which a job is considered stuck.
-                Defaults to STUCK_JOB_HOURS.
+            hours: Hours without progress after which a job is stuck.
+                Defaults to ``STUCK_JOB_HOURS``.
 
         Returns:
             Number of jobs marked as failed
         """
         if hours is None:
-            hours = cls.STUCK_JOB_HOURS
-        cutoff = timezone.now() - timedelta(hours=hours)
-        stuck_jobs = cls.objects.filter(finished=False).filter(
-            models.Q(started_at__isnull=False, started_at__lt=cutoff)
-            | models.Q(started_at__isnull=True, queued_at__lt=cutoff)
-        )
-        count = stuck_jobs.count()
-        stuck_jobs.update(
-            failed=True,
-            finished=True,
-            finished_at=timezone.now(),
-            result={"status": "failed", "error": f"Job timed out after {hours} hours"},
-        )
+            hours = stuck_job_hours()
+        error = f"Job made no progress for {hours} hours"
+        count = 0
+        for job in cls.objects.stuck(hours).only("pk", "result"):
+            result = dict(job.result) if isinstance(job.result, dict) else {}
+            result.update(status="failed", error=error)
+            # Conditional: a job that finished meanwhile is left alone.
+            count += cls.objects.filter(pk=job.pk, finished=False).update(
+                failed=True,
+                finished=True,
+                finished_at=timezone.now(),
+                result=result,
+            )
         return count
 
     @classmethod

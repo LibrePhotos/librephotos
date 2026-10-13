@@ -236,6 +236,12 @@ _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
 if _WORKER_CONCURRENCY is not None:
     Q_CLUSTER["workers"] = _WORKER_CONCURRENCY
 
+# Hours a job may go without reporting progress before the hourly cleanup
+# marks it failed and stops counting it as running (#1919, #2248). Counted from
+# its last progress, not its start: a first scan of a large library on slow
+# hardware takes days. Raise it where one item can take longer than this.
+STUCK_JOB_HOURS = max(1, env_int("STUCK_JOB_HOURS", 24))
+
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_ADDITIONAL_FIELDS = {
     "map_api_provider": [

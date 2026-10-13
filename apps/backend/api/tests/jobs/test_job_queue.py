@@ -15,6 +15,7 @@ import shutil
 import tempfile
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -110,7 +111,7 @@ class ScanQueuedTest(TestCase):
             started_by=self.user,
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             queued_at=timezone.now()
-            - datetime.timedelta(hours=LongRunningJob.STUCK_JOB_HOURS + 1),
+            - datetime.timedelta(hours=settings.STUCK_JOB_HOURS + 1),
         )
         with patch("api.jobs.queue.AsyncTask"):
             response = self.client.post("/api/scanphotos/")
@@ -301,7 +302,7 @@ class ClaimTest(TestCase):
         job = self.queued(LongRunningJob.JOB_GENERATE_AUTO_ALBUMS)
         LongRunningJob.objects.filter(pk=job.pk).update(
             queued_at=timezone.now()
-            - datetime.timedelta(hours=LongRunningJob.STUCK_JOB_HOURS + 1)
+            - datetime.timedelta(hours=settings.STUCK_JOB_HOURS + 1)
         )
         LongRunningJob.cleanup_stuck_jobs()
 
