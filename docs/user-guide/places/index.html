@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.b88cfa45.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.abab6a3c.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -27,6 +27,7 @@
 <li class=""><code>Composite:GPSLatitude</code> - The latitude coordinate</li>
 <li class=""><code>Composite:GPSLongitude</code> - The longitude coordinate</li>
 </ul>
+<p>The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video&#x27;s creation time or a photo&#x27;s GPS time is stored in UTC, and the photo&#x27;s position tells which time zone to turn it into. A position the photo already has, such as one you set by hand, is kept. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; <strong>Rescan</strong> fixes photos scanned before.)</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="2-reverse-geocoding">2. Reverse Geocoding<a href="#2-reverse-geocoding" class="hash-link" aria-label="Direct link to 2. Reverse Geocoding" title="Direct link to 2. Reverse Geocoding" translate="no">​</a></h3>
 <p>GPS coordinates alone are just numbers. To show meaningful place names (like &quot;Paris, France&quot; or &quot;Central Park, New York&quot;), LibrePhotos uses <strong>reverse geocoding</strong> - a process that converts coordinates into human-readable addresses.</p>
 <p>You can configure your preferred geocoding provider in <strong>Admin Area → Site Settings</strong>:</p>
