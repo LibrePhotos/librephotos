@@ -3,12 +3,23 @@ import logging
 import geopy
 from constance import config as site_config
 
+from api.geocode import GEOCODE_VERSION
 from api.runtime.features import feature_enabled
 
 from .config import get_provider_config, get_provider_parser
 from .rate_limit import wait as wait_for_provider
 
 logger = logging.getLogger(__name__)
+
+
+def no_place() -> dict[str, object]:
+    """The answer for a position the provider has no place for (open sea, a
+    remote area): looked up, nothing there.
+
+    Unlike ``{}``, a failed lookup, it is stored for the position, so the
+    geolocation job does not ask again until the position changes (#2567).
+    """
+    return {"features": [], "places": [], "_v": GEOCODE_VERSION}
 
 
 class Geocode:
@@ -37,6 +48,10 @@ class Geocode:
         if self._missing_api_key():
             return {}
         location = self._geocoder.reverse(f"{lat},{lon}")
+        # geopy answers None when the provider has no place there, and raises
+        # when the lookup fails.
+        if location is None:
+            return no_place()
         return self._parser(location)
 
     def search(self, query: str, limit: int = 5) -> list[dict]:
@@ -57,6 +72,9 @@ class Geocode:
 
 
 def reverse_geocode(lat: float, lon: float) -> dict:
+    """The place at ``lat``, ``lon``: a parsed place, ``no_place()`` when the
+    provider has none there, or ``{}`` when it could not be asked (reverse
+    geocoding off, no API key, an error), which is worth trying again."""
     if not feature_enabled("REVERSE_GEOCODING"):
         logger.debug("Reverse geocoding is disabled")
         return {}

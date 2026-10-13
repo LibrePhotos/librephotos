@@ -106,7 +106,8 @@ def clear_location(photo: Photo) -> None:
 
 def needs_geocoding() -> Q:
     """Photos with a position whose place was not looked up for it yet: never
-    geocoded, a lookup that failed, or a position that changed since."""
+    geocoded, a lookup that failed, or a position that changed since. A
+    lookup that found no place there (``no_place``) counts as looked up."""
     return Q(exif_gps_lat__isnull=False, exif_gps_lon__isnull=False) & (
         Q(geocoded_lat__isnull=True)
         | Q(geocoded_lon__isnull=True)
@@ -139,16 +140,19 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
     old_album_places = find_album_places(photo)
     if (
         (photo.geocoded_lat, photo.geocoded_lon) == position
-        and old_album_places.exists()
         and _has_current_geolocation(photo)
+        # A place puts the photo in its Places albums; a position with no
+        # place (``no_place``) has none to check (#2567).
+        and (old_album_places.exists() or not has_place(photo))
     ):
         return
 
     res = _reverse_geocode_safely(*position)
     if not res:
-        # The place of other coordinates no longer applies (#2253); for the
-        # same coordinates it still does. Left ungeocoded, the photo is
-        # looked up again by the next geolocation job.
+        # The lookup failed. The place of other coordinates no longer applies
+        # (#2253); for the same coordinates it still does. Left ungeocoded,
+        # the photo is looked up again by the next geolocation job. A
+        # position with no place is not a failure: it is stored below.
         geocoded = (photo.geocoded_lat, photo.geocoded_lon)
         if geocoded not in ((None, None), position):
             forget_place(photo, old_album_places)

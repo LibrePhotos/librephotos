@@ -3,7 +3,7 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.test import TestCase
 
-from api.geocode.geocode import reverse_geocode, search_location
+from api.geocode.geocode import no_place, reverse_geocode, search_location
 from api.geocode.parsers.mapbox import parse as parse_mapbox
 from api.geocode.parsers.nominatim import parse as parse_nominatim
 from api.geocode.parsers.opencage import parse as parse_opencage
@@ -109,6 +109,21 @@ class TestGeocoder(TestCase):
         get_geocoder_for_service_mock.return_value = fake_geocoder(mapbox_responses[1])
         result = reverse_geocode(0, 0)
         self.assertEqual(result, mapbox_expectations[1])
+
+    @override_config(MAP_API_PROVIDER="mapbox", MAP_API_KEY="test-key")
+    @patch("api.geocode.geocode.wait_for_provider")
+    @patch("geopy.get_geocoder_for_service", autospec=True)
+    def test_reverse_geocode_tells_no_place_from_a_failure(
+        self, get_geocoder_for_service_mock, _wait_mock
+    ):
+        # #2567: geopy answers None for "nothing there" and raises on a failure.
+        provider = get_geocoder_for_service_mock.return_value.return_value
+        provider.reverse.return_value = None
+        self.assertEqual(no_place(), reverse_geocode(0.5, -30.0))
+        self.assertTrue(no_place())
+
+        provider.reverse.side_effect = TimeoutError("timed out")
+        self.assertEqual({}, reverse_geocode(0.5, -30.0))
 
     @override_config(MAP_API_PROVIDER="mapbox")
     @override_config(MAP_API_KEY="")
