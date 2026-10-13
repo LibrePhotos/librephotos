@@ -362,12 +362,11 @@ export function PhotoViewerScreen() {
           source={sourceFor(item, base, headers, active && isAnimated(detail.detail?.image_path))}
           placeholder={placeholderFor(item, base, headers)}
           overlay={
-            face ? (
+            face && item.image_hash ? (
               <FaceOverlay
                 testID="viewer-face-overlay"
                 location={face.location}
-                sourceWidth={detail.detail?.width}
-                sourceHeight={detail.detail?.height}
+                faceSpace={{ uri: bigThumbnailUrl(base, item.image_hash), headers }}
                 boxWidth={width}
                 boxHeight={height}
               />
