@@ -17,7 +17,9 @@ from api.models import LongRunningJob
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.serializers import ListDirQuery
 from nextcloud.server_address import (
+    CABundleError,
     UnsafeServerAddress,
+    certificate_check,
     connect,
     validate_server_address,
 )
@@ -53,7 +55,7 @@ class ListDir(APIView):
                     if p.is_dir()
                 ]
             )
-        except UnsafeServerAddress as e:
+        except (UnsafeServerAddress, CABundleError) as e:
             raise ValidationError(str(e)) from e
         except nextcloud.ResponseError as e:
             logger.warning("Nextcloud responded with an error: %s", e)
@@ -82,7 +84,8 @@ class ScanPhotosView(APIView):
         user = request_user(request)
         try:
             validate_server_address(user.nextcloud_server_address)
-        except UnsafeServerAddress as e:
+            certificate_check()
+        except (UnsafeServerAddress, CABundleError) as e:
             raise ValidationError(str(e)) from e
         return start_job(
             user,

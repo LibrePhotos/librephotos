@@ -161,6 +161,11 @@ FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=
 NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = env_flag(
     "NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES", default=True
 )
+# A PEM file of certificates to check Nextcloud servers' TLS certificates
+# against instead of the public authorities, for a Nextcloud with a self-signed
+# certificate or one from a private CA. Empty: the public authorities.
+# Checking cannot be switched off. See nextcloud/server_address.py.
+NEXTCLOUD_CA_BUNDLE = env_str("NEXTCLOUD_CA_BUNDLE").strip()
 
 # The name the proxy reaches the backend by. Requests carrying it (or the
 # compose service name) come from inside the deployment, so api/accounts/public_url.py

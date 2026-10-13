@@ -329,6 +329,7 @@ Addresses on a private network - your LAN (`192.168.x.x`, `10.x.x.x`), a Docker 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES` | `nextcloudAllowPrivateAddresses` | `true` | Set it to `false` if users on your instance should only be able to connect to Nextcloud servers on the public internet, for example when you host LibrePhotos for people you do not know and do not want them to reach anything on your local network. |
+| `NEXTCLOUD_CA_BUNDLE` | `nextcloudCaBundle` | _(empty)_ | Path, inside the container, of a PEM file with the certificates to check Nextcloud servers against, for a Nextcloud with a self-signed certificate or one from your own certificate authority. Empty means the public certificate authorities. With a path set, only the certificates in the file are trusted for Nextcloud, and a missing or unreadable file stops browsing and scanning with a message naming this variable. Certificate checking cannot be switched off. See [Nextcloud with a self-signed certificate](../user-guide/library.md#nextcloud-with-a-self-signed-certificate). Not released yet. |
 
 A Nextcloud on the same machine as LibrePhotos cannot be reached as `localhost`; use its Docker service name, or `host.docker.internal` for one running directly on the host.
 
