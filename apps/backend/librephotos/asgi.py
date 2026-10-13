@@ -24,9 +24,29 @@ from a2wsgi.wsgi_typing import (
     WriteCallable,
     WSGIApp,
 )
+from django.core.handlers.wsgi import WSGIHandler
 
 from librephotos.env import env_int
-from librephotos.wsgi import application as wsgi_application
+
+
+def _load_wsgi_application() -> WSGIHandler:
+    # Importing librephotos.wsgi runs django.setup() and every
+    # AppConfig.ready(). uvicorn imports this module from inside its running
+    # event loop (Server._serve calls Config.load), where Django refuses
+    # synchronous database access: ApiConfig.ready() reading the log rotation
+    # settings from constance failed with SynchronousOnlyOperation in every
+    # worker. A thread of its own has no running loop.
+    from django.db import connections
+
+    from librephotos.wsgi import application
+
+    # Requests run on a2wsgi's threads; nothing uses this thread's connections.
+    connections.close_all()
+    return application
+
+
+with ThreadPoolExecutor(max_workers=1) as _loader:
+    wsgi_application = _loader.submit(_load_wsgi_application).result()
 
 
 class ClientDisconnected(Exception):
