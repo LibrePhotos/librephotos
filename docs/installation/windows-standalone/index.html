@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f9f1ea33.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c430c90c.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -96,6 +96,16 @@ then use port 8080.</p>
 </ol>
 <p>Any free port above 1024 works. Windows keeps some port ranges for Hyper-V, WSL or Docker; if the
 message box says LibrePhotos cannot use the port, pick another one (<code>netsh interface ipv4 show excludedportrange protocol=tcp</code> lists the reserved ranges).</p>
+<p>The background services use ports 8002 to 8012 on <code>127.0.0.1</code>. If another program holds one of
+them, LibrePhotos does not start either, and the message box lists each blocked port with the
+program holding it, for example <code>Port 8010 (exif): python.exe, process ID 4321</code>. Close that
+program, or move the service with its <code>SIDECAR_PORT_&lt;NAME&gt;</code> variable (the name in brackets, see
+<a class="" href="/docs/installation/environment-variables#internal-service-address">Environment variables</a>). Environment
+variables do not fit in a shortcut, so start LibrePhotos from a small <code>.cmd</code> file next to it
+instead, for example <code>LibrePhotos.cmd</code>:</p>
+<div class="language-bat codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bat codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">@echo off</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">set SIDECAR_PORT_EXIF=18010</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">start &quot;&quot; &quot;%~dp0librephotos.exe&quot;</span><br></div></code></pre></div></div>
+<p>Not released yet: up to 1.3.0, LibrePhotos started anyway, and the service failed for every photo
+of the next scan with the reason only in <code>console.log</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="updating">Updating<a href="#updating" class="hash-link" aria-label="Direct link to Updating" title="Direct link to Updating" translate="no">​</a></h3>
 <p>Quit LibrePhotos, unzip the new release over the old folder (or into a new one) and start <code>librephotos.exe</code> again. Not released yet: when the new release brings database migrations, it first copies the database into <code>db\backups</code> in the data folder, then migrates, so the first start after an update can take a few minutes. If the update goes wrong, <a class="" href="/docs/installation/upgrading#restore">restore that backup</a> and start the release named in its file name. An older release refuses to start on a database a newer one has migrated, see <a class="" href="/docs/installation/upgrading#downgrade">Going back to an older release</a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="upgrading-from-130-or-older">Upgrading from 1.3.0 or older<a href="#upgrading-from-130-or-older" class="hash-link" aria-label="Direct link to Upgrading from 1.3.0 or older" title="Direct link to Upgrading from 1.3.0 or older" translate="no">​</a></h3>
