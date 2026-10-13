@@ -174,6 +174,9 @@ async function press(key: string, target: Element = document.body, init: Keyboar
 /** The step to the next item, where the carousel and the list both move on. */
 const NEXT_ITEM = { mainSrc: "c", mainSrcHash: "hc", prevSrc: "b", prevSrcHash: "hb", nextSrc: "d", nextSrcHash: "hd" };
 
+/** What the overlay paints: the theme black, none of it transparent. */
+const OPAQUE_BLACK = "color-mix(in srgb, var(--mantine-color-black), transparent 0%)";
+
 describe("escapeTargetsLightbox", () => {
   it("claims a key pressed on the page or inside the lightbox", () => {
     const lightbox = document.createElement("div");
@@ -201,6 +204,17 @@ describe("escapeTargetsLightbox", () => {
     item.setAttribute("data-mantine-stop-propagation", "true");
 
     expect(escapeTargetsLightbox(item, null)).toBe(false);
+  });
+});
+
+describe("ContentViewer backdrop", () => {
+  // #2229: the grid used to show through a blurred, 80 % overlay around the photo
+  it("hides the page behind an opaque black overlay, without a blur", async () => {
+    await renderViewer();
+    const overlay = defined(document.querySelector<HTMLElement>(".mantine-Modal-overlay"));
+
+    expect(overlay.style.getPropertyValue("--overlay-bg")).toBe(OPAQUE_BLACK);
+    expect(overlay.style.getPropertyValue("--overlay-filter")).toBe("");
   });
 });
 

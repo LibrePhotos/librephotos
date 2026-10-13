@@ -35,3 +35,38 @@ export function clusterFeatureCollection(
     }));
   return { type: "FeatureCollection", features };
 }
+
+/** A map's opening camera: a fixed centre and zoom. */
+export type MapView = Readonly<{ longitude: number; latitude: number; zoom: number }>;
+
+/** How a map fits its places: room around the edge points, and how close one place may bring it. */
+export type FitOptions = Readonly<{ padding: number; maxZoom: number }>;
+
+/** A map's opening camera: a fixed view, or the box around its places. */
+export type InitialMapView =
+  MapView | Readonly<{ bounds: [[number, number], [number, number]]; fitBoundsOptions: FitOptions }>;
+
+/** Where a map opens when there is nothing to fit it to. */
+export const WORLD_VIEW: MapView = { longitude: 0, latitude: 40, zoom: 2 };
+
+/**
+ * Opens a map on every place in the collection, or on `world` when it has none. A single place
+ * opens at `fit.maxZoom` around it.
+ */
+export function initialViewForClusters(
+  collection: FeatureCollection<Point, ClusterFeatureProperties>,
+  fit: FitOptions,
+  world: MapView = WORLD_VIEW
+): InitialMapView {
+  const coordinates = collection.features.map(feature => feature.geometry.coordinates);
+  const longitudes = coordinates.flatMap(([lng]) => (lng === undefined ? [] : [lng]));
+  const latitudes = coordinates.flatMap(([, lat]) => (lat === undefined ? [] : [lat]));
+  if (longitudes.length === 0 || latitudes.length === 0) return world;
+  return {
+    bounds: [
+      [Math.min(...longitudes), Math.min(...latitudes)],
+      [Math.max(...longitudes), Math.max(...latitudes)],
+    ],
+    fitBoundsOptions: fit,
+  };
+}

@@ -86,7 +86,7 @@ Browse your photos by filesystem directory structure. The root view shows the su
 
 ## Photo Viewer (Lightbox)
 
-When you click on any photo in LibrePhotos, it opens in the photo viewer (also known as the lightbox). This provides a full-screen view of your photo with navigation controls and a details sidebar.
+When you click on any photo in LibrePhotos, it opens in the photo viewer (also known as the lightbox). This provides a full-screen view of your photo with navigation controls and a details sidebar. The photo sits on a plain black background in light and dark mode, so nothing of the page behind it changes how its colours and exposure look. (Not released yet: up to 1.3.0, the page showed through a dimmed, blurred layer around the photo.)
 
 ### Navigation
 

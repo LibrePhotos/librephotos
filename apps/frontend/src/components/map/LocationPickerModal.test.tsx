@@ -146,4 +146,19 @@ describe("LocationPickerModal", () => {
 
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [1, "locationpicker.permission_denied"],
+    [3, "locationpicker.timeout"],
+    [99, "locationpicker.unknown_error"],
+  ])("says why the browser gave no position for error code %i", (code, message) => {
+    render({ initialLat: 38.72, initialLon: -9.14 });
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="locationpicker.use_my_location"]')?.click());
+
+    const [, onError] = defined(getCurrentPosition.mock.calls[0], "the geolocation request");
+    const error = { code, message: "", PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as const;
+    act(() => onError?.(error));
+
+    expect(container.textContent).toContain(message);
+  });
 });

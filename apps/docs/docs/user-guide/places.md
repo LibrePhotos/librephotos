@@ -54,6 +54,8 @@ Admins can change where tiles come from under **Admin Area → Site Settings →
 - **OpenStreetMap**: raster tiles from `tile.openstreetmap.org` (label glyphs from `fonts.openmaptiles.org`).
 - **None (hide map)**: no map is rendered anywhere; a placeholder is shown instead.
 
+In dark mode every map is shown darkened: LibrePhotos inverts the light map in the browser and turns its colours back, so water stays blue and parks stay green, and the place markers keep their colours. This works for both tile sources and loads nothing extra. (Not released yet: up to 1.3.0, maps stayed light in dark mode.)
+
 This setting is global. Choosing **None** hides the map in every map view, including the Places page, album location maps, the photo-info mini-map, and the location picker. The initial value comes from the `MAP_TILE_PROVIDER` environment variable (default `photoprism`), but it is an admin-editable site setting thereafter, so you don't need to restart to change it.
 
 ## The Places Page
