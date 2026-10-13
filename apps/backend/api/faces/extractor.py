@@ -10,6 +10,7 @@ from api.lazy_import import LazyModule
 from api.metadata.orientation import normalize_orientation, region_to_display
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
+from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
     from typing import TypeAlias, Unpack
@@ -76,8 +77,13 @@ def extract_from_exif(
     image_path: str,
     big_thumbnail_image_path: str,
     sidecar_files: list[str] | None = None,
+    local_orientation: int = 1,
 ) -> list[FaceLocation] | None:
-    """Face regions in the file or its sidecars; *sidecar_files* as in ``get_metadata``."""
+    """Face regions in the file or its sidecars; *sidecar_files* as in ``get_metadata``.
+
+    The boxes are in the big thumbnail, which shows the file under its own
+    orientation with the photo's ``local_orientation`` on top (#2606).
+    """
     (region_info, orientation) = get_metadata(
         image_path,
         tags=[Tags.REGION_INFO, Tags.ORIENTATION],
@@ -101,7 +107,9 @@ def extract_from_exif(
 
         box = to_face_box(
             area,
-            normalize_orientation(orientation),
+            exif_orientation_showing(
+                normalize_orientation(orientation), local_orientation
+            ),
             big_thumbnail_image.shape[1],
             big_thumbnail_image.shape[0],
         )

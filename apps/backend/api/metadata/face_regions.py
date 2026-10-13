@@ -19,6 +19,7 @@ from api.metadata.writer import TagValue, add_to, remove_from
 from api.models.face import Face
 from api.models.person import Person
 from api.models.photo_metadata import merged_keywords_of
+from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -244,7 +245,11 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         struct=True,
         sidecar_files=sidecar_files,
     )
-    orientation = normalize_orientation(orientation_value)
+    # The thumbnail shows the file under its own orientation with the user's
+    # LibrePhotos rotation on top (#2606).
+    orientation = exif_orientation_showing(
+        normalize_orientation(orientation_value), photo.local_orientation
+    )
 
     # Convert each face's coordinates
     face_regions: list[_FaceRegion] = []
