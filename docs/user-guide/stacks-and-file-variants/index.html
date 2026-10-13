@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.92c720e4.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.48e1e0f4.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -58,9 +58,11 @@
 <li class=""><strong>EXIF Sequence Number</strong> — sequence metadata written by the camera</li>
 <li class=""><strong>Filename Burst Pattern</strong> — naming conventions such as <code>IMG_001_BURST001</code> or <code>photo (1)</code></li>
 </ul>
+<p>The two EXIF rules build one burst from consecutive frames of the same camera (model, and serial number when the photo has one) taken at most 2 seconds apart, using the sub-second capture time (<code>SubSecTimeOriginal</code>). A burst that crosses a second boundary stays one stack, two cameras shooting at the same moment get one stack each, and a sequence number that starts again begins a new burst. A frame whose sequence number says &quot;single shot&quot; (0) is not a burst frame. Frames are ordered by capture time, and the stack&#x27;s cover is the middle frame.</p>
+<p><em>Not released yet:</em> before this, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made <strong>Detect Stacks</strong> fail. Run <strong>Detect Stacks</strong> again to regroup existing bursts.</p>
 <p>Available but <strong>disabled by default</strong> (soft criteria — these estimate, and can group unrelated photos):</p>
 <ul>
-<li class=""><strong>Timestamp Proximity</strong> — photos taken within a configurable interval of each other (2 seconds by default) on the same camera</li>
+<li class=""><strong>Timestamp Proximity</strong> — photos taken within a configurable interval of each other (2 seconds by default, measured to the sub-second) on the same camera</li>
 <li class=""><strong>Visual Similarity</strong> — perceptual-hash comparison of consecutive photos</li>
 </ul>
 <p>Open <strong>Settings</strong> and use the <strong>Burst Detection Rules</strong> panel to enable, disable, reorder, add or remove these rules (including extra presets such as a looser 5-second timestamp rule or a custom filename pattern). Changes apply the next time you run <strong>Detect Stacks</strong>.</p>
