@@ -9700,6 +9700,14 @@
           "place"
         ]
       },
+      "GeocodeStatusEnum": {
+        "enum": [
+          "found",
+          "no_place",
+          "failed"
+        ],
+        "type": "string"
+      },
       "GroupedPhotos": {
         "type": "object",
         "properties": {
@@ -11899,7 +11907,17 @@
           },
           "geocoded": {
             "type": "boolean",
-            "description": "Whether the photo's coordinates have a place name.\n\nFalse after a location edit the geocoder could not name, so the\nclient can say the place was not looked up.",
+            "description": "Whether the photo's coordinates have a place name.\n\nFalse after a location edit that found no place name; `geocode_status`\nsays whether the lookup failed or there is no place there.",
+            "readOnly": true
+          },
+          "geocode_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeocodeStatusEnum"
+              }
+            ],
+            "nullable": true,
+            "description": "How the place lookup for the photo's position went.\n\n\"found\": it has a place name. \"no_place\": the lookup worked, but\nthere is no place there (open sea); not a failure. \"failed\": no place\nname because the lookup failed or reverse geocoding is off. Null for\na photo without a position.",
             "readOnly": true
           }
         },
@@ -11908,6 +11926,7 @@
           "exif_gps_lat",
           "exif_gps_lon",
           "exif_timestamp",
+          "geocode_status",
           "geocoded",
           "hidden",
           "image_hash",

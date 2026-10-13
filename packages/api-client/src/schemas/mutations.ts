@@ -37,6 +37,10 @@ export const PhotoEditResponse = z.looseObject({
   // False when a location edit kept the coordinates but found no place name for them (#2253).
   // Older servers do not send it.
   geocoded: z.boolean().optional(),
+  // Why there is no place name (#2589): "no_place" when the lookup worked but there is none at the
+  // position (open sea), "failed" when it was not looked up. Null without a position; older servers
+  // do not send it.
+  geocode_status: z.enum(["found", "no_place", "failed"]).nullable().optional(),
 });
 export type PhotoEditResponse = z.infer<typeof PhotoEditResponse>;
 

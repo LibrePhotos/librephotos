@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.geocode.geocode import no_place
 from api.models.album_place import AlbumPlace
 from api.models.photo_metadata import MetadataEdit
 from api.models.photo_search import PhotoSearch
@@ -261,3 +262,60 @@ class RemoveLocationTest(TestCase):
         self.assertEqual(response.status_code, 404)
         photo.refresh_from_db()
         self.assertEqual((photo.exif_gps_lat, photo.exif_gps_lon), (1.0, 2.0))
+
+
+class GeocodeStatusTest(TestCase):
+    """A location edit says how the place lookup went (#2589).
+
+    ``geocoded`` is False both when the lookup failed and when it worked but
+    the provider has no place at the position (open sea, ``no_place()``), so
+    the web app warned "the place name could not be looked up" about a lookup
+    that had worked. ``geocode_status`` tells the two apart.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+
+    def _patch(self, data):
+        response = self.client.patch(
+            f"/api/photos/edit/{self.photo.image_hash}/", data, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def _move(self, geocode_result):
+        with patch("api.metadata.edits.reverse_geocode", return_value=geocode_result):
+            return self._patch({"exif_gps_lat": 0.5, "exif_gps_lon": -30.0})
+
+    def test_a_place_found(self):
+        data = self._move(dict(MADRID))
+
+        self.assertEqual("found", data["geocode_status"])
+        self.assertIs(True, data["geocoded"])
+
+    def test_a_position_with_no_place_is_not_a_failed_lookup(self):
+        data = self._move(no_place())
+
+        self.assertEqual("no_place", data["geocode_status"])
+        self.assertIs(False, data["geocoded"])
+
+    def test_a_failed_lookup(self):
+        data = self._move({})
+
+        self.assertEqual("failed", data["geocode_status"])
+        self.assertIs(False, data["geocoded"])
+
+    def test_a_photo_without_a_position_has_no_status(self):
+        data = self._patch({"hidden": False})
+
+        self.assertIsNone(data["geocode_status"])
+
+    def test_a_removed_location_has_no_status(self):
+        self._move(dict(MADRID))
+
+        data = self._patch({"exif_gps_lat": None, "exif_gps_lon": None})
+
+        self.assertIsNone(data["geocode_status"])

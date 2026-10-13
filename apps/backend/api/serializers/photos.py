@@ -17,7 +17,7 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
-from api.geocode.photo_location import has_place
+from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
 from api.models import AlbumDate, File, Photo, User
 from api.models.photo_caption import PhotoCaption
@@ -314,6 +314,7 @@ GPS_FIELDS = ("exif_gps_lat", "exif_gps_lon")
 
 class PhotoEditSerializer(serializers.ModelSerializer):
     geocoded = serializers.SerializerMethodField()
+    geocode_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -334,6 +335,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             "is_document",
             "category_source",
             "geocoded",
+            "geocode_status",
         )
         # category_source is server-managed: it is set to "user" whenever a
         # category flag is written through the API, and is never client-settable.
@@ -347,11 +349,22 @@ class PhotoEditSerializer(serializers.ModelSerializer):
     def get_geocoded(self, obj: Photo) -> bool:
         """Whether the photo's coordinates have a place name.
 
-        False after a location edit the geocoder could not name, so the
-        client can say the place was not looked up.
+        False after a location edit that found no place name; `geocode_status`
+        says whether the lookup failed or there is no place there.
         """
         # #2253: the edit used to answer 200 and keep the old place.
         return has_place(obj)
+
+    def get_geocode_status(self, obj: Photo) -> GeocodeStatus | None:
+        """How the place lookup for the photo's position went.
+
+        "found": it has a place name. "no_place": the lookup worked, but
+        there is no place there (open sea); not a failure. "failed": no place
+        name because the lookup failed or reverse geocoding is off. Null for
+        a photo without a position.
+        """
+        # #2589: `geocoded` is false for "no place there" and a failure alike.
+        return geocode_status(obj)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """A location edit names both coordinates: two numbers move the photo,

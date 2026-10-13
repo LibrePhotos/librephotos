@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from django.db.models import F, Q, QuerySet
 
@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 
 # The columns geolocate_photo writes.
 GEOCODED_COLUMNS = ["geolocation_json", "geocoded_lat", "geocoded_lon", "last_modified"]
+
+# How the place lookup for a photo's position went; see ``geocode_status``.
+GeocodeStatus = Literal["found", "no_place", "failed"]
 
 
 def _coordinate(value: object) -> float | None:
@@ -188,6 +191,25 @@ def has_place(photo: Photo) -> bool:
     """Whether the photo's coordinates have a reverse-geocoded place."""
     geolocation = photo.geolocation_json or {}
     return bool(geolocation.get("features") or geolocation.get("address"))
+
+
+def geocode_status(photo: Photo) -> GeocodeStatus | None:
+    """How the place lookup for the photo's position went (#2589).
+
+    ``"found"``: it has a place. ``"no_place"``: the provider answered that
+    there is no place there (open sea, ``no_place()``), which is not a
+    failure. ``"failed"``: the position has not been looked up (the lookup
+    failed, or reverse geocoding is off); the geolocation job tries again.
+    None for a photo without a position.
+    """
+    position = usable_coordinates(photo.exif_gps_lat, photo.exif_gps_lon)
+    if position is None:
+        return None
+    if has_place(photo):
+        return "found"
+    if (photo.geocoded_lat, photo.geocoded_lon) == position:
+        return "no_place"
+    return "failed"
 
 
 def _has_current_geolocation(photo: Photo) -> bool:

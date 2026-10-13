@@ -93,6 +93,11 @@ function locationSavedWithoutPlace() {
   toast.warning(i18n.t("toasts.locationsavedwithoutplace"), { title: i18n.t("toasts.editphototitle") });
 }
 
+/** A location edit whose lookup worked, at a spot with no place name such as open sea (#2589). */
+function locationSavedNoPlace() {
+  toast.success(i18n.t("toasts.locationsavednoplace"), { title: i18n.t("toasts.editphototitle") });
+}
+
 /** A photo's location was removed: it left the map and Places (#2209). */
 function locationRemoved() {
   toast.success(i18n.t("toasts.locationremoved"), { title: i18n.t("toasts.locationremovedtitle") });
@@ -137,6 +142,7 @@ export const photos = {
   downloadFailed,
   downloadStarting,
   locationRemoved,
+  locationSavedNoPlace,
   locationSavedWithoutPlace,
   photoRotated,
   removePhotos,

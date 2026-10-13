@@ -4,6 +4,9 @@
  * lost its place name. The server now says `geocoded: false`, and the toast
  * says the place name was not looked up. A removed location (#2209) has no
  * place to look up, and says it was removed.
+ *
+ * #2589: `geocoded` is false as well for a spot the lookup found no place at (open sea), which is
+ * not a failure; `geocode_status` tells the two apart.
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
@@ -18,6 +21,7 @@ const stubs = await vi.hoisted(async () => {
     updatePhoto: vi.fn<() => void>(),
     locationSavedWithoutPlace: vi.fn<() => void>(),
     locationRemoved: vi.fn<() => void>(),
+    locationSavedNoPlace: vi.fn<() => void>(),
     queryClient: new QueryClient(),
   };
 });
@@ -28,6 +32,7 @@ vi.mock("../../../service/notifications", () => ({
     updatePhoto: stubs.updatePhoto,
     locationSavedWithoutPlace: stubs.locationSavedWithoutPlace,
     locationRemoved: stubs.locationRemoved,
+    locationSavedNoPlace: stubs.locationSavedNoPlace,
   },
 }));
 
@@ -42,6 +47,7 @@ beforeEach(() => {
   stubs.updatePhoto.mockReset();
   stubs.locationSavedWithoutPlace.mockReset();
   stubs.locationRemoved.mockReset();
+  stubs.locationSavedNoPlace.mockReset();
 });
 
 async function save(data: Record<string, unknown>) {
@@ -65,7 +71,27 @@ async function save(data: Record<string, unknown>) {
 }
 
 describe("useUpdatePhotoMutation", () => {
-  it("says the place name was not looked up when a moved photo has none", async () => {
+  it("says the place name was not looked up when the lookup failed", async () => {
+    stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: false, geocode_status: "failed" });
+
+    await save({ exif_gps_lat: 36.5, exif_gps_lon: -6.3 });
+
+    expect(stubs.locationSavedWithoutPlace).toHaveBeenCalledTimes(1);
+    expect(stubs.locationSavedNoPlace).not.toHaveBeenCalled();
+    expect(stubs.updatePhoto).not.toHaveBeenCalled();
+  });
+
+  it("does not warn about a spot with no place name, such as open sea", async () => {
+    stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: false, geocode_status: "no_place" });
+
+    await save({ exif_gps_lat: 0.5, exif_gps_lon: -30 });
+
+    expect(stubs.locationSavedNoPlace).toHaveBeenCalledTimes(1);
+    expect(stubs.locationSavedWithoutPlace).not.toHaveBeenCalled();
+    expect(stubs.updatePhoto).not.toHaveBeenCalled();
+  });
+
+  it("warns as before when an older server only says geocoded: false", async () => {
     stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: false });
 
     await save({ exif_gps_lat: 36.5, exif_gps_lon: -6.3 });
@@ -75,7 +101,7 @@ describe("useUpdatePhotoMutation", () => {
   });
 
   it("confirms a location edit that found a place", async () => {
-    stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: true });
+    stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: true, geocode_status: "found" });
 
     await save({ exif_gps_lat: 40.4, exif_gps_lon: -3.7 });
 
