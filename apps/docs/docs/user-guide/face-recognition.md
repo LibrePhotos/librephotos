@@ -80,7 +80,9 @@ After the first scan finished, go to the face dashboard. Label a couple of faces
 
 Faces are detected with [InsightFace](https://github.com/deepinsight/insightface). Its detector (SCRFD) finds the faces in each photo and returns a bounding box for every face it sees. This replaced the older dlib detectors, so there is no longer a separate `hog` / `cnn` choice — a single detector is used for everyone.
 
-Detection is skipped entirely for photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar — for example ones written by digiKam, Lightroom or XnView. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. LibrePhotos only falls back to the InsightFace detector when a photo has no usable face regions. This bypasses detection only: those faces still get an ArcFace embedding during the next train or re-scan, so clustering and classification work on them normally.
+Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
+
+*Not released yet: up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.*
 
 ### Face Quality
 

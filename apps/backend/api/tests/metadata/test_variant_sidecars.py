@@ -8,9 +8,11 @@ look at it too, below a sidecar named after the main file.
 
 import os
 import shutil
+from unittest.mock import patch
 
 from django.test import override_settings
 
+from api.faces import extractor
 from api.faces.photo_faces import extract_faces
 from api.metadata.photo_reader import extract_exif_data
 from api.metadata.reader import sidecar_files_for_photo
@@ -103,7 +105,9 @@ class VariantSidecarTest(RealExifToolTestCase):
         photo = self.photo_for(main, self.user, thumbnails=True)
         photo.files.add(photo.main_file, get_or_create_file(raw, self.user))
 
-        extract_faces(photo)
+        # The face service also looks at the photo (#2260); here it finds nothing.
+        with patch.object(extractor, "extract_from_face_service", return_value=[]):
+            extract_faces(photo)
 
         self.assertEqual(
             ["Niaz Faridani-Rad"],

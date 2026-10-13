@@ -101,7 +101,7 @@ class FacelessPersonInPeopleListTest(TestCase):
     ):
         # A zero-height region: the crop is empty and Pillow refuses to save
         # it ("cannot write empty image"), after the person was created.
-        extractor.extract.return_value = [(50, 80, 50, 20, "digiKam Person")]
+        extractor.extract_from_exif.return_value = [(50, 80, 50, 20, "digiKam Person")]
         scan_photo = create_test_photo(owner=self.user)
 
         with self.assertRaises(ValueError):

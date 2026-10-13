@@ -229,27 +229,3 @@ class ExtractFromExifOrientationTest(ExtractFromExifBaseTest):
 
     def test_orientation_none_is_untouched(self):
         self.assert_box(None, (55, 70, 95, 30))
-
-
-class ExtractIntegrationTest(ExtractFromExifBaseTest):
-    """``extract`` falls through to the face service when exif yields nothing."""
-
-    @patch("api.faces.extractor.extract_from_face_service")
-    def test_empty_exif_list_falls_back_to_face_service(self, mock_service):
-        # ``[]`` is falsy, so an exif result of "no faces found" is treated the
-        # same as "no region info at all".
-        mock_service.return_value = [(1, 2, 3, 4, None)]
-        self.mock_get_metadata.return_value = ({"RegionList": []}, None)
-        result = extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
-        self.assertEqual(result, [(1, 2, 3, 4, None)])
-        mock_service.assert_called_once_with(THUMB_PATH)
-
-    @patch("api.faces.extractor.extract_from_face_service")
-    def test_exif_faces_win(self, mock_service):
-        self.mock_get_metadata.return_value = (
-            {"RegionList": [face_region(area=dict(AREA))]},
-            None,
-        )
-        result = extractor.extract(IMAGE_PATH, THUMB_PATH, owner=None)
-        self.assertEqual(result, [(55, 70, 95, 30, "Alice")])
-        mock_service.assert_not_called()

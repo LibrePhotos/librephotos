@@ -14,8 +14,6 @@ from api.metadata.tags import Tags
 if TYPE_CHECKING:
     from typing import TypeAlias, Unpack
 
-    from api.models.user import User
-
     # (top, right, bottom, left, person name or None, *optional encoding).
     # Unpack[...] instead of `*tuple[...]`: a star expression in a subscript is
     # Python 3.11 syntax, and the backend-gpu image runs 3.10.
@@ -129,15 +127,3 @@ def extract_from_face_service(big_thumbnail_path: str) -> list[FaceLocation]:
         top, right, bottom, left = location
         face_locations.append((top, right, bottom, left, None, encoding))
     return face_locations
-
-
-def extract(
-    image_path: str,
-    big_thumbnail_path: str,
-    owner: User,
-    sidecar_files: list[str] | None = None,
-) -> list[FaceLocation]:
-    exif = extract_from_exif(image_path, big_thumbnail_path, sidecar_files)
-    if not exif:
-        return extract_from_face_service(big_thumbnail_path)
-    return exif

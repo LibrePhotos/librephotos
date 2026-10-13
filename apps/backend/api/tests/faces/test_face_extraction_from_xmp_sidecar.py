@@ -1,10 +1,13 @@
 import os
 import shutil
+from unittest.mock import patch
 
+import requests
 from django.test import override_settings
 
 from api.faces.photo_faces import extract_faces
 from api.models import Person
+from api.runtime import sidecars
 from api.tests.metadata.exiftool_harness import RealExifToolTestCase
 from api.tests.utils import create_test_user
 
@@ -31,8 +34,15 @@ class ReadFacesFromPhotosTest(RealExifToolTestCase):
             os.path.join(FIXTURES, "niaz.xmp"), os.path.join(self.directory, "niaz.xmp")
         )
         photo = self.photo_for(photo_path, user, thumbnails=True)
+        no_faces = requests.Response()
+        no_faces.status_code = 200
+        no_faces._content = b'{"face_locations": [], "encodings": []}'
 
-        extract_faces(photo)
+        # The face service still looks at the photo (#2260); here it finds nothing.
+        with patch.object(sidecars.http, "post", return_value=no_faces) as service:
+            extract_faces(photo)
+
+        service.assert_called_once()
 
         faces = list(photo.faces.all())
         self.assertEqual(1, len(faces))
@@ -40,5 +50,6 @@ class ReadFacesFromPhotosTest(RealExifToolTestCase):
             ["Niaz Faridani-Rad"], list(Person.objects.values_list("name", flat=True))
         )
         self.assertEqual("Niaz Faridani-Rad", faces[0].person.name)
-        # An XMP region has no encoding until generate_face_embeddings runs.
-        self.assertIsNotNone(faces[0].encoding)
+        # No detection overlaps the region, so it has no encoding until
+        # generate_face_embeddings runs.
+        self.assertEqual("", faces[0].encoding)
