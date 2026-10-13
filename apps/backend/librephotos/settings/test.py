@@ -14,7 +14,7 @@ DEBUG = True
 # with the level rather than by removing it.
 #
 # LOGS_ROOT moves with the handler rather than staying on BASE_LOGS:
-# ServerLogsView serves settings.LOGS_ROOT/ownphotos.log, so leaving the two
+# ServerLogsView serves settings.LOGS_ROOT/LOG_FILENAME, so leaving the two
 # pointing at different directories would let the suite pass while an admin
 # downloads a file nothing writes to.
 LOGS_ROOT = tempfile.mkdtemp(prefix="librephotos-test-logs-")

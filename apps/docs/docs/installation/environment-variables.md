@@ -335,7 +335,7 @@ A Nextcloud on the same machine as LibrePhotos cannot be reached as `localhost`;
 
 ### Logging
 
-The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
+The backend writes its log files into the directory named by `BASE_LOGS`. `librephotos.log` is the one to look at first (`ownphotos.log` in 1.3.0 and older, see [Upgrading](upgrading.md#log-file-renamed)); it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
 
 | Variable | Default | What it does |
 | --- | --- | --- |

@@ -287,7 +287,7 @@ Before submitting a PR, ensure:
 
 ## Logging
 
-`ownphotos.log` is what users attach to a bug report, so it is a shared resource: everything you log competes for space with the line that would have explained someone else's crash.
+`librephotos.log` is what users attach to a bug report, so it is a shared resource: everything you log competes for space with the line that would have explained someone else's crash.
 
 ### Getting a logger
 
@@ -297,7 +297,7 @@ import logging
 logger = logging.getLogger(__name__)
 ```
 
-Every module gets its own logger this way; do not import another module's `logger`. The logger name is the module path (`api.directory_watcher.scan_jobs`), so one module or a whole package can be turned up or down on its own with `LOG_LEVELS` (see below). The records still propagate to the root logger, which owns the handlers, so they land in `ownphotos.log` and on the console like everything else.
+Every module gets its own logger this way; do not import another module's `logger`. The logger name is the module path (`api.directory_watcher.scan_jobs`), so one module or a whole package can be turned up or down on its own with `LOG_LEVELS` (see below). The records still propagate to the root logger, which owns the handlers, so they land in `librephotos.log` and on the console like everything else.
 
 ### Where there is no module logger
 

@@ -6,7 +6,9 @@ sidebar_position: 19
 
 ## /logs
 
-There are a lot of log files in this folder. The most important one is "ownphotos.log". Here should be possible error traces you can report to the GitHub repository.
+There are a lot of log files in this folder. The most important one is `librephotos.log`, with its older parts in `librephotos.log.1`, `librephotos.log.2` and so on. Here should be possible error traces you can report to the GitHub repository.
+
+LibrePhotos 1.3.0 and older call it `ownphotos.log`. The first start of a newer release renames it and its older parts; see [Upgrading](../installation/upgrading.md#log-file-renamed).
 
 LibrePhotos 1.3.0 and older also keep `secret.key` here, so do not zip this whole folder for a bug report; see [secret.key](#secretkey) below.
 
