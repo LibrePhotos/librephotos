@@ -24,6 +24,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
 vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: hooks.deleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useSetPhotosRatingMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosHiddenMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosPublicMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosCategoryMutation: () => ({ mutate: vi.fn<() => void>() }),
@@ -35,6 +36,9 @@ vi.mock("../../api_client/stacks", () => ({
   useRemoveFromStackMutation: () => ({ mutateAsync: vi.fn<() => void>() }),
 }));
 vi.mock("../modals/ModalDownloadOptions", () => ({ ModalDownloadOptions: () => null }));
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
+}));
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
   window.matchMedia = (query: string): MediaQueryList => ({

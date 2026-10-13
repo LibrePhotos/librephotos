@@ -10,6 +10,8 @@
  *
  * "Write edits to files" says what each option writes, the default time zone what it is used for,
  * and each public sharing switch what it shows (#2273, #2281).
+ *
+ * The rating style (#2202) says what un-favoriting does to a star rating.
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -83,6 +85,7 @@ beforeEach(async () => {
     llm_settings: {},
     default_timezone: "UTC",
     default_timeline_filter: {},
+    rating_mode: "favorite",
   };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -248,5 +251,24 @@ describe("Settings public sharing (#2273)", () => {
       "Show photo descriptions",
       "Show recognized people in photos",
     ]);
+  });
+});
+
+describe("Settings rating style (#2202)", () => {
+  it("defaults to Favorites and says that removing a favorite clears the star rating", () => {
+    expect(container.textContent).toContain("Rating style");
+    expect(container.textContent).toContain("removing a favorite sets it to 0");
+  });
+
+  it("describes stars mode once Stars is picked", async () => {
+    const stars = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="radio"]')).find(
+      input => input.value === "stars"
+    );
+    if (!stars) throw new Error("no Stars option");
+    await act(async () => stars.click());
+
+    expect(stars.checked).toBe(true);
+    expect(container.textContent).toContain("Rate photos with 1 to 5 stars");
+    expect(container.textContent).not.toContain("removing a favorite sets it to 0");
   });
 });

@@ -160,16 +160,17 @@ export type TimelineItem = {
   video: boolean;
   is_screenshot: boolean;
   is_document: boolean;
-  rating: number;
+  /** At or above the owner's favorite threshold (`isFavorite`). */
+  favorite: boolean;
 };
 
 // Whether `filter` lets `item` into the timeline, for the lightbox's
 // "where does this appear" line. Mirrors TimelineFilter.q in the backend.
-export function timelineFilterShows(filter: TimelineFilter, item: TimelineItem, favoriteMinRating: number) {
+export function timelineFilterShows(filter: TimelineFilter, item: TimelineItem) {
   if (filter.media === "photos" && item.video) return false;
   if (filter.media === "videos" && !item.video) return false;
   if (filter.hide_screenshots && item.is_screenshot) return false;
   if (filter.hide_documents && item.is_document) return false;
-  if (filter.favorites && item.rating < favoriteMinRating) return false;
+  if (filter.favorites && !item.favorite) return false;
   return true;
 }

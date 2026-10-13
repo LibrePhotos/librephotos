@@ -2,9 +2,10 @@
  * The lightbox toolbar: every button is named (a tooltip is no accessible
  * name), the trash button restores a photo that is already in the trash
  * instead of trashing it again, and a phone gets one row with the owner's
- * actions in a menu.
+ * actions in a menu. The rating control follows the user's rating style
+ * (#2202): the favorite toggle (F) or five stars (0-5), never both.
  */
-import type { Photo } from "@librephotos/api-client";
+import type { Photo, User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -18,24 +19,32 @@ import { makePhoto } from "./photoFixture.test-utils";
 /** The lightbox the toolbar is in; the shortcuts reach it as commands. */
 const lightbox = createLightboxCommands();
 
+type StubUser = Pick<User, "id" | "favorite_min_rating" | "rating_mode">;
+const FAVORITE_USER: StubUser = { id: 1, favorite_min_rating: 4, rating_mode: "favorite" };
+
 const stubs = vi.hoisted(() => ({
   markDeleted:
     vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: { onSuccess: () => void }) => void>(),
+  setFavorite: vi.fn<(variables: { image_hashes: string[]; favorite: boolean }) => void>(),
+  setRating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
+  user: undefined as StubUser | undefined,
   narrow: false,
 }));
 
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoSharesQuery: () => ({ data: [] }),
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.markDeleted }),
-  useSetFavoritePhotosMutation: () => ({ mutate: () => {} }),
+  useSetFavoritePhotosMutation: () => ({ mutate: stubs.setFavorite }),
+  useSetPhotosRatingMutation: () => ({ mutate: stubs.setRating, isPending: false }),
   useSetPhotosHiddenMutation: () => ({ mutate: () => {} }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: { favorite_min_rating: 4 } }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 vi.mock("../sharing/PhotoShareLinkModal", () => ({ PhotoShareLinkModal: () => null }));
 
 beforeAll(() => {
+  stubs.user = FAVORITE_USER;
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // jsdom has neither; the interval picker's dropdown uses both.
   globalThis.ResizeObserver = class ResizeObserverStub implements ResizeObserver {
@@ -63,6 +72,9 @@ const mounted: Array<() => Promise<void>> = [];
 afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
   stubs.markDeleted.mockClear();
+  stubs.setFavorite.mockClear();
+  stubs.setRating.mockClear();
+  stubs.user = FAVORITE_USER;
   stubs.narrow = false;
 });
 
@@ -251,5 +263,85 @@ describe("LightboxControls", () => {
 
     expect(labels(container)).not.toContain("lightbox.toolbar.moreActions");
     expect(labels(container)).toContain("lightbox.controls.fullscreen");
+  });
+});
+
+describe("LightboxControls rating", () => {
+  const STARS_USER: StubUser = { ...FAVORITE_USER, rating_mode: "stars" };
+  const starInputs = (container: HTMLElement) => container.querySelectorAll('input[type="radio"]');
+
+  it("toggles the favorite by button and by F in favorite mode, and ignores 0-5", async () => {
+    const container = await renderControls({ photo: { rating: 5 } });
+
+    expect(starInputs(container)).toHaveLength(0);
+    await act(async () => {
+      defined(
+        container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.removeFromFavorites"]')
+      ).click();
+    });
+    await act(async () => {
+      lightbox.emit("favorite");
+      lightbox.emit("rate", 3);
+    });
+
+    expect(stubs.setFavorite).toHaveBeenCalledTimes(2);
+    expect(stubs.setFavorite).toHaveBeenCalledWith({ image_hashes: ["h1"], favorite: false });
+    expect(stubs.setRating).not.toHaveBeenCalled();
+  });
+
+  it("shows no photo as a favorite, and toggles nothing, before the user's settings load", async () => {
+    stubs.user = undefined;
+    const container = await renderControls({ photo: { rating: 5 } });
+
+    expect(labels(container)).toContain("lightbox.toolbar.addToFavorites");
+    await act(async () => lightbox.emit("favorite"));
+    expect(stubs.setFavorite).not.toHaveBeenCalled();
+  });
+
+  it("shows five stars in stars mode and rates by click and by 0-5, never through the favorite toggle", async () => {
+    stubs.user = STARS_USER;
+    const container = await renderControls({ photo: { rating: 2 } });
+
+    expect(labels(container)).not.toContain("lightbox.toolbar.addToFavorites");
+    const radios = [...starInputs(container)];
+    // Mantine's Rating has a hidden 0 ("clear") input before the five stars.
+    expect(radios.map(radio => radio.getAttribute("aria-label"))).toEqual([
+      "lightbox.toolbar.clearRating",
+      ...Array<string>(5).fill("lightbox.toolbar.rateStars"),
+    ]);
+    await act(async () => {
+      defined(container.querySelectorAll<HTMLLabelElement>("label")[4]).click();
+    });
+    await act(async () => {
+      lightbox.emit("rate", 0);
+      lightbox.emit("favorite");
+    });
+
+    expect(stubs.setRating.mock.calls.map(([request]) => request)).toEqual([
+      { image_hashes: ["h1"], rating: 4 },
+      { image_hashes: ["h1"], rating: 0 },
+    ]);
+    expect(stubs.setFavorite).not.toHaveBeenCalled();
+  });
+
+  it("clears the rating when the current star is clicked again", async () => {
+    stubs.user = STARS_USER;
+    const container = await renderControls({ photo: { rating: 3 } });
+
+    await act(async () => {
+      defined(container.querySelectorAll<HTMLLabelElement>("label")[3]).click();
+    });
+
+    expect(stubs.setRating).toHaveBeenCalledWith({ image_hashes: ["h1"], rating: 0 });
+  });
+
+  it("shows the owner's rating read-only on a photo shared with you", async () => {
+    stubs.user = { ...STARS_USER, id: 2 };
+    const container = await renderControls({ photo: { rating: 4 } });
+
+    expect(starInputs(container)).toHaveLength(0);
+    expect(container.querySelector('[role="img"]')?.getAttribute("aria-label")).toBe("lightbox.toolbar.ratedStars");
+    await act(async () => lightbox.emit("rate", 5));
+    expect(stubs.setRating).not.toHaveBeenCalled();
   });
 });

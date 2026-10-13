@@ -10,6 +10,7 @@ export * from "./hooks/useGenerateImageToTextCaptionMutation";
 export * from "./hooks/useMarkPhotosDeletedMutation";
 export * from "./hooks/usePurgeDeletedPhotosMutation";
 export * from "./hooks/useSetFavoritePhotosMutation";
+export * from "./hooks/useSetPhotosRatingMutation";
 export * from "./hooks/useSetPhotosHiddenMutation";
 export * from "./hooks/useSetPhotosPublicMutation";
 export * from "./hooks/useSetPhotosCategoryMutation";

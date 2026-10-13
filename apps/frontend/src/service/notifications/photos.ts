@@ -47,6 +47,14 @@ function togglePhotosFavorite(numberOfPhotos: number, isFavorite: boolean) {
   toast.success(notificationMessage, { title: i18n.t("toasts.setfavoritestitle") });
 }
 
+function setPhotosRating(numberOfPhotos: number, rating: number) {
+  const message =
+    rating === 0
+      ? i18n.t("toasts.clearrating", { count: numberOfPhotos })
+      : i18n.t("toasts.setrating", { count: numberOfPhotos, rating });
+  toast.success(message, { title: i18n.t("toasts.setratingtitle") });
+}
+
 function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   const notificationMessage = isHidden
     ? i18n.t("toasts.hidephoto", { numberOfPhotos })
@@ -149,6 +157,7 @@ export const photos = {
   savePhotoCaptions,
   scanDirectoryRequired,
   setPhotosCategory,
+  setPhotosRating,
   startFullOcrScan,
   startFullPhotoScan,
   startNextcloudPhotoScan,

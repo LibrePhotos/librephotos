@@ -1,18 +1,21 @@
 /**
  * The favourite star on a grid tile is the same filled star as in the lightbox:
  * it shows at or above the owner's favourite threshold and nothing below it.
+ * In stars mode (#2202) a rated tile shows its star count instead.
  */
-import { PigPhoto } from "@librephotos/api-client";
+import { PigPhoto, type User } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { TopRightOverlay } from "./TopRightOverlay";
 
-const stubs = vi.hoisted(() => ({ favoriteMinRating: 4 as number | undefined }));
+type StubUser = Pick<User, "favorite_min_rating" | "rating_mode">;
+
+const stubs = vi.hoisted(() => ({ user: undefined as StubUser | undefined }));
 
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: { favorite_min_rating: stubs.favoriteMinRating } }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 
 beforeAll(() => {
@@ -20,7 +23,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  stubs.favoriteMinRating = 4;
+  stubs.user = { favorite_min_rating: 4, rating_mode: "favorite" };
 });
 
 async function render(rating: number) {
@@ -34,9 +37,10 @@ async function render(rating: number) {
   const root = createRoot(container);
   await act(async () => root.render(<TopRightOverlay item={item} />));
   const star = container.querySelector("svg");
+  const badge = container.querySelector('[role="img"]');
   const html = container.innerHTML;
   await act(async () => root.unmount());
-  return { star, html };
+  return { star, badge, html };
 }
 
 describe("TopRightOverlay favourite star", () => {
@@ -59,9 +63,25 @@ describe("TopRightOverlay favourite star", () => {
     expect(html).toBe("");
   });
 
-  it("falls back to a threshold of 4 until the user's settings load", async () => {
-    stubs.favoriteMinRating = undefined;
-    expect((await render(4)).star).not.toBeNull();
-    expect((await render(3)).star).toBeNull();
+  it("shows nothing until the user's settings load, rather than guess a threshold", async () => {
+    stubs.user = undefined;
+    expect((await render(5)).html).toBe("");
+  });
+});
+
+describe("TopRightOverlay in stars mode", () => {
+  beforeEach(() => {
+    stubs.user = { favorite_min_rating: 4, rating_mode: "stars" };
+  });
+
+  it("shows the star count of a rated photo, below the favourite threshold too", async () => {
+    const { star, badge } = await render(2);
+    expect(star).toBeNull();
+    expect(badge?.textContent).toBe("2 ★");
+    expect(badge?.getAttribute("aria-label")).toBe("phototile.rating");
+  });
+
+  it("shows nothing for an unrated photo", async () => {
+    expect((await render(0)).html).toBe("");
   });
 });

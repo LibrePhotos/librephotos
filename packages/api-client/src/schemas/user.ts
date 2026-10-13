@@ -35,6 +35,10 @@ export const TimelineFilterDefault = z
   .catch({});
 export type TimelineFilterDefault = z.infer<typeof TimelineFilterDefault>;
 
+/** How a user rates photos (#2202): the favorite toggle, or 1-5 stars. */
+export const RatingMode = z.enum(["favorite", "stars"]);
+export type RatingMode = z.infer<typeof RatingMode>;
+
 export const User = z.object({
   id: z.number(),
   username: z.string(),
@@ -63,6 +67,9 @@ export const User = z.object({
   nextcloud_scan_directory: z.string().nullish(),
   avatar_url: z.string().nullish(),
   favorite_min_rating: z.number(),
+  // How the web rates photos (#2202): a favorite toggle, or 1-5 stars.
+  // Servers before #2202 do not send it, so it defaults to the toggle.
+  rating_mode: RatingMode.default("favorite"),
   image_scale: z.number(),
   save_metadata_to_disk: z.string(),
   save_face_tags_to_disk: z.boolean().default(false),

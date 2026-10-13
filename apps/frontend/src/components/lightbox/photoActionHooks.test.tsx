@@ -2,10 +2,10 @@
  * The hooks the lightbox and the photo page share: the owner's photo
  * actions, rotating in 90° steps, and marking a face the detector missed.
  */
-import type { NormalizedFaceBox, Photo } from "@librephotos/api-client";
+import type { NormalizedFaceBox, Photo, User } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { makePhoto } from "./photoFixture.test-utils";
 import { useFaceDrawing } from "./useFaceDrawing";
@@ -16,6 +16,8 @@ type MutateOptions = { onSuccess?: () => void; onError?: () => void };
 
 const stubs = vi.hoisted(() => ({
   favorite: vi.fn<(variables: { image_hashes: string[]; favorite: boolean }) => void>(),
+  rating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
+  user: undefined as Pick<User, "id" | "favorite_min_rating" | "rating_mode"> | undefined,
   hidden: vi.fn<(variables: { image_hashes: string[]; hidden: boolean }) => void>(),
   deleted: vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: MutateOptions) => void>(),
   rotate: vi.fn<(variables: { image_hash: string; clockwiseDegrees: number }, options: MutateOptions) => void>(),
@@ -28,17 +30,24 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.deleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: stubs.favorite }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.hidden }),
+  useSetPhotosRatingMutation: () => ({ mutate: stubs.rating, isPending: false, variables: undefined }),
 }));
 vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
   useRotatePhotosMutation: () => ({ mutate: stubs.rotate }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: { favorite_min_rating: 4 } }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: stubs.addFace }) }));
 
+const FAVORITE_USER = { id: 1, favorite_min_rating: 4, rating_mode: "favorite" } as const;
+
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+beforeEach(() => {
+  stubs.user = FAVORITE_USER;
 });
 
 const unmounts: Array<() => void> = [];
@@ -46,6 +55,7 @@ const unmounts: Array<() => void> = [];
 afterEach(() => {
   while (unmounts.length) defined(unmounts.pop())();
   for (const mock of [stubs.favorite, stubs.hidden, stubs.deleted, stubs.rotate, stubs.addFace]) mock.mockReset();
+  stubs.rating.mockReset();
 });
 
 /** Render a hook; `current()` is its latest result, `rerender` gives it new arguments. */
@@ -117,6 +127,40 @@ describe("usePhotoActions", () => {
     expect(stubs.hidden).not.toHaveBeenCalled();
     expect(stubs.deleted).not.toHaveBeenCalled();
     expect(shared.current().sharingPhotoId).toBeNull();
+  });
+});
+
+describe("usePhotoActions rating (#2202)", () => {
+  it("sets the star rating in stars mode and leaves the favourite toggle alone", async () => {
+    stubs.user = { ...FAVORITE_USER, rating_mode: "stars" };
+    const hook = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false });
+    expect(hook.current().ratesWithStars).toBe(true);
+    expect(hook.current().canRate).toBe(true);
+    expect(hook.current().rating).toBe(4);
+    act(() => {
+      hook.current().setRating(2);
+      hook.current().toggleFavorite();
+    });
+    expect(stubs.rating).toHaveBeenCalledWith({ image_hashes: ["h1"], rating: 2 });
+    expect(stubs.favorite).not.toHaveBeenCalled();
+  });
+
+  it("rates nothing in favourite mode, nor someone else's photo in stars mode", async () => {
+    const favoriteMode = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false });
+    act(() => favoriteMode.current().setRating(5));
+    stubs.user = { ...FAVORITE_USER, id: 2, rating_mode: "stars" };
+    const notOwner = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false });
+    expect(notOwner.current().canRate).toBe(false);
+    act(() => notOwner.current().setRating(5));
+    expect(stubs.rating).not.toHaveBeenCalled();
+  });
+
+  it("shows no favourite and toggles nothing before the user has loaded", async () => {
+    stubs.user = undefined;
+    const hook = await renderHook(usePhotoActions, { photoDetail: { ...photo, rating: 5 }, isPublic: false });
+    expect(hook.current().isFavorite).toBe(false);
+    act(() => hook.current().toggleFavorite());
+    expect(stubs.favorite).not.toHaveBeenCalled();
   });
 });
 

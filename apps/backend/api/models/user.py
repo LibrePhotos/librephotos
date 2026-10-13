@@ -77,6 +77,18 @@ class User(AbstractUser):
         default=settings.DEFAULT_FAVORITE_MIN_RATING, db_index=True
     )
 
+    class RatingMode(models.TextChoices):
+        # A favorite toggle: favoriting sets the rating to favorite_min_rating,
+        # removing a favorite sets it to 0 (#2202, option A).
+        FAVORITE = "favorite"
+        # 1-5 stars set through /photosedit/rating/; the web never calls
+        # /photosedit/favorite/ in this mode.
+        STARS = "stars"
+
+    rating_mode = models.CharField(
+        max_length=16, choices=RatingMode.choices, default=RatingMode.FAVORITE
+    )
+
     class SaveMetadata(models.TextChoices):
         OFF = "OFF"
         MEDIA_FILE = "MEDIA_FILE"

@@ -21,6 +21,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { StarRow, starSymbols } from "../lightbox/LightboxRating";
 import type { PhotoActions } from "../lightbox/usePhotoActions";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
@@ -29,6 +30,7 @@ import classes from "./PhotoActionTiles.module.css";
 import { fileNameOf } from "./photoPageText";
 
 const TILE_ICON = 20;
+const TILE_STARS = starSymbols(TILE_ICON, "var(--mantine-color-dimmed)");
 
 /** The icon over the label of one tile. */
 function TileFace({ icon, label }: Readonly<{ icon: React.ReactNode; label: string }>) {
@@ -39,6 +41,42 @@ function TileFace({ icon, label }: Readonly<{ icon: React.ReactNode; label: stri
       </span>
       <span className={classes.label}>{label}</span>
     </>
+  );
+}
+
+/**
+ * Favorite, or in stars mode (#2202) the photo's 0-5 stars, as the lightbox
+ * has them: click a star to rate, the current one again to clear it.
+ */
+function RatingTile({ actions }: Readonly<{ actions: PhotoActions }>) {
+  const { t } = useTranslation();
+  if (actions.ratesWithStars) {
+    return (
+      <div className={`${classes.tile} ${classes.ratingTile}`}>
+        <StarRow rating={actions.rating} readOnly={!actions.canRate} onRate={actions.setRating} symbols={TILE_STARS} />
+        <span className={classes.label}>{t("photopage.tiles.rating")}</span>
+      </div>
+    );
+  }
+  return (
+    <UnstyledButton
+      className={classes.tile}
+      data-active={actions.isFavorite || undefined}
+      aria-pressed={actions.isFavorite}
+      title={actions.isFavorite ? t("photopage.actions.unfavorite") : t("photopage.actions.favorite")}
+      onClick={actions.toggleFavorite}
+    >
+      <TileFace
+        icon={
+          actions.isFavorite ? (
+            <IconStarFilled size={TILE_ICON} color={FAVORITE_COLOR} />
+          ) : (
+            <IconStar size={TILE_ICON} />
+          )
+        }
+        label={t("photopage.tiles.favorite")}
+      />
+    </UnstyledButton>
   );
 }
 
@@ -94,7 +132,7 @@ type Props = Readonly<{
 }>;
 
 /**
- * The owner's actions on the photo as labelled tiles (Favorite, Share, Album,
+ * The owner's actions on the photo as labelled tiles (Favorite or the stars, Share, Album,
  * Download, More), so none hides behind an unlabelled icon. More holds the
  * rest of the lightbox's toolbar: copy, rotate, hide, the viewer and trash.
  */
@@ -105,24 +143,7 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
 
   return (
     <div className={classes.tiles} role="group" aria-label={t("photopage.tiles.label")}>
-      <UnstyledButton
-        className={classes.tile}
-        data-active={actions.isFavorite || undefined}
-        aria-pressed={actions.isFavorite}
-        title={actions.isFavorite ? t("photopage.actions.unfavorite") : t("photopage.actions.favorite")}
-        onClick={actions.toggleFavorite}
-      >
-        <TileFace
-          icon={
-            actions.isFavorite ? (
-              <IconStarFilled size={TILE_ICON} color={FAVORITE_COLOR} />
-            ) : (
-              <IconStar size={TILE_ICON} />
-            )
-          }
-          label={t("photopage.tiles.favorite")}
-        />
-      </UnstyledButton>
+      <RatingTile actions={actions} />
       <UnstyledButton
         className={classes.tile}
         data-shared={actions.isShared || undefined}

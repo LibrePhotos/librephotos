@@ -133,10 +133,11 @@ describe("helpers", () => {
   });
 
   test("timelineFilterShows mirrors the backend filter", () => {
-    const screenshot = { video: false, is_screenshot: true, is_document: false, rating: 0 };
-    expect(timelineFilterShows(SHOW_EVERYTHING, screenshot, 4)).toBe(true);
-    expect(timelineFilterShows({ ...SHOW_EVERYTHING, hide_screenshots: true }, screenshot, 4)).toBe(false);
-    expect(timelineFilterShows({ ...SHOW_EVERYTHING, favorites: true }, { ...screenshot, rating: 4 }, 4)).toBe(true);
-    expect(timelineFilterShows({ ...SHOW_EVERYTHING, media: "videos" }, screenshot, 4)).toBe(false);
+    const screenshot = { video: false, is_screenshot: true, is_document: false, favorite: false };
+    expect(timelineFilterShows(SHOW_EVERYTHING, screenshot)).toBe(true);
+    expect(timelineFilterShows({ ...SHOW_EVERYTHING, hide_screenshots: true }, screenshot)).toBe(false);
+    expect(timelineFilterShows({ ...SHOW_EVERYTHING, favorites: true }, screenshot)).toBe(false);
+    expect(timelineFilterShows({ ...SHOW_EVERYTHING, favorites: true }, { ...screenshot, favorite: true })).toBe(true);
+    expect(timelineFilterShows({ ...SHOW_EVERYTHING, media: "videos" }, screenshot)).toBe(false);
   });
 });

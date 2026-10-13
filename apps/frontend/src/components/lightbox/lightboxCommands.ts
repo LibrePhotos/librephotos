@@ -8,6 +8,8 @@ import { createContext, useContext } from "react";
  */
 type LightboxCommandArgs = {
   favorite: [];
+  /** A 0-5 star rating, in stars mode. */
+  rate: [rating: number];
   hide: [];
   public: [];
   delete: [];
@@ -28,6 +30,7 @@ export type LightboxCommands = {
 export function createLightboxCommands(): LightboxCommands {
   const handlers: { [C in LightboxCommand]: Set<LightboxCommandHandler<C>> } = {
     favorite: new Set(),
+    rate: new Set(),
     hide: new Set(),
     public: new Set(),
     delete: new Set(),
