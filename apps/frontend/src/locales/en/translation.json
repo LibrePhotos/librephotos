@@ -1459,7 +1459,20 @@
     "delete": "Delete event",
     "deleteexplanation": "This will delete the event. Are you sure?",
     "subtitle_one": "{{count}} event",
-    "subtitle_other": "{{count}} events"
+    "subtitle_other": "{{count}} events",
+    "title": {
+      "weekend": "Weekend",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "earlyMorning": "{{weekday}} Early Morning",
+      "morning": "{{weekday}} Morning",
+      "afternoon": "{{weekday}} Afternoon",
+      "evening": "{{weekday}} Evening",
+      "withPeople": "{{when}} with {{people}}",
+      "inPlaces": "{{when}} in {{places}}",
+      "withPeopleInPlaces": "{{when}} with {{people}} in {{places}}",
+      "fallback": "Album from {{date}}"
+    }
   },
   "autoalbumgallery": {
     "showmap": "Show Map",

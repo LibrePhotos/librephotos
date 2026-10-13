@@ -20,7 +20,7 @@ This job will look at all media files that already exist. It tries to find commo
 
 ### Regenerate Event Titles
 
-This will create a title for the event album based on the information of the media files in the event album. Since 1.3.0, titles leave out faces in "Unknown - Other" and no longer contain a double space where a part is missing. Run this job once to fix the titles of albums made by an older version.
+This will create a title for the event album based on the information of the media files in the event album. Since 1.3.0, titles leave out faces in "Unknown - Other" and no longer contain a double space where a part is missing. Run this job once to fix the titles of albums made by an older version. It also stores what each title is made of, so the web app can show it in your language (not released yet; until then titles are English).
 
 ### Train Faces
 

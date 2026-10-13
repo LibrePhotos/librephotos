@@ -8946,6 +8946,15 @@
             "type": "string",
             "maxLength": 512
           },
+          "title_parts": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventTitleParts"
+              }
+            ],
+            "readOnly": true,
+            "nullable": true
+          },
           "favorited": {
             "type": "boolean"
           },
@@ -8990,7 +8999,8 @@
           "people",
           "photos",
           "timestamp",
-          "title"
+          "title",
+          "title_parts"
         ]
       },
       "AlbumAutoList": {
@@ -9003,6 +9013,15 @@
           "title": {
             "type": "string",
             "maxLength": 512
+          },
+          "title_parts": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventTitleParts"
+              }
+            ],
+            "readOnly": true,
+            "nullable": true
           },
           "timestamp": {
             "type": "string",
@@ -9037,7 +9056,8 @@
           "photos",
           "start",
           "timestamp",
-          "title"
+          "title",
+          "title_parts"
         ]
       },
       "AlbumAutoRequest": {
@@ -11304,6 +11324,66 @@
           "status"
         ]
       },
+      "EventTitleParts": {
+        "type": "object",
+        "description": "``AlbumAuto.title_parts``: what the title is made of, for clients that word it (#2235).\n\nOutput only: the fields are read-only, so the schema has no request twin.",
+        "properties": {
+          "weekday": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true,
+            "description": "ISO weekday, Monday is 1"
+          },
+          "time_of_day": {
+            "readOnly": true,
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimeOfDayEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "span_days": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "weekend": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "places": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true
+          },
+          "date": {
+            "type": "string",
+            "readOnly": true,
+            "description": "The album's grouping date, YYYY-MM-DD"
+          }
+        },
+        "required": [
+          "date",
+          "people",
+          "places",
+          "span_days",
+          "time_of_day",
+          "weekday",
+          "weekend"
+        ]
+      },
       "FaceBoxPixels": {
         "type": "object",
         "description": "A face box in big-thumbnail pixels.",
@@ -12144,6 +12224,11 @@
         },
         "required": [
           "results"
+        ]
+      },
+      "NullEnum": {
+        "enum": [
+          null
         ]
       },
       "PaginatedAlbumAutoListList": {
@@ -16793,6 +16878,16 @@
         ],
         "type": "string",
         "description": "* `left` - Left\n* `right` - Right"
+      },
+      "TimeOfDayEnum": {
+        "enum": [
+          "early_morning",
+          "morning",
+          "afternoon",
+          "evening"
+        ],
+        "type": "string",
+        "description": "* `early_morning` - early_morning\n* `morning` - morning\n* `afternoon` - afternoon\n* `evening` - evening"
       },
       "TokenBlacklistRequest": {
         "type": "object",

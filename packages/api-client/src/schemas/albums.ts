@@ -112,9 +112,37 @@ export type FetchUserAlbumsSharedResponse = z.infer<typeof FetchUserAlbumsShared
 
 /* ---- Auto (event) albums ---------------------------------------------- */
 
+/** The time-of-day keys an event title names (backend `TIME_OF_DAY`). */
+export const EVENT_TIME_OF_DAY = ["early_morning", "morning", "afternoon", "evening"] as const;
+export type EventTimeOfDay = (typeof EVENT_TIME_OF_DAY)[number];
+
+/**
+ * What an event's `title` is made of, so a client can word it in its own
+ * language (#2235). The weekday and time of day are the first photo's wall
+ * clock: read them from here, never from a timestamp in the viewer's zone.
+ */
+export const EventTitleParts = z.object({
+  /** ISO weekday, Monday is 1. */
+  weekday: z.number().int().min(1).max(7).nullable(),
+  time_of_day: z.enum(EVENT_TIME_OF_DAY).nullable(),
+  /** Whole days between the first and the last photo. */
+  span_days: z.number(),
+  /** The first and the last photo fall on different weekend days. */
+  weekend: z.boolean(),
+  /** At most two named people, most frequent first. */
+  people: z.string().array(),
+  /** At most two places, as the reverse geocoder named them. */
+  places: z.string().array(),
+  /** The album's grouping date (YYYY-MM-DD), for the "Album from" fallback. */
+  date: z.string(),
+});
+export type EventTitleParts = z.infer<typeof EventTitleParts>;
+
 export const AutoAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
+  /** Null until the album's title is regenerated; older backends lack it. */
+  title_parts: EventTitleParts.nullish(),
   /**
    * The event's grouping key, about 12 hours before its first photo: not a date
    * to show. `start` (the first photo's exif_timestamp) is; older backends lack it.
@@ -156,6 +184,8 @@ export type PhotoSimple = z.infer<typeof PhotoSimple>;
 export const AutoAlbum = z.object({
   id: z.number(),
   title: z.string(),
+  /** Null until the album's title is regenerated; older backends lack it. */
+  title_parts: EventTitleParts.nullish(),
   favorited: z.boolean(),
   timestamp: z.string(),
   created_on: z.string(),

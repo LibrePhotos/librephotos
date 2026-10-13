@@ -12,6 +12,7 @@ import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { eventLocationNames } from "../../../components/album/eventLocations";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { useEventTitle } from "../../../hooks/useEventTitle";
 
 export const Route = createFileRoute("/_protected/album/events/$id")({
   component: AlbumAutoGalleryView,
@@ -24,6 +25,7 @@ function AlbumAutoGalleryView() {
   const { data: album, isLoading, isError } = useFetchAutoAlbumQuery(id);
   const [showMap, { toggle: toggleMap }] = useDisclosure(false);
   const { t } = useTranslation();
+  const eventTitle = useEventTitle();
 
   if (!album) {
     return (
@@ -139,7 +141,7 @@ function AlbumAutoGalleryView() {
       )}
 
       <PhotoListView
-        title={album.title}
+        title={eventTitle(album)}
         loading={false}
         icon={SettingsAutomation}
         photoset={groupedPhotos}
