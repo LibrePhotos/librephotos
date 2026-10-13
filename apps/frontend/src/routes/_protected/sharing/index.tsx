@@ -1,6 +1,5 @@
 import { Photoset } from "@librephotos/api-client";
-import type { ListUserList } from "@librephotos/api-client";
-import { Avatar, Box, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
+import { Avatar, Group, Skeleton, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronRight, IconDownload, IconLink, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -19,6 +18,7 @@ import {
 } from "../../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import classes from "../../../components/album/AlbumSection.module.css";
+import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { AlbumShareButton } from "../../../components/sharing/AlbumShareButton";
 import { avatarSrc } from "../../../components/sharing/avatarSrc";
@@ -30,10 +30,6 @@ import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 export const Route = createFileRoute("/_protected/sharing/")({
   component: SharingExplore,
 });
-
-function publicUsers(items: ListUserList = []) {
-  return items.filter(el => el.public_sharing);
-}
 
 function SharingExplore() {
   const { t } = useTranslation();
@@ -62,7 +58,7 @@ function SharingExplore() {
   // Per-photo share links are public links too; the Public Links page lists them.
   const { data: photoShares = [], isLoading: isLoadingPhotoShares } = useFetchPhotoSharesQuery();
 
-  const publicUsersList = publicUsers(users);
+  const publicUsersList = (users ?? []).filter(el => el.public_sharing);
 
   // Filter albums that are public (shared via link)
   const publicLinkAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
@@ -102,10 +98,10 @@ function SharingExplore() {
     });
 
   return (
-    <Box p="md">
+    <>
       <PageHeader icon={IconUsers} title={t("sidemenu.sharing")} subtitle={t("sharing.subtitle")} />
 
-      <Stack gap="md">
+      <PageBody gap="md">
         {/* Public Users Section */}
         <div className={classes.section}>
           <div className={classes.header}>
@@ -487,7 +483,7 @@ function SharingExplore() {
             </div>
           )}
         </div>
-      </Stack>
+      </PageBody>
 
       <ModalAlbumShare
         isOpen={isShareDialogOpen}
@@ -495,6 +491,6 @@ function SharingExplore() {
         albumID={albumID}
         ownerUsername={albumOwner}
       />
-    </Box>
+    </>
   );
 }

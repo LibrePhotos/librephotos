@@ -1,10 +1,11 @@
-import { Stack, Tabs } from "@mantine/core";
+import { Tabs } from "@mantine/core";
 import { IconDownload } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
+import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { AlbumsSharedWithMe } from "../../../components/sharing/AlbumsSharedWithMe";
 import { PhotosSharedWithMe } from "../../../components/sharing/PhotosSharedWithMe";
@@ -45,29 +46,31 @@ function SharedWithMe() {
   };
 
   return (
-    <Stack p="md" gap={0}>
+    <>
       <PageHeader
         icon={IconDownload}
         iconColor="var(--mantine-color-green-6)"
         title={tab === "photos" ? t("sharing.photosOthersShared") : t("sharing.albumsOthersShared")}
         subtitle={getSubHeader(tab)}
       />
-      {/* Controlled by the route: with defaultValue, Back changed the title
-          but left the other tab showing. */}
-      <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/withme/${value}/` })}>
-        <Tabs.List>
-          <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
-          <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
-        </Tabs.List>
+      <PageBody gap={0}>
+        {/* Controlled by the route: with defaultValue, Back changed the title
+            but left the other tab showing. */}
+        <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/withme/${value}/` })}>
+          <Tabs.List>
+            <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
+            <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
+          </Tabs.List>
 
-        <Tabs.Panel value="photos" keepMounted={false} pt="md">
-          <PhotosSharedWithMe />
-        </Tabs.Panel>
+          <Tabs.Panel value="photos" keepMounted={false} pt="md">
+            <PhotosSharedWithMe />
+          </Tabs.Panel>
 
-        <Tabs.Panel value="albums" keepMounted={false} pt="md">
-          <AlbumsSharedWithMe />
-        </Tabs.Panel>
-      </Tabs>
-    </Stack>
+          <Tabs.Panel value="albums" keepMounted={false} pt="md">
+            <AlbumsSharedWithMe />
+          </Tabs.Panel>
+        </Tabs>
+      </PageBody>
+    </>
   );
 }

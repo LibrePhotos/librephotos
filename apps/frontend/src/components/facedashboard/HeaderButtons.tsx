@@ -17,6 +17,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTrainFacesMutation } from "../../api_client/faces";
+import { PAGE_GUTTER } from "../../uiConstants";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
@@ -65,7 +66,7 @@ export function HeaderButtons({
 
   return (
     <>
-      <Group px="md" justify="space-between" align="flex-start">
+      <Group px={PAGE_GUTTER} justify="space-between" align="flex-start">
         <Group align="flex-start">
           <Button
             variant="light"

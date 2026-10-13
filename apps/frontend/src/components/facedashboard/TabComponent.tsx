@@ -2,6 +2,7 @@ import { Group, Loader, Tabs } from "@mantine/core";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { PAGE_GUTTER } from "../../uiConstants";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 import { FacesTab } from "./facesTab";
 
@@ -19,7 +20,7 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
   const { tab: activeTab } = search;
 
   return (
-    <Group justify="space-between">
+    <Group justify="space-between" px={PAGE_GUTTER}>
       <Tabs
         defaultValue={activeTab}
         value={activeTab}

@@ -1,4 +1,4 @@
-import { Box, Group, SimpleGrid, Skeleton, Stack, Text, Title } from "@mantine/core";
+import { Group, SimpleGrid, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAlbum,
@@ -29,6 +29,7 @@ import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
+import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 
@@ -131,7 +132,7 @@ function AlbumExplore() {
   return (
     <>
       <PageHeader icon={IconAlbum} title={t("explore.title")} subtitle={t("explore.subtitle")} />
-      <Box px={10} pb={10}>
+      <PageBody gap={0}>
         <Stack gap="md">
           {/* My Albums - using UserAlbumCard component */}
           <div className={classes.section}>
@@ -289,7 +290,7 @@ function AlbumExplore() {
           albumId={albumID}
           albumTitle={albumTitle}
         />
-      </Box>
+      </PageBody>
     </>
   );
 }

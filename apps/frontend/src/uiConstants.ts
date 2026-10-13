@@ -20,6 +20,11 @@ export const TOOLBAR_ACTION_SIZE = "lg";
 // Button it is undefined and the height falls back to auto (22 px for an xs button).
 export const TOOLBAR_CONTROL_HEIGHT = "calc(2.125rem * var(--mantine-scale))";
 
+// Horizontal inset (px) of a page's content from the edge of the app shell, which adds none:
+// PageHeader's padding, PageBody (components/PageBody.tsx), PhotoListView's grid and TileGrid's
+// gutter plus cell padding all keep it, so content edges stay put from one route to the next.
+export const PAGE_GUTTER = 10;
+
 // Icon size (px) of the page header (components/PageHeader.tsx): between the 50px album icons
 // and the 35px settings icons, so one page-title icon reads the same size on every page.
 export const PAGE_HEADER_ICON_SIZE = 40;
