@@ -32,6 +32,10 @@ const updatePhoto = vi.fn<(request: { id: string; data: { exif_timestamp?: unkno
 vi.mock("../../api_client/photos/hooks", () => ({
   useUpdatePhotoMutation: () => ({ mutate: updatePhoto }),
 }));
+// The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
+vi.mock("./WriteBackHint", () => ({
+  WriteBackHint: ({ field }: { field: string }) => <span data-write-back-hint={field} />,
+}));
 
 // The photo the user is editing. Taken shortly after midnight, so the CEST
 // offset is enough to push it into the previous day - exactly the "12:00 AM"

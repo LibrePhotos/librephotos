@@ -17,6 +17,7 @@ import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { DisabledReason } from "../common/DisabledReason";
 import classes from "./TagsSection.module.css";
+import { WriteBackHint } from "./WriteBackHint";
 
 type TagsSectionProps = {
   photoDetail: PhotoType;
@@ -224,6 +225,7 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
               {t("lightbox.sidebar.tagsFromFileHint")}
             </Text>
           )}
+          <WriteBackHint field="tags" />
         </>
       ) : tags.length > 0 ? (
         <Group gap="xs">

@@ -16,7 +16,7 @@ By default, labelling a face only updates the LibrePhotos database — your imag
 
 If you enable **Settings → Face Options → Write face tags to image files**, then every time you label a face LibrePhotos also writes the face's region and the person's name into the photo as XMP MWG-RS region tags. This makes your face data portable to other photo managers such as Lightroom, digiKam and XnView.
 
-The switch only takes effect together with **Settings → Metadata → Synchronize metadata to disk**, which decides where the tags go:
+The switch only takes effect together with **Settings → Metadata → Write edits to files**, which decides where the tags go:
 
 - **Save to sidecar**: the regions go into the photo's `.xmp` sidecar file; the original image is left unchanged.
 - **Save to media file**: the regions are written into the original image file itself.

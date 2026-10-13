@@ -11,9 +11,10 @@ export function PublicSharingDefaultsCard({ user, onChange }: UserSettingsCardPr
   const { t } = useTranslation();
   // The server always sends the defaults; all off is what it assumes when they are missing.
   const sharingDefaults = user.public_sharing_defaults ?? PublicSharingDefaults.parse({});
-  const sharingSwitch = (key: SharingSwitch, label: string) => (
+  const sharingSwitch = (key: SharingSwitch, label: string, description: string) => (
     <Switch
       label={label}
+      description={description}
       checked={sharingDefaults[key]}
       onChange={event =>
         onChange({ public_sharing_defaults: { ...sharingDefaults, [key]: event.currentTarget.checked } })
@@ -31,11 +32,11 @@ export function PublicSharingDefaultsCard({ user, onChange }: UserSettingsCardPr
         <Text size="sm" c="dimmed">
           {t("settings.publicsharingdefaultsdesc")}
         </Text>
-        {sharingSwitch("share_timestamps", t("sharing.shareTimestamps"))}
-        {sharingSwitch("share_location", t("sharing.shareLocation"))}
-        {sharingSwitch("share_camera_info", t("sharing.shareCameraInfo"))}
-        {sharingSwitch("share_captions", t("sharing.shareCaptions"))}
-        {sharingSwitch("share_faces", t("sharing.shareFaces"))}
+        {sharingSwitch("share_timestamps", t("sharing.shareTimestamps"), t("sharing.shareTimestampsDesc"))}
+        {sharingSwitch("share_location", t("sharing.shareLocation"), t("sharing.shareLocationDesc"))}
+        {sharingSwitch("share_camera_info", t("sharing.shareCameraInfo"), t("sharing.shareCameraInfoDesc"))}
+        {sharingSwitch("share_captions", t("sharing.shareCaptions"), t("sharing.shareCaptionsDesc"))}
+        {sharingSwitch("share_faces", t("sharing.shareFaces"), t("sharing.shareFacesDesc"))}
       </Stack>
     </Card>
   );

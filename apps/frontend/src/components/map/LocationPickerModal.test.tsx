@@ -33,6 +33,10 @@ vi.mock("../../util/mapStyle", () => ({
   useMapStyle: () => ({ mapStyle: "https://example.invalid/style.json", mapsDisabled: false }),
 }));
 vi.mock("./mapImages", () => ({ ignoreMissingStyleImages: () => {} }));
+// The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
+vi.mock("../lightbox/WriteBackHint", () => ({
+  WriteBackHint: ({ field }: { field: string }) => <span data-write-back-hint={field} />,
+}));
 vi.mock("../../api_client/geocode", () => ({
   useGeocodeSearchQuery: (query: string, enabled: boolean) => {
     stubs.geocodeSearch(query, enabled);
@@ -180,6 +184,12 @@ function type(text: string) {
 }
 
 describe("LocationPickerModal: opening", () => {
+  it("says whether the location reaches the file (#2281)", () => {
+    render();
+
+    expect(container.querySelector("[data-write-back-hint]")?.getAttribute("data-write-back-hint")).toBe("location");
+  });
+
   it("does not ask the browser where the user is when it opens", () => {
     render();
 

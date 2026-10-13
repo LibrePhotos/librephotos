@@ -26,6 +26,7 @@ import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
 import hashtagClasses from "./Hashtag.module.css";
 import suggestion from "./Suggestion";
+import { WriteBackHint } from "./WriteBackHint";
 
 type Props = Readonly<{
   isPublic: boolean;
@@ -243,6 +244,7 @@ function CaptionEditor(props: Props) {
         >
           <RichTextEditor.Content />
         </RichTextEditor>
+        {editMode && <WriteBackHint field="caption" />}
       </Stack>
       {autoTags && autoTags.length > 0 && (
         <Stack gap="xs">

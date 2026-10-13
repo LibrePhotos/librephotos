@@ -9,6 +9,7 @@ import { AttributionControl, Marker, NavigationControl } from "react-map-gl/mapl
 import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
 import { useMapStyle } from "../../util/mapStyle";
+import { WriteBackHint } from "../lightbox/WriteBackHint";
 import { LocationSearchBox } from "./LocationSearchBox";
 import { ignoreMissingStyleImages } from "./mapImages";
 import { PickedPlace } from "./PickedPlace";
@@ -188,6 +189,8 @@ export function LocationPickerModal({
       )}
 
       {position && <PickedPlace position={position} knownPlace={atInitialPosition ? initialPlace : undefined} />}
+
+      <WriteBackHint field="location" />
 
       <Group justify="space-between" wrap="wrap-reverse" gap="xs">
         <div>
