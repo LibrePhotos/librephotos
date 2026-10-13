@@ -1,17 +1,4 @@
-import {
-  Anchor,
-  Box,
-  Button,
-  Center,
-  Container,
-  Divider,
-  Grid,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  useMantineTheme,
-} from "@mantine/core";
+import { Anchor, Box, Button, Center, Divider, Grid, Group, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle, IconPhoto } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -36,8 +23,10 @@ import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSec
 import { TagsSection } from "../../components/lightbox/TagsSection";
 import { TimestampItem } from "../../components/lightbox/TimestampItem";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
+import { PageBody } from "../../components/PageBody";
 import { PageHeader } from "../../components/PageHeader";
 import { notification } from "../../service/notifications";
+import { PAGE_GUTTER } from "../../uiConstants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/photo/$id")({
@@ -57,11 +46,11 @@ function SinglePhotoView() {
 
   if (!photoId) {
     return (
-      <Container fluid>
+      <PageBody>
         <Center>
           <Text>{t("photopage.noid")}</Text>
         </Center>
-      </Container>
+      </PageBody>
     );
   }
 
@@ -69,7 +58,7 @@ function SinglePhotoView() {
   // spinning forever.
   if (isError && !photoDetail) {
     return (
-      <Container fluid>
+      <PageBody>
         <Center py="xl">
           <Stack align="center" gap="xs">
             <IconAlertCircle size={48} />
@@ -79,15 +68,15 @@ function SinglePhotoView() {
             </Button>
           </Stack>
         </Center>
-      </Container>
+      </PageBody>
     );
   }
 
   if (!photoDetail) {
     return (
-      <Container fluid>
+      <PageBody>
         <PageLoader label={t("photopage.loading")} />
-      </Container>
+      </PageBody>
     );
   }
 
@@ -104,7 +93,7 @@ function SinglePhotoView() {
   };
 
   return (
-    <Container fluid p={isMobile ? "xs" : "md"}>
+    <PageBody pt={PAGE_GUTTER}>
       <Paper shadow="sm" p={isMobile ? "xs" : "md"} radius="md">
         <Stack gap={isMobile ? "xs" : "md"}>
           {/* Header Section */}
@@ -186,6 +175,6 @@ function SinglePhotoView() {
         onRequestClose={() => setSelectedFaces([])}
         selectedFaces={selectedFaces}
       />
-    </Container>
+    </PageBody>
   );
 }

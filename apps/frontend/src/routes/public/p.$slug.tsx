@@ -7,8 +7,9 @@ import { useTranslation } from "react-i18next";
 import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { serverAddress } from "../../api_client/urls";
 import { PageLoader } from "../../components/common/PageLoader";
+import { PageBody } from "../../components/PageBody";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
-import { TOP_MENU_HEIGHT } from "../../uiConstants";
+import { PAGE_GUTTER, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { needsConversion } from "../../util/videoPlayback";
 
@@ -74,7 +75,7 @@ function PublicPhotoBySlug() {
   const cannotPlay = videoFailed || needsConversion(photo.video_playback_type);
 
   return (
-    <Stack align="center" gap="sm" p="md">
+    <PageBody align="center" gap="sm" pt={PAGE_GUTTER}>
       {photo.video_url && !cannotPlay && (
         <video
           src={`${serverAddress}${photo.video_url}`}
@@ -120,6 +121,6 @@ function PublicPhotoBySlug() {
           {detail}
         </Text>
       ))}
-    </Stack>
+    </PageBody>
   );
 }

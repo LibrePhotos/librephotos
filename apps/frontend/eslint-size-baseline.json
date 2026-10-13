@@ -3,7 +3,7 @@
   "src/components/spotlight/useSpotlightActions.ts": { "lines": 593, "function": 463 },
   "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
   "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
-  "src/routes/_protected/sharing/index.tsx": { "lines": 462, "function": 428 },
+  "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
   "src/components/settings/Settings.tsx": { "lines": 458, "function": 430 },
   "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 450, "function": 397 },

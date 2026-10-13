@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosByMeQuery } from "../../../api_client/photos/hooks";
+import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { AlbumsSharedByMe } from "../../../components/sharing/AlbumsSharedByMe";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
@@ -41,32 +42,34 @@ function SharedByMe() {
   };
 
   return (
-    <Stack p="md" gap={0}>
+    <>
       <PageHeader
         icon={IconUpload}
         iconColor="var(--mantine-color-red-6)"
         title={tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}
         subtitle={getSubHeader(tab)}
       />
-      {/* Controlled by the route: with defaultValue, Back changed the title
-          but left the other tab showing. */}
-      <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/byme/${value}/` })}>
-        <Tabs.List>
-          <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
-          <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
-        </Tabs.List>
+      <PageBody gap={0}>
+        {/* Controlled by the route: with defaultValue, Back changed the title
+            but left the other tab showing. */}
+        <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/byme/${value}/` })}>
+          <Tabs.List>
+            <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
+            <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
+          </Tabs.List>
 
-        <Tabs.Panel value="photos" keepMounted={false}>
-          <Stack gap="md" pt="md">
-            <PhotoSharesSection />
-            <PhotosSharedByMe />
-          </Stack>
-        </Tabs.Panel>
+          <Tabs.Panel value="photos" keepMounted={false}>
+            <Stack gap="md" pt="md">
+              <PhotoSharesSection />
+              <PhotosSharedByMe />
+            </Stack>
+          </Tabs.Panel>
 
-        <Tabs.Panel value="albums" keepMounted={false} pt="md">
-          <AlbumsSharedByMe />
-        </Tabs.Panel>
-      </Tabs>
-    </Stack>
+          <Tabs.Panel value="albums" keepMounted={false} pt="md">
+            <AlbumsSharedByMe />
+          </Tabs.Panel>
+        </Tabs>
+      </PageBody>
+    </>
   );
 }

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
 import { PageLoader } from "../../../components/common/PageLoader";
+import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
@@ -69,70 +70,71 @@ function PublicLinksPage() {
   const { data: photoShares = [], isLoading: isLoadingShares } = useFetchPhotoSharesQuery();
 
   return (
-    <Stack p="md" gap={0}>
+    <>
       <PageHeader
         icon={IconLink}
         iconColor="var(--mantine-color-violet-6)"
         title={t("sharing.publicLinks")}
         subtitle={t("sharing.publicLinksDescription")}
       />
+      <PageBody gap={0}>
+        <Tabs
+          value={activeTab}
+          onChange={value => navigate({ search: { tab: value === "photos" ? "photos" : undefined }, replace: true })}
+        >
+          <Tabs.List>
+            <Tabs.Tab value="albums">
+              {t("sidemenu.albums")} ({publicAlbums.length})
+            </Tabs.Tab>
+            <Tabs.Tab value="photos">
+              {t("photos.photos")} ({totalPhotos + photoShares.length})
+            </Tabs.Tab>
+          </Tabs.List>
 
-      <Tabs
-        value={activeTab}
-        onChange={value => navigate({ search: { tab: value === "photos" ? "photos" : undefined }, replace: true })}
-      >
-        <Tabs.List>
-          <Tabs.Tab value="albums">
-            {t("sidemenu.albums")} ({publicAlbums.length})
-          </Tabs.Tab>
-          <Tabs.Tab value="photos">
-            {t("photos.photos")} ({totalPhotos + photoShares.length})
-          </Tabs.Tab>
-        </Tabs.List>
-
-        <Tabs.Panel value="albums" keepMounted={false}>
-          {isLoadingAlbums ? (
-            <PageLoader label={t("loading")} />
-          ) : publicAlbums.length === 0 ? (
-            <Stack align="center" mt="xl">
-              <Text c="dimmed">{t("sharing.noPublicAlbums")}</Text>
-            </Stack>
-          ) : (
-            <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
-          )}
-        </Tabs.Panel>
-
-        <Tabs.Panel value="photos" keepMounted={false}>
-          <Stack gap="md" pt="md">
-            <PhotoSharesSection />
-            {isLoadingPhotos || isLoadingShares ? (
+          <Tabs.Panel value="albums" keepMounted={false}>
+            {isLoadingAlbums ? (
               <PageLoader label={t("loading")} />
-            ) : totalPhotos === 0 ? (
-              photoShares.length === 0 && (
-                <Stack align="center" mt="xl">
-                  <Text c="dimmed">{t("sharing.noPublicPhotos")}</Text>
-                </Stack>
-              )
+            ) : publicAlbums.length === 0 ? (
+              <Stack align="center" mt="xl">
+                <Text c="dimmed">{t("sharing.noPublicAlbums")}</Text>
+              </Stack>
             ) : (
-              <PhotoListView
-                title={t("sharing.publicPhotos")}
-                loading={isLoadingPhotos}
-                icon={IconLink}
-                photoset={publicPhotosGrouped ?? []}
-                idx2hash={photosFlat}
-                selectable
-              />
+              <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
             )}
-          </Stack>
-        </Tabs.Panel>
-      </Tabs>
+          </Tabs.Panel>
 
-      <ModalAlbumShare
-        isOpen={isShareDialogOpen}
-        onRequestClose={hideShareDialog}
-        albumID={albumID}
-        ownerUsername={albumOwner}
-      />
-    </Stack>
+          <Tabs.Panel value="photos" keepMounted={false}>
+            <Stack gap="md" pt="md">
+              <PhotoSharesSection />
+              {isLoadingPhotos || isLoadingShares ? (
+                <PageLoader label={t("loading")} />
+              ) : totalPhotos === 0 ? (
+                photoShares.length === 0 && (
+                  <Stack align="center" mt="xl">
+                    <Text c="dimmed">{t("sharing.noPublicPhotos")}</Text>
+                  </Stack>
+                )
+              ) : (
+                <PhotoListView
+                  title={t("sharing.publicPhotos")}
+                  loading={isLoadingPhotos}
+                  icon={IconLink}
+                  photoset={publicPhotosGrouped ?? []}
+                  idx2hash={photosFlat}
+                  selectable
+                />
+              )}
+            </Stack>
+          </Tabs.Panel>
+        </Tabs>
+
+        <ModalAlbumShare
+          isOpen={isShareDialogOpen}
+          onRequestClose={hideShareDialog}
+          albumID={albumID}
+          ownerUsername={albumOwner}
+        />
+      </PageBody>
+    </>
   );
 }

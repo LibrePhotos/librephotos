@@ -6,7 +6,7 @@
  * - Stacks: Organizing related photos together (bursts, brackets, manual stacks)
  */
 import { countListedStacks } from "@librephotos/api-client";
-import { Badge, Stack, Tabs } from "@mantine/core";
+import { Badge, Tabs } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCopy, IconLayersSubtract } from "@tabler/icons-react";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
@@ -14,6 +14,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useStackStatsQuery } from "../../api_client/stacks";
+import { PageBody } from "../../components/PageBody";
 import { PageHeader } from "../../components/PageHeader";
 import { DuplicatesPageContent } from "../../components/stacks-duplicates/DuplicatesPageContent";
 import { StacksPageContent } from "../../components/stacks-duplicates/StacksPageContent";
@@ -66,7 +67,7 @@ function StacksDuplicatesPage() {
   return (
     <>
       <PageHeader icon={IconLayersSubtract} title={t("sidemenu.organizing")} subtitle={getSubtitle()} />
-      <Stack gap="lg" px={10} pb={10}>
+      <PageBody gap="lg">
         {/* Tab Navigation */}
         {/* Kept on one row on phones: a wrapped tab leaves the active underline under the first row only */}
         <Tabs
@@ -117,7 +118,7 @@ function StacksDuplicatesPage() {
             <StacksPageContent />
           </Tabs.Panel>
         </Tabs>
-      </Stack>
+      </PageBody>
     </>
   );
 }

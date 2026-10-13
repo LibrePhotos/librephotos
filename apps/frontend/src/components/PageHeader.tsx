@@ -1,7 +1,7 @@
 import { Group, Loader, Stack, Text, Title } from "@mantine/core";
 import type { TablerIcon } from "@tabler/icons-react";
 import type { ReactNode } from "react";
-import { PAGE_HEADER_ICON_SIZE } from "../uiConstants";
+import { PAGE_GUTTER, PAGE_HEADER_ICON_SIZE } from "../uiConstants";
 
 type Props = Readonly<{
   icon: TablerIcon;
@@ -22,7 +22,7 @@ type Props = Readonly<{
  */
 export function PageHeader({ icon: Icon, iconColor, title, subtitle, actions, loading = false }: Props) {
   return (
-    <Group justify="space-between" align="flex-start" gap="xs" p={10} mb={10}>
+    <Group justify="space-between" align="flex-start" gap="xs" p={PAGE_GUTTER} mb={10}>
       {/* The text column takes the free space; the icon never shrinks, so a long title cannot squeeze it */}
       <Group gap="sm" wrap="nowrap" align="center" style={{ flex: "1 1 260px", minWidth: 0 }}>
         <Icon size={PAGE_HEADER_ICON_SIZE} stroke={1.5} color={iconColor} style={{ flexShrink: 0 }} />

@@ -1,6 +1,7 @@
 .container {
   flex-grow: 1;
-  padding: 0 15px;
+  /* PAGE_GUTTER (uiConstants.ts), as above and below the dashboard */
+  padding: 0 10px;
 }
 
 .grid {
