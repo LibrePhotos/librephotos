@@ -3,7 +3,7 @@
 # site to Model.objects.owned_by(user) / get_owned / owned_or_shared_to / owner_q
 # (api/models/scopes.py) and lower the count in the same change. Never add a file.
 api/albums/auto_albums.py: 2
-api/directory_watcher/file_handlers.py: 2
+api/directory_watcher/file_handlers.py: 1
 api/duplicates/detection.py: 1
 api/faces/classify.py: 12
 api/models/album_date.py: 3

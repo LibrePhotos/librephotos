@@ -14,7 +14,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from django.utils import timezone
 
 from api.directory_watcher.file_grouping import (
@@ -33,7 +33,8 @@ from api.duplicates.perceptual_hash import (
 from api.metadata import photo_reader
 from api.metadata.photo_datetime import extract_date_time
 from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
-from api.models.file import content_hash, hash_owner_part
+from api.models.file import content_hash, hash_for_owner, hash_owner_part
+from api.models.photo import PhotoQuerySet
 from api.models.photo_search import PhotoSearch
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import (
@@ -153,8 +154,17 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     return NEW_PICTURE
 
 
+def _keyed_on(photos: PhotoQuerySet, file_hash: str) -> PhotoQuerySet:
+    """The photos whose image hash was taken from ``file_hash``'s content.
+
+    Each holds its owner's salt (``hash_for_owner``), so only the content part
+    is compared.
+    """
+    return photos.filter(image_hash__startswith=content_hash(file_hash))
+
+
 def _photo_to_compare(
-    affected: QuerySet[Photo], user: User, old_hash: str
+    affected: PhotoQuerySet, user: User, old_hash: str
 ) -> Photo | None:
     """The photo whose perceptual hash answers for this file.
 
@@ -163,14 +173,12 @@ def _photo_to_compare(
     actually has a hash to compare against rather than giving up on the
     comparison and re-deriving for everyone.
     """
-    scanned = affected.filter(owner=user, image_hash=old_hash).first()
+    keyed = _keyed_on(affected, old_hash)
+    scanned = keyed.owned_by(user).first()
     if scanned and scanned.perceptual_hash:
         return scanned
     return (
-        affected.filter(image_hash=old_hash)
-        .exclude(perceptual_hash__isnull=True)
-        .exclude(perceptual_hash="")
-        .first()
+        keyed.exclude(perceptual_hash__isnull=True).exclude(perceptual_hash="").first()
         or scanned
     )
 
@@ -252,9 +260,8 @@ def _regenerate_thumbnails(photo: Photo) -> None:
     """Rebuild a photo's thumbnails, and with them its perceptual hash.
 
     Every photo holding the changed file needs this, not just the scanning
-    user's: File rows and thumbnail files are shared between users who scan
-    the same directory, and the other user's copy would otherwise point at a
-    thumbnail that has just been deleted.
+    user's: the File row is shared between users who scan the same directory,
+    and the other user's photo would otherwise keep showing the old picture.
     """
     try:
         if photo.video:
@@ -311,10 +318,10 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
 
     old_hash = existing.hash
 
-    # Every photo holding this file, whoever owns it: the File row and the
-    # thumbnail files are shared between users who scan the same directory. A
-    # deleted photo keeps its image_hash and its faces with no file attached,
-    # so it must not be swept in by the hash alone.
+    # Every photo holding this file, whoever owns it: the File row is shared
+    # between users who scan the same directory. A deleted photo keeps its
+    # image_hash and its faces with no file attached, so it must not be swept
+    # in by the hash alone.
     affected = (
         Photo.objects.filter(
             Q(files=existing)
@@ -342,21 +349,24 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
         new_file = existing.rekey(hash_value, detect_file_type(existing.path))
 
         # Re-read the rows: ``rekey`` has moved their main_file across, so the
-        # instances fetched before it still carry the deleted hash.
+        # instances fetched before it still carry the deleted hash. Each
+        # photo's derived files are named after its own image hash, which
+        # carries its owner's salt rather than the File's (#1957).
         for photo in Photo.objects.filter(pk__in=photo_ids):
             if photo.pk in main_photo_ids and photo.owner_id == user.id:
                 main_photo = photo
-            if verdict == SAME_PICTURE or photo.image_hash != old_hash:
+            if verdict == SAME_PICTURE or _content_changed(photo.image_hash, old_hash):
                 continue
+            photo_hash = photo.image_hash
             if verdict == UNCOMPARABLE:
                 # The picture may or may not have changed, so the thumbnails
                 # are rebuilt in place, under the image hash the face crops
                 # are named after, and nothing labelled is thrown away.
-                _discard_cheap_derived_content(photo, old_hash)
+                _discard_cheap_derived_content(photo, photo_hash)
                 rebuild_photo_ids.append(photo.pk)
                 continue
-            _discard_derived_content(photo, old_hash)
-            photo.image_hash = hash_value
+            _discard_derived_content(photo, photo_hash)
+            photo.image_hash = hash_for_owner(hash_value, photo.owner_id)
             photo.added_on = timezone.now()
             photo.save()
             rebuild_photo_ids.append(photo.pk)
@@ -497,7 +507,18 @@ def group_files_into_photo(
     matching = Photo.objects.owned_by(user).filter(
         Q(files__in=non_metadata_files) | Q(main_file__in=non_metadata_files)
     )
-    existing_photo = matching.filter(main_file=main_file).first() or matching.first()
+    # The File may carry the salt of another user who scanned the path first.
+    image_hash = hash_for_owner(main_file.hash, user.id)
+    existing_photo = (
+        matching.filter(main_file=main_file).first()
+        or matching.first()
+        # The same bytes under another path: a shared File holds the other
+        # user's salt, so the user's own copy of it has a File of its own,
+        # but it is the same photo to them, as any exact copy is (#1957).
+        or Photo.objects.owned_by(user)
+        .filter(image_hash=image_hash, removed=False)
+        .first()
+    )
 
     if existing_photo:
         _adopt_files_into_photo(existing_photo, files, main_file, job_id)
@@ -505,7 +526,7 @@ def group_files_into_photo(
 
     # Create new Photo
     photo = Photo()
-    photo.image_hash = main_file.hash
+    photo.image_hash = image_hash
     photo.owner = user
     photo.added_on = timezone.now()
     photo.geolocation_json = {}

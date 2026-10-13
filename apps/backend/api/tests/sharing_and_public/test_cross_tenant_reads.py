@@ -16,11 +16,21 @@ moved from inline ``owner=`` filters to the manager scopes in
 
 import datetime
 import json
+import os
+import shutil
+import tempfile
+from unittest.mock import patch
 
+import pyvips
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
+from api.directory_watcher.file_handlers import (
+    create_file_record,
+    group_files_into_photo,
+)
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     create_test_album_auto,
@@ -348,3 +358,43 @@ class SharedReadTest(TestCase):
         )
         self.assertEqual(status, 200, body[:300])
         self.assertIn("SharedTripTitle", body)
+
+
+class SharedScanFolderMediaTest(TestCase):
+    """Two users with the same folder in scan scope share its File rows, not
+    their photos (#1957): each one's media hash resolves to their own row."""
+
+    def setUp(self):
+        self.alice = create_test_user()
+        self.bob = create_test_user()
+        tmpdir = tempfile.mkdtemp(prefix="lp-1957-media-")
+        self.addCleanup(shutil.rmtree, tmpdir, True)
+        path = os.path.join(tmpdir, "family.png")
+        pyvips.Image.black(23, 8).write_to_file(path)
+        with patch(
+            "api.directory_watcher.file_handlers.has_embedded_motion_video",
+            return_value=False,
+        ):
+            self.alices, self.bobs = (
+                group_files_into_photo(user, [create_file_record(user, path)], "j")
+                for user in (self.alice, self.bob)
+            )
+
+    def get(self, user, url):
+        # The media view reads the raw jwt cookie.
+        client = APIClient()
+        client.cookies["jwt"] = str(RefreshToken.for_user(user).access_token)
+        return client.get(url)
+
+    def test_each_user_reaches_only_their_own_photo(self):
+        self.assertNotEqual(self.alices.image_hash, self.bobs.image_hash)
+        for user, own, other in (
+            (self.alice, self.alices, self.bobs),
+            (self.bob, self.bobs, self.alices),
+        ):
+            with self.subTest(user=user.pk):
+                response = self.get(user, f"/media/thumbnails_big/{own.image_hash}")
+                self.assertEqual(200, response.status_code)
+                self.assertIn(own.image_hash, response["X-Accel-Redirect"])
+                response = self.get(user, f"/media/thumbnails_big/{other.image_hash}")
+                self.assertEqual(404, response.status_code)
