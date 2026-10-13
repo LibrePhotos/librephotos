@@ -1,12 +1,11 @@
-import type { SiteSettings as SiteSettingsType } from "@librephotos/api-client";
 import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
-import { notification } from "../../service/notifications";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { EmailSettings } from "./EmailSettings";
+import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
 type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate";
@@ -97,17 +96,9 @@ export function SiteSettings() {
   const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
-  const { data: settings, isLoading } = useGetSettingsQuery();
-  const { mutate: saveSettings } = useUpdateSettingsMutation();
+  const { data: settings, isLoading, dataUpdatedAt } = useGetSettingsQuery();
+  const save = useSaveSiteSettings();
   const [opened, { open, close }] = useDisclosure(false);
-
-  // Site settings apply as soon as they change, so confirm each save. The fixed id keeps a
-  // quick run of toggles from stacking up toasts.
-  const save = (input: Partial<SiteSettingsType>) => {
-    saveSettings(input, {
-      onSuccess: () => notification.success(t("sitesettings.saved"), { id: "site-settings-saved", autoClose: 1500 }),
-    });
-  };
 
   // The text fields save on blur and on Enter; only send what actually changed.
   const saveSkipPatterns = () => {
@@ -152,7 +143,8 @@ export function SiteSettings() {
       setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
       setFaceRecognitionModel(settings.face_recognition_model);
     }
-  }, [settings, isLoading]);
+    // dataUpdatedAt: a reload that brings back the same values still resets the controls
+  }, [settings, isLoading, dataUpdatedAt]);
 
   // A fragment, so the cards are direct children of the admin page's Stack and get its gap.
   return (

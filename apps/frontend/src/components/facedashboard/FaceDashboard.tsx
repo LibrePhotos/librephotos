@@ -6,8 +6,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
-import { notification } from "../../service/notifications";
+import { UNKNOWN_PERSON_NAME, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
@@ -179,8 +178,8 @@ export function FaceDashboard() {
   // Action handlers
   const deleteSelectedFaces = useCallback(() => {
     if (selectedFaces.length > 0) {
+      // The hook says "deleted" once the server confirmed, or reports the failure
       deleteFacesMutate({ faceIds: selectedFaces.map(face => face.face_id) });
-      notification.deleteFaces(selectedFaces.length);
       clearSelection();
     }
   }, [selectedFaces, deleteFacesMutate, clearSelection]);
@@ -189,9 +188,8 @@ export function FaceDashboard() {
     if (selectedFaces.length > 0) {
       setFacesPersonLabelMutate({
         faceIds: selectedFaces.map(face => face.face_id),
-        personName: "Unknown - Other",
+        personName: UNKNOWN_PERSON_NAME,
       });
-      notification.removeFacesFromPerson(selectedFaces.length);
       clearSelection();
     }
   }, [selectedFaces, setFacesPersonLabelMutate, clearSelection]);

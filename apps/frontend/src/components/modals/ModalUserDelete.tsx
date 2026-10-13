@@ -17,7 +17,7 @@ type Props = Readonly<{
 
 export function ModalUserDelete(props: Props) {
   const { isOpen, onRequestClose, userToDelete } = props;
-  const { mutate: deleteUser, isPending } = useDeleteUserMutation();
+  const { mutate: deleteUser, isPending } = useDeleteUserMutation({ reportsErrors: true });
 
   const { t } = useTranslation();
 

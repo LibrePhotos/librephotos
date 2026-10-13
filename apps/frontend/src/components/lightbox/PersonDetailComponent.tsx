@@ -7,7 +7,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/urls";
-import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import type { FaceLocationType } from "./lightbox.types";
@@ -138,10 +137,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
           <ActionIcon
             variant="light"
             color="red"
-            onClick={() => {
-              deleteFaces({ faceIds: [person.face_id] });
-              notification.deleteFaces(1);
-            }}
+            // The hook says "deleted" once the server confirmed
+            onClick={() => deleteFaces({ faceIds: [person.face_id] })}
           >
             <IconTrash />
           </ActionIcon>

@@ -14,9 +14,8 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { UNKNOWN_PERSON_NAME, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
-import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
 import { CategoryBadge } from "./CategoryBadge";
@@ -278,8 +277,8 @@ export function Sidebar({
 
   const notThisPerson = (faceId: number) => {
     const ids = [faceId];
-    setFacesPersonLabel({ faceIds: ids, personName: "Unknown - Other" });
-    notification.removeFacesFromPerson(ids.length);
+    // The hook says so once the server confirmed
+    setFacesPersonLabel({ faceIds: ids, personName: UNKNOWN_PERSON_NAME });
   };
 
   const handlePersonEdit = (faceId: number, faceUrl: string) => {

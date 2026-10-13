@@ -1,6 +1,7 @@
 import { endpoints, settingsKeys, type EmailConfigUpdate } from "@librephotos/api-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
+import { mutationErrorMeta, type MutationErrorOptions } from "../../mutationErrors";
 
 export const useGetEmailConfigQuery = () =>
   useQuery({
@@ -8,8 +9,9 @@ export const useGetEmailConfigQuery = () =>
     queryFn: () => endpoints.fetchEmailConfig(apiClient),
   });
 
-export const useUpdateEmailConfigMutation = () =>
+export const useUpdateEmailConfigMutation = (options: MutationErrorOptions = {}) =>
   useMutation({
+    meta: mutationErrorMeta(options),
     mutationFn: (config: EmailConfigUpdate) => endpoints.updateEmailConfig(apiClient, config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.emailConfig() });
@@ -19,7 +21,8 @@ export const useUpdateEmailConfigMutation = () =>
   });
 
 /** Sends a test email. A failed send is an ApiError (502, code email_send_failed). */
-export const useSendTestEmailMutation = () =>
+export const useSendTestEmailMutation = (options: MutationErrorOptions = {}) =>
   useMutation({
+    meta: mutationErrorMeta(options),
     mutationFn: (to?: string) => endpoints.sendTestEmail(apiClient, to),
   });

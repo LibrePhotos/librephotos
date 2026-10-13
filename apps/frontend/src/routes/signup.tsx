@@ -47,7 +47,7 @@ function SignupPage(): React.JSX.Element {
     },
     validate: schemaResolver(makeSignupSchema(t), { sync: true }),
   });
-  const { mutate: signup, isPending: isSignupPending } = useSignUpMutation();
+  const { mutate: signup, isPending: isSignupPending } = useSignUpMutation({ reportsErrors: true });
   // Sign the new user straight in, as first-time setup does: the account
   // exists, and sending them to a login form without a word looked like a failure.
   const { mutate: login, isPending: isLoginPending } = useLoginMutation();

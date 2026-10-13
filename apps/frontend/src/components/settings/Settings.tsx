@@ -48,7 +48,7 @@ export function Settings() {
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
-  const updateUser = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const queryClient = useQueryClient();
 
   // open update dialog, when user was edited

@@ -18,6 +18,14 @@ function requestFailed(title: string, message: string) {
   toast.error(message, { title });
 }
 
+/**
+ * A save, edit or delete that failed and that nothing else reported (api_client/mutationErrors.ts):
+ * the server's own message when it sent one, a generic line otherwise.
+ */
+function saveFailed(serverMessage: string | null) {
+  toast.error(serverMessage ?? i18n.t("toasts.requestfailed"), { title: i18n.t("toasts.requestfailedtitle") });
+}
+
 /** An unhandled exception on the server (HTTP 500). The endpoint helps a bug report. */
 function serverError(endpoint: string) {
   toast.error(i18n.t("toasts.servererror", { endpoint }), { title: i18n.t("toasts.servererrortitle") });
@@ -34,5 +42,6 @@ export const worker = {
   jobFinished,
   parseError,
   requestFailed,
+  saveFailed,
   serverError,
 };

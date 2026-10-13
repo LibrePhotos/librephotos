@@ -41,8 +41,8 @@ export function ModalUserEdit(props: Props) {
   } = props;
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
   const { t } = useTranslation();
-  const { mutate: signup, isPending: isSigningUp } = useSignUpMutation();
-  const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
+  const { mutate: signup, isPending: isSigningUp } = useSignUpMutation({ reportsErrors: true });
+  const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation({ reportsErrors: true });
   const scanPhotos = useScanPhotosMutation();
   const { data: siteSettings } = useGetSettingsQuery();
   // The upload folder only matters while uploads are allowed on this server.

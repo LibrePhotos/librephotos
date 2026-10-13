@@ -48,7 +48,7 @@ export function Library() {
   } = useFetchNextcloudDirsQuery(!isNextcloudEnabled);
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
-  const updateUser = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const scanPhotos = useScanPhotosMutation();
   const rescanPhotos = useRescanPhotosMutation();
 

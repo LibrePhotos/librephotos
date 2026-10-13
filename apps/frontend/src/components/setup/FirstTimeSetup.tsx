@@ -123,9 +123,11 @@ function SetupAccountForm({ form, onSubmit, disabled }: SetupAccountFormProps): 
 export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { mutate: signup, isPending: isSignupPending } = useSignUpMutation();
+  const { mutate: signup, isPending: isSignupPending } = useSignUpMutation({ reportsErrors: true });
   const { mutate: login, isPending: isLoginPending } = useLoginMutation({ navigateOnSuccess: false });
-  const { mutate: updateScanDirectory, isPending: isUpdatePending } = useUpdateUserScanDirectoryMutation();
+  const { mutate: updateScanDirectory, isPending: isUpdatePending } = useUpdateUserScanDirectoryMutation({
+    reportsErrors: true,
+  });
   const { mutate: updateSettings, isPending: isSettingsPending } = useUpdateSettingsMutation();
   const { data: siteSettings } = useGetSettingsQuery();
   const scanPhotos = useScanPhotosMutation();

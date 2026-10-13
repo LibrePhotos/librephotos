@@ -148,7 +148,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
+  const toggleAlbumPublic = useToggleUserAlbumPublicMutation({ reportsErrors: true });
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
   const form = useForm<LinkValues>({

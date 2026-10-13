@@ -6,16 +6,23 @@ import { apiClient, queryClient } from "../../api";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
 
+/** The person name that moves faces back to unknown ("not this person"). */
+export const UNKNOWN_PERSON_NAME = "Unknown - Other";
+
 const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
-  endpoints.labelFaces(apiClient, data.faceIds, data.personName).then(payload => {
-    notification.addFacesToPerson(payload.results[0]?.person_name ?? "unknown", payload.results.length);
-    return payload;
-  });
+  endpoints.labelFaces(apiClient, data.faceIds, data.personName);
 
 export const useSetFacesPersonLabelMutation = () =>
   useMutation({
     mutationFn: setFacesPersonLabel,
-    onSuccess: data => {
+    // The toast waits for the server: "not this person" used to claim success before it answered.
+    onSuccess: (data, { personName }) => {
+      if (personName === UNKNOWN_PERSON_NAME) {
+        notification.removeFacesFromPerson(data.results.length);
+      } else {
+        notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length);
+      }
+
       // Every tagging path funnels through this mutation, so this is the one
       // place that sees all of them. `person` is null when faces are pushed back
       // to "Unknown - Other", which is not a pick worth remembering.

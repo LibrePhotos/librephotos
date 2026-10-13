@@ -20,7 +20,7 @@ function PasswordResetConfirmPage(): React.JSX.Element {
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme("dark");
   const { uid, token } = Route.useParams();
-  const { mutate: confirmReset, isPending } = useConfirmPasswordResetMutation();
+  const { mutate: confirmReset, isPending } = useConfirmPasswordResetMutation({ reportsErrors: true });
 
   const form = useForm({
     initialValues: { password: "", passwordConfirm: "" },
