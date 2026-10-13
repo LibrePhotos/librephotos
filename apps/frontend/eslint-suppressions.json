@@ -336,14 +336,6 @@
       "count": 1
     }
   },
-  "src/api_client/photos/hooks/useUpdatePhotoMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 2
-    },
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
   "src/api_client/photos/hooks/useUpdatePhotoSharingMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3

@@ -690,9 +690,8 @@ def apply_device_timestamp_fallback(
 
     ``device_created_at`` is the local wall clock labelled UTC, like every
     stored capture time (``api.views.upload.parse_device_timestamp``). Runs after ``handle_new_image`` so it can see the extraction
-    result; feeding the value through ``timestamp`` lets the USER_DEFINED
-    datetime rule pick it up and build the date album, exactly as a manual
-    correction would.
+    result; feeding the value through ``timestamp`` makes it the photo's date
+    and builds the date album, exactly as a manual correction would.
     """
     if photo is None or device_created_at is None:
         return photo

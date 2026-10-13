@@ -19,6 +19,16 @@ without success).
 If a rule can't fetch the time (e.g. the EXIF tag value is not present or the path doesn't match
 the rule) then that rule is considered to be not applicable.
 
+### Dates you set by hand
+
+A date you set by hand in a photo's info panel is not a rule: it always wins over every rule in
+the list, on every scan and rescan, however you order or edit your rules. The info panel says
+**Set by you** under such a date. To hand the photo back to the rules, open it, edit its date and
+click **Remove timestamp**; the rules then decide its date again, so the photo keeps a date read
+from its file if it has one. _Not released yet._ Up to version 1.3.0 a hand-set date only applied
+through a rule called *Timestamp set by user*, and it stopped sticking once that rule was deleted
+or moved below another; that rule is gone from every saved list after the update.
+
 ### Figuring out the timezone
 
 Some sources of data might give us very rich information, e.g. timestamp + timezone,
@@ -66,7 +76,8 @@ Currently, supported rule types:
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without
   timezones they are always translated to local time using UTC.
-- "user_defined" - the date time defined by the user from the frontend
+- "user_defined" - the old *Timestamp set by user* rule. It no longer matches anything, since a
+  date you set by hand always wins (see above), and the settings page no longer offers it.
 
 ## How to use it
 
@@ -98,4 +109,4 @@ Check that you used **Rescan** rather than a normal scan (see above), and that t
 
 **One particular photo ignores every rule.**
 
-If you once corrected that photo's date by hand, LibrePhotos remembered it. The first rule in the default list, *Timestamp set by user*, replays that hand-set value on every rescan, so no rule below it can win for that photo. To hand the photo back to the automatic rules, open it, edit its date and clear the value you set, then save — with no manual timestamp left to replay, the rules below take over again. Moving *Timestamp set by user* down the list, or deleting it, also works, but it applies to your whole library, which means hand-set dates will no longer stick for any photo.
+If you once corrected that photo's date by hand, LibrePhotos remembered it, and a date set by hand wins over every rule (the info panel shows **Set by you** under it). To hand the photo back to the rules, open it, edit its date and click **Remove timestamp**.

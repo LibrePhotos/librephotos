@@ -26,6 +26,8 @@ const sortable = vi.hoisted(() => {
 const predefinedRules: DateTimeRule[] = [
   { id: 1, name: "Date taken", rule_type: "exif", exif_tag: "EXIF:DateTimeOriginal", is_default: true },
   { id: 15, name: "File modified", rule_type: "filesystem", file_property: "mtime", is_default: false },
+  // Servers before #2254 still list it.
+  { id: 14, name: "Timestamp set by user", rule_type: "user_defined", is_default: false },
 ];
 
 vi.mock("../../api_client/settings/hooks/useFetchPredefinedRulesQuery", () => ({
@@ -215,6 +217,16 @@ describe("ConfigDateTime", () => {
     await click(addButton());
 
     expect(onChange).toHaveBeenCalledWith(JSON.stringify([{ ...unknownRule, id: 15 }, predefinedRules[0]]));
+  });
+
+  it("does not offer Timestamp set by user, which a date set by hand replaced (#2254)", async () => {
+    const onChange = vi.fn<(rules: string) => void>();
+    await renderList(JSON.stringify([]), onChange);
+
+    await click(addButton());
+
+    expect(onChange).toHaveBeenCalledWith(JSON.stringify([predefinedRules[0], predefinedRules[1]]));
+    expect(container.textContent).toContain(i18n.t("settings.configdatetime_manual_hint"));
   });
 
   it("shows an empty list for a value that is not JSON", async () => {

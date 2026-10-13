@@ -102,6 +102,9 @@ export const Photo = z.object({
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
   exif_timestamp: z.string().nullable(),
+  // Whether exif_timestamp was set by hand; it then wins over the date rules
+  // (#2254). Optional: backends before 1.4 do not send it.
+  date_set_by_user: z.boolean().optional(),
   search_captions: z.string().nullable(),
   search_location: z.string().nullable(),
   // Never null from current servers ({"im2txt": ""} when there are no captions):

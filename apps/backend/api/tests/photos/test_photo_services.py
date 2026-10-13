@@ -123,18 +123,23 @@ class ExtractDateTimeTest(TestCase):
         self.assertTrue(album.photos.filter(pk=photo.pk).exists())
 
     def test_passes_the_owners_rules_and_photo_state_to_the_extractor(self):
-        photo = create_test_photo(
-            owner=self.user, exif_gps_lat=52.5, exif_gps_lon=13.4, timestamp=JUNE_1
-        )
+        photo = create_test_photo(owner=self.user, exif_gps_lat=52.5, exif_gps_lon=13.4)
 
         with _extracted(JULY_4) as extract:
             extract_date_time(photo)
 
         args = extract.call_args.args
         self.assertEqual(args[0], photo.main_file.path)
-        self.assertEqual(
-            args[3], RuleContext(52.5, 13.4, self.user.default_timezone, JUNE_1)
-        )
+        self.assertEqual(args[3], RuleContext(52.5, 13.4, self.user.default_timezone))
+
+    def test_a_date_set_by_hand_skips_the_rules(self):
+        photo = create_test_photo(owner=self.user, timestamp=JUNE_1)
+
+        with _extracted(JULY_4) as extract:
+            extract_date_time(photo)
+
+        extract.assert_not_called()
+        self.assertEqual(Photo.objects.get(pk=photo.pk).exif_timestamp, JUNE_1)
 
     def test_rules_saved_as_a_list_are_read_like_the_json_string(self):
         # The settings page saves datetime_rules as a JSON string (as the

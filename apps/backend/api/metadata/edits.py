@@ -7,8 +7,8 @@ and its bulk variant, revert and revert-all) goes through the setter here:
 =========================  ===================================================
 Field                      Canonical store
 =========================  ===================================================
-capture date               ``Photo.timestamp``, folded into ``exif_timestamp``
-                           by the owner's datetime rules
+capture date               ``Photo.timestamp``, which overrides the owner's
+                           datetime rules in ``exif_timestamp``
 location                   ``Photo.exif_gps_lat`` / ``exif_gps_lon``, with
                            ``geolocation_json``, ``PhotoSearch.search_location``
                            and the Places albums derived from it
@@ -155,9 +155,9 @@ def _recreate_search_captions(photo: Photo) -> None:
 def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
     """Pin the photo's capture time to ``value`` (None: no user date).
 
-    ``Photo.timestamp`` is the user's input; the datetime rules fold it into
-    ``exif_timestamp`` (rule 14, "Timestamp set by user") and move the photo
-    to its day album. A changed date is written to the file or sidecar as
+    ``Photo.timestamp`` is the user's input; it becomes ``exif_timestamp``
+    whatever the owner's datetime rules say (#2254), and None hands the photo
+    back to the rules. Either way the photo moves to its day album. A changed date is written to the file or sidecar as
     ``XMP:DateCreated``, once, after the commit, when the owner syncs
     metadata to disk.
     """

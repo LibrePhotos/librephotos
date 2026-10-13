@@ -56,9 +56,10 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     }
 
     // Also with no rules left: otherwise the list kept excluding the rule deleted last, and
-    // after a reload with no rules the Add Rule dialog was empty.
+    // after a reload with no rules the Add Rule dialog was empty. "Timestamp set by user" is not
+    // offered: a date set by hand wins over every rule now (#2254), so the rule matches nothing.
     const takenIds = savedIds(entries);
-    setAvailableRules(allRules.filter(rule => !takenIds.includes(rule.id)));
+    setAvailableRules(allRules.filter(rule => !takenIds.includes(rule.id) && rule.rule_type !== "user_defined"));
 
     // A saved entry that is not a rule also makes the list differ from the defaults.
     const defaultRules = allRules.filter(rule => rule.is_default);
@@ -136,8 +137,12 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
         <SectionLink />
       </Title>
 
-      <Text size="sm" c="dimmed" mb="md">
+      <Text size="sm" c="dimmed" mb="xs">
         {t("settings.configdatetime_order_hint")}
+      </Text>
+
+      <Text size="sm" c="dimmed" mb="md">
+        {t("settings.configdatetime_manual_hint")}
       </Text>
 
       <Group mb="md">
