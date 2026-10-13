@@ -268,15 +268,14 @@ export function ContentViewer({
   }, [suppressRotationTransition]);
 
   // Handle rotation with optimistic update.
-  // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention).
-  // The API angle is negated because the server uses the mathematical convention
-  // (positive = counter-clockwise), which is opposite to the UI convention.
+  // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention);
+  // the mutation turns it into the server's angle.
   const handleRotate = useCallback(
     (angle: number) => {
       if (!photoDetails?.image_hash) return;
       setRotationAngle(prev => prev + angle);
       rotatePhotos.mutate(
-        { image_hash: photoDetails.image_hash, angle: -angle },
+        { image_hash: photoDetails.image_hash, clockwiseDegrees: angle },
         {
           onSuccess: () => {
             // Don't reset the angle here — the image is still loading.

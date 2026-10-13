@@ -121,7 +121,8 @@ const draw = () =>
   run(useAddFaceMutation, mutation =>
     mutation.mutate({ photo: "abc", personName: "Alice", box: { top: 0.1, right: 0.5, bottom: 0.5, left: 0.1 } })
   );
-const rotate = () => run(useRotatePhotosMutation, mutation => mutation.mutate({ image_hash: "abc", angle: 90 }));
+const rotate = () =>
+  run(useRotatePhotosMutation, mutation => mutation.mutate({ image_hash: "abc", clockwiseDegrees: 90 }));
 
 describe("an edit saved in LibrePhotos but not written to the file", () => {
   it.each([

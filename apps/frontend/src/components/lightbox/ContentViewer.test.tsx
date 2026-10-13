@@ -26,7 +26,9 @@ const stubs = vi.hoisted(() => {
   /** The commands of each render of the toolbar stub: the lightbox's own, as a toolbar would subscribe. */
   const commands: LightboxCommands[] = [];
   const details: DetailsStub = { data: undefined, isLoading: false };
-  return { carousel, media, controls, commands, details };
+  /** What the viewer asks the rotate mutation for. */
+  const rotate: Array<{ image_hash: string; clockwiseDegrees: number }> = [];
+  return { carousel, media, controls, commands, details, rotate };
 });
 
 /** The last props the stubbed toolbar got. */
@@ -89,7 +91,9 @@ vi.mock("../modals/ModalPersonEdit", () => ({
 vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../../api_client/photos/hooks", () => ({ useFetchPhotoDetailsQuery: () => stubs.details }));
 vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
-  useRotatePhotosMutation: () => ({ mutate: () => {} }),
+  useRotatePhotosMutation: () => ({
+    mutate: (request: { image_hash: string; clockwiseDegrees: number }) => stubs.rotate.push(request),
+  }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({ useCurrentUserSelfDetailsQuery: () => ({ data: undefined }) }));
 vi.mock("../../hooks/useCopyPhotoToClipboard", () => ({
@@ -118,6 +122,7 @@ afterEach(async () => {
   stubs.media.length = 0;
   stubs.controls.length = 0;
   stubs.commands.length = 0;
+  stubs.rotate.length = 0;
   stubs.details = { data: undefined, isLoading: false };
 });
 
@@ -388,6 +393,20 @@ describe("ContentViewer shortcuts", () => {
     await press(key, document.body, modifiers);
 
     expect(handler).toHaveBeenCalledWith(seconds);
+  });
+});
+
+describe("ContentViewer rotation", () => {
+  it.each([
+    ["clockwise", 90],
+    ["counter-clockwise", -90],
+  ])("asks for the %s turn the toolbar sends, as the user sees it (#2587)", async (_name, angle) => {
+    stubs.details = { data: { image_hash: "hb" }, isLoading: false };
+    await renderViewer();
+
+    await act(async () => lastControls().onRotate(angle));
+
+    expect(stubs.rotate).toEqual([{ image_hash: "hb", clockwiseDegrees: angle }]);
   });
 });
 
