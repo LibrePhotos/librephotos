@@ -5,7 +5,13 @@ import rawpy
 from flask.typing import ResponseReturnValue
 
 from librephotos.env import protected_media_root
-from service._common import create_app, json_fields, logger, serve_forever
+from service._common import (
+    MalformedRequest,
+    create_app,
+    json_fields,
+    logger,
+    serve_forever,
+)
 
 app = create_app("thumbnail")
 log = logger("thumbnail")
@@ -14,8 +20,14 @@ log = logger("thumbnail")
 # from.
 MEDIA_ROOT = protected_media_root()
 
+# WebP quality when the request names none (the backend sends
+# BIG_THUMBNAIL_QUALITY).
+DEFAULT_QUALITY = 95
 
-def render_raw(source: str, destination: str, height: int) -> None:
+
+def render_raw(
+    source: str, destination: str, height: int, quality: int = DEFAULT_QUALITY
+) -> None:
     """Decode a RAW file with LibRaw and save a WebP thumbnail of the given height."""
     with rawpy.imread(source) as raw:
         # Half-size demosaic is 4x faster and still above the target height.
@@ -26,7 +38,14 @@ def render_raw(source: str, destination: str, height: int) -> None:
     # Built from bare pixels, so nothing of the photo's own metadata is here, but
     # libvips would still add a stock EXIF block; thumbnails carry none (see
     # ``api.thumbnails.render.WEBP``).
-    thumbnail.webpsave(destination, Q=95, keep=pyvips.enums.ForeignKeep.NONE)
+    thumbnail.webpsave(destination, Q=quality, keep=pyvips.enums.ForeignKeep.NONE)
+
+
+def _quality(value: object) -> int:
+    """The requested WebP quality: a whole number, clamped to 1-100."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise MalformedRequest("quality must be a whole number")
+    return min(100, max(1, value))
 
 
 def _inside_media_root(destination: str) -> bool:
@@ -42,7 +61,10 @@ def _inside_media_root(destination: str) -> bool:
 
 @app.route("/", methods=["POST"])
 def create_thumbnail() -> ResponseReturnValue:
-    source, destination, height = json_fields("source", "destination", "height")
+    source, destination, height, quality = json_fields(
+        "source", "destination", "height", quality=DEFAULT_QUALITY
+    )
+    quality = _quality(quality)
     # Anything that reaches the port could otherwise overwrite any file the
     # service can write to.
     if not _inside_media_root(destination):
@@ -50,7 +72,7 @@ def create_thumbnail() -> ResponseReturnValue:
         return {"error": "destination is outside the media root"}, 400
     log.info("creating for source=%s height=%s", source, height)
     try:
-        render_raw(source, destination, height)
+        render_raw(source, destination, height, quality)
     except Exception as e:
         log.error("error creating a thumbnail of %s: %r", source, e)
         return {"error": f"{type(e).__name__}: {e}"}, 500

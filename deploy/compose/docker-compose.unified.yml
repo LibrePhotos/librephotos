@@ -80,6 +80,10 @@ services:
       - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
       - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
       - SQUARE_THUMBNAIL_QUALITY=${squareThumbnailQuality:-80}
+      - BIG_THUMBNAIL_QUALITY=${bigThumbnailQuality:-95}
+      - BIG_THUMBNAIL_HEIGHT=${bigThumbnailHeight:-1080}
+      - VIDEO_PREVIEW_SECONDS=${videoPreviewSeconds:-5}
+      - VIDEO_PREVIEW_CRF=${videoPreviewCrf:-20}
       - STUCK_JOB_HOURS=${stuckJobHours:-24}
       - SERVE_FRONTEND=true
       - DEBUG=0
