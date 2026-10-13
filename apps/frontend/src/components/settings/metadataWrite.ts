@@ -10,17 +10,18 @@ const EDITED_FIELDS: readonly EditedField[] = ["rating", "date", "rotation", "ca
 
 /**
  * Which edits each mode writes to the file, as the backend does today (`api/metadata/photo_writer.py`):
- * the rating, the capture date (`XMP:DateCreated`) and the rotation (`XMP-tiff:Orientation` in the
- * sidecar, the file's own EXIF orientation in a media file, #2550). Captions, tags and locations are
- * not written yet (#2289, #2290). Face names have their own switch and are not listed.
+ * the rating, the capture date (`XMP:DateCreated`), the rotation (`XMP-tiff:Orientation` in the
+ * sidecar, the file's own EXIF orientation in a media file, #2550), the caption (the description,
+ * #2289) and the location (the GPS position, #2290). Tags are not written yet. Face names have their
+ * own switch and are not listed.
  *
  * The one list of written fields: the settings texts and the lightbox hints both read it, so add a
  * field here when the backend starts writing it.
  */
 export const WRITTEN_FIELDS: Readonly<Record<WriteMode, readonly EditedField[]>> = {
   OFF: [],
-  SIDECAR_FILE: ["rating", "date", "rotation"],
-  MEDIA_FILE: ["rating", "date", "rotation"],
+  SIDECAR_FILE: ["rating", "date", "rotation", "caption", "location"],
+  MEDIA_FILE: ["rating", "date", "rotation", "caption", "location"],
 };
 
 const FIELD_NAME_KEYS: Readonly<Record<EditedField, ParseKeys>> = {

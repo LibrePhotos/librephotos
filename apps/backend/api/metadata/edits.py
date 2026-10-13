@@ -23,8 +23,8 @@ edit history that revert works from), bumps ``Photo.last_modified`` so the
 mobile delta feed and the clients' caches see the change, refreshes
 ``PhotoSearch`` where the field is indexed, and writes the value back to the
 file or sidecar when the owner syncs metadata to disk. Write-back covers the
-rating and the capture date; caption, keywords and the text fields are not
-written to files yet (#2289).
+rating, the capture date, the caption (#2289) and the location (#2290);
+keywords and the text fields are not written to files yet.
 
 ``PhotoMetadata`` otherwise holds what the file says (camera, lens, exposure,
 size) and is filled by the scan, not by these setters.
@@ -50,7 +50,7 @@ from api.geocode.photo_location import (
     forget_place,
     usable_coordinates,
 )
-from api.metadata.jobs import queue_rating_write
+from api.metadata.jobs import queue_field_write, queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
@@ -192,11 +192,17 @@ def set_location(
     (``has_place``), not the old one: the geolocation job tries again after a
     failed lookup (geocoding off, an error), not for a position the provider
     has no place for (``no_place``, #2567). The position (or its absence) is the user's
-    from now on: a rescan neither replaces nor clears it (#2264).
+    from now on: a rescan neither replaces nor clears it (#2264). A changed
+    position is written to the file or sidecar (#2290), queued before the
+    geocoder runs, so its failure does not stop the write.
     """
     old = _location_value(photo)
-    _apply_location(photo, latitude, longitude, LocationSource.USER)
+    has_position = _save_position(photo, latitude, longitude, LocationSource.USER)
     new = _location_value(photo)
+    if new != old:
+        queue_field_write(user, [photo.id], LOCATION)
+    if has_position:
+        _geocode_position(photo)
     if new != old:
         _record(user, LOCATION, [Change(photo.id, old, new)])
 
@@ -207,11 +213,22 @@ def _apply_location(
     longitude: float | None,
     source: LocationSource,
 ) -> None:
+    if _save_position(photo, latitude, longitude, source):
+        _geocode_position(photo)
+
+
+def _save_position(
+    photo: Photo,
+    latitude: float | None,
+    longitude: float | None,
+    source: LocationSource,
+) -> bool:
+    """Save the position (None: no location); whether there is one to geocode."""
     if latitude is None or longitude is None:
         clear_location(photo)
         photo.location_source = source
         photo.save(update_fields=LOCATION_COLUMNS)
-        return
+        return False
 
     # The place of the old coordinates goes with them, whatever the geocoder
     # says about the new ones (#2253).
@@ -222,6 +239,12 @@ def _apply_location(
     photo.location_source = source
     # Saved before the geocoder runs, so its failure still keeps them.
     photo.save(update_fields=LOCATION_COLUMNS)
+    return True
+
+
+def _geocode_position(photo: Photo) -> None:
+    """Find the place of the saved position for the map, search and Places."""
+    assert photo.exif_gps_lat is not None and photo.exif_gps_lon is not None
     try:
         geocode_result = reverse_geocode(photo.exif_gps_lat, photo.exif_gps_lon)
     except Exception:
@@ -297,14 +320,24 @@ def set_caption(photo: Photo, text: str, user: User) -> str:
     """Set the photo's caption, the one the lightbox shows; return it as stored.
 
     It is indexed for search and its #hashtags become hashtag albums
-    (``PhotoCaption.apply_user_caption``).
+    (``PhotoCaption.apply_user_caption``). A changed caption is written to the
+    file or sidecar as its description (#2289).
     """
+    stored, changed = _apply_caption(photo, text, user)
+    if changed:
+        queue_field_write(user, [photo.id], CAPTION)
+    return stored
+
+
+def _apply_caption(photo: Photo, text: str, user: User) -> tuple[str, bool]:
+    """``set_caption`` without the write-back; the caption and whether it changed."""
     caption_instance, _ = PhotoCaption.objects.get_or_create(photo=photo)
     old = (caption_instance.captions_json or {}).get("user_caption") or ""
     stored = caption_instance.apply_user_caption(text)
-    if stored != old:
-        _record(user, CAPTION, [Change(photo.id, old, stored)])
-    return stored
+    if stored == old:
+        return stored, False
+    _record(user, CAPTION, [Change(photo.id, old, stored)])
+    return stored, True
 
 
 # -------------------------------------------------------------------- keywords
@@ -357,11 +390,13 @@ def apply_updates(
         rating = updates[RATING]
         assert isinstance(rating, int)
         set_rating(Photo.objects.filter(id__in=[p.id for p in targets]), rating, user)
+    captioned: list[uuid.UUID] = []
     for photo in targets:
         if CAPTION in updates:
             caption = updates[CAPTION]
             assert isinstance(caption, str)
-            set_caption(photo, caption, user)
+            if _apply_caption(photo, caption, user)[1]:
+                captioned.append(photo.id)
         if KEYWORDS in updates:
             keywords = updates[KEYWORDS]
             assert keywords is None or isinstance(keywords, list)
@@ -371,6 +406,8 @@ def apply_updates(
                 value = updates[field]
                 assert value is None or isinstance(value, str)
                 set_text_field(photo, field, value, user)
+    # One job writes every changed caption.
+    queue_field_write(user, captioned, CAPTION)
     return targets
 
 

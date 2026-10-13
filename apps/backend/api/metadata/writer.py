@@ -15,10 +15,11 @@ import queue
 import re
 import threading
 import time
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
+from enum import Enum
 
 import exiftool
 
@@ -49,6 +50,29 @@ def remove_from(tag: str) -> str:
     (``remove_from`` before ``add_to``) adds it once, without a duplicate.
     """
     return f"{tag}-"
+
+
+class WriteOption(Enum):
+    """An ExifTool option a write may ask for; nothing else reaches its command line.
+
+    The writer's ExifTool keeps a module loaded by an earlier command
+    (``MWG``) for the commands after it. That changes no write LibrePhotos
+    makes: they name the group of every tag, except ``Rating``, which lands
+    in the same groups either way.
+    """
+
+    #: Load ExifTool's MWG module, whose composite tags (``MWG:Description``)
+    #: keep the XMP, EXIF and an existing IPTC copy of a field in step.
+    MWG = ("-use", "MWG")
+    #: The values may hold line breaks. They are sent XML-escaped, a line
+    #: break as ``&#xa;``, and ExifTool's ``-ex`` decodes them, so no raw line
+    #: break reaches its argument stream (see ``_argument``).
+    MULTILINE = ("-ex",)
+
+
+def _xml_escaped(value: str) -> str:
+    """``value`` as ExifTool's ``-ex`` decodes it back: ``&`` and line breaks as entities."""
+    return value.replace("&", "&amp;").replace("\r", "&#xd;").replace("\n", "&#xa;")
 
 
 # A write may take this long, plus a second per WRITE_BYTES_PER_SECOND of the
@@ -212,7 +236,9 @@ class _Session:
     def __init__(self) -> None:
         self._process: ExifToolProcess | None = None
 
-    def write(self, target: str, arguments: list[bytes]) -> WriteResult:
+    def write(
+        self, target: str, arguments: list[bytes], options: Sequence[bytes] = ()
+    ) -> WriteResult:
         if self._process is None or not self._process.alive:
             if self._process is not None:
                 self._process.close()  # it died: reap it, start another
@@ -225,7 +251,7 @@ class _Session:
         except OSError:
             size = 0  # a sidecar ExifTool is about to create
         timeout = WRITE_TIMEOUT_SECONDS + size / WRITE_BYTES_PER_SECOND
-        command = [*arguments, b"-overwrite_original", os.fsencode(target)]
+        command = [*options, *arguments, b"-overwrite_original", os.fsencode(target)]
         try:
             output, status = self._process.execute(command, timeout)
         except (OSError, TimeoutError) as error:
@@ -308,28 +334,42 @@ def _outcome(
 
 
 def write_metadata(
-    media_file: str, tags: Mapping[str, TagValue], use_sidecar: bool = True
+    media_file: str,
+    tags: Mapping[str, TagValue],
+    use_sidecar: bool = True,
+    options: Collection[WriteOption] = (),
 ) -> WriteResult:
     """Write ``tags`` into ``media_file`` or its XMP sidecar.
 
     A key from ``add_to``/``remove_from`` changes a list tag item by item
-    instead of replacing it. The sidecar is the one ``sidecar_for_write``
-    picks. Raises
-    ``MetadataWriteError`` when ExifTool did not write them (see ``_outcome``).
+    instead of replacing it, and an empty value removes the tag. The sidecar
+    is the one ``sidecar_for_write`` picks. ``options`` are the
+    ``WriteOption`` the tags need. Raises ``MetadataWriteError`` when
+    ExifTool did not write them (see ``_outcome``).
     """
     target = sidecar_for_write(media_file) if use_sidecar else media_file
     if "\n" in target or "\r" in target:
         raise MetadataWriteError(target, "the file name contains a line break")
+    multiline = WriteOption.MULTILINE in options
     arguments: list[bytes] = []
     for tag, value in tags.items():
         values: list[str | int] = list(value) if isinstance(value, list) else [value]
-        arguments.extend(_argument(tag, item) for item in values)
+        arguments.extend(
+            _argument(tag, _xml_escaped(str(item)) if multiline else item)
+            for item in values
+        )
+    option_arguments = [
+        os.fsencode(argument)
+        for option in WriteOption
+        if option in options
+        for argument in option.value
+    ]
     logger.debug("Writing %s to %s", tags, target)
 
     with one_exiftool_process():
         session = _session.get()
         assert session is not None
-        return session.write(target, arguments)
+        return session.write(target, arguments, option_arguments)
 
 
 def read_orientation(media_file: str) -> int | None:

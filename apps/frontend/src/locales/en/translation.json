@@ -2197,7 +2197,12 @@
     "place_names_off": "Place names are turned off on this server.",
     "remove_location": "Remove location",
     "remove_title": "Remove the location?",
-    "remove_message": "The photo leaves the map, its Places albums and location search. The photo file is not changed, and a rescan does not bring the location back."
+    "remove_message": "The photo leaves the map, its Places albums and location search. A rescan does not bring the location back.",
+    "remove_file": {
+      "none": "The photo file is not changed.",
+      "sidecar": "The location is also removed from the sidecar file. A location stored in the photo file itself stays there.",
+      "file": "The location is also removed from the photo file."
+    }
   },
   "map": {
     "display_disabled": "Map display is turned off in site settings.",

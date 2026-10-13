@@ -102,15 +102,15 @@ sidebar_position: 18
         <td>Composite:GPSLatitude</td>
         <td>GPS_lat</td>
         <td>✔️</td>
-        <td>❌</td>
-        <td>Used for photo label on map</td>
+        <td>✔️</td>
+        <td>Used for photo label on map. A location you set or remove is written back when "Write edits to files" is enabled; see <a href="#what-librephotos-writes">What LibrePhotos writes</a> for the tags. <em>Not released yet.</em></td>
     </tr>
     <tr>
         <td>Composite:GPSLongitude</td>
         <td>GPS_lon</td>
         <td>✔️</td>
-        <td>❌</td>
-        <td>Used for photo label on map</td>
+        <td>✔️</td>
+        <td>Used for photo label on map. Written back together with the latitude.</td>
     </tr>
     <tr>
         <td>Composite:GPSDateTime</td>
@@ -263,22 +263,22 @@ sidebar_position: 18
         <td>XMP:Description</td>
         <td>Caption</td>
         <td>✔️</td>
-        <td>❌</td>
-        <td>The photo's description becomes its caption: the default-language entry first, else any language entry. A caption you typed is never replaced, and one you cleared stays cleared.</td>
+        <td>✔️</td>
+        <td>The photo's description becomes its caption: the default-language entry first, else any language entry. A caption you typed is never replaced, and one you cleared stays cleared. A caption you type is written back as the description when "Write edits to files" is enabled. <em>Not released yet.</em></td>
     </tr>
     <tr>
         <td>IPTC:Caption-Abstract</td>
         <td>Caption</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Caption fallback when the file has no XMP description (older Photoshop and Lightroom, Picasa, newsroom tools). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+        <td>Caption fallback when the file has no XMP description (older Photoshop and Lightroom, Picasa, newsroom tools). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. With "Save to media file", a caption you type replaces it, but only in a file that already has an IPTC block.</td>
     </tr>
     <tr>
         <td>EXIF:ImageDescription</td>
         <td>Caption</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Last caption fallback. Placeholders cameras write there, such as <code>OLYMPUS DIGITAL CAMERA</code> or <code>SONY DSC</code>, and a description that only repeats the camera model are skipped. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+        <td>Last caption fallback. Placeholders cameras write there, such as <code>OLYMPUS DIGITAL CAMERA</code> or <code>SONY DSC</code>, and a description that only repeats the camera model are skipped. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. With "Save to media file", a caption you type replaces it.</td>
     </tr>
     <tr>
         <td>XMP:Title, XMP:Headline, IPTC:ObjectName</td>
@@ -373,8 +373,19 @@ was called "Synchronize metadata to disk"._
 | Rating and favorite | yes | `Rating` |
 | Date and time | yes | `XMP:DateCreated` |
 | Rotation | yes, except into HEIC, AVIF and RAW originals | `XMP-tiff:Orientation` in the sidecar, `EXIF:Orientation` in the file |
+| Caption | yes (_not released yet_) | `XMP-dc:Description` in the sidecar; in the file `XMP-dc:Description` and `EXIF:ImageDescription`, and `IPTC:Caption-Abstract` if the file already has IPTC data |
+| Location | yes (_not released yet_) | `XMP-exif:GPSLatitude`/`GPSLongitude` in the sidecar; in an image file `GPS:GPSLatitude`/`GPSLongitude` with their `N`/`S` and `E`/`W` references; in an MP4 or MOV `Keys:GPSCoordinates` |
 | Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject` |
-| Caption, tags, location | no, they stay in LibrePhotos | |
+| Tags | no, they stay in LibrePhotos | |
+
+A caption keeps its line breaks. Clearing the caption removes the description, and removing a
+location removes the position tags. Setting a location in a photo file also removes the file's old
+altitude, which belonged to the old position. The place name (city, country) is never written: it
+is looked up from the position again. A generated caption is never written, only one you type.
+
+In the sidecar mode a removal only reaches the sidecar: a description or position stored in the
+photo file itself stays there, and an app that reads the file (or a new import into LibrePhotos)
+sees it again. Inside LibrePhotos the removal stays.
 
 The date editor, the caption and tags editors and the **Pick location** dialog say the same in a
 line under the editor, with a link to the setting.
@@ -399,8 +410,8 @@ writes `IMG_2.xmp`, and the other app keeps its own file._
 ## Writes that fail
 
 A write ExifTool cannot make, for example into a read-only library, a damaged file or a format
-that cannot hold the tag, never undoes your edit: the rating, date, face label or rotation stays
-in LibrePhotos. The backend log names the photo and ExifTool's reason. Labelling a face, drawing
+that cannot hold the tag, never undoes your edit: the rating, date, caption, location, face label
+or rotation stays in LibrePhotos. The backend log names the photo and ExifTool's reason. Labelling a face, drawing
 one and rotating a photo also return the reason as `write_error` in the API response, and
 `POST /api/savemetadata` and `manage.py save_metadata` count the photos they could not write
 as errors.
@@ -408,8 +419,8 @@ as errors.
 In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
 orange **Not written to the file** notice next to the usual confirmation: "Saved in LibrePhotos,
 but not written to the file", followed by the reason. It stays until you close it. Changing a
-date or a rating writes the file after the edit is saved, so a failure there is only in the
-backend log.
+date, a rating, a caption or a location writes the file after the edit is saved, so a failure
+there is only in the backend log.
 
 _Not released yet: up to 1.3.0, a failed write looked like a success and was not logged, and the
 web app showed no notice._

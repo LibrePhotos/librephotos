@@ -1,7 +1,7 @@
 /**
  * The one list of edits that "Write edits to files" writes (#2281). It must say what
- * api/metadata/photo_writer.py writes: rating, date and rotation in both modes, nothing when Off,
- * and never caption, tags or location (#2289, #2290).
+ * api/metadata/photo_writer.py writes: rating, date, rotation, caption and location in both modes,
+ * nothing when Off, and never tags yet.
  */
 import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
@@ -12,13 +12,13 @@ describe("WRITTEN_FIELDS", () => {
   it("matches what the backend writes in each mode", () => {
     expect(WRITTEN_FIELDS).toEqual({
       OFF: [],
-      SIDECAR_FILE: ["rating", "date", "rotation"],
-      MEDIA_FILE: ["rating", "date", "rotation"],
+      SIDECAR_FILE: ["rating", "date", "rotation", "caption", "location"],
+      MEDIA_FILE: ["rating", "date", "rotation", "caption", "location"],
     });
   });
 
-  it("leaves captions, tags and locations unwritten", () => {
-    expect(fieldsNeverWritten()).toEqual(["caption", "tags", "location"]);
+  it("leaves tags unwritten", () => {
+    expect(fieldsNeverWritten()).toEqual(["tags"]);
   });
 });
 
@@ -44,10 +44,14 @@ describe("writeDestination", () => {
     expect(writeDestination("date", "OFF")).toBe("none");
   });
 
+  it("writes captions and locations like the other fields", () => {
+    expect(writeDestination("caption", "MEDIA_FILE")).toBe("file");
+    expect(writeDestination("location", "SIDECAR_FILE")).toBe("sidecar");
+  });
+
   it("keeps a field no mode writes in LibrePhotos", () => {
-    expect(writeDestination("caption", "MEDIA_FILE")).toBe("none");
     expect(writeDestination("tags", "SIDECAR_FILE")).toBe("none");
-    expect(writeDestination("location", "MEDIA_FILE")).toBe("none");
+    expect(writeDestination("tags", "MEDIA_FILE")).toBe("none");
   });
 });
 
