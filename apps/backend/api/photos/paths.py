@@ -1,7 +1,8 @@
 """Where a path lies: inside a user's root, and the files of a folder.
 
 ``is_valid_path`` keeps a requested path inside a scan root; ``folder_path_q``
-selects the files recorded below a folder without picking up its siblings.
+selects the files recorded below a folder without picking up its siblings;
+``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded.
 """
 
 import os
@@ -9,7 +10,27 @@ import os.path
 import re
 from types import ModuleType
 
+from django.conf import settings
 from django.db.models import Q
+
+
+def nextcloud_media_root() -> str:
+    """``DATA_ROOT/nextcloud_media``, below which the Nextcloud scan downloads.
+
+    Each user gets a directory of their own in it
+    (``nextcloud.directory_watcher.user_media_root``).
+    """
+    return os.path.join(settings.DATA_ROOT, "nextcloud_media")
+
+
+def is_nextcloud_copy(path: str) -> bool:
+    """Whether ``path`` is a local copy of a file on a Nextcloud server.
+
+    Such a copy is overwritten by the next download of its file, and nothing
+    is ever uploaded back, so an edit written into it would be lost.
+    """
+    root = nextcloud_media_root()
+    return is_valid_path(path, root) and not is_valid_path(root, path)
 
 
 def is_valid_path(path: str, root_path: str) -> bool:

@@ -32,7 +32,7 @@ If you set this to `Top 100`,`Top 50`, `Top 10` you will get semantic search res
 
 ### Metadata Options
 
-- `Synchronize metadata to disk` can enable the saving of the metadata to file or an xmp file. Default `Off`
+- `Synchronize metadata to disk` can enable the saving of the metadata to file or an xmp file. Default `Off`. Photos imported from [Nextcloud](../library.md#nextcloud-integration) are never written to: LibrePhotos works on a local copy, which the next scan replaces when the file changes on the server, and nothing is uploaded back (not released yet). Their edits stay in LibrePhotos.
 - `Minimum image rating to interpret as favorite` will change how favorites are read and saved. EXIF only supports the rating field and does not have a favorite field. Default `4`
 - `Default timezone` sets how the exif timestamps should be read and written. Default `UTC`
 

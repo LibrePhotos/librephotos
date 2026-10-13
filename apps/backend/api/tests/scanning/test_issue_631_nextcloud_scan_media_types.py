@@ -104,6 +104,7 @@ class Issue631NextcloudSubFolderScanTest(SimpleTestCase):
 
         photos = []
         collect_photos(nc, "/nextcloud/", photos)
+        photos = [p.path for p in photos]
 
         self.assertEqual(
             sorted(photos),
@@ -143,6 +144,7 @@ class Issue631NextcloudSubFolderScanTest(SimpleTestCase):
 
         photos = []
         collect_photos(nc, "/nextcloud/", photos)
+        photos = [p.path for p in photos]
 
         collected_folders = sorted({p.rsplit("/", 1)[0] for p in photos})
         self.assertEqual(
@@ -175,6 +177,7 @@ class Issue631NextcloudSubFolderScanTest(SimpleTestCase):
 
         photos = []
         collect_photos(nc, "/nextcloud/", photos)
+        photos = [p.path for p in photos]
 
         self.assertEqual(
             photos,
