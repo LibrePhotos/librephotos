@@ -48,6 +48,30 @@ describe("fuzzyMatch", () => {
     expect(fuzzyMatch(" di no ", "Dinosaur")).toBe(true);
     expect(fuzzyMatch("d x", "Dinosaur")).toBe(false);
   });
+
+  // #659: suggestions match with or without accents, in both directions.
+  test("ignores diacritics on both sides", () => {
+    expect(fuzzyMatch("Zurich", "Zürich")).toBe(true);
+    expect(fuzzyMatch("zürich", "Zurich")).toBe(true);
+    expect(fuzzyMatch("cafe", "Café de Flore")).toBe(true);
+    expect(fuzzyMatch("CAFÉ", "cafe")).toBe(true);
+    expect(fuzzyMatch("pruhonice", "Průhonice")).toBe(true);
+    expect(fuzzyMatch("zurich", "Zug")).toBe(false);
+  });
+
+  test("folds letters that carry their stroke and compatibility forms", () => {
+    expect(fuzzyMatch("lodz", "Łódź")).toBe(true);
+    expect(fuzzyMatch("kobenhavn", "København")).toBe(true);
+    expect(fuzzyMatch("strasse", "Straße")).toBe(true);
+    expect(fuzzyMatch("aero", "Ærø")).toBe(true);
+    expect(fuzzyMatch("tokyo", "Ｔｏｋｙｏ")).toBe(true);
+  });
+
+  test("keeps marks that change the letter in other scripts", () => {
+    expect(fuzzyMatch("がっこう", "がっこう")).toBe(true);
+    expect(fuzzyMatch("かっこう", "がっこう")).toBe(false);
+    expect(fuzzyMatch("한", "한국")).toBe(true);
+  });
 });
 
 test("merge directory tree", () => {

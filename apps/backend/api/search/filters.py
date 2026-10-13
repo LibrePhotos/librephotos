@@ -16,6 +16,8 @@ from rest_framework.views import APIView
 
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.request_user import request_user
+from api.models.photo_search import fold
+from api.models.tag import Tag
 from api.search.semantic import calculate_query_embeddings
 from api.search.similarity import search_similar_embedding
 
@@ -71,7 +73,36 @@ def build_ocr_search_q(search_term: str, vendor: str) -> Q:
     return Q(ocr__text__icontains=search_term)
 
 
+def build_folded_search_q(folded_term: str, folded_tags: dict[int, str]) -> Q:
+    """Return a ``Q`` matching ``folded_term`` with case and accents ignored.
+
+    ``folded_term`` is a search term after :func:`api.models.photo_search.fold`,
+    so "Zurich" finds "Zürich" and "Zürich" finds "Zurich" (#659). It is matched
+    against the folded captions and location (``PhotoSearch.search_folded``)
+    and against ``folded_tags`` (tag id -> folded name, the requester's tags
+    only). Tag names are folded in Python because neither SQLite nor Postgres
+    without the unaccent extension can fold a column at query time, and a user
+    has few tags. The tag match is a subquery, so it adds no join that could
+    repeat a photo.
+    """
+    query = Q(search_instance__search_folded__icontains=folded_term)
+    tag_ids = [tag_id for tag_id, name in folded_tags.items() if folded_term in name]
+    if tag_ids:
+        tagged = Tag.photos.through.objects.filter(tag_id__in=tag_ids)
+        query |= Q(pk__in=tagged.values("photo_id"))
+    return query
+
+
 class SemanticSearchFilter(filters.SearchFilter):
+    @staticmethod
+    def _folded_tags(request: Request, search_fields: list[str]) -> dict[int, str]:
+        """The requester's tags by id, with folded names, when the view
+        searches tag names at all."""
+        if "tags__name" not in search_fields:
+            return {}
+        tags = Tag.objects.owned_by(request_user(request)).values_list("id", "name")
+        return {tag_id: fold(name) for tag_id, name in tags}
+
     def _semantic_matches(self, request: Request) -> list[str]:
         """Hashes of the requester's photos closest to the query, by the
         semantic search model (api.search.semantic), at its threshold."""
@@ -136,9 +167,11 @@ class SemanticSearchFilter(filters.SearchFilter):
                     "semantic search unavailable, using the text match only: %s",
                     error,
                 )
+        folded_tags = self._folded_tags(request, [str(f) for f in search_fields])
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]
+            queries.append(build_folded_search_q(fold(search_term), folded_tags))
 
             # OR the OCR match in per-term, matching the shape of the field
             # lookups above: each term may be satisfied by any field or by the
