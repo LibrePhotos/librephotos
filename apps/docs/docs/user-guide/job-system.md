@@ -44,7 +44,7 @@ Runs the configured tagging model over your photos to produce the scene and cont
 
 ### Add Geolocation
 
-Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan only processes photos added since the last successful run started, while a full scan reprocesses everything. A run that was cancelled or failed before it reached every photo does not count as successful.
+Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan processes photos added since the last successful run started, plus every photo whose position has no place name looked up for it yet (its GPS changed in the file, or an earlier lookup failed), while a full scan reprocesses everything. It looks up the position LibrePhotos has stored, which the scan keeps in line with the file unless you set the location yourself. A run that was cancelled or failed before it reached every photo does not count as successful.
 
 ### Scan Faces
 

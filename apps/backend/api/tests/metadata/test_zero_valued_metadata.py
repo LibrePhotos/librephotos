@@ -22,35 +22,35 @@ class GeolocateZeroCoordinateTestCase(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
+    def at(self, lat, lon):
+        self.photo.exif_gps_lat, self.photo.exif_gps_lon = lat, lon
+
     @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(0.0, 11.5))
-    def test_geolocate_keeps_zero_latitude(self, _get_metadata, reverse_geocode):
+    def test_geolocate_keeps_zero_latitude(self, reverse_geocode):
         """A photo on the equator (lat == 0.0) must still be geocoded."""
+        self.at(0.0, 11.5)
+
         geolocate_photo(self.photo, commit=False)
 
-        reverse_geocode.assert_called_once()
-        self.assertEqual(self.photo.exif_gps_lat, 0.0)
-        self.assertEqual(self.photo.exif_gps_lon, 11.5)
+        reverse_geocode.assert_called_once_with(0.0, 11.5)
 
     @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(51.48, 0.0))
-    def test_geolocate_keeps_zero_longitude(self, _get_metadata, reverse_geocode):
+    def test_geolocate_keeps_zero_longitude(self, reverse_geocode):
         """A photo on the prime meridian (lon == 0.0) must still be geocoded."""
+        self.at(51.48, 0.0)
+
         geolocate_photo(self.photo, commit=False)
 
-        reverse_geocode.assert_called_once()
-        self.assertEqual(self.photo.exif_gps_lat, 51.48)
-        self.assertEqual(self.photo.exif_gps_lon, 0.0)
+        reverse_geocode.assert_called_once_with(51.48, 0.0)
 
     @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(0.0, 0.0))
-    def test_geolocate_skips_null_island(self, _get_metadata, reverse_geocode):
+    def test_geolocate_skips_null_island(self, reverse_geocode):
         """The (0, 0) default written when there is no GPS fix is rejected."""
+        self.at(0.0, 0.0)
+
         geolocate_photo(self.photo, commit=False)
 
         reverse_geocode.assert_not_called()
-        self.assertIsNone(self.photo.exif_gps_lat)
-        self.assertIsNone(self.photo.exif_gps_lon)
 
 
 class ZeroRatingAndImageNumberTestCase(TestCase):

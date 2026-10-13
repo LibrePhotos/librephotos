@@ -18,6 +18,7 @@ from rest_framework.test import APIClient
 from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.metadata.tags import Tags
+from api.models.photo import LocationSource
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
@@ -542,7 +543,8 @@ class ExtractExifDataVideoDurationTestCase(ExtractExifDataBaseTestCase):
 
 
 class ExtractExifDataPositionTestCase(ExtractExifDataBaseTestCase):
-    """The scan stores the file's GPS position (#2263)."""
+    """The scan stores the file's GPS position (#2263) and keeps it in line
+    with the file unless the user set it (#2264)."""
 
     def test_stores_the_position_of_a_photo_without_one(self):
         self.extract(gps_latitude=37.7749, gps_longitude=-122.4194)
@@ -573,8 +575,9 @@ class ExtractExifDataPositionTestCase(ExtractExifDataBaseTestCase):
         self.photo.refresh_from_db()
         self.assertIsNone(self.photo.exif_gps_lat)
 
-    def test_a_stored_position_is_kept(self):
+    def test_a_position_the_user_set_is_kept(self):
         self.photo.exif_gps_lat, self.photo.exif_gps_lon = 52.52, 13.405
+        self.photo.location_source = LocationSource.USER
         self.photo.save()
 
         self.extract(gps_latitude=37.7749, gps_longitude=-122.4194)
@@ -583,3 +586,46 @@ class ExtractExifDataPositionTestCase(ExtractExifDataBaseTestCase):
         self.assertEqual(
             (52.52, 13.405), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
         )
+
+    def test_a_position_of_unknown_origin_is_replaced(self):
+        # #2264: rows from before location_source.
+        self.photo.exif_gps_lat, self.photo.exif_gps_lon = 52.52, 13.405
+        self.photo.save()
+
+        self.extract(gps_latitude=37.7749, gps_longitude=-122.4194)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (37.7749, -122.4194), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+        self.assertEqual(LocationSource.FILE, self.photo.location_source)
+
+    def test_a_position_of_unknown_origin_is_kept_without_file_gps(self):
+        self.photo.exif_gps_lat, self.photo.exif_gps_lon = 52.52, 13.405
+        self.photo.save()
+
+        self.extract()
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (52.52, 13.405), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+
+    def test_a_position_from_the_file_is_cleared_with_the_files_gps(self):
+        self.photo.exif_gps_lat, self.photo.exif_gps_lon = 52.52, 13.405
+        self.photo.geocoded_lat, self.photo.geocoded_lon = 52.52, 13.405
+        self.photo.geolocation_json = {"_v": "1", "places": ["Berlin"]}
+        self.photo.location_source = LocationSource.FILE
+        self.photo.save()
+
+        self.extract()
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (None, None), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+        self.assertEqual(
+            (None, None), (self.photo.geocoded_lat, self.photo.geocoded_lon)
+        )
+        self.assertIsNone(self.photo.geolocation_json)
+        self.assertIsNone(self.photo.location_source)

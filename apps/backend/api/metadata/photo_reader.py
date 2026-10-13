@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from api.geocode.photo_location import store_file_position
+from api.geocode.photo_location import apply_file_position
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
@@ -78,7 +78,7 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
 
     This extracts metadata from the photo's main file and:
     1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec,
-       image_sequence_number, and the GPS position of a photo that has none)
+       image_sequence_number, and the GPS position unless the user set it)
     2. Gets or creates PhotoMetadata and populates it with extracted data
 
     Args:
@@ -91,7 +91,7 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
     if not photo.main_file:
         return None
     values = read_file_values(photo)
-    store_file_position(photo, values["gps_latitude"], values["gps_longitude"])
+    apply_file_position(photo, values["gps_latitude"], values["gps_longitude"])
     return PhotoMetadata.apply_file_values(photo, values, commit)
 
 

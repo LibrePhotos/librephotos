@@ -303,6 +303,35 @@ class AddGeolocationCharacterizationTest(TestCase):
         self.assertEqual(async_task.call_args.args[1], new.pk)
         self.assertEqual(_job(self.job_id).progress_target, 1)
 
+    def _old_photo_at(self, lat, lon, geocoded):
+        photo = create_test_photo(owner=self.user)
+        Photo.objects.filter(pk=photo.pk).update(
+            added_on=timezone.now() - timedelta(hours=2),
+            exif_gps_lat=lat,
+            exif_gps_lon=lon,
+            geocoded_lat=geocoded[0],
+            geocoded_lon=geocoded[1],
+        )
+        return photo
+
+    def test_incremental_scan_queues_old_photos_whose_position_needs_a_place(self):
+        """#2264: a scan changed the position, or an earlier lookup failed."""
+        self._finished_previous_scan(timedelta(hours=1))
+        moved = self._old_photo_at(48.85, 2.35, geocoded=(52.5, 13.4))
+        moved_east_only = self._old_photo_at(52.5, 13.5, geocoded=(52.5, 13.4))
+        never_looked_up = self._old_photo_at(52.5, 13.4, geocoded=(None, None))
+        self._old_photo_at(52.5, 13.4, geocoded=(52.5, 13.4))  # unchanged
+        self._old_photo_at(None, None, geocoded=(None, None))  # no position
+
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
+            add_geolocation(self.user, self.job_id, full_scan=False)
+
+        self.assertEqual(
+            {moved.pk, moved_east_only.pk, never_looked_up.pk},
+            {call.args[1] for call in async_task.call_args_list},
+        )
+        self.assertEqual(_job(self.job_id).progress_target, 3)
+
     def test_full_scan_ignores_the_last_scan_cutoff(self):
         now = timezone.now()
         self._finished_previous_scan(timedelta(hours=1))

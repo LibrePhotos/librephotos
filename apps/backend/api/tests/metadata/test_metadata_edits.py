@@ -522,6 +522,29 @@ class RevertAllTest(MetadataApiTestCase):
         # The file has no copyright: the user's goes, nothing replaces it.
         self.assertIsNone(data["copyright"])
 
+    def test_the_files_position_is_the_files_again(self):
+        # #2264: after restore from file, a rescan follows the file again.
+        Photo.objects.filter(pk=self.photo.pk).update(
+            exif_gps_lat=1.0, exif_gps_lon=2.0, location_source="user"
+        )
+        self.photo.refresh_from_db()
+
+        with (
+            patch(
+                "api.metadata.photo_reader.get_metadata", side_effect=_no_file_metadata
+            ),
+            patch("api.metadata.edits.get_metadata", side_effect=_no_file_metadata),
+            patch(
+                "api.metadata.photo_datetime.get_metadata",
+                side_effect=_no_file_metadata,
+            ),
+        ):
+            self.client.post(f"{self.url}revert-all/")
+
+        photo = Photo.objects.get(pk=self.photo.pk)
+        self.assertEqual((None, None), (photo.exif_gps_lat, photo.exif_gps_lon))
+        self.assertEqual("file", photo.location_source)
+
     def test_the_files_position_gets_its_place(self):
         # The scan's read fills an empty position from the file (#2263);
         # restoring it must still look up the place, not find it unchanged.

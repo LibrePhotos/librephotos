@@ -78,20 +78,8 @@ class ScanReadsGpsTest(RealExifToolTestCase):
         self.assertEqual((None, None), (photo.exif_gps_lat, photo.exif_gps_lon))
 
     def test_a_file_without_gps_keeps_a_stored_position(self) -> None:
+        # Of unknown origin (#2264 clears only a position read from the file).
         image = self.make_image(name="manual")
-        photo = self.photo_for(
-            image, self.user, exif_gps_lat=BERLIN[0], exif_gps_lon=BERLIN[1]
-        )
-
-        photo = self.scan(photo)
-
-        self.assertEqual(BERLIN, (photo.exif_gps_lat, photo.exif_gps_lon))
-
-    def test_a_file_with_other_gps_keeps_the_stored_position(self) -> None:
-        # Replacing a position the row already has needs to know whether the
-        # file or the user set it, and what was geocoded (#2264).
-        image = self.make_image(name="moved")
-        self.tag_position(image, *SAN_FRANCISCO)
         photo = self.photo_for(
             image, self.user, exif_gps_lat=BERLIN[0], exif_gps_lon=BERLIN[1]
         )
