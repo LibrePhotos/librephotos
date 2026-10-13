@@ -153,7 +153,8 @@ export const Photo = z.object({
   // What a video is, as HTMLMediaElement.canPlayType() takes it; null until
   // the scan has probed the video, and for anything that is not one.
   video_playback_type: z.string().nullable().optional(),
-  // The user's rotation (an EXIF orientation value, 1 = none). Optional:
+  // The user's rotation (1 = none; numbered like EXIF Orientation, but 6
+  // and 8 render swapped, #2595). Optional:
   // backends before 1.3 do not send it.
   local_orientation: z.number().optional(),
 });

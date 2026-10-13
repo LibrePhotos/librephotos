@@ -62,6 +62,7 @@ export type DeletePhotosResponse = z.infer<typeof DeletePhotosResponse>;
 export const RotatePhotoResponse = z.object({
   status: z.literal(true),
   image_hash: z.string(),
+  /** Numbered 1-8 like EXIF Orientation, but 6 (a turn left) and 8 (right) render swapped (#2595). */
   local_orientation: z.number(),
   last_modified: z.string(),
   /**

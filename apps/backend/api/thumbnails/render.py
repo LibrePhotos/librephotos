@@ -54,20 +54,23 @@ def _apply_local_orientation(
 ) -> pyvips.Image:
     """Apply a user-specified orientation transform to an already-upright pyvips image.
 
-    ``local_orientation`` follows the EXIF Orientation convention (1-8).
-    Orientation 1 is the identity (no change).  The image passed in is assumed
-    to be already auto-rotated by pyvips (i.e. it is visually upright), so
-    this function applies *additional* rotation/flip on top.
+    ``local_orientation`` is numbered 1-8 like EXIF Orientation, but 6 and 8
+    are swapped: 6 turns counter-clockwise where EXIF 6 turns clockwise
+    (#2595); 5 and 7 match EXIF. Orientation 1 is the identity (no change).
+    The image passed in is assumed to be already auto-rotated by pyvips (i.e.
+    it is visually upright), so this function applies *additional*
+    rotation/flip on top.
 
-    EXIF orientation semantics (applied to a visually-upright image):
+    What each value does to a visually-upright image (libvips' ``rot90`` is
+    a quarter turn clockwise):
         1 – no change
         2 – flip horizontal
         3 – rotate 180°
         4 – flip vertical
-        5 – rotate 90° CCW then flip horizontal
-        6 – rotate 90° CW
-        7 – rotate 90° CW then flip horizontal
-        8 – rotate 90° CCW (= 270° CW)
+        5 – rotate 90° CW then flip horizontal
+        6 – rotate 90° CCW
+        7 – rotate 90° CCW then flip horizontal
+        8 – rotate 90° CW
     """
     transform = _ORIENTATION_TRANSFORMS.get(local_orientation)
     if transform is None:

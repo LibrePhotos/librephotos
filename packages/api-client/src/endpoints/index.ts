@@ -238,9 +238,20 @@ export async function updatePhoto(
   return parseResponse(S.PhotoEditResponse, res, "photo update");
 }
 
-/** Rotate a photo by `angle` degrees clockwise (a multiple of 90), without touching the file. */
-export async function rotatePhoto(client: ApiClient, imageHash: string, angle: number): Promise<S.RotatePhotoResponse> {
-  const res = await client.post<unknown>("/photosedit/rotate/", { image_hash: imageHash, angle });
+/**
+ * Rotate a photo by `counterClockwiseDegrees` (a multiple of 90) on top of its current rotation,
+ * without touching the file. Positive turns the photo left as shown, negative turns it right: a
+ * clockwise button sends -90 (#2595).
+ */
+export async function rotatePhoto(
+  client: ApiClient,
+  imageHash: string,
+  counterClockwiseDegrees: number
+): Promise<S.RotatePhotoResponse> {
+  const res = await client.post<unknown>("/photosedit/rotate/", {
+    image_hash: imageHash,
+    angle: counterClockwiseDegrees,
+  });
   return parseResponse(S.RotatePhotoResponse, res, "rotate photo");
 }
 
