@@ -2,13 +2,19 @@ import logging
 
 from django.db import connections
 from django_q.brokers import get_broker
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.serializers.health import HealthCheckSerializer, HealthReadySerializer
+
 logger = logging.getLogger(__name__)
+
+# A probe answers the same shape with 200 or 503.
+CHECK_RESPONSES = {200: HealthCheckSerializer, 503: HealthCheckSerializer}
 
 
 def _check_postgresql() -> dict[str, str]:
@@ -55,17 +61,20 @@ class HealthzView(HealthCheckView):
     """Liveness. 200 as long as the process can serve a request. Deliberately does
     not touch the database: a database outage must not get the pod killed."""
 
+    @extend_schema(responses=HealthCheckSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         return Response({"status": "ok"})
 
 
 class HealthzPostgresqlView(HealthCheckView):
+    @extend_schema(responses=CHECK_RESPONSES)
     def get(self, request: Request, format: str | None = None) -> Response:
         result = _check_postgresql()
         return Response(result, status=_http_status(result))
 
 
 class HealthzQueueView(HealthCheckView):
+    @extend_schema(responses=CHECK_RESPONSES)
     def get(self, request: Request, format: str | None = None) -> Response:
         result = _check_queue()
         return Response(result, status=_http_status(result))
@@ -74,6 +83,7 @@ class HealthzQueueView(HealthCheckView):
 class HealthzReadyView(HealthCheckView):
     """Readiness. 200 only once every dependency answers."""
 
+    @extend_schema(responses={200: HealthReadySerializer, 503: HealthReadySerializer})
     def get(self, request: Request, format: str | None = None) -> Response:
         checks = {
             "postgresql": _check_postgresql(),

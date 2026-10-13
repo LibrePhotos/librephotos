@@ -3,7 +3,12 @@ from functools import cached_property
 from typing import Any
 
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import filters, mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
@@ -597,7 +602,16 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         return public_view_permissions(self.request)
 
     @extend_schema(
-        parameters=[DateAlbumFilterQuery, *DAY_ALBUM_PAGE_PARAMETERS],
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.INT,
+                OpenApiParameter.PATH,
+                description="The day album's id (from /api/albums/date/list/)",
+            ),
+            DateAlbumFilterQuery,
+            *DAY_ALBUM_PAGE_PARAMETERS,
+        ],
         description=(
             "Returns the actual images, for a given day in chunks of 100 images. "
             "``results`` is the day with one page of its photos in ``items`` "

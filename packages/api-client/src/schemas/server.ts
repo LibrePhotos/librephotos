@@ -2,7 +2,8 @@ import { z } from "zod";
 
 /*
  * What the server says about itself (api/views/server_info.py, api/views/dataviz.py,
- * api/views/services.py). The views answer plain dicts and declare no response serializer.
+ * api/views/services.py). The views answer plain dicts; the response serializers of the first
+ * two are in api/serializers/server.py.
  */
 
 /** `GET /imagetag/`: the build the server runs. */
@@ -41,7 +42,10 @@ const CpuInfo = z.object({
   count: z.number(),
   arch_string_raw: z.string(),
   vendor_id_raw: z.string().optional(),
+  hardware_raw: z.string().optional(),
   brand_raw: z.string().optional(),
+  uname_string_raw: z.string().optional(),
+  processor_type: z.string().optional(),
   hz_advertised_friendly: z.string().optional(),
   hz_actual_friendly: z.string().optional(),
   hz_advertised: z.array(z.number()).optional(),
@@ -51,9 +55,9 @@ const CpuInfo = z.object({
   family: z.number().optional(),
   flags: z.array(z.string()).optional(),
   l3_cache_size: z.number().optional(),
-  l2_cache_size: z.union([z.string(), z.number()]).optional(),
+  l2_cache_size: z.number().optional(),
   l1_data_cache_size: z.number().optional(),
-  l1_instruction_cache_size: z.union([z.string(), z.number()]).optional(),
+  l1_instruction_cache_size: z.number().optional(),
   l2_cache_line_size: z.number().optional(),
   l2_cache_associativity: z.number().optional(),
 });
@@ -77,6 +81,9 @@ const UserStats = z.object({
   total_file_size_in_mb: z.number(),
   number_of_photos: z.number(),
   number_of_videos: z.number(),
+  /** Optional: servers before 2026-07 (#1943) do not count them. */
+  number_of_screenshots: z.number().optional(),
+  number_of_documents: z.number().optional(),
   number_of_captions: z.number(),
   number_of_generated_captions: z.number(),
   album: PhotoGroupStats,

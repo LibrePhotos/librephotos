@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from django.db.models import Model, QuerySet
 from rest_framework import serializers
@@ -6,6 +6,7 @@ from rest_framework import serializers
 from api.models import Photo
 
 M = TypeVar("M", bound=Model)
+S = TypeVar("S", bound=serializers.Serializer[None])
 
 
 class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
@@ -22,6 +23,21 @@ class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
         return Photo.objects.owned_by(
             getattr(self.context.get("request"), "user", None)
         )
+
+
+def declare_fields(
+    serializer_class: type[S],
+    **fields: serializers.Field[Any, Any, Any, Any],
+) -> type[S]:
+    """Add fields to a serializer that its class body cannot declare.
+
+    A response field named like a ``Serializer`` attribute (``data``,
+    ``source``, ``label``) would be an assignment the type checker rejects,
+    and a field that nests the serializer itself (a tree) does not exist
+    while the body runs. They come after the fields of the body.
+    """
+    serializer_class._declared_fields.update(fields)
+    return serializer_class
 
 
 def shared_serializer(

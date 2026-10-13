@@ -4,7 +4,7 @@ import os
 
 from django.conf import settings
 from django.http import FileResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework.exceptions import APIException, NotFound
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
@@ -20,12 +20,26 @@ from api.dataviz.stats import (
     get_searchterms_wordcloud,
     get_server_stats,
 )
+from api.drf.openapi import LOCATION_CLUSTERS_SCHEMA
 from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.faces.classify import cluster_faces
 from api.faces.social_graph import build_social_graph
 from api.models.user import User
-from api.serializers.server import ServerLogsQuery
+from api.serializers.face import ClusterFacesResponse
+from api.serializers.server import (
+    ServerLogsQuery,
+    ServerLogsSerializer,
+    ServerStatsSerializer,
+)
+from api.serializers.stats import (
+    CountStatsSerializer,
+    LocationSunburstSerializer,
+    LocationTimelineSpanSerializer,
+    PhotoMonthCountSerializer,
+    SocialGraphSerializer,
+    WordCloudSerializer,
+)
 from librephotos.logging_bootstrap import LOG_FILENAME
 
 logger = logging.getLogger(__name__)
@@ -37,10 +51,12 @@ class ClusterFaceView(APIView):
     @extend_schema(
         deprecated=True,
         description="Use POST method",
+        responses=ClusterFacesResponse,
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._cluster_faces(request_user(request))
 
+    @extend_schema(request=None, responses=ClusterFacesResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._cluster_faces(request_user(request))
 
@@ -52,6 +68,7 @@ class ClusterFaceView(APIView):
 class SocialGraphView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=SocialGraphSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         try:
@@ -65,6 +82,13 @@ class SocialGraphView(APIView):
 class ServerLogsView(APIView):
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(
+        responses={
+            (200, "application/octet-stream"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="The log file, as an attachment"
+            )
+        }
+    )
     def get(
         self, request: Request, format: str | None = None
     ) -> FileResponse | Response:
@@ -81,7 +105,7 @@ class ServerLogsView(APIView):
 class ServerLogsViewerView(APIView):
     permission_classes = (IsAdminUser,)
 
-    @extend_schema(parameters=[ServerLogsQuery])
+    @extend_schema(parameters=[ServerLogsQuery], responses=ServerLogsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         num_lines = parse_query(request, ServerLogsQuery)["lines"]
 
@@ -107,6 +131,7 @@ class ServerLogsViewerView(APIView):
 class ServerStatsView(APIView):
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(responses=ServerStatsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_server_stats()
         return Response(res)
@@ -115,6 +140,7 @@ class ServerStatsView(APIView):
 class StatsView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=CountStatsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_count_stats(user=request_user(request))
         return Response(res)
@@ -123,6 +149,7 @@ class StatsView(APIView):
 class LocationClustersView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses={200: LOCATION_CLUSTERS_SCHEMA})
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_clusters(request_user(request))
         return Response(res)
@@ -131,6 +158,7 @@ class LocationClustersView(APIView):
 class LocationSunburst(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=LocationSunburstSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_sunburst(request_user(request))
         return Response(res)
@@ -139,6 +167,7 @@ class LocationSunburst(APIView):
 class LocationTimeline(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=LocationTimelineSpanSerializer(many=True))
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_location_timeline(request_user(request))
         return Response(res)
@@ -147,6 +176,7 @@ class LocationTimeline(APIView):
 class PhotoMonthCountsView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=PhotoMonthCountSerializer(many=True))
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_photo_month_counts(request_user(request))
         return Response(res)
@@ -155,6 +185,7 @@ class PhotoMonthCountsView(APIView):
 class SearchTermWordCloudView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=WordCloudSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_searchterms_wordcloud(request_user(request))
         return Response(res)

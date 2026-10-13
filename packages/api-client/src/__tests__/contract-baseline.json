@@ -44,5 +44,8 @@
   "ManageUser/ManageUser first_name: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "ManageUser/ManageUser last_name: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "ManageUser/ManageUser password: missing-in-schema": "write-only: a client sends it in the PATCH body (the zod schema doubles as the form type); no response carries it.",
-  "PhotoMetadata/PhotoMetadata rating: null-in-zod-only": "Read from Photo.rating now, which has no null (#2252); servers before that sent PhotoMetadata.rating, which was nullable. Kept for older servers."
+  "PhotoMetadata/PhotoMetadata rating: null-in-zod-only": "Read from Photo.rating now, which has no null (#2252); servers before that sent PhotoMetadata.rating, which was nullable. Kept for older servers.",
+  "SocialGraph/SocialGraph nodes[].id: string-id": "Not a key: a node's id is the person's name, which the links name as source and target (api/faces/social_graph.py); the graph library joins nodes and links by it.",
+  "CountStats/CountStats num_screenshots: missing-in-zod": "Dropped on purpose: no client shows this count (serverEndpoints.test.ts pins that parsing drops it).",
+  "CountStats/CountStats num_documents: missing-in-zod": "Dropped on purpose: no client shows this count (serverEndpoints.test.ts pins that parsing drops it)."
 }

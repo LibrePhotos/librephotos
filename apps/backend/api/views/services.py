@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound
@@ -18,13 +19,25 @@ from api.runtime.supervisor import (
     stop_service,
 )
 
+# The router names the lookup "id"; it is a service's name (a key of SERVICES).
+SERVICE_NAME = OpenApiParameter(
+    "id",
+    OpenApiTypes.STR,
+    OpenApiParameter.PATH,
+    description="The service's name, a key of the list's services",
+)
+
 
 class ServiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUser]
 
+    # A ViewSet without a serializer gives list and retrieve the same
+    # operationId; spelled out so the schema does not number them.
+    @extend_schema(operation_id="api_services_list")
     def list(self, request: Request) -> Response:
         return Response({"services": SERVICES})
 
+    @extend_schema(parameters=[SERVICE_NAME])
     def retrieve(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
@@ -50,6 +63,7 @@ class ServiceViewSet(viewsets.ViewSet):
             }
         )
 
+    @extend_schema(parameters=[SERVICE_NAME])
     @action(detail=True, methods=["post"])
     def start(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
@@ -79,6 +93,7 @@ class ServiceViewSet(viewsets.ViewSet):
             detail = f": {reason}" if reason else ""
             raise APIException(f"Failed to start service {service_name}{detail}")
 
+    @extend_schema(parameters=[SERVICE_NAME])
     @action(detail=True, methods=["post"])
     def stop(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk

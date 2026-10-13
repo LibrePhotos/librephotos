@@ -55,7 +55,12 @@ class DuplicateListView(PaginatedViewMixin, APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(parameters=[DuplicateListQuery, *PAGE_PARAMETERS])
+    # An APIView's GET is "retrieve" to drf-spectacular, the same operationId
+    # as the detail view's; named so the schema does not number them.
+    @extend_schema(
+        operation_id="api_duplicates_list",
+        parameters=[DuplicateListQuery, *PAGE_PARAMETERS],
+    )
     def get(self, request: Request) -> Response:
         user = request_user(request)
         params = parse_query(request, DuplicateListQuery)

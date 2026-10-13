@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from api.drf.params import QueryFlagField, required_string
 from api.models import Face, Person
+from api.serializers.fields import declare_fields
 
 
 class PersonFaceListSerializer(serializers.ModelSerializer):
@@ -180,3 +181,33 @@ class AddFaceResponse(serializers.Serializer[None]):
         ),
     )
     face = AddedFace()
+
+
+class ClusterFacePosition(serializers.Serializer[None]):
+    """A face's encoding projected onto three axes (PCA)."""
+
+    x = serializers.FloatField()
+    y = serializers.FloatField()
+    size = serializers.FloatField()
+
+
+class ClusterFacePoint(serializers.Serializer[None]):
+    """One face on the face cluster chart (``api.faces.classify.build_scatter_point``)."""
+
+    person_id = serializers.IntegerField(help_text="-1 for a face without a person")
+    person_name = serializers.CharField(help_text='"unknown" without a person')
+    person_label_is_inferred = serializers.BooleanField(
+        help_text="True when the face has no person"
+    )
+    color = serializers.CharField(help_text="The person's colour, #rrggbb")
+    face_url = serializers.CharField()
+    value = ClusterFacePosition()
+
+
+class ClusterFacesResponse(serializers.Serializer[None]):
+    """The answer of /api/clusterfaces: every face with an encoding, on the chart."""
+
+    status = serializers.BooleanField()
+
+
+declare_fields(ClusterFacesResponse, data=ClusterFacePoint(many=True))

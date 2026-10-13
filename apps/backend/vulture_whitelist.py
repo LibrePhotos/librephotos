@@ -37,6 +37,9 @@ _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanu
 
 # drf-spectacular extensions: defining one registers it, nothing names it.
 _.ThrottledBasicScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension)
+_.JWTCookieScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension)
+_.get_security_requirement  # method in api/drf/openapi.py (JWTCookieScheme, drf-spectacular calls it)
+_.get_security_definition  # method in api/drf/openapi.py (JWTCookieScheme, drf-spectacular calls it)
 
 # Named by string.
 _.deduplicate_faces  # method in api/admin.py (PhotoAdmin.actions)

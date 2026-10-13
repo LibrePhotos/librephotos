@@ -529,6 +529,11 @@ SPECTACULAR_SETTINGS = {
     # Separate request and response components (PhotoRequest vs Photo), so a
     # read-only field is required in the response instead of optional in both.
     "COMPONENT_SPLIT_REQUEST": True,
+    # Enum components are named after their field; a name that says whose
+    # status this is keeps it stable when another "status" choice appears.
+    "ENUM_NAME_OVERRIDES": {
+        "HealthStatusEnum": "api.serializers.health.HEALTH_STATES",
+    },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
         "api.drf.openapi.require_page_keys",

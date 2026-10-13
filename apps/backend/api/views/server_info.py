@@ -5,17 +5,24 @@ import os
 from typing import Any
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.runtime import binaries
+from api.serializers.server import (
+    ApiHelpSerializer,
+    ImageTagSerializer,
+    StorageStatsSerializer,
+)
 
 
 class StorageStatsView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=StorageStatsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         import shutil
 
@@ -34,6 +41,7 @@ class StorageStatsView(APIView):
 class ApiHelpView(APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(responses=ApiHelpSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         base = ""
         try:
@@ -147,5 +155,6 @@ def read_git_hash() -> str:
 class ImageTagView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=ImageTagSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         return Response({"image_tag": settings.IMAGE_TAG, "git_hash": read_git_hash()})
