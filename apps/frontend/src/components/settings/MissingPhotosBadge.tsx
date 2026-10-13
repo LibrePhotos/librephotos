@@ -8,6 +8,19 @@ type MissingPhotosBadgeProps = {
   count: number;
 };
 
+/**
+ * What "Remove missing photos" deletes. With the count, so a library that only looks missing
+ * (an unmounted disk) is not wiped by a click on a generic warning (#2195).
+ */
+export function MissingPhotosConfirmText({ count }: { count: number | undefined }) {
+  const { t } = useTranslation();
+  return (
+    <Text size="sm">
+      {count === undefined ? t("settings.missingphotosconfirm") : t("settings.missingphotosconfirmcount", { count })}
+    </Text>
+  );
+}
+
 /** The count of photos missing on disk, next to the Photos title, and the dialog that removes them. */
 export function MissingPhotosBadge({ count }: MissingPhotosBadgeProps) {
   const [isOpen, { open, close }] = useDisclosure(false);
@@ -37,7 +50,7 @@ export function MissingPhotosBadge({ count }: MissingPhotosBadgeProps) {
       )}
       <Modal opened={isOpen} title={t("settings.missingphotosbutton")} onClose={close}>
         <Stack gap="xl">
-          <Text size="sm">{t("settings.missingphotosconfirm")}</Text>
+          <MissingPhotosConfirmText count={count} />
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>
               {t("cancel")}

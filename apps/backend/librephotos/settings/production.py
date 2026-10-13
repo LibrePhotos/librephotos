@@ -334,6 +334,13 @@ CONSTANCE_CONFIG = {
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
         str,
     ),
+    "SCAN_MISSING_MAX_FRACTION": (
+        0.5,
+        "Largest share of a user's photos (0 to 1) a scan may flag as missing at"
+        " once. Above it, and above 100 photos, the scan changes nothing and asks"
+        " whether the library is mounted. 1 turns the check off.",
+        float,
+    ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "nominatim"),
         "Map Provider",

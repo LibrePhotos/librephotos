@@ -4,7 +4,9 @@ import { IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
+import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { notification } from "../../service/notifications";
+import { MissingPhotosConfirmText } from "../settings/MissingPhotosBadge";
 import { AVATAR_SIZE, useSpotlightActions } from "./useSpotlightActions";
 
 type SpotlightTriggerProps = {
@@ -59,11 +61,12 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
 export function ConfirmDeleteMissingPhotosModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
+  const { data: countStats } = useFetchCountStatsQuery();
 
   return (
     <Modal opened={opened} onClose={onClose} title={t("settings.missingphotosbutton")} centered>
       <Stack>
-        <Text size="sm">{t("settings.missingphotosconfirm")}</Text>
+        <MissingPhotosConfirmText count={countStats?.num_missing_photos} />
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>
             {t("cancel")}

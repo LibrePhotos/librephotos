@@ -13,13 +13,27 @@ from typing import TYPE_CHECKING
 from api.video import transcode_cache
 
 if TYPE_CHECKING:
+    from api.models.file import File
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
 
-def detach_missing_files(photo: Photo) -> None:
+def missing_files(photo: Photo) -> list[File]:
+    """The photo's files that are gone from disk."""
+    return [
+        file
+        for file in photo.files.all()
+        if not file.path or not os.path.exists(file.path)
+    ]
+
+
+def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> None:
     """Unlink files that are gone from disk and flag them missing.
+
+    ``missing`` is the result of ``missing_files(photo)`` when the caller has
+    already looked (the scan checks the whole library before it changes
+    anything); without it the files are checked here.
 
     The scan runs this over every photo in the library, from rows it loaded
     in pages of thousands. Saving each one whole wrote those old values back
@@ -30,14 +44,13 @@ def detach_missing_files(photo: Photo) -> None:
     touched, and only its ``last_modified``: the relation itself is already
     written by ``remove()``, and the bump is what tells the sync feed.
     """
-    detached = False
-    for file in photo.files.all():
-        if not file.path or not os.path.exists(file.path):
-            photo.files.remove(file)
-            file.missing = True
-            file.save()
-            detached = True
-    if detached:
+    if missing is None:
+        missing = missing_files(photo)
+    for file in missing:
+        photo.files.remove(file)
+        file.missing = True
+        file.save()
+    if missing:
         photo.save(update_fields=["last_modified"])
 
 

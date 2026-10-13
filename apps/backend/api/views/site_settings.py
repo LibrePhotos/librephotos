@@ -57,6 +57,7 @@ class SiteSettingsView(APIView):
             "FACE_RECOGNITION_MODEL",
             "NEXTCLOUD_ENABLED",
             "AUTO_CREATE_USER_DIRECTORY",
+            "SCAN_MISSING_MAX_FRACTION",
         )
         out: dict[str, object] = {}
         out["allow_registration"] = config["ALLOW_REGISTRATION"]
@@ -80,6 +81,7 @@ class SiteSettingsView(APIView):
         out["face_recognition_model"] = config["FACE_RECOGNITION_MODEL"]
         out["nextcloud_enabled"] = config["NEXTCLOUD_ENABLED"]
         out["auto_create_user_directory"] = config["AUTO_CREATE_USER_DIRECTORY"]
+        out["scan_missing_max_fraction"] = config["SCAN_MISSING_MAX_FRACTION"]
         out["email_configured"] = email_is_configured()
         return Response(out)
 

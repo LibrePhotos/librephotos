@@ -26,7 +26,7 @@ LibrePhotos only marks photos as missing during its missing-file check. This che
 - the scan is a **full scan** (a rescan of your whole library), or
 - the scan covers your configured scan directory without targeting a specific list of files.
 
-It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload — unless that scan is a full scan. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
+It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload — unless that scan is a full scan. It is also skipped when the scan had to skip a folder it could not read. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
 
 Simply opening, viewing, or downloading a photo whose file has gone does **not** mark it as missing — you will just get an error for that one photo. The missing-photo count only updates after a scan has run this check.
 
@@ -38,6 +38,16 @@ Common scenarios that cause missing photos:
 - Network attached storage (NAS) disconnected
 - Changed mount points in Docker configuration
 - Cloud storage sync issues
+
+## When a Scan Asks "Is the Library Mounted?"
+
+(Not released yet.) If the disk, network share or Docker bind mount that holds your photos is gone but its folder still exists, the scan directory looks empty, and every photo would be marked missing. LibrePhotos refuses to do that. The scan job fails, and nothing is changed, when:
+
+- the scan directory does not exist or cannot be read,
+- the scan directory is empty while you have photos in it, or
+- the missing-file check finds that more than the **Missing photos limit** (an admin setting in [Site Settings](./settings/index.md#site-settings), 50% by default) of your photos, and more than 100 photos, would lose all their files. The job's error says how many, for example "4,812 of 5,003 photos would be marked missing. Nothing was changed. Is the library mounted?".
+
+Mount the library again and run the scan once more. If you really deleted most of your photos on purpose, ask an administrator to set the **Missing photos limit** to 100% (which turns the check off), scan, and set it back afterwards.
 
 ## How to Identify Missing Photos
 
@@ -97,7 +107,7 @@ If you're certain the files are permanently gone:
 
 1. Open the **Library** page (avatar menu → **Library**)
 2. Next to the **Photos** heading, click the red **"N Missing Photos"** badge — it only appears when your library actually has missing photos
-3. In the **Remove missing photos** dialog, click **Confirm**
+3. The **Remove missing photos** dialog says how many photos it deletes. Check that number, then click **Confirm**
 4. This will permanently remove all missing photos from the database, including:
    - Photo metadata and EXIF information
    - Thumbnails
