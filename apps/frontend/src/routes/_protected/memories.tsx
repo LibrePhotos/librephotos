@@ -6,6 +6,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchMemoriesQuery } from "../../api_client/memories";
 import { EmptyState } from "../../components/common/EmptyState";
+import { ErrorState } from "../../components/common/ErrorState";
+import { useListFailure } from "../../components/common/useListFailure";
 import type { MemoriesView } from "../../components/memories/MemoriesHeader";
 import { MemoriesHeader } from "../../components/memories/MemoriesHeader";
 import { MemoryCard } from "../../components/memories/MemoryCard";
@@ -39,7 +41,9 @@ function Memories() {
   const everyPhoto = useFetchMemoriesQuery({ size: MAX_MEMORY_ITEMS, enabled: wantsEveryPhoto });
   const memories = everyPhoto.data?.results ?? summary.data?.results ?? [];
   const isFetching = summary.isFetching || everyPhoto.isFetching;
-  const isError = summary.isError || everyPhoto.isError;
+  // The summary is the list: when it failed, the full set is not asked for, or
+  // came back empty too. Its photos stay if only a later request failed.
+  const listFailure = useListFailure(summary);
 
   // One memory per year, so there is nothing to virtualize -- but the tiles are
   // sized like the album grids so the two pages look like the same product.
@@ -96,6 +100,7 @@ function Memories() {
           numberOfItems={items.length}
           selectable
           emptyStateConfig={emptyStateConfig}
+          error={listFailure}
         />
       ) : (
         <Stack gap={0}>
@@ -113,8 +118,9 @@ function Memories() {
             </Group>
           ) : null}
           {/* Only claim there is nothing to remember when the request actually
-              answered: a failed one already raises its own notification. */}
-          {!isFetching && !isError && memories.length === 0 ? <EmptyState {...emptyStateConfig} /> : null}
+              answered: a failed one says so, with a Retry. */}
+          {memories.length === 0 && listFailure ? <ErrorState failure={listFailure} /> : null}
+          {!isFetching && !listFailure && memories.length === 0 ? <EmptyState {...emptyStateConfig} /> : null}
         </Stack>
       )}
       {playing ? (

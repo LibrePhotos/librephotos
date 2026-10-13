@@ -1,5 +1,5 @@
 import { albumKeys, endpoints, type FolderSubfolder, type FolderSubfoldersResponse } from "@librephotos/api-client";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, type InfiniteData, type UseInfiniteQueryResult } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { apiClient } from "../../api";
 import { retryFolderRequest } from "./useFetchFolderAlbumsQuery";
@@ -32,11 +32,13 @@ export function useAllFolderSubfolders(path?: string): {
   subfolders: FolderSubfolder[];
   isLoading: boolean;
   isFetching: boolean;
+  /** The query itself, for `useListFailure`. */
+  query: UseInfiniteQueryResult<InfiniteData<FolderSubfoldersResponse>>;
 } {
   // A refetch reloads every page, one heavy request each: not worth it on every
   // window focus just for a count and a few previews. Mounting the page still does.
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetching, isLoading, isError } =
-    useFetchFolderSubfoldersInfiniteQuery(path, { refetchOnWindowFocus: false });
+  const query = useFetchFolderSubfoldersInfiniteQuery(path, { refetchOnWindowFocus: false });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetching, isLoading, isError } = query;
 
   // Keyed on the page count too: a page that answers at once can arrive in the
   // same render as the end of the fetch before it, leaving the flags unchanged.
@@ -54,5 +56,6 @@ export function useAllFolderSubfolders(path?: string): {
     // Still loading while only empty pages are in and more follow, or "no folders" flashed
     isLoading: isLoading || (subfolders.length === 0 && morePagesComing),
     isFetching: isFetching || morePagesComing,
+    query,
   };
 }

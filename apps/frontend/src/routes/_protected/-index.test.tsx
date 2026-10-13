@@ -38,9 +38,17 @@ const stubs = vi.hoisted(() => ({
   listCalls: [] as { options: ListArgs[0]; queryOptions: ListArgs[1] }[],
   // One object, like the query cache: a fresh one per render loops the
   // route's effect that flattens it.
-  listResult: { data: [], isLoading: false, refetch: () => {} },
+  listResult: {
+    data: [] as unknown[] | undefined,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    refetch: vi.fn<() => Promise<unknown>>(),
+  },
   listProps: undefined as PhotoListViewProps | undefined,
   noScanDirectory: false,
+  userFailed: false,
+  userRefetch: vi.fn<() => Promise<unknown>>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -52,7 +60,10 @@ vi.mock("@tanstack/react-router", () => ({
   useSearch: () => stubs.search,
 }));
 vi.mock("../../api_client/user/hooks", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
+  useCurrentUserSelfDetailsQuery: () =>
+    stubs.userFailed
+      ? { data: undefined, isError: true, isFetching: false, refetch: stubs.userRefetch }
+      : { data: stubs.user, isError: false, isFetching: false, refetch: stubs.userRefetch },
   useSaveDefaultTimelineFilterMutation: () => ({ mutate: stubs.saveDefault, isPending: false }),
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
@@ -254,5 +265,38 @@ describe("the main timeline filter", () => {
       root.render(<Timeline />);
     });
     expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(true);
+  });
+});
+
+describe("a failed timeline request (#2221)", () => {
+  it("hands PhotoListView an error with a Retry that refetches, not just the empty state", async () => {
+    const failed = { ...stubs.listResult, data: undefined, isError: true };
+    stubs.listResult = failed;
+    try {
+      await renderTimeline();
+      const error = listProps().error;
+      expect(error).toBeDefined();
+      act(() => defined(error).onRetry());
+      expect(failed.refetch).toHaveBeenCalledTimes(1);
+    } finally {
+      stubs.listResult = { ...failed, data: [], isError: false };
+    }
+  });
+
+  it("does not spin forever when the user's details (the saved filter) failed to load", async () => {
+    stubs.userFailed = true;
+    try {
+      await renderTimeline();
+      expect(listProps().loading).toBe(false);
+      act(() => defined(listProps().error).onRetry());
+      expect(stubs.userRefetch).toHaveBeenCalledTimes(1);
+    } finally {
+      stubs.userFailed = false;
+    }
+  });
+
+  it("passes no error while the photos are there", async () => {
+    await renderTimeline();
+    expect(listProps().error).toBeUndefined();
   });
 });

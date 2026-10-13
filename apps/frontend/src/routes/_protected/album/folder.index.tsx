@@ -5,6 +5,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
@@ -16,7 +18,8 @@ export const Route = createFileRoute("/_protected/album/folder/")({
 
 function AlbumFolder() {
   const { t } = useTranslation();
-  const { subfolders, isLoading, isFetching } = useAllFolderSubfolders();
+  const { subfolders, isLoading, isFetching, query } = useAllFolderSubfolders();
+  const listFailure = useListFailure(query);
   const sizing = useAlbumListGridConfig();
 
   return (
@@ -29,7 +32,9 @@ function AlbumFolder() {
       />
 
       {/* Outside the grid: with no folders it renders no cells to put a message in */}
-      {!isLoading && subfolders.length === 0 ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isLoading && subfolders.length === 0 ? (
         <EmptyState
           icon={<Folder size={40} />}
           title={t("emptystate.folders.title")}

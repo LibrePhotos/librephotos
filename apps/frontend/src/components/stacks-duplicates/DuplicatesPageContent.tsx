@@ -18,8 +18,9 @@ import {
   useDuplicateStatsQuery,
 } from "../../api_client/duplicates";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { DeleteDuplicatesModal } from "./DeleteDuplicatesModal";
 import { DetectDuplicatesMenu } from "./DetectDuplicatesMenu";
 import { DuplicateCard } from "./DuplicateCard";
@@ -96,16 +97,14 @@ export function DuplicatesPageContent() {
   }, []);
 
   const { data: stats } = useDuplicateStatsQuery();
-  const {
-    data: duplicatesResponse,
-    isLoading: duplicatesLoading,
-    error: duplicatesError,
-  } = useDuplicatesQuery({
+  const duplicatesQuery = useDuplicatesQuery({
     duplicate_type: typeFilter,
     review_status: statusFilter,
     page,
     page_size: pageSize,
   });
+  const { data: duplicatesResponse, isLoading: duplicatesLoading, error: duplicatesError } = duplicatesQuery;
+  const listFailure = useListFailure(duplicatesQuery);
   useStepBackFromMissingPage(page, setPage, duplicatesError);
   const { mutate: detectDuplicates, isPending: isDetecting } = useDetectDuplicatesMutation();
   const { mutate: deleteDuplicate } = useDeleteDuplicateMutation();
@@ -248,7 +247,8 @@ export function DuplicatesPageContent() {
           )}
         </>
       ) : (
-        <EmptyState
+        <ListEmptyState
+          failure={listFailure}
           icon={<IconCopy size={40} />}
           title={t("duplicates.noduplicates")}
           description={getEmptyDescription()}

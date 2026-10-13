@@ -11,7 +11,7 @@
   "src/components/charts/EventCountMonthGraph.tsx": { "inlineStyles": 3 },
   "src/components/charts/FaceClusterGraph.tsx": { "inlineStyles": 9 },
   "src/components/charts/LocationDurationStackedBar.tsx": { "inlineStyles": 9 },
-  "src/components/charts/LocationLink.tsx": { "inlineStyles": 5 },
+  "src/components/charts/LocationLink.tsx": { "inlineStyles": 4 },
   "src/components/charts/StatisticsNav.tsx": { "inlineStyles": 1 },
   "src/components/charts/WordCloud.tsx": { "inlineStyles": 2 },
   "src/components/facedashboard/HeaderComponent.tsx": { "inlineStyles": 1 },

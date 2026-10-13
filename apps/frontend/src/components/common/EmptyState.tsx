@@ -1,11 +1,13 @@
-import { Button, Center, Progress, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { Button, Center, Progress, Stack, Text, ThemeIcon, Title, type MantineColor } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-type EmptyStateProps = Readonly<{
+export type EmptyStateProps = Readonly<{
   icon?: React.ReactNode;
+  /** The icon's colour; gray by default, blue while a scan shows its progress. */
+  iconColor?: MantineColor;
   title: string;
   description: string;
   actionLabel?: string;
@@ -13,6 +15,8 @@ type EmptyStateProps = Readonly<{
   secondaryActionLabel?: string;
   secondaryActionLink?: string;
   onAction?: () => void;
+  /** Shows a spinner on the primary button while its action runs (ErrorState's Retry). */
+  actionLoading?: boolean;
   onSecondaryAction?: () => void;
   progress?: {
     current: number;
@@ -22,6 +26,7 @@ type EmptyStateProps = Readonly<{
 
 export function EmptyState({
   icon,
+  iconColor,
   title,
   description,
   actionLabel,
@@ -29,6 +34,7 @@ export function EmptyState({
   secondaryActionLabel,
   secondaryActionLink,
   onAction,
+  actionLoading = false,
   onSecondaryAction,
   progress,
 }: EmptyStateProps) {
@@ -56,7 +62,7 @@ export function EmptyState({
   return (
     <Center py={80}>
       <Stack align="center" gap="md" maw={400} w="100%">
-        <ThemeIcon size={80} radius="xl" variant="light" color={progress ? "blue" : "gray"}>
+        <ThemeIcon size={80} radius="xl" variant="light" color={iconColor ?? (progress ? "blue" : "gray")}>
           {icon || <IconPhoto size={40} />}
         </ThemeIcon>
         <Title order={3} ta="center">
@@ -83,7 +89,7 @@ export function EmptyState({
         {(actionLabel || secondaryActionLabel) && (
           <Stack gap="xs" mt="md">
             {actionLabel && (
-              <Button variant="filled" onClick={handlePrimaryClick}>
+              <Button variant="filled" onClick={handlePrimaryClick} loading={actionLoading}>
                 {actionLabel}
               </Button>
             )}

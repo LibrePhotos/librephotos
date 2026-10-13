@@ -6,6 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useListFailure } from "../../components/common/useListFailure";
 import { jobTypeLabel } from "../../components/job/jobTypeLabel";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
@@ -50,17 +51,19 @@ function TimestampPhotos() {
     saveAsDefault,
     saving: savingDefault,
     libraryEmpty,
+    failure: filterFailure,
   } = useTimelineFilter();
   const filterActive = countActiveFilters(filter) > 0;
   const filterKey = timelineFilterKey(filter);
 
   // Waits for the saved default: fetching before it loaded would show (and
   // cache) the unfiltered library for a moment.
-  const {
-    data: photosGroupedByDate,
-    isLoading,
-    refetch,
-  } = useFetchDateAlbumsQuery({ photosetType: Photoset.NONE, timelineFilter: filter }, { skip: !filterReady });
+  const photosQuery = useFetchDateAlbumsQuery(
+    { photosetType: Photoset.NONE, timelineFilter: filter },
+    { skip: !filterReady }
+  );
+  const { data: photosGroupedByDate, isLoading, refetch } = photosQuery;
+  const listFailure = useListFailure(photosQuery);
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -175,13 +178,14 @@ function TimestampPhotos() {
   return (
     <PhotoListView
       title={t("photos.photos")}
-      loading={isLoading || !filterReady}
+      loading={isLoading || (!filterReady && !filterFailure)}
       icon={Photo}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure ?? filterFailure}
       photosetQuery={photosetQuery}
       additionalSubHeader={filterSummary}
       headerActions={filterButton}

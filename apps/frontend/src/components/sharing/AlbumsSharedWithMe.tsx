@@ -9,7 +9,9 @@ import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize } from "../../util/gridUtils";
 import gridClasses from "../album/AlbumGridCell.module.css";
+import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { Tile } from "../Tile";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
@@ -34,7 +36,9 @@ export function AlbumsSharedWithMe() {
     captionHeight: CAPTION_HEIGHT,
     reservedHeight: 45 + 60 + 40,
   });
-  const { data: albumsSharedToMe, isFetching, isSuccess } = useFetchSharedAlbumsWithMeQuery();
+  const albumsQuery = useFetchSharedAlbumsWithMeQuery();
+  const { data: albumsSharedToMe, isFetching, isSuccess } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const { data: users } = useFetchUserListQuery();
 
   // One group per user who shares albums with you, under a header with who it is
@@ -68,7 +72,11 @@ export function AlbumsSharedWithMe() {
 
   return (
     <div ref={containerRef}>
-      {isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedWithYou")} />}
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : (
+        isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedWithYou")} />
+      )}
 
       {groups.length === 0 && isSuccess && (
         <Stack align="center" mt="xl">

@@ -47,8 +47,9 @@ import {
 import { serverAddress } from "../../api_client/urls";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { StackModal } from "../stacks/StackModal";
 import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
@@ -196,15 +197,13 @@ export function StacksPageContent() {
   }, []);
 
   const { data: stats } = useStackStatsQuery();
-  const {
-    data: stacksResponse,
-    isLoading: stacksLoading,
-    error: stacksError,
-  } = useStacksQuery({
+  const stacksQuery = useStacksQuery({
     stack_type: typeFilter,
     page,
     page_size: pageSize,
   });
+  const { data: stacksResponse, isLoading: stacksLoading, error: stacksError } = stacksQuery;
+  const listFailure = useListFailure(stacksQuery);
   useStepBackFromMissingPage(page, setPage, stacksError);
   const { mutate: detectStacks, isPending: isDetecting } = useDetectStacksMutation();
   const { mutate: deleteStack } = useDeleteStackMutation();
@@ -346,7 +345,8 @@ export function StacksPageContent() {
           )}
         </>
       ) : (
-        <EmptyState
+        <ListEmptyState
+          failure={listFailure}
           icon={<IconLayersSubtract size={40} />}
           title={t("stacks.nostacks")}
           description={t("stacks.empty")}

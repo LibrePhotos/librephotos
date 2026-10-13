@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery";
+import { useListFailure } from "../../components/common/useListFailure";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
@@ -13,7 +14,9 @@ export const Route = createFileRoute("/_protected/recent")({
 
 function RecentlyAddedPhotos() {
   const { t } = useTranslation();
-  const { data, status } = useFetchRecentlyAddedPhotosQuery();
+  const recentQuery = useFetchRecentlyAddedPhotosQuery();
+  const { data, status } = recentQuery;
+  const listFailure = useListFailure(recentQuery);
   const photosFlat = data?.results || [];
   // The day the newest import happened (the backend's added_on), not the first
   // photo's capture date; null while the user has no photos.
@@ -40,6 +43,7 @@ function RecentlyAddedPhotos() {
       dayHeaderPrefix={t("photos.addedon")}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure}
     />
   );
 }

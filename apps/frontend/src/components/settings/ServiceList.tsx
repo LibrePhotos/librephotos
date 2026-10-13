@@ -6,13 +6,17 @@ import { useTranslation } from "react-i18next";
 import { queryClient } from "../../api_client/api";
 import { useServiceActionMutation } from "../../api_client/services/hooks/useServiceActionMutation";
 import { useServicesHealthQuery, useServicesListQuery } from "../../api_client/services/hooks/useServicesQuery";
+import { ErrorState } from "../common/ErrorState";
+import { useListFailure } from "../common/useListFailure";
 import { serviceLabel } from "./serviceLabel";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not
 // know yet shows its raw name.
 export function ServiceList() {
   const { t } = useTranslation();
-  const { data: servicesList, isLoading: isLoadingList } = useServicesListQuery();
+  const servicesQuery = useServicesListQuery();
+  const { data: servicesList, isLoading: isLoadingList } = servicesQuery;
+  const listFailure = useListFailure(servicesQuery);
 
   const serviceNames = servicesList ? Object.keys(servicesList.services) : [];
   const { data: healthMap, isLoading: isLoadingHealth } = useServicesHealthQuery(serviceNames, {
@@ -127,6 +131,13 @@ export function ServiceList() {
                   </Table.Tr>
                 );
               })}
+            {listFailure && (
+              <Table.Tr>
+                <Table.Td colSpan={4}>
+                  <ErrorState failure={listFailure} compact />
+                </Table.Td>
+              </Table.Tr>
+            )}
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>

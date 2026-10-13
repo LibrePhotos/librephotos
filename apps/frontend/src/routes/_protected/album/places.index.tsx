@@ -17,8 +17,10 @@ import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
 import { FeatureBoundary } from "../../../components/common/FeatureBoundary";
 import { PageLoader } from "../../../components/common/PageLoader";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { clusterFeatureCollection, clusterPoints } from "../../../components/map/locationClusters";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../../../components/map/mapImages";
@@ -118,7 +120,9 @@ function AlbumPlace({ height = 0 }: Props) {
   const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList | null>(null);
   // The loader waits for the first answer only: on a background refetch the map
   // stays mounted and keeps the user's pan and zoom.
-  const { data: albums, isFetching: isFetchingAlbums, isLoading: isLoadingAlbums } = useFetchPlacesAlbumsQuery();
+  const albumsQuery = useFetchPlacesAlbumsQuery();
+  const { data: albums, isFetching: isFetchingAlbums, isLoading: isLoadingAlbums } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const {
     data: locationClusters,
     isFetching: isFetchingLocationClusters,
@@ -238,7 +242,9 @@ function AlbumPlace({ height = 0 }: Props) {
           number: shownAlbums.length,
         })}
       />
-      {!isLoadingAlbums && !hasPlaces ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isLoadingAlbums && !hasPlaces ? (
         <EmptyState
           icon={<Map2 size={40} />}
           title={t("emptystate.places.title")}

@@ -6,6 +6,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
+import { ErrorState } from "../common/ErrorState";
+import { useListFailure } from "../common/useListFailure";
 
 /** One bar: the month as the locale writes it, and its photo count. */
 type MonthBar = { month: string; Photos: number };
@@ -23,7 +25,9 @@ function isMonthBar(value: unknown): value is MonthBar {
 
 export function EventCountMonthGraph() {
   const { t } = useTranslation();
-  const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts, isLoading } = useFetchPhotoMonthCountQuery();
+  const monthCountsQuery = useFetchPhotoMonthCountQuery();
+  const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts, isLoading } = monthCountsQuery;
+  const listFailure = useListFailure(monthCountsQuery);
 
   const chartData: MonthBar[] =
     fetchedPhotoMonthCounts && photoMonthCounts
@@ -68,7 +72,8 @@ export function EventCountMonthGraph() {
     <Stack>
       <Title order={3}>{t("sidemenu.timeline")}</Title>
       {isLoading && <Loader />}
-      {!isLoading && !hasData && (
+      {listFailure && <ErrorState failure={listFailure} />}
+      {!isLoading && !listFailure && !hasData && (
         <EmptyState
           icon={<IconChartBar size={40} />}
           title={t("emptystate.timeline.title")}

@@ -41,7 +41,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next";
 import { useFetchLocationTreeQuery } from "../../api_client/stats/hooks";
 import { LOCATION_LINK_COLOR, LOCATION_NODE_GRADIENTS, LOCATION_NODE_TEXT_COLORS } from "../../theme/chartColors";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
+import { useListFailure } from "../common/useListFailure";
 import styles from "./LocationLink.module.css";
 
 type NodeData = {
@@ -204,7 +205,9 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [showHint, setShowHint] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
-  const { data: locationSunburst, isLoading } = useFetchLocationTreeQuery();
+  const locationTreeQuery = useFetchLocationTreeQuery();
+  const { data: locationSunburst, isLoading } = locationTreeQuery;
+  const listFailure = useListFailure(locationTreeQuery);
   const { t, i18n } = useTranslation();
   // placetree.photocount is new; until a locale translates it, keep that locale's
   // existing "Photos" word instead of switching the tree to English
@@ -355,39 +358,33 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
     return LOCATION_NODE_GRADIENTS.leaf;
   }, []);
 
-  if (isLoading) {
+  // Loading, nothing to draw, or the request failed: the same frame, so the layout does not jump
+  if (isLoading || !locationSunburst || !locationSunburst.children?.length) {
     return (
       <div
         ref={containerRef}
         className={styles.container}
         style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}
       >
-        <div className={styles.loadingOverlay}>
-          <Loader size="lg" color="blue" />
-          <Text c="dimmed" size="sm">
-            {t("placetree.loading")}
-          </Text>
-        </div>
-      </div>
-    );
-  }
-
-  if (!locationSunburst || !locationSunburst.children?.length) {
-    return (
-      <div
-        ref={containerRef}
-        className={styles.container}
-        style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}
-      >
-        <div className={styles.emptyContainer}>
-          <EmptyState
-            icon={<IconVectorTriangle size={40} />}
-            title={t("emptystate.placetree.title")}
-            description={t("emptystate.placetree.description")}
-            actionLabel={t("emptystate.goToLibrary")}
-            actionLink="/library"
-          />
-        </div>
+        {isLoading ? (
+          <div className={styles.loadingOverlay}>
+            <Loader size="lg" color="blue" />
+            <Text c="dimmed" size="sm">
+              {t("placetree.loading")}
+            </Text>
+          </div>
+        ) : (
+          <div className={styles.emptyContainer}>
+            <ListEmptyState
+              failure={listFailure}
+              icon={<IconVectorTriangle size={40} />}
+              title={t("emptystate.placetree.title")}
+              description={t("emptystate.placetree.description")}
+              actionLabel={t("emptystate.goToLibrary")}
+              actionLink="/library"
+            />
+          </div>
+        )}
       </div>
     );
   }

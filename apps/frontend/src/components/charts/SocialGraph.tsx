@@ -13,8 +13,9 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
 import { SOCIAL_GRAPH_COLORS } from "../../theme/chartColors";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 
 type Props = Readonly<{
   height: number;
@@ -150,18 +151,21 @@ function ForceGraph({ data, width, height }: { data: SocialGraphData; width: num
 }
 
 export function SocialGraph({ height }: Props) {
-  const { data, isFetching, isSuccess } = useFetchSocialGraphQuery();
+  const graphQuery = useFetchSocialGraphQuery();
+  const { data, isFetching, isSuccess } = graphQuery;
+  const listFailure = useListFailure(graphQuery);
   const { observe: observeChange, width } = useDimensions({ onResize: ({ observe }) => observe() });
   const { t } = useTranslation();
 
   let graph: React.JSX.Element;
   if (isSuccess && data.nodes.length > 0) {
     graph = <ForceGraph data={data} width={width} height={height} />;
-  } else if (isFetching) {
+  } else if (isFetching && !listFailure) {
     graph = <PageLoader label={t("fetchingsocialgraph")} />;
   } else {
     graph = (
-      <EmptyState
+      <ListEmptyState
+        failure={listFailure}
         icon={<IconShare size={40} />}
         title={t("emptystate.socialgraph.title")}
         description={t("emptystate.socialgraph.description")}

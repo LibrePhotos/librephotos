@@ -27,6 +27,8 @@ import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 
@@ -46,9 +48,13 @@ function AlbumExplore() {
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
 
   // Fetch all album types
-  const { data: peopleAlbums, isLoading: isLoadingPeople } = useFetchPeopleAlbumsQuery();
+  const peopleQuery = useFetchPeopleAlbumsQuery();
+  const { data: peopleAlbums, isLoading: isLoadingPeople } = peopleQuery;
+  const peopleFailure = useListFailure(peopleQuery);
   const { data: thingsAlbums, isLoading: isLoadingThings } = useFetchThingsAlbumsQuery();
-  const { data: userAlbums, isLoading: isLoadingUser } = useFetchUserAlbumsQuery();
+  const userAlbumsQuery = useFetchUserAlbumsQuery();
+  const { data: userAlbums, isLoading: isLoadingUser } = userAlbumsQuery;
+  const userAlbumsFailure = useListFailure(userAlbumsQuery);
   // Every page of them, so the card counts all top-level folders, not the first 100
   const { subfolders: folders, isLoading: isLoadingFolders } = useAllFolderSubfolders();
   const { data: autoAlbums, isLoading: isLoadingAuto } = useFetchAutoAlbumsQuery();
@@ -164,6 +170,8 @@ function AlbumExplore() {
                   </div>
                 ))}
               </div>
+            ) : userAlbumsFailure ? (
+              <ErrorState failure={userAlbumsFailure} compact />
             ) : !userAlbums || userAlbums.length === 0 ? (
               <div className={classes.emptyState}>
                 <Stack gap={4} align="center">
@@ -198,6 +206,7 @@ function AlbumExplore() {
             albums={peoplePreview}
             viewAllLink="/album/persons"
             isLoading={isLoadingPeople}
+            error={peopleFailure}
             count={peopleAlbums?.length}
             countLabel={t("explore.peopleCount", { count: peopleAlbums?.length ?? 0 })}
             emptyMessage={t("emptystate.people.title")}
