@@ -13,7 +13,12 @@ from api.drf.params import parse_body
 from api.drf.request_data import request_dict
 from api.drf.request_user import request_user
 from api.models.email_config import PROVIDER_PRESETS, EmailConfig
-from api.serializers.email_config import EmailConfigRequest, EmailTestRequest
+from api.serializers.email_config import (
+    EmailConfigRequest,
+    EmailConfigResponseSerializer,
+    EmailTestRequest,
+    EmailTestResponseSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +45,11 @@ class EmailConfigView(APIView):
 
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(responses=EmailConfigResponseSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         return Response(_serialize(EmailConfig.load()))
 
-    @extend_schema(request=EmailConfigRequest)
+    @extend_schema(request=EmailConfigRequest, responses=EmailConfigResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         # A partial update; the secret is write-only (see EmailConfigRequest).
         serializer = EmailConfigRequest(
@@ -58,7 +64,7 @@ class EmailTestView(APIView):
 
     permission_classes = (IsAdminUser,)
 
-    @extend_schema(request=EmailTestRequest)
+    @extend_schema(request=EmailTestRequest, responses=EmailTestResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         config = EmailConfig.load()
         if not config.is_configured:

@@ -20,7 +20,11 @@ from api.accounts.public_url import trusted_public_base_url
 from api.accounts.throttling import AuthRateThrottle
 from api.drf.params import parse_body
 from api.models.user import User as AppUser
-from api.serializers.user import PasswordResetConfirmRequest, PasswordResetRequest
+from api.serializers.user import (
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
+    PasswordResetResponseSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +42,9 @@ class PasswordResetView(APIView):
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "password_reset"
 
+    @extend_schema(
+        request=PasswordResetRequest, responses=PasswordResetResponseSerializer
+    )
     def post(self, request: Request, format: str | None = None) -> Response:
         email = parse_body(request, PasswordResetRequest)["email"]
         if email:
@@ -100,7 +107,10 @@ class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
     throttle_classes = (AuthRateThrottle,)
 
-    @extend_schema(request=PasswordResetConfirmRequest)
+    @extend_schema(
+        request=PasswordResetConfirmRequest,
+        responses=PasswordResetResponseSerializer,
+    )
     def post(self, request: Request, format: str | None = None) -> Response:
         # A missing parameter is the code missing_parameters.
         data = parse_body(request, PasswordResetConfirmRequest)

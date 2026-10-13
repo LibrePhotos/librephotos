@@ -53,7 +53,6 @@ export const WorkerAvailabilityResponse = z.object({
   status: z.boolean(),
   queue_can_accept_job: z.boolean(),
   job_detail: JobDetail.nullish(),
-  id: z.number().optional(),
 });
 export type WorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityResponse>;
 

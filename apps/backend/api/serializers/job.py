@@ -52,6 +52,20 @@ class JobStartedResponseSerializer(serializers.Serializer[None]):
     )
 
 
+class QueueAvailabilitySerializer(serializers.Serializer[None]):
+    """``GET /api/rqavailable/``: whether the job queue is free."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    queue_can_accept_job = serializers.BooleanField(
+        help_text="False while a job runs or waits"
+    )
+    job_detail = LongRunningJobSerializer(
+        allow_null=True,
+        help_text="The running (else oldest queued) job; null when there is none "
+        "or the requester neither started it nor is staff",
+    )
+
+
 class JobListQuery(serializers.Serializer[None]):
     mine = QueryFlagField(
         true_values={"true"},
