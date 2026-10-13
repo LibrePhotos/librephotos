@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.132f9e72.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.51fc54b1.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -27,7 +27,8 @@
 <li class=""><code>Composite:GPSLatitude</code> - The latitude coordinate</li>
 <li class=""><code>Composite:GPSLongitude</code> - The longitude coordinate</li>
 </ul>
-<p>The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video&#x27;s creation time or a photo&#x27;s GPS time is stored in UTC, and the photo&#x27;s position tells which time zone to turn it into. A position the photo already has, such as one you set by hand, is kept. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; <strong>Rescan</strong> fixes photos scanned before.)</p>
+<p>The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video&#x27;s creation time or a photo&#x27;s GPS time is stored in UTC, and the photo&#x27;s position tells which time zone to turn it into. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; <strong>Rescan</strong> fixes photos scanned before.)</p>
+<p>GPS edited in another program is picked up by the next scan: a photo you geotag in digiKam, darktable or a GPX tagger gets the new position and, once the geocoding job has run, its new place. When the GPS is removed from the file (for example with <code>exiftool -gps:all=</code> before sharing a folder), the photo loses its position, its place and its Places albums too. A location you set in LibrePhotos (see <a href="#setting-a-location-manually" class="">Setting a Location Manually</a>) is kept either way. Photos indexed before this change keep a position the file no longer has, because LibrePhotos cannot tell whether you set it; new GPS in their files still replaces it. (Not released yet: up to 1.3.0 a scan never changed or removed a position once the photo had one.)</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="2-reverse-geocoding">2. Reverse Geocoding<a href="#2-reverse-geocoding" class="hash-link" aria-label="Direct link to 2. Reverse Geocoding" title="Direct link to 2. Reverse Geocoding" translate="no">​</a></h3>
 <p>GPS coordinates alone are just numbers. To show meaningful place names (like &quot;Paris, France&quot; or &quot;Central Park, New York&quot;), LibrePhotos uses <strong>reverse geocoding</strong> - a process that converts coordinates into human-readable addresses.</p>
 <p>You can configure your preferred geocoding provider in <strong>Admin Area → Site Settings</strong>:</p>
@@ -99,7 +100,7 @@
 <li class=""><strong>Check if photos have GPS data</strong>: Open a photo&#x27;s info panel and look for GPS coordinates</li>
 <li class=""><strong>Scan for new photos</strong>: If you recently added photos, run a <strong>Scan</strong> from the Library page</li>
 <li class=""><strong>Check geocoding provider</strong>: Ensure your geocoding provider is configured correctly in <strong>Admin Area → Site Settings</strong>. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored</li>
-<li class=""><strong>Run a full Rescan after fixing the provider</strong>: Go to <strong>Library → Scan Library</strong>, open the dropdown next to the <strong>Scan</strong> button, and choose <strong>Rescan</strong>. The plain <strong>Scan</strong> button only geolocates photos added since the previous geolocation run, so it will not re-geocode your existing library</li>
+<li class=""><strong>Scan again after fixing the provider</strong>: Go to <strong>Library → Scan Library</strong> and click <strong>Scan</strong>. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full <strong>Rescan</strong> was needed)</li>
 <li class=""><strong>Give geocoding time to finish</strong>: Geocoding runs as a background job after the scan. With Nominatim on a large library this can take a while, and places keep filling in after the scan reports done — wait before re-scanning</li>
 </ol>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="some-photos-dont-show-locations">Some photos don&#x27;t show locations<a href="#some-photos-dont-show-locations" class="hash-link" aria-label="Direct link to Some photos don&#x27;t show locations" title="Direct link to Some photos don&#x27;t show locations" translate="no">​</a></h3>
