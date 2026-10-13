@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchPhotosQuery } from "../../api_client/search/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { useListFailure } from "../../components/common/useListFailure";
 import { validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -28,10 +29,9 @@ function SearchView() {
   // hiding a result) must not blank the grid and lose the scroll position.
   // Not isLoading either: that is false while the query still waits for the
   // user, and the page flashed "No matching photos" on every hard load.
-  const { data: { photosGroupedByDate, photosFlat } = DEFAULTS, isPending } = useSearchPhotosQuery(
-    searchQuery ?? "",
-    mediaType
-  );
+  const searchResult = useSearchPhotosQuery(searchQuery ?? "", mediaType);
+  const { data: { photosGroupedByDate, photosFlat } = DEFAULTS, isPending } = searchResult;
+  const listFailure = useListFailure(searchResult);
 
   // Like every other grid page, say so when nothing matched instead of
   // leaving the page blank.
@@ -55,6 +55,7 @@ function SearchView() {
       mediaType={mediaType}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure}
     />
   );
 }

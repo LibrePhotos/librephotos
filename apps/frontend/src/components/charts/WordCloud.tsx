@@ -6,8 +6,9 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
 import { WORD_CLOUD_COLORS } from "../../theme/chartColors";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 
 type WordItem = {
   label: string;
@@ -155,7 +156,9 @@ export function WordCloud(props: Props) {
     polyfill: ResizeObserver,
   });
   const { height, type } = props;
-  const { data: wordCloud, isLoading } = useFetchWordCloudQuery();
+  const wordCloudQuery = useFetchWordCloudQuery();
+  const { data: wordCloud, isLoading } = wordCloudQuery;
+  const listFailure = useListFailure(wordCloudQuery);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hoveredWord, setHoveredWord] = useState<string | null>(null);
@@ -205,7 +208,8 @@ export function WordCloud(props: Props) {
     return (
       <div ref={observeChange}>
         <Title order={3}>{title()}</Title>
-        <EmptyState
+        <ListEmptyState
+          failure={listFailure}
           icon={<IconCloud size={40} />}
           title={t("emptystate.wordcloud.title")}
           description={t("emptystate.wordcloud.description")}

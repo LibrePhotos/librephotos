@@ -22,29 +22,19 @@ import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFac
 import { serverAddress } from "../../api_client/urls";
 import {
   FACE_CLUSTER_CANVAS_COLORS,
-  FACE_CLUSTER_COLORS,
   FACE_CLUSTER_UNKNOWN_COLOR,
   faceClusterUnknownFill,
 } from "../../theme/chartColors";
-import { EmptyState } from "../common/EmptyState";
+import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { Lightbox } from "../lightbox";
 import classes from "./FaceClusterGraph.module.css";
+import { findPointNear, getColorForPerson, type FacePoint } from "./faceClusterPoints";
 
 type Props = Readonly<{
   height: number;
 }>;
-
-type FacePoint = {
-  x: number;
-  y: number;
-  size: number;
-  name: string;
-  color: string;
-  face_url: string;
-  photo: string;
-  person_id: number;
-};
 
 type PersonStat = { count: number; color: string; face_url: string; person_id: number };
 
@@ -56,40 +46,17 @@ function extractPhotoHashFromFaceUrl(faceUrl: string): string | null {
   return match?.[1] ?? null;
 }
 
-// How far from a point, in pixels, the mouse still hovers or clicks it
-const HIT_RADIUS = 20;
-
-/** The point closest to the mouse within HIT_RADIUS; with a person picked, only theirs count. */
-function findPointNear(
-  points: readonly FacePoint[],
-  mouseX: number,
-  mouseY: number,
-  selectedPerson: string | null,
-  toCanvas: (point: FacePoint) => { cx: number; cy: number }
-): FacePoint | null {
-  let closestPoint: FacePoint | null = null;
-  let minDist = HIT_RADIUS;
-
-  points.forEach(point => {
-    if (selectedPerson && point.name !== selectedPerson) return;
-
-    const { cx, cy } = toCanvas(point);
-    const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
-
-    if (dist < minDist) {
-      minDist = dist;
-      closestPoint = point;
-    }
-  });
-
-  return closestPoint;
-}
-
-function getColorForPerson(personName: string, index: number): string {
-  if (personName === "unknown" || !personName) {
-    return FACE_CLUSTER_UNKNOWN_COLOR;
-  }
-  return FACE_CLUSTER_COLORS[index % FACE_CLUSTER_COLORS.length] ?? FACE_CLUSTER_UNKNOWN_COLOR;
+/** The graph's title and what it shows, above the graph and above its empty or error state. */
+function ClusterGraphTitle() {
+  const { t } = useTranslation();
+  return (
+    <div>
+      <Title order={3}>{t("facecluster")}</Title>
+      <Text c="dimmed" size="sm">
+        {t("faceclusterexplanation")}
+      </Text>
+    </div>
+  );
 }
 
 export function FaceClusterGraph({ height }: Props) {
@@ -108,7 +75,9 @@ export function FaceClusterGraph({ height }: Props) {
     onResize: ({ observe }) => observe(),
   });
 
-  const { data: facesVis, isFetching: clustering, isSuccess: clustered } = useClusterFacesQuery();
+  const clusterQuery = useClusterFacesQuery();
+  const { data: facesVis, isFetching: clustering, isSuccess: clustered } = clusterQuery;
+  const listFailure = useListFailure(clusterQuery);
 
   // Process data and assign colors
   const { points, personStats, bounds } = useMemo(() => {
@@ -393,12 +362,7 @@ export function FaceClusterGraph({ height }: Props) {
     return (
       <RemoveScroll enabled={lightboxOpen}>
         <Stack ref={observeChange} gap="md">
-          <div>
-            <Title order={3}>{t("facecluster")}</Title>
-            <Text c="dimmed" size="sm">
-              {t("faceclusterexplanation")}
-            </Text>
-          </div>
+          <ClusterGraphTitle />
 
           {/* Legend */}
           {/* Natural width, so a long row scrolls instead of squeezing the chips to "A…";
@@ -556,11 +520,9 @@ export function FaceClusterGraph({ height }: Props) {
 
   return (
     <Stack ref={observeChange}>
-      <div>
-        <Title order={3}>{t("facecluster")}</Title>
-        <Text c="dimmed">{t("faceclusterexplanation")}</Text>
-      </div>
-      <EmptyState
+      <ClusterGraphTitle />
+      <ListEmptyState
+        failure={listFailure}
         icon={<IconMoodSmile size={40} />}
         title={t("emptystate.faces.title")}
         description={t("emptystate.faces.description")}

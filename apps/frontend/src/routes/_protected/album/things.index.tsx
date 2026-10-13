@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
@@ -17,7 +19,9 @@ export const Route = createFileRoute("/_protected/album/things/")({
 
 function AlbumThing() {
   const { t } = useTranslation();
-  const { data: albums, isFetching } = useFetchThingsAlbumsQuery();
+  const albumsQuery = useFetchThingsAlbumsQuery();
+  const { data: albums, isFetching } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = albums && albums.length > 0;
 
@@ -32,7 +36,9 @@ function AlbumThing() {
           number: albums?.length ?? 0,
         })}
       />
-      {!isFetching && !hasAlbums ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isFetching && !hasAlbums ? (
         <EmptyState
           icon={<Tags size={40} />}
           title={t("emptystate.things.title")}

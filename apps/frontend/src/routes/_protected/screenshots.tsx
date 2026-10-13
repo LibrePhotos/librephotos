@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useListFailure } from "../../components/common/useListFailure";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
@@ -19,7 +20,9 @@ function OnlyScreenshots() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: Photoset.SCREENSHOTS });
+  const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.SCREENSHOTS });
+  const { data: photosGroupedByDate, isLoading } = photosQuery;
+  const listFailure = useListFailure(photosQuery);
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -63,6 +66,7 @@ function OnlyScreenshots() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure}
       photosetQuery={{ is_screenshot: true }}
     />
   );

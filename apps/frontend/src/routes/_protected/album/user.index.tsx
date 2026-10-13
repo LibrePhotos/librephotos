@@ -7,6 +7,8 @@ import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../..
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { TileGrid } from "../../../components/virtual/TileGrid";
@@ -24,7 +26,9 @@ function AlbumUser() {
   const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
   const { t } = useTranslation();
-  const { data: albums, isFetching, isLoading } = useFetchUserAlbumsQuery();
+  const albumsQuery = useFetchUserAlbumsQuery();
+  const { data: albums, isFetching, isLoading } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = (albums?.length ?? 0) > 0;
   const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
@@ -79,7 +83,9 @@ function AlbumUser() {
         albumId={albumID}
         albumTitle={albumTitle}
       />
-      {!isLoading && !hasAlbums ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isLoading && !hasAlbums ? (
         <EmptyState
           icon={<Bookmark size={40} />}
           title={t("emptystate.useralbums.title")}

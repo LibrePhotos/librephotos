@@ -4,6 +4,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import clsx from "clsx";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ErrorState } from "../common/ErrorState";
+import type { ListFailure } from "../common/useListFailure";
 import { Tile } from "../Tile";
 import classes from "./AlbumSection.module.css";
 
@@ -26,6 +28,8 @@ type AlbumSectionProps = {
   albums: AlbumPreview[];
   viewAllLink: string;
   isLoading?: boolean;
+  /** The list failed to load: Retry instead of the empty message (the card variant only links to the list). */
+  error?: ListFailure;
   emptyMessage?: string;
   count?: number;
   /** What the count is shown as; defaults to "N albums", wrong for people, tags or folders. */
@@ -186,6 +190,7 @@ export function AlbumSection({
   albums,
   viewAllLink,
   isLoading = false,
+  error,
   emptyMessage,
   count,
   countLabel,
@@ -295,7 +300,9 @@ export function AlbumSection({
           )}
         </Group>
 
-        {albums.length === 0 ? (
+        {error ? (
+          <ErrorState failure={error} compact />
+        ) : albums.length === 0 ? (
           <div className={classes.emptyState}>
             <Text c="dimmed">{emptyMessage ?? t("explore.noAlbums")}</Text>
           </div>
@@ -341,7 +348,9 @@ export function AlbumSection({
         </Link>
       </div>
 
-      {albums.length === 0 ? (
+      {error ? (
+        <ErrorState failure={error} compact />
+      ) : albums.length === 0 ? (
         <div className={classes.emptyState}>
           <Text c="dimmed">{emptyMessage ?? t("explore.noAlbums")}</Text>
         </div>

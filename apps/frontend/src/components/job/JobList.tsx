@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
+import { ErrorState } from "../common/ErrorState";
+import { useListFailure } from "../common/useListFailure";
 import { CancelJobButton } from "./CancelJobButton";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
@@ -35,7 +37,10 @@ export function JobList({ variant = "admin" }: IJobList) {
   const [pageSize] = useState(10);
   const mine = variant === "mine";
 
-  const { data: jobs, isLoading } = useJobsQuery({ page: activePage, pageSize, mine });
+  const jobsQuery = useJobsQuery({ page: activePage, pageSize, mine });
+  const { data: jobs, isLoading } = jobsQuery;
+  const listFailure = useListFailure(jobsQuery);
+  const columns = matches ? (mine ? 7 : 8) : 4;
 
   useEffect(() => {
     if (!jobs) {
@@ -128,9 +133,16 @@ export function JobList({ variant = "admin" }: IJobList) {
                 </Table.Td>
               </Table.Tr>
             ))}
+            {listFailure && (
+              <Table.Tr>
+                <Table.Td colSpan={columns}>
+                  <ErrorState failure={listFailure} compact />
+                </Table.Td>
+              </Table.Tr>
+            )}
             {(isLoading || jobs?.results.length === 0) && (
               <Table.Tr>
-                <Table.Td colSpan={matches ? (mine ? 7 : 8) : 4}>
+                <Table.Td colSpan={columns}>
                   <Center py="md">
                     {isLoading ? (
                       <Loader size="sm" />

@@ -10,7 +10,9 @@ import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { calculateGridCellSize } from "../../util/gridUtils";
 import gridClasses from "../album/AlbumGridCell.module.css";
+import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { Tile } from "../Tile";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
@@ -37,7 +39,9 @@ export function AlbumsSharedByMe() {
     captionHeight: CAPTION_HEIGHT,
     reservedHeight: 45 + 60 + 40,
   });
-  const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
+  const albumsQuery = useFetchSharedAlbumsByMeQuery();
+  const { data: albums, isFetching, isSuccess } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const { data: users } = useFetchUserListQuery();
   // Stop or change a share from here instead of opening each album.
   const [shareAlbumId, setShareAlbumId] = useState("");
@@ -76,7 +80,11 @@ export function AlbumsSharedByMe() {
     <div ref={containerRef}>
       {/* Only before the first answer: a background refetch kept stacking a
           loader above the grid. */}
-      {isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedByYou")} />}
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : (
+        isFetching && !isSuccess && <PageLoader label={t("sharing.loadingAlbumsSharedByYou")} />
+      )}
 
       {groups.length === 0 && isSuccess && (
         <Stack align="center" mt="xl">

@@ -19,6 +19,8 @@ import type { Person } from "../../../api_client/albums/hooks";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
 import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
@@ -45,7 +47,9 @@ function AlbumPeople() {
   // so the Modal's own focus return dropped focus on the page body: it goes back here instead
   const menuTrigger = useRef<HTMLButtonElement | null>(null);
   const { t } = useTranslation();
-  const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
+  const albumsQuery = useFetchPeopleAlbumsQuery();
+  const { data: albums, isFetching } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
@@ -164,7 +168,9 @@ function AlbumPeople() {
           </Button>
         }
       />
-      {!isFetching && !hasAlbums ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isFetching && !hasAlbums ? (
         <EmptyState
           icon={<Users size={40} />}
           title={t("emptystate.people.title")}

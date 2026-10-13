@@ -1802,6 +1802,11 @@
       "description": "Nothing matched \"{{query}}\". Try other words, a place, a person or a date."
     }
   },
+  "errorstate": {
+    "title": "Could not load this",
+    "description": "The server did not answer or sent an error. Nothing was deleted: try again in a moment.",
+    "retry": "Retry"
+  },
   "skip": "Skip",
   "continue": "Continue",
   "mediafilter": {

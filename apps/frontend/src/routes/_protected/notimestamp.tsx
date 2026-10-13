@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
+import { useListFailure } from "../../components/common/useListFailure";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
@@ -18,7 +19,9 @@ function NoTimestampPhotosView() {
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   // Fetch actual photos
-  const { data: photosData, isPlaceholderData, status } = useFetchPhotosWithoutTimestampQuery(page);
+  const photosQuery = useFetchPhotosWithoutTimestampQuery(page);
+  const { data: photosData, isPlaceholderData, status } = photosQuery;
+  const listFailure = useListFailure(photosQuery);
 
   useEffect(() => {
     // While the next page loads, the query keeps showing the previous page's photos as placeholder
@@ -67,6 +70,7 @@ function NoTimestampPhotosView() {
       updateItems={getImages}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure}
     />
   );
 }

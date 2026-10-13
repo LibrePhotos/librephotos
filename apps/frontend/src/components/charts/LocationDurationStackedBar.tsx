@@ -6,10 +6,14 @@ import { useTranslation } from "react-i18next";
 import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
 import { fromUnixSeconds } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
+import { ErrorState } from "../common/ErrorState";
+import { useListFailure } from "../common/useListFailure";
 import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
 
 export function LocationDurationStackedBar() {
-  const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline, isLoading } = useLocationTimelineQuery();
+  const timelineQuery = useLocationTimelineQuery();
+  const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline, isLoading } = timelineQuery;
+  const listFailure = useListFailure(timelineQuery);
   const { t } = useTranslation();
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
@@ -58,6 +62,7 @@ export function LocationDurationStackedBar() {
     <Stack>
       <Title order={3}>{t("locationtimeline")}</Title>
       {isLoading && <Loader />}
+      {listFailure && <ErrorState failure={listFailure} />}
       {locationTimeline.length === 0 && fetchedLocationTimeline && !isLoading && (
         <EmptyState
           icon={<IconMapPin size={40} />}

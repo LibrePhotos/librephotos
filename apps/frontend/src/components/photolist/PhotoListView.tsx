@@ -11,6 +11,8 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { EmptyState } from "../common/EmptyState";
+import { ErrorState } from "../common/ErrorState";
+import type { ListFailure } from "../common/useListFailure";
 import Pig from "../react-pig";
 import type { PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -99,6 +101,9 @@ type Props = Readonly<{
   ownerUsername?: string;
   albumLocked?: boolean;
   emptyStateConfig?: EmptyStateConfig;
+  // The photo list's request failed before any photos arrived (`useListFailure`):
+  // shown instead of the empty state, which would claim the library is empty.
+  error?: ListFailure;
   // Query params for server-side select all
   photosetQuery?: BulkPhotoQuery;
   // When set, an All/Photos/Videos filter is shown in the header. The value is
@@ -134,6 +139,7 @@ function PhotoListViewComponent({
   ownerUsername,
   albumLocked = false,
   emptyStateConfig,
+  error,
   photosetQuery,
   mediaType,
   headerActions,
@@ -341,6 +347,8 @@ function PhotoListViewComponent({
             />
           </Box>
         </ScrollScrubber>
+      ) : !isLoading && error ? (
+        <ErrorState failure={error} />
       ) : !isLoading && emptyStateConfig && !isFirstTimeSetup ? (
         <EmptyState
           icon={emptyStateConfig.icon}

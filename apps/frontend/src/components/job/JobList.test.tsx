@@ -50,12 +50,20 @@ const job = {
   started_by: { id: 3, username: "dotan", first_name: "", last_name: "" },
 };
 
-const jobsData: { results: (typeof job)[] } = { results: [job] };
+const jobsData: { results: (typeof job)[]; failed: boolean } = { results: [job], failed: false };
+const refetch = vi.fn<() => Promise<unknown>>();
 
 vi.mock("../../api_client/jobs/hooks", () => ({
   useJobsQuery: (...args: unknown[]) => {
     useJobsQuery(...args);
-    return { data: { count: jobsData.results.length, results: jobsData.results }, isLoading: false };
+    return jobsData.failed
+      ? { data: undefined, isLoading: false, isError: true, refetch }
+      : {
+          data: { count: jobsData.results.length, results: jobsData.results },
+          isLoading: false,
+          isError: false,
+          refetch,
+        };
   },
   useCancelJobMutation: () => ({
     mutate: vi.fn<ReturnType<typeof useCancelJobMutation>["mutate"]>(),
@@ -117,6 +125,8 @@ describe("JobList", () => {
 
   afterEach(() => {
     jobsData.results = [job];
+    jobsData.failed = false;
+    refetch.mockReset();
   });
 
   it("sends the admin surface to the admin job detail route", async () => {
@@ -177,6 +187,20 @@ describe("JobList", () => {
     const { container, unmount } = await render(<JobList variant="mine" />);
 
     expect(container.textContent).toContain(i18n.t("joblist.empty"));
+    await unmount();
+  });
+
+  it("says the list failed and offers Retry instead of an empty table (#2221)", async () => {
+    jobsData.failed = true;
+    const { container, unmount } = await render(<JobList variant="mine" />);
+
+    expect(container.textContent).not.toContain(i18n.t("joblist.empty"));
+    expect(container.textContent).toContain(i18n.t("errorstate.title"));
+    const retry = [...container.querySelectorAll("tbody button")].find(
+      b => b.textContent === i18n.t("errorstate.retry")
+    );
+    await act(async () => defined(retry).dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(refetch).toHaveBeenCalledTimes(1);
     await unmount();
   });
 });

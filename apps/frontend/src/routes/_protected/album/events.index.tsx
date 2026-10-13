@@ -16,6 +16,8 @@ import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { AutoAlbumDeleteModal } from "../../../components/album/AutoAlbumDeleteModal";
 import { eventStartDate } from "../../../components/album/eventDate";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
@@ -29,7 +31,9 @@ function AlbumAuto() {
   const [autoAlbumID, setAutoAlbumID] = useState("");
   const [autoAlbumTitle, setAutoAlbumTitle] = useState("");
   const [deleteDialogVisible, { open: showDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
-  const { data: albums, isFetching } = useFetchAutoAlbumsQuery();
+  const albumsQuery = useFetchAutoAlbumsQuery();
+  const { data: albums, isFetching } = albumsQuery;
+  const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const { mutate: deleteAutoAlbum } = useDeleteAutoAlbumMutation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
@@ -104,7 +108,9 @@ function AlbumAuto() {
         })}
       />
 
-      {!isFetching && !hasAlbums ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isFetching && !hasAlbums ? (
         <EmptyState
           icon={<SettingsAutomation size={40} />}
           title={t("emptystate.events.title")}

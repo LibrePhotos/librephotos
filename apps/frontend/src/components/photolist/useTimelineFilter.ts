@@ -1,6 +1,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { useCurrentUserSelfDetailsQuery, useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
+import { useListFailure } from "../common/useListFailure";
 import {
   resolveTimelineFilter,
   savedTimelineFilter,
@@ -16,7 +17,10 @@ import {
 export function useTimelineFilter() {
   const navigate = useNavigate();
   const rawSearch = useSearch({ strict: false });
-  const { data: user } = useCurrentUserSelfDetailsQuery();
+  const userQuery = useCurrentUserSelfDetailsQuery();
+  const { data: user } = userQuery;
+  // Without the user there is no default to wait for: the timeline shows this instead of loading forever
+  const failure = useListFailure(userQuery);
   const saveDefault = useSaveDefaultTimelineFilterMutation();
   const savedRaw = user?.default_timeline_filter;
 
@@ -55,6 +59,7 @@ export function useTimelineFilter() {
     current,
     saved,
     ready: !!user,
+    failure,
     // Whether the library has any photos at all, to tell an empty library
     // from a filter that hides everything.
     libraryEmpty: user?.photo_count === 0,

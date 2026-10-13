@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useListFailure } from "../../components/common/useListFailure";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
@@ -22,7 +23,9 @@ function OnlyPhotos() {
   // dead end; point at what others shared instead.
   const hasNoScanDirectory = useHasNoScanDirectory();
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: Photoset.PHOTOS });
+  const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.PHOTOS });
+  const { data: photosGroupedByDate, isLoading } = photosQuery;
+  const listFailure = useListFailure(photosQuery);
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -77,6 +80,7 @@ function OnlyPhotos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      error={listFailure}
       photosetQuery={{ photo: true }}
     />
   );

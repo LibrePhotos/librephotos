@@ -13,6 +13,8 @@ import i18n from "../../../i18n";
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   folders: { subfolders: [] as unknown[], isLoading: false, isFetching: false },
+  // The query behind the list, which answered: nothing failed
+  query: { isError: false, isFetching: false, data: { pages: [] }, refetch: () => Promise.resolve() },
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -24,7 +26,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
 vi.mock("../../../api_client/albums/hooks", () => ({
-  useAllFolderSubfolders: () => stubs.folders,
+  useAllFolderSubfolders: () => ({ ...stubs.folders, query: stubs.query }),
 }));
 
 let root: Root | undefined;

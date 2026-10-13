@@ -17,6 +17,8 @@ import { IconDownload, IconRefresh } from "@tabler/icons-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchServerLogFile, useFetchServerLogsViewQuery } from "../../api_client/server/hooks";
+import { ErrorState } from "../common/ErrorState";
+import { useListFailure } from "../common/useListFailure";
 
 function downloadLogsBlob(data: unknown) {
   let blob: Blob;
@@ -46,7 +48,10 @@ export function ServerLogsCard() {
   const [linesInput, setLinesInput] = useState<string | number>(DEFAULT_LINES);
   const [debouncedLines] = useDebouncedValue(linesInput, 400);
   const lines = Number(debouncedLines) || DEFAULT_LINES;
-  const { data, isFetching, refetch, dataUpdatedAt } = useFetchServerLogsViewQuery(lines);
+  const logsQuery = useFetchServerLogsViewQuery(lines);
+  const { data, isFetching, refetch, dataUpdatedAt } = logsQuery;
+  // "No logs available" would be wrong when the request failed
+  const listFailure = useListFailure(logsQuery);
   const [isDownloading, setIsDownloading] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -113,30 +118,34 @@ export function ServerLogsCard() {
             </Tooltip>
           </Flex>
         </Flex>
-        <ScrollArea h={400} viewportRef={viewportRef}>
-          <Box
-            p="md"
-            style={{
-              backgroundColor: "var(--mantine-color-dark-7)",
-              minHeight: 400,
-            }}
-          >
-            <Text
-              component="pre"
-              size="xs"
-              c="gray.3"
+        {listFailure ? (
+          <ErrorState failure={listFailure} compact />
+        ) : (
+          <ScrollArea h={400} viewportRef={viewportRef}>
+            <Box
+              p="md"
               style={{
-                margin: 0,
-                fontFamily: "monospace",
-                whiteSpace: "pre-wrap",
-                // Break at spaces first; split a token only when it is longer than the line.
-                overflowWrap: "anywhere",
+                backgroundColor: "var(--mantine-color-dark-7)",
+                minHeight: 400,
               }}
             >
-              {data?.logs ?? t("adminarea.serverlogsnone")}
-            </Text>
-          </Box>
-        </ScrollArea>
+              <Text
+                component="pre"
+                size="xs"
+                c="gray.3"
+                style={{
+                  margin: 0,
+                  fontFamily: "monospace",
+                  whiteSpace: "pre-wrap",
+                  // Break at spaces first; split a token only when it is longer than the line.
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {data?.logs ?? t("adminarea.serverlogsnone")}
+              </Text>
+            </Box>
+          </ScrollArea>
+        )}
       </Stack>
     </Card>
   );

@@ -25,6 +25,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import type { Lightbox } from "../lightbox/Lightbox";
 import type { GroupedImageItem, PigHandle, PigProps } from "../react-pig";
@@ -500,5 +501,27 @@ describe("PhotoListView selection", () => {
     await render({ photosetQuery: {} });
     expect(selectionBar.props?.selectAllMode).toBe(false);
     expect(selectionBar.props?.selectMode).toBe(false);
+  });
+});
+
+describe("a failed photo list (#2221)", () => {
+  const emptyStateConfig = { title: "No photos yet", description: "Scan your library" };
+  const failure = { onRetry: vi.fn<() => void>(), retrying: false };
+
+  it("shows the error with Retry instead of the empty state", async () => {
+    const view = await render({ photoset: [], idx2hash: [], emptyStateConfig, error: failure });
+
+    expect(view.textContent).not.toContain("No photos yet");
+    expect(view.textContent).toContain(i18n.t("errorstate.title"));
+    const retry = [...view.querySelectorAll("button")].find(b => b.textContent === i18n.t("errorstate.retry"));
+    await act(async () => defined(retry).click());
+    expect(failure.onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the grid when photos are on screen", async () => {
+    const view = await render({ emptyStateConfig, error: failure });
+
+    expect(view.querySelector("[data-testid=pig]")).not.toBeNull();
+    expect(view.textContent).not.toContain(i18n.t("errorstate.title"));
   });
 });

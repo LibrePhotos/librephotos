@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -24,10 +25,12 @@ function FavoritePhotos() {
   const mediaType = useMediaTypeFilter();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
+  const photosQuery = useFetchDateAlbumsQuery({
     photosetType: Photoset.FAVORITES,
     mediaType,
   });
+  const { data: photosGroupedByDate, isLoading } = photosQuery;
+  const listFailure = useListFailure(photosQuery);
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -71,6 +74,7 @@ function FavoritePhotos() {
       selectable
       // The "nothing here yet" card would be wrong when only the filter is empty.
       emptyStateConfig={mediaType === "all" ? emptyStateConfig : undefined}
+      error={listFailure}
       mediaType={mediaType}
       photosetQuery={{ favorite: true, ...mediaTypeToBulkQuery(mediaType) }}
     />

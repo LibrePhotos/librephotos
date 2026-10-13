@@ -22,6 +22,8 @@ import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";
 import { TagRenameModal } from "../../../components/album/TagRenameModal";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { ErrorState } from "../../../components/common/ErrorState";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
@@ -35,7 +37,9 @@ export const Route = createFileRoute("/_protected/album/tags/")({
 
 function AlbumTag() {
   const { t } = useTranslation();
-  const { data: tags, isFetching } = useFetchTagsQuery();
+  const tagsQuery = useFetchTagsQuery();
+  const { data: tags, isFetching } = tagsQuery;
+  const listFailure = useListFailure(tagsQuery);
   const sizing = useAlbumListGridConfig();
   const hasTags = tags && tags.length > 0;
 
@@ -123,7 +127,9 @@ function AlbumTag() {
         loading={isFetching}
         subtitle={t("tagalbum.showingtags", { count: tags?.length ?? 0, number: tags?.length ?? 0 })}
       />
-      {!isFetching && !hasTags ? (
+      {listFailure ? (
+        <ErrorState failure={listFailure} />
+      ) : !isFetching && !hasTags ? (
         <EmptyState
           icon={<Tag size={40} />}
           title={t("emptystate.tags.title")}
