@@ -24,12 +24,14 @@ import argparse
 import importlib
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
 import time
 import webbrowser
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -74,7 +76,8 @@ PROCESS_NAMES = {
 }
 
 # Management commands the Docker entrypoints run before the server, in order.
-# migrate is not among them: it runs in a child process first, see run_server.
+# backup_database and migrate are not among them: they run in child processes
+# first, see run_server.
 STARTUP_COMMANDS = (
     ["start_service", "all"],
     ["start_cleaning_service"],
@@ -549,6 +552,70 @@ def _report_failure(message: str) -> None:
         )
 
 
+# A line of Django's system check output naming one of LibrePhotos' own errors
+# (api/checks.py): "?: (librephotos.E002) The database 'default' was ...".
+_CHECK_ERROR_LINE = re.compile(r"\(librephotos\.E\d{3}\)\s*(.+)")
+_COMMAND_ERROR_PREFIX = "CommandError: "
+_HINT_PREFIX = "HINT:"
+# How much of a start-up child's output is kept to explain its failure.
+_FAILURE_TAIL_LINES = 200
+
+
+class StartupError(Exception):
+    """A start-up step failed. The message is the whole text for the user."""
+
+
+def failure_detail(lines: Sequence[str]) -> str | None:
+    """Why a manage command failed, in its own plain words: the last
+    librephotos.E0xx check error with its hint, or a CommandError's message."""
+    for index in range(len(lines) - 1, -1, -1):
+        line = lines[index].strip()
+        match = _CHECK_ERROR_LINE.search(line)
+        if match:
+            following = lines[index + 1].strip() if index + 1 < len(lines) else ""
+            hint = following[len(_HINT_PREFIX) :].strip()
+            if not following.startswith(_HINT_PREFIX):
+                hint = ""
+            return f"{match.group(1)}\n\n{hint}".strip()
+        if line.startswith(_COMMAND_ERROR_PREFIX):
+            return line[len(_COMMAND_ERROR_PREFIX) :]
+    return None
+
+
+def run_teed(argv: list[str]) -> tuple[int, list[str]]:
+    """Run a child with its output copied to ours line by line, as it comes.
+
+    Returns its exit code and its last lines, which say why it failed. The
+    output is still all there in the console or console.log; a child whose
+    stdout is a pipe does not redirect itself (see bootstrap_process).
+    """
+    tail: deque[str] = deque(maxlen=_FAILURE_TAIL_LINES)
+    environment = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+    with subprocess.Popen(
+        argv,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=environment,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    ) as process:
+        for line in process.stdout or ():
+            sys.stdout.write(line)
+            tail.append(line.rstrip("\r\n"))
+        sys.stdout.flush()
+    return process.returncode, list(tail)
+
+
+def run_startup_step(argv: list[str], failure: str) -> None:
+    """Run ``manage <argv>`` in a child; raise StartupError saying why when it fails."""
+    returncode, lines = run_teed(child_command("manage", *argv))
+    if returncode == 0:
+        return
+    detail = failure_detail(lines)
+    raise StartupError(f"{failure}\n\n{detail}" if detail else failure)
+
+
 def _set_console_title(title: str) -> None:
     if sys.platform == "win32":
         import ctypes
@@ -577,20 +644,9 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
             webbrowser.open(url)
         return
 
-    if standalone_executable() is not None and _output_is_discarded():
-        console_log = os.path.join(os.environ["BASE_LOGS"], CONSOLE_LOG_NAME)
-        _redirect_output(console_log, "w")
-        os.environ[CONSOLE_LOG_ENV] = console_log
-
+    _capture_console_output()
     _take_children_down_with_us()
-    # Migrate in a child before this process loads Django. On a first start
-    # the settings tables do not exist yet when api.apps.ready() reads the
-    # site settings, and in the compiled build that failed lookup leaves the
-    # constance config object unable to resolve any attribute for the rest of
-    # the process: every request then died with "'LazyConfig' object has no
-    # attribute ...". A process that only ever sees a migrated database never
-    # takes that path.
-    subprocess.run(child_command("manage", "migrate", "--noinput"), check=True)
+    prepare_database()
     django.setup()
     for command in STARTUP_COMMANDS:
         run_manage(command)
@@ -608,6 +664,51 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
         )
     )
     cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
+    _serve(server, cluster, url, open_browser, tray)
+
+
+def _capture_console_output() -> None:
+    """Without a console, send this process's output and its children's to console.log."""
+    if standalone_executable() is not None and _output_is_discarded():
+        console_log = os.path.join(os.environ["BASE_LOGS"], CONSOLE_LOG_NAME)
+        _redirect_output(console_log, "w")
+        os.environ[CONSOLE_LOG_ENV] = console_log
+
+
+def prepare_database() -> None:
+    """Back up the database when migrations are due, then migrate, each in a child.
+
+    The backup (SQLite only, issue #2314) runs before any other process opens
+    the database, and nothing is migrated without it.
+
+    Migrate runs in a child before this process loads Django. On a first start
+    the settings tables do not exist yet when api.apps.ready() reads the site
+    settings, and in the compiled build that failed lookup leaves the
+    constance config object unable to resolve any attribute for the rest of
+    the process: every request then died with "'LazyConfig' object has no
+    attribute ...". A process that only ever sees a migrated database never
+    takes that path. A database a newer release migrated stops it with
+    librephotos.E002 (issue #2315), which the message box then quotes.
+    """
+    run_startup_step(
+        ["backup_database", "--if-pending-migrations"],
+        "LibrePhotos could not back up your database before updating it, "
+        "so it did not start.",
+    )
+    run_startup_step(
+        ["migrate", "--noinput"],
+        "LibrePhotos could not update its database, so it did not start.",
+    )
+
+
+def _serve(
+    server: uvicorn.Server,
+    cluster: subprocess.Popen[bytes],
+    url: str,
+    open_browser: bool,
+    tray: bool,
+) -> None:
+    """Run the API server until it stops, with the tray icon; then stop the rest."""
     icon = None
     try:
         _set_console_title(f"LibrePhotos - {url} - close this window to stop")
@@ -620,7 +721,10 @@ def run_server(host: str, port: int, open_browser: bool, tray: bool = True) -> N
             ).start()
         server.run()
         if not server.started:
-            raise RuntimeError(f"The server could not start on {host}:{port}")
+            config = server.config
+            raise RuntimeError(
+                f"The server could not start on {config.host}:{config.port}"
+            )
     finally:
         if icon is not None:
             icon.stop()
@@ -691,6 +795,11 @@ def main(argv: list[str] | None = None) -> None:
     else:
         try:
             run_server(args.host, args.port, not args.no_browser, not args.no_tray)
+        except StartupError as error:
+            # The child's own output, already in the console or console.log,
+            # is the traceback; the message box gets the plain reason.
+            _report_failure(str(error))
+            raise SystemExit(1) from error
         except Exception as error:
             import traceback
 

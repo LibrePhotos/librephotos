@@ -557,6 +557,10 @@ DATABASES = {
     },
 }
 
+# SQLite only: how many of the backups made before a migration (manage.py
+# backup_database, api/runtime/db_backup.py) stay in BASE_DATA/backups.
+DB_BACKUP_KEEP = max(1, env_int("DB_BACKUP_KEEP", 3))
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",

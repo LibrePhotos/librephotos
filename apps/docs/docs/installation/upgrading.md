@@ -1,6 +1,6 @@
 ---
 title: "⬆️ Upgrading"
-description: "How LibrePhotos upgrades its database, and the two-step upgrade for installs older than 2026w10."
+description: "How LibrePhotos upgrades its database, the automatic SQLite backups and how to restore one, going back to an older release, and the two-step upgrade for installs older than 2026w10."
 sidebar_position: 6
 ---
 
@@ -21,6 +21,56 @@ docker compose exec -T db pg_dump -U docker librephotos > librephotos-backup.sql
 ```
 
 Replace `docker` and `librephotos` with the `dbUser` and `dbName` from your `.env` if you changed them.
+
+The [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with SQLite make this backup themselves, see below.
+
+## Automatic backups with SQLite and on Windows {#sqlite-backups}
+
+Not released yet: up to 1.3.0, nothing was backed up automatically.
+
+When a start brings database migrations, the [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with its internal SQLite database copy the database first, before anything else opens it. Nothing is migrated without that copy. A start without migrations writes nothing.
+
+The copies go into a `backups` folder next to the database:
+
+| Install | Backups folder |
+| --- | --- |
+| Windows standalone | `%LOCALAPPDATA%\LibrePhotos\db\backups` (or `db\backups` in your `--data-dir`) |
+| Single container with SQLite | `backups` in the folder you mount at `/db` |
+
+Each backup is named after the release that made it and the time in UTC, for example `librephotos-1.3.0-20261013T083000Z.sqlite3`: that is the release to go back to with it. A `.json` file with the same name says which migrations were about to run. The newest three are kept; set `DB_BACKUP_KEEP` to keep more or fewer (see [Environment variables](environment-variables.md#single-container-image)). Each one is about as large as the database.
+
+A backup needs twice the size of the database in free disk space. If there is less, LibrePhotos does not start and says how much space to free (on Windows in a message box, in Docker in `command_backup_database.log` in the logs folder).
+
+Only the database is copied. Thumbnails, converted videos and the machine learning models can all be made again, and a migration never changes your photos.
+
+PostgreSQL databases are not backed up automatically: use `pg_dump` as shown above.
+
+### Restoring a backup {#restore}
+
+1. Quit LibrePhotos (on Windows: **Quit LibrePhotos** in the tray menu; in Docker: `docker stop librephotos`).
+2. In the `db` folder, rename `librephotos.sqlite3` (for example to `librephotos.sqlite3.broken`). If `librephotos.sqlite3-wal` and `librephotos.sqlite3-shm` are there, rename them the same way.
+3. Copy the backup from `db/backups` into the `db` folder and name it `librephotos.sqlite3`.
+4. Start the release named in the backup's file name. For Windows, unzip that release's `librephotos-windows-x64.zip` from the [releases page](https://github.com/LibrePhotos/librephotos/releases); for Docker, use that release's image tag.
+
+Starting a newer release on the restored database migrates it again, after making a new backup.
+
+## Going back to an older release {#downgrade}
+
+Not released yet: up to 1.3.0, an older release started on a newer database without a word and failed later, when it saved a change.
+
+A release cannot run on a database that a newer release has migrated: the newer release changed tables the older one does not know about. LibrePhotos refuses to start in that case and says so (in a message box on Windows, in `command_migrate.log` in the logs folder with Docker):
+
+```text
+?: (librephotos.E002) The database 'default' was last used by a newer LibrePhotos release (it has migration api.0170_..., which this release does not know). Running this older release on it could damage it.
+	HINT: Start the newer release again, or restore the backup made before that upgrade ...
+```
+
+Nothing has been changed at that point. Either start the newer release again, or go back with the database as it was before the upgrade:
+
+- SQLite (Windows standalone, single container with SQLite): [restore the automatic backup](#restore) made before the upgrade. Its file name names the release it belongs to.
+- PostgreSQL: restore the `pg_dump` you made before upgrading into an empty database, then start the older release.
+
+Changes made since the upgrade (faces named, albums edited, photos added) are not in the backup. The next scan finds photos that were added since.
 
 ## After upgrading from 1.2.1 or older {#strip-thumbnail-metadata}
 

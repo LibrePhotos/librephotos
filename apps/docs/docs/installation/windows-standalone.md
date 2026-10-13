@@ -75,6 +75,7 @@ process simply shows up as `librephotos.exe`. The machine learning processes onl
 | What | Where |
 |---|---|
 | Database, thumbnails, models, logs | `%LOCALAPPDATA%\LibrePhotos` (`--data-dir` to move it) |
+| Database backups made before an update | `%LOCALAPPDATA%\LibrePhotos\db\backups` (not released yet; see [Upgrading](upgrading.md#sqlite-backups)) |
 | Photos | Stay where they are; scan directories may be anywhere under your home directory (`--photos` to allow another top directory, e.g. `--photos D:\`) |
 
 ### Options
@@ -96,6 +97,10 @@ console before starting `librephotos.exe`; the data directory options above only
 `BASE_LOGS` and `PHOTOS` when they are not set. A default `SECRET_KEY` is generated and kept in
 `protected_media\secret.key` in the data directory (releases after 1.3.0; 1.3.0 and older kept it in
 the logs directory, and a newer release moves it on its first start).
+
+### Updating
+
+Quit LibrePhotos, unzip the new release over the old folder (or into a new one) and start `librephotos.exe` again. Not released yet: when the new release brings database migrations, it first copies the database into `db\backups` in the data folder, then migrates, so the first start after an update can take a few minutes. If the update goes wrong, [restore that backup](upgrading.md#restore) and start the release named in its file name. An older release refuses to start on a database a newer one has migrated, see [Going back to an older release](upgrading.md#downgrade).
 
 ### Upgrading from 1.3.0 or older
 
