@@ -37,6 +37,37 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
             | models.Q(started_at__isnull=True, queued_at__gte=cutoff)
         )
 
+    def baselines(self, job_type: int) -> LongRunningJobQuerySet:
+        """Runs of ``job_type`` an incremental run may start after, newest first.
+
+        An incremental run only looks at what changed since its baseline
+        started, so the baseline must have gone through all of its work. That
+        leaves out a run that was cancelled, raised, or was cut off by
+        ``cleanup_stuck_jobs`` (#2212): what it never reached would fall
+        outside every later window. A run flagged ``failed`` only because more
+        than 5 % of its items errored (``_record_error``) did reach its target
+        and stays a baseline; otherwise a library with many unreadable files
+        would never get one. Some types add a condition of their own, see
+        ``LongRunningJob.BASELINE_CONDITIONS``.
+        """
+        return (
+            self.filter(
+                job_type=job_type,
+                finished=True,
+                cancelled=False,
+                started_at__isnull=False,
+            )
+            .filter(
+                models.Q(failed=False)
+                | models.Q(
+                    progress_target__gt=0,
+                    progress_current__gte=models.F("progress_target"),
+                )
+            )
+            .filter(LongRunningJob.BASELINE_CONDITIONS.get(job_type, models.Q()))
+            .order_by("-finished_at", "-id")
+        )
+
 
 class LongRunningJob(models.Model):
     STUCK_JOB_HOURS = STUCK_JOB_HOURS
@@ -60,6 +91,8 @@ class LongRunningJob(models.Model):
     JOB_CLASSIFY_MEDIA = 17
     JOB_GENERATE_OCR = 18
     JOB_PROBE_VIDEOS = 19
+    # 20 and 21 are planned for the upload and Nextcloud import jobs (#2191).
+    JOB_DETECT_STACKS = 22
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -81,7 +114,21 @@ class LongRunningJob(models.Model):
         (JOB_CLASSIFY_MEDIA, "Classify Media Categories"),
         (JOB_GENERATE_OCR, "Extract Text (OCR)"),
         (JOB_PROBE_VIDEOS, "Probe Videos"),
+        (JOB_DETECT_STACKS, "Detect Stacks"),
     )
+
+    # The ``result`` key a photo scan of the user's whole scan directory sets.
+    LIBRARY_SCAN = "library_scan"
+
+    # What a run of these types needs on top of ``baselines()`` to be one. A
+    # photo scan must have walked the whole library: a file-list scan or a
+    # Nextcloud import says nothing about the files it did not look at
+    # (#2192). An OCR run must have had work: a disabled or empty run would
+    # otherwise make every photo added before it look done.
+    BASELINE_CONDITIONS: dict[int, models.Q] = {
+        JOB_SCAN_PHOTOS: models.Q(**{f"result__{LIBRARY_SCAN}": True}),
+        JOB_GENERATE_OCR: models.Q(progress_target__gt=0),
+    }
 
     job_type = models.PositiveIntegerField(
         choices=JOB_TYPES,
@@ -236,6 +283,14 @@ class LongRunningJob(models.Model):
         return self._write_unless_cancelled(["result"])
 
     @classmethod
+    def baseline_for(cls, user: User, job_type: int) -> LongRunningJob | None:
+        """The run ``user``'s next incremental ``job_type`` run starts after.
+
+        ``None`` when there is none: the incremental run then covers everything.
+        """
+        return cls.objects.owned_by(user).baselines(job_type).first()
+
+    @classmethod
     def create_job(
         cls,
         user: User,
@@ -359,14 +414,15 @@ class LongRunningJob(models.Model):
     def cleanup_old_jobs(cls, days: int = 30) -> int:
         """
         Delete completed/failed jobs older than specified days, but always keep
-        the most recent finished job of each (user, job_type).
+        the most recent finished job of each (user, job_type) and that type's
+        incremental baseline (``baseline_for``).
 
-        The latest finished job per type is preserved regardless of age because
-        the incremental scan uses it as the "last scan" baseline: it is queried
-        in ``api/directory_watcher/scan_jobs.py`` and ``processing_jobs.py`` to
-        decide which photos can be skipped. Deleting it leaves no baseline, so
-        the next scan reprocesses (and re-enriches) the entire library. Older
-        finished jobs of the same type are still pruned as litter.
+        The baseline is preserved regardless of age: the incremental scan and
+        its follow-up jobs use it to decide which files and photos can be
+        skipped. Deleting it leaves no baseline, so the next scan reprocesses
+        (and re-enriches) the entire library. It is not always the newest
+        finished job: a newer cancelled run or file-list scan is not one.
+        Older finished jobs of the same type are still pruned as litter.
 
         Args:
             days: Number of days after which surplus completed jobs are deleted
@@ -376,9 +432,9 @@ class LongRunningJob(models.Model):
         """
         cutoff = timezone.now() - timedelta(days=days)
 
-        # Preserve the most recent finished job of each (user, job_type) — the
-        # incremental-scan baseline — at any age. The number of groups is
-        # bounded by users x job types, so this loop is cheap.
+        # Preserve the most recent finished job of each (user, job_type) and
+        # its incremental baseline at any age. The number of groups is bounded
+        # by users x job types, so this loop is cheap.
         keep_ids: set[int] = set()
         groups = (
             cls.objects.filter(finished=True, finished_at__isnull=False)
@@ -386,19 +442,18 @@ class LongRunningJob(models.Model):
             .distinct()
         )
         for started_by_id, job_type in groups:
-            latest_id = (
-                cls.objects.filter(
-                    finished=True,
-                    finished_at__isnull=False,
-                    started_by_id=started_by_id,
-                    job_type=job_type,
+            runs = cls.objects.filter(started_by_id=started_by_id, job_type=job_type)
+            for candidates in (
+                runs.filter(finished=True, finished_at__isnull=False),
+                runs.baselines(job_type),
+            ):
+                latest_id = (
+                    candidates.order_by("-finished_at", "-id")
+                    .values_list("id", flat=True)
+                    .first()
                 )
-                .order_by("-finished_at", "-id")
-                .values_list("id", flat=True)
-                .first()
-            )
-            if latest_id is not None:
-                keep_ids.add(latest_id)
+                if latest_id is not None:
+                    keep_ids.add(latest_id)
 
         deleted, _ = (
             cls.objects.filter(finished=True, finished_at__lt=cutoff)

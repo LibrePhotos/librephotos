@@ -12,6 +12,8 @@ The job system gives you information about the long-running jobs, including whic
 
 Scan photos will look at all media files in your scan directory and will add them to the library.
 
+A normal scan only reads the files that are new or changed (the file or one of its sidecars) since the last successful scan of the whole scan directory started. A scan that was cancelled or failed before it reached every file does not count, and neither does a scan of a few selected files or a Nextcloud scan. A full scan reads every file again. Not released yet: up to 1.3.0, any finished scan counted, including cancelled ones and **Detect Stacks** runs, and a file edited while the last scan ran could be skipped. The first normal scan after the upgrade therefore checks every file once.
+
 ### Generate Event Albums
 
 This job will look at all media files that already exist. It tries to find common events by looking at the timestamp and grouping the images. If the media files are in a 1 day and 12 hour interval, they will appear in the same event album.
@@ -38,11 +40,11 @@ Calculates the OpenCLIP search embedding of every photo that has none, then rebu
 
 ### Generate Tags
 
-Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan; a normal scan only tags photos added since the last successful run, while a full scan re-tags everything.
+Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan and tags every photo that has no tags yet, including the ones an earlier run did not reach because it was cancelled or failed. Not released yet: up to 1.3.0, a normal scan only tagged photos added since the last run, so photos a cancelled run left behind stayed untagged until a full scan.
 
 ### Add Geolocation
 
-Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan only processes photos added since the last successful run, while a full scan reprocesses everything.
+Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan only processes photos added since the last successful run started, while a full scan reprocesses everything. A run that was cancelled or failed before it reached every photo does not count as successful.
 
 ### Scan Faces
 
@@ -76,6 +78,10 @@ Checks the videos that were added to your library before LibrePhotos recorded ea
 
 Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
 
+### Detect Stacks
+
+Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect Stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). Not released yet: up to 1.3.0, it was listed as **Scan Photos**.
+
 ### Detect Duplicate Photos
 
 Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page, where you can review and manage them; the button that starts this job there is called **Detect Duplicates**. See [Duplicate Detection](./duplicate-detection.md) for more details.
@@ -88,6 +94,6 @@ Click a row in the `Worker Logs` table to open that job's detail page. It shows 
 
 ## What to do when a job gets stuck
 
-If a job is still running and you want to stop it, use the **Cancel** button in its `Worker Logs` row. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs that work through a list of photos check for cancellation as they go and stop at the next checkpoint, so it can take a moment before a running job actually stops. A few jobs have no such checkpoint yet — cancelling marks them finished right away, but any work already in progress runs to completion. Either way, cancelling frees the queue for a new job, so you do not need to remove the entry afterwards.
+If a job is still running and you want to stop it, use the **Cancel** button in its `Worker Logs` row. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs that work through a list of photos check for cancellation as they go and stop at the next checkpoint, so it can take a moment before a running job actually stops. A few jobs have no such checkpoint yet — cancelling marks them finished right away, but any work already in progress runs to completion. Either way, cancelling frees the queue for a new job, so you do not need to remove the entry afterwards. The next scan picks up what a cancelled or failed scan, tagging, geolocation or face scan left behind.
 
 The **Remove** button only deletes the log entry from the database — it does **not** stop a running job. Use it for a job that has genuinely crashed (nothing is progressing and the logs show an ungraceful failure) so that the queue will accept new jobs again.

@@ -19,9 +19,9 @@ from api.directory_watcher.scan_jobs import (
 
 
 class _FakeScan:
-    """Stand-in for a last_scan LongRunningJob — only finished_at is read."""
+    """Stand-in for a last_scan LongRunningJob — only started_at is read."""
 
-    finished_at = "2026-01-01T00:00:00Z"
+    started_at = "2026-01-01T00:00:00Z"
 
 
 MOD = "api.directory_watcher.scan_jobs._file_was_modified_after"

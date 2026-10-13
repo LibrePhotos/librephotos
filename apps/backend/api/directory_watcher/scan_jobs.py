@@ -72,7 +72,7 @@ def _file_was_modified_after(filepath: str, time: datetime.datetime | None) -> b
         modified = os.path.getmtime(filepath)
     except OSError:
         return False
-    # Callers pass the finished_at of a finished scan. A None would have made
+    # Callers pass the started_at of the baseline scan. A None would have made
     # the comparison below raise TypeError, so it is an invariant violation.
     assert time is not None
     # An aware UTC moment: without ``tz``, fromtimestamp gives the host's local
@@ -98,13 +98,16 @@ def _group_needs_processing(
     The modified-time check (and the sidecar paths it stats) is only reached for
     a file we already have, on an incremental scan with a baseline — i.e. the
     only case where "did it change since last scan?" is the deciding question.
+    It compares with the time the baseline scan started: that scan read each
+    file some time after its walk, so a file edited while it ran may have been
+    read before the edit (#2192).
     """
     for path in paths:
         if path not in existing_paths or full_scan or not last_scan:
             return True
         files_to_check = [path, *existing_sidecars(path)]
         if any(
-            _file_was_modified_after(p, last_scan.finished_at) for p in files_to_check
+            _file_was_modified_after(p, last_scan.started_at) for p in files_to_check
         ):
             return True
     return False
@@ -145,22 +148,6 @@ def _select_groups_to_process(
     return groups_to_process
 
 
-def _last_finished_scan(user: User) -> LongRunningJob | None:
-    """Most recent finished photo scan for ``user``, used as the change baseline.
-
-    A scan cancelled or timed out while it was queued finished without
-    starting (its row is written at queue time) and saw no files: not a
-    baseline.
-    """
-    return (
-        LongRunningJob.objects.filter(finished=True, started_at__isnull=False)
-        .filter(job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
-
-
 def photo_scanner(
     user: User,
     last_scan: LongRunningJob | None,
@@ -180,7 +167,7 @@ def photo_scanner(
         or full_scan
         or not last_scan
         or any(
-            [_file_was_modified_after(p, last_scan.finished_at) for p in files_to_check]
+            [_file_was_modified_after(p, last_scan.started_at) for p in files_to_check]
         )
     ):
         # Queue processing for this file. Metadata is queued here without grouping on purpose,
@@ -337,16 +324,22 @@ def _remember_followups(
     scan_directory: str,
     scan_files: list[str],
 ) -> None:
-    """Store what the follow-up jobs need; call before any scan work is queued."""
+    """Store what the follow-up jobs and later scans need.
+
+    Call before any scan work is queued. A scan of the user's whole scan
+    directory is marked as a library scan: only such a scan can be the change
+    baseline of the next incremental one (``LongRunningJob.baselines``).
+    """
     result: dict[str, Any] = dict(lrj.result) if isinstance(lrj.result, dict) else {}
+    library_scan = scan_directory == user.scan_directory and not scan_files
+    if library_scan:
+        result[LongRunningJob.LIBRARY_SCAN] = True
     result[_FOLLOWUPS_KEY] = {
         "full_scan": bool(full_scan),
         # if the scan type is not the default user scan directory, or if it is
         # specified as only scanning specific files, there is no need to rescan
         # fully for missing photos.
-        "scan_missing_photos": bool(
-            full_scan or (scan_directory == user.scan_directory and not scan_files)
-        ),
+        "scan_missing_photos": bool(full_scan or library_scan),
         "photo_count_before": Photo.objects.owned_by(user).count(),
     }
     lrj.set_result(result)
@@ -411,7 +404,6 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
             LongRunningJob.JOB_GENERATE_TAGS,
             generate_tags,
             user,
-            full_scan=full_scan,
         )
     if feature_enabled("REVERSE_GEOCODING"):
         enqueue_followup(
@@ -492,7 +484,7 @@ def scan_photos(
             scan_directory = user.scan_directory
         photo_list = _discover_scan_paths(scan_directory, scan_files)
         files_found = len(photo_list)
-        last_scan = _last_finished_scan(user)
+        last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_SCAN_PHOTOS)
 
         # === PHASE 1: Group files by (directory, basename) ===
         # This ensures RAW+JPEG pairs are processed together, eliminating race conditions

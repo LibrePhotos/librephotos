@@ -330,6 +330,48 @@ class AddGeolocationCharacterizationTest(TestCase):
         self.assertEqual(job.progress_target, 0)
         self.assertTrue(job.finished)
 
+    def _previous_run_then_an_older_photo(self, **outcome):
+        """A photo added an hour before a previous run that ended as ``outcome``."""
+        now = timezone.now()
+        last = self._finished_previous_scan(timedelta(hours=1))
+        LongRunningJob.objects.filter(pk=last.pk).update(**outcome)
+        old = create_test_photo(owner=self.user)
+        Photo.objects.filter(pk=old.pk).update(added_on=now - timedelta(hours=2))
+        return old
+
+    def _queued_photo_ids(self):
+        with patch.object(processing_jobs, "enqueue_task") as async_task:
+            add_geolocation(self.user, self.job_id, full_scan=False)
+        return [call.args[1] for call in async_task.call_args_list]
+
+    def test_a_run_that_raised_is_not_the_baseline(self):
+        """#2212: the run failed before it reached the photo."""
+        old = self._previous_run_then_an_older_photo(
+            failed=True, progress_target=10, progress_current=3
+        )
+
+        self.assertEqual(self._queued_photo_ids(), [old.pk])
+
+    def test_a_cancelled_run_is_not_the_baseline(self):
+        old = self._previous_run_then_an_older_photo(
+            cancelled=True, progress_target=10, progress_current=3
+        )
+
+        self.assertEqual(self._queued_photo_ids(), [old.pk])
+
+    def test_a_successful_run_is_the_baseline(self):
+        self._previous_run_then_an_older_photo(progress_target=10, progress_current=10)
+
+        self.assertEqual(self._queued_photo_ids(), [])
+
+    def test_a_run_over_the_error_threshold_that_reached_every_photo_is(self):
+        """Flagged failed for its per-photo errors, but it went through them all."""
+        self._previous_run_then_an_older_photo(
+            failed=True, progress_target=10, progress_current=10
+        )
+
+        self.assertEqual(self._queued_photo_ids(), [])
+
     def test_unfinished_previous_job_is_not_treated_as_last_scan(self):
         LongRunningJob.create_job(
             user=self.user,

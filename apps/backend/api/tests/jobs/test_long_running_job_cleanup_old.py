@@ -89,3 +89,49 @@ class CleanupOldJobsBaselineTest(TestCase):
         J.cleanup_old_jobs(days=30)
         self.assertTrue(J.objects.filter(id=extra.id).exists())
         self.assertTrue(J.objects.filter(id=latest.id).exists())
+
+
+class CleanupOldJobsKeepsTheRealBaselineTest(TestCase):
+    """The newest finished run is not always the baseline (#2192, #2212)."""
+
+    def setUp(self):
+        self.user = create_test_user()
+
+    def _job(self, days_ago, job_type=J.JOB_SCAN_PHOTOS, **fields):
+        moment = timezone.now() - timedelta(days=days_ago)
+        return J.objects.create(
+            started_by=self.user,
+            job_id=str(uuid.uuid4()),
+            job_type=job_type,
+            started_at=moment,
+            finished=True,
+            finished_at=moment,
+            **fields,
+        )
+
+    def test_keeps_a_library_scan_followed_by_a_file_list_scan(self):
+        library = self._job(days_ago=60, result={"library_scan": True})
+        file_list = self._job(days_ago=45)
+
+        J.cleanup_old_jobs(days=30)
+
+        self.assertTrue(J.objects.filter(id=library.id).exists())
+        self.assertTrue(J.objects.filter(id=file_list.id).exists())
+
+    def test_keeps_a_successful_run_followed_by_a_cancelled_one(self):
+        successful = self._job(days_ago=60, job_type=J.JOB_GENERATE_TAGS)
+        cancelled = self._job(days_ago=45, job_type=J.JOB_GENERATE_TAGS, cancelled=True)
+
+        J.cleanup_old_jobs(days=30)
+
+        self.assertTrue(J.objects.filter(id=successful.id).exists())
+        self.assertTrue(J.objects.filter(id=cancelled.id).exists())
+
+    def test_still_prunes_runs_older_than_the_baseline(self):
+        older = self._job(days_ago=90, result={"library_scan": True})
+        library = self._job(days_ago=60, result={"library_scan": True})
+
+        J.cleanup_old_jobs(days=30)
+
+        self.assertFalse(J.objects.filter(id=older.id).exists())
+        self.assertTrue(J.objects.filter(id=library.id).exists())

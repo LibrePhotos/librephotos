@@ -315,18 +315,16 @@ class DetectStacksView(APIView):
         # Only burst/bracket detection is done here
         options = parse_body(request, DetectStacksRequest)
 
-        # Not exclusive: stack detection still reports on a Scan Photos row
-        # (#2192 gives it a type of its own), and refusing it while a scan
-        # runs would point the client at the scan.
         [job] = enqueue_for_request(
             user,
             [
                 JobStep(
-                    LongRunningJob.JOB_SCAN_PHOTOS, batch_detect_stacks, (user, options)
+                    LongRunningJob.JOB_DETECT_STACKS,
+                    batch_detect_stacks,
+                    (user, options),
                 )
             ],
             "stack detection",
-            exclusive=False,
         )
 
         logger.info(

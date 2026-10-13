@@ -23,6 +23,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [17, "Classify Media Categories"],
   [18, "Extract Text (OCR)"],
   [19, "Probe Videos"],
+  [22, "Detect Stacks"],
 ];
 
 describe("jobTypeLabel", () => {

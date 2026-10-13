@@ -269,18 +269,23 @@ class APIRedetectionTestCase(APITestCase):
         self.assertEqual(response3.status_code, 202)
 
     def test_stack_detect_api_idempotent(self):
-        """Test that calling /api/stacks/detect multiple times is safe."""
-        # First detection
+        """Calling /api/stacks/detect again is refused while one is queued.
+
+        Stack detection has a job type of its own (#2192), so it is exclusive
+        like every other job.
+        """
         response1 = self.client.post("/api/stacks/detect")
-        self.assertIn(response1.status_code, [200, 202])
+        self.assertEqual(response1.status_code, 202)
+        first_job_id = response1.json()["job_id"]
 
-        # Second detection
         response2 = self.client.post("/api/stacks/detect")
-        self.assertIn(response2.status_code, [200, 202])
+        self.assertEqual(response2.status_code, 409)
+        self.assertEqual(api_error(response2)["code"], "job_already_running")
+        self.assertEqual(api_error(response2)["job_id"], first_job_id)
 
-        # Third detection
+        LongRunningJob.objects.filter(job_id=first_job_id).update(finished=True)
         response3 = self.client.post("/api/stacks/detect")
-        self.assertIn(response3.status_code, [200, 202])
+        self.assertEqual(response3.status_code, 202)
 
     def test_duplicate_detect_with_clear_pending(self):
         """Test detection with clear_pending option."""
