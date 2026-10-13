@@ -111,7 +111,8 @@ class LastFinishedScanTest(ScanPhotosCharacterizationBase):
         self.run_scan(job_id=job_id, walk_result=["/p/a.jpg", "/p/b.jpg"])
         update_scan_counter(job_id)
         LongRunningJob.objects.filter(job_id=job_id).update(
-            started_at=timezone.now() - datetime.timedelta(days=2)
+            started_at=timezone.now() - datetime.timedelta(days=2),
+            last_progress_at=timezone.now() - datetime.timedelta(days=2),
         )
         LongRunningJob.cleanup_stuck_jobs()
 

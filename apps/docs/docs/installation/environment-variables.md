@@ -274,6 +274,14 @@ Every photo gets three WebP thumbnails: a big one, 1080 px high, which the light
 
 It applies to thumbnails rendered from then on, such as those of newly scanned or rotated photos. Existing thumbnails keep their quality until they are rendered again.
 
+### Stuck jobs
+
+Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. Not released yet: up to 1.3.0, every job was marked failed 24 hours after it started.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `STUCK_JOB_HOURS` | `stuckJobHours` | `24` | Hours without progress after which a job counts as stuck. Raise it only if a single photo can take longer than this on your machine. |
+
 ### Internal service address
 
 The backend talks to its helper services (thumbnails, metadata, faces, tags, captions, OCR, search) over HTTP inside the container. They have no authentication, so they listen on `127.0.0.1` only and cannot be reached from outside the container.

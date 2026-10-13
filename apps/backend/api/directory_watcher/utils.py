@@ -419,7 +419,7 @@ def update_scan_counter(
         error: Error message if failed
     """
     LongRunningJob.objects.filter(job_id=job_id).update(
-        progress_current=F("progress_current") + 1
+        progress_current=F("progress_current") + 1, last_progress_at=timezone.now()
     )
 
     if failed or error:

@@ -80,6 +80,7 @@ services:
       - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
       - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
       - SQUARE_THUMBNAIL_QUALITY=${squareThumbnailQuality:-80}
+      - STUCK_JOB_HOURS=${stuckJobHours:-24}
       - SERVE_FRONTEND=true
       - DEBUG=0
     depends_on:

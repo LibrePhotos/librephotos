@@ -111,7 +111,9 @@ class FinishedTransitionTest(TestCase):
 
         self.job.refresh_from_db()
         self.assertTrue(self.job.finished)
-        self.assertEqual(first_finished_at, start)
+        # The first call reads the clock twice (progress stamp, finish); a
+        # second finish would read a later tick.
+        self.assertLess(first_finished_at, start + datetime.timedelta(seconds=2))
         self.assertEqual(self.job.finished_at, first_finished_at)
 
     def test_error_after_finish_still_counts_but_does_not_refinish(self):
@@ -121,7 +123,7 @@ class FinishedTransitionTest(TestCase):
             update_scan_counter(self.job.job_id, failed=True, error="late")
 
         self.job.refresh_from_db()
-        self.assertEqual(self.job.finished_at, start)
+        self.assertLess(self.job.finished_at, start + datetime.timedelta(seconds=2))
         self.assertEqual(self.job.result["error_count"], 1)
 
     def test_finish_runs_completion_hook_once(self):
