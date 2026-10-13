@@ -20,13 +20,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class RuleContext:
-    """What a rule may use besides the file: the photo's GPS position, the
-    owner's default timezone and a capture time the user set by hand."""
+    """What a rule may use besides the file: the photo's GPS position and the
+    owner's default timezone."""
 
     gps_lat: float | None
     gps_lon: float | None
     user_default_tz: str
-    user_defined_timestamp: datetime | None
 
 
 def _regexp_group_range(a: int, b: int) -> str:
@@ -164,6 +163,9 @@ class RuleTypes:
     EXIF = "exif"
     PATH = "path"
     FILESYSTEM = "filesystem"
+    # The old "Timestamp set by user" rule (id 14). A date set by hand now
+    # overrides every rule (``photo_datetime.extract_date_time``, #2254), so
+    # the rule matches nothing; a list saved by an older client still loads.
     USER_DEFINED = "user_defined"
 
 
@@ -359,7 +361,7 @@ class TimeExtractionRule:
         elif self.rule_type == RuleTypes.FILESYSTEM:
             return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.USER_DEFINED:
-            return context.user_defined_timestamp
+            return None
         else:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
@@ -488,12 +490,9 @@ def _check_gps_ok(lat: float | None, lon: float | None) -> bool:
 
 ALL_TIME_ZONES = pytz.all_timezones
 
+# Id 14 was "Timestamp set by user"; migration 0167 removed it from saved
+# lists. Do not reuse it.
 DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
-    {
-        "id": 14,
-        "name": "Timestamp set by user",
-        "rule_type": RuleTypes.USER_DEFINED,
-    },
     {
         "id": 16,
         "name": f"Local time from {Tags.DATE_CREATED} tag (set by LibrePhotos or other photo managers)",

@@ -18,6 +18,7 @@ export const SETTINGS_SECTIONS = {
 
 export const ADMIN_SECTIONS = {
   site: "admin-site",
+  features: "admin-features",
   email: "admin-email",
   tools: "admin-tools",
   logs: "admin-logs",

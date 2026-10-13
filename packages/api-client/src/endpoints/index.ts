@@ -113,6 +113,7 @@ export type DateAlbumFilter = {
   photo?: boolean;
   video?: boolean;
   is_screenshot?: boolean;
+  is_document?: boolean;
   /** The web timeline's filter (api/albums/timeline_filter.py): "all" is the same as leaving it out. */
   media?: "all" | "photos" | "videos";
   hide_screenshots?: boolean;
@@ -132,6 +133,7 @@ export function photosetToFilter(photoset: Photoset): DateAlbumFilter {
     photo: photoset === Photoset.PHOTOS || undefined,
     video: photoset === Photoset.VIDEOS || undefined,
     is_screenshot: photoset === Photoset.SCREENSHOTS || undefined,
+    is_document: photoset === Photoset.DOCUMENTS || undefined,
   };
 }
 
@@ -145,6 +147,7 @@ function dateAlbumParams(filter: DateAlbumFilter) {
     photo: filter.photo ? "true" : undefined,
     video: filter.video ? "true" : undefined,
     is_screenshot: filter.is_screenshot ? "true" : undefined,
+    is_document: filter.is_document ? "true" : undefined,
     media: filter.media === "all" ? undefined : filter.media,
     hide_screenshots: filter.hide_screenshots ? "true" : undefined,
     hide_documents: filter.hide_documents ? "true" : undefined,
@@ -176,8 +179,12 @@ export async function fetchDateAlbum(
 
 /* ---- photos ------------------------------------------------------------ */
 
-export async function fetchRecentlyAddedPhotos(client: ApiClient): Promise<S.RecentlyAddedPhotosResponse> {
-  const res = await client.get<unknown>("/photos/recentlyadded/");
+/** The photos of the latest upload day; with a media filter, of the latest day a matching photo came in. */
+export async function fetchRecentlyAddedPhotos(
+  client: ApiClient,
+  filter: AlbumMediaFilter = {}
+): Promise<S.RecentlyAddedPhotosResponse> {
+  const res = await client.get<unknown>(`/photos/recentlyadded/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.RecentlyAddedPhotosResponse, res, "recently added photos");
 }
 
@@ -285,9 +292,10 @@ export async function fetchSharedPhoto(client: ApiClient, slug: string): Promise
 /** One page of photos that have no EXIF timestamp (paginated). */
 export async function fetchPhotosWithoutTimestamp(
   client: ApiClient,
-  page: number
+  page: number,
+  filter: AlbumMediaFilter = {}
 ): Promise<S.PhotosWithoutTimestampResponse> {
-  const res = await client.get<unknown>(`/photos/notimestamp/${buildQuery({ page })}`);
+  const res = await client.get<unknown>(`/photos/notimestamp/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
   return parseResponse(S.PhotosWithoutTimestampResponse, res, "photos without timestamp");
 }
 
@@ -302,11 +310,15 @@ export async function fetchPhotosWithoutLocation(
 
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
-/** The media-type filter album detail views accept (`?photo=true` etc.). */
+/**
+ * The media-type filter (`?photo=true` etc.) that album detail views, search and the Recently added
+ * and No timestamp lists accept.
+ */
 export type AlbumMediaFilter = {
   photo?: boolean;
   video?: boolean;
   is_screenshot?: boolean;
+  is_document?: boolean;
 };
 
 function albumMediaQuery(filter: AlbumMediaFilter) {
@@ -314,6 +326,7 @@ function albumMediaQuery(filter: AlbumMediaFilter) {
     photo: filter.photo ? "true" : undefined,
     video: filter.video ? "true" : undefined,
     is_screenshot: filter.is_screenshot ? "true" : undefined,
+    is_document: filter.is_document ? "true" : undefined,
   };
 }
 
@@ -577,10 +590,7 @@ export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettin
 }
 
 /** Admin: change site settings (only the keys sent); answers the settings as GET does. */
-export async function updateSiteSettings(
-  client: ApiClient,
-  settings: Partial<S.SiteSettings>
-): Promise<S.SiteSettings> {
+export async function updateSiteSettings(client: ApiClient, settings: S.SiteSettingsUpdate): Promise<S.SiteSettings> {
   const res = await client.post<unknown>("/sitesettings", settings);
   return parseResponse(S.SiteSettings, res, "update site settings");
 }

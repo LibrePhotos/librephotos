@@ -19,6 +19,7 @@ import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import { DefaultHeader } from "./DefaultHeader";
+import { MediaTypeHint } from "./MediaTypeHint";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
@@ -265,6 +266,7 @@ function PhotoListViewComponent({
                   isPublic={isPublic}
                   countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
                   titleOrder={titleOrder}
+                  filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
                 />
               </Box>
               {showHeaderToolbar && (

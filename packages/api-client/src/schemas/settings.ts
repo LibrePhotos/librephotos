@@ -1,5 +1,38 @@
 import { z } from "zod";
 
+/** One optional ML feature's switch in the site settings (#2217). */
+const SiteFeatureState = z.object({
+  // Whether the feature runs: the server environment allows it and the site switch is on.
+  enabled: z.boolean(),
+  // The FEATURE_* environment variable turned it off; the site switch cannot turn it back on.
+  locked: z.boolean(),
+  // Whether the model it runs on is on disk; null for a feature that needs no model.
+  model_ready: z.boolean().nullable(),
+});
+
+/** The feature switches, by feature. Staff only. */
+export const SiteFeatures = z.object({
+  video: SiteFeatureState,
+  face_detection: SiteFeatureState,
+  face_cluster: SiteFeatureState,
+  image_captioning: SiteFeatureState,
+  reverse_geocoding: SiteFeatureState,
+  scene_classification: SiteFeatureState,
+});
+export type SiteFeatures = z.infer<typeof SiteFeatures>;
+export type SiteFeatureName = keyof SiteFeatures;
+
+/** The newest Download Models job. Staff only. */
+export const SiteModelDownload = z.object({
+  id: z.number(),
+  // "running", "finished", "failed" or "cancelled". A string, so a state a newer server adds
+  // does not fail the whole settings answer (the login page reads it).
+  status: z.string(),
+  progress_current: z.number(),
+  progress_target: z.number(),
+});
+export type SiteModelDownload = z.infer<typeof SiteModelDownload>;
+
 /** GET/POST /api/sitesettings (api/views/site_settings.py). GET is anonymous; POST is admin-only. */
 export const SiteSettings = z.object({
   allow_registration: z.boolean(),
@@ -23,8 +56,23 @@ export const SiteSettings = z.object({
   // Largest share of a user's photos a scan may mark missing (0 to 1, #2195); older backends lack it.
   scan_missing_max_fraction: z.number().optional(),
   email_configured: z.boolean().optional(),
+  // Always 0: the setting is gone; older clients still read the key.
+  heavyweight_process: z.number().optional(),
+  // Staff only, and older backends have no feature switches.
+  features: SiteFeatures.optional(),
+  model_download: SiteModelDownload.nullish(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
+
+/**
+ * POST /api/sitesettings body: only the settings to change. A feature switch is posted flat as
+ * `<feature>_enabled`; one the server environment locked is refused with a 400 naming the field.
+ */
+export type SiteSettingsUpdate = Partial<
+  Omit<SiteSettings, "features" | "model_download" | "heavyweight_process"> & {
+    [K in SiteFeatureName as `${K}_enabled`]: boolean;
+  }
+>;
 
 /** GET /api/timezones/: every time zone name the date-time rules accept. */
 export const Timezones = z.string().array();

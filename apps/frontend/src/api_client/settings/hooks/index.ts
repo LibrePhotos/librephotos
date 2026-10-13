@@ -4,3 +4,4 @@ export * from "./useEmailConfig";
 export * from "./useFetchPredefinedRulesQuery";
 export * from "./useFetchPredefinedBurstRulesQuery";
 export * from "./useFetchTimezonesQuery";
+export * from "./useFollowModelDownload";

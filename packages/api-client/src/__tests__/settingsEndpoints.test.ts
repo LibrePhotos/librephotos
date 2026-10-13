@@ -42,6 +42,34 @@ describe("site settings", () => {
     });
     expect(settings.allow_upload).toBe(false);
   });
+
+  it("parses the staff-only feature switches and model download", async () => {
+    const on = { enabled: true, locked: false, model_ready: null };
+    const staff = {
+      ...siteSettings,
+      features: {
+        video: on,
+        face_detection: { enabled: true, locked: false, model_ready: false },
+        face_cluster: on,
+        image_captioning: { enabled: false, locked: true, model_ready: true },
+        reverse_geocoding: on,
+        scene_classification: { enabled: true, locked: false, model_ready: true },
+      },
+      model_download: { id: 7, status: "running", progress_current: 2, progress_target: 12 },
+    };
+    const settings = await endpoints.fetchSiteSettings(fakeServer(staff).client);
+    expect(settings.features?.image_captioning).toEqual({ enabled: false, locked: true, model_ready: true });
+    expect(settings.model_download?.status).toBe("running");
+    // Anonymous and non-staff answers have neither.
+    const anonymous = await endpoints.fetchSiteSettings(fakeServer(siteSettings).client);
+    expect(anonymous.features).toBeUndefined();
+  });
+
+  it("posts a feature switch as a flat <feature>_enabled boolean", async () => {
+    const { client, requests } = fakeServer(siteSettings);
+    await endpoints.updateSiteSettings(client, { face_detection_enabled: false });
+    expect(defined(requests[0]).body).toEqual({ face_detection_enabled: false });
+  });
 });
 
 describe("time zones", () => {

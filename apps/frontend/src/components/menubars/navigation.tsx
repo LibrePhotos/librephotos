@@ -50,6 +50,7 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
         "/notimestamp",
         "/nolocation",
         "/screenshots",
+        "/documents",
         "/memories",
         "/organizing",
       ],

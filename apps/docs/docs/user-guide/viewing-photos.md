@@ -40,7 +40,7 @@ Photos you've hidden from the main timeline. Hiding a photo removes it from the 
 
 ### Recently Added
 
-Shows only your most recent batch of imports — the photos whose *added* date falls on the same calendar day as the most recently added photo in your library. They appear in a single flat grid under one **"Added on …"** line in the page header; there is no per-day grouping. Older imports are not listed here — use the Timeline to browse your whole library.
+Shows only your most recent batch of imports — the photos whose *added* date falls on the same calendar day as the most recently added photo in your library. They appear in a single flat grid under one **"Added on …"** line in the page header; there is no per-day grouping. Older imports are not listed here — use the Timeline to browse your whole library. With a [media filter](#media-filter), the page shows the latest day a matching photo was added, for example the last day you imported videos.
 
 ### Photos Only
 
@@ -49,6 +49,26 @@ Shows only still photos, filtering out all videos.
 ### Videos Only
 
 Shows only video files, filtering out all still photos.
+
+### Screenshots and Documents
+
+**Screenshots** lists the photos detected or marked as screenshots. **Documents** lists the photos of receipts, letters, forms and other paper (see [Documents](./text-recognition.md#documents)). Both are in the Photos view switcher in the page header and in the command palette (`Ctrl+K`). When a photo is in the wrong one, change its [Category](#category).
+
+:::note
+The Documents page is not in a release yet; it ships with the first release after 1.3.0.
+:::
+
+### Filtering a list by media type {#media-filter}
+
+:::note
+The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp and folder pages are not in a release yet; they ship with the first release after 1.3.0.
+:::
+
+Favorites, Hidden, Trash, Recently Added, Without Timestamp, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
+
+The choice is part of the page address (for example `?media=videos`), so it survives a reload and can be bookmarked. Every page starts with all media: the saved default of the [timeline filter](#filtering-the-timeline) never applies here.
+
+Selecting all photos on a filtered list selects only what it shows. In Trash, filter to **Videos only**, then **Select all** and **Delete permanently** removes the trashed videos and leaves every other photo in the trash.
 
 ### Without Timestamp
 
@@ -116,7 +136,13 @@ Rotation in LibrePhotos is **non-destructive**:
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
 
-Your **Synchronize metadata to disk** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle. With **Save to media file**, LibrePhotos writes the combined EXIF Orientation tag into the original file; with **Save to sidecar**, it writes it to the photo's XMP sidecar instead — either way the new orientation becomes visible in external tools. With **Off** — the default — only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
+Your **Synchronize metadata to disk** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
+
+- **Off**, the default: only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
+- **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that read sidecars (digiKam, darktable, Lightroom) can show the photo turned the same way.
+- **Save to media file**: for JPEG, PNG, TIFF and WebP files, LibrePhotos writes the new EXIF Orientation into the original, so every viewer shows the rotation. HEIC, AVIF and RAW files are not rewritten: their viewers ignore that tag, so the rotation stays in LibrePhotos.
+
+_Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save to media file** wrote a wrong EXIF Orientation into HEIC, AVIF and RAW originals (often the opposite turn), replacing the camera's own value. LibrePhotos' own thumbnails were not affected. If another app shows such a file turned the wrong way, set its orientation there or with `exiftool -Orientation=...`._
 
 ## Photo Details Sidebar
 
@@ -124,7 +150,9 @@ The sidebar displays detailed information about the current photo and provides q
 
 ### Timestamp
 
-Shows when the photo was taken. You can click the edit button to modify the date and time if needed.
+Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
+
+A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one. _Not released yet._
 
 ### File & Camera Info
 

@@ -34,7 +34,7 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
 import { SearchOptionType, useSearch, type SearchOption } from "../../service/useSearch";
-import { getNavigationActions, ICON_SIZE, iconProps } from "./navigationActions";
+import { buildNavigationActions, iconProps, SPOTLIGHT_ICON_SIZE } from "./navigationActions";
 
 // Also the width of every action's left section, see Spotlight.tsx
 export const AVATAR_SIZE = 28;
@@ -151,7 +151,7 @@ export function useSpotlightActions(query: string = "") {
 
   // Navigation actions
   const navigationActions: SpotlightAction[] = useMemo(
-    () => getNavigationActions(t, navigate, isAdmin),
+    () => buildNavigationActions(t, navigate, isAdmin),
     [t, navigate, isAdmin]
   );
 
@@ -298,7 +298,7 @@ export function useSpotlightActions(query: string = "") {
     return {
       id: "search-query",
       label: t("spotlight.searchFor", { query: trimmedQuery }),
-      leftSection: React.createElement(IconSearch, { size: ICON_SIZE, stroke: 1.5 }),
+      leftSection: React.createElement(IconSearch, { size: SPOTLIGHT_ICON_SIZE, stroke: 1.5 }),
       onClick: () => navigate({ to: `/search/${encodeURIComponent(trimmedQuery)}` }),
       keywords: [trimmedQuery.toLowerCase()],
     };

@@ -84,6 +84,10 @@ class Tags:
     HIERARCHICAL_SUBJECT = "XMP:HierarchicalSubject"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
+    # The orientation an XMP sidecar can hold: ExifTool cannot store
+    # EXIF:Orientation in an .xmp (#2297). Written, never read: a sidecar
+    # orientation must not rotate LibrePhotos' own thumbnails (SIDECAR_EQUIVALENTS).
+    ORIENTATION_XMP = "XMP-tiff:Orientation"
 
     # Burst/sequence detection tags
     SUBSEC_TIME_ORIGINAL = "EXIF:SubSecTimeOriginal"

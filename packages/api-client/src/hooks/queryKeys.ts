@@ -9,8 +9,8 @@ import type { DuplicateType, FaceAnalysisMethod, FaceOrderBy, JobListParams, Pho
 // (groups it, sorts it, adds placeholders), the package hook that caches the answer as it comes uses
 // the `...Raw` entry next to it: a child of the same family, so the family's prefix refreshes both.
 
-/** A photo view's media toggle: everything, or only photos, videos or screenshots. */
-export type MediaType = "all" | "photos" | "videos" | "screenshots";
+/** A photo view's media toggle: everything, or only photos, videos, screenshots or documents. */
+export type MediaType = "all" | "photos" | "videos" | "screenshots" | "documents";
 
 /** The timeline filter part of a date-album list key when no timeline filter applies. */
 export const NO_TIMELINE_FILTER = "none";
@@ -67,7 +67,9 @@ export const photoGridKeys = {
    */
   dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number, page: number) =>
     [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
+  /** Every view of the Recently added list. */
   recentlyAdded: () => gridKind("recentlyAdded"),
+  recentlyAddedView: (mediaType: MediaType) => [...photoGridKeys.recentlyAdded(), mediaType] as const,
   /** Every view of one user album. */
   userAlbum: (id: string) => [...gridKind("userAlbum"), id] as const,
   userAlbumView: (id: string, isPublic: boolean, username: string, mediaType: MediaType) =>
@@ -81,7 +83,7 @@ export const photoGridKeys = {
   tagAlbumView: (id: string, mediaType: MediaType) => [...photoGridKeys.tagAlbum(id), mediaType] as const,
   search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped") =>
     [...gridKind("search"), term, mediaType, mode] as const,
-  withoutTimestamp: (page: number) => [...gridKind("withoutTimestamp"), page] as const,
+  withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number) => [...gridKind("withoutLocation"), page] as const,
   /** The photos I shared, grouped by recipient (web). */
   sharedByMe: () => gridKind("sharedByMe"),

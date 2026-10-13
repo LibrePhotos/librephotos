@@ -236,8 +236,9 @@ const domains: Record<string, Domain> = {
         after: photoGridKeys.dateAlbumDay([Photoset.TIMESTAMP, undefined, undefined, undefined, "all", "none"], 4, 1),
       },
       useFetchRecentlyAddedPhotosQuery: {
-        before: ["photoGrid", "recentlyAdded"],
-        after: photoGridKeys.recentlyAdded(),
+        // Keyed by the media filter since #2216.
+        before: ["photoGrid", "recentlyAdded", "all"],
+        after: photoGridKeys.recentlyAddedView("all"),
       },
       useFetchUserAlbumQuery: {
         before: ["photoGrid", "userAlbum", "7", false, "", "all"],
@@ -265,8 +266,9 @@ const domains: Record<string, Domain> = {
         after: photoGridKeys.search("beach", "all", "semantic"),
       },
       useFetchPhotosWithoutTimestampQuery: {
-        before: ["photoGrid", "withoutTimestamp", 2],
-        after: photoGridKeys.withoutTimestamp(2),
+        // Keyed by the media filter since #2216.
+        before: ["photoGrid", "withoutTimestamp", 2, "all"],
+        after: photoGridKeys.withoutTimestamp(2, "all"),
       },
       useFetchPhotosWithoutLocationQuery: {
         before: ["photoGrid", "withoutLocation", 2],

@@ -1,0 +1,138 @@
+import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { DatePicker, TimeInput } from "@mantine/dates";
+import { schemaResolver, useForm } from "@mantine/form";
+import { IconCalendar as Calendar, IconCheck as Check, IconEraser, IconX as X } from "@tabler/icons-react";
+import React, { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { parsePickerDate, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
+import { makeTimestampFormSchema, WHOLE_TIME } from "./TimestampForm.schema";
+
+type Props = Readonly<{
+  /** The photo's date when the editor opened. */
+  exifTimestamp: string | null;
+  /** The date was set by hand, so there is one to remove. */
+  canRemove: boolean;
+  saving: boolean;
+  onSave: (exifTimestamp: string) => void;
+  onRemove: () => void;
+  onCancel: () => void;
+}>;
+
+type Values = { day: Date | null; time: string };
+
+const MIDNIGHT = "00:00:00";
+
+function formatTime(date: Date | null) {
+  if (!date) return "";
+  return [date.getHours(), date.getMinutes(), date.getSeconds()].map(n => n.toString().padStart(2, "0")).join(":");
+}
+
+/** The day picked plus the time typed; null while either is missing or incomplete. */
+function combine({ day, time }: Values): Date | null {
+  const match = WHOLE_TIME.exec(time);
+  if (!day || !match) return null;
+  const [, hours, minutes, seconds] = match;
+  return new Date(
+    day.getFullYear(),
+    day.getMonth(),
+    day.getDate(),
+    Number(hours),
+    Number(minutes),
+    Number(seconds ?? 0)
+  );
+}
+
+/** The date editor of the info panel: a day, a time, and Remove for a date set by hand. */
+export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemove, onCancel }: Props) {
+  const { t } = useTranslation();
+  const removeHintId = useId();
+  const [initial] = useState(() => (exifTimestamp ? photoTimestampToPickerDate(exifTimestamp) : null));
+  // Day and time are separate fields, so a time typed before a day is picked stays.
+  const form = useForm<Values>({
+    initialValues: { day: initial, time: formatTime(initial) },
+    validate: schemaResolver(makeTimestampFormSchema(t), { sync: true }),
+    validateInputOnChange: ["time"],
+  });
+
+  const onChangeDay = (picked: Date | string | null) => {
+    form.setFieldValue("day", picked ? parsePickerDate(picked) : null);
+    // A day picked for a photo without a time starts at midnight, shown in the field. A time the
+    // user emptied or half typed stays as it is, and keeps Save off.
+    if (picked && form.getValues().time === "" && !form.isDirty("time")) form.setFieldValue("time", MIDNIGHT);
+  };
+
+  const save = form.onSubmit(values => {
+    const value = combine(values);
+    if (!value) return;
+    // Save sits where the pencil was, so a double-click saves straight away. An
+    // unchanged date is a Cancel, not a metadata write and an edit-history entry.
+    if (value.getTime() === initial?.getTime()) {
+      onCancel();
+      return;
+    }
+    const exifValue = pickerDateToPhotoTimestamp(value);
+    if (exifValue) onSave(exifValue);
+  });
+  const { day } = form.getValues();
+
+  return (
+    <Stack w="100%">
+      {/* Cancel and save sit where the caption, tags and keywords put them. */}
+      <Group justify="space-between" wrap="nowrap">
+        <Group wrap="nowrap">
+          <Calendar />
+          <Text>{t("lightbox.sidebar.editdatetime")}</Text>
+        </Group>
+        <Group gap="xs" wrap="nowrap">
+          <Tooltip label={t("lightbox.sidebar.cancel")}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("lightbox.sidebar.cancel")}
+              onClick={onCancel}
+            >
+              <X size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t("lightbox.sidebar.save")}>
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              size="sm"
+              aria-label={t("lightbox.sidebar.save")}
+              disabled={!form.isValid()}
+              loading={saving}
+              onClick={() => save()}
+            >
+              <Check size={16} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      </Group>
+      <Stack>
+        {/* The month shown comes only from defaultDate, never from value. */}
+        <DatePicker value={day} defaultDate={day ?? undefined} onChange={onChangeDay} />
+        <TimeInput withSeconds placeholder={MIDNIGHT} {...form.getInputProps("time")} />
+        {canRemove && (
+          <Stack gap={4} align="flex-start">
+            <Button
+              variant="subtle"
+              color="red"
+              size="compact-sm"
+              leftSection={<IconEraser size={16} />}
+              disabled={saving}
+              aria-describedby={removeHintId}
+              onClick={onRemove}
+            >
+              {t("lightbox.sidebar.removetimestamp")}
+            </Button>
+            <Text id={removeHintId} size="xs" c="dimmed">
+              {t("lightbox.sidebar.removetimestamphint")}
+            </Text>
+          </Stack>
+        )}
+      </Stack>
+    </Stack>
+  );
+}

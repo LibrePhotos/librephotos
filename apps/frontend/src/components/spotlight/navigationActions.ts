@@ -8,6 +8,7 @@ import {
   IconCloud,
   IconEyeOff,
   IconFaceId,
+  IconFileText,
   IconFolder,
   IconFolders,
   IconGraph,
@@ -37,16 +38,15 @@ import type { TFunction } from "i18next";
 import React from "react";
 import type { SpotlightAction } from "./useSpotlightActions";
 
-export const ICON_SIZE = 20;
-// Module-level so the palette's useMemo action lists do not depend on a per-render object.
-export const iconProps = { size: ICON_SIZE, stroke: 1.5 };
+type Translate = TFunction<"translation", undefined>;
+type Navigate = ReturnType<typeof useNavigate>;
 
-/** The palette's "Go to" entries: one per page, plus settings and profile shortcuts. */
-export function getNavigationActions(
-  t: TFunction<"translation", undefined>,
-  navigate: ReturnType<typeof useNavigate>,
-  isAdmin: boolean
-): SpotlightAction[] {
+export const SPOTLIGHT_ICON_SIZE = 20;
+// Module-level so the action lists do not depend on a per-render object.
+export const iconProps = { size: SPOTLIGHT_ICON_SIZE, stroke: 1.5 };
+
+// The pages of the app.
+function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
   return [
     {
       id: "nav-photos",
@@ -124,6 +124,14 @@ export function getNavigationActions(
       leftSection: React.createElement(IconScreenshot, iconProps),
       onClick: () => void navigate({ to: "/screenshots" }),
       keywords: ["screenshots", "screen captures", "screengrabs"],
+    },
+    {
+      id: "nav-documents",
+      label: t("spotlight.nav.documents"),
+      description: t("spotlight.nav.documentsDesc"),
+      leftSection: React.createElement(IconFileText, iconProps),
+      onClick: () => void navigate({ to: "/documents" }),
+      keywords: ["documents", "receipts", "letters", "scans", "paper"],
     },
     {
       id: "nav-trash",
@@ -209,6 +217,12 @@ export function getNavigationActions(
       onClick: () => void navigate({ to: "/library" }),
       keywords: ["library", "scan", "manage"],
     },
+  ];
+}
+
+// The statistics pages.
+function statisticsActions(t: Translate, navigate: Navigate): SpotlightAction[] {
+  return [
     {
       id: "nav-statistics",
       label: t("spotlight.nav.statistics"),
@@ -251,6 +265,12 @@ export function getNavigationActions(
       onClick: () => void navigate({ to: "/statistics/faceclusters" }),
       keywords: ["face clusters", "clustering"],
     },
+  ];
+}
+
+// The admin area, then the settings and profile entries found by what they change.
+function settingsActions(t: Translate, navigate: Navigate, isAdmin: boolean): SpotlightAction[] {
+  return [
     // The admin area is for superusers only, as in the profile menu
     ...(isAdmin
       ? [
@@ -263,16 +283,7 @@ export function getNavigationActions(
           },
         ]
       : []),
-    ...settingsShortcuts(t, navigate),
-  ];
-}
-
-/** Settings and profile entries with helpful keywords, e.g. "password" or "clustering". */
-function settingsShortcuts(
-  t: TFunction<"translation", undefined>,
-  navigate: ReturnType<typeof useNavigate>
-): SpotlightAction[] {
-  return [
+    // Settings-focused navigation with helpful keywords
     {
       id: "nav-settings-scan",
       label: t("spotlight.nav.scanSettings"),
@@ -330,4 +341,9 @@ function settingsShortcuts(
       keywords: ["avatar", "profile picture", "photo"],
     },
   ];
+}
+
+/** The palette's Navigation group. */
+export function buildNavigationActions(t: Translate, navigate: Navigate, isAdmin: boolean): SpotlightAction[] {
+  return [...pageActions(t, navigate), ...statisticsActions(t, navigate), ...settingsActions(t, navigate, isAdmin)];
 }

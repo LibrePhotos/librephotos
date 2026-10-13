@@ -179,3 +179,12 @@ describe("Settings face tags write-back", () => {
     expect(container.textContent).not.toContain('Needs "Save to sidecar"');
   });
 });
+
+describe("Settings metadata sync", () => {
+  it("says that HEIC, AVIF and RAW rotations stay in LibrePhotos (#2297)", () => {
+    expect(container.textContent).toContain("Synchronize metadata to disk");
+    expect(container.textContent).toContain(
+      '"Save to media file" does not rewrite HEIC, AVIF or RAW files when you rotate them'
+    );
+  });
+});
