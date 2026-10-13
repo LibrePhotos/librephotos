@@ -126,6 +126,17 @@ class File(models.Model):
 
         return new_file
 
+    def take_over_copy(self, path: str) -> None:
+        """Move this row onto ``path``, an exact copy of its file (#2417).
+
+        For when the row's own path is gone: the photo keeps a file on disk,
+        and ``path`` is nobody's copy anymore.
+        """
+        self.path = path
+        self.missing = False
+        self.save(update_fields=["path", "missing"])
+        FileCopy.objects.filter(path=path).delete()
+
 
 class FileCopy(models.Model):
     """A path whose bytes are an exact copy of an indexed File (#2417).

@@ -624,7 +624,10 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
 
     Every photo is checked before anything changes: when the scan directory
     looks unmounted, or too much of the library would lose all its files
-    (``missing_guard``), the job fails and detaches nothing.
+    (``missing_guard``), the job fails and detaches nothing. The one change
+    the check itself makes is to let an exact copy on disk take over a file
+    whose own path is gone (``missing_files``, #2417): such a photo is not
+    missing, and does not count towards the guard.
 
     Args:
         user: The user whose photos to check
