@@ -119,7 +119,7 @@ If no place name can be found for the new position (reverse geocoding is turned 
 1. **Check if photos have GPS data**: Open a photo's info panel and look for GPS coordinates
 2. **Scan for new photos**: If you recently added photos, run a **Scan** from the Library page
 3. **Check geocoding provider**: Ensure your geocoding provider is configured correctly in **Admin Area → Site Settings**. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored
-4. **Scan again after fixing the provider**: Go to **Library → Scan Library** and click **Scan**. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full **Rescan** was needed)
+4. **Scan again after fixing the provider**: Go to **Library → Scan Library** and click **Scan**. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before, but not the ones where the provider found no place, such as open sea (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full **Rescan** was needed)
 5. **Give geocoding time to finish**: Geocoding runs as a background job after the scan. With Nominatim on a large library this can take a while, and places keep filling in after the scan reports done — wait before re-scanning
 
 ### Some photos don't show locations

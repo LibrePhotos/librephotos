@@ -188,9 +188,10 @@ def set_location(
 
     The coordinates are saved first, so a geocoder failure still keeps them;
     the reverse-geocoded place then feeds ``geolocation_json``, the search
-    location and the Places albums. Without one (geocoding off, no result, an
-    error) the photo has no place (``has_place``), not the old one, and the
-    geolocation job tries again. The position (or its absence) is the user's
+    location and the Places albums. Without one the photo has no place
+    (``has_place``), not the old one: the geolocation job tries again after a
+    failed lookup (geocoding off, an error), not for a position the provider
+    has no place for (``no_place``, #2567). The position (or its absence) is the user's
     from now on: a rescan neither replaces nor clears it (#2264).
     """
     old = _location_value(photo)
@@ -227,9 +228,7 @@ def _apply_location(
         logger.exception("Reverse geocoding failed for photo %s", photo.image_hash)
         return
     if not geocode_result:
-        logger.warning(
-            "Reverse geocoding returned no result for photo %s", photo.image_hash
-        )
+        logger.warning("Reverse geocoding failed for photo %s", photo.image_hash)
         return
 
     geocode_result["_v"] = GEOCODE_VERSION
