@@ -328,11 +328,26 @@ class RealExifToolTestCase(TestCase):
         quadrants.save(path)
         return path
 
-    def make_video(self, name: str = "clip") -> str:
-        """One second of black, 64x48, H.264 in MP4."""
+    def make_video(
+        self,
+        name: str = "clip",
+        extension: str = ".mp4",
+        size: str = "64x48",
+        creation_time: str | None = None,
+    ) -> str:
+        """One second of black, ``size``: H.264 in MP4 or MKV, VP9 in WebM.
+
+        ``creation_time`` (ISO 8601, e.g. ``"2025-03-12T17:00:00Z"``) is
+        written by ffmpeg, the only way to date an MKV or WebM here: ExifTool
+        cannot write Matroska.
+        """
         if not FFMPEG:
             raise unittest.SkipTest("ffmpeg not available")
-        path = os.path.join(self.directory, name + ".mp4")
+        path = os.path.join(self.directory, name + extension)
+        codec = ["libvpx-vp9"] if extension == ".webm" else ["libx264"]
+        metadata = (
+            ["-metadata", f"creation_time={creation_time}"] if creation_time else []
+        )
         result = subprocess.run(
             [
                 FFMPEG,
@@ -342,11 +357,12 @@ class RealExifToolTestCase(TestCase):
                 "-f",
                 "lavfi",
                 "-i",
-                "color=black:s=64x48:d=1:r=5",
+                f"color=black:s={size}:d=1:r=5",
                 "-c:v",
-                "libx264",
+                *codec,
                 "-pix_fmt",
                 "yuv420p",
+                *metadata,
                 "-y",
                 path,
             ],
@@ -355,7 +371,7 @@ class RealExifToolTestCase(TestCase):
         )
         if result.returncode != 0:
             raise unittest.SkipTest(
-                f"ffmpeg cannot encode H.264 here: {result.stderr!r}"
+                f"ffmpeg cannot encode {codec[0]} here: {result.stderr!r}"
             )
         return path
 
