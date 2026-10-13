@@ -148,17 +148,19 @@ export function LibraryActions({ busyReason, isAdmin, isOcrEnabled }: LibraryAct
               </Button>
             </DisabledReason>
             <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
-              <Menu.Target>
-                <ActionIcon
-                  variant="outline"
-                  size={36}
-                  disabled={!!ocrReason}
-                  aria-label={t("settings.ocrfullbutton")}
-                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                >
-                  <ChevronDown size="1rem" />
-                </ActionIcon>
-              </Menu.Target>
+              {/* Outside Menu.Target, so its click handler replaces the one that opens the menu. */}
+              <DisabledReason reason={ocrReason}>
+                <Menu.Target>
+                  <ActionIcon
+                    variant="outline"
+                    size={36}
+                    aria-label={t("settings.ocrfullbutton")}
+                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                  >
+                    <ChevronDown size="1rem" />
+                  </ActionIcon>
+                </Menu.Target>
+              </DisabledReason>
               <Menu.Dropdown>
                 <DisabledReason reason={ocrReason} position="left">
                   <Menu.Item leftSection={<TextRecognition size="1rem" />} onClick={() => generateOcr.mutate(true)}>

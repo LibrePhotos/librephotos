@@ -228,6 +228,22 @@ describe("the add-to menu", () => {
     expect(callbacks.onAddToAlbum).toHaveBeenCalledTimes(1);
     expect(callbacks.onAddTags).toHaveBeenCalledTimes(1);
   });
+
+  // #2621: the + button was a plain `disabled`: greyed out with no reason, and out of the Tab order.
+  it("asks for a selection first, and stays shut", async () => {
+    await render({ selectedItems: [] });
+
+    const add = defined(
+      container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("selectionactions.addto")}"]`),
+      "the + button"
+    );
+    expectDisabledWithReason(add, SELECT_FIRST);
+    expect(await focusAndReadTooltip(add)).toContain(SELECT_FIRST);
+    await act(async () => add.click());
+
+    expect(add.getAttribute("aria-expanded")).toBe("false");
+    expect(document.body.querySelectorAll('[role="menuitem"]')).toHaveLength(0);
+  });
 });
 
 /** Opens the photo actions ("⋮") menu and returns the item with `label`. */

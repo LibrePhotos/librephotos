@@ -20,7 +20,7 @@ type UserStub = Pick<User, "id" | "favorite_min_rating" | "default_timeline_filt
 
 const stubs = vi.hoisted(() => {
   const user: UserStub = { id: 1, favorite_min_rating: 4, default_timeline_filter: { hide_screenshots: true } };
-  const state: { userId: number | null; user: UserStub } = { userId: 1, user };
+  const state: { userId: number | null; user: UserStub; pending: boolean } = { userId: 1, user, pending: false };
   return Object.assign(state, {
     mutate: vi.fn<(request: SetPhotosCategoryRequest, options: { onSuccess: () => void }) => void>(),
     success: vi.fn<(message: React.ReactNode, options?: ToastOptions) => void>(),
@@ -30,7 +30,7 @@ const stubs = vi.hoisted(() => {
 
 vi.mock("../../api_client/photos/hooks/useSetPhotosCategoryMutation", async importOriginal => ({
   ...(await importOriginal<typeof import("../../api_client/photos/hooks/useSetPhotosCategoryMutation")>()),
-  useSetPhotosCategoryMutation: () => ({ mutate: stubs.mutate, isPending: false }),
+  useSetPhotosCategoryMutation: () => ({ mutate: stubs.mutate, isPending: stubs.pending }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
@@ -61,6 +61,7 @@ beforeEach(() => {
   stubs.hide.mockReset();
   stubs.user = { id: 1, favorite_min_rating: 4, default_timeline_filter: { hide_screenshots: true } };
   stubs.userId = 1;
+  stubs.pending = false;
 });
 
 const screenshot = makePhoto({
@@ -249,6 +250,18 @@ describe("CategoryBadge", () => {
       expectDisabledWithReason(option, "A video can only be marked as a photo");
       expect(option.hasAttribute("data-disabled")).toBe(false);
     }
+  });
+
+  // #2621: the badge was a plain `disabled` while a change saved: no reason, and out of the Tab order.
+  it("says it is saving while a change is on its way, and keeps its menu shut", async () => {
+    stubs.pending = true;
+    const container = await renderSection();
+
+    const button = defined(badge(container));
+    expectDisabledWithReason(button, i18n.t("lightbox.sidebar.saving"));
+    await act(async () => button.click());
+
+    expect(document.querySelector("[role=menu]")).toBeNull();
   });
 
   it("says a trashed item is not in the timeline", async () => {
