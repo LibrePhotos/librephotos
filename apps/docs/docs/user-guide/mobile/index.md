@@ -14,6 +14,8 @@ The app is currently in [open beta on the Google Play Store](https://play.google
 
 ## LibrePhotos Mobile
 
-[LibrePhotos Mobile](./librephotos-mobile.md) is the official app: an offline-first app for **Android and iOS** that keeps a local copy of your library for offline browsing and can back up your camera roll to your server. See the [LibrePhotos Mobile guide](./librephotos-mobile.md) for installation, first login, offline mode, backup, and sync.
+[LibrePhotos Mobile](./librephotos-mobile.md) is the official app: an offline-first app for **Android and iOS** that keeps a local copy of your library for offline browsing and can back up your camera roll to your server.
 
-It replaces the original React Native app. That app's `.apk` builds on the [releases page](https://github.com/LibrePhotos/librephotos/releases?q=mobile%2F) are no longer updated.
+*Not released yet: LibrePhotos Mobile is not on the Google Play Store, the App Store, F-Droid, or TestFlight yet. You can try it by running it from the source code.* See the [LibrePhotos Mobile guide](./librephotos-mobile.md) for how to try it, first login, offline mode, backup, and sync.
+
+It is meant to replace the original React Native app. That app's `.apk` builds on the [releases page](https://github.com/LibrePhotos/librephotos/releases?q=mobile%2F) are no longer updated.
