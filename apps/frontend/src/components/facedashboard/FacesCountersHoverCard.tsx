@@ -1,80 +1,53 @@
-import { FaceAnalysisMethod } from "@librephotos/api-client";
 import { HoverCard, Stack, Text } from "@mantine/core";
-import { t } from "i18next";
 import React from "react";
-import { useFetchIncompleteFacesQuery } from "../../api_client/faces";
+import { useTranslation } from "react-i18next";
+import type { FacesCounters } from "./facesCounters";
 import { FacesTab } from "./facesTab";
 
 type Props = Readonly<{
   tab: FacesTab;
+  /** Counted from the lists the page shows, so the card and the tab agree (#2236). */
+  counters: FacesCounters;
   children: React.ReactNode;
 }>;
 
-export function FacesCountersHoverCard({ tab, children }: Props) {
-  const { data: facesList = [] } = useFetchIncompleteFacesQuery({
-    inferred: tab === FacesTab.enum.inferred || tab === FacesTab.enum.unknown,
-    orderBy: "date",
-    method: FaceAnalysisMethod.enum.clustering,
-  });
+function CountersText({ tab, counters }: Pick<Props, "tab" | "counters">) {
+  const { t } = useTranslation();
+  const faces = (count: number) => `(${t("facesdashboard.facescounter", { count })})`;
 
-  const getLabeledCounters = () => {
-    const labeledPersons = facesList.filter(person => person.name !== "Unknown - Other");
-    const labeledPersonsCount = labeledPersons.length;
-    const labeledFacesCount = labeledPersons.reduce((sum, person) => sum + person.faces.length, 0);
-
-    return (
-      <Stack>
+  switch (tab) {
+    case FacesTab.enum.labeled:
+      return (
         <Text size="sm">
-          {`${t("facesdashboard.personscounter", { count: labeledPersonsCount })}`}{" "}
-          {`(${t("facesdashboard.facescounter", { count: labeledFacesCount })})`}
+          {t("facesdashboard.personscounter", { count: counters.labeled.groups })} {faces(counters.labeled.faces)}
         </Text>
-      </Stack>
-    );
-  };
+      );
+    case FacesTab.enum.inferred:
+      return (
+        <>
+          <Text size="sm">
+            {t("facesdashboard.assumedpersonscounter", { count: counters.inferred.groups })}{" "}
+            {faces(counters.inferred.faces)}
+          </Text>
+          <Text size="sm">
+            {t("facesdashboard.clusterscounter", { count: counters.clusters.groups })} {faces(counters.clusters.faces)}
+          </Text>
+        </>
+      );
+    case FacesTab.enum.unknown:
+      return <Text size="sm">{t("facesdashboard.unknownfacescounter", { count: counters.unknown.faces })}</Text>;
+  }
+}
 
-  const getInferredCounters = () => {
-    const inferredPersons = facesList.filter(person => person.name !== "Unknown - Other");
-    const inferredAssumedPersonsCount = inferredPersons.length;
-    const inferredAssumedFacesCount = inferredPersons.reduce((sum, person) => sum + person.faces.length, 0);
-    const inferredClustersCount = facesList.length;
-    const inferredClusteredFacesCount = facesList.reduce((sum, person) => sum + person.faces.length, 0);
-
-    return (
-      <Stack>
-        <Text size="sm">
-          {`${t("facesdashboard.assumedpersonscounter", { count: inferredAssumedPersonsCount })}`}{" "}
-          {`(${t("facesdashboard.facescounter", { count: inferredAssumedFacesCount })})`}
-        </Text>
-        <Text size="sm">
-          {`${t("facesdashboard.clusterscounter", { count: inferredClustersCount })}`}{" "}
-          {`(${t("facesdashboard.facescounter", { count: inferredClusteredFacesCount })})`}
-        </Text>
-      </Stack>
-    );
-  };
-
-  const getUnknownCounters = () => {
-    const unknownPersons = facesList.filter(person => person.name === "Unknown - Other");
-    const unknownFacesCount = unknownPersons.reduce((sum, person) => sum + person.faces.length, 0);
-
-    return (
-      <Stack>
-        <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: unknownFacesCount })}`}</Text>
-      </Stack>
-    );
-  };
-
-  const getCountersContent = () => {
-    if (tab === FacesTab.enum.labeled) return getLabeledCounters();
-    if (tab === FacesTab.enum.inferred) return getInferredCounters();
-    if (tab === FacesTab.enum.unknown) return getUnknownCounters();
-    return null;
-  };
-
+export function FacesCountersHoverCard({ tab, counters, children }: Props) {
   return (
     <HoverCard shadow="md" openDelay={500}>
       <HoverCard.Target>{children}</HoverCard.Target>
-      <HoverCard.Dropdown>{getCountersContent()}</HoverCard.Dropdown>
+      <HoverCard.Dropdown>
+        <Stack>
+          <CountersText tab={tab} counters={counters} />
+        </Stack>
+      </HoverCard.Dropdown>
     </HoverCard>
   );
 }

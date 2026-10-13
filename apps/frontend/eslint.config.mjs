@@ -320,6 +320,14 @@ export const syntaxBans = [
     message:
       "Style hover and focus in a CSS module (:hover, :focus-visible), not by writing event.currentTarget.style (AGENTS.md, Styling).",
   },
+  {
+    // The unknown group's name is one shared constant (also the backend's Person.UNKNOWN_PERSON_NAME);
+    // a hand-typed copy drifts the day the name changes (#2236). Tests may spell out what the server sends.
+    id: "unknown-person-literal",
+    selector: "Literal[value='Unknown - Other']",
+    message: "Use UNKNOWN_PERSON_NAME from @librephotos/api-client, not the literal name of the unknown group.",
+    allowIn: TEST_FILES,
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure

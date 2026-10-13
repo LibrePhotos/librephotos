@@ -1,5 +1,5 @@
 import type { FaceAnalysisMethod } from "@librephotos/api-client";
-import { faceKeys } from "@librephotos/api-client";
+import { faceKeys, UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList } from "../../../api_client/faces";
@@ -63,9 +63,9 @@ export function useFaceDataFetching(
   // Filter data by category - MEMOIZED to prevent recalculation on every render
   const lists = useMemo(
     () => ({
-      unknown: inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other"),
-      inferred: inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
-      labeled: labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
+      unknown: inferredFacesListUnfiltered.filter(person => person.name === UNKNOWN_PERSON_NAME),
+      inferred: inferredFacesListUnfiltered.filter(person => person.name !== UNKNOWN_PERSON_NAME),
+      labeled: labeledFacesListUnfiltered.filter(person => person.name !== UNKNOWN_PERSON_NAME),
     }),
     [inferredFacesListUnfiltered, labeledFacesListUnfiltered]
   );

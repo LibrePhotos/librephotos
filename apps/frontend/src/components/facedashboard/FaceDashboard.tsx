@@ -1,4 +1,4 @@
-import type { FaceAnalysisMethod } from "@librephotos/api-client";
+import { UNKNOWN_PERSON_NAME, type FaceAnalysisMethod } from "@librephotos/api-client";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
@@ -6,7 +6,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { UNKNOWN_PERSON_NAME, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
@@ -265,6 +265,7 @@ export function FaceDashboard() {
         <TabComponent
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}
+          lists={lists}
         />
         <HeaderButtons
           selectMode={selectedFaces.length > 0}

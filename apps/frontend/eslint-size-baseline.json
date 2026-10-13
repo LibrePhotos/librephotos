@@ -5,7 +5,7 @@
   "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
   "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 450, "function": 397 },
-  "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 427, "function": 408 },
+  "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 417, "function": 397 },
   "src/components/lightbox/VideoPlayer.tsx": { "lines": 416, "function": 367 },
   "src/components/settings/Profile.tsx": { "function": 328 },
   "src/components/react-pig/index.tsx": { "function": 318 },

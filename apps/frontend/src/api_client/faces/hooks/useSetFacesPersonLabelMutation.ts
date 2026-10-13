@@ -1,13 +1,18 @@
-import { albumKeys, endpoints, faceKeys, invalidateAfter, photoKeys, statsKeys } from "@librephotos/api-client";
+import {
+  albumKeys,
+  endpoints,
+  faceKeys,
+  invalidateAfter,
+  photoKeys,
+  statsKeys,
+  UNKNOWN_PERSON_NAME,
+} from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { apiClient, queryClient } from "../../api";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
-
-/** The person name that moves faces back to unknown ("not this person"). */
-export const UNKNOWN_PERSON_NAME = "Unknown - Other";
 
 const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
   endpoints.labelFaces(apiClient, data.faceIds, data.personName);

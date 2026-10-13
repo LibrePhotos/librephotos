@@ -1,10 +1,11 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize, useMergedRef } from "@mantine/hooks";
-import { debounce, deburr, throttle } from "lodash-es";
+import { debounce, throttle } from "lodash-es";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
+import { alphabetMarkerLetter, isUnknownPersonLabel } from "./alphabetMarker";
 import classes from "./ScrollScrubber.module.css";
 import { findScrollScrubberTarget } from "./scrollScrubberTarget";
 import type { ScrollerData, ScrollerPosition } from "./scrollScrubberTypes";
@@ -101,29 +102,14 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return markers;
   }, [positions]);
 
-  const getLetterForAlphabetMarker = (str: string): string => {
-    let firstChar = deburr(str.charAt(0)).toUpperCase();
-    if (firstChar === firstChar.toLowerCase()) {
-      // firstChar is not a letter
-      if (/^\d$/.test(firstChar)) {
-        // firstChar is a number
-        firstChar = "#";
-      } else {
-        // firstChar is not alphanumeric
-        firstChar = ":-)";
-      }
-    }
-    return firstChar;
-  };
-
   const getAlphabetMarkers = useCallback((): ScrollerPosition[] => {
     const alphabet: ScrollerPosition[] = [];
     let currentLetter: string | null = null;
     positions.forEach(item => {
-      const letter = getLetterForAlphabetMarker(item.label);
-      if (letter !== currentLetter || item.label === "Unknown - Other") {
+      const letter = alphabetMarkerLetter(item.label);
+      if (letter !== currentLetter || isUnknownPersonLabel(item.label)) {
         currentLetter = letter;
-        const label = item.label === "Unknown - Other" ? item.label : currentLetter;
+        const label = isUnknownPersonLabel(item.label) ? item.label : currentLetter;
         // Only display letter if there is enough space with preivous letter
         const lastLetter = alphabet.at(-1);
         if (lastLetter === undefined || item.scrollerY - lastLetter.scrollerY > MIN_MARKER_GAP) {
