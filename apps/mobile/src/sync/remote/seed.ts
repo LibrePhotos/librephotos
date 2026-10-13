@@ -236,7 +236,8 @@ export async function seedPeople(db: AppDatabase, source: SeedSource, now: numbe
     faceCount: p.face_count,
     // PersonSerializer's cover_photo is write-only; responses carry the cover's
     // hash (the chosen cover, else the first face's photo) in face_photo_url,
-    // and "" for a person without faces.
+    // and "" for a person without faces. The delta feed sends the same value
+    // as effective_cover_hash (see syncPersonToRow), so the two agree.
     coverPhotoHash: p.face_photo_url || null,
     lastModified: now,
   }));

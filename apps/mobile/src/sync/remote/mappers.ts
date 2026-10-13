@@ -60,7 +60,10 @@ export function syncPersonToRow(item: SyncPersonItem): PersonInput {
     name: item.name,
     kind: item.kind,
     faceCount: item.face_count,
-    coverPhotoHash: item.cover_photo_hash,
+    // The seed reads the People list, whose cover falls back to the first
+    // face's photo; effective_cover_hash is that same value, so a delta pull
+    // keeps the cover the seed stored. Older servers send only the chosen one.
+    coverPhotoHash: item.effective_cover_hash ?? item.cover_photo_hash,
     lastModified: item.last_modified,
   };
 }

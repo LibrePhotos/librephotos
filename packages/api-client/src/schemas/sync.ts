@@ -59,7 +59,13 @@ export const SyncPersonItem = z.looseObject({
   name: z.string().nullable(),
   kind: z.string().nullable(),
   face_count: z.number().nullable(),
+  /** The cover the user chose, else null. */
   cover_photo_hash: z.string().nullable(),
+  /**
+   * The cover the People list shows (`face_photo_url`): the chosen one, else
+   * the first face's photo, else null. Absent from servers up to 1.3.0.
+   */
+  effective_cover_hash: z.string().nullable().optional(),
   last_modified: z.number().nullable(),
 });
 export type SyncPersonItem = z.infer<typeof SyncPersonItem>;
