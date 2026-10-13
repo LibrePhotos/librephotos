@@ -66,6 +66,71 @@ type Props = Readonly<{
   filterHint?: React.ReactNode;
 }>;
 
+type PhotoCounterProps = Readonly<
+  Pick<
+    Props,
+    | "loading"
+    | "numPhotosetItems"
+    | "numPhotos"
+    | "hasEmptyState"
+    | "countsVideos"
+    | "filterHint"
+    | "additionalSubHeader"
+  >
+>;
+
+// The subtitle: loading, "No images found", or the day and photo counts, with
+// the media filter's hint and the page's own sub-header.
+function PhotoCounter({
+  loading,
+  numPhotosetItems,
+  numPhotos,
+  hasEmptyState,
+  countsVideos,
+  filterHint,
+  additionalSubHeader,
+}: PhotoCounterProps) {
+  const { t } = useTranslation();
+  if (loading) {
+    return (
+      <Group gap={6} wrap="nowrap">
+        <Text ta="left" c="dimmed">
+          {t("defaultheader.loading")}
+        </Text>
+        <Loader size="xs" />
+      </Group>
+    );
+  }
+
+  if (numPhotosetItems < 1) {
+    // Don't show "No images found" if an EmptyState will be displayed below
+    if (hasEmptyState) {
+      return null;
+    }
+    return (
+      <div>
+        <Text ta="left" c="dimmed">
+          {t("defaultheader.noimages")}
+        </Text>
+        {filterHint}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Text ta="left" c="dimmed">
+        {numPhotosetItems !== numPhotos
+          ? `${numPhotosetItems} ${t("defaultheader.days", { count: numPhotosetItems })}, `
+          : ""}
+        {numPhotos} {t(countsVideos ? "defaultheader.videos" : "defaultheader.photos", { count: numPhotos })}
+      </Text>
+      {filterHint}
+      {additionalSubHeader}
+    </div>
+  );
+}
+
 // Its own component so the stats are only fetched once the dropdown is open.
 function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
   const { t } = useTranslation();
@@ -142,47 +207,6 @@ export function DefaultHeader(props: Props) {
 
   // The view switcher marks the view the user is on.
   const currentView = (to: string) => (location.pathname === to ? <Check size={ICON_SIZE.menu} /> : null);
-
-  function getPhotoCounter() {
-    if (loading) {
-      return (
-        <Group gap={6} wrap="nowrap">
-          <Text ta="left" c="dimmed">
-            {t("defaultheader.loading")}
-          </Text>
-          <Loader size="xs" />
-        </Group>
-      );
-    }
-
-    if (numPhotosetItems < 1) {
-      // Don't show "No images found" if an EmptyState will be displayed below
-      if (hasEmptyState) {
-        return null;
-      }
-      return (
-        <div>
-          <Text ta="left" c="dimmed">
-            {t("defaultheader.noimages")}
-          </Text>
-          {filterHint}
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <Text ta="left" c="dimmed">
-          {numPhotosetItems !== numPhotos
-            ? `${numPhotosetItems} ${t("defaultheader.days", { count: numPhotosetItems })}, `
-            : ""}
-          {numPhotos} {t(countsVideos ? "defaultheader.videos" : "defaultheader.photos", { count: numPhotos })}
-        </Text>
-        {filterHint}
-        {additionalSubHeader}
-      </div>
-    );
-  }
 
   if (
     !loading &&
@@ -360,7 +384,17 @@ export function DefaultHeader(props: Props) {
       icon={icon}
       title={titleNode}
       titleOrder={titleOrder}
-      subtitle={getPhotoCounter()}
+      subtitle={
+        <PhotoCounter
+          loading={loading}
+          numPhotosetItems={numPhotosetItems}
+          numPhotos={numPhotos}
+          hasEmptyState={hasEmptyState}
+          countsVideos={countsVideos}
+          filterHint={filterHint}
+          additionalSubHeader={additionalSubHeader}
+        />
+      }
       actions={
         (!hasEmptyState || numPhotosetItems > 0) && date ? (
           <Text style={{ whiteSpace: "nowrap" }}>
