@@ -49,7 +49,7 @@ Select "Search for [your query]" to perform a full search and see all matching r
 Quickly jump to any page in LibrePhotos:
 
 - Photos, Albums, My Albums, People, Places, Things, Tags, Events, Folders
-- Favorites, Hidden, Videos, Trash, Recently Added, No Timestamp, No Location
+- Favorites, Hidden, Videos, Trash, Recently Added, No Timestamp, No Location, Not in an Album
 - Sharing, Faces Dashboard, Statistics — and its sub-pages Place Tree, Word Clouds, Timeline, Social Graph and Face Clusters
 - Settings, Profile, Library, Admin Area
 
