@@ -18,7 +18,7 @@ Quirks deliberately pinned (see inline comments):
 
 from unittest.mock import patch
 
-import PIL
+import PIL.Image
 from django.db.utils import IntegrityError
 from django.test import TestCase, override_settings
 
