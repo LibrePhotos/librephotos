@@ -67,7 +67,7 @@ class AlbumDatePublicLastModifiedTest(TestCase):
         for params in ({"username": self.owner.username}, {}):
             with self.subTest(params=params):
                 listed = self._list(self.anonymous, last_modified=self.past, **params)
-                self.assertEqual({str(self.day.id): 1}, listed)
+                self.assertEqual({self.day.id: 1}, listed)
 
     def test_anonymous_list_honors_last_modified(self):
         Photo.objects.filter(pk=self.public_photo.pk).update(
@@ -96,7 +96,7 @@ class AlbumDatePublicLastModifiedTest(TestCase):
         listed = self._list(
             self.signed_in, username=self.owner.username, last_modified=self.past
         )
-        self.assertEqual({str(self.day.id): 1}, listed)
+        self.assertEqual({self.day.id: 1}, listed)
         items = self._detail_items(
             self.signed_in, username=self.owner.username, last_modified=self.past
         )
@@ -110,7 +110,7 @@ class AlbumDatePublicLastModifiedTest(TestCase):
             "/api/albums/date/list/", {"last_modified": self.past}
         ).json()["results"]
         self.assertEqual(
-            {str(self.day.id): 2, str(self.private_day.id): 1},
+            {self.day.id: 2, self.private_day.id: 1},
             {day["id"]: day["numberOfItems"] for day in response},
         )
         items = client.get(

@@ -7834,7 +7834,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
+            "type": "integer",
             "readOnly": true
           },
           "date": {
@@ -8025,7 +8025,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
+            "type": "integer",
             "readOnly": true
           },
           "title": {
@@ -9181,7 +9181,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
+            "type": "integer",
             "readOnly": true
           },
           "date": {

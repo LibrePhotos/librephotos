@@ -54,7 +54,6 @@ def _place(serializer: serializers.BaseSerializer, obj: AlbumDate) -> str:
 
 
 class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     incomplete = serializers.SerializerMethodField()
@@ -64,9 +63,6 @@ class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AlbumDate
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
-
-    def get_id(self, obj: AlbumDate) -> str:
-        return str(obj.id)
 
     def get_date(self, obj: AlbumDate) -> str | None:
         if obj.date:
@@ -93,7 +89,6 @@ class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
 
 
 class AlbumDateSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     incomplete = serializers.SerializerMethodField()
@@ -103,9 +98,6 @@ class AlbumDateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AlbumDate
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
-
-    def get_id(self, obj: AlbumDate) -> str:
-        return str(obj.id)
 
     def get_date(self, obj: AlbumDate) -> str | None:
         if obj.date:

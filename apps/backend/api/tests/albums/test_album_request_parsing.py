@@ -74,9 +74,7 @@ class DateAlbumQueryTest(TestCase):
         for value in ("true", "True", "1", "yes", "on"):
             with self.subTest(public=value):
                 params = {"public": value}
-                self.assertEqual(
-                    {str(self.day.id): 1}, self._list(self.anonymous, params)
-                )
+                self.assertEqual({self.day.id: 1}, self._list(self.anonymous, params))
                 self.assertEqual(
                     self._ids(self.public_photo), self._items(self.anonymous, params)
                 )
@@ -87,10 +85,10 @@ class DateAlbumQueryTest(TestCase):
             with self.subTest(username=username):
                 params = {"public": "true", "username": username}
                 listed = self._list(self.anonymous, params)
-                self.assertEqual(expected, listed.get(str(self.day.id)))
+                self.assertEqual(expected, listed.get(self.day.id))
 
     def test_no_parameters_is_the_owners_view(self):
-        self.assertEqual({str(self.day.id): 2}, self._list(self.signed_in, {}))
+        self.assertEqual({self.day.id: 2}, self._list(self.signed_in, {}))
         self.assertEqual(
             self._ids(self.public_photo, self.private_photo),
             self._items(self.signed_in, {}),
@@ -110,7 +108,7 @@ class DateAlbumQueryTest(TestCase):
                 "last_modified",
             )
         }
-        self.assertEqual({str(self.day.id): 2}, self._list(self.signed_in, params))
+        self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
         self.assertEqual(
             self._ids(self.public_photo, self.private_photo),
             self._items(self.signed_in, params),
@@ -124,14 +122,12 @@ class DateAlbumQueryTest(TestCase):
         ):
             with self.subTest(flag=flag):
                 params = {flag: "true"}
-                self.assertEqual(
-                    {str(self.day.id): 1}, self._list(self.signed_in, params)
-                )
+                self.assertEqual({self.day.id: 1}, self._list(self.signed_in, params))
                 self.assertEqual(self._ids(photo), self._items(self.signed_in, params))
 
     def test_person_filter(self):
         params = {"person": str(self.person.id)}
-        self.assertEqual({str(self.day.id): 1}, self._list(self.signed_in, params))
+        self.assertEqual({self.day.id: 1}, self._list(self.signed_in, params))
         self.assertEqual(
             self._ids(self.private_photo), self._items(self.signed_in, params)
         )
@@ -150,9 +146,7 @@ class DateAlbumQueryTest(TestCase):
             with self.subTest(last_modified=since):
                 params = {"last_modified": since}
                 # The owner shortcut drops the hidden and trash filters.
-                self.assertEqual(
-                    {str(self.day.id): 4}, self._list(self.signed_in, params)
-                )
+                self.assertEqual({self.day.id: 4}, self._list(self.signed_in, params))
                 self.assertEqual(every_photo, self._items(self.signed_in, params))
         params = {"last_modified": tomorrow.date().isoformat()}
         self.assertEqual({}, self._list(self.signed_in, params))
@@ -164,9 +158,7 @@ class DateAlbumQueryTest(TestCase):
         for value in ("false", "False", "0", "no", "off"):
             with self.subTest(public=value):
                 params = {"public": value}
-                self.assertEqual(
-                    {str(self.day.id): 2}, self._list(self.signed_in, params)
-                )
+                self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
                 self.assertEqual(
                     self._ids(self.public_photo, self.private_photo),
                     self._items(self.signed_in, params),
@@ -180,9 +172,7 @@ class DateAlbumQueryTest(TestCase):
         for flag in ("hidden", "in_trashcan"):
             with self.subTest(flag=flag):
                 params = {flag: "false"}
-                self.assertEqual(
-                    {str(self.day.id): 2}, self._list(self.signed_in, params)
-                )
+                self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
                 self.assertEqual(
                     self._ids(self.public_photo, self.private_photo),
                     self._items(self.signed_in, params),
@@ -247,7 +237,7 @@ class UserAlbumPublicQueryTest(TestCase):
         )
         response = self.signed_in.get(self.url, {"public": "false"})
         self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.album.id), response.json()["id"])
+        self.assertEqual(self.album.id, response.json()["id"])
 
     def test_a_malformed_public_flag_is_a_400(self):
         response = self.anonymous.get(self.url, {"public": "maybe"})

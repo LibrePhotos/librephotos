@@ -77,8 +77,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `image_hash`), and "tag" means the user's `Tag` while OpenCLIP output is a "thing".
   `api/tests/infra/test_api_naming.py` fails on a new camelCase key or `image_hash` route; its legacy lists only shrink.
 - An integer primary key goes out as a number: never redeclare `id` as a `SerializerMethodField` or
-  `CharField` returning `str(obj.id)` (`api/tests/infra/test_integer_primary_keys.py`; its legacy list of six
-  album serializers only shrinks). Clients read the string with `IntegerId` (`packages/api-client/src/schemas/common.ts`).
+  `CharField` returning `str(obj.id)` (`api/tests/infra/test_integer_primary_keys.py`). Clients read the
+  string some older servers send with `IntegerId` (`packages/api-client/src/schemas/common.ts`).
 - A viewset is `viewsets.GenericViewSet` plus only the mixins of the actions a client calls (PATCH
   alone: `PartialUpdateModelMixin` from `api/views/mixins.py`), never `ModelViewSet` or an
   `http_method_names` blocklist. Pin a new route's verbs in `ROUTER_VERBS`

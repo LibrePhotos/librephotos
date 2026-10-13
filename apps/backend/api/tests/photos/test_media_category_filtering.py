@@ -157,7 +157,7 @@ class AlbumDateMediaCategoryFilterTest(TestCase):
 
         resp = self.client.get("/api/albums/date/list/", {"is_screenshot": "true"})
         ids = {row["id"] for row in resp.json()["results"]}
-        self.assertEqual(ids, {str(self.album.id)})
+        self.assertEqual(ids, {self.album.id})
 
 
 class SearchCaptionMediaCategoryTest(TestCase):

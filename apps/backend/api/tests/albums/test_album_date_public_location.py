@@ -57,7 +57,7 @@ class AlbumDatePublicLocationTest(TestCase):
         )
         self.assertEqual(200, response.status_code)
         (day,) = response.json()["results"]
-        self.assertEqual(str(self.day.id), day["id"])
+        self.assertEqual(self.day.id, day["id"])
         return day["location"]
 
     def _public_detail_location(self):

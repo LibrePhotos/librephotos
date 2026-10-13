@@ -42,7 +42,7 @@ class AlbumDetailNotFoundTest(TestCase):
         response = self.client.get(f"/api/albums/thing/{album.id}/")
         self.assertEqual(response.status_code, 200)
         results = response.json()["results"]
-        self.assertEqual(results["id"], str(album.id))
+        self.assertEqual(results["id"], album.id)
         self.assertEqual(results["title"], "beach")
         self.assertIn("grouped_photos", results)
 

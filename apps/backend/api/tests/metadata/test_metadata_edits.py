@@ -86,7 +86,7 @@ class RatingTest(MetadataApiTestCase):
 
         self.assertEqual(favorite_days(), [])
         self.patch_metadata({"rating": 4})
-        self.assertEqual(favorite_days(), [str(day.id)])
+        self.assertEqual(favorite_days(), [day.id])
 
     def test_the_rating_write_is_queued_like_a_favorite(self):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE

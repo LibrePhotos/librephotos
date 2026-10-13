@@ -88,7 +88,7 @@ export const UserAlbumEditResponse = z.looseObject({
 });
 export type UserAlbumEditResponse = z.infer<typeof UserAlbumEditResponse>;
 
-/** `PATCH /albums/user/{id}/` rename: AlbumUserSerializer, whose id is still a string (issue #389). */
+/** `PATCH /albums/user/{id}/` rename: AlbumUserSerializer, whose id servers before #389 send as a string. */
 export const UserAlbumRenameResponse = z.looseObject({
   id: IntegerId,
   title: z.string().optional(),

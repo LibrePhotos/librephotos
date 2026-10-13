@@ -13,7 +13,6 @@ from api.serializers.simple import PhotoSuperSimpleSerializer
 
 
 class GroupedPlacePhotosSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
 
     class Meta:
@@ -23,10 +22,6 @@ class GroupedPlacePhotosSerializer(serializers.ModelSerializer):
             "title",
             "grouped_photos",
         )
-
-    # To-Do: Remove legacy stuff
-    def get_id(self, obj: AlbumPlace) -> str:
-        return str(obj.id)
 
     @extend_schema_field(GroupedPhotosSerializer(many=True))
     def get_grouped_photos(self, obj: AlbumPlace) -> list[dict[str, Any]]:
