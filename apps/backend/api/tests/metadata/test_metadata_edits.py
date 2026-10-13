@@ -497,6 +497,31 @@ class RevertAllTest(MetadataApiTestCase):
         self.assertEqual(data["keywords"], ["from-file"])
         self.assertEqual(data["caption"], "the file's description")
 
+    def test_the_files_text_fields_come_back(self):
+        self.patch_metadata({"title": "T", "copyright": "C", "creator": "A"})
+        file_values = {
+            "XMP:Title": "the file's title",
+            "IPTC:By-line": "the file's creator",
+        }
+
+        def file_metadata(path, tags, **kwargs):
+            return [file_values.get(tag) for tag in tags]
+
+        with (
+            patch("api.metadata.photo_reader.get_metadata", side_effect=file_metadata),
+            patch("api.metadata.edits.get_metadata", side_effect=_no_file_metadata),
+            patch(
+                "api.metadata.photo_datetime.get_metadata",
+                side_effect=_no_file_metadata,
+            ),
+        ):
+            data = self.client.post(f"{self.url}revert-all/").json()
+
+        self.assertEqual(data["title"], "the file's title")
+        self.assertEqual(data["creator"], "the file's creator")
+        # The file has no copyright: the user's goes, nothing replaces it.
+        self.assertIsNone(data["copyright"])
+
 
 class ServiceTest(TestCase):
     """The setters themselves, without the HTTP layer."""

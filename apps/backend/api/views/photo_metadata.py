@@ -164,7 +164,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
 
         # Only edits of a field the metadata API can write are revertible. An
         # "_all" row is the revert-all marker: "reverting" it would setattr a
-        # non-field and record a new "_all" row, which _user_edited would take
+        # non-field and record a new "_all" row, which a rescan would take
         # as a fresh restore-from-file boundary without re-reading the file.
         field_name = edit.field_name
         if field_name not in edits.REVERTIBLE_FIELDS:

@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import numbers
 import uuid
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from fractions import Fraction
 from typing import TYPE_CHECKING
 
@@ -66,11 +66,89 @@ def _text_value(value: object) -> str | None:
     return value.strip() or None
 
 
+# The field name of the "restore from file" marker revert-all records; only
+# edits after the latest one count as the user's (``_fields_edited_by_user``).
+REVERT_ALL = "_all"
+
+# Text cameras write into EXIF:ImageDescription when the user wrote nothing,
+# and which some tools copy on into the XMP or IPTC caption. Never imported as
+# a caption; compared case-insensitively, with runs of whitespace collapsed.
+CAMERA_PLACEHOLDER_DESCRIPTIONS = frozenset(
+    {
+        "olympus digital camera",
+        "sony dsc",
+        "digital camera",
+        "minolta digital camera",
+        "konica minolta digital camera",
+        "samsung camera pictures",
+        "exif_jpeg_picture",
+    }
+)
+
+# The file's caption candidates, best first: the XMP x-default entry, any XMP
+# language entry, the IPTC caption, the EXIF one.
+DESCRIPTION_SOURCES = (
+    "xmp_description",
+    "xmp_description_any_language",
+    "iptc_caption",
+    "image_description",
+)
+
+# The value names (``api.metadata.photo_reader.EXIF_FIELDS``) each free-text
+# PhotoMetadata column is read from, best first.
+TEXT_FIELD_SOURCES: dict[str, tuple[str, ...]] = {
+    "title": ("xmp_title", "xmp_headline", "iptc_object_name"),
+    "creator": ("xmp_creator", "iptc_byline", "exif_artist"),
+    "copyright": ("xmp_rights", "iptc_copyright", "exif_copyright"),
+}
+
+TITLE_MAX_LENGTH = 500
+CREATOR_MAX_LENGTH = 200
+_TEXT_FIELD_MAX_LENGTH = {"title": TITLE_MAX_LENGTH, "creator": CREATOR_MAX_LENGTH}
+
+
+def _texts(value: object) -> list[str]:
+    """The non-empty texts of a tag value, which is a list for a repeated tag."""
+    entries = value if isinstance(value, list) else [value]
+    return [text for text in map(_text_value, entries) if text is not None]
+
+
+def _folded(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def _is_placeholder(text: str, camera: object) -> bool:
+    """A camera's stock description, or one that only names the camera."""
+    folded = _folded(text)
+    if folded in CAMERA_PLACEHOLDER_DESCRIPTIONS:
+        return True
+    return isinstance(camera, str) and folded == _folded(camera)
+
+
 def description_of(values: Mapping[str, object]) -> str | None:
-    """The file's description: x-default first, else any language entry."""
-    return _text_value(values.get("xmp_description")) or _text_value(
-        values.get("xmp_description_any_language")
-    )
+    """The file's description: the first of ``DESCRIPTION_SOURCES`` that is
+    not a camera placeholder."""
+    camera = values.get("camera")
+    for name in DESCRIPTION_SOURCES:
+        for text in _texts(values.get(name)):
+            if not _is_placeholder(text, camera):
+                return text
+    return None
+
+
+def text_fields_of(values: Mapping[str, object]) -> dict[str, str | None]:
+    """The file's title, creator and copyright, each from the first of its
+    ``TEXT_FIELD_SOURCES`` that has one, cut to the column's length.
+
+    A repeated tag (several XMP creators, say) gives its first entry.
+    """
+    found: dict[str, str | None] = {}
+    for field, names in TEXT_FIELD_SOURCES.items():
+        texts = [text for name in names for text in _texts(values.get(name))]
+        text = texts[0] if texts else None
+        limit = _TEXT_FIELD_MAX_LENGTH.get(field)
+        found[field] = text[:limit] if text is not None and limit else text
+    return found
 
 
 def _merge_keywords(*values: object) -> list[str]:
@@ -90,9 +168,21 @@ def _merge_keywords(*values: object) -> list[str]:
     return sorted(merged)
 
 
+def _hierarchy_leaves(value: object) -> list[str]:
+    """The last level of each hierarchical keyword ("Places|USA|San Francisco")."""
+    leaves = [text.rsplit("|", 1)[-1].strip() for text in _texts(value)]
+    return [leaf for leaf in leaves if leaf]
+
+
 def merged_keywords_of(values: Mapping[str, object]) -> list[str]:
-    """The file's keywords: XMP:Subject and IPTC:Keywords, merged."""
-    return _merge_keywords(values.get("xmp_subject"), values.get("iptc_keywords"))
+    """The file's keywords: XMP:Subject, IPTC:Keywords, the XMP PersonInImage
+    names and the leaf of each XMP HierarchicalSubject path, merged."""
+    return _merge_keywords(
+        values.get("xmp_subject"),
+        values.get("iptc_keywords"),
+        values.get("person_in_image"),
+        _hierarchy_leaves(values.get("hierarchical_subject")),
+    )
 
 
 class PhotoMetadata(models.Model):
@@ -191,12 +281,12 @@ class PhotoMetadata(models.Model):
     # ==================== Content Description ====================
     # The caption is PhotoCaption.captions_json["user_caption"], the rating
     # Photo.rating.
-    title = models.CharField(max_length=500, null=True, blank=True)
+    title = models.CharField(max_length=TITLE_MAX_LENGTH, null=True, blank=True)
     keywords = models.JSONField(null=True, blank=True)  # List of strings
 
     # Copyright info
     copyright = models.TextField(null=True, blank=True)
-    creator = models.CharField(max_length=200, null=True, blank=True)
+    creator = models.CharField(max_length=CREATOR_MAX_LENGTH, null=True, blank=True)
 
     # ==================== Tracking ====================
     # Which source this metadata came from
@@ -333,6 +423,22 @@ class PhotoMetadata(models.Model):
         if keywords:
             metadata.keywords = keywords
 
+        PhotoMetadata._apply_text_fields(metadata, values)
+
+    @staticmethod
+    def _apply_text_fields(
+        metadata: PhotoMetadata, values: Mapping[str, object]
+    ) -> None:
+        """Fill title, creator and copyright from the file, except a field the
+        user edited (and did not revert all) since: a rescan keeps theirs."""
+        found = {field: text for field, text in text_fields_of(values).items() if text}
+        if not found:
+            return
+        edited = _fields_edited_by_user(metadata, found)
+        for field, text in found.items():
+            if field not in edited:
+                setattr(metadata, field, text)
+
     @staticmethod
     def _import_description_to_caption(photo: Photo, description: str | None) -> None:
         """Carry a newly found file description over to the lightbox caption.
@@ -378,6 +484,30 @@ class PhotoMetadata(models.Model):
                 "could not import the description of photo %s as its caption",
                 photo.image_hash,
             )
+
+
+def _fields_edited_by_user(metadata: PhotoMetadata, fields: Iterable[str]) -> set[str]:
+    """Which of ``fields`` the user edited after the latest revert-all.
+
+    Every edit sets ``source`` to USER_EDIT and revert-all sets it back, so a
+    photo never edited costs no query.
+    """
+    if metadata.source != PhotoMetadata.Source.USER_EDIT:
+        return set()
+    edits = (
+        MetadataEdit.objects.filter(
+            photo_id=metadata.photo_id,
+            field_name__in=[*fields, REVERT_ALL],
+        )
+        .order_by("-created_at", "-id")
+        .values_list("field_name", flat=True)
+    )
+    edited: set[str] = set()
+    for field_name in edits:
+        if field_name == REVERT_ALL:
+            break
+        edited.add(field_name)
+    return edited
 
 
 class MetadataEdit(models.Model):
