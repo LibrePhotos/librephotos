@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Start the job cleanup service to mark stuck jobs as failed and remove old completed jobs."
+    help = (
+        "Start the job cleanup service to mark stuck jobs as failed, remove old "
+        "completed jobs and delete expired chunked uploads."
+    )
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
         # Schedule hourly cleanup of stuck jobs (running for more than 24 hours)
@@ -26,5 +29,13 @@ class Command(BaseCommand):
             schedule_type=Schedule.DAILY,
         ):
             logger.info("Scheduled daily old job cleanup")
+
+        # Schedule daily removal of cancelled and abandoned chunked uploads
+        # (older than CHUNKED_UPLOAD_EXPIRATION_DELTA, one day by default)
+        if ensure_schedule(
+            "chunked_upload.cleanup.delete_expired_uploads",
+            schedule_type=Schedule.DAILY,
+        ):
+            logger.info("Scheduled daily expired upload cleanup")
 
         logger.info("Job cleanup service started")

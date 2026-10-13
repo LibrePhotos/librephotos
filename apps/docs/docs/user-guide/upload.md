@@ -7,9 +7,22 @@ sidebar_position: 13
 ![](../../static/img/upload-image.png)
 In the top right corner of the web interface, there is an upload button. Clicking it will open a file picker. You can select multiple files and upload them.
 
+You can also drag photos and videos from your computer onto any page of the app (not released yet; up to 1.3.0 only the upload button took dropped files). While you drag, the whole window shows where the files will go: *Drop photos and videos to upload*, or *Add to the running upload* when an upload is already in progress, in which case the new files join the end of the queue. On the profile page, dropping an image on your avatar still sets your avatar instead.
+
 ### What kinds of files are supported?
 
-We accept all files that have a mime type of image or video.
+We accept all files that have a mime type of image or video, plus HEIC, HEIF, JPEG XL, AVIF and camera RAW files (`.arw`, `.cr3`, `.dng`, `.nef`, ...), which some browsers hand over without a mime type. If you drag other files along (a PDF, for example), the overlay says *Only photos and videos can be uploaded*, and only the photos and videos are uploaded.
+
+### Following, cancelling and leaving an upload
+
+While files upload, a card in the bottom right corner lists them with their status. Uploads run one file at a time, and the card stays while you browse other pages.
+
+_Not released yet:_
+
+- **Cancel** in the card stops the upload. The file being sent stops after its current 1 MB chunk, and every file that was not uploaded yet is marked *Cancelled*. Files that already finished stay in your library. **Retry** in the card uploads the cancelled and failed files again, as long as the tab is open.
+- Closing or reloading the tab while an upload runs asks first, with your browser's own *Leave site?* dialog. Moving to another page inside LibrePhotos does not stop the upload.
+- Logging out while an upload runs asks first too: **Stop and log out** cancels the upload, **Keep uploading** keeps it going.
+- A cancelled or abandoned upload leaves a partial file on the server. A daily cleanup on the server deletes them once they are more than a day old. `python manage.py delete_expired_uploads` does the same by hand.
 
 ### How does it work?
 
@@ -34,7 +47,7 @@ The upload behavior depends on whether the user has a scan directory configured:
 #### When scan directory is NOT configured:
 Uploads are blocked and nothing is written to disk.
 
-- If your account has no scan directory set, the upload button is disabled and shows the tooltip *"Scan directory not configured - contact administrator"*.
+- If your account has no scan directory set, the upload button is disabled and shows the tooltip *"Scan directory not configured - contact administrator"*. Files dragged onto the app are not uploaded; the overlay says *Uploading is not set up yet*.
 - If a scan directory is set but the path does not exist on the server, the button stays active, but the upload is rejected once the final chunk is submitted.
 - In both cases the API responds with HTTP 400 — `"Upload failed: No scan directory configured…"` or `"Upload failed: Scan directory '<path>' does not exist…"` — and no file is saved.
 

@@ -3,13 +3,28 @@ import CryptoJS from "crypto-js";
 // < 1MB chunks, because of the nginx default client_max_body_size
 const CHUNK_SIZE = 1000000;
 
-export function calculateMD5(file: File): Promise<string> {
+/** Thrown when the user cancels the upload of the file being hashed or sent. */
+export class UploadCancelledError extends Error {
+  constructor() {
+    super("Upload cancelled");
+    this.name = "UploadCancelledError";
+  }
+}
+
+/**
+ * MD5 of the whole file, read in 25 MB slices. `isCancelled` is asked between
+ * slices, so a cancelled upload stops hashing a large video within one slice.
+ */
+export function calculateMD5(
+  file: File,
+  isCancelled: () => boolean = () => false,
+  blockSize: number = 25 * 1024 * 1024
+): Promise<string> {
   // An empty file has nothing to read; onload would see "" and never settle.
   if (file.size === 0) {
     return Promise.resolve(CryptoJS.algo.MD5.create().finalize().toString(CryptoJS.enc.Hex));
   }
   const reader = new FileReader();
-  const blockSize = 25 * 1024 * 1024;
   let offset = 0;
   const md5 = CryptoJS.algo.MD5.create();
   return new Promise<string>((resolve, reject) => {
@@ -35,6 +50,10 @@ export function calculateMD5(file: File): Promise<string> {
       md5.update(CryptoJS.enc.Latin1.parse(result));
       if (offset >= file.size) {
         resolve(md5.finalize().toString(CryptoJS.enc.Hex));
+        return;
+      }
+      if (isCancelled()) {
+        reject(new UploadCancelledError());
         return;
       }
       readNext();
