@@ -37,6 +37,17 @@ if TYPE_CHECKING:
 
     from api.models.photo import Photo
 
+# The frames of a sequence in the order they were taken, as
+# api.stacks.burst_rules.frame_order sorts them. exif_timestamp has whole
+# seconds; the SubSecTimeOriginal digits sort as text the way the fractions
+# they stand for do ("15" < "2").
+FRAME_ORDER = (
+    models.F("exif_timestamp").asc(nulls_first=True),
+    models.F("exif_timestamp_subsec").asc(nulls_first=True),
+    models.F("image_sequence_number").asc(nulls_first=True),
+    "main_file__path",
+)
+
 
 class PhotoStackQuerySet(OwnedQuerySet["PhotoStack"]):
     """Scoped to its owner through ``owner``."""
@@ -155,12 +166,12 @@ class PhotoStack(models.Model):
 
         if self.stack_type == self.StackType.BURST_SEQUENCE:
             # Pick middle of sequence by timestamp
-            ordered = photos.order_by("exif_timestamp")
+            ordered = photos.order_by(*FRAME_ORDER)
             count = ordered.count()
             best = ordered[count // 2] if count > 0 else None
         elif self.stack_type == self.StackType.EXPOSURE_BRACKET:
             # Pick middle exposure (usually the "correct" exposure)
-            ordered = photos.order_by("exif_timestamp")
+            ordered = photos.order_by(*FRAME_ORDER)
             count = ordered.count()
             best = ordered[count // 2] if count > 0 else None
         elif self.stack_type == self.StackType.RAW_JPEG_PAIR:

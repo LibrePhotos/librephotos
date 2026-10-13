@@ -160,7 +160,8 @@ class BurstDetectionRuleTestCase(TestCase):
         self.assertIn(Tags.CONTINUOUS_DRIVE, tags)
 
     def test_get_required_exif_tags_sequence_number(self):
-        """Test required tags for sequence number rule."""
+        """The sequence rule reads the sequence number only: the sub-second
+        time and the image number come from the Photo, stored by the scan."""
         from api.metadata.tags import Tags
 
         rule = BurstDetectionRule(
@@ -170,8 +171,7 @@ class BurstDetectionRuleTestCase(TestCase):
             }
         )
         tags = rule.get_required_exif_tags()
-        self.assertIn(Tags.SEQUENCE_NUMBER, tags)
-        self.assertIn(Tags.IMAGE_NUMBER, tags)
+        self.assertEqual({Tags.SEQUENCE_NUMBER}, tags)
 
     def test_get_required_exif_tags_with_condition(self):
         """Test required tags includes condition tag."""
@@ -406,7 +406,7 @@ class ExifSequenceNumberRuleTestCase(TestCase):
         self.assertIn("seq_", group_key)
 
     def test_sequence_number_zero(self):
-        """Test detection with sequence number 0."""
+        """Sequence number 0 is a single shot (Sony, FujiFilm), not a burst."""
         from api.metadata.tags import Tags
 
         rule = BurstDetectionRule(
@@ -419,7 +419,7 @@ class ExifSequenceNumberRuleTestCase(TestCase):
         photo = self._create_mock_photo()
 
         is_burst, _ = rule.is_burst_photo(photo, {Tags.SEQUENCE_NUMBER: "0"})
-        self.assertTrue(is_burst)
+        self.assertFalse(is_burst)
 
     def test_invalid_sequence_number(self):
         """Test no detection with invalid sequence number."""
@@ -605,9 +605,13 @@ class GroupPhotosByTimestampTestCase(TestCase):
         """Create a mock photo with timestamp and metadata."""
         photo = MagicMock()
         photo.exif_timestamp = timestamp
+        photo.exif_timestamp_subsec = None
+        photo.image_sequence_number = None
+        photo.main_file = None
         photo.metadata = MagicMock()
         photo.metadata.camera_make = camera_make
         photo.metadata.camera_model = camera_model
+        photo.metadata.serial_number = None
         return photo
 
     def test_group_consecutive_photos(self):
@@ -670,7 +674,7 @@ class GroupPhotosByTimestampTestCase(TestCase):
         self.assertEqual(groups, [])
 
     def test_require_same_camera(self):
-        """Test same camera requirement."""
+        """Each camera's photos are grouped on their own."""
         base_time = datetime(2024, 1, 1, 12, 0, 0)
         photos = [
             self._create_mock_photo(base_time, "Canon", "EOS"),
@@ -685,8 +689,8 @@ class GroupPhotosByTimestampTestCase(TestCase):
         # With same camera requirement
         groups = group_photos_by_timestamp(photos, require_same_camera=True)
 
-        # Different cameras break the group
-        self.assertEqual(len(groups), 0)
+        # The Nikon shot between them does not split the Canon burst.
+        self.assertEqual([[photos[0], photos[2]]], groups)
 
     def test_without_camera_requirement(self):
         """Test grouping without camera requirement."""
