@@ -671,7 +671,6 @@ def create_new_image(user: User, path: str) -> Photo | None:
 def apply_device_timestamp_fallback(
     photo: Photo | None,
     device_created_at: datetime.datetime | None,
-    device_modified_at: datetime.datetime | None = None,
 ) -> Photo | None:
     """Fallback timestamp for EXIF-less uploads (doc 04 §5, issue #614).
 
@@ -680,8 +679,8 @@ def apply_device_timestamp_fallback(
     upload endpoint forwards the device's ``device_created_at``; if the normal
     EXIF extraction found no date, adopt it as the photo's timestamp.
 
-    ``device_created_at`` is a timezone-aware ``datetime`` (already parsed by
-    the view). Runs after ``handle_new_image`` so it can see the extraction
+    ``device_created_at`` is the local wall clock labelled UTC, like every
+    stored capture time (``api.views.upload.parse_device_timestamp``). Runs after ``handle_new_image`` so it can see the extraction
     result; feeding the value through ``timestamp`` lets the USER_DEFINED
     datetime rule pick it up and build the date album, exactly as a manual
     correction would.

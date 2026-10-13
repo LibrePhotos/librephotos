@@ -44,6 +44,11 @@ Assembles the uploaded chunks into a single file and imports it.
 - `upload_id` - The id of the upload
 - `md5` - Just the md5 hash of whole file
 - `filename` - The original filename
+- `device_created_at` (optional) - When the device says the photo was taken, used as its date only when the file carries none (screenshots, images saved from messengers). Epoch milliseconds (an integer of at least 11 digits) or ISO 8601. An ISO value keeps its wall-clock time: `2025-10-11T21:30:00-07:00` is stored as 21:30 on 11 October, like a camera's local `DateTimeOriginal`.
+- `device_modified_at` (optional) - The same, used when `device_created_at` is missing or unusable.
+- `device_tz_offset` (optional) - The device's UTC offset in minutes east of UTC at that moment (`-420` for UTC-7; the opposite sign of JavaScript's `getTimezoneOffset()`). Epoch milliseconds carry no time zone: they are shown at this offset, or in the owner's default time zone when it is not sent.
+
+A shorter number or a value that does not parse is ignored. _Not released yet:_ before this, epoch milliseconds were stored as UTC time and ISO values as their UTC instant, so these photos could land on the wrong day.
 
 #### Headers:
 

@@ -1,9 +1,11 @@
 import datetime
 import logging
 import os
+import re
 import shutil
 from collections.abc import Mapping
 from typing import cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from constance import config as site_config
 from django.core.files.base import ContentFile
@@ -12,7 +14,6 @@ from django.db.models import QuerySet
 from django.db.models.fields.files import FieldFile
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
@@ -42,28 +43,72 @@ from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 logger = logging.getLogger(__name__)
 
 
-def parse_device_timestamp(raw: str | int | None) -> datetime.datetime | None:
-    """Parse a client-supplied timestamp (doc 04 §5).
+# Epoch milliseconds have at least 11 digits from 1970-04-26 on; a shorter
+# number is a compact date ("20251011") or garbage, not a 1970 timestamp.
+_EPOCH_MS = re.compile(r"-?\d{11,}")
+_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+# UTC offsets in use run from -12:00 to +14:00.
+_MAX_UTC_OFFSET_MINUTES = 14 * 60
 
-    Accepts either epoch milliseconds (int/str) or an ISO-8601 string. Returns
-    a timezone-aware UTC ``datetime`` or ``None`` when absent/unparseable.
+
+def parse_utc_offset(raw: str | None) -> datetime.timedelta | None:
+    """A client's UTC offset in minutes east of UTC (``-420`` for UTC-7, the
+    sign of ISO 8601, not of JavaScript's ``getTimezoneOffset()``), or None
+    when absent or out of range."""
+    if raw is None or not re.fullmatch(r"[+-]?\d{1,4}", raw.strip()):
+        return None
+    minutes = int(raw)
+    if abs(minutes) > _MAX_UTC_OFFSET_MINUTES:
+        return None
+    return datetime.timedelta(minutes=minutes)
+
+
+def parse_device_timestamp(
+    raw: str | int | None,
+    utc_offset: datetime.timedelta | None = None,
+    default_timezone: str = "UTC",
+) -> datetime.datetime | None:
+    """The local time a client says a photo was taken (doc 04 §5), or None
+    when absent or unparseable.
+
+    Returned as the local wall clock labelled UTC, as ``Photo.timestamp`` and
+    ``exif_timestamp`` hold every capture time:
+
+    - ISO 8601 with an offset or ``Z``: the wall clock in that offset;
+    - ISO 8601 without one: the wall clock as given;
+    - epoch milliseconds (an integer of 11 digits or more): an instant with no
+      zone, shown at ``utc_offset`` when the client sent it, else in the
+      owner's ``default_timezone``.
     """
-    if raw is None or raw == "":
+    if raw is None:
         return None
+    text = str(raw).strip()
+    if _EPOCH_MS.fullmatch(text):
+        try:
+            instant = _EPOCH + datetime.timedelta(milliseconds=int(text))
+        except OverflowError:
+            return None
+        if utc_offset is not None:
+            local = instant + utc_offset
+        else:
+            local = instant.astimezone(_zone(default_timezone))
+        return local.replace(tzinfo=datetime.timezone.utc)
+    if text.lstrip("+-").isdigit():
+        # Too short for epoch milliseconds. Python 3.11 would read eight
+        # digits as an ISO basic date, 3.10 (the GPU image) would not.
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=datetime.timezone.utc)
 
-    # epoch milliseconds
+
+def _zone(name: str) -> datetime.tzinfo:
     try:
-        ms = int(raw)
-        return datetime.datetime.fromtimestamp(ms / 1000, tz=datetime.timezone.utc)
-    except (TypeError, ValueError):
-        pass
-    try:
-        parsed = datetime.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-    except (TypeError, ValueError):
-        return None
-    if parsed.tzinfo is None:
-        parsed = timezone.make_aware(parsed, datetime.timezone.utc)
-    return parsed
+        return ZoneInfo(name or "UTC")
+    except (ZoneInfoNotFoundError, ValueError):
+        return datetime.timezone.utc
 
 
 def generate_captions_wrapper(photo: Photo, commit: bool = True) -> None:
@@ -245,7 +290,6 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         photo_path: str,
         image_hash: str,
         device_created_at: datetime.datetime | None = None,
-        device_modified_at: datetime.datetime | None = None,
     ) -> None:
         photo = create_new_image(user, photo_path)
         enqueue_task_chain(
@@ -253,7 +297,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
                 Task(handle_new_image, (user, photo_path, image_hash, photo)),
                 Task(
                     apply_device_timestamp_fallback,
-                    (photo, device_created_at, device_modified_at),
+                    (photo, device_created_at),
                 ),
                 Task(generate_captions_wrapper, (photo, True)),
                 Task(geolocate_photo, (photo,)),
@@ -299,16 +343,18 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
             )
 
         # Optional client-supplied capture time, used as a timestamp fallback
-        # for photos that carry no EXIF date (doc 04 §5, issue #614).
+        # for photos that carry no EXIF date (doc 04 §5, issue #614); the
+        # modification time stands in when the device has no creation time.
+        utc_offset = parse_utc_offset(request.POST.get("device_tz_offset"))
+        device_time = parse_device_timestamp(
+            request.POST.get("device_created_at"), utc_offset, user.default_timezone
+        ) or parse_device_timestamp(
+            request.POST.get("device_modified_at"), utc_offset, user.default_timezone
+        )
         self.import_photo(
             user,
             photo_path,
             image_hash,
-            device_created_at=parse_device_timestamp(
-                request.POST.get("device_created_at")
-            ),
-            device_modified_at=parse_device_timestamp(
-                request.POST.get("device_modified_at")
-            ),
+            device_created_at=device_time,
         )
         return None
