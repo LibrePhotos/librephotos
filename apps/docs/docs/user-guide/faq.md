@@ -75,7 +75,7 @@ You can set the scan directory as read-only, but then a couple of features will 
 - Uploading images
 - Deleting images
 
-This is not yet handled gracefully, which means, you will probably just get non-descriptive errors, when you are trying to use these features.
+This is not yet handled gracefully for uploads and deletions, which means, you will probably just get non-descriptive errors there. A metadata write that fails keeps your edit in LibrePhotos and is reported instead: see [Writes that fail](exif-data.md#writes-that-fail).
 
 ## Videos are not playing and showing a 404 error
 

@@ -38,6 +38,7 @@ from api.faces.photo_faces import (
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
 from api.metadata.photo_writer import write_photo_metadata, write_target
+from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.models import Face, LongRunningJob, Photo
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
@@ -307,6 +308,36 @@ class FaceIncompleteListViewSet(ListViewSet):
         return Response(real_persons, status=status.HTTP_200_OK)
 
 
+def _write_face_tags(photo: Photo, use_sidecar: bool) -> str | None:
+    """Write the photo's face regions to disk; why that failed, or None.
+
+    The faces are saved either way: a file LibrePhotos cannot write (a
+    read-only library) does not undo the user's labelling.
+    """
+    try:
+        write_photo_metadata(
+            photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
+        )
+    except MetadataWriteError as error:
+        logger.warning(
+            "The face tags of photo %s were not written: %s", photo.image_hash, error
+        )
+        return str(error)
+    except Exception:
+        logger.exception("Failed to write face tags for photo %s", photo.image_hash)
+        return "the face tags could not be written to the file"
+    return None
+
+
+def _summarize_write_errors(errors: list[str], photos: int) -> str | None:
+    """One message for the face-tag writes that failed, or None."""
+    if not errors:
+        return None
+    if len(errors) == 1 and photos == 1:
+        return errors[0]
+    return f"{len(errors)} of {photos} photos were not written: {errors[0]}"
+
+
 class SetFacePersonLabel(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -424,19 +455,14 @@ class SetFacePersonLabel(APIView):
 
         # Write face regions to the sidecar or the file if the user opted in to
         # both face tags and syncing metadata to disk (#2293).
+        write_errors: list[str] = []
         use_sidecar = write_target(user)
         if user.save_face_tags_to_disk and use_sidecar is not None:
-            for photo in updated_photos.values():
-                try:
-                    write_photo_metadata(
-                        photo,
-                        use_sidecar=use_sidecar,
-                        metadata_types=["face_tags"],
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to write face tags for photo %s", photo.image_hash
-                    )
+            with one_exiftool_process():
+                for photo in updated_photos.values():
+                    error = _write_face_tags(photo, use_sidecar)
+                    if error is not None:
+                        write_errors.append(error)
 
         return Response(
             {
@@ -444,6 +470,11 @@ class SetFacePersonLabel(APIView):
                 "results": updated,
                 "updated": updated,
                 "not_updated": not_updated,
+                # The labels are saved; their face tags did not reach these
+                # files (#2294).
+                "write_error": _summarize_write_errors(
+                    write_errors, len(updated_photos)
+                ),
             }
         )
 
@@ -594,20 +625,15 @@ class AddFaceView(APIView):
         photo.refresh_from_db()
         SetFacePersonLabel._recreate_search_captions([photo])
 
+        write_error = None
         use_sidecar = write_target(user)
         if user.save_face_tags_to_disk and use_sidecar is not None:
-            try:
-                write_photo_metadata(
-                    photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to write face tags for photo %s", photo.image_hash
-                )
+            write_error = _write_face_tags(photo, use_sidecar)
 
         return Response(
             {
                 "status": True,
+                "write_error": write_error,
                 "face": {
                     "face_id": face.id,
                     "face_url": face.image.url,

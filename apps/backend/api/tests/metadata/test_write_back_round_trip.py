@@ -30,7 +30,7 @@ from api.metadata.photo_reader import extract_exif_data
 from api.metadata.photo_writer import rotate_photo, write_photo_metadata
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
-from api.metadata.writer import write_metadata
+from api.metadata.writer import MetadataWriteError, write_metadata
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User
@@ -678,7 +678,7 @@ EXERCISED_WRITERS = {
     "api.metadata.photo_writer.write_photo_metadata": (
         "RatingRoundTripTest, DateRoundTripTest, FaceTagRoundTripTest"
     ),
-    "api.metadata.photo_writer.write_orientation_to_disk": "RotationRoundTripTest",
+    "api.metadata.photo_writer._write_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",
 }
 
@@ -724,8 +724,8 @@ class WriteTargetGuardTest(RealExifToolTestCase):
     """Every tag a write path emits must end up in the file it was aimed at.
 
     ExifTool reports a tag it cannot store in the target (``EXIF:Orientation``
-    in an ``.xmp``) on stdout and PyExifTool does not raise, so such a write
-    passed every mocked test. ``RecordingExifTool`` reads each written target
+    in an ``.xmp``) only on stdout, so such a write passed every mocked test
+    (``write_metadata`` raises on it since #2294). ``RecordingExifTool`` reads each written target
     back; this class runs every write path once and fails on any write that
     did not land.
     """
@@ -787,10 +787,12 @@ class WriteTargetGuardTest(RealExifToolTestCase):
         path = self.make_image(".jpg")
 
         # No sidecar yet: ExifTool has nothing it can write and creates none.
-        write_metadata(path, {Tags.ORIENTATION: 6}, use_sidecar=True)
+        with self.assertRaises(MetadataWriteError):
+            write_metadata(path, {Tags.ORIENTATION: 6}, use_sidecar=True)
         # An existing sidecar: "1 image files unchanged".
         write_metadata(path, {Tags.RATING: 2}, use_sidecar=True)
-        write_metadata(path, {Tags.ORIENTATION: 6}, use_sidecar=True)
+        with self.assertRaises(MetadataWriteError):
+            write_metadata(path, {Tags.ORIENTATION: 6}, use_sidecar=True)
 
         first, rating, second = self.exiftool.writes
         self.assertEqual([], rating.problems)

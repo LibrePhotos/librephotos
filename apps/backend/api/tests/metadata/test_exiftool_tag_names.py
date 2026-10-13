@@ -22,7 +22,7 @@ from django.test import SimpleTestCase, TestCase
 from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.reader import sidecar_for_write
 from api.metadata.tags import Tags
-from api.metadata.writer import write_metadata
+from api.metadata.writer import MetadataWriteError, write_metadata
 from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -215,10 +215,14 @@ class TimestampWriteBackRoundTripTest(TestCase):
             "2005:01:02 03:04:05", read_tag(image, Tags.DATE_TIME_ORIGINAL)
         )
 
-    def test_write_metadata_writes_nothing_for_an_unknown_tag(self):
-        """Documents the failure mode this module exists to catch."""
+    def test_write_metadata_raises_for_an_unknown_tag(self):
+        """The failure mode this module exists to catch; it raises since #2294."""
         image = make_jpeg(self.directory, "bogus.jpg")
 
-        write_metadata(image, {"EXIF:DateTime": TIMESTAMP_EXIFTOOL}, use_sidecar=False)
+        with self.assertRaises(MetadataWriteError) as raised:
+            write_metadata(
+                image, {"EXIF:DateTime": TIMESTAMP_EXIFTOOL}, use_sidecar=False
+            )
 
+        self.assertIn("EXIF:DateTime", str(raised.exception))
         self.assertEqual("", read_tag(image, "EXIF:ModifyDate"))

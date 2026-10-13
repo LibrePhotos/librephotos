@@ -43,16 +43,36 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
         )
 
 
-def write_photo_ratings(photo_ids: list[uuid.UUID], use_sidecar: bool) -> None:
-    """Write each photo's current rating to its file or sidecar."""
+def write_photo_ratings(photo_ids: list[uuid.UUID], use_sidecar: bool) -> int:
+    """Write each photo's current rating to its file or sidecar.
+
+    One ExifTool process writes them all. A photo whose write fails is
+    logged and skipped; returns how many failed.
+    """
     from api.metadata.photo_writer import write_photo_metadata
+    from api.metadata.writer import MetadataWriteError, one_exiftool_process
     from api.models import Photo
 
     photos = Photo.objects.filter(id__in=photo_ids).select_related("main_file")
-    for photo in photos.iterator():
-        try:
-            write_photo_metadata(
-                photo, modified_fields=["rating"], use_sidecar=use_sidecar
-            )
-        except Exception:
-            logger.exception("Failed to write the rating of photo %s", photo.image_hash)
+    failures = 0
+    with one_exiftool_process():
+        for photo in photos.iterator():
+            try:
+                write_photo_metadata(
+                    photo, modified_fields=["rating"], use_sidecar=use_sidecar
+                )
+            except MetadataWriteError as error:
+                failures += 1
+                logger.warning(
+                    "The rating of photo %s was not written: %s",
+                    photo.image_hash,
+                    error,
+                )
+            except Exception:
+                failures += 1
+                logger.exception(
+                    "Failed to write the rating of photo %s", photo.image_hash
+                )
+    if failures:
+        logger.warning("%s of %s rating writes failed", failures, len(photo_ids))
+    return failures
