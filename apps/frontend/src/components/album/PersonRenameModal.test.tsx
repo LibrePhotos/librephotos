@@ -1,22 +1,33 @@
 /**
  * Renaming a person from the people page. The backend refuses a blank name and nothing would
  * report it, so Rename stays disabled for one; a name another person has (trimmed, any case) is
- * refused with an error; the new name is handed back trimmed; Enter renames too; and every
- * opening starts with an empty name.
+ * refused with an error and offers to merge into that person (#2206), which runs after a
+ * confirmation; the new name is handed back trimmed; Enter renames too; and every opening starts
+ * with an empty name.
  */
 import { MantineProvider } from "@mantine/core";
+import { QueryClient } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { useMergePersonMutation } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { PersonRenameModal } from "./PersonRenameModal";
 
+type Merge = ReturnType<typeof useMergePersonMutation>["mutate"];
+
+const stubs = vi.hoisted(() => ({ merge: vi.fn<Merge>() }));
+
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/albums/hooks", () => ({
+  useMergePersonMutation: () => ({ mutate: stubs.merge, isPending: false }),
+}));
 
 const person = { id: "7", name: "Sofia", video: false, face_count: 3, face_photo_url: "/f", face_url: "/f" };
 const onClose = vi.fn<() => void>();
 const onSubmit = vi.fn<(newName: string) => void>();
+const onMerged = vi.fn<(targetId: string) => void>();
 
 let root: Root;
 let container: HTMLDivElement;
@@ -58,8 +69,12 @@ async function renderDialog(opened: boolean) {
           opened={opened}
           onClose={onClose}
           person={person}
-          existingNames={["Sofia", " Miguel "]}
+          people={[
+            { id: "7", name: "Sofia" },
+            { id: "8", name: "Miguel" },
+          ]}
           onSubmit={onSubmit}
+          onMerged={onMerged}
         />
       </MantineProvider>
     );
@@ -67,11 +82,9 @@ async function renderDialog(opened: boolean) {
 }
 
 const input = () => defined(container.querySelector<HTMLInputElement>("input"), "the name input");
-const renameButton = () =>
-  defined(
-    Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === "Rename"),
-    "the Rename button"
-  );
+const findButton = (text: string) =>
+  Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === text);
+const renameButton = () => defined(findButton("Rename"), "the Rename button");
 // React tracks the previous value on the node itself, so a plain assignment is swallowed.
 const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
 
@@ -102,14 +115,60 @@ describe("PersonRenameModal", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("refuses a name another person has, trimmed and in any case", async () => {
+  it("refuses a name another person has, trimmed and in any case, and offers a merge", async () => {
     await renderDialog(true);
     await type(" miguel ");
 
     expect(container.textContent).toContain("Person miguel already exists.");
-    expect(renameButton().disabled).toBe(true);
+    expect(findButton("Rename")).toBeUndefined();
+    expect(findButton("Merge into Miguel")).toBeDefined();
+    // Enter never merges: that takes the button and a confirmation
     await pressEnter();
     expect(onSubmit).not.toHaveBeenCalled();
+    expect(stubs.merge).not.toHaveBeenCalled();
+  });
+
+  it("does not offer to merge a person into themselves", async () => {
+    await renderDialog(true);
+    await type("SOFIA");
+
+    expect(container.textContent).toContain("Person SOFIA already exists.");
+    expect(renameButton().disabled).toBe(true);
+    expect(findButton("Merge into Sofia")).toBeUndefined();
+  });
+
+  it("merges into the person with that name after a confirmation", async () => {
+    await renderDialog(true);
+    await type("miguel");
+    await act(async () => defined(findButton("Merge into Miguel"), "the merge button").click());
+
+    // The rename dialog gives way to the confirmation
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await renderDialog(false);
+    expect(container.textContent).toContain("Merge Sofia into Miguel?");
+    expect(container.textContent).toContain("All 3 faces of Sofia move to Miguel.");
+    expect(container.textContent).toContain("Miguel keeps their name and cover photo.");
+    expect(stubs.merge).not.toHaveBeenCalled();
+
+    await act(async () => defined(findButton("Merge people"), "the confirm button").click());
+
+    expect(stubs.merge).toHaveBeenCalledTimes(1);
+    const [params, options] = defined(stubs.merge.mock.calls[0]);
+    expect(params).toEqual({ targetId: "8", targetName: "Miguel", sourceId: "7", sourceName: "Sofia" });
+    const answer = { moved: 3, photo_count: 3, write_queued: false };
+    act(() => options?.onSuccess?.(answer, params, undefined, { client: new QueryClient(), meta: undefined }));
+    expect(onMerged).toHaveBeenCalledWith("8");
+  });
+
+  it("does not merge when the confirmation is cancelled", async () => {
+    await renderDialog(true);
+    await type("Miguel");
+    await act(async () => defined(findButton("Merge into Miguel"), "the merge button").click());
+    await renderDialog(false);
+    await act(async () => defined(findButton("Cancel"), "the cancel button").click());
+
+    expect(stubs.merge).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("Merge Sofia into Miguel?");
   });
 
   it("hands back the trimmed name and closes", async () => {

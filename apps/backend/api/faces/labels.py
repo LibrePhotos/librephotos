@@ -14,9 +14,11 @@ import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 
+from api.jobs.queue import enqueue_task
 from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.models.face import Face, FaceQuerySet
@@ -37,16 +39,27 @@ class RelabelResult:
     # The labels are saved either way; this says which face tags did not
     # reach their files (#2294), or None.
     write_error: str | None
+    # The face tags go to disk in the background instead (``queue_write``).
+    write_queued: bool = False
 
 
 def relabel_faces(
-    user: User, faces: FaceQuerySet, person: Person | None
+    user: User,
+    faces: FaceQuerySet,
+    person: Person | None,
+    *,
+    queue_write: bool = False,
 ) -> RelabelResult:
     """Give ``faces`` the person ``person``, or send them back to unknown.
 
     Only the requester's own faces are touched, whatever ``faces`` selects.
     ``person=None`` is "not this person": the cluster and classifier
     suggestions go too, so the face lands in the unknown faces.
+
+    ``queue_write`` writes the face tags in the background once the
+    transaction commits, for a relabel whose size has no bound (a merge
+    moves every face of a person): one ExifTool write per photo is the slow
+    part, and a few thousand of them would run into the gateway timeout.
     """
     # Everything below is pulled in up front: rebuilding the search captions
     # needs the caption, metadata and file rows of every photo. Fetching them
@@ -81,6 +94,10 @@ def relabel_faces(
 
     photos = _photos_of(loaded)
     recreate_search_captions(photos)
+    if queue_write:
+        return RelabelResult(
+            loaded, photos, None, write_queued=queue_face_tags_write(user, photos)
+        )
     return RelabelResult(loaded, photos, write_face_tags_of(user, photos))
 
 
@@ -162,12 +179,10 @@ def recreate_search_captions(photos: list[Photo]) -> None:
 def write_face_tags_of(user: User, photos: list[Photo]) -> str | None:
     """Write the face regions of ``photos`` to disk if the user opted in.
 
-    Both switches have to be on: face tags, and syncing metadata to disk
-    (``write_target`` is None when that is off, #2293). Returns why some
-    writes failed, or None.
+    Returns why some writes failed, or None.
     """
-    use_sidecar = write_target(user)
-    if not photos or not user.save_face_tags_to_disk or use_sidecar is None:
+    use_sidecar = _writes_face_tags(user, photos)
+    if use_sidecar is None:
         return None
     errors: list[str] = []
     with one_exiftool_process():
@@ -176,6 +191,49 @@ def write_face_tags_of(user: User, photos: list[Photo]) -> str | None:
             if error is not None:
                 errors.append(error)
     return summarize_write_errors(errors, len(photos))
+
+
+def _writes_face_tags(user: User, photos: list[Photo]) -> bool | None:
+    """The ``use_sidecar`` of a face tag write, or None when nothing is written.
+
+    Both switches have to be on: face tags, and syncing metadata to disk
+    (``write_target`` is None when that is off, #2293).
+    """
+    if not photos or not user.save_face_tags_to_disk:
+        return None
+    return write_target(user)
+
+
+def queue_face_tags_write(user: User, photos: list[Photo]) -> bool:
+    """Write the face regions of ``photos`` in the background if the user opted in.
+
+    Queued when the transaction commits, so the worker reads the new labels.
+    Returns whether a write was queued.
+    """
+    if _writes_face_tags(user, photos) is None:
+        return False
+    photo_ids = [photo.pk for photo in photos]
+    transaction.on_commit(
+        lambda: enqueue_task(write_face_tags_later, user.pk, photo_ids)
+    )
+    return True
+
+
+def write_face_tags_later(user_id: int, photo_ids: list[uuid.UUID]) -> str | None:
+    """The queued half of ``queue_face_tags_write``; why some writes failed, or None.
+
+    Each failure is logged by ``write_face_tags``. The settings are read again:
+    the user may have turned the write-back off since.
+    """
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        return None
+    photos = list(
+        Photo.objects.owned_by(user)
+        .filter(pk__in=photo_ids)
+        .select_related("main_file")
+    )
+    return write_face_tags_of(user, photos)
 
 
 def write_face_tags(photo: Photo, use_sidecar: bool) -> str | None:

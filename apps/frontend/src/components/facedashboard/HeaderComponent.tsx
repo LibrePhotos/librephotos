@@ -18,7 +18,7 @@ import {
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
-import { PersonRenameForm } from "../album/PersonRenameModal";
+import { PersonRenameModal } from "../album/PersonRenameModal";
 import { canConfirmFace, isNamedPerson } from "./faceActionRules";
 import classes from "./HeaderComponent.module.css";
 import { useFocusOnMount } from "./hooks/useFocusOnMount";
@@ -186,22 +186,21 @@ export function HeaderComponent({
       </Group>
 
       <Divider />
-      <Modal
-        title={t("personalbum.renameperson")}
-        onClose={closeRenameDialog}
+      <PersonRenameModal
         opened={renameDialogVisible}
-        returnFocus={false}
-      >
-        <PersonRenameForm
-          existingNames={albums?.map(album => album.name) ?? []}
-          placeholder={personName}
-          onSubmit={newPersonName => {
-            renamePerson({ id: personID, personName, newPersonName });
-            closeRenameDialog();
-          }}
-          onCancel={closeRenameDialog}
-        />
-      </Modal>
+        onClose={closeRenameDialog}
+        // The people list has the avatar and the count the merge offer names
+        person={
+          albums?.find(album => album.id === personID) ?? {
+            id: personID,
+            name: personName,
+            face_url: "",
+            face_count: 0,
+          }
+        }
+        people={albums ?? []}
+        onSubmit={newPersonName => renamePerson({ id: personID, personName, newPersonName })}
+      />
       <Modal
         opened={deleteDialogVisible}
         title={t("personalbum.deleteperson")}

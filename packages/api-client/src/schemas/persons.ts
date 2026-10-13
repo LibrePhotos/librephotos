@@ -44,5 +44,16 @@ export const PersonRemovePhotosResponse = z.object({
 });
 export type PersonRemovePhotosResponse = z.infer<typeof PersonRemovePhotosResponse>;
 
+/** `POST /persons/{id}/merge/`: the other person's faces moved here and that person is gone. */
+export const PersonMergeResponse = z.object({
+  /** How many faces moved over. */
+  moved: z.number(),
+  /** How many photos now show this person instead. */
+  photo_count: z.number(),
+  /** Whether the face tags are being written to the files in the background. */
+  write_queued: z.boolean(),
+});
+export type PersonMergeResponse = z.infer<typeof PersonMergeResponse>;
+
 export type DeletePersonAlbumParams = { id: number; name: string };
 export type SetPersonAlbumCoverParams = { person_id: number; photo: string };

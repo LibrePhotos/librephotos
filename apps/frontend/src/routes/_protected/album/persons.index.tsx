@@ -192,7 +192,7 @@ function AlbumPeople() {
         opened={renameDialogVisible}
         onClose={closeRenameDialog}
         person={selectedAlbum}
-        existingNames={(albums ?? []).map(album => album.name)}
+        people={albums ?? []}
         onSubmit={newPersonName => {
           renamePersonMutation.mutate({
             id: selectedAlbum.id,

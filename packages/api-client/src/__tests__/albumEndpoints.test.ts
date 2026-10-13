@@ -277,6 +277,25 @@ describe("person page", () => {
     const { client } = fakeServer({ removed: 3 });
     await expect(endpoints.removePhotosFromPerson(client, 5, [])).rejects.toBeInstanceOf(ResponseParseError);
   });
+
+  it("merges a person into another, sending the merged one's id as a number", async () => {
+    const { client, requests } = fakeServer({ moved: 4, photo_count: 3, write_queued: true });
+    await expect(endpoints.mergePerson(client, "5", "9")).resolves.toEqual({
+      moved: 4,
+      photo_count: 3,
+      write_queued: true,
+    });
+    expect(defined(requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/persons/5/merge/",
+      method: "POST",
+      body: { person: 9 },
+    });
+  });
+
+  it("refuses a merge answer without the write flag", async () => {
+    const { client } = fakeServer({ moved: 4, photo_count: 3 });
+    await expect(endpoints.mergePerson(client, 5, 9)).rejects.toBeInstanceOf(ResponseParseError);
+  });
 });
 
 describe("places and folders", () => {

@@ -1,0 +1,10 @@
+/* A long name ends in an ellipsis instead of running out of the dialog */
+.mergeButton {
+  max-width: 100%;
+}
+
+.mergeLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

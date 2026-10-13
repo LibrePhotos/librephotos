@@ -2,7 +2,8 @@
  * Renaming a person from the faces dashboard. The input starts empty (the old
  * name is only the placeholder), and the backend rejects a blank name with a 400
  * nothing reports, so Rename must stay disabled until there is a name, and the
- * name is sent trimmed. The dialog is a form, so Enter renames as well.
+ * name is sent trimmed. The dialog is a form, so Enter renames as well. Another person's name
+ * offers to merge into them instead (#2206).
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -23,7 +24,13 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../../api_client/albums/hooks", () => ({
   useRenamePersonAlbumMutation: () => ({ mutate: stubs.rename }),
   useDeletePersonAlbumMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
-  useFetchPeopleAlbumsQuery: () => ({ data: [{ name: "Sofia" }, { name: "Miguel" }] }),
+  useFetchPeopleAlbumsQuery: () => ({
+    data: [
+      { id: "7", name: "Sofia", face_url: "", face_count: 1 },
+      { id: "8", name: "Miguel", face_url: "", face_count: 4 },
+    ],
+  }),
+  useMergePersonMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>(), isPending: false }),
 }));
 vi.mock("../../api_client/faces/hooks", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
@@ -145,12 +152,16 @@ describe("renaming a person", () => {
     expect(renameButton().disabled).toBe(true);
   });
 
-  it("does not offer a name another person has", async () => {
+  it("offers to merge into the person who has the name instead of renaming", async () => {
     await openRename();
     await type(" miguel ");
 
-    expect(renameButton().disabled).toBe(true);
     expect(container.textContent).toContain("Person miguel already exists.");
+    expect(button("Merge into Miguel")).toBeDefined();
+    await click(button("Merge into Miguel"));
+
+    expect(container.textContent).toContain("Merge Sofia into Miguel?");
+    expect(stubs.rename).not.toHaveBeenCalled();
   });
 
   it("renames to the trimmed name", async () => {
