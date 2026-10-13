@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.1f1a19c1.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.54131d9f.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -33,7 +33,7 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="delete-missing-photos">Delete Missing Photos<a href="#delete-missing-photos" class="hash-link" aria-label="Direct link to Delete Missing Photos" title="Direct link to Delete Missing Photos" translate="no">​</a></h3>
 <p>Finds all missing media files and removes them from the database.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="scan-missing-photos">Scan Missing Photos<a href="#scan-missing-photos" class="hash-link" aria-label="Direct link to Scan Missing Photos" title="Direct link to Scan Missing Photos" translate="no">​</a></h3>
-<p>Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use <strong>Delete Missing Photos</strong> for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read (not released yet). See <a class="" href="/docs/user-guide/missing-photos">Missing Photos</a>.</p>
+<p>Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use <strong>Delete Missing Photos</strong> for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read. It checks every photo before it changes anything, and fails without changing anything when the scan directory looks unmounted or more than the <strong>Missing photos limit</strong> of your photos would be marked missing (not released yet). See <a class="" href="/docs/user-guide/missing-photos">Missing Photos</a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="calculate-clip-embeddings">Calculate Clip Embeddings<a href="#calculate-clip-embeddings" class="hash-link" aria-label="Direct link to Calculate Clip Embeddings" title="Direct link to Calculate Clip Embeddings" translate="no">​</a></h3>
 <p>Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. <strong>Generate Tags</strong> stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="generate-tags">Generate Tags<a href="#generate-tags" class="hash-link" aria-label="Direct link to Generate Tags" title="Direct link to Generate Tags" translate="no">​</a></h3>
