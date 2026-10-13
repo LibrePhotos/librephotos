@@ -372,11 +372,11 @@ The mail server itself is set in the app, under Admin area → Site Settings →
 
 Not released yet: up to 1.3.0, only the password-reset request was rate limited.
 
-Signing in, refreshing a token, setting a new password from a reset link and signing up are rate limited per client. A client that goes over a limit gets `429 Too Many Requests` with a `Retry-After` header until its counter runs out. Sign-in counts per client address and username together, so people who share an address (a household behind one router) only use up each other's attempts at the same account, and someone guessing passwords for one account does not lock the others out. An admin adding users in the user editor is not limited.
+Signing in, refreshing a token, setting a new password from a reset link and signing up are rate limited per client. A client that goes over a limit gets `429 Too Many Requests` with a `Retry-After` header until its counter runs out. Sign-in counts per client address and username together, so people who share an address (a household behind one router) only use up each other's attempts at the same account, and someone guessing passwords for one account does not lock the others out. An admin adding users in the user editor is not limited. Wrong passwords in Basic auth requests (`curl -u`) come out of the same per-address-and-username budget as sign-in; requests with the right password are not counted.
 
 | Variable | Default | What it limits |
 | --- | --- | --- |
-| `AUTH_THROTTLE_RATE` | `10/minute` | Sign-in (`/api/auth/token/obtain/`), per address and username; setting the new password from a reset link; sign-up and first-time setup. |
+| `AUTH_THROTTLE_RATE` | `10/minute` | Sign-in (`/api/auth/token/obtain/`) and wrong passwords in Basic auth requests, together, per address and username; setting the new password from a reset link; sign-up and first-time setup. |
 | `TOKEN_REFRESH_THROTTLE_RATE` | `60/minute` | `/api/auth/token/refresh/`, per address. Every open tab and the mobile app refresh their token every few minutes, and a refused refresh signs the web app out, so keep this well above the number of devices behind one address. |
 | `PASSWORD_RESET_THROTTLE_RATE` | `5/hour` | Requesting a password-reset email, per address. |
 | `NUM_PROXIES` | `1` (Compose, Kubernetes); `0` ([unified image](unified-deployment.md), [Windows standalone](windows-standalone.md)) | How many reverse proxies in front of the backend append the client address to `X-Forwarded-For`. See below. |

@@ -1,7 +1,12 @@
-"""JWT authentication that also reads the ``jwt`` cookie.
+"""The project's DRF authentication classes.
 
-The web app calls the API with ``Authorization: Bearer``, but a browser cannot
-put a header on an ``<img>``, a ``<video>`` or a download link. For those the
+``ThrottledBasicAuthentication`` is DRF's Basic authentication with failed
+password checks rate limited (see its docstring). Every view that accepts Basic
+credentials names this class, never DRF's own.
+
+``JWTCookieAuthentication`` is JWT authentication that also reads the ``jwt``
+cookie. The web app calls the API with ``Authorization: Bearer``, but a browser
+cannot put a header on an ``<img>``, a ``<video>`` or a download link. For those the
 token endpoints (``CustomTokenObtainPairView``, ``CustomTokenRefreshView``, the
 SSO bridge) also set the access token as a cookie named ``jwt``, and the views
 that serve such requests read it. Its flags (HttpOnly, SameSite=Lax, Secure)
@@ -9,7 +14,7 @@ are set in api/accounts/cookies.py. The mobile client sends the same cookie on
 uploads when it cannot rely on the header.
 
 The cookie is ambient: the browser attaches it to requests another site
-triggers, too. That is why this class is not in
+triggers, too. That is why ``JWTCookieAuthentication`` is not in
 ``DEFAULT_AUTHENTICATION_CLASSES`` and is only named by the views that need it
 (media serving, which is read-only, and the chunked upload, which predates the
 header and is ``csrf_exempt`` already).
@@ -17,9 +22,13 @@ header and is ``csrf_exempt`` already).
 
 from typing import cast
 
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import HTTP_HEADER_ENCODING
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.exceptions import AuthenticationFailed as DRFAuthenticationFailed
+from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
 from rest_framework_simplejwt.authentication import (
     AUTH_HEADER_TYPE_BYTES,
@@ -29,6 +38,8 @@ from rest_framework_simplejwt.authentication import (
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import Token
+
+from api.accounts.throttling import BasicAuthFailureThrottle
 
 JWT_COOKIE_NAME = "jwt"
 
@@ -133,3 +144,29 @@ class JWTCookieAuthentication(JWTAuthentication):
         if raw_token is None:
             return None
         return self.authenticate_token(raw_token)
+
+
+class ThrottledBasicAuthentication(BasicAuthentication):
+    """``Authorization: Basic``, with failed password checks rate limited.
+
+    Every request with Basic credentials is a password check, on any view that
+    accepts them. Failures count against the sign-in budget of the client and
+    account (``BasicAuthFailureThrottle``, the ``auth`` rate); once it is used
+    up the request answers 429 without checking the password, until the window
+    moves on. Successful checks are not counted, so a script that sends its
+    credentials on every request keeps working at any pace.
+    """
+
+    def authenticate_credentials(
+        self, userid: str, password: str, request: Request | None = None
+    ) -> tuple[AbstractBaseUser, None]:
+        if request is None:
+            return super().authenticate_credentials(userid, password, request)
+        throttle = BasicAuthFailureThrottle(request, userid)
+        if throttle.locked():
+            raise Throttled(wait=throttle.wait())
+        try:
+            return super().authenticate_credentials(userid, password, request)
+        except DRFAuthenticationFailed:
+            throttle.record_failure()
+            raise

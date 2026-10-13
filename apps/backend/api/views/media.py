@@ -20,12 +20,14 @@ from django.http import (
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from rest_framework import status
-from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from api.accounts.authentication import JWTCookieAuthentication
+from api.accounts.authentication import (
+    JWTCookieAuthentication,
+    ThrottledBasicAuthentication,
+)
 from api.drf.params import parse_query
 from api.mime import mime_type
 from api.models import AlbumUser, Photo
@@ -262,7 +264,7 @@ class MediaServingView(APIView):
     # header. A stale cookie makes the request anonymous rather than a 401, so
     # public photos and shared albums are still served (see
     # JWTCookieAuthentication).
-    authentication_classes = (JWTCookieAuthentication, BasicAuthentication)
+    authentication_classes = (JWTCookieAuthentication, ThrottledBasicAuthentication)
 
     def _should_use_proxy(self) -> bool:
         return not getattr(settings, "SERVE_FRONTEND", False)

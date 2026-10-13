@@ -34,6 +34,9 @@ _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_serv
 _.cleanup_stuck_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 
+# drf-spectacular extensions: defining one registers it, nothing names it.
+_.ThrottledBasicScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension)
+
 # Named by string.
 _.deduplicate_faces  # method in api/admin.py (PhotoAdmin.actions)
 

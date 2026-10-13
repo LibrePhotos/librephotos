@@ -49,8 +49,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - Every API view sets `permission_classes` or `get_permissions()` itself or in a project base class
   it names; the `IsAuthenticated` default is only a safety net. A role is a permission class
   (`IsAdminUser`, `IsSuperUser` from `api/accounts/permissions.py`), never an `is_staff` check that returns a
-  response. An anonymous endpoint that takes credentials gets a throttle from `api/accounts/throttling.py`.
-  `api/tests/infra/test_api_conventions.py` enforces all three.
+  response. An anonymous endpoint that takes credentials gets a throttle from `api/accounts/throttling.py`,
+  and a view that accepts Basic credentials names `ThrottledBasicAuthentication` (`api/accounts/authentication.py`),
+  never DRF's `BasicAuthentication`: each Basic request is a password check.
+  `api/tests/infra/test_api_conventions.py` enforces all of these.
 - Auth cookies (`jwt`, `access`, `refresh`) are set and cleared only through `set_auth_cookies`/
   `clear_auth_cookies` in `api/accounts/cookies.py`, so they keep one set of flags (HttpOnly `jwt`,
   SameSite=Lax, Secure on HTTPS or `AUTH_COOKIE_SECURE`); CORS headers are django-cors-headers' job.

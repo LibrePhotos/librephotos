@@ -121,6 +121,10 @@ curl -u myuser:mypassword "http://<backend>/api/photos/"
 
 Basic auth works on the standard DRF endpoints and on the media endpoints, but not on the chunked uploads.
 
+Every Basic auth request is a password check, so wrong passwords count against the same limit as sign-in (`AUTH_THROTTLE_RATE`, per address and username; see [Sign-in rate limits](../installation/environment-variables.md#sign-in-rate-limits)). Once it is used up, requests with that username from that address answer 429 Too Many Requests with a `Retry-After` header, even with the right password, until the window moves on. Requests with the right password are not counted, so a script can send its credentials on every request.
+
+*Not released yet: up to 1.3.0, wrong Basic auth passwords were not rate limited.*
+
 ### Helpful endpoints
 
 These routes are only registered when the backend runs with `DEBUG=1` (development builds). The standard docker-compose deployment runs with `DEBUG=0`, where they all return 404:

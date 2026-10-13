@@ -430,7 +430,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+        "api.accounts.authentication.ThrottledBasicAuthentication",
     ),
     # api.drf.openapi.AutoSchema: responses of model serializers list every field
     # as required, which is what DRF writes.

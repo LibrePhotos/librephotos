@@ -18,7 +18,8 @@ project base class it names, sets ``permission_classes`` or overrides
 declaration. Role requirements are permission classes (``IsAdminUser``,
 ``api.accounts.permissions.IsSuperUser``), never an ``is_staff`` check in the body that
 builds its own 401 or 403. The endpoints that take credentials without a
-session are throttled (``api/accounts/throttling.py``).
+session are throttled (``api/accounts/throttling.py``), and so are failed
+Basic credentials on every view (``ThrottledBasicAuthentication``).
 
 Every list pages one way (#2327): ``api.drf.pagination.DefaultPagination`` or a
 preset of it, through ``paginate_queryset()``, or ``pagination_class = None``
@@ -41,6 +42,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import re_path
 from django.utils import timezone
 from rest_framework import mixins, routers, viewsets
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAdminUser, IsAuthenticated
@@ -1103,6 +1105,16 @@ class RequestParsingGuardTest(SimpleTestCase):
 
 
 class ThrottledAuthViewsTest(SimpleTestCase):
+    def test_no_view_takes_basic_credentials_unthrottled(self):
+        # Every Basic request is a password check; ThrottledBasicAuthentication
+        # rate limits the failed ones, DRF's own class does not.
+        unthrottled = sorted(
+            qualname(view)
+            for view in drf_views(api_routes())
+            if BasicAuthentication in view.authentication_classes
+        )
+        self.assertEqual(unthrottled, [])
+
     def test_each_credential_endpoint_has_a_throttle(self):
         unthrottled = [
             qualname(view)

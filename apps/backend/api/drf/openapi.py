@@ -14,15 +14,27 @@ dicts, and DRF skips a non-required field whose key is missing.
 DRF's page schemas list only ``count`` and ``results`` as required, although a
 page always carries ``next`` and ``previous`` (null at the ends);
 ``require_page_keys`` (a postprocessing hook) lists all four.
+
+``ThrottledBasicScheme`` describes ``ThrottledBasicAuthentication`` as the
+``basicAuth`` scheme drf-spectacular gives DRF's own Basic authentication.
+Defining it here registers it: this module is imported before any schema is
+generated.
 """
 
 from typing import Any
 
 from drf_spectacular import openapi
+from drf_spectacular.authentication import BasicScheme
 from drf_spectacular.plumbing import force_instance
 from rest_framework import serializers
 
 PAGE_KEYS = frozenset({"count", "next", "previous", "results"})
+
+
+class ThrottledBasicScheme(BasicScheme):
+    # A dotted path: importing the class here would import DRF's views from
+    # the settings import of the authentication classes.
+    target_class = "api.accounts.authentication.ThrottledBasicAuthentication"
 
 
 class AutoSchema(openapi.AutoSchema):

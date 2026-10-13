@@ -46,7 +46,7 @@ class ApiHelpView(APIView):
             "authentication": {
                 "default_authentication_classes": [
                     "rest_framework_simplejwt.authentication.JWTAuthentication",
-                    "rest_framework.authentication.BasicAuthentication",
+                    "api.accounts.authentication.ThrottledBasicAuthentication",
                 ],
                 "jwt": {
                     "obtain": f"{base}/api/auth/token/obtain/",
