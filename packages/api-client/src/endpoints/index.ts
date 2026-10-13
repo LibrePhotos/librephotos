@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as S from "../schemas";
 import { Photoset } from "../schemas";
 import { runningJobId } from "../transport/client";
-import { fetchAllPages } from "../transport/pages";
+import { fetchAllPages, fetchAllPagesWithFirst } from "../transport/pages";
 import type { ApiClient } from "../transport/types";
 import { buildQuery, parseEachResponse, parseResponse, type ParsedEntries } from "../util/parse";
 
@@ -409,6 +409,23 @@ export async function fetchFolderSubfolders(
   const query = buildQuery({ path: options.path, page: options.page });
   const res = await client.get<unknown>(`/folders/subfolders/${query}`);
   return parseResponse(S.FolderSubfoldersResponse, res, "folder subfolders");
+}
+
+/**
+ * Every subfolder of a folder (all pages, following `next`), with the folder's own paths from the
+ * first page; without `path`, of the user's scan directory. ApiError 403 for a folder outside it.
+ */
+export async function fetchAllFolderSubfolders(
+  client: ApiClient,
+  options: { path?: string } = {}
+): Promise<S.FolderSubfolderListing> {
+  const { first, rows } = await fetchAllPagesWithFirst(
+    client,
+    `/folders/subfolders/${buildQuery({ path: options.path })}`
+  );
+  const { current_path, parent_path } = parseResponse(S.FolderSubfoldersResponse, first, "folder subfolders");
+  const results = parseResponse(S.FolderSubfolder.array(), rows, "folder subfolders");
+  return { current_path, parent_path, results };
 }
 
 /** Photo grid (grouped by date) for one tag album. */

@@ -9,7 +9,7 @@ import { defined } from "./defined";
 import dateAlbumsList from "./fixtures/dateAlbumsList.json";
 import folderSubfolders from "./fixtures/folderSubfolders.json";
 import userAlbumCards from "./fixtures/userAlbumCards.json";
-import { fakeServer } from "./harness";
+import { fakeServer, fakeServerByUrl } from "./harness";
 
 const page = (results: unknown[]) => ({ count: results.length, next: null, previous: null, results });
 const owner = { id: 1, username: "alice", first_name: "Alice", last_name: "" };
@@ -256,6 +256,29 @@ describe("places and folders", () => {
     expect(listing.results.map(folder => folder.name)).toEqual(["2023", "2024"]);
     // The copies kept for older web bundles are not read.
     expect(listing).not.toHaveProperty("subfolders");
+  });
+
+  it("reads every subfolder of a path, following next, with the folder's paths", async () => {
+    const pageOne = {
+      ...folderSubfolders,
+      next: "http://backend:8001/api/folders/subfolders/?page=2&path=%2Fdata%2Fphotos",
+      count: 3,
+      num_pages: 2,
+    };
+    const later = { name: "2025", path: "/data/photos/2025", photo_count: 3, modified: 1737373737 };
+    const pageTwo = { ...folderSubfolders, results: [later], subfolders: [later], previous: "x", page: 2, count: 3 };
+    const { client, requests } = fakeServerByUrl(url => (url.includes("page=2") ? pageTwo : pageOne));
+    const listing = await endpoints.fetchAllFolderSubfolders(client, { path: "/data/photos" });
+    // The server's host in `next` is not followed, only its query
+    expect(requests.map(request => request.url)).toEqual([
+      "https://demo.example.com/api/folders/subfolders/?path=%2Fdata%2Fphotos",
+      "https://demo.example.com/api/folders/subfolders/?page=2&path=%2Fdata%2Fphotos",
+    ]);
+    expect(listing).toEqual({
+      current_path: "/data/photos",
+      parent_path: null,
+      results: [...folderSubfolders.results, later],
+    });
   });
 
   it("reads the empty listing of a user without a scan directory", async () => {

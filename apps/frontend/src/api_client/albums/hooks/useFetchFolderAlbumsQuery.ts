@@ -11,10 +11,14 @@ export function retryFolderRequest(failureCount: number, error: unknown): boolea
   return failureCount < 3;
 }
 
+/**
+ * Every subfolder of `path`, with its parent path (the folder page's strip and back button). The
+ * endpoint pages by 100 directory entries; reading only the first page lost the rest.
+ */
 export const useFetchFolderSubfoldersQuery = (path?: string) =>
   useQuery({
     queryKey: albumKeys.folder(path),
-    queryFn: () => endpoints.fetchFolderSubfolders(apiClient, { path }),
+    queryFn: () => endpoints.fetchAllFolderSubfolders(apiClient, { path }),
     retry: retryFolderRequest,
     retryDelay: 1000,
     refetchOnWindowFocus: true,

@@ -13,6 +13,14 @@ export type SentRequest = { url: string; method: string; body: unknown };
  * and the requests it got. Tokens are a valid access token and refresh token "r".
  */
 export function fakeServer(body: unknown, status = 200): { client: ApiClient; requests: SentRequest[] } {
+  return fakeServerByUrl(() => body, status);
+}
+
+/** fakeServer whose answer depends on the requested URL (one page of a list per `?page=`). */
+export function fakeServerByUrl(
+  answer: (url: string) => unknown,
+  status = 200
+): { client: ApiClient; requests: SentRequest[] } {
   const requests: SentRequest[] = [];
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const raw = init?.body;
@@ -21,6 +29,7 @@ export function fakeServer(body: unknown, status = 200): { client: ApiClient; re
       method: init?.method ?? "GET",
       body: typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw,
     });
+    const body = answer(String(input));
     const response =
       body === null
         ? new Response(null, { status: 204 })

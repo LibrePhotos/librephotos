@@ -130,7 +130,9 @@ export const albumKeys = {
   sharedWithMeRaw: () => [...albumKeys.sharedWithMe(), "raw"] as const,
   /** Every folder listing, paged or not. */
   folders: () => [...albumRoot, "folders"] as const,
+  /** Every subfolder of one folder, all pages read at once (the folder page). */
   folder: (path: string | undefined) => [...albumKeys.folders(), "page", path] as const,
+  /** The same listing as an infinite query, one page at a time. */
   folderPages: (path: string | undefined) => [...albumKeys.folders(), "infinite", path] as const,
   /** Which album, if any, already uses a public link slug. */
   slugOwner: (slug: string) => [...albumRoot, "slugOwner", slug] as const,
