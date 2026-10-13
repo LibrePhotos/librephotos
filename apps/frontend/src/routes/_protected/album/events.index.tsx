@@ -49,7 +49,7 @@ function AlbumAuto() {
   function renderCover(album: AutoAlbumInfo, size: number) {
     return (
       <>
-        <Link key={album.id} to="/album/events/$id" params={{ id: String(album.id) }}>
+        <Link key={album.id} to="/album/events/$id" params={{ id: String(album.id) }} aria-label={album.title}>
           <Tile
             className={gridClasses.cover}
             video={album.photos.video === true}

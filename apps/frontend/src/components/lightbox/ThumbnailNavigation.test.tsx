@@ -6,6 +6,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import classes from "./ThumbnailNavigation.module.css";
@@ -18,7 +19,8 @@ vi.mock("../../api_client/photos/hooks/useFetchPhotoDetailsQuery", () => ({
 let root: Root;
 let container: HTMLDivElement;
 
-beforeAll(() => {
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   // jsdom has no matchMedia, MantineProvider needs it
   window.matchMedia = (query: string): MediaQueryList => ({
@@ -93,6 +95,21 @@ describe("ThumbnailNavigation", () => {
 
     expect(onMovePrevRequest).toHaveBeenCalledOnce();
     expect(onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  // #2245: two unnamed images that reacted to clicks; now named buttons Tab reaches
+  it("makes the neighbours named buttons", () => {
+    render();
+
+    for (const [className, name] of [
+      [classes.previous, "Previous"],
+      [classes.next, "Next"],
+    ] as const) {
+      const element = box(className);
+      expect(element.tagName).toBe("BUTTON");
+      expect(element.getAttribute("type")).toBe("button");
+      expect(element.getAttribute("aria-label")).toBe(name);
+    }
   });
 
   it("has no mouse handlers that write style", () => {

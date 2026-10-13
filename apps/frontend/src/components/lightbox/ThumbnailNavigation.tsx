@@ -1,6 +1,7 @@
-import { Box, Group, Skeleton } from "@mantine/core";
+import { Box, Group, Skeleton, UnstyledButton } from "@mantine/core";
 import cx from "clsx";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks/useFetchPhotoDetailsQuery";
 import { Tile } from "../Tile";
 import classes from "./ThumbnailNavigation.module.css";
@@ -26,6 +27,7 @@ export function ThumbnailNavigation({
   onMoveNextRequest,
   isPublic = false,
 }: ThumbnailNavigationProps) {
+  const { t } = useTranslation();
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip these queries on public pages
   const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(
@@ -45,7 +47,11 @@ export function ThumbnailNavigation({
     <div className={classes.strip}>
       <Group justify="center" align="center" h="100%">
         {prevSrc && (
-          <Box onClick={onMovePrevRequest} className={cx(classes.neighbour, classes.previous)}>
+          <UnstyledButton
+            onClick={onMovePrevRequest}
+            className={cx(classes.neighbour, classes.previous)}
+            aria-label={t("lightbox.controls.previous")}
+          >
             {isPrevPhotoDetailLoading ? (
               <Skeleton height={64} width={64} />
             ) : (
@@ -57,7 +63,7 @@ export function ThumbnailNavigation({
                 className={classes.tile}
               />
             )}
-          </Box>
+          </UnstyledButton>
         )}
 
         <Box className={classes.current}>
@@ -75,7 +81,11 @@ export function ThumbnailNavigation({
         </Box>
 
         {nextSrc && (
-          <Box onClick={onMoveNextRequest} className={cx(classes.neighbour, classes.next)}>
+          <UnstyledButton
+            onClick={onMoveNextRequest}
+            className={cx(classes.neighbour, classes.next)}
+            aria-label={t("lightbox.controls.next")}
+          >
             {isNextPhotoDetailLoading ? (
               <Skeleton height={64} width={64} />
             ) : (
@@ -87,7 +97,7 @@ export function ThumbnailNavigation({
                 className={classes.tile}
               />
             )}
-          </Box>
+          </UnstyledButton>
         )}
       </Group>
     </div>

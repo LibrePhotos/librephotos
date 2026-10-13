@@ -55,7 +55,14 @@ function SignupPage(): React.JSX.Element {
   return (
     <Stack align="center" justify="flex-end" pt={150}>
       <Group gap="xs" justify="center">
-        <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
+        {/* Decorative: the name is written right next to it */}
+        <Image
+          height={80}
+          width={80}
+          fit="contain"
+          src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"}
+          alt=""
+        />
         <span style={{ fontSize: 18 }}>
           <b>{t("login.name")}</b>
         </span>

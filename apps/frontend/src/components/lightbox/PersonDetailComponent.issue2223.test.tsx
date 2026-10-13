@@ -47,9 +47,7 @@ async function renderRowAndClickTrash() {
       notThisPerson={() => {}}
     />
   );
-  await click(
-    defined(container.querySelector<HTMLButtonElement>('button[aria-label="Delete the face and its thumbnails"]'))
-  );
+  await click(defined(container.querySelector<HTMLButtonElement>('button[aria-label="Delete face"]')));
 }
 
 /** The server answers the delete request with success. */

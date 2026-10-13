@@ -1,18 +1,6 @@
-import { ActionIcon, Loader, Text, Tooltip } from "@mantine/core";
+import { Loader, Text } from "@mantine/core";
 import { useHotkeys, useViewportSize } from "@mantine/hooks";
-import {
-  IconArrowsHorizontal,
-  IconArrowsVertical,
-  IconFocus,
-  IconLine,
-  IconMinus,
-  IconPlus,
-  IconRouteAltLeft,
-  IconStairs,
-  IconTopologyRing,
-  IconTree,
-  IconVectorTriangle,
-} from "@tabler/icons-react";
+import { IconVectorTriangle } from "@tabler/icons-react";
 import { LinearGradient } from "@visx/gradient";
 import { Group as VisxGroup } from "@visx/group";
 import { Tree } from "@visx/hierarchy";
@@ -44,6 +32,8 @@ import { LOCATION_LINK_COLOR, LOCATION_NODE_GRADIENTS, LOCATION_NODE_TEXT_COLORS
 import { ListEmptyState } from "../common/ListEmptyState";
 import { useListFailure } from "../common/useListFailure";
 import styles from "./LocationLink.module.css";
+import { PlaceTreeToolbar, PlaceTreeZoomControls } from "./PlaceTreeControls";
+import type { TreeLayout, TreeLinkType, TreeOrientation } from "./PlaceTreeControls";
 
 type NodeData = {
   name: string;
@@ -73,9 +63,9 @@ function LinkRadialDiagonal(props: TreeLinkProps) {
 }
 
 function linkComponentFor(
-  layout: "cartesian" | "polar",
-  orientation: "horizontal" | "vertical",
-  linkType: "diagonal" | "step" | "curve" | "line"
+  layout: TreeLayout,
+  orientation: TreeOrientation,
+  linkType: TreeLinkType
 ): React.ComponentType<TreeLinkProps> {
   if (layout === "polar") {
     if (linkType === "step") return LinkRadialStep;
@@ -196,9 +186,9 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const { height: viewportHeight } = useViewportSize();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 750, height: 750 });
-  const [layout, setLayout] = useState<"cartesian" | "polar">("cartesian");
-  const [orientation, setOrientation] = useState<"horizontal" | "vertical">("horizontal");
-  const [linkType, setLinkType] = useState<"diagonal" | "step" | "curve" | "line">("line");
+  const [layout, setLayout] = useState<TreeLayout>("cartesian");
+  const [orientation, setOrientation] = useState<TreeOrientation>("horizontal");
+  const [linkType, setLinkType] = useState<TreeLinkType>("line");
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [zoom, setZoom] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
@@ -393,124 +383,15 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
 
   return (
     <div ref={containerRef} className={styles.container} style={{ height }}>
-      {/* Control Toolbar */}
-      <div className={styles.controlsToolbar}>
-        {/* Layout Section */}
-        <div className={styles.toolbarGroup}>
-          <Tooltip label={t("placetree.cartesian")} position="bottom" withArrow>
-            <ActionIcon
-              variant={layout === "cartesian" ? "filled" : "subtle"}
-              color={layout === "cartesian" ? "blue" : "gray"}
-              size="md"
-              onClick={() => setLayout("cartesian")}
-              className={styles.toolbarButton}
-            >
-              <IconTree size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t("placetree.polar")} position="bottom" withArrow>
-            <ActionIcon
-              variant={layout === "polar" ? "filled" : "subtle"}
-              color={layout === "polar" ? "blue" : "gray"}
-              size="md"
-              onClick={() => setLayout("polar")}
-              className={styles.toolbarButton}
-            >
-              <IconTopologyRing size={18} />
-            </ActionIcon>
-          </Tooltip>
-        </div>
-
-        {layout === "cartesian" && (
-          <>
-            <div className={styles.toolbarDivider} />
-            <div className={styles.toolbarGroup}>
-              <Tooltip label={t("placetree.horizontal")} position="bottom" withArrow>
-                <ActionIcon
-                  variant={orientation === "horizontal" ? "filled" : "subtle"}
-                  color={orientation === "horizontal" ? "cyan" : "gray"}
-                  size="md"
-                  onClick={() => setOrientation("horizontal")}
-                  className={styles.toolbarButton}
-                >
-                  <IconArrowsHorizontal size={18} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={t("placetree.vertical")} position="bottom" withArrow>
-                <ActionIcon
-                  variant={orientation === "vertical" ? "filled" : "subtle"}
-                  color={orientation === "vertical" ? "cyan" : "gray"}
-                  size="md"
-                  onClick={() => setOrientation("vertical")}
-                  className={styles.toolbarButton}
-                >
-                  <IconArrowsVertical size={18} />
-                </ActionIcon>
-              </Tooltip>
-            </div>
-          </>
-        )}
-
-        <div className={styles.toolbarDivider} />
-
-        {/* Link Style Section */}
-        <div className={styles.toolbarGroup}>
-          <Tooltip label={t("placetree.curve")} position="bottom" withArrow>
-            <ActionIcon
-              variant={linkType === "curve" ? "filled" : "subtle"}
-              color={linkType === "curve" ? "violet" : "gray"}
-              size="md"
-              onClick={() => setLinkType("curve")}
-              className={styles.toolbarButton}
-            >
-              <IconRouteAltLeft size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t("placetree.step")} position="bottom" withArrow>
-            <ActionIcon
-              variant={linkType === "step" ? "filled" : "subtle"}
-              color={linkType === "step" ? "violet" : "gray"}
-              size="md"
-              onClick={() => setLinkType("step")}
-              className={styles.toolbarButton}
-            >
-              <IconStairs size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t("placetree.line")} position="bottom" withArrow>
-            <ActionIcon
-              variant={linkType === "line" ? "filled" : "subtle"}
-              color={linkType === "line" ? "violet" : "gray"}
-              size="md"
-              onClick={() => setLinkType("line")}
-              className={styles.toolbarButton}
-            >
-              <IconLine size={18} />
-            </ActionIcon>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* Zoom Controls */}
-      <div className={styles.zoomControls}>
-        <Tooltip label={t("placetree.zoomIn")} position="left">
-          <button className={styles.zoomButton} onClick={handleZoomIn} type="button" aria-label="Zoom in">
-            <IconPlus size={18} />
-          </button>
-        </Tooltip>
-        <div className={styles.zoomLevel}>{Math.round(zoom * 100)}%</div>
-        <Tooltip label={t("placetree.zoomOut")} position="left">
-          <button className={styles.zoomButton} onClick={handleZoomOut} type="button" aria-label="Zoom out">
-            <IconMinus size={18} />
-          </button>
-        </Tooltip>
-        <div className={styles.zoomDivider} />
-        <Tooltip label={t("placetree.reset")} position="left">
-          <button className={styles.zoomButton} onClick={handleReset} type="button" aria-label="Reset view">
-            <IconFocus size={18} />
-          </button>
-        </Tooltip>
-      </div>
+      <PlaceTreeToolbar
+        layout={layout}
+        orientation={orientation}
+        linkType={linkType}
+        onLayoutChange={setLayout}
+        onOrientationChange={setOrientation}
+        onLinkTypeChange={setLinkType}
+      />
+      <PlaceTreeZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onReset={handleReset} />
 
       {/* Hint */}
       {showHint && <div className={styles.hint}>{t("placetree.hint")}</div>}

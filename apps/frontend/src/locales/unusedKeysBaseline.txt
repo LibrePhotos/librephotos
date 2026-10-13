@@ -43,9 +43,6 @@ modalalbumsshare.search
 modalscandirectoryedit.update
 nodata
 nosocialgraph
-placetree.layout
-placetree.linkStyle
-placetree.orientation
 rules.1
 rules.10
 rules.11

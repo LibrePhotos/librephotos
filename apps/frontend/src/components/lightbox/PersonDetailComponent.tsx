@@ -57,7 +57,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         size={12}
         offset={4}
       >
-        <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} />
+        {/* The name is right next to it */}
+        <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} alt="" />
       </Indicator>
     </FaceTooltip>
   );
@@ -118,6 +119,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
             onClick={() => setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })}
             variant="light"
             color="green"
+            aria-label={t("facesdashboard.confirmface", { name: person.name })}
           >
             <IconUserCheck />
           </ActionIcon>
@@ -125,26 +127,30 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
       )}
       {!isPublic && (
         <Tooltip label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.explanationadding")}>
-          <ActionIcon onClick={openPersonPicker} variant={isUnnamed ? "filled" : "light"}>
+          <ActionIcon
+            onClick={openPersonPicker}
+            variant={isUnnamed ? "filled" : "light"}
+            aria-label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.labelas")}
+          >
             {isUnnamed ? <IconUserQuestion /> : <IconEdit />}
           </ActionIcon>
         </Tooltip>
       )}
       {!isPublic && !isUnnamed && (
         <Tooltip label={t("facesdashboard.notthisperson")}>
-          <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(person.face_id)}>
+          <ActionIcon
+            variant="light"
+            color="orange"
+            aria-label={t("facesdashboard.notperson", { name: person.name })}
+            onClick={() => notThisPerson(person.face_id)}
+          >
             <IconUserOff />
           </ActionIcon>
         </Tooltip>
       )}
       {!isPublic && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationdeleting")}>
-          <ActionIcon
-            variant="light"
-            color="red"
-            aria-label={t("facesdashboard.explanationdeleting")}
-            onClick={openDelete}
-          >
+          <ActionIcon variant="light" color="red" aria-label={t("facesdashboard.deleteface")} onClick={openDelete}>
             <IconTrash />
           </ActionIcon>
         </Tooltip>

@@ -281,9 +281,8 @@ export function LightboxControls({
           <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
           <Group gap={4} align="center">
             {isPhotoDetailsLoading && (
-              <ActionIcon loading variant="transparent" size={28}>
-                <Loader size={ICON_SIZE.inline} color="grey" />
-              </ActionIcon>
+              // Not a button: nothing to press while the details load. mx keeps the 28px slot.
+              <Loader size={ICON_SIZE.inline} color="grey" mx={6} />
             )}
             {!isPhotoDetailsLoading && photoDetail && !actionsInMenu && (
               <Tooltip label={hideLabel} position="bottom" withArrow>

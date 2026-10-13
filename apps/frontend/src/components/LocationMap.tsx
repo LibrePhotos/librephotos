@@ -1,6 +1,7 @@
 import type { Photo } from "@librephotos/api-client";
 import { Box, Image } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
 import { mediaUrl } from "../api_client/media/mediaUrl";
@@ -24,6 +25,7 @@ type Props = Readonly<{
 const PHOTO_ZOOM = 16;
 
 export function LocationMap({ photos }: Props) {
+  const { t } = useTranslation();
   const height = "200px";
   const [popupInfo, setPopupInfo] = useState<LocatedPhoto | null>(null);
   // Null while map display is turned off
@@ -93,7 +95,7 @@ export function LocationMap({ photos }: Props) {
               onClose={() => setPopupInfo(null)}
             >
               <div>
-                <Image src={mediaUrl.squareThumbnail(popupInfo.image_hash)} />
+                <Image src={mediaUrl.squareThumbnail(popupInfo.image_hash)} alt={t("map.photohere")} />
               </div>
             </Popup>
           )}

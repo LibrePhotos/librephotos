@@ -43,6 +43,7 @@ export function PublicAlbumsGrid({ albums, onShare }: PublicAlbumsGridProps) {
           // The share button's corner is the cover's
           <div style={{ position: "relative" }}>
             <Anchor
+              aria-label={album.title}
               renderRoot={rootProps => <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />}
               underline="never"
             >

@@ -77,18 +77,18 @@ function AlbumPeople() {
 
   function getPersonIcon(album: Person, size: number) {
     if (album.face_count === 0) {
-      return <Image height={size} width={size} src="/unknown_user.jpg" />;
+      return <Image height={size} width={size} src="/unknown_user.jpg" alt="" />;
     }
     if (album.name === "unknown") {
       // if (album.text === "unknown") {
       return (
-        <Link to="/album/persons/$id" params={{ id: album.id }}>
-          <Image height={size} width={size} src="/unknown_user.jpg" />
+        <Link to="/album/persons/$id" params={{ id: album.id }} aria-label={album.name}>
+          <Image height={size} width={size} src="/unknown_user.jpg" alt="" />
         </Link>
       );
     }
     return (
-      <Link to="/album/persons/$id" params={{ id: album.id }}>
+      <Link to="/album/persons/$id" params={{ id: album.id }} aria-label={album.name}>
         <Tile video={album.video} height={size} width={size} image_hash={album.face_photo_url} />
       </Link>
     );

@@ -102,6 +102,7 @@ export function AlbumsSharedByMe() {
             renderItem={(album, size) => (
               <>
                 <Anchor
+                  aria-label={album.title}
                   renderRoot={rootProps => (
                     <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
                   )}

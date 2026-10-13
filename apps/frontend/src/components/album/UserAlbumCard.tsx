@@ -51,6 +51,7 @@ function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
           }}
           role="button"
           tabIndex={0}
+          aria-label={t("useralbum.sharedWith")}
         >
           <Users size={16} />
         </span>
@@ -85,7 +86,12 @@ export function UserAlbumCard({
 
   return (
     <div className={classes.card} style={{ width: size }}>
-      <Link to="/album/user/$id" params={{ id: album.id.toString() }} className={classes.coverLink}>
+      <Link
+        to="/album/user/$id"
+        params={{ id: album.id.toString() }}
+        className={classes.coverLink}
+        aria-label={album.title}
+      >
         <div className={classes.cover} style={{ width: size, height: size }}>
           {album.cover_photo ? (
             <Tile
@@ -153,7 +159,7 @@ export function UserAlbumCard({
       {album.locked && (
         <div className={classes.lockedIcon}>
           <Tooltip label={t("useralbum.albumIsLocked")}>
-            <span aria-label={t("useralbum.albumIsLocked")}>
+            <span role="img" aria-label={t("useralbum.albumIsLocked")}>
               <Lock size={14} />
             </span>
           </Tooltip>
@@ -164,7 +170,7 @@ export function UserAlbumCard({
       {album.public && (
         <div className={classes.publicIcon}>
           <Tooltip label={t("useralbum.albumIsPublic")}>
-            <span>
+            <span role="img" aria-label={t("useralbum.albumIsPublic")}>
               <LinkIcon size={14} />
             </span>
           </Tooltip>

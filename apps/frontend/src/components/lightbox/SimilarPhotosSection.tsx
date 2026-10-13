@@ -21,6 +21,7 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
   const filteredSimilarPhotos = photoDetail.similar_photos.filter(photo => photo.image_hash !== photoDetail.image_hash);
 
   if (filteredSimilarPhotos.length === 0) return null;
+  const shownPhotos = filteredSimilarPhotos.slice(0, maxItems);
 
   return (
     <div>
@@ -31,7 +32,7 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
         </Group>
       )}
       <Flex gap="xs" wrap="wrap" mt="xs">
-        {filteredSimilarPhotos.slice(0, maxItems).map(el => (
+        {shownPhotos.map((el, index) => (
           <Anchor
             key={el.image_hash}
             // A router link, not a plain href, so the app is not reloaded. It goes
@@ -45,6 +46,7 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
           >
             <Tile
               video={el.type.includes("video")}
+              alt={t("photoofcount", { index: index + 1, count: shownPhotos.length })}
               height={100}
               width={100}
               image_hash={el.image_hash}

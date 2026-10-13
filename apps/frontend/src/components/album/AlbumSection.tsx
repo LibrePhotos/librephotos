@@ -118,7 +118,9 @@ function LoadingOther({ icon, title }: { icon: React.ReactNode; title: string })
 
 function AvatarPreview({ album }: { album: AlbumPreview }) {
   if (album.faceUrl) {
-    return <Image src={album.faceUrl} w={56} h={56} className={classes.avatarImage} fallbackSrc="/unknown_user.jpg" />;
+    return (
+      <Image src={album.faceUrl} w={56} h={56} className={classes.avatarImage} fallbackSrc="/unknown_user.jpg" alt="" />
+    );
   }
 
   if (album.coverUrl) {
