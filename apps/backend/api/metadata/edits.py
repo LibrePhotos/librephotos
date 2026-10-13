@@ -62,6 +62,7 @@ from api.models.photo_metadata import (
     description_of,
     merged_keywords_of,
     text_fields_of,
+    usable_coordinates,
 )
 from api.models.photo_search import PhotoSearch
 from api.models.tag import sync_tags_from_keywords
@@ -450,6 +451,10 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
         new_value={"source": PhotoMetadata.Source.EMBEDDED},
     )
 
+    # First, so the date rules below see the file's position, and before
+    # apply_file_values, which would fill an empty position from the file
+    # without looking up its place.
+    _restore_location_from_file(photo)
     values = read_file_values(photo)
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)
     assert metadata is not None
@@ -461,7 +466,6 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     photo.timestamp = None
     extract_date_time(photo, commit=False)
     photo.save()
-    _restore_location_from_file(photo)
 
     previous_keywords = metadata.keywords
     metadata.keywords = merged_keywords_of(values) or None
@@ -494,15 +498,11 @@ def _restore_location_from_file(photo: Photo) -> None:
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
         sidecar_files=sidecar_files_for_photo(photo),
     )
-    usable = (
-        isinstance(latitude, int | float)
-        and isinstance(longitude, int | float)
-        and not (latitude == 0 and longitude == 0)
-    )
-    if not usable:
+    position = usable_coordinates(latitude, longitude)
+    if position is None:
         if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
             _apply_location(photo, None, None)
         return
-    if photo.exif_gps_lat == float(latitude) and photo.exif_gps_lon == float(longitude):
+    if (photo.exif_gps_lat, photo.exif_gps_lon) == position:
         return
-    _apply_location(photo, float(latitude), float(longitude))
+    _apply_location(photo, *position)

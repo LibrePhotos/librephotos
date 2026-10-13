@@ -50,6 +50,22 @@ def _assign_string(target: object, field: str, value: object) -> None:
         setattr(target, field, value)
 
 
+def usable_coordinates(lat: object, lon: object) -> tuple[float, float] | None:
+    """``(lat, lon)`` as floats, or None for a missing position.
+
+    Rejects missing or non-numeric values and the (0, 0) "null island" that
+    cameras write when they have no fix. A single zero axis (the equator or
+    the prime meridian) is a valid position and is kept.
+    """
+    if isinstance(lat, bool) or isinstance(lon, bool):
+        return None
+    if not isinstance(lat, numbers.Real) or not isinstance(lon, numbers.Real):
+        return None
+    if lat == 0 and lon == 0:
+        return None
+    return float(lat), float(lon)
+
+
 def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
@@ -390,6 +406,25 @@ class PhotoMetadata(models.Model):
         # is what lets int() and Fraction() below type-check.
         if image_number is not None and isinstance(image_number, int | float):
             photo.image_sequence_number = int(image_number)
+
+        PhotoMetadata._apply_position(photo, values)
+
+    @staticmethod
+    def _apply_position(photo: Photo, values: Mapping[str, object]) -> None:
+        """Store the file's GPS position on a photo that has none yet.
+
+        The date rules that turn a UTC date into the local time at the photo's
+        position read it in the same scan (#2263), and it no longer waits for
+        the geolocation job, which only looks up the place name. A position
+        the row already has is kept, whether the user set it or an earlier
+        read of the file did: ``geolocate_photo`` compares the file with it to
+        decide whether the place needs a new lookup.
+        """
+        if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
+            return
+        position = usable_coordinates(values["gps_latitude"], values["gps_longitude"])
+        if position is not None:
+            photo.exif_gps_lat, photo.exif_gps_lon = position
 
     @staticmethod
     def _apply_to_metadata(

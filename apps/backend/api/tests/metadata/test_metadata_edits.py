@@ -522,6 +522,32 @@ class RevertAllTest(MetadataApiTestCase):
         # The file has no copyright: the user's goes, nothing replaces it.
         self.assertIsNone(data["copyright"])
 
+    def test_the_files_position_gets_its_place(self):
+        # The scan's read fills an empty position from the file (#2263);
+        # restoring it must still look up the place, not find it unchanged.
+        file_values = {"Composite:GPSLatitude": 38.7, "Composite:GPSLongitude": -9.1}
+
+        def file_metadata(path, tags, **kwargs):
+            return [file_values.get(tag) for tag in tags]
+
+        with (
+            patch("api.metadata.photo_reader.get_metadata", side_effect=file_metadata),
+            patch("api.metadata.edits.get_metadata", side_effect=file_metadata),
+            patch(
+                "api.metadata.photo_datetime.get_metadata",
+                side_effect=_no_file_metadata,
+            ),
+            patch(
+                "api.metadata.edits.reverse_geocode", return_value=dict(GEOCODED)
+            ) as geocoder,
+        ):
+            self.client.post(f"{self.url}revert-all/")
+
+        geocoder.assert_called_once_with(38.7, -9.1)
+        photo = Photo.objects.get(pk=self.photo.pk)
+        self.assertEqual((38.7, -9.1), (photo.exif_gps_lat, photo.exif_gps_lon))
+        self.assertEqual(["Lisbon"], (photo.geolocation_json or {}).get("places"))
+
 
 class ServiceTest(TestCase):
     """The setters themselves, without the HTTP layer."""

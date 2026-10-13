@@ -19,22 +19,13 @@ from api.geocode.geocode import reverse_geocode
 from api.metadata.photo_datetime import find_album_date
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
+from api.models.photo_metadata import usable_coordinates
 
 if TYPE_CHECKING:
     from api.models.album_place import AlbumPlace
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
-
-
-def _has_usable_coordinates(lat: float | None, lon: float | None) -> bool:
-    """Reject missing coordinates and the (0, 0) "null island" default that
-    cameras write when there is no fix. A single zero axis (the equator or the
-    prime meridian) is a valid location and must be kept.
-    """
-    if lat is None or lon is None:
-        return False
-    return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
 def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
@@ -63,17 +54,19 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
         sidecar_files=sidecar_files_for_photo(photo),
     )
     old_album_places = find_album_places(photo)
-    if not _has_usable_coordinates(new_gps_lat, new_gps_lon):
+    position = usable_coordinates(new_gps_lat, new_gps_lon)
+    if position is None:
         return
+    new_gps_lat, new_gps_lon = position
     if (
-        old_gps_lat == float(new_gps_lat)
-        and old_gps_lon == float(new_gps_lon)
+        old_gps_lat == new_gps_lat
+        and old_gps_lon == new_gps_lon
         and old_album_places.exists()
         and _has_current_geolocation(photo)
     ):
         return
-    photo.exif_gps_lon = float(new_gps_lon)
-    photo.exif_gps_lat = float(new_gps_lat)
+    photo.exif_gps_lon = new_gps_lon
+    photo.exif_gps_lat = new_gps_lat
     if commit:
         photo.save(update_fields=["exif_gps_lat", "exif_gps_lon", "last_modified"])
 
