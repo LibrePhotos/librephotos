@@ -12843,6 +12843,13 @@
           },
           "auto_create_user_directory": {
             "type": "boolean"
+          },
+          "scan_missing_max_fraction": {
+            "type": "number",
+            "format": "double",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "description": "Largest share of a user's photos a scan may flag missing at once (0 to 1); 1 turns the check off."
           }
         }
       },

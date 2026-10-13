@@ -107,3 +107,18 @@ class SiteSettingsRequestTest(TestCase):
         for body in ({}, {"heavyweight_process": 1}, {"llm_model": "x"}):
             with self.subTest(body=body):
                 self.assert_rejected(body, "non_field_errors")
+
+    def test_missing_photos_limit_is_stored(self, _models):
+        for value in (0, 0.25, 1, 1.0):
+            with self.subTest(value=value):
+                response = self.post({"scan_missing_max_fraction": value})
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(config.SCAN_MISSING_MAX_FRACTION, value)
+                self.assertEqual(response.json()["scan_missing_max_fraction"], value)
+
+    def test_missing_photos_limit_must_be_a_fraction(self, _models):
+        for value in ("0.5", True, None, -0.1, 1.5, [0.5]):
+            with self.subTest(value=value):
+                self.assert_rejected(
+                    {"scan_missing_max_fraction": value}, "scan_missing_max_fraction"
+                )

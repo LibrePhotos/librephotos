@@ -20,6 +20,8 @@ export const SiteSettings = z.object({
   nextcloud_enabled: z.boolean().default(false),
   // Older backends do not have the setting; they never create user folders.
   auto_create_user_directory: z.boolean().default(false),
+  // Largest share of a user's photos a scan may mark missing (0 to 1, #2195); older backends lack it.
+  scan_missing_max_fraction: z.number().optional(),
   email_configured: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;

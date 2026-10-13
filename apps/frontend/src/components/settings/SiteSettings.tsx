@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { EmailSettings } from "./EmailSettings";
+import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
@@ -76,12 +77,7 @@ function translateOptions(options: ModelOption[], t: TFunction<"translation", un
   });
 }
 
-// Label and control side by side from the sm breakpoint up, stacked on a phone.
-const LABEL_SPAN = { base: 12, sm: 8 };
-const CONTROL_SPAN = { base: 12, sm: 4 };
-
 export function SiteSettings() {
-  const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
   const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
   const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");
@@ -101,12 +97,6 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   // The text fields save on blur and on Enter; only send what actually changed.
-  const saveSkipPatterns = () => {
-    if (settings && skipPatterns !== settings.skip_patterns) {
-      save({ skip_patterns: skipPatterns });
-    }
-  };
-
   const saveMapApiKey = () => {
     if (settings && mapApiKey !== settings.map_api_key) {
       save({ map_api_key: mapApiKey });
@@ -130,7 +120,6 @@ export function SiteSettings() {
 
   useEffect(() => {
     if (!isLoading && settings) {
-      setSkipPatterns(settings.skip_patterns);
       setMapApiKey(settings.map_api_key);
       setMapApiProvider(settings.map_api_provider);
       setMapTileProvider(settings.map_tile_provider);
@@ -197,26 +186,8 @@ export function SiteSettings() {
           />
 
           <Grid justify="flex-end">
-            <Grid.Col span={LABEL_SPAN}>
-              <Stack gap={0}>
-                <Text>{t("sitesettings.headerskippatterns")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.skippatterns")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={CONTROL_SPAN}>
-              <TextInput
-                value={skipPatterns}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    saveSkipPatterns();
-                  }
-                }}
-                onBlur={saveSkipPatterns}
-                onChange={event => setSkipPatterns(event.currentTarget.value)}
-              />
-            </Grid.Col>
+            <SkipPatternsSetting />
+            <MissingPhotosLimitSetting />
             <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>

@@ -12,11 +12,13 @@ import { ConfirmDeleteMissingPhotosModal } from "./Spotlight";
 const stubs = vi.hoisted(() => ({
   mutate: vi.fn<(variables: undefined, options: { onSuccess: () => void }) => void>(),
   toast: vi.fn<() => void>(),
+  countStats: { num_missing_photos: 4812 } as { num_missing_photos: number } | undefined,
 }));
 
 vi.mock("../../api_client/photos/hooks", () => ({
   useDeleteMissingPhotosMutation: () => ({ mutate: stubs.mutate }),
 }));
+vi.mock("../../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => ({ data: stubs.countStats }) }));
 vi.mock("../../service/notifications", () => ({ notification: { deleteMissingPhotos: stubs.toast } }));
 // The palette's actions pull in the whole API client; only the modal is under test
 vi.mock("./useSpotlightActions", () => ({ useSpotlightActions: () => ({}) }));
@@ -41,11 +43,7 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-beforeEach(async () => {
-  vi.clearAllMocks();
-  container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
+const render = async () => {
   await act(async () => {
     root.render(
       // env="test": no transitions or portals, so the dialog renders in place
@@ -54,6 +52,15 @@ beforeEach(async () => {
       </MantineProvider>
     );
   });
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  stubs.countStats = { num_missing_photos: 4812 };
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await render();
 });
 
 afterEach(async () => {
@@ -70,7 +77,15 @@ const button = (label: string) => {
 };
 
 describe("ConfirmDeleteMissingPhotosModal", () => {
-  it("explains what the job does", () => {
+  it("says how many photos it deletes", () => {
+    expect(container.textContent).toContain(i18n.t("settings.missingphotosconfirmcount", { count: 4812 }));
+    expect(container.textContent).toContain("4812 missing photos");
+  });
+
+  it("explains what the job does while the count is loading", async () => {
+    stubs.countStats = undefined;
+    await render();
+
     expect(container.textContent).toContain(i18n.t("settings.missingphotosconfirm"));
   });
 

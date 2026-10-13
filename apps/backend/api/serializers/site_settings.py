@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 from rest_framework import serializers
 
-from api.drf.params import JsonBooleanField, JsonStringField
+from api.drf.params import JsonBooleanField, JsonFractionField, JsonStringField
 
 
 class SiteSettingsRequest(serializers.Serializer[None]):
@@ -25,6 +25,11 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     face_recognition_model = JsonStringField(required=False)
     nextcloud_enabled = JsonBooleanField(required=False)
     auto_create_user_directory = JsonBooleanField(required=False)
+    scan_missing_max_fraction = JsonFractionField(
+        required=False,
+        help_text="Largest share of a user's photos a scan may flag missing at once"
+        " (0 to 1); 1 turns the check off.",
+    )
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
         if not attrs:

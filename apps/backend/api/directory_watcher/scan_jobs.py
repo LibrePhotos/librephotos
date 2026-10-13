@@ -24,6 +24,10 @@ from api.directory_watcher.file_grouping import (
     get_sidecar_grouping_keys,
 )
 from api.directory_watcher.file_handlers import handle_file_group, handle_new_image
+from api.directory_watcher.missing_guard import (
+    library_root_problem,
+    too_many_missing,
+)
 from api.directory_watcher.processing_jobs import (
     add_geolocation,
     generate_tags,
@@ -46,8 +50,8 @@ from api.directory_watcher.utils import (
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
 from api.metadata.reader import existing_sidecars
 from api.mime import VIDEO_EXTENSIONS, extension
-from api.models import LongRunningJob, Photo, Thumbnail, User
-from api.photos.files import detach_missing_files
+from api.models import File, LongRunningJob, Photo, Thumbnail, User
+from api.photos.files import detach_missing_files, missing_files
 from api.photos.media_files import is_metadata
 from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import batch_calculate_clip_embedding
@@ -524,6 +528,15 @@ def scan_photos(
     try:
         if scan_directory == "":
             scan_directory = user.scan_directory
+        if scan_directory == user.scan_directory and not scan_files:
+            problem = library_root_problem(user, scan_directory)
+            if problem is not None:
+                # A scan of an unmounted library would flag every photo missing.
+                logger.warning(
+                    "job %s: not scanning, the scan directory looks unmounted", job_id
+                )
+                lrj.fail(error=problem)
+                return
         photo_list, skipped = _discover_scan_paths(scan_directory, scan_files)
         files_found = len(photo_list)
         last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_SCAN_PHOTOS)
@@ -592,7 +605,11 @@ def scan_photos(
 
 def scan_missing_photos(user: User, job_id: UUID) -> None:
     """
-    Scan for photos whose files no longer exist on disk.
+    Flag the photos whose files no longer exist on disk.
+
+    Every photo is checked before anything changes: when the scan directory
+    looks unmounted, or too much of the library would lose all its files
+    (``missing_guard``), the job fails and detaches nothing.
 
     Args:
         user: The user whose photos to check
@@ -602,21 +619,75 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
     if lrj is None:
         return
     try:
-        existing_photos = Photo.objects.owned_by(user).order_by("image_hash")
+        # Again: the mount can drop between the scan and this follow-up.
+        problem = (
+            library_root_problem(user, user.scan_directory)
+            if user.scan_directory
+            else None
+        )
+        if problem is not None:
+            logger.warning(
+                "job %s: not checking for missing files, the scan directory"
+                " looks unmounted",
+                job_id,
+            )
+            lrj.fail(error=problem)
+            return
 
+        existing_photos = (
+            Photo.objects.owned_by(user)
+            .order_by("image_hash")
+            .prefetch_related("files")
+        )
         paginator = Paginator(existing_photos, 5000)
-        lrj.update_progress(current=0, target=paginator.num_pages)
+        # A step per page checked, and one for detaching what is missing.
+        lrj.update_progress(current=0, target=paginator.num_pages + 1)
+        # Photo id -> the ids of its files that are gone.
+        missing: dict[UUID, list[str]] = {}
+        photos_with_files = 0
+        would_lose_all = 0
         for page in range(1, paginator.num_pages + 1):
-            # Check for cancellation
             if is_job_cancelled(job_id):
                 logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:
-                detach_missing_files(existing_photo)
-
+                file_count = len(existing_photo.files.all())
+                if not file_count:
+                    continue
+                photos_with_files += 1
+                gone = missing_files(existing_photo)
+                if gone:
+                    missing[existing_photo.pk] = [file.pk for file in gone]
+                    would_lose_all += len(gone) == file_count
             update_scan_counter(job_id)
 
+        problem = too_many_missing(would_lose_all, photos_with_files)
+        if problem is not None:
+            logger.warning(
+                "job %s: not detaching %s missing photos of %s",
+                job_id,
+                would_lose_all,
+                photos_with_files,
+            )
+            lrj.fail(error=problem)
+            return
+
+        _detach_missing(missing, job_id)
+        update_scan_counter(job_id)
         logger.info("Finished checking paths for missing photos")
     except Exception as e:
         logger.exception("An error occurred: ")
         lrj.fail(error=e)
+
+
+def _detach_missing(missing: dict[UUID, list[str]], job_id: UUID) -> None:
+    """Detach the files found missing, a batch of photos at a time."""
+    photo_ids = list(missing)
+    for start in range(0, len(photo_ids), 1000):
+        if is_job_cancelled(job_id):
+            logger.info("Scan missing photos job cancelled")
+            return
+        batch = photo_ids[start : start + 1000]
+        for photo in Photo.objects.filter(pk__in=batch):
+            files = list(File.objects.filter(pk__in=missing[photo.pk]))
+            detach_missing_files(photo, files)

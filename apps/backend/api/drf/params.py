@@ -199,3 +199,20 @@ class JsonIntegerField(serializers.IntegerField):
         if isinstance(data, bool) or not isinstance(data, int):
             self.fail("invalid")
         return super().to_internal_value(data)
+
+
+class JsonFractionField(serializers.FloatField):
+    """A JSON number from 0 to 1: ``"0.5"``, ``true`` or ``1.5`` are a 400.
+
+    ``serializers.FloatField`` takes numeric strings and reads ``true`` as 1.
+    """
+
+    def __init__(self, *, required: bool = True, help_text: str | None = None) -> None:
+        super().__init__(
+            required=required, min_value=0.0, max_value=1.0, help_text=help_text
+        )
+
+    def to_internal_value(self, data: float | int | str) -> float:
+        if isinstance(data, bool) or not isinstance(data, (int, float)):
+            self.fail("invalid")
+        return super().to_internal_value(data)
