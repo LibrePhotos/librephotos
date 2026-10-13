@@ -36,6 +36,13 @@ sidebar_position: 18
         <td>Used for aspect ratio calculation</td>
     </tr>
     <tr>
+        <td>Composite:Rotation</td>
+        <td>Width and height</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are then swapped, so Info shows the size it plays at. <em>Not released yet; videos scanned before get it with a Rescan from the Library page.</em></td>
+    </tr>
+    <tr>
         <td>EXIF:DateTimeOriginal</td>
         <td>Timestamp</td>
         <td>✔️</td>
@@ -62,6 +69,20 @@ sidebar_position: 18
         <td>✔️</td>
         <td>❌</td>
         <td>Parsing rules settable in settings. Dates you edit are written back to XMP:DateCreated, never to an EXIF date tag.</td>
+    </tr>
+    <tr>
+        <td>QuickTime:CreationDate</td>
+        <td>Timestamp</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The local time a phone (iPhone, many Android phones) recorded a video at, with its UTC offset. Used as is by the date rule "Local time from the video's QuickTime:CreationDate tag (phones)", ranked above the UTC QuickTime:CreateDate. <em>Not released yet.</em></td>
+    </tr>
+    <tr>
+        <td>Matroska:DateTimeOriginal</td>
+        <td>Timestamp</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>The creation date of MKV and WebM files, in UTC. Converted to local time with the time zone of the video's position, or else your default time zone. <em>Not released yet; before, only a date in the file name could date these files.</em></td>
     </tr>
     <tr>
         <td>QuickTime:Duration</td>
@@ -104,6 +125,13 @@ sidebar_position: 18
         <td>✔️</td>
         <td>❌</td>
         <td>Camera model in Info</td>
+    </tr>
+    <tr>
+        <td>QuickTime:Make, QuickTime:Model</td>
+        <td>Camera</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Camera maker and model of a video, which carries no EXIF:Make or EXIF:Model. <em>Not released yet; videos scanned before get them with a Rescan from the Library page.</em></td>
     </tr>
     <tr>
         <td>EXIF:LensModel</td>

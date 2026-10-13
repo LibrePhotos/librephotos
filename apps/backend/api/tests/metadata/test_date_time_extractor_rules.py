@@ -165,6 +165,88 @@ class DefaultRulesOrderTest(TestCase):
         self.assertNotIn(14, [rule["id"] for rule in PREDEFINED_RULES_PARAMS])
 
 
+class DefaultVideoRulesTest(TestCase):
+    """Where the default rules date a video from (#2268).
+
+    A phone writes the local capture time with its offset into
+    ``QuickTime:CreationDate`` and the UTC time into ``QuickTime:CreateDate``;
+    an MKV or WebM states only a UTC ``Matroska:DateTimeOriginal``.
+    """
+
+    SAN_FRANCISCO = (37.7749, -122.4194)
+
+    def _extract(self, exif_values, gps=(None, None), path="/videos/clip.mp4"):
+        def exif_getter(tags):
+            return [exif_values.get(tag) for tag in tags]
+
+        return extract_local_date_time(
+            path=path,
+            rules=as_rules(DEFAULT_RULES_PARAMS),
+            exif_getter=exif_getter,
+            context=RuleContext(
+                gps_lat=gps[0],
+                gps_lon=gps[1],
+                user_default_tz="Europe/Berlin",
+            ),
+        )
+
+    def test_the_default_rule_order(self):
+        self.assertEqual(
+            [16, 1, 15, 17, 2, 18, 11, 3, 4, 19, 5],
+            [rule["id"] for rule in DEFAULT_RULES_PARAMS],
+        )
+
+    def test_a_phone_video_keeps_its_local_time_without_a_position(self):
+        result = self._extract(
+            {
+                Tags.QUICKTIME_CREATION_DATE: "2024:04:03 03:00:00-07:00",
+                Tags.QUICKTIME_CREATE_DATE: "2024:04:03 10:00:00",
+            }
+        )
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+
+    def test_the_stated_local_time_wins_over_the_gps_time_zone(self):
+        # Shot in San Francisco, the position says Berlin (a wrong fix or a
+        # position the user set): the phone's own clock is the better source.
+        result = self._extract(
+            {
+                Tags.QUICKTIME_CREATION_DATE: "2024:04:03 03:00:00-07:00",
+                Tags.QUICKTIME_CREATE_DATE: "2024:04:03 10:00:00",
+            },
+            gps=(52.52, 13.405),
+        )
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+
+    def test_a_video_without_creation_date_still_uses_create_date(self):
+        result = self._extract(
+            {Tags.QUICKTIME_CREATE_DATE: "2024:04:03 10:00:00"},
+            gps=self.SAN_FRANCISCO,
+        )
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+
+    def test_a_matroska_date_is_converted_with_the_position(self):
+        result = self._extract(
+            {Tags.MATROSKA_DATE: "2025:03:12 17:00:00Z"},
+            gps=self.SAN_FRANCISCO,
+            path="/videos/clip.mkv",
+        )
+        self.assertEqual(datetime.datetime(2025, 3, 12, 10, 0, tzinfo=pytz.utc), result)
+
+    def test_a_matroska_date_falls_back_to_the_default_time_zone(self):
+        result = self._extract(
+            {Tags.MATROSKA_DATE: "2025:03:12 17:00:00Z"}, path="/videos/clip.webm"
+        )
+        self.assertEqual(datetime.datetime(2025, 3, 12, 18, 0, tzinfo=pytz.utc), result)
+
+    def test_a_date_in_the_file_name_wins_over_the_default_time_zone(self):
+        # Rule 3 (file name, local time) stays above rule 19, as above rule 4.
+        result = self._extract(
+            {Tags.MATROSKA_DATE: "2025:03:12 17:00:00Z"},
+            path="/videos/VID_20250312_170000.mkv",
+        )
+        self.assertEqual(datetime.datetime(2025, 3, 12, 17, 0, tzinfo=pytz.utc), result)
+
+
 class BrokenCustomRegexpRuleTest(TestCase):
     """A user's path rule whose custom_regexp does not yield year, month, day
     (and up to four time parts) is a rule that does not match: it must log,

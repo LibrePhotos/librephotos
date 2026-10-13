@@ -41,17 +41,6 @@ class ReadTagsTest(SimpleTestCase):
         tags = [tag for _, tag in EXIF_FIELDS]
         self.assertEqual(len(tags), len(set(tags)))
 
-    def test_no_two_groups_share_a_tag_name(self):
-        """The exif sidecar's -struct reads come back without groups, so two
-        tags of one name (IPTC:Headline and XMP:Headline) would answer as one.
-        QuickTime and Matroska durations never meet in one file."""
-        names = [
-            tag.rpartition(":")[2].lower()
-            for _, tag in EXIF_FIELDS
-            if tag.rpartition(":")[2] != "Duration"
-        ]
-        self.assertEqual(len(names), len(set(names)), names)
-
 
 class DescriptionOfTest(SimpleTestCase):
     def test_sources_in_order(self):

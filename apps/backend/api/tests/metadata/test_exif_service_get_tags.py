@@ -187,6 +187,40 @@ class GetTagsTest(SimpleTestCase):
         values = self.get_values(fake, ["/a.jpg"], ["XMP:RegionInfo"], struct=True)
         self.assertEqual(values, [{"RegionList": []}])
 
+    def test_struct_tags_of_one_name_are_asked_for_on_their_own(self):
+        # Ungrouped, EXIF:Model and QuickTime:Model come back as one "Model"
+        # key that cannot say which of them it is (#2268).
+        fake = FakeExifTool(
+            values={
+                ("EXIF:Model", "/a.jpg"): "EOS",
+                ("XMP:RegionInfo", "/a.jpg"): {"RegionList": []},
+            },
+            renames={"EXIF:Model": "Model", "XMP:RegionInfo": "RegionInfo"},
+            running=True,
+        )
+        values = self.get_values(
+            fake,
+            ["/a.jpg"],
+            ["XMP:RegionInfo", "EXIF:Model", "QuickTime:Model"],
+            struct=True,
+        )
+        self.assertEqual(values, [{"RegionList": []}, "EOS", None])
+        self.assertEqual(
+            fake.calls, [("EXIF:Model", "/a.jpg"), ("QuickTime:Model", "/a.jpg")]
+        )
+
+    def test_grouped_tags_of_one_name_share_the_command(self):
+        fake = FakeExifTool(
+            values={
+                ("EXIF:Model", "/a.mp4"): "EOS",
+                ("QuickTime:Model", "/a.mp4"): "iPhone 15",
+            },
+            running=True,
+        )
+        values = self.get_values(fake, ["/a.mp4"], ["EXIF:Model", "QuickTime:Model"])
+        self.assertEqual(values, ["EOS", "iPhone 15"])
+        self.assertEqual(fake.calls, [])
+
     def test_renamed_tag_is_asked_for_on_its_own(self):
         # ExifTool answers under a name we cannot attribute; get_tag took
         # whatever key came back, so that tag is read the old way.

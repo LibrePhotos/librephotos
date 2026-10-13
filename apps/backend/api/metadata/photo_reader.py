@@ -70,6 +70,11 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("color_space", Tags.COLOR_SPACE),
     ("bits_per_sample", Tags.BITS_PER_SAMPLE),
     ("gps_altitude", Tags.GPS_ALTITUDE),
+    # Videos: the camera from the QuickTime atoms (a fallback for EXIF:Make
+    # and EXIF:Model) and the rotation, which turns the stored size into the shown one.
+    ("quicktime_make", Tags.QUICKTIME_MAKE),
+    ("quicktime_model", Tags.QUICKTIME_MODEL),
+    ("rotation", Tags.ROTATION),
 )
 
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)

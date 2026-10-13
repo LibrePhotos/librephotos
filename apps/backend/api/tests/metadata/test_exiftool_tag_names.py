@@ -9,6 +9,7 @@ binary so that class of bug fails loudly.
 """
 
 import datetime
+import json
 import os
 import re
 import shutil
@@ -27,6 +28,7 @@ from api.photos.media_files import get_or_create_file
 from api.tests.utils import create_test_photo, create_test_user
 
 EXIFTOOL = shutil.which("exiftool")
+FFMPEG = shutil.which("ffmpeg")
 
 TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
 TIMESTAMP_EXIFTOOL = "2019:08:15 07:45:00"
@@ -165,6 +167,98 @@ class ExifToolReadTagNameTest(SimpleTestCase):
                     name.lower() in known[group],
                     f"ExifTool has no tag {name!r} in {group or 'any group'}",
                 )
+
+
+@unittest.skipUnless(EXIFTOOL and FFMPEG, "exiftool or ffmpeg not available")
+class VideoTagReadTest(SimpleTestCase):
+    """Every tag LibrePhotos reads from videos returns a value from a video
+    that has it (#2268).
+
+    A name ExifTool knows can still read nothing: ``Tags.ROTATION`` was
+    ``"QuickTime:Rotation"``, a writable tag that ExifTool only ever reports as
+    ``Composite:Rotation``, so the existence check above passed it.
+    """
+
+    MP4_TAGS = (
+        Tags.QUICKTIME_CREATE_DATE,
+        Tags.QUICKTIME_CREATION_DATE,
+        Tags.QUICKTIME_MAKE,
+        Tags.QUICKTIME_MODEL,
+        Tags.QUICKTIME_DURATION,
+        Tags.ROTATION,
+        Tags.LATITUDE,
+        Tags.LONGITUDE,
+    )
+    MATROSKA_TAGS = (Tags.MATROSKA_DATE, Tags.MATROSKA_DURATION)
+
+    def setUp(self):
+        self.directory = tempfile.mkdtemp(prefix="librephotos-videotags")
+        self.addCleanup(shutil.rmtree, self.directory, True)
+
+    def _video(self, name, *metadata):
+        path = os.path.join(self.directory, name)
+        result = subprocess.run(
+            [
+                FFMPEG,
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=black:s=64x48:d=1:r=5",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                *metadata,
+                "-y",
+                path,
+            ],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            self.skipTest(f"ffmpeg cannot encode H.264 here: {result.stderr!r}")
+        return path
+
+    def _read(self, path, tags):
+        # The exif service reads with -G -n (pyexiftool's defaults).
+        result = run_exiftool("-j", "-G", "-n", *(f"-{tag}" for tag in tags), path)
+        return json.loads(result.stdout)[0]
+
+    def test_phone_video_tags_read_back(self):
+        video = self._video("phone.mp4")
+        written = run_exiftool(
+            "-overwrite_original",
+            "-Keys:CreationDate=2024:04:03 03:00:00-07:00",
+            "-Keys:Make=Apple",
+            "-Keys:Model=iPhone 15",
+            "-Keys:GPSCoordinates#=37.7749 -122.4194 10",
+            "-QuickTime:CreateDate=2024:04:03 10:00:00",
+            "-Rotation=90",
+            video,
+        )
+        self.assertEqual(0, written.returncode, written.stderr)
+        self.assertNotIn("Warning", written.stderr)
+
+        values = self._read(video, self.MP4_TAGS)
+
+        for tag in self.MP4_TAGS:
+            with self.subTest(tag=tag):
+                self.assertIn(tag, values)
+        self.assertEqual(90, values[Tags.ROTATION])
+
+    def test_matroska_tags_read_back(self):
+        video = self._video(
+            "clip.mkv", "-metadata", "creation_time=2025-03-12T17:00:00Z"
+        )
+
+        values = self._read(video, self.MATROSKA_TAGS)
+
+        for tag in self.MATROSKA_TAGS:
+            with self.subTest(tag=tag):
+                self.assertIn(tag, values)
+        self.assertEqual("2025:03:12 17:00:00Z", values[Tags.MATROSKA_DATE])
 
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
