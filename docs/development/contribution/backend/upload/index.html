@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.48e1e0f4.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.132f9e72.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -51,7 +51,11 @@ On the first chunk leave <code>upload_id</code> empty, you will get a response w
 <li class=""><code>upload_id</code> - The id of the upload</li>
 <li class=""><code>md5</code> - Just the md5 hash of whole file</li>
 <li class=""><code>filename</code> - The original filename</li>
+<li class=""><code>device_created_at</code> (optional) - When the device says the photo was taken, used as its date only when the file carries none (screenshots, images saved from messengers). Epoch milliseconds (an integer of at least 11 digits) or ISO 8601. An ISO value keeps its wall-clock time: <code>2025-10-11T21:30:00-07:00</code> is stored as 21:30 on 11 October, like a camera&#x27;s local <code>DateTimeOriginal</code>.</li>
+<li class=""><code>device_modified_at</code> (optional) - The same, used when <code>device_created_at</code> is missing or unusable.</li>
+<li class=""><code>device_tz_offset</code> (optional) - The device&#x27;s UTC offset in minutes east of UTC at that moment (<code>-420</code> for UTC-7; the opposite sign of JavaScript&#x27;s <code>getTimezoneOffset()</code>). Epoch milliseconds carry no time zone: they are shown at this offset, or in the owner&#x27;s default time zone when it is not sent.</li>
 </ul>
+<p>A shorter number or a value that does not parse is ignored. <em>Not released yet:</em> before this, epoch milliseconds were stored as UTC time and ISO values as their UTC instant, so these photos could land on the wrong day.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="headers-2">Headers:<a href="#headers-2" class="hash-link" aria-label="Direct link to Headers:" title="Direct link to Headers:" translate="no">​</a></h4>
 <ul>
 <li class=""><code>Content-Type</code> - <code>multipart/form-data</code></li>
