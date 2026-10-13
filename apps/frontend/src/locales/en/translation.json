@@ -644,7 +644,10 @@
     "markasdocument": "Mark as document",
     "addto": "Add to album or tags",
     "removephotosselectall": "Not available with Select all: select the photos one by one",
-    "selectphotosfirst": "Select at least one photo first"
+    "selectphotosfirst": "Select at least one photo first",
+    "createstacktwophotos": "Select at least two photos to stack them",
+    "stacksselectall": "Not available with Select all: select the photos one by one",
+    "nomanualstack": "None of the selected photos is in a manual stack"
   },
   "lightbox": {
     "sidebar": {
@@ -808,7 +811,8 @@
         "screenshot": "Marked as screenshot",
         "document": "Marked as document"
       },
-      "undo": "Undo"
+      "undo": "Undo",
+      "videoonlyphoto": "A video can only be marked as a photo"
     }
   },
   "exif": {

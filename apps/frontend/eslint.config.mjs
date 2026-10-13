@@ -337,6 +337,15 @@ export const syntaxBans = [
     message:
       "Wrap the control in <DisabledReason reason={...}> (components/common/DisabledReason) instead of a Tooltip around a disabled control.",
   },
+  {
+    // A `disabled` Menu.Item never says why, and Mantine's arrow keys skip it, so a keyboard user
+    // never reaches it (#2592, #2608). DisabledReason keeps it in the arrow-key order with its reason.
+    id: "menu-item-disabled",
+    selector:
+      "JSXOpeningElement[name.object.name='Menu'][name.property.name='Item'] > JSXAttribute[name.name='disabled']",
+    message:
+      "Wrap the Menu.Item in <DisabledReason reason={...}> (components/common/DisabledReason) instead of setting `disabled`: it says why and stays reachable with the arrow keys.",
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure

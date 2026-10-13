@@ -9,9 +9,6 @@ import {
   IconEyeOff as EyeOff,
   IconFileText as FileText,
   IconGlobe as Globe,
-  IconLayersLinked,
-  IconLayersSubtract,
-  IconStack2,
   IconKey as Key,
   IconPhoto as Photo,
   IconPlus as Plus,
@@ -36,17 +33,14 @@ import {
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
 import type { SelectionState } from "../../api_client/photos/types";
-import {
-  useCreateManualStackMutation,
-  useMergeStacksMutation,
-  useRemoveFromStackMutation,
-} from "../../api_client/stacks";
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
 import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
+import { DisabledReason } from "../common/DisabledReason";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
+import { StackSelectionActions } from "./StackSelectionActions";
 
 /** The albums whose cover the selection can set. */
 export type AlbumCoverType = AlbumPageKind;
@@ -79,9 +73,6 @@ export function SelectionActions(props: Readonly<Props>) {
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
   const setPhotosCategory = useSetPhotosCategoryMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
-  const createManualStack = useCreateManualStackMutation();
-  const mergeStacks = useMergeStacksMutation();
-  const removeFromStack = useRemoveFromStackMutation();
 
   const {
     selectedItems,
@@ -116,28 +107,10 @@ export function SelectionActions(props: Readonly<Props>) {
   // Placeholder tiles that never loaded have no hash.
   const getExcludedHashes = () => selectedItems.map(i => i.image_hash).filter(Boolean);
 
-  // Helper to get manual stacks from selected photos
-  const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
-    const result: Array<{ stackId: string; photoHash: string }> = [];
-    selectedItems.forEach(item => {
-      // Use image_hash if available, otherwise fall back to id
-      const photoHash = item.image_hash || item.id;
-      if (item.stacks && Array.isArray(item.stacks)) {
-        item.stacks.forEach(stack => {
-          if (stack.type === "manual") {
-            result.push({ stackId: stack.id, photoHash });
-          }
-        });
-      }
-    });
-    return result;
-  };
-
-  // Helper to check if any selected photos are in manual stacks
-  const hasPhotosInManualStacks = (): boolean => getManualStacksFromSelection().length > 0;
-
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
+  // Why the photo actions are off (#2608): they say so, and stay in the menu's arrow-key order.
+  const noSelection = !hasSelection && t("selectionactions.selectphotosfirst");
 
   // Fix the media category of the selection; pinned as set by the user, so
   // rescans and Classify Media keep it.
@@ -267,303 +240,229 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Star size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setFavoritePhotos.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  favorite: true,
-                });
-              } else {
-                setFavoritePhotos.mutate({
-                  image_hashes: getImageHashes(),
-                  favorite: true,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.favorite")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<Star size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setFavoritePhotos.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    favorite: true,
+                  });
+                } else {
+                  setFavoritePhotos.mutate({
+                    image_hashes: getImageHashes(),
+                    favorite: true,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.favorite")}
+            </Menu.Item>
+          </DisabledReason>
 
-          <Menu.Item
-            leftSection={<StarOff size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setFavoritePhotos.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  favorite: false,
-                });
-              } else {
-                setFavoritePhotos.mutate({
-                  image_hashes: getImageHashes(),
-                  favorite: false,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.unfavorite")}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          <Menu.Item
-            leftSection={<EyeOff size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setPhotosHidden.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  hidden: true,
-                });
-              } else {
-                setPhotosHidden.mutate({
-                  image_hashes: getImageHashes(),
-                  hidden: true,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.hide")}
-          </Menu.Item>
-
-          <Menu.Item
-            leftSection={<Eye size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setPhotosHidden.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  hidden: false,
-                });
-              } else {
-                setPhotosHidden.mutate({
-                  image_hashes: getImageHashes(),
-                  hidden: false,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.unhide")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<StarOff size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setFavoritePhotos.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    favorite: false,
+                  });
+                } else {
+                  setFavoritePhotos.mutate({
+                    image_hashes: getImageHashes(),
+                    favorite: false,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.unfavorite")}
+            </Menu.Item>
+          </DisabledReason>
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Photo size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => markAs("photo")}
-          >
-            {t("selectionactions.markasphoto")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<EyeOff size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setPhotosHidden.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    hidden: true,
+                  });
+                } else {
+                  setPhotosHidden.mutate({
+                    image_hashes: getImageHashes(),
+                    hidden: true,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.hide")}
+            </Menu.Item>
+          </DisabledReason>
 
-          <Menu.Item
-            leftSection={<Screenshot size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => markAs("screenshot")}
-          >
-            {t("selectionactions.markasscreenshot")}
-          </Menu.Item>
-
-          <Menu.Item
-            leftSection={<FileText size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => markAs("document")}
-          >
-            {t("selectionactions.markasdocument")}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          <Menu.Item
-            leftSection={<Globe size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setPhotosPublic.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  val_public: true,
-                });
-                // Note: Can't copy links in selectAll mode as we don't have all hashes
-              } else {
-                setPhotosPublic.mutate({
-                  image_hashes: getImageHashes(),
-                  val_public: true,
-                });
-                // Absolute links (shareMediaUrl: the origin plus the subpath), and
-                // no ".jpg": the same link serves videos too.
-                const linksToCopy = getImageHashes()
-                  .map(ih => shareMediaUrl.photo(ih))
-                  .join("\n");
-                copyToClipboard(linksToCopy);
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.makepublic")}
-          </Menu.Item>
-
-          <Menu.Item
-            leftSection={<Key size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setPhotosPublic.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  val_public: false,
-                });
-              } else {
-                setPhotosPublic.mutate({
-                  image_hashes: getImageHashes(),
-                  val_public: false,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.makeprivate")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<Eye size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setPhotosHidden.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    hidden: false,
+                  });
+                } else {
+                  setPhotosHidden.mutate({
+                    image_hashes: getImageHashes(),
+                    hidden: false,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.unhide")}
+            </Menu.Item>
+          </DisabledReason>
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Download size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => openDownloadModal()}
-          >
-            {t("selectionactions.download")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<Photo size={ICON_SIZE.menu} />} onClick={() => markAs("photo")}>
+              {t("selectionactions.markasphoto")}
+            </Menu.Item>
+          </DisabledReason>
+
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<Screenshot size={ICON_SIZE.menu} />} onClick={() => markAs("screenshot")}>
+              {t("selectionactions.markasscreenshot")}
+            </Menu.Item>
+          </DisabledReason>
+
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<FileText size={ICON_SIZE.menu} />} onClick={() => markAs("document")}>
+              {t("selectionactions.markasdocument")}
+            </Menu.Item>
+          </DisabledReason>
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Trash size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                setPhotosDeleted.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  deleted: true,
-                });
-              } else {
-                setPhotosDeleted.mutate({
-                  image_hashes: getImageHashes(),
-                  deleted: true,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {t("selectionactions.deleted")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<Globe size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setPhotosPublic.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    val_public: true,
+                  });
+                  // Note: Can't copy links in selectAll mode as we don't have all hashes
+                } else {
+                  setPhotosPublic.mutate({
+                    image_hashes: getImageHashes(),
+                    val_public: true,
+                  });
+                  // Absolute links (shareMediaUrl: the origin plus the subpath), and
+                  // no ".jpg": the same link serves videos too.
+                  const linksToCopy = getImageHashes()
+                    .map(ih => shareMediaUrl.photo(ih))
+                    .join("\n");
+                  copyToClipboard(linksToCopy);
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.makepublic")}
+            </Menu.Item>
+          </DisabledReason>
+
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<Key size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setPhotosPublic.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    val_public: false,
+                  });
+                } else {
+                  setPhotosPublic.mutate({
+                    image_hashes: getImageHashes(),
+                    val_public: false,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.makeprivate")}
+            </Menu.Item>
+          </DisabledReason>
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Share size={ICON_SIZE.menu} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (hasSelection) {
-                onSharePhotos();
-              }
-            }}
-          >
-            {t("selectionactions.sharing")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<Download size={ICON_SIZE.menu} />} onClick={() => openDownloadModal()}>
+              {t("selectionactions.download")}
+            </Menu.Item>
+          </DisabledReason>
 
-          {/* Stack Actions */}
           <Menu.Divider />
 
-          <Menu.Label>{t("selectionactions.stackactions")}</Menu.Label>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              leftSection={<Trash size={ICON_SIZE.menu} />}
+              onClick={() => {
+                if (selectAllMode) {
+                  setPhotosDeleted.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    deleted: true,
+                  });
+                } else {
+                  setPhotosDeleted.mutate({
+                    image_hashes: getImageHashes(),
+                    deleted: true,
+                  });
+                }
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.deleted")}
+            </Menu.Item>
+          </DisabledReason>
 
-          <Menu.Item
-            leftSection={<IconStack2 size={ICON_SIZE.menu} />}
-            disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
-            onClick={() => {
-              if (!selectAllMode && selectedItems.length >= 2) {
-                createManualStack.mutate(
-                  { photo_hashes: getImageHashes() },
-                  {
-                    onSuccess: () => {
-                      resetSelection();
-                    },
-                  }
-                );
-              }
-            }}
-          >
-            {t("selectionactions.createstack")}
-          </Menu.Item>
+          <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<IconLayersLinked size={ICON_SIZE.menu} />}
-            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
-            onClick={() => {
-              if (!selectAllMode && hasPhotosInManualStacks()) {
-                mergeStacks.mutate(
-                  { photo_hashes: getImageHashes() },
-                  {
-                    onSuccess: () => {
-                      resetSelection();
-                    },
-                  }
-                );
-              }
-            }}
-          >
-            {t("selectionactions.mergestacks")}
-          </Menu.Item>
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<Share size={ICON_SIZE.menu} />} onClick={onSharePhotos}>
+              {t("selectionactions.sharing")}
+            </Menu.Item>
+          </DisabledReason>
 
-          <Menu.Item
-            leftSection={<IconLayersSubtract size={ICON_SIZE.menu} />}
-            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
-            onClick={() => {
-              if (!selectAllMode && hasPhotosInManualStacks()) {
-                const stackPhotos = getManualStacksFromSelection();
-                // Group by stack ID to remove photos from each stack
-                const stacksByStackId = new Map<string, string[]>();
-                stackPhotos.forEach(({ stackId, photoHash }) => {
-                  const photoHashes = stacksByStackId.get(stackId) ?? [];
-                  photoHashes.push(photoHash);
-                  stacksByStackId.set(stackId, photoHashes);
-                });
-
-                // Remove photos from each stack
-                const promises = Array.from(stacksByStackId.entries()).map(([stackId, photoHashes]) =>
-                  removeFromStack.mutateAsync({
-                    stackId,
-                    data: { photo_hashes: photoHashes },
-                  })
-                );
-
-                Promise.all(promises).then(() => {
-                  resetSelection();
-                });
-              }
-            }}
-          >
-            {t("selectionactions.breakapartstacks")}
-          </Menu.Item>
+          <StackSelectionActions
+            selectedItems={selectedItems}
+            selectAllMode={selectAllMode}
+            imageHashes={getImageHashes()}
+            onDone={resetSelection}
+          />
 
           {albumPage && (
             <AlbumSelectionActions
