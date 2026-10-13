@@ -42,7 +42,7 @@ from api.directory_watcher.utils import (
     walk_files,
 )
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
-from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.metadata.reader import existing_sidecars
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
 from api.photos.files import detach_missing_files
@@ -100,7 +100,7 @@ def _group_needs_processing(
     for path in paths:
         if path not in existing_paths or full_scan or not last_scan:
             return True
-        files_to_check = [path, *get_sidecar_files_in_priority_order(path)]
+        files_to_check = [path, *existing_sidecars(path)]
         if any(
             _file_was_modified_after(p, last_scan.finished_at) for p in files_to_check
         ):
@@ -172,7 +172,7 @@ def photo_scanner(
     Used primarily for metadata files after the main scan.
     """
     files_to_check = [path]
-    files_to_check.extend(get_sidecar_files_in_priority_order(path))
+    files_to_check.extend(existing_sidecars(path))
     if (
         not Photo.objects.filter(files__path=path).exists()
         or full_scan

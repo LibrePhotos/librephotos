@@ -100,7 +100,8 @@ RAW_EXTENSIONS = frozenset(
     }
 )
 # Sidecars that describe a media file instead of being one.
-METADATA_EXTENSIONS = frozenset({".xmp"})
+XMP_EXTENSION = ".xmp"
+METADATA_EXTENSIONS = frozenset({XMP_EXTENSION})
 
 # Subset of IMAGE_EXTENSIONS: the processed images a RAW file or an Apple Live
 # Photo video attaches to as a variant (file_grouping). Every everyday camera

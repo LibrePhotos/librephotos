@@ -4,7 +4,7 @@ from collections.abc import Mapping
 
 import exiftool
 
-from api.metadata.reader import get_sidecar_files_in_priority_order
+from api.metadata.reader import sidecar_for_write
 from api.runtime import binaries
 
 logger = logging.getLogger(__name__)
@@ -35,11 +35,7 @@ def write_metadata(
     if not et.running:
         et.start()
         terminate_et = True
-    # To-Do: Replace with new File Structure
-    if use_sidecar:
-        file_path = get_sidecar_files_in_priority_order(media_file)[0]
-    else:
-        file_path = media_file
+    file_path = sidecar_for_write(media_file) if use_sidecar else media_file
 
     try:
         logger.info("Writing %s to %s", tags, file_path)

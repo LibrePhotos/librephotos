@@ -208,3 +208,20 @@ To back-fill an existing library with face tags, run
 "Synchronize metadata to disk" setting says (XMP sidecar or media file), and photos of users
 who have it Off are skipped. `--sidecar` or `--media-file` overrides the setting for the one
 user named with `--user`.
+
+## XMP sidecars
+
+LibrePhotos reads both sidecar naming conventions next to a photo `IMG_2.jpg`, in lower or
+upper case: `IMG_2.xmp` (Lightroom, older LibrePhotos versions) and `IMG_2.jpg.xmp`
+(digiKam, darktable, Immich). A value in a sidecar overrides the same tag in the photo, and
+when both sidecars exist, `IMG_2.xmp` wins.
+
+With "Synchronize metadata to disk" set to the sidecar, an edit is written to the sidecar
+that already exists, so a digiKam or darktable sidecar is updated in place and keeps its other
+tags. When both exist, the edit goes to `IMG_2.xmp`, the one that is read. When there is none,
+LibrePhotos creates `IMG_2.jpg.xmp`, which other apps also read and which cannot be mistaken
+for the sidecar of a RAW file next to the JPEG (`IMG_2.CR2`).
+
+_Not released yet: up to 1.3.0, LibrePhotos always wrote to `IMG_2.xmp`, creating it next to
+an existing `IMG_2.jpg.xmp`. A photo that already has both keeps both; LibrePhotos reads and
+writes `IMG_2.xmp`, and the other app keeps its own file._
