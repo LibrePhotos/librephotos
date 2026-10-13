@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.bea4f331.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c5b9ee7e.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -98,7 +98,7 @@
 <p>A photo without a location opens the dialog on a world map. The browser only asks for your position when you click the crosshair button (not released yet: up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission).</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="removing-a-location">Removing a location<a href="#removing-a-location" class="hash-link" aria-label="Direct link to Removing a location" title="Direct link to Removing a location" translate="no">​</a></h3>
 <p>If a photo has a wrong location (a phone that reused a stale GPS fix, a scan that inherited the scanner&#x27;s position), open the <strong>Pick location</strong> dialog and click <strong>Remove location</strong>, then confirm. The photo leaves the map, its place albums and location search. The photo file is not changed, and a rescan does not bring the location back; set a location again in the same dialog. <strong>Remove location</strong> is only shown for a photo that has one. (Not released yet.)</p>
-<p>If no place name can be found for the new position (reverse geocoding is turned off, the provider fails or rate limits, or the spot has no address, such as open sea), the new coordinates are still saved. The photo then drops the place it had before: it leaves its old place albums, is no longer found by searching the old place name, and the info sidebar shows the coordinates instead of a place name. A notice says that the place name could not be looked up. (Not released yet: up to 1.3.0, the photo kept the old place name and albums in that case, and the dialog reported a plain success.)</p>
+<p>If no place name can be found for the new position (reverse geocoding is turned off, the provider fails or rate limits, or the spot has no address, such as open sea), the new coordinates are still saved. The photo then drops the place it had before: it leaves its old place albums, is no longer found by searching the old place name, and the info sidebar shows the coordinates instead of a place name. When the lookup failed, a notice says that the place name could not be looked up; when it worked but there is no place at that spot, the confirmation says so instead. (Not released yet: up to 1.3.0, the photo kept the old place name and albums in that case, and the dialog reported a plain success.)</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="troubleshooting">Troubleshooting<a href="#troubleshooting" class="hash-link" aria-label="Direct link to Troubleshooting" title="Direct link to Troubleshooting" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="places-tab-is-empty">Places tab is empty<a href="#places-tab-is-empty" class="hash-link" aria-label="Direct link to Places tab is empty" title="Direct link to Places tab is empty" translate="no">​</a></h3>
 <ol>
