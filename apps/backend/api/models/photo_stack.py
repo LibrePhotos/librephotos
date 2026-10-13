@@ -172,11 +172,11 @@ class PhotoStack(models.Model):
             still_photos = photos.exclude(main_file__type=2)
             best = still_photos.first() if still_photos.exists() else photos.first()
         else:
-            # MANUAL and default: highest resolution
-            # Use metadata__width and metadata__height since these fields moved to PhotoMetadata
-            best = photos.order_by(
-                models.F("metadata__width") * models.F("metadata__height")
-            ).last()
+            # MANUAL and default: highest resolution. api.models.photo
+            # imports this module.
+            from api.models.photo import highest_resolution_first
+
+            best = highest_resolution_first(photos).first()
 
         if best:
             self.primary_photo = best

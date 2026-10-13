@@ -147,6 +147,9 @@ class Duplicate(models.Model):
         """
         from django.db.models.functions import Length
 
+        # api.models.photo imports this module.
+        from api.models.photo import highest_resolution_first
+
         photos = self.photos.all()
         if not photos.exists():
             return None
@@ -155,10 +158,7 @@ class Duplicate(models.Model):
             # For exact copies, pick the one with shortest path (likely "original")
             best = photos.order_by(Length("main_file__path")).first()
         else:
-            # For visual duplicates: highest resolution
-            from django.db.models import F
-
-            best = photos.order_by(F("metadata__width") * F("metadata__height")).last()
+            best = highest_resolution_first(photos).first()
 
         return best
 
