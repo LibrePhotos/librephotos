@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.7f6c4b1a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3b97d98c.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -78,7 +78,7 @@
 <ul>
 <li class=""><strong>Minimum Cluster Size</strong> (default <strong>Auto</strong>) — the smallest group the algorithm will treat as a cluster. <strong>Auto</strong> also applies when the stored value is 0 or 1, and grows from 2 to 4, 8 and 16 as your library passes 1,000, 10,000 and 100,000 encoded faces.</li>
 <li class=""><strong>Minimum Samples</strong> (default <strong>1</strong>) — how conservative clustering is; a higher value is more conservative and leaves more faces unclustered.</li>
-<li class=""><strong>Cluster Selection Epsilon</strong> (default <strong>0.05</strong>, shown as &quot;Normal&quot;) — how readily nearby clusters are merged; a higher value merges more clusters together.</li>
+<li class=""><strong>Cluster Selection Epsilon</strong> (default <strong>0.95</strong>, shown as &quot;Normal&quot;) — how readily nearby clusters are merged; a higher value merges more clusters together. Clustering compares face encodings scaled to length 1, so two faces are 0 to 2 apart and two photos of one person about 0.9. <strong>Small</strong> to <strong>Very High</strong> (0.9 to 1.05) merge more and more of one person&#x27;s clusters; <strong>Very High</strong> can also put look-alikes, such as siblings, into one cluster.</li>
 </ul>
 <p>Steps which could be done to improve clustering are combining very similar faces from e.g. a serial recording or photo shoot, to prevent from too many small images to be clustered.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="face-cluster-merging">Face Cluster Merging<a href="#face-cluster-merging" class="hash-link" aria-label="Direct link to Face Cluster Merging" title="Direct link to Face Cluster Merging" translate="no">​</a></h3>
