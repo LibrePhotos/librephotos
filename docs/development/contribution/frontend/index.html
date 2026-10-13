@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.80034b27.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7af44995.js" defer="defer"></script>
 <script src="/assets/js/main.c4dc47cd.js" defer="defer"></script>
 </head>
 <body>
@@ -110,7 +110,8 @@ shows a &quot;please report this&quot; notification when an answer does not matc
 one folder per domain (<code>photos</code>, <code>albums</code>, <code>faces</code>, …) holds the TanStack Query hooks the
 components actually call (<code>useFetch…Query</code>, <code>use…Mutation</code>): each wraps an
 <code>endpoints.&lt;name&gt;(apiClient, …)</code> call and adds the web&#x27;s cache invalidation and notifications, with
-keys from the domain&#x27;s <code>keys.ts</code>. Files under <code>/media/</code> (thumbnails, originals, videos) get their
+keys from the domain&#x27;s key factory in <code>packages/api-client/src/hooks/queryKeys.ts</code>, which the mobile
+app&#x27;s hooks share. Files under <code>/media/</code> (thumbnails, originals, videos) get their
 URLs from <code>mediaUrl</code> and are fetched with <code>fetchMedia</code>, both in <code>api_client/media/mediaUrl.ts</code>. A
 component never calls <code>apiClient</code> or <code>fetch</code> itself: when it needs a request, add the endpoint and
 its schema (with a fixture test) to <code>packages/api-client</code>, then a hook to the domain&#x27;s folder. Lint
