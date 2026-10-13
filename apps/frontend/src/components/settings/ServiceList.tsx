@@ -1,13 +1,15 @@
 import { serviceKeys } from "@librephotos/api-client";
 import { ActionIcon, Badge, Button, Card, Group, Loader, Table, Title, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlay as Play, IconRefresh as Refresh, IconPlayerStop as Stop } from "@tabler/icons-react";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { queryClient } from "../../api_client/api";
 import { useServiceActionMutation } from "../../api_client/services/hooks/useServiceActionMutation";
 import { useServicesHealthQuery, useServicesListQuery } from "../../api_client/services/hooks/useServicesQuery";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
+import { ConfirmModal } from "../modals/ConfirmModal";
 import { serviceLabel } from "./serviceLabel";
 import { SectionLink } from "./SettingsSection";
 
@@ -27,6 +29,14 @@ export function ServiceList() {
   const { mutate: performAction, isPending, variables: pendingAction } = useServiceActionMutation();
 
   const isLoading = isLoadingList || isLoadingHealth;
+
+  // Stopping takes a feature away from every user of the server, so it asks first.
+  const [stopOpened, stopDialog] = useDisclosure(false);
+  const [serviceToStop, setServiceToStop] = useState("");
+  const askToStop = (name: string) => {
+    setServiceToStop(name);
+    stopDialog.open();
+  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: serviceKeys.healths() });
@@ -125,7 +135,7 @@ export function ServiceList() {
                             leftSection={<Stop size={14} />}
                             loading={isThisServicePending && pendingAction?.action === "stop"}
                             disabled={isPending}
-                            onClick={() => performAction({ serviceName: name, action: "stop" })}
+                            onClick={() => askToStop(name)}
                           >
                             {t("services.stop")}
                           </Button>
@@ -145,6 +155,17 @@ export function ServiceList() {
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+      <ConfirmModal
+        opened={stopOpened}
+        onClose={stopDialog.close}
+        onConfirm={() =>
+          performAction({ serviceName: serviceToStop, action: "stop" }, { onSuccess: () => stopDialog.close() })
+        }
+        loading={isPending}
+        title={t("confirmdialog.stopservice.title", { name: serviceLabel(serviceToStop, t) })}
+        message={t("confirmdialog.stopservice.message")}
+        confirmLabel={t("confirmdialog.stopservice.confirm")}
+      />
     </Card>
   );
 }

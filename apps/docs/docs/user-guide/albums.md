@@ -117,6 +117,8 @@ You can share albums publicly with anyone via a unique link, without requiring t
    - Captions
    - Recognized faces
 
+Turning **"Public sharing"** off asks first, because it revokes the link for good: the old address never works again, and turning sharing back on creates a new one. Anyone you gave the old link to needs the new one.
+
 Once an album is public, it appears under **Sharing → Links**, where you can copy the link, open it, or reopen the sharing dialog to change its settings. Albums that are not yet public are not listed there.
 
 Default privacy settings for new public links can be configured in **Settings → Public Sharing Defaults**.

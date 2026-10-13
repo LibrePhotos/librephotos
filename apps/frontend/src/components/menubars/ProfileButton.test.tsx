@@ -11,7 +11,7 @@ type Worker = { queue_can_accept_job: boolean; job_detail: JobDetail | null } | 
 
 const stubs = vi.hoisted(() => ({
   worker: undefined as Worker,
-  cancelJob: vi.fn<(id: number) => void>(),
+  cancelJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
@@ -69,6 +69,9 @@ const ring = () => container.querySelector('[data-testid="worker-progress-ring"]
 const arcOffset = () => ring()?.querySelectorAll("circle")[1]?.getAttribute("stroke-dashoffset");
 const openMenu = async () => act(async () => avatarButton().click());
 const jobSection = () => container.querySelector('[data-testid="worker-job-section"]');
+const dialog = () => document.querySelector('[role="dialog"]');
+const dialogButton = (label: string) =>
+  [...(dialog()?.querySelectorAll("button") ?? [])].find(b => b.textContent === label);
 
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
@@ -125,10 +128,35 @@ describe("ProfileButton worker status", () => {
     await openMenu();
     expect(jobSection()?.textContent).toContain("Scan Photos");
     expect(jobSection()?.textContent).toContain("50 / 200");
+  });
+
+  it("asks before cancelling the running job, in a dialog that outlives the menu", async () => {
+    await render({ queue_can_accept_job: false, job_detail: job() });
+    await openMenu();
 
     const cancel = [...container.querySelectorAll("button")].find(b => b.textContent === i18n.t("joblist.cancel"));
     await act(async () => cancel?.click());
-    expect(stubs.cancelJob).toHaveBeenCalledWith(7);
+
+    // The menu closed, the question stays, and nothing is cancelled yet.
+    expect(jobSection()).toBeNull();
+    expect(dialog()?.textContent).toContain("Scan Photos has been running for");
+    expect(stubs.cancelJob).not.toHaveBeenCalled();
+
+    await act(async () => dialogButton("Keep running")?.click());
+    expect(stubs.cancelJob).not.toHaveBeenCalled();
+  });
+
+  it("cancels the job the dialog was opened for once confirmed", async () => {
+    await render({ queue_can_accept_job: false, job_detail: job() });
+    await openMenu();
+    const cancel = [...container.querySelectorAll("button")].find(b => b.textContent === i18n.t("joblist.cancel"));
+    await act(async () => cancel?.click());
+
+    // Another job took over while the dialog was open.
+    await render({ queue_can_accept_job: false, job_detail: job({ id: 8, job_type: 7, job_type_str: "Scan Faces" }) });
+    await act(async () => dialogButton("Cancel job")?.click());
+
+    expect(stubs.cancelJob).toHaveBeenCalledWith(7, expect.anything());
   });
 
   it("spins an open ring when the busy worker's job is not visible to this user", async () => {

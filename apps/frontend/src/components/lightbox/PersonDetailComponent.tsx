@@ -9,6 +9,7 @@ import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../ap
 import { serverAddress } from "../../api_client/urls";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
+import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceLocationType } from "./lightbox.types";
 
 type Props = {
@@ -24,7 +25,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
   const { t } = useTranslation();
   const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
-  const { mutate: deleteFaces } = useDeleteFacesMutation();
+  const { mutate: deleteFaces, isPending: isDeleting } = useDeleteFacesMutation();
+  const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
   const navigate = useNavigate();
 
   // A face nobody has named yet, and that neither clustering nor classification
@@ -41,6 +43,9 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
   const isClusterLabel = person.type === "cluster";
 
   const openPersonPicker = () => onPersonEdit(person.face_id, person.face_url);
+
+  // The hook says "deleted" once the server confirmed; the dialog closes then too.
+  const deleteFace = () => deleteFaces({ faceIds: [person.face_id] }, { onSuccess: closeDelete });
 
   const face = (
     <FaceTooltip tooltipOpened={tooltipOpened} probability={person.probability}>
@@ -137,13 +142,27 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
           <ActionIcon
             variant="light"
             color="red"
-            // The hook says "deleted" once the server confirmed
-            onClick={() => deleteFaces({ faceIds: [person.face_id] })}
+            aria-label={t("facesdashboard.explanationdeleting")}
+            onClick={openDelete}
           >
             <IconTrash />
           </ActionIcon>
         </Tooltip>
       )}
+      <ConfirmModal
+        opened={deleteOpened}
+        onClose={closeDelete}
+        onConfirm={deleteFace}
+        loading={isDeleting}
+        irreversible
+        title={t("confirmdialog.deleteface.title")}
+        message={
+          isUnnamed
+            ? t("confirmdialog.deleteface.messageunnamed")
+            : t("confirmdialog.deleteface.message", { name: person.name })
+        }
+        confirmLabel={t("confirmdialog.deleteface.confirm")}
+      />
     </Group>
   );
 }

@@ -3,12 +3,18 @@
  * present it as one: the same red "Unhealthy" badge as a crashed sidecar, and a
  * Start button whose only answer was a 500. An admin who turned face detection
  * off then went looking for a breakage that was never there.
+ *
+ * Stop took effect for every user on one click (#2223); it asks first now.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { click, dialogButton, openDialog } from "../modals/confirmModal.test-utils";
 import { ServiceList } from "./ServiceList";
+
+type ServiceAction = { serviceName: string; action: "start" | "stop" };
+const performAction = vi.fn<(action: ServiceAction, options?: { onSuccess?: () => void }) => void>();
 
 // Like i18next without a bundle: the key.
 const t = vi.fn((key: string) => key);
@@ -25,7 +31,7 @@ vi.mock("../../api_client/api", () => ({
 }));
 
 vi.mock("../../api_client/services/hooks/useServiceActionMutation", () => ({
-  useServiceActionMutation: () => ({ mutate: () => {}, isPending: false, variables: undefined }),
+  useServiceActionMutation: () => ({ mutate: performAction, isPending: false, variables: undefined }),
 }));
 
 vi.mock("../../api_client/services/hooks/useServicesQuery", () => ({
@@ -57,7 +63,7 @@ async function render() {
   const root = createRoot(container);
   await act(async () => {
     root.render(
-      <MantineProvider>
+      <MantineProvider env="test">
         <ServiceList />
       </MantineProvider>
     );
@@ -85,6 +91,7 @@ function serviceRow(container: Element, label: string) {
 describe("ServiceList", () => {
   beforeEach(() => {
     t.mockClear();
+    performAction.mockReset();
     healthQuery.data = health;
     health.face_recognition = {
       service_name: "face_recognition",
@@ -166,5 +173,49 @@ describe("ServiceList", () => {
     expect(t).toHaveBeenCalledWith("services.disabled_hint");
 
     await unmount();
+  });
+
+  describe("Stop", () => {
+    beforeEach(() => {
+      health.thumbnail = { service_name: "thumbnail", healthy: true, enabled: true, feature_flag: null };
+    });
+
+    async function askToStop() {
+      const rendered = await render();
+      const stop = [...rendered.container.querySelectorAll("button")].find(button =>
+        button.textContent?.includes("services.stop")
+      );
+      if (!stop) throw new Error("no Stop button");
+      await click(stop);
+      return rendered;
+    }
+
+    it("asks first, naming the service, and stops nothing yet", async () => {
+      const { unmount } = await askToStop();
+
+      expect(openDialog()?.textContent).toContain("confirmdialog.stopservice.title");
+      expect(t).toHaveBeenCalledWith("confirmdialog.stopservice.title", { name: "services.label_thumbnail" });
+      expect(performAction).not.toHaveBeenCalled();
+
+      await unmount();
+    });
+
+    it("keeps the service running on Cancel", async () => {
+      const { unmount } = await askToStop();
+
+      await click(dialogButton("cancel"));
+
+      expect(performAction).not.toHaveBeenCalled();
+      await unmount();
+    });
+
+    it("stops the service once confirmed", async () => {
+      const { unmount } = await askToStop();
+
+      await click(dialogButton("confirmdialog.stopservice.confirm"));
+
+      expect(performAction).toHaveBeenCalledWith({ serviceName: "thumbnail", action: "stop" }, expect.anything());
+      await unmount();
+    });
   });
 });

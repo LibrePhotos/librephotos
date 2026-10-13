@@ -1,5 +1,5 @@
 import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
-import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Divider, Group, NumberInput, Select, Stack, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBarbell as Barbell,
@@ -18,6 +18,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { PAGE_GUTTER } from "../../uiConstants";
+import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
@@ -203,30 +204,18 @@ export function HeaderButtons({
           </Tooltip>
         </Group>
       </Group>
-      <Modal opened={deleteDialogOpen} onClose={() => closeDeleteDialog()} title={t("deleteface")}>
-        <Stack>
-          <Text size="sm">{t("deletefaceexplanation")}</Text>
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              onClick={() => {
-                closeDeleteDialog();
-              }}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deleteFaces();
-                closeDeleteDialog();
-              }}
-            >
-              {t("confirm")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+      <ConfirmModal
+        opened={deleteDialogOpen}
+        onClose={closeDeleteDialog}
+        onConfirm={() => {
+          deleteFaces();
+          closeDeleteDialog();
+        }}
+        irreversible
+        title={t("confirmdialog.deletefaces.title", { count: selectedFaces.length })}
+        message={t("confirmdialog.deletefaces.message", { count: selectedFaces.length })}
+        confirmLabel={t("confirmdialog.deletefaces.confirm", { count: selectedFaces.length })}
+      />
     </>
   );
 }

@@ -26,6 +26,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { click, dialogButton } from "../modals/confirmModal.test-utils";
 import { PersonDetail } from "./PersonDetailComponent";
 
 type SetFacesPersonLabel = ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"];
@@ -99,7 +100,8 @@ async function renderRow(person: typeof unnamedFace, isPublic = false) {
   const root = createRoot(container);
   await act(async () => {
     root.render(
-      <MantineProvider>
+      // env="test": no transitions, so the delete confirmation is there as soon as it opens
+      <MantineProvider env="test">
         <PersonDetail
           person={person}
           isPublic={isPublic}
@@ -164,8 +166,9 @@ describe("an unnamed face in the lightbox sidebar", () => {
     const container = await renderRow(unnamedFace);
 
     await clickAll(container);
+    await click(dialogButton("Delete face"));
 
-    expect(stubs.deleteFaces).toHaveBeenCalledWith({ faceIds: [unnamedFace.face_id] });
+    expect(stubs.deleteFaces).toHaveBeenCalledWith({ faceIds: [unnamedFace.face_id] }, expect.anything());
   });
 });
 

@@ -131,7 +131,7 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 For each service, you can:
 
 - View **health status**
-- **Start** or **stop** the service
+- **Start** or **stop** the service; stopping asks first, because the service stops for every user of the server
 - Services are automatically started with Django and monitored by a cron job
 
 ## Server Information

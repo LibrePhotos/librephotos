@@ -5,6 +5,7 @@
  *   translated stacks.typelabel.<type>, like the Duplicates tab does.
  * - Burst sequences are the only thing the detection job looks for, so with that
  *   option unchecked Detect would start a job that does nothing: it is disabled.
+ * - Unstack acted on one click (#2223); a manual stack is then gone for good.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -13,11 +14,15 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { StacksPageContent } from "./StacksPageContent";
 
-const stubs = vi.hoisted(() => ({ detect: vi.fn<(options: { detect_bursts: boolean }) => void>() }));
+const stubs = vi.hoisted(() => ({
+  detect: vi.fn<(options: { detect_bursts: boolean }) => void>(),
+  deleteStack: vi.fn<(id: string, options?: { onSuccess?: () => void }) => void>(),
+  stackType: "burst",
+}));
 
 vi.mock("../stacks/StackModal", () => ({ StackModal: () => null }));
 vi.mock("../../api_client/stacks", () => ({
-  useDeleteStackMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
+  useDeleteStackMutation: () => ({ mutate: stubs.deleteStack, isPending: false }),
   useDetectStacksMutation: () => ({ mutate: stubs.detect, isPending: false }),
   useStackStatsQuery: () => ({
     data: { total_stacks: 1, by_type: { burst: 1 }, photos_in_stacks: 3, total_photos: 9 },
@@ -27,7 +32,7 @@ vi.mock("../../api_client/stacks", () => ({
       results: [
         {
           id: "s1",
-          stack_type: "burst",
+          stack_type: stubs.stackType,
           // Deliberately not the English label, so the test sees which one is shown
           stack_type_display: "server label",
           photo_count: 3,
@@ -60,8 +65,7 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 }, 60000);
 
-beforeEach(async () => {
-  stubs.detect.mockReset();
+async function renderPage() {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -73,6 +77,13 @@ beforeEach(async () => {
       </MantineProvider>
     );
   });
+}
+
+beforeEach(async () => {
+  stubs.detect.mockReset();
+  stubs.deleteStack.mockReset();
+  stubs.stackType = "burst";
+  await renderPage();
 });
 
 afterEach(async () => {
@@ -111,5 +122,52 @@ describe("StacksPageContent", () => {
 
     expect(bursts.checked).toBe(false);
     expect(button(i18n.t("stacks.detect")).disabled).toBe(true);
+  });
+
+  describe("Unstack", () => {
+    const dialog = () => document.querySelector('[role="dialog"]');
+    const askToUnstack = async () => {
+      await click(
+        rendered(container.querySelector<HTMLElement>(`[aria-label="${i18n.t("moreactions")}"]`), "the menu")
+      );
+      await click(button(i18n.t("stacks.unstack")));
+    };
+
+    it("asks first and unstacks nothing yet", async () => {
+      await askToUnstack();
+
+      expect(dialog()?.textContent).toContain(
+        "The 3 photos stay in your library. Detect Photo Stacks can group them again."
+      );
+      expect(stubs.deleteStack).not.toHaveBeenCalled();
+    });
+
+    it("unstacks once confirmed", async () => {
+      await askToUnstack();
+
+      await click(button(i18n.t("confirmdialog.unstack.confirm")));
+
+      expect(stubs.deleteStack).toHaveBeenCalledWith("s1", expect.anything());
+    });
+
+    it("keeps the stack on Cancel", async () => {
+      await askToUnstack();
+
+      await click(button(i18n.t("cancel")));
+
+      expect(stubs.deleteStack).not.toHaveBeenCalled();
+    });
+
+    it("warns that a manual stack has to be built again by hand", async () => {
+      await act(async () => root.unmount());
+      container.remove();
+      stubs.stackType = "manual";
+      await renderPage();
+
+      await askToUnstack();
+
+      expect(dialog()?.textContent).toContain("has to be built again by hand");
+      expect(dialog()?.textContent).toContain(i18n.t("confirmdialog.cannotbeundone"));
+    });
   });
 });

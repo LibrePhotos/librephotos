@@ -24,7 +24,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
   IconBolt,
   IconCheck,
@@ -50,6 +50,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
+import { ConfirmModal } from "../modals/ConfirmModal";
 import { StackModal } from "../stacks/StackModal";
 import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
@@ -93,9 +94,12 @@ type StackListItem = {
   }>;
 };
 
-function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick: () => void; onDelete: () => void }) {
+function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => void }) {
   const { t } = useTranslation();
   const typeColor = getStackTypeColor(stack.stack_type);
+  const { mutate: deleteStack, isPending: isUnstacking } = useDeleteStackMutation();
+  // Rendered beside the Menu, not in its dropdown, which unmounts when the item closes it.
+  const [unstackOpened, { open: openUnstack, close: closeUnstack }] = useDisclosure(false);
 
   return (
     <Card
@@ -159,13 +163,28 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
             color="red"
             onClick={e => {
               e.stopPropagation();
-              onDelete();
+              openUnstack();
             }}
           >
             {t("stacks.unstack")}
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
+      <ConfirmModal
+        opened={unstackOpened}
+        onClose={closeUnstack}
+        onConfirm={() => deleteStack(stack.id, { onSuccess: closeUnstack })}
+        loading={isUnstacking}
+        // A detected stack comes back with the next detection; a manual one has to be rebuilt.
+        irreversible={stack.stack_type === "manual"}
+        title={t("confirmdialog.unstack.title")}
+        message={
+          stack.stack_type === "manual"
+            ? t("confirmdialog.unstack.manual", { count: stack.photo_count })
+            : t("confirmdialog.unstack.detected", { count: stack.photo_count })
+        }
+        confirmLabel={t("confirmdialog.unstack.confirm")}
+      />
     </Card>
   );
 }
@@ -206,7 +225,6 @@ export function StacksPageContent() {
   const listFailure = useListFailure(stacksQuery);
   useStepBackFromMissingPage(page, setPage, stacksError);
   const { mutate: detectStacks, isPending: isDetecting } = useDetectStacksMutation();
-  const { mutate: deleteStack } = useDeleteStackMutation();
 
   const stacks = stacksResponse?.results ?? [];
   const totalPages = stacksResponse?.num_pages ?? 1;
@@ -214,10 +232,6 @@ export function StacksPageContent() {
 
   const handleDetect = () => {
     detectStacks(detectOptions);
-  };
-
-  const handleDeleteStack = (id: string) => {
-    deleteStack(id);
   };
 
   // Reset page when filter changes
@@ -325,12 +339,7 @@ export function StacksPageContent() {
         <>
           <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing="md">
             {stacks.map((stack: StackListItem) => (
-              <StackCard
-                key={stack.id}
-                stack={stack}
-                onClick={() => setSelectedStackId(stack.id)}
-                onDelete={() => handleDeleteStack(stack.id)}
-              />
+              <StackCard key={stack.id} stack={stack} onClick={() => setSelectedStackId(stack.id)} />
             ))}
           </SimpleGrid>
           {totalPages > 1 && (

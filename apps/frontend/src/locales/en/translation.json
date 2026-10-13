@@ -1042,6 +1042,7 @@
     "provider_custom": "Custom SMTP server",
     "saved": "Email settings saved",
     "savefailed": "The email settings could not be saved.",
+    "secretcleared": "Stored credential removed",
     "errorport": "Enter a port number greater than 0."
   },
   "search": {
@@ -1174,6 +1175,64 @@
     "unauthorized": "Admins only",
     "unauthorizeddescription": "Only administrators can open the admin area. Ask your administrator if you need access.",
     "deleteallautoalbumsexplanation": "This deletes all of your event albums, including their favorites and sharing. Your photos are not deleted. You can create event albums again with Generate Event Albums on the Library page, but favorites and sharing are lost."
+  },
+  "confirmdialog": {
+    "cannotbeundone": "This action cannot be undone.",
+    "deleteface": {
+      "title": "Delete this face?",
+      "message": "The face of {{name}} disappears from this photo and its person, and face recognition no longer uses it. The photo itself stays in your library.",
+      "messageunnamed": "This face disappears from this photo, and face recognition no longer uses it. The photo itself stays in your library.",
+      "confirm": "Delete face"
+    },
+    "deletefaces": {
+      "title_one": "Delete {{count}} face?",
+      "title_other": "Delete {{count}} faces?",
+      "message_one": "The selected face disappears from its photo and person, and face recognition no longer uses it. The photo itself stays in your library.",
+      "message_other": "The selected faces disappear from their photos and people, and face recognition no longer uses them. The photos themselves stay in your library.",
+      "confirm_one": "Delete face",
+      "confirm_other": "Delete faces"
+    },
+    "unstack": {
+      "title": "Unstack these photos?",
+      "manual_one": "The photo stays in your library, but this stack is gone and has to be built again by hand.",
+      "manual_other": "The {{count}} photos stay in your library, but this stack is gone and has to be built again by hand.",
+      "detected_one": "The photo stays in your library. Detect Photo Stacks can group it again.",
+      "detected_other": "The {{count}} photos stay in your library. Detect Photo Stacks can group them again.",
+      "confirm": "Unstack"
+    },
+    "publicoff": {
+      "title": "Turn off public sharing?",
+      "message": "The link {{url}} stops working and cannot be restored. Turning sharing on again creates a new link.",
+      "messagenolink": "The public link stops working and cannot be restored. Turning sharing on again creates a new link.",
+      "confirm": "Turn off sharing",
+      "cancel": "Keep sharing"
+    },
+    "canceljob": {
+      "title": "Cancel this job?",
+      "running": "{{job}} has been running for {{duration}}. It stops now; the work it already finished is kept.",
+      "queued": "{{job}} has not started yet. Cancelling takes it out of the queue.",
+      "confirm": "Cancel job",
+      "keeprunning": "Keep running",
+      "keepqueued": "Keep in queue"
+    },
+    "removejob": {
+      "title": "Remove this job?",
+      "scanbaseline": "A normal scan only rereads files changed since the newest successful library scan. If this is that scan, the next one rereads every file changed since the scan before it, or your whole library if none is left.",
+      "photobaseline": "{{job}} only covers photos added since its newest successful run. If this is that run, the next one redoes every photo added since the run before it, or all your photos if none is left.",
+      "unfinished": "Removing the entry does not stop the job; only its record is deleted. Use Cancel to stop it.",
+      "plain": "The job's record and result are deleted. Nothing in your library changes.",
+      "confirm": "Remove job"
+    },
+    "stopservice": {
+      "title": "Stop the {{name}} service?",
+      "message": "It stops for every user of this server until an admin starts it again on this page.",
+      "confirm": "Stop service"
+    },
+    "clearsecret": {
+      "title": "Remove the stored credential?",
+      "message": "Most mail providers refuse to send without it, so password reset links stop arriving until you enter the password or API key again.",
+      "confirm": "Remove credential"
+    }
   },
   "joblist": {
     "workerlogs": "Worker Logs",
@@ -1447,7 +1506,6 @@
   "tags": "Tags",
   "places": "Places",
   "loading": "Loading...",
-  "deleteface": "Delete faces",
   "confirm": "Confirm",
   "cancel": "Cancel",
   "save": "Save",
@@ -1457,7 +1515,6 @@
   "storagetooltip": "{{usedstorage}} of {{totalstorage}} used",
   "version": "Version: {{version}}",
   "docs": "Documentation",
-  "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
   "deletealbumexplanation": "This action will permanently delete the album. This action cannot be undone.",
   "toasts": {
     "copyphototitle": "Copy to clipboard",

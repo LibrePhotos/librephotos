@@ -3,12 +3,14 @@
  *
  * - A 401 raised a "could not be saved" toast on top of the auth handling.
  * - Removing the stored credential failed without a word.
+ * - Removing it took one click on a dimmed link and said nothing on success (#2223).
  */
 import type { EmailConfigUpdate } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { click, dialogButton, openDialog } from "../modals/confirmModal.test-utils";
 import { EmailSettings } from "./EmailSettings";
 
 /** The mutate options EmailSettings passes when it saves. */
@@ -98,7 +100,7 @@ beforeEach(async () => {
   root = createRoot(container);
   await act(async () => {
     root.render(
-      <MantineProvider>
+      <MantineProvider env="test">
         <EmailSettings />
       </MantineProvider>
     );
@@ -112,17 +114,51 @@ afterEach(async () => {
   container.remove();
 });
 
-/** Remove the stored credential, with the save failing with `error`. */
-async function clearSecretFailingWith(error: unknown) {
-  mocks.save.mockImplementation((_data, options) => options?.onError?.(error));
+/** Click the link that removes the stored credential. */
+async function askToClearSecret() {
   const clear = [...container.querySelectorAll("button")].find(
     button => button.textContent?.trim() === "emailsettings.clear_secret"
   );
   if (!clear) throw new Error("no button removes the stored credential");
-  await act(async () => {
-    clear.click();
-  });
+  await click(clear);
 }
+
+/** Remove the stored credential, with the save failing with `error`. */
+async function clearSecretFailingWith(error: unknown) {
+  mocks.save.mockImplementation((_data, options) => options?.onError?.(error));
+  await askToClearSecret();
+  await click(dialogButton("confirmdialog.clearsecret.confirm"));
+}
+
+describe("EmailSettings remove the stored credential", () => {
+  it("asks first and removes nothing yet", async () => {
+    await askToClearSecret();
+
+    expect(openDialog()?.textContent).toContain("confirmdialog.clearsecret.message");
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("keeps the credential on Cancel", async () => {
+    await askToClearSecret();
+
+    await click(dialogButton("cancel"));
+
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("removes it once confirmed and says so when the server has", async () => {
+    await askToClearSecret();
+
+    await click(dialogButton("confirmdialog.clearsecret.confirm"));
+    const [payload, options] = mocks.save.mock.calls[0] ?? [];
+    expect(payload).toEqual({ clear_secret: true });
+    expect(mocks.success).not.toHaveBeenCalled();
+
+    await act(async () => options?.onSuccess?.());
+    expect(mocks.success).toHaveBeenCalledWith("emailsettings.secretcleared");
+    expect(container.textContent).not.toContain("emailsettings.clear_secret");
+  });
+});
 
 describe("EmailSettings save errors", () => {
   it("shows the server's message", async () => {

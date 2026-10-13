@@ -134,7 +134,7 @@ Directly below the Site Settings card is an **Email (SMTP)** card that configure
 - `Provider` chooses how mail is sent: `Disabled`, `Custom SMTP server`, `SendGrid`, `Mailgun`, `Postmark`, `Brevo`, `SMTP2GO` or `Amazon SES`. The hosted providers use built-in server presets, so you only supply a `From address`, `Username` and API key. `Custom SMTP server` (and `Amazon SES`, for the host) additionally shows the `SMTP host`; `Custom SMTP server` also shows `Port`, `Use STARTTLS` and `Use implicit SSL`.
 - `From address` is the address mail is sent from.
 - `Username` is the login for the provider. For SendGrid, leave this blank — it uses the literal username `apikey`.
-- `Password / API key` is write-only: it is encrypted before it is stored and never returned by the API. Leaving the field blank keeps the existing credential unchanged; use **Remove the stored credential** to delete it.
+- `Password / API key` is write-only: it is encrypted before it is stored and never returned by the API. Leaving the field blank keeps the existing credential unchanged; use **Remove the stored credential** to delete it (it asks first, since most providers refuse to send mail, password reset links included, until a credential is entered again).
 - **Send test email** sends a test message to your own account's e-mail address to check the configuration end to end. It stays disabled until the configuration is valid.
 
 ## Admin Tools
