@@ -96,7 +96,9 @@ jest.mock("expo-image", () => {
   const Image = props => React.createElement(View, props);
   Image.prefetch = jest.fn(async () => true);
   Image.clearDiskCache = jest.fn(async () => true);
-  return { Image };
+  // Nothing decodes here: an image loaded through the hook never arrives.
+  const useImage = jest.fn(() => null);
+  return { Image, useImage };
 });
 
 // expo-video → the player is native; stub it as a view plus an inert player so

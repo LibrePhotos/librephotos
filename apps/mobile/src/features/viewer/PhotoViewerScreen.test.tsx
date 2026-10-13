@@ -7,6 +7,9 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { insertLocalAlbum, insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 import { putPhotoDetail } from "@/db/queries/detail";
 import { notifyOutboxWrite } from "@/sync/triggers";
+import { Dimensions } from "react-native";
+import { containedRect } from "./FaceOverlay";
+import { useImagePixelSize } from "./useImagePixelSize";
 
 /**
  * An outbox write kicks a real sync run, which keeps touching the database
@@ -15,6 +18,14 @@ import { notifyOutboxWrite } from "@/sync/triggers";
  * dragging the whole engine into a screen test.
  */
 jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: jest.fn<void, unknown[]>() }));
+
+/**
+ * The big thumbnail of a 4032x3024 photo at the default BIG_THUMBNAIL_HEIGHT;
+ * expo-image decodes it natively, so its loaded size is stubbed here.
+ */
+jest.mock("./useImagePixelSize", () => ({
+  useImagePixelSize: jest.fn(() => ({ width: 1440, height: 1080 })),
+}));
 
 const PHOTO_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -262,6 +273,44 @@ describe("PhotoViewerScreen", () => {
       fireEvent.press(utils.getByTestId("viewer-person-7"));
       await waitFor(() => expect(utils.getByTestId("viewer-face-overlay")).toBeTruthy());
     });
+  });
+
+  /**
+   * #2577: face boxes come in pixels of the big thumbnail (1440x1080 for a
+   * 4032x3024 photo at the default BIG_THUMBNAIL_HEIGHT), not of the original.
+   * Divided by the original's size, a face in the middle was drawn near the
+   * top-left corner.
+   */
+  it("places a face box by the big thumbnail it was found on", async () => {
+    const middleFace = { top: 405, bottom: 675, left: 540, right: 900 };
+    const client = makeMockClient(async (url) => {
+      if (url.includes("/photos/hashA/")) {
+        return jsonResponse({
+          ...PHOTO_DETAIL,
+          people: [{ ...PHOTO_DETAIL.people[0], location: middleFace }],
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+    const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+    openSheet(utils);
+    await waitFor(() => expect(utils.getByTestId("viewer-person-7")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("viewer-person-7"));
+    await waitFor(() => expect(utils.getByTestId("viewer-face-overlay")).toBeTruthy());
+
+    const window = Dimensions.get("window");
+    const image = containedRect(1440, 1080, window.width, window.height);
+    const overlay = utils.getByTestId("viewer-face-overlay");
+    expect(image).not.toBeNull();
+    if (!image) return;
+    // Measured on the big thumbnail, not on the original.
+    const faceSpace = jest.mocked(useImagePixelSize).mock.lastCall?.[0];
+    expect(faceSpace?.uri).toContain("/media/thumbnails_big/hashA");
+    // The middle quarter of the picture, wherever the slide letterboxes it.
+    expect(overlay.props.style).toHaveProperty("left", image.left + image.width * 0.375);
+    expect(overlay.props.style).toHaveProperty("top", image.top + image.height * 0.375);
+    expect(overlay.props.style).toHaveProperty("width", image.width * 0.25);
+    expect(overlay.props.style).toHaveProperty("height", image.height * 0.25);
   });
 
   describe("editing", () => {
