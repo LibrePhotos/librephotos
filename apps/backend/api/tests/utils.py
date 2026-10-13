@@ -375,6 +375,7 @@ def create_test_photo(**kwargs):
         "lens_model": "lens_model",
         "aperture": "aperture",
         "focal_length_35mm": "focal_length_35mm",
+        "serial_number": "serial_number",
     }
     # The coordinates live on the photo itself (#2252).
     for old_name, photo_field in (
