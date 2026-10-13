@@ -1283,6 +1283,13 @@ export async function searchGeocode(client: ApiClient, query: string): Promise<S
   return parseResponse(S.GeocodeSearchResponse, res, "geocode search");
 }
 
+/** The place name at a spot, for the location picker before it saves. */
+export async function reverseGeocode(client: ApiClient, lat: number, lon: number): Promise<S.GeocodeReverseResponse> {
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+  const res = await client.get<unknown>(`/geocode/reverse/?${params.toString()}`);
+  return parseResponse(S.GeocodeReverseResponse, res, "reverse geocode");
+}
+
 /* ---- media -------------------------------------------------------------- */
 
 /** Admin: why the web server refused to serve this photo's original. */

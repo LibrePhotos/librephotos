@@ -1,7 +1,8 @@
 /**
  * #2253: a photo moved to a spot the geocoder could not name has coordinates
  * but no place name. The label said "No location yet" above the map with its
- * pin; it now names the spot by its coordinates.
+ * pin; it now names the spot by its coordinates. A photo at latitude or longitude 0 has a
+ * map too (#2283).
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -41,6 +42,7 @@ async function renderSection(photoDetail: React.ComponentProps<typeof LocationSe
   });
   return {
     text: container.textContent ?? "",
+    hasMap: container.querySelector('[data-testid="map"]') !== null,
     async unmount() {
       await act(async () => root.unmount());
       container.remove();
@@ -74,6 +76,17 @@ describe("LocationSection", () => {
     await section.unmount();
   });
 
+  it.each([
+    [0, 13.4],
+    [52.5, 0],
+    [0, 0],
+  ])("shows the map of a photo at %f, %f (#2283)", async (lat, lon) => {
+    const section = await renderSection({ image_hash: "h1", exif_gps_lat: lat, exif_gps_lon: lon });
+
+    expect(section.hasMap).toBe(true);
+    await section.unmount();
+  });
+
   it("says there is no location when there are no coordinates", async () => {
     const section = await renderSection({
       image_hash: "h1",
@@ -83,6 +96,7 @@ describe("LocationSection", () => {
     });
 
     expect(section.text).toContain(i18n.t("lightbox.sidebar.no_location"));
+    expect(section.hasMap).toBe(false);
     await section.unmount();
   });
 });

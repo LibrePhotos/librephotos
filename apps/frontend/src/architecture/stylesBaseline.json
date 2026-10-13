@@ -32,7 +32,6 @@
   "src/components/lightbox/TagsSection.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/VersionComponent.tsx": { "inlineStyles": 2 },
   "src/components/lightbox/VideoPlayer.tsx": { "inlineStyles": 8 },
-  "src/components/map/LocationPickerModal.tsx": { "inlineStyles": 1 },
   "src/components/map/MapDisabledPlaceholder.tsx": { "inlineStyles": 1 },
   "src/components/memories/MemoriesStrip.tsx": { "inlineStyles": 1 },
   "src/components/memories/MemoryCard.tsx": { "inlineStyles": 4 },

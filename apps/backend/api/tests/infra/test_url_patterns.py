@@ -194,6 +194,7 @@ CLIENT_PATHS = {
     "/api/folders/subfolders/": "api.views.album_folder.FolderNavigationViewSet get=subfolders",
     "/api/fullscanphotos/": "api.views.scan_triggers.FullScanPhotosView",
     "/api/generateocr/": "api.views.scan_triggers.GenerateOcrView",
+    "/api/geocode/reverse/": "api.views.geocode.GeocodeReverseView",
     "/api/geocode/search": "api.views.geocode.GeocodeSearchView",
     "/api/imagetag/": "api.views.server_info.ImageTagView",
     "/api/jobs/": "api.views.jobs.LongRunningJobViewSet get=list",

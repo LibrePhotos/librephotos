@@ -305,6 +305,9 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     )
 
 
+GPS_FIELDS = ("exif_gps_lat", "exif_gps_lon")
+
+
 class PhotoEditSerializer(serializers.ModelSerializer):
     geocoded = serializers.SerializerMethodField()
 
@@ -331,6 +334,11 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         # category_source is server-managed: it is set to "user" whenever a
         # category flag is written through the API, and is never client-settable.
         read_only_fields = ("category_source",)
+        # Both null removes the location (#2209); see validate().
+        extra_kwargs = {
+            "exif_gps_lat": {"min_value": -90, "max_value": 90},
+            "exif_gps_lon": {"min_value": -180, "max_value": 180},
+        }
 
     def get_geocoded(self, obj: Photo) -> bool:
         """Whether the photo's coordinates have a place name.
@@ -340,6 +348,21 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         """
         # #2253: the edit used to answer 200 and keep the old place.
         return has_place(obj)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """A location edit names both coordinates: two numbers move the photo,
+        two nulls remove its location (#2209). One of them alone, or a number
+        with a null, is a 400 rather than half an edit."""
+        sent = [attrs[key] for key in GPS_FIELDS if key in attrs]
+        if len(sent) == 1 or sent.count(None) == 1:
+            raise serializers.ValidationError(
+                {
+                    key: "Send exif_gps_lat and exif_gps_lon together, both "
+                    "numbers or both null."
+                    for key in GPS_FIELDS
+                }
+            )
+        return attrs
 
     def update(self, instance: Photo, validated_data: dict[str, Any]) -> Photo:
         self._apply_category_override(instance, validated_data)
@@ -351,11 +374,25 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         if "exif_timestamp" in validated_data:
             edits.set_capture_time(instance, validated_data.pop("exif_timestamp"), user)
 
-        lat = validated_data.pop("exif_gps_lat", None)
-        lon = validated_data.pop("exif_gps_lon", None)
-        if lat is not None and lon is not None:
-            edits.set_location(instance, lat, lon, user)
+        if "exif_gps_lat" in validated_data:
+            self._apply_location_edit(
+                instance,
+                validated_data.pop("exif_gps_lat"),
+                validated_data.pop("exif_gps_lon"),
+                user,
+            )
         return instance
+
+    @staticmethod
+    def _apply_location_edit(
+        instance: Photo, lat: float | None, lon: float | None, user: User
+    ) -> None:
+        # validate() let through both numbers or both None.
+        if lat is None and instance.exif_gps_lat is None:
+            # Nothing to remove: the photo's position stays the file's to
+            # give, rather than becoming "no location, set by the user".
+            return
+        edits.set_location(instance, lat, lon, user)
 
     def _apply_category_override(
         self, instance: Photo, validated_data: dict[str, Any]

@@ -2520,6 +2520,61 @@
         }
       }
     },
+    "/api/geocode/reverse/": {
+      "get": {
+        "operationId": "api_geocode_reverse_retrieve",
+        "description": "The place name at a spot, for the location picker before it saves (#2283).\n\nThe same text a photo moved there gets as its search location. A spot the\nprovider cannot name answers ``place: null``; with reverse geocoding\nturned off, ``enabled: false`` as well.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Latitude (-90 to 90)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Longitude (-180 to 180)",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeocodeReverseResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/geocode/search/": {
       "get": {
         "operationId": "api_geocode_search_retrieve",
@@ -9597,6 +9652,25 @@
           }
         }
       },
+      "GeocodeReverseResponse": {
+        "type": "object",
+        "description": "The answer of ``GET /api/geocode/reverse``: the place name at a spot.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "False when reverse geocoding is turned off on this server"
+          },
+          "place": {
+            "type": "string",
+            "nullable": true,
+            "description": "The place name a photo moved there would get; null when there is none or reverse geocoding is off"
+          }
+        },
+        "required": [
+          "enabled",
+          "place"
+        ]
+      },
       "GroupedPhotos": {
         "type": "object",
         "properties": {
@@ -10986,11 +11060,15 @@
           "exif_gps_lat": {
             "type": "number",
             "format": "double",
+            "maximum": 90,
+            "minimum": -90,
             "nullable": true
           },
           "exif_gps_lon": {
             "type": "number",
             "format": "double",
+            "maximum": 180,
+            "minimum": -180,
             "nullable": true
           },
           "is_screenshot": {
@@ -11757,11 +11835,15 @@
           "exif_gps_lat": {
             "type": "number",
             "format": "double",
+            "maximum": 90,
+            "minimum": -90,
             "nullable": true
           },
           "exif_gps_lon": {
             "type": "number",
             "format": "double",
+            "maximum": 180,
+            "minimum": -180,
             "nullable": true
           },
           "is_screenshot": {
@@ -11836,11 +11918,15 @@
           "exif_gps_lat": {
             "type": "number",
             "format": "double",
+            "maximum": 90,
+            "minimum": -90,
             "nullable": true
           },
           "exif_gps_lon": {
             "type": "number",
             "format": "double",
+            "maximum": 180,
+            "minimum": -180,
             "nullable": true
           },
           "is_screenshot": {

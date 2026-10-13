@@ -2,7 +2,8 @@
  * #2253: a moved photo whose new spot the geocoder could not name answered
  * 200 like any edit, and the picker toasted "Photo edited" while the photo
  * lost its place name. The server now says `geocoded: false`, and the toast
- * says the place name was not looked up.
+ * says the place name was not looked up. A removed location (#2209) has no
+ * place to look up, and says it was removed.
  */
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
@@ -16,13 +17,18 @@ const stubs = await vi.hoisted(async () => {
     patch: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
     updatePhoto: vi.fn<() => void>(),
     locationSavedWithoutPlace: vi.fn<() => void>(),
+    locationRemoved: vi.fn<() => void>(),
     queryClient: new QueryClient(),
   };
 });
 
 vi.mock("../../api", () => ({ apiClient: { patch: stubs.patch }, queryClient: stubs.queryClient }));
 vi.mock("../../../service/notifications", () => ({
-  notification: { updatePhoto: stubs.updatePhoto, locationSavedWithoutPlace: stubs.locationSavedWithoutPlace },
+  notification: {
+    updatePhoto: stubs.updatePhoto,
+    locationSavedWithoutPlace: stubs.locationSavedWithoutPlace,
+    locationRemoved: stubs.locationRemoved,
+  },
 }));
 
 const { useUpdatePhotoMutation } = await import("./useUpdatePhotoMutation");
@@ -35,6 +41,7 @@ beforeEach(() => {
   stubs.patch.mockReset();
   stubs.updatePhoto.mockReset();
   stubs.locationSavedWithoutPlace.mockReset();
+  stubs.locationRemoved.mockReset();
 });
 
 async function save(data: Record<string, unknown>) {
@@ -74,6 +81,16 @@ describe("useUpdatePhotoMutation", () => {
 
     expect(stubs.updatePhoto).toHaveBeenCalledTimes(1);
     expect(stubs.locationSavedWithoutPlace).not.toHaveBeenCalled();
+  });
+
+  it("says a removed location was removed", async () => {
+    stubs.patch.mockResolvedValueOnce({ image_hash: "abc", geocoded: false });
+
+    await save({ exif_gps_lat: null, exif_gps_lon: null });
+
+    expect(stubs.locationRemoved).toHaveBeenCalledTimes(1);
+    expect(stubs.locationSavedWithoutPlace).not.toHaveBeenCalled();
+    expect(stubs.updatePhoto).not.toHaveBeenCalled();
   });
 
   it("confirms a date edit of a photo that has no place", async () => {

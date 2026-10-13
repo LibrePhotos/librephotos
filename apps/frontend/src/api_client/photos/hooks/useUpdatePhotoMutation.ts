@@ -10,8 +10,11 @@ export const useUpdatePhotoMutation = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
       const result = await endpoints.updatePhoto(apiClient, id, data);
-      // The coordinates are saved either way; say so when no place name came with them.
-      if ("exif_gps_lat" in data && result.geocoded === false) {
+      // A removed location has no place to look up (#2209).
+      if ("exif_gps_lat" in data && data.exif_gps_lat === null) {
+        notification.locationRemoved();
+      } else if ("exif_gps_lat" in data && result.geocoded === false) {
+        // The coordinates are saved either way; say so when no place name came with them.
         notification.locationSavedWithoutPlace();
       } else {
         notification.updatePhoto();

@@ -57,6 +57,20 @@ describe("place search", () => {
   });
 });
 
+describe("reverse geocode", () => {
+  it("asks for the place name at a spot", async () => {
+    const { client, requests } = fakeServer({ enabled: true, place: "Brandenburger Tor, Pariser Platz, Berlin" });
+    const place = await endpoints.reverseGeocode(client, 52.5163, -13.3777);
+    expect(defined(requests[0]).url).toBe(`${API}/geocode/reverse/?lat=52.5163&lon=-13.3777`);
+    expect(place).toEqual({ enabled: true, place: "Brandenburger Tor, Pariser Platz, Berlin" });
+  });
+
+  it("reads a server with reverse geocoding turned off", async () => {
+    const { client } = fakeServer({ enabled: false, place: null });
+    expect(await endpoints.reverseGeocode(client, 0, 0)).toEqual({ enabled: false, place: null });
+  });
+});
+
 describe("media diagnostics", () => {
   it("reads a diagnosis", async () => {
     const { client, requests } = fakeServer({

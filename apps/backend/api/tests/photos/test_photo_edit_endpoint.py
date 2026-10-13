@@ -4,6 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models.album_place import AlbumPlace
+from api.models.photo_metadata import MetadataEdit
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -163,3 +164,100 @@ class MoveLocationWithoutGeocodeTest(TestCase):
             ),
             {"Madrid", "Spain"},
         )
+
+
+class RemoveLocationTest(TestCase):
+    """#2209: both coordinates null removes the location; the place goes too."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+        with patch("api.metadata.edits.reverse_geocode", return_value=dict(LISBON)):
+            self._patch({"exif_gps_lat": 38.7, "exif_gps_lon": -9.1})
+        self.photo.refresh_from_db()
+
+    def _patch(self, data, photo=None):
+        photo = photo or self.photo
+        return self.client.patch(
+            f"/api/photos/edit/{photo.image_hash}/", data, format="json"
+        )
+
+    def _place_titles(self):
+        response = self.client.get("/api/albums/place/list/")
+        return {album["title"] for album in response.json()["results"]}
+
+    def test_both_null_removes_the_location_and_its_place(self):
+        self.assertEqual(self._place_titles(), {"Lisbon", "Portugal"})
+
+        response = self._patch({"exif_gps_lat": None, "exif_gps_lon": None})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIs(response.json()["geocoded"], False)
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.exif_gps_lat)
+        self.assertIsNone(self.photo.exif_gps_lon)
+        self.assertIsNone(self.photo.geolocation_json)
+        self.assertEqual(self.photo.location_source, "user")
+        self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
+        self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
+        # The emptied Places albums are not listed.
+        self.assertEqual(self._place_titles(), set())
+        edit = MetadataEdit.objects.filter(photo=self.photo).first()
+        assert edit is not None
+        self.assertEqual(edit.field_name, "location")
+        self.assertEqual(edit.old_value, {"latitude": 38.7, "longitude": -9.1})
+        self.assertIsNone(edit.new_value)
+
+    def test_a_patch_without_the_coordinates_keeps_the_location(self):
+        response = self._patch({"hidden": True})
+
+        self.assertEqual(response.status_code, 200)
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (self.photo.exif_gps_lat, self.photo.exif_gps_lon), (38.7, -9.1)
+        )
+
+    def test_half_an_edit_is_a_400(self):
+        for data in (
+            {"exif_gps_lat": None, "exif_gps_lon": -9.0},
+            {"exif_gps_lat": 38.0, "exif_gps_lon": None},
+            {"exif_gps_lat": None},
+            {"exif_gps_lon": 10.0},
+        ):
+            with self.subTest(data=data):
+                self.assertEqual(self._patch(data).status_code, 400)
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (self.photo.exif_gps_lat, self.photo.exif_gps_lon), (38.7, -9.1)
+        )
+
+    def test_coordinates_out_of_range_are_a_400(self):
+        for data in (
+            {"exif_gps_lat": 90.5, "exif_gps_lon": 0},
+            {"exif_gps_lat": 0, "exif_gps_lon": -180.5},
+        ):
+            with self.subTest(data=data):
+                self.assertEqual(self._patch(data).status_code, 400)
+
+    def test_removing_no_location_changes_nothing(self):
+        photo = create_test_photo(owner=self.user)
+
+        response = self._patch({"exif_gps_lat": None, "exif_gps_lon": None}, photo)
+
+        self.assertEqual(response.status_code, 200)
+        photo.refresh_from_db()
+        # The file may still give it one on the next scan.
+        self.assertIsNone(photo.location_source)
+        self.assertFalse(MetadataEdit.objects.filter(photo=photo).exists())
+
+    def test_another_users_photo_keeps_its_location(self):
+        other = create_test_user()
+        photo = create_test_photo(owner=other, exif_gps_lat=1.0, exif_gps_lon=2.0)
+
+        response = self._patch({"exif_gps_lat": None, "exif_gps_lon": None}, photo)
+
+        self.assertEqual(response.status_code, 404)
+        photo.refresh_from_db()
+        self.assertEqual((photo.exif_gps_lat, photo.exif_gps_lon), (1.0, 2.0))

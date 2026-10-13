@@ -76,6 +76,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
   SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
   SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
+  // geocode
+  GeocodeReverseResponse: { schema: S.GeocodeReverseResponse, components: ["GeocodeReverseResponse"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },

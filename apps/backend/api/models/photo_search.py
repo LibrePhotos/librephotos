@@ -34,6 +34,23 @@ def fold(text: str) -> str:
     return unicodedata.normalize("NFC", stripped)
 
 
+def place_label(geolocation_json: dict[str, Any] | None) -> str:
+    """The place name of a reverse-geocode result, as search stores it.
+
+    The provider's ``address`` when there is one, else the names of its
+    ``features`` joined by commas; "" without either. The location picker
+    shows the same text before saving (``GET /api/geocode/reverse``).
+    """
+    if not geolocation_json:
+        return ""
+    if "address" in geolocation_json:
+        return str(geolocation_json["address"])
+    features = geolocation_json.get("features") or []
+    return ", ".join(
+        str(feature["text"]) for feature in features if feature.get("text")
+    )
+
+
 class PhotoSearch(models.Model):
     """Model for handling photo search functionality"""
 
@@ -133,17 +150,7 @@ class PhotoSearch(models.Model):
 
     def update_search_location(self, geolocation_json: dict[str, Any] | None) -> None:
         """Update search location from geolocation data"""
-        if geolocation_json and "address" in geolocation_json:
-            self.search_location = geolocation_json["address"]
-        elif geolocation_json and "features" in geolocation_json:
-            # Handle features format used in tests
-            features = geolocation_json["features"]
-            location_parts = [
-                feature.get("text", "") for feature in features if feature.get("text")
-            ]
-            self.search_location = ", ".join(location_parts) if location_parts else ""
-        else:
-            self.search_location = ""
+        self.search_location = place_label(geolocation_json)
         self.refresh_search_folded()
 
         logger.debug(
