@@ -12,10 +12,10 @@ import tempfile
 from functools import partial
 from uuid import UUID
 
-import pytz
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, QuerySet
+from django.utils import timezone
 
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
@@ -345,7 +345,7 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
                 continue
             _discard_derived_content(photo, old_hash)
             photo.image_hash = hash_value
-            photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            photo.added_on = timezone.now()
             photo.save()
             rebuild_photo_ids.append(photo.pk)
 
@@ -495,7 +495,7 @@ def group_files_into_photo(
     photo = Photo()
     photo.image_hash = main_file.hash
     photo.owner = user
-    photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    photo.added_on = timezone.now()
     photo.geolocation_json = {}
     photo.video = main_file.type == File.VIDEO
     photo.save()
@@ -646,7 +646,7 @@ def create_new_image(user: User, path: str) -> Photo | None:
     photo = Photo()
     photo.image_hash = hash_value
     photo.owner = user
-    photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    photo.added_on = timezone.now()
     photo.geolocation_json = {}
     photo.video = is_video(path)
     photo.save()

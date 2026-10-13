@@ -14,7 +14,6 @@ from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
-import pytz
 from django import db
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -76,7 +75,9 @@ def _file_was_modified_after(filepath: str, time: datetime.datetime | None) -> b
     # Callers pass the finished_at of a finished scan. A None would have made
     # the comparison below raise TypeError, so it is an invariant violation.
     assert time is not None
-    return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
+    # An aware UTC moment: without ``tz``, fromtimestamp gives the host's local
+    # wall-clock time, which is not UTC on Windows (#2193).
+    return datetime.datetime.fromtimestamp(modified, tz=datetime.timezone.utc) > time
 
 
 def _group_needs_processing(
