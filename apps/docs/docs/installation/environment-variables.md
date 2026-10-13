@@ -442,12 +442,13 @@ These describe the PostgreSQL server. The bundled `.env` sets the first three; `
 
 ### Single-container image
 
-The single-container image (see [Unified deployment](unified-deployment.md)) has two variables of its own. The Compose stack sets `DB_BACKEND=postgresql` and leaves `SERVE_FRONTEND` unset.
+The single-container image (see [Unified deployment](unified-deployment.md)) has three variables of its own. The Compose stack sets `DB_BACKEND=postgresql` and leaves the others unset.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `SERVE_FRONTEND` | _(off)_ | `true` makes the image serve the web app from Django on port 8001, with no proxy in front. Its entrypoint then uses the no-proxy settings. |
 | `DB_BACKEND` | `sqlite` | `sqlite` keeps the database in `BASE_DATA/db`; `postgresql` connects with the `DB_*` variables above. The Compose stack always uses PostgreSQL. |
+| `DB_BACKUP_KEEP` | `3` | With SQLite, how many of the database backups made before a migration stay in `BASE_DATA/db/backups`; older ones are deleted. Applies to the [Windows standalone](windows-standalone.md) build too. Not released yet; see [Automatic backups](upgrading.md#sqlite-backups). |
 
 ### Demo mode
 

@@ -190,6 +190,11 @@ python manage.py start_service all
 # Clear site-wide cache
 python manage.py clear_cache
 
+# Back up an SQLite database into db/backups next to it and keep the newest 3
+# (--keep N, or DB_BACKUP_KEEP); --if-pending-migrations only does it when
+# migrate has work to do. On PostgreSQL it does nothing: use pg_dump.
+python manage.py backup_database
+
 # Remove the original's metadata (EXIF incl. GPS, XMP, a video's location) from
 # thumbnails created by 1.2.1 and older; pixels and colour profiles are kept,
 # clean files are not touched, so it is safe to run again (--dry-run only counts)

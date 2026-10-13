@@ -10,9 +10,10 @@ import os
 import subprocess
 import sys
 import tempfile
+from io import StringIO
 from types import SimpleNamespace
 from unittest import skipUnless
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
@@ -414,6 +415,181 @@ class BackgroundModeTest(SimpleTestCase):
             standalone.main(["run"])
         self.assertEqual(raised.exception.code, 1)
         self.assertIn("port", report.call_args.args[0])
+
+
+DISK_FULL = (
+    "There is not enough free disk space to back up the database before "
+    "updating it: 400 MB is needed on drive C: and 12 MB is free. Free some "
+    "disk space on drive C: and start LibrePhotos again."
+)
+NEWER_DATABASE_OUTPUT = [
+    "Operations to perform:",
+    "SystemCheckError: System check identified some issues:",
+    "",
+    "ERRORS:",
+    "?: (librephotos.E002) The database 'default' was last used by a newer "
+    "LibrePhotos release (it has migration api.0170_x, which this release "
+    "does not know). Running this older release on it could damage it.",
+    "\tHINT: Start the newer release again, or restore the backup made before "
+    "that upgrade.",
+]
+
+
+class StartupStepTest(SimpleTestCase):
+    """backup_database and migrate run as children before the server (#2314, #2315)."""
+
+    def start(self, *results):
+        with (
+            patch.object(standalone, "_already_running", return_value=False),
+            patch.object(standalone, "_take_children_down_with_us"),
+            patch.object(standalone, "run_teed", side_effect=list(results)) as teed,
+            patch("django.setup") as setup,
+            self.assertRaises(standalone.StartupError) as raised,
+        ):
+            standalone.run_server("127.0.0.1", 8000, open_browser=False, tray=False)
+        setup.assert_not_called()
+        return str(raised.exception), [call.args[0] for call in teed.call_args_list]
+
+    def test_no_backup_means_no_migration(self):
+        message, commands = self.start(
+            (1, ["Traceback ...", f"CommandError: {DISK_FULL}"])
+        )
+
+        self.assertEqual(len(commands), 1)
+        self.assertEqual(
+            commands[0][-3:], ["manage", "backup_database", "--if-pending-migrations"]
+        )
+        self.assertTrue(
+            message.startswith(
+                "LibrePhotos could not back up your database before updating it, "
+                "so it did not start."
+            )
+        )
+        self.assertIn(
+            "Free some disk space on drive C: and start LibrePhotos again.", message
+        )
+
+    def test_a_refused_migration_names_the_check(self):
+        message, commands = self.start(
+            (0, ["No pending migrations"]), (1, NEWER_DATABASE_OUTPUT)
+        )
+
+        self.assertEqual(commands[1][-3:], ["manage", "migrate", "--noinput"])
+        self.assertIn("could not update its database", message)
+        self.assertIn("was last used by a newer LibrePhotos release", message)
+        self.assertIn("Start the newer release again", message)
+        self.assertNotIn("HINT", message)
+
+    def test_a_failure_without_a_known_reason_still_says_what_failed(self):
+        message, _ = self.start((0, []), (1, ["Segmentation fault"]))
+        self.assertEqual(
+            message, "LibrePhotos could not update its database, so it did not start."
+        )
+
+    def test_the_message_box_gets_the_plain_reason(self):
+        error = standalone.StartupError("LibrePhotos could not back up your database.")
+        with (
+            patch.object(standalone, "prepare_environment"),
+            patch.object(standalone, "run_server", side_effect=error),
+            patch.object(standalone, "_report_failure") as report,
+            self.assertRaises(SystemExit) as raised,
+        ):
+            standalone.main(["run"])
+        self.assertEqual(raised.exception.code, 1)
+        report.assert_called_once_with("LibrePhotos could not back up your database.")
+
+
+class ServeTest(SimpleTestCase):
+    def serve(self, started):
+        server = SimpleNamespace(
+            run=lambda: None,
+            started=started,
+            config=SimpleNamespace(host="127.0.0.1", port=8000),
+        )
+        cluster = object()
+        icon = MagicMock()
+        with (
+            patch.object(standalone, "_set_console_title"),
+            patch.object(standalone, "_start_tray", return_value=icon) as tray,
+            patch.object(standalone, "_open_browser_when_up") as browser,
+            patch.object(standalone, "_shutdown") as shutdown,
+        ):
+            try:
+                standalone._serve(server, cluster, "http://x/", True, True)
+            finally:
+                shutdown.assert_called_once_with(cluster)
+        browser.assert_called_once_with("http://x/")
+        return tray, icon
+
+    def test_runs_until_the_server_stops_then_shuts_down(self):
+        tray, icon = self.serve(started=True)
+        if sys.platform == "win32":
+            tray.assert_called_once()
+            icon.stop.assert_called_once_with()
+        else:
+            tray.assert_not_called()
+
+    def test_a_server_that_never_started_is_an_error(self):
+        with self.assertRaisesMessage(RuntimeError, "127.0.0.1:8000"):
+            self.serve(started=False)
+
+
+class CaptureConsoleOutputTest(SimpleTestCase):
+    def test_without_a_console_output_goes_to_console_log(self):
+        with (
+            tempfile.TemporaryDirectory() as logs,
+            patch.dict(os.environ, {"BASE_LOGS": logs}),
+            as_compiled(),
+            patch.object(standalone, "_output_is_discarded", return_value=True),
+            patch.object(standalone, "_redirect_output") as redirect,
+        ):
+            standalone._capture_console_output()
+            expected = os.path.join(logs, standalone.CONSOLE_LOG_NAME)
+            self.assertEqual(os.environ[standalone.CONSOLE_LOG_ENV], expected)
+        redirect.assert_called_once_with(expected, "w")
+
+    def test_from_source_output_stays_where_it_is(self):
+        with patch.object(standalone, "_redirect_output") as redirect:
+            standalone._capture_console_output()
+        redirect.assert_not_called()
+
+
+class FailureDetailTest(SimpleTestCase):
+    def test_a_check_error_with_its_hint(self):
+        detail = standalone.failure_detail(NEWER_DATABASE_OUTPUT)
+        self.assertTrue(detail.startswith("The database 'default' was last used"))
+        self.assertTrue(detail.endswith("restore the backup made before that upgrade."))
+
+    def test_a_check_error_without_a_hint(self):
+        detail = standalone.failure_detail(
+            ["?: (librephotos.E001) Too old.", "", "WARNINGS:"]
+        )
+        self.assertEqual(detail, "Too old.")
+
+    def test_the_last_reason_wins(self):
+        detail = standalone.failure_detail(
+            ["?: (librephotos.E001) Too old.", "CommandError: Disk full."]
+        )
+        self.assertEqual(detail, "Disk full.")
+
+    def test_nothing_recognisable(self):
+        self.assertIsNone(standalone.failure_detail(["Traceback", "KeyError: 'x'"]))
+        self.assertIsNone(standalone.failure_detail([]))
+
+
+class RunTeedTest(SimpleTestCase):
+    def test_output_is_copied_and_kept_for_the_failure_message(self):
+        script = (
+            "import sys; print('applying caf\u00e9'); "
+            "print('CommandError: no room', file=sys.stderr); sys.exit(3)"
+        )
+        copied = StringIO()
+        with patch.object(sys, "stdout", copied):
+            returncode, lines = standalone.run_teed([sys.executable, "-c", script])
+
+        self.assertEqual(returncode, 3)
+        self.assertEqual(lines, ["applying café", "CommandError: no room"])
+        self.assertEqual(copied.getvalue().splitlines(), lines)
 
 
 @skipUnless(sys.platform == "win32", "console windows are a Windows matter")

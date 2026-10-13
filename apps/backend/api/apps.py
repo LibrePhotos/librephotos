@@ -83,12 +83,14 @@ class ApiConfig(AppConfig):
         from django.core import checks
 
         from api.checks import (
+            check_database_not_newer,
             check_default_db_password,
             check_squashed_migration_history,
         )
 
         checks.register(check_default_db_password, checks.Tags.security)
         checks.register(check_squashed_migration_history, checks.Tags.database)
+        checks.register(check_database_not_newer, checks.Tags.database)
 
         for module in SIGNAL_MODULES:
             import_module(module).register()

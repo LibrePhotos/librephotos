@@ -64,6 +64,15 @@ if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
 fi
 
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
+# With SQLite (the unified image's default), copy the database into db/backups
+# before migrations change it, keeping DB_BACKUP_KEEP copies.
+# Nothing is migrated without that backup. With PostgreSQL the command only
+# says to use pg_dump, so it runs for every image rather than in a branch that
+# would have to repeat how the settings pick the database.
+if ! python manage.py backup_database --if-pending-migrations 2>&1 | tee "$logs_dir/command_backup_database.log"; then
+    echo "Could not back up the database before migrating it, not starting LibrePhotos. See $logs_dir/command_backup_database.log" >&2
+    exit 1
+fi
 # Serving on a schema the code does not match fails in ways that are hard to
 # trace back, so a failed migration stops the container before it serves.
 if ! python manage.py migrate 2>&1 | tee "$logs_dir/command_migrate.log"; then
