@@ -105,10 +105,17 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 
 1. Open the photo and find the location line in the info sidebar.
 2. Click the pencil (**Update location**) next to it to open the **Pick location** dialog.
-3. Set the position by searching for a place name, clicking or dragging the marker on the map, or clicking the crosshair button to use your browser's current location.
-4. Click **Save**.
+3. Set the position by searching for a place name, pasting coordinates such as `48.8566, 2.3522` into the search box and choosing **Use coordinates**, clicking or dragging the marker on the map, or clicking the crosshair button to use your browser's current location.
+4. Check the place name under the map: it is the name the photo gets when you save. It reads **Place name unavailable** when the server has no name for the spot (the coordinates are saved anyway), and says so when place names are turned off on the server.
+5. Click **Save**.
 
-The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search and "use my current location" still work.
+The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work.
+
+A photo without a location opens the dialog on a world map. The browser only asks for your position when you click the crosshair button (not released yet: up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission).
+
+### Removing a location
+
+If a photo has a wrong location (a phone that reused a stale GPS fix, a scan that inherited the scanner's position), open the **Pick location** dialog and click **Remove location**, then confirm. The photo leaves the map, its place albums and location search. The photo file is not changed, and a rescan does not bring the location back; set a location again in the same dialog. **Remove location** is only shown for a photo that has one. (Not released yet.)
 
 If no place name can be found for the new position (reverse geocoding is turned off, the provider fails or rate limits, or the spot has no address, such as open sea), the new coordinates are still saved. The photo then drops the place it had before: it leaves its old place albums, is no longer found by searching the old place name, and the info sidebar shows the coordinates instead of a place name. A notice says that the place name could not be looked up. (Not released yet: up to 1.3.0, the photo kept the old place name and albums in that case, and the dialog reported a plain success.)
 

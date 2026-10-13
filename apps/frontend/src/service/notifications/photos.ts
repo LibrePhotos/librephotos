@@ -93,6 +93,11 @@ function locationSavedWithoutPlace() {
   toast.warning(i18n.t("toasts.locationsavedwithoutplace"), { title: i18n.t("toasts.editphototitle") });
 }
 
+/** A photo's location was removed: it left the map and Places (#2209). */
+function locationRemoved() {
+  toast.success(i18n.t("toasts.locationremoved"), { title: i18n.t("toasts.locationremovedtitle") });
+}
+
 /** `clockwiseDegrees` is the turn the user chose, as seen on screen; negative is counter-clockwise (#2587). */
 function photoRotated(clockwiseDegrees: number) {
   const degrees = Math.abs(clockwiseDegrees);
@@ -131,6 +136,7 @@ export const photos = {
   downloadCompleted,
   downloadFailed,
   downloadStarting,
+  locationRemoved,
   locationSavedWithoutPlace,
   photoRotated,
   removePhotos,

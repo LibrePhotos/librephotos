@@ -18,6 +18,8 @@ type LocationSectionProps = {
 export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false }: LocationSectionProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
+  // The picker's removal confirmation owns Escape while it is open; both dialogs would close.
+  const [nestedOpened, nested] = useDisclosure(false);
   const { exif_gps_lat: lat, exif_gps_lon: lon } = photoDetail;
   // Coordinates the geocoder could not name (#2253) are named by themselves, not "no location".
   const label =
@@ -49,7 +51,8 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
             </Tooltip>
           )}
         </Group>
-        {photoDetail.exif_gps_lat && photoDetail.exif_gps_lon && (
+        {/* != null: a photo on the equator or the prime meridian has a map too (#2283). */}
+        {lat != null && lon != null && (
           <Box h={mapHeight}>
             {/* No key per photo: LocationMap recentres on new coordinates itself, and a
                 remount would rebuild the WebGL map on every arrow-key step. */}
@@ -58,12 +61,20 @@ export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false
         )}
       </Stack>
       {!isPublic && (
-        <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location")} centered>
+        <Modal
+          opened={opened}
+          onClose={close}
+          title={t("lightbox.sidebar.pick_location")}
+          centered
+          closeOnEscape={!nestedOpened}
+        >
           <LocationPickerModal
             imageHash={photoDetail.image_hash}
             onClose={close}
-            initialLat={photoDetail.exif_gps_lat ?? undefined}
-            initialLon={photoDetail.exif_gps_lon ?? undefined}
+            initialLat={lat ?? undefined}
+            initialLon={lon ?? undefined}
+            initialPlace={photoDetail.search_location || undefined}
+            onNestedDialogChange={nestedOpen => (nestedOpen ? nested.open() : nested.close())}
           />
         </Modal>
       )}

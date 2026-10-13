@@ -4,6 +4,7 @@ import geopy
 from constance import config as site_config
 
 from api.geocode import GEOCODE_VERSION
+from api.models.photo_search import place_label
 from api.runtime.features import feature_enabled
 
 from .config import get_provider_config, get_provider_parser
@@ -85,6 +86,18 @@ def reverse_geocode(lat: float, lon: float) -> dict:
     except Exception as e:
         logger.warning("Error while reverse geocoding: %s", e)
         return {}
+
+
+def reverse_geocode_label(lat: float, lon: float) -> str | None:
+    """The place name at ``lat``, ``lon``, as a photo moved there would get it.
+
+    None when reverse geocoding is turned off, "" when the provider has no
+    name for the spot or fails. Waits for the provider's rate limit like the
+    geolocation job does (``reverse_geocode``).
+    """
+    if not feature_enabled("REVERSE_GEOCODING"):
+        return None
+    return place_label(reverse_geocode(lat, lon))
 
 
 def search_location(query: str, limit: int = 5) -> list[dict]:

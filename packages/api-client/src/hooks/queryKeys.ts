@@ -222,6 +222,7 @@ const geocodeRoot = ["geocode"] as const;
 export const geocodeKeys = {
   all: geocodeRoot,
   search: (query: string) => [...geocodeRoot, "search", query] as const,
+  reverse: (lat: number, lon: number) => [...geocodeRoot, "reverse", lat, lon] as const,
 };
 
 const jobRoot = ["jobs"] as const;

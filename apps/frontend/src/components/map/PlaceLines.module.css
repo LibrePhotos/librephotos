@@ -1,0 +1,6 @@
+/* The icon keeps its size beside a name that wraps. */
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  padding-top: 2px;
+}

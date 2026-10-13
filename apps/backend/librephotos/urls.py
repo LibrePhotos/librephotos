@@ -521,6 +521,7 @@ urlpatterns = [
     re_path(r"^api/photo/share/?$", public_photos.SetPhotoShare.as_view()),
     re_path(r"^api/timezones/?$", timezone.TimeZoneView.as_view()),
     re_path(r"^api/geocode/search/?$", geocode.GeocodeSearchView.as_view()),
+    path("api/geocode/reverse/", geocode.GeocodeReverseView.as_view()),
     # Chunked upload. The mobile sync uploader calls these two paths exactly.
     re_path(r"^api/upload/complete/?$", upload.UploadPhotosChunkedComplete.as_view()),
     re_path(r"^api/upload/?$", upload.UploadPhotosChunked.as_view()),
