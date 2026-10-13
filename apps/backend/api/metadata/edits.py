@@ -44,7 +44,11 @@ from django.utils.dateparse import parse_datetime
 
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.geocode.photo_location import find_album_places, forget_place
+from api.geocode.photo_location import (
+    find_album_places,
+    forget_place,
+    usable_coordinates,
+)
 from api.metadata.jobs import queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
@@ -62,7 +66,6 @@ from api.models.photo_metadata import (
     description_of,
     merged_keywords_of,
     text_fields_of,
-    usable_coordinates,
 )
 from api.models.photo_search import PhotoSearch
 from api.models.tag import sync_tags_from_keywords
@@ -451,9 +454,7 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
         new_value={"source": PhotoMetadata.Source.EMBEDDED},
     )
 
-    # First, so the date rules below see the file's position, and before
-    # apply_file_values, which would fill an empty position from the file
-    # without looking up its place.
+    # First, so the date rules below see the file's position.
     _restore_location_from_file(photo)
     values = read_file_values(photo)
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)

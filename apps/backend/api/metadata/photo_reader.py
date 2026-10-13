@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from api.geocode.photo_location import store_file_position
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
@@ -79,7 +80,9 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
     """
     if not photo.main_file:
         return None
-    return PhotoMetadata.apply_file_values(photo, read_file_values(photo), commit)
+    values = read_file_values(photo)
+    store_file_position(photo, values["gps_latitude"], values["gps_longitude"])
+    return PhotoMetadata.apply_file_values(photo, values, commit)
 
 
 def read_file_values(photo: Photo) -> dict[str, object]:
