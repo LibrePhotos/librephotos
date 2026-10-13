@@ -309,11 +309,21 @@ export async function fetchPhotosWithoutLocation(
   return parseResponse(S.PhotosWithoutLocationResponse, res, "photos without location");
 }
 
+/** One page of the photos in none of my own albums, newest first (paginated). */
+export async function fetchPhotosNotInAlbum(
+  client: ApiClient,
+  page: number,
+  filter: AlbumMediaFilter = {}
+): Promise<S.PhotosNotInAlbumResponse> {
+  const res = await client.get<unknown>(`/photos/no-album/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
+  return parseResponse(S.PhotosNotInAlbumResponse, res, "photos not in an album");
+}
+
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
 /**
  * The media-type filter (`?photo=true` etc.) that album detail views, search and the Recently added,
- * No timestamp and No location lists accept.
+ * No timestamp, No location and Not in an album lists accept.
  */
 export type AlbumMediaFilter = {
   photo?: boolean;

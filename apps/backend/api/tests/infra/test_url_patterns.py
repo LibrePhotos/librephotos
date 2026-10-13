@@ -218,6 +218,7 @@ CLIENT_PATHS = {
     "/api/photos/download": "api.views.zip_downloads.ZipListPhotosView_V2",
     "/api/photos/edit/1/": "api.views.photos.PhotoEditViewSet delete=destroy,get=retrieve,patch=partial_update,put=update",
     "/api/photos/metadata/bulk": "api.views.photo_metadata.BulkMetadataView",
+    "/api/photos/no-album/": "api.views.photos.NoAlbumPhotoViewSet get=list",
     "/api/photos/recentlyadded/": "api.views.photos.RecentlyAddedPhotoListViewSet get=list",
     "/api/photos/searchlist/": "api.views.search.SearchListViewSet get=list",
     "/api/photos/shared/fromme/": "api.views.sharing.SharedFromMePhotoSuperSimpleListViewSet get=list",

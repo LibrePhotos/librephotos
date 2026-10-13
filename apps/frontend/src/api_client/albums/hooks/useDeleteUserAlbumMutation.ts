@@ -1,19 +1,19 @@
-import { albumKeys, endpoints } from "@librephotos/api-client";
-import { useMutation } from "@tanstack/react-query";
+import { endpoints } from "@librephotos/api-client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { apiClient, queryClient } from "../../api";
+import { apiClient } from "../../api";
 import { mutationErrorMeta, type MutationErrorOptions } from "../../mutationErrors";
+import { invalidateUserAlbumPhotos } from "../invalidateUserAlbumPhotos";
 import type { DeleteUserAlbumParams } from "../types";
 
-export const useDeleteUserAlbumMutation = (options: MutationErrorOptions = {}) =>
-  useMutation({
+export const useDeleteUserAlbumMutation = (options: MutationErrorOptions = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
     meta: mutationErrorMeta(options),
     mutationFn: async ({ id, albumTitle }: DeleteUserAlbumParams) => {
       await endpoints.deleteUserAlbum(apiClient, id);
       notification.deleteAlbum(albumTitle);
     },
-    onSuccess: () => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: albumKeys.userAlbums() });
-    },
+    onSuccess: () => invalidateUserAlbumPhotos(queryClient),
   });
+};

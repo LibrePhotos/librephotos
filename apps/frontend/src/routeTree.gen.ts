@@ -35,6 +35,7 @@ import { Route as ProtectedJobsIdRouteImport } from "./routes/_protected/jobs/$i
 import { Route as ProtectedJobsIndexRouteImport } from "./routes/_protected/jobs/index";
 import { Route as ProtectedLibraryRouteImport } from "./routes/_protected/library";
 import { Route as ProtectedMemoriesRouteImport } from "./routes/_protected/memories";
+import { Route as ProtectedNoalbumRouteImport } from "./routes/_protected/noalbum";
 import { Route as ProtectedNolocationRouteImport } from "./routes/_protected/nolocation";
 import { Route as ProtectedNotimestampRouteImport } from "./routes/_protected/notimestamp";
 import { Route as ProtectedOrganizingTabRouteImport } from "./routes/_protected/organizing.$tab";
@@ -131,6 +132,11 @@ const ProtectedLibraryRoute = ProtectedLibraryRouteImport.update({
 const ProtectedMemoriesRoute = ProtectedMemoriesRouteImport.update({
   id: "/memories",
   path: "/memories",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedNoalbumRoute = ProtectedNoalbumRouteImport.update({
+  id: "/noalbum",
+  path: "/noalbum",
   getParentRoute: () => ProtectedRouteRoute,
 } as any);
 const ProtectedNolocationRoute = ProtectedNolocationRouteImport.update({
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   "/hidden": typeof ProtectedHiddenRoute;
   "/library": typeof ProtectedLibraryRoute;
   "/memories": typeof ProtectedMemoriesRoute;
+  "/noalbum": typeof ProtectedNoalbumRoute;
   "/nolocation": typeof ProtectedNolocationRoute;
   "/notimestamp": typeof ProtectedNotimestampRoute;
   "/photos": typeof ProtectedPhotosRoute;
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   "/hidden": typeof ProtectedHiddenRoute;
   "/library": typeof ProtectedLibraryRoute;
   "/memories": typeof ProtectedMemoriesRoute;
+  "/noalbum": typeof ProtectedNoalbumRoute;
   "/nolocation": typeof ProtectedNolocationRoute;
   "/notimestamp": typeof ProtectedNotimestampRoute;
   "/photos": typeof ProtectedPhotosRoute;
@@ -510,6 +518,7 @@ export interface FileRoutesById {
   "/_protected/hidden": typeof ProtectedHiddenRoute;
   "/_protected/library": typeof ProtectedLibraryRoute;
   "/_protected/memories": typeof ProtectedMemoriesRoute;
+  "/_protected/noalbum": typeof ProtectedNoalbumRoute;
   "/_protected/nolocation": typeof ProtectedNolocationRoute;
   "/_protected/notimestamp": typeof ProtectedNotimestampRoute;
   "/_protected/photos": typeof ProtectedPhotosRoute;
@@ -575,6 +584,7 @@ export interface FileRouteTypes {
     | "/hidden"
     | "/library"
     | "/memories"
+    | "/noalbum"
     | "/nolocation"
     | "/notimestamp"
     | "/photos"
@@ -634,6 +644,7 @@ export interface FileRouteTypes {
     | "/hidden"
     | "/library"
     | "/memories"
+    | "/noalbum"
     | "/nolocation"
     | "/notimestamp"
     | "/photos"
@@ -697,6 +708,7 @@ export interface FileRouteTypes {
     | "/_protected/hidden"
     | "/_protected/library"
     | "/_protected/memories"
+    | "/_protected/noalbum"
     | "/_protected/nolocation"
     | "/_protected/notimestamp"
     | "/_protected/photos"
@@ -848,6 +860,13 @@ declare module "@tanstack/react-router" {
       path: "/memories";
       fullPath: "/memories";
       preLoaderRoute: typeof ProtectedMemoriesRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/noalbum": {
+      id: "/_protected/noalbum";
+      path: "/noalbum";
+      fullPath: "/noalbum";
+      preLoaderRoute: typeof ProtectedNoalbumRouteImport;
       parentRoute: typeof ProtectedRouteRoute;
     };
     "/_protected/nolocation": {
@@ -1210,6 +1229,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedHiddenRoute: typeof ProtectedHiddenRoute;
   ProtectedLibraryRoute: typeof ProtectedLibraryRoute;
   ProtectedMemoriesRoute: typeof ProtectedMemoriesRoute;
+  ProtectedNoalbumRoute: typeof ProtectedNoalbumRoute;
   ProtectedNolocationRoute: typeof ProtectedNolocationRoute;
   ProtectedNotimestampRoute: typeof ProtectedNotimestampRoute;
   ProtectedPhotosRoute: typeof ProtectedPhotosRoute;
@@ -1262,6 +1282,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedHiddenRoute: ProtectedHiddenRoute,
   ProtectedLibraryRoute: ProtectedLibraryRoute,
   ProtectedMemoriesRoute: ProtectedMemoriesRoute,
+  ProtectedNoalbumRoute: ProtectedNoalbumRoute,
   ProtectedNolocationRoute: ProtectedNolocationRoute,
   ProtectedNotimestampRoute: ProtectedNotimestampRoute,
   ProtectedPhotosRoute: ProtectedPhotosRoute,

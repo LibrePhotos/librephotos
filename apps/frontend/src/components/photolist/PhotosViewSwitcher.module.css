@@ -1,0 +1,4 @@
+/* The chevron after the page title sits on the title's middle, not its baseline. */
+.chevron {
+  vertical-align: middle;
+}

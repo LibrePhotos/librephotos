@@ -4,22 +4,6 @@
       "count": 1
     }
   },
-  "src/api_client/albums/hooks/useAddPhotoToUserAlbumMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 2
-    },
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useCreateUserAlbumMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    },
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
   "src/api_client/albums/hooks/useDeleteAllAutoAlbumsMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2
@@ -44,14 +28,6 @@
       "count": 1
     }
   },
-  "src/api_client/albums/hooks/useDeleteUserAlbumMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    },
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
   "src/api_client/albums/hooks/useFetchDateAlbumQuery.ts": {
     "ban/query-client-singleton": {
       "count": 1
@@ -64,14 +40,6 @@
   },
   "src/api_client/albums/hooks/useFetchFolderSubfoldersInfiniteQuery.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
-  "src/api_client/albums/hooks/useRemovePhotoFromUserAlbumMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 2
-    },
-    "ban/query-client-singleton": {
       "count": 1
     }
   },
@@ -562,11 +530,6 @@
     },
     "@typescript-eslint/no-misused-promises": {
       "count": 1
-    }
-  },
-  "src/components/photolist/DefaultHeader.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 12
     }
   },
   "src/components/photolist/SelectionActions.tsx": {

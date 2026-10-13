@@ -291,6 +291,12 @@ urlpatterns = [
         media.UnifiedMediaAccessView.as_view(),
         name="media",
     ),
+    # Ahead of the router: its api/photos/<pk>/ route would take "no-album".
+    path(
+        "api/photos/no-album/",
+        photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
+        name="photos_no_album",
+    ),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
     # forwards ^/(api|media)/ to the backend. Must stay ahead of the

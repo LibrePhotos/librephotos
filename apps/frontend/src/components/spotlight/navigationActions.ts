@@ -1,5 +1,6 @@
 import {
   IconAlbum,
+  IconAlbumOff,
   IconBook,
   IconCalendarEvent,
   IconChartBar,
@@ -160,6 +161,13 @@ function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
       leftSection: React.createElement(IconMapPinOff, iconProps),
       onClick: () => void navigate({ to: "/nolocation" }),
       keywords: ["no location", "without location", "no gps", "missing location"],
+    },
+    {
+      id: "nav-noalbum",
+      label: t("spotlight.nav.notInAlbum"),
+      leftSection: React.createElement(IconAlbumOff, iconProps),
+      onClick: () => void navigate({ to: "/noalbum" }),
+      keywords: ["no album", "not in album", "unsorted", "without album"],
     },
     {
       id: "nav-events",

@@ -1,5 +1,5 @@
 /**
- * Recently added, No timestamp and No location take the page's media filter (#2216): each filter is its
+ * Recently added, No timestamp, No location and Not in an album take the page's media filter (#2216): each filter is its
  * own cache entry, and the request carries the filter's flag.
  */
 import { photoGridKeys } from "@librephotos/api-client";
@@ -23,6 +23,7 @@ vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
 const { useFetchRecentlyAddedPhotosQuery } = await import("./useFetchRecentlyAddedPhotosQuery");
 const { useFetchPhotosWithoutTimestampQuery } = await import("./useFetchPhotosWithoutTimestampQuery");
 const { useFetchPhotosWithoutLocationQuery } = await import("./useFetchPhotosWithoutLocationQuery");
+const { useFetchPhotosNotInAlbumQuery } = await import("./useFetchPhotosNotInAlbumQuery");
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -75,5 +76,19 @@ describe("the media-filtered photo lists", () => {
     expect(client.getQueryData(photoGridKeys.withoutLocation(2, "screenshots"))).toBeDefined();
     expect(client.getQueryData(photoGridKeys.withoutLocation(2, "all"))).toBeUndefined();
     expect(stubs.get).toHaveBeenLastCalledWith("/photos/nolocation/?page=2&is_screenshot=true");
+  });
+
+  it("keys a Not in an album page by the media filter and asks for it", async () => {
+    const client = await renderHook(() => useFetchPhotosNotInAlbumQuery(2, "videos"));
+
+    expect(client.getQueryData(photoGridKeys.notInAlbum(2, "videos"))).toBeDefined();
+    expect(client.getQueryData(photoGridKeys.notInAlbum(2, "all"))).toBeUndefined();
+    expect(stubs.get).toHaveBeenLastCalledWith("/photos/no-album/?page=2&video=true");
+  });
+
+  it("asks Not in an album for everything by default", async () => {
+    await renderHook(() => useFetchPhotosNotInAlbumQuery(1));
+
+    expect(stubs.get).toHaveBeenLastCalledWith("/photos/no-album/?page=1");
   });
 });

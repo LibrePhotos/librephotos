@@ -212,6 +212,8 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/photos/nolocation/": (
         ListFixture(lambda user, index: _tile_photo(user, exif_gps_lat=None)),
     ),
+    # A photo in no album of the requester's (#530).
+    "api/photos/no-album/": (ListFixture(lambda user, index: _tile_photo(user)),),
     "api/photos/edit/": (ListFixture(lambda user, index: _visible_photo(user)),),
     "api/photos/recentlyadded/": (ListFixture(lambda user, index: _tile_photo(user)),),
     "api/photos/searchlist/": (

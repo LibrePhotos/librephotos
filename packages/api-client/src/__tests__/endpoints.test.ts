@@ -107,6 +107,14 @@ describe("photo list media filters", () => {
     expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/nolocation/?page=2&is_screenshot=true");
   });
 
+  it("passes the media-type filter to Not in an album after the page", async () => {
+    const { client, calls } = harness({ count: 0, next: null, previous: null, results: [] });
+    await endpoints.fetchPhotosNotInAlbum(client, 1);
+    await endpoints.fetchPhotosNotInAlbum(client, 3, { is_screenshot: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/no-album/?page=1");
+    expect(defined(calls[1]).url).toBe("https://demo.example.com/api/photos/no-album/?page=3&is_screenshot=true");
+  });
+
   it("asks a date-album list for documents only", async () => {
     const { client, calls } = harness({ results: [] });
     await endpoints.fetchDateAlbumsList(client, { in_trashcan: true, is_document: true });

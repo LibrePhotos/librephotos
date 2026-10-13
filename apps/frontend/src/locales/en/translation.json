@@ -399,6 +399,7 @@
     "withtimestamp": "With Timestamp",
     "withouttimestamp": "Without Timestamp",
     "withoutlocation": "Without Location",
+    "notinalbum": "Not in an album",
     "recentlyadded": "Recently Added",
     "hidden": "Hidden",
     "favorites": "Favorites",
@@ -963,6 +964,7 @@
     "photos": "Photos",
     "notimestamp": "Photos without Timestamps",
     "nolocation": "Photos without Location",
+    "notinalbum": "Photos not in an album",
     "hidden": "Hidden Photos",
     "favorite": "Favorite Photos",
     "videos": "Videos",
@@ -1109,6 +1111,7 @@
       "recent": "Go to Recently Added",
       "noTimestamp": "Go to Photos Without Timestamps",
       "noLocation": "Go to Photos Without Location",
+      "notInAlbum": "Go to photos not in an album",
       "events": "Go to Events",
       "folders": "Go to Folders",
       "myAlbums": "Go to My Albums",
@@ -1854,6 +1857,11 @@
     "nolocation": {
       "title": "No photos without location",
       "description": "Photos without GPS coordinates will appear here."
+    },
+    "notinalbum": {
+      "title": "Every photo is in an album",
+      "description": "Photos that are in none of your albums show up here. Albums others share with you do not count.",
+      "action": "Go to My Albums"
     },
     "events": {
       "title": "No events detected",

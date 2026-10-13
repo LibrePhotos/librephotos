@@ -180,6 +180,10 @@ export const PhotosWithoutLocationResponse = z.object({
 });
 export type PhotosWithoutLocationResponse = z.infer<typeof PhotosWithoutLocationResponse>;
 
+/** GET /api/photos/no-album/: the same page of photo summaries, for the photos in none of my albums. */
+export const PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
+export type PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
+
 /** Body describing a photoset for server-side "select all" bulk operations. */
 export const BulkPhotoQuery = z.object({
   favorite: z.boolean().optional(),
@@ -200,6 +204,8 @@ export const BulkPhotoQuery = z.object({
   username: z.string().optional(),
   // Only photos without a date: the "Photos without Timestamps" page.
   no_timestamp: z.boolean().optional(),
+  // Only photos in none of my own albums: the "Photos not in an album" page.
+  no_album: z.boolean().optional(),
   // Stacked photos too, not only each stack's primary photo (for pages that list them all).
   show_all_stack_photos: z.boolean().optional(),
 });

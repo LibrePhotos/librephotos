@@ -166,6 +166,8 @@ class CrossTenantReadTest(TestCase):
             ("/api/photos/shared/tome/", None),
             ("/api/photos/shared/fromme/", None),
             ("/api/photos/nolocation/", v.v_photo.image_hash),
+            # The victim's photos are all in their album, so the owner sees none.
+            ("/api/photos/no-album/", None),
             (f"/api/photos/{v.v_photo.pk}/albums/", "VictimTripTitle"),
             ("/api/tags/", "victim-tag-name"),
             (f"/api/tags/{v.v_tag.pk}/", "victim-tag-name"),

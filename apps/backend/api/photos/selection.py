@@ -9,12 +9,22 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from api.albums.timeline_filter import parse_tristate, timeline_filter_q
-from api.models import Photo
+from api.models import AlbumUser, Photo
 from api.models.user import User
 from api.photos.paths import folder_path_q
+
+
+def not_in_own_album_q(user: User | AnonymousUser | None) -> Q:
+    """Photos in none of ``user``'s own albums (#530).
+
+    An album another user shares with ``user`` does not count: the photo is
+    still unsorted in the requester's own library.
+    """
+    in_own_album = AlbumUser.objects.owned_by(user).filter(photos=OuterRef("pk"))
+    return ~Q(Exists(in_own_album))
 
 
 def build_photo_queryset(
@@ -46,6 +56,7 @@ def build_photo_queryset(
               unset), the "Photos without Timestamps" page. That page lists
               stacked photos too, so its select-all also sends
               ``show_all_stack_photos``.
+            - no_album: bool - Only photos in none of the user's own albums
             - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
 
     Returns:
@@ -87,6 +98,9 @@ def build_photo_queryset(
     # narrows: "false" from a client must not read as true.
     if parse_tristate(params.get("no_timestamp")):
         filters.append(Q(exif_timestamp__isnull=True))
+
+    if parse_tristate(params.get("no_album")):
+        filters.append(not_in_own_album_q(user))
 
     # Stack filtering: Show photos that are either:
     # 1. Not in any stack, OR

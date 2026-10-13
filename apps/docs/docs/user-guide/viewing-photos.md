@@ -64,7 +64,7 @@ The Documents page is not in a release yet; it ships with the first release afte
 The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp, Without Location and folder pages are not in a release yet; they ship with the first release after 1.3.0.
 :::
 
-Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
+Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, Not in an Album, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
 
 The choice is part of the page address (for example `?media=videos`), so it survives a reload and can be bookmarked. Every page starts with all media: the saved default of the [timeline filter](#filtering-the-timeline) never applies here.
 
@@ -81,6 +81,16 @@ This view is not in a release yet; it ships with the first release after 1.3.0.
 :::
 
 Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
+
+### Not in an Album {#not-in-an-album}
+
+:::note
+This page is not in a release yet; it ships with the first release after 1.3.0.
+:::
+
+Your photos that are in none of your own albums, newest first, so you can see what is left to sort. An album another user shares with you does not count: a photo of yours that is only in their album still shows up here. Hidden and trashed photos are left out.
+
+Open it from the Photos view switcher in the page header (under **Without Timestamp** and **Without Location**) or from the command palette (`Ctrl+K`, "not in an album"). Select photos and add them to an album from the selection actions; they leave the list once it refreshes. **Select all** reaches every photo on the page, not only the ones loaded so far, and the page has the [media filter](#media-filter).
 
 ### My Public Photos
 
