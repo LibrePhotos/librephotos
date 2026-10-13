@@ -13,17 +13,17 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { DefaultHeader } from "./DefaultHeader";
 
-const route = vi.hoisted(() => ({ pathname: "/" }));
+const route = vi.hoisted(() => ({ pathname: "/", isAdmin: false, scanDirectory: "/data" }));
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => () => {},
   useRouter: () => ({ state: { location: { pathname: route.pathname } } }),
 }));
 vi.mock("../../api_client/auth/hooks", () => ({
-  useAccessToken: () => ({ data: { access: { user_id: 1, is_admin: false, name: "admin" } } }),
+  useAccessToken: () => ({ data: { access: { user_id: 1, is_admin: route.isAdmin, name: "admin" } } }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
-  useFetchUserSelfDetailsQuery: () => ({ data: { scan_directory: "/data" } }),
+  useFetchUserSelfDetailsQuery: () => ({ data: { scan_directory: route.scanDirectory } }),
   useFetchUserListQuery: () => ({ data: [] }),
 }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
@@ -78,6 +78,8 @@ afterEach(async () => {
   root = null;
   container = null;
   route.pathname = "/";
+  route.isAdmin = false;
+  route.scanDirectory = "/data";
 });
 
 describe("DefaultHeader counter", () => {
@@ -118,5 +120,39 @@ describe("DefaultHeader view switcher", () => {
     expect(labels.indexOf("Not in an album")).toBe(labels.indexOf("Without Location") + 1);
     const current = items.filter(item => item.querySelector(".tabler-icon-check"));
     expect(current.map(item => item.textContent)).toEqual(["Not in an album"]);
+  });
+});
+
+describe("DefaultHeader on an empty timeline", () => {
+  it("welcomes an admin without a scan directory instead of showing the header", async () => {
+    route.isAdmin = true;
+    route.scanDirectory = "";
+    const el = await render({ numPhotosetItems: 0, numPhotos: 0 });
+
+    expect(el.textContent).toContain(i18n.t("defaultheader.gettingstarted"));
+    expect(el.querySelector("h1")).toBeNull();
+  });
+
+  it("keeps the header for a user who is not an admin", async () => {
+    route.scanDirectory = "";
+    const el = await render({ numPhotosetItems: 0, numPhotos: 0 });
+
+    expect(el.textContent).not.toContain(i18n.t("defaultheader.gettingstarted"));
+    expect(el.querySelector("h1")).not.toBeNull();
+  });
+});
+
+describe("DefaultHeader date", () => {
+  it("shows the day of a one-day list beside the title", async () => {
+    const el = await render({ date: "2026-10-13T10:00:00Z", dayHeaderPrefix: "Added on " });
+
+    expect(el.textContent).toContain("Added on ");
+    expect(el.textContent).toContain("2026");
+  });
+
+  it("shows a date it cannot read as it came", async () => {
+    const el = await render({ date: "someday" });
+
+    expect(el.textContent).toContain("someday");
   });
 });
