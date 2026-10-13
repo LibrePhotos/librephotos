@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.f565a629.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7b629413.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -53,7 +53,12 @@ should be one of the following:</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-different-rule-types">The different rule types<a href="#the-different-rule-types" class="hash-link" aria-label="Direct link to The different rule types" title="Direct link to The different rule types" translate="no">​</a></h3>
 <p>Currently, supported rule types:</p>
 <ul>
-<li class="">&quot;exif&quot; - local time is taken using exif tag params[&quot;exif_tag&quot;] as obtained with exiftool</li>
+<li class="">&quot;exif&quot; - local time is taken using exif tag params[&quot;exif_tag&quot;] as obtained with exiftool.
+An XMP sidecar next to the photo wins over the file. For <code>EXIF:DateTimeOriginal</code> and
+<code>Composite:GPSDateTime</code> the sidecar is also read under its XMP name (<code>exif:DateTimeOriginal</code>,
+<code>exif:GPSTimeStamp</code>); any other EXIF tag in a rule is not looked up in the sidecar, so to use
+a property that only a sidecar holds, name its XMP tag directly (for example <code>XMP:&lt;tag&gt;</code>).
+<em>Not released yet.</em></li>
 <li class="">&quot;path&quot; - time is taken from the filename using a regular expression matching</li>
 <li class="">&quot;filesystem&quot; - time is taken from a file property. params[&quot;file_property&quot;] must be &quot;mtime&quot;
 (file modified time) or &quot;ctime&quot; (file created time). Since these are UNIX timestamps without
