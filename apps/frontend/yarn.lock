@@ -1036,13 +1036,13 @@
     "@tanstack/query-core" "5.104.2"
 
 "@tanstack/react-router@^1.168.10":
-  version "1.170.42"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-router/-/react-router-1.170.42.tgz#9352cf33dda2cc93c2ae6de5626355b4f3aa1cfd"
-  integrity sha512-4wBptX7DRvc+v/XQ0MxL9rKlmSFb0ob3tSEZWF4ssSl1DD+1HAofWM3HwSn9liQN0r7e00qiv5WQMp6rObOc1g==
+  version "1.170.44"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-router/-/react-router-1.170.44.tgz#5c2388d1305cbdd68a7ad4581e7359c0fc8c31d0"
+  integrity sha512-uIIZ3CHU1yWlkMkmbnGFX3WIfZozF+tNrOMMEoM9lo+jzPInCRq80LBqW3DH9ixNHWjB3TM/cNIvr05uGIlP3A==
   dependencies:
     "@tanstack/history" "1.162.5"
     "@tanstack/react-store" "^0.11.2"
-    "@tanstack/router-core" "1.171.35"
+    "@tanstack/router-core" "1.171.37"
     isbot "^5.1.22"
 
 "@tanstack/react-store@^0.11.2":
@@ -1060,23 +1060,23 @@
   dependencies:
     "@tanstack/virtual-core" "3.19.2"
 
-"@tanstack/router-core@1.171.35":
-  version "1.171.35"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-core/-/router-core-1.171.35.tgz#adb73cfdb8df17194ad0c7bfcf0e6981067b4913"
-  integrity sha512-fNKsx/rrxppFNmCQ9mPwg4OCb1O3qfLPVrE9FVyyWyRPQk0f0NK5bdJUzTYZQ+T/Ajfllr3SEx9pntM45F5amQ==
+"@tanstack/router-core@1.171.37":
+  version "1.171.37"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-core/-/router-core-1.171.37.tgz#dd5b3e8f0a12f5b29cda007e594696c03916f976"
+  integrity sha512-11Le36++mHNeeFIABz4C3PdTWyJ1ilOmGmANOQOypknZwC1xN674al5BUqWuimKasWane1/XSNcEx8NYNHh0+A==
   dependencies:
     "@tanstack/history" "1.162.5"
     cookie-es "^3.0.0"
     seroval "^1.6.7"
     seroval-plugins "^1.6.7"
 
-"@tanstack/router-generator@1.167.41":
-  version "1.167.41"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-generator/-/router-generator-1.167.41.tgz#1e7ee9880de7f9a5f0f6dc08f10bbc1b8dd254bf"
-  integrity sha512-N4zQB72lgQ6HeSv77JFSPQ7I+tUDT4xHAPvWBRT1Ah71IiTGXSGPJyqrN8raHcS7vk+QYx/tpWRg74SpqC/FUg==
+"@tanstack/router-generator@1.167.43":
+  version "1.167.43"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-generator/-/router-generator-1.167.43.tgz#861fec9d03b6b809d24363af0e1e5f0ca895650d"
+  integrity sha512-3IOgWD3gUmbokR9q1ZFQE9/By/VMX4/bDSKJwaIa625PDB0czCF6J+OPSeA/7wb1wDE42fAqX1q4j7bnr1eLcA==
   dependencies:
     "@babel/types" "^7.29.8"
-    "@tanstack/router-core" "1.171.35"
+    "@tanstack/router-core" "1.171.37"
     "@tanstack/router-utils" "1.162.3"
     "@tanstack/virtual-file-routes" "1.162.0"
     jiti "^2.7.0"
@@ -1085,15 +1085,15 @@
     zod "^4.5.4"
 
 "@tanstack/router-plugin@^1.167.12":
-  version "1.168.43"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-plugin/-/router-plugin-1.168.43.tgz#c28a53ed6c3415706d724569c7155f19f5f76ea0"
-  integrity sha512-0cMS2IhVJ1rfBqgcsLWBhKhHaW1oC26zCU2QveZnlDO+EjwuNH5XkRt+ZxhAinZZJIIRX7LEC/SBvjUutS4Zrw==
+  version "1.168.45"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-plugin/-/router-plugin-1.168.45.tgz#5a6b22ef79efc4ca46eb35208f11c9a4b1c00fc8"
+  integrity sha512-caBZAfe9iLCaVy5zEuYwXx9TpZgN7XX1AkW55e0LfeIZGEZvMw5h2KE3ZNdx0k1Kxik4HPBRMUj8Np/TYTJG7Q==
   dependencies:
     "@babel/core" "^7.29.7"
     "@babel/template" "^7.29.7"
     "@babel/types" "^7.29.8"
-    "@tanstack/router-core" "1.171.35"
-    "@tanstack/router-generator" "1.167.41"
+    "@tanstack/router-core" "1.171.37"
+    "@tanstack/router-generator" "1.167.43"
     "@tanstack/router-utils" "1.162.3"
     chokidar "^5.0.0"
     unplugin "^3.3.0"
@@ -5183,12 +5183,12 @@ yoctocolors@^2.1.2:
   resolved "https://registry.yarnpkg.com/zod-validation-error/-/zod-validation-error-4.0.2.tgz#bc605eba49ce0fcd598c127fee1c236be3f22918"
   integrity sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==
 
-zod@4.6.7:
+zod@4.6.7, zod@^4.5.4:
   version "4.6.7"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.6.7.tgz#e806cf64a7f4e37635ce9f2f52c04c3766f75e5b"
   integrity sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==
 
-"zod@^3.25.0 || ^4.0.0", zod@^4.5.4:
+"zod@^3.25.0 || ^4.0.0":
   version "4.6.5"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.6.5.tgz#e3af3edbdc260239c52f73caad05dbbffe6e82cd"
   integrity sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==
