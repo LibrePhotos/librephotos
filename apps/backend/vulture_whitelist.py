@@ -36,6 +36,10 @@ _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanu
 
 # Named by string.
 _.deduplicate_faces  # method in api/admin.py (PhotoAdmin.actions)
+
+# ModelAdmin hooks django.contrib.admin calls by name.
+_.has_add_permission  # method in api/admin.py (LongRunningJobAdmin)
+_.has_change_permission  # method in api/admin.py (LongRunningJobAdmin)
 _.megapixels  # property in api/models/photo_metadata.py (serializer ReadOnlyField)
 
 # Test hooks that reset module-level caches between tests.

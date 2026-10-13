@@ -118,6 +118,10 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
   `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
   through `start_job` (`api/jobs/start.py`). Tests: `api/tests/jobs/test_job_queue.py`.
+  A job row is written only through its methods (`update_progress`, `complete`, `fail`, `set_result`):
+  `LongRunningJob.save()` refuses a full-row save of an existing row, which would undo a cancel made
+  while the job ran, and `complete`/`fail`/`set_result` leave a cancelled row alone (return False).
+  Catch `Exception`, not `BaseException`, unless the handler re-raises (`api/tests/infra/test_base_exception_handlers.py`).
 - Signals: a module with receivers exposes `register()`, listed in `SIGNAL_MODULES` (`api/apps.py`), that
   connects each one with `dispatch_uid="<module>.<name>"` (a factory-built closure also `weak=False`, or it
   is garbage collected outside DEBUG); no `@receiver`. File removal goes through `transaction.on_commit`.

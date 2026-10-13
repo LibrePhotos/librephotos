@@ -125,6 +125,6 @@ class DeleteZipView(APIView):
         try:
             delete_zip_file(filename)
             return Response()
-        except BaseException as e:
-            logger.error(str(e))
+        except OSError as e:
+            logger.exception("Could not delete the download archive %s", filename)
             raise NotFound() from e

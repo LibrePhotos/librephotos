@@ -14,14 +14,22 @@ Several assertions below encode quirks/bugs of the current implementation;
 each is called out in a comment so the refactorer knows what is intentional.
 """
 
+import datetime
+import itertools
 import uuid
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from api.faces import classify
-from api.faces.classify import create_all_clusters, filter_data, train_faces
+from api.faces.classify import (
+    cluster_all_faces,
+    create_all_clusters,
+    filter_data,
+    train_faces,
+)
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, get_unknown_cluster
 from api.tests.utils import (
@@ -306,6 +314,143 @@ class CreateAllClustersTest(TestCase):
         # Progress is only written once the 5s commit window elapses.
         self.assertEqual(lrj.progress_current, 0)
         self.assertEqual(lrj.progress_target, 0)
+
+
+def clock_past_every_deadline():
+    """Stands in for the ``datetime`` module of ``classify``: every ``now()`` is a
+    minute after the previous one, so each loop pass is past its commit time and
+    reports progress."""
+    start = datetime.datetime(2026, 1, 1)
+    clock = MagicMock()
+    clock.timedelta = datetime.timedelta
+    clock.datetime.now.side_effect = (
+        start + datetime.timedelta(minutes=i) for i in itertools.count()
+    )
+    return clock
+
+
+class CancelDuringClusteringTest(TestCase):
+    """A cancel from the job list while the clusters are being created (#2334).
+
+    Progress used to be written with a full-row ``lrj.save()`` of the instance
+    loaded when the job started, which put ``cancelled=False, finished=False``
+    back on the next progress tick: the job reappeared as running.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photo = create_test_photo(owner=self.user)
+        for seed in range(3):
+            create_test_face(photo=self.photo, encoding=enc_hex(seed))
+        self.job_id = str(uuid.uuid4())
+        LongRunningJob.create_job(
+            self.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, job_id=self.job_id
+        )
+
+    def job(self):
+        return LongRunningJob.objects.get(job_id=self.job_id)
+
+    def cancel_on_first_cluster(self):
+        def try_add_cluster(*args):
+            if try_add.call_count == 1:
+                self.job().cancel()
+            return []
+
+        try_add = MagicMock(side_effect=try_add_cluster)
+        return try_add
+
+    @contextmanager
+    def clustering(self):
+        """Two clusters, a clock past every deadline, a cancel on the first one."""
+        cls, _ = fake_hdbscan([0, 0, 1])
+        try_add = self.cancel_on_first_cluster()
+        with (
+            patch.object(classify, "make_hdbscan", cls),
+            patch.object(classify, "datetime", clock_past_every_deadline()),
+            patch.object(classify.ClusterManager, "try_add_cluster", try_add),
+        ):
+            yield try_add
+
+    def assert_still_cancelled(self):
+        job = self.job()
+        self.assertTrue(job.cancelled)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertEqual(job.result, {"status": "cancelled"})
+
+    def test_progress_tick_keeps_the_cancel(self):
+        lrj = LongRunningJob.claim(
+            self.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, self.job_id
+        )
+        with self.clustering() as try_add:
+            create_all_clusters(self.user, lrj)
+
+        self.assertEqual(try_add.call_count, 2)
+        self.assert_still_cancelled()
+        # The progress itself is still reported.
+        self.assertEqual(self.job().progress_current, 3)
+        self.assertEqual(self.job().progress_target, 3)
+
+    @override_settings(FEATURE_FACE_CLUSTER=True)
+    @patch("api.faces.classify.enqueue_followup")
+    def test_cancelled_clustering_is_not_completed_or_followed_by_training(
+        self, enqueue
+    ):
+        with self.clustering():
+            cluster_all_faces(self.user, self.job_id)
+
+        self.assert_still_cancelled()
+        enqueue.assert_not_called()
+
+
+@override_settings(FEATURE_FACE_CLUSTER=True)
+class FaceJobsLetInterruptsThroughTest(TestCase):
+    """``except BaseException`` turned a KeyboardInterrupt or SystemExit (a worker
+    being stopped) into a failed job and swallowed it (#2334)."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.job_id = str(uuid.uuid4())
+
+    def job(self):
+        return LongRunningJob.objects.get(job_id=self.job_id)
+
+    def test_keyboard_interrupt_while_clustering_propagates(self):
+        LongRunningJob.create_job(
+            self.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, job_id=self.job_id
+        )
+        with (
+            patch.object(
+                classify, "create_all_clusters", side_effect=KeyboardInterrupt
+            ),
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            cluster_all_faces(self.user, self.job_id)
+        self.assertFalse(self.job().failed)
+        self.assertFalse(self.job().finished)
+
+    def test_system_exit_while_training_propagates(self):
+        LongRunningJob.create_job(
+            self.user, LongRunningJob.JOB_TRAIN_FACES, job_id=self.job_id
+        )
+        with (
+            patch.object(classify, "split_faces_by_label", side_effect=SystemExit),
+            self.assertRaises(SystemExit),
+        ):
+            train_faces(self.user, self.job_id)
+        self.assertFalse(self.job().failed)
+        self.assertFalse(self.job().finished)
+
+    def test_an_ordinary_error_still_fails_the_clustering_job(self):
+        LongRunningJob.create_job(
+            self.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, job_id=self.job_id
+        )
+        with patch.object(
+            classify, "create_all_clusters", side_effect=RuntimeError("boom")
+        ):
+            self.assertFalse(cluster_all_faces(self.user, self.job_id))
+        self.assertTrue(self.job().failed)
+        self.assertEqual(self.job().result, {"status": "failed", "error": "boom"})
 
 
 # ---------------------------------------------------------------------------

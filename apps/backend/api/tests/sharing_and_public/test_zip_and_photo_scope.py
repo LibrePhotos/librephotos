@@ -58,8 +58,7 @@ class ZipJobStatusScopeTest(TestCase):
         self.assertEqual(response.json()["status"], "PENDING")
 
     def test_other_user_cannot_read_the_job(self):
-        self.job.finished = True
-        self.job.save()
+        self.job.complete()
         response = _client_for(self.other).get(
             "/api/photos/download", {"job_id": self.job.job_id}
         )

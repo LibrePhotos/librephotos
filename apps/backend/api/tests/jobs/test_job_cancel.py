@@ -1,6 +1,7 @@
 """Tests for job cancellation feature."""
 
-from django.test import TestCase
+from django.contrib import admin
+from django.test import RequestFactory, TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -175,3 +176,95 @@ class UpdateScanCounterCancellationTest(TestCase):
         self.assertTrue(job.finished)
         # progress_current is incremented but the job remains cancelled
         self.assertEqual(job.progress_current, 1)
+
+
+class JobRowWritesTest(TestCase):
+    """A job row is written only through the model's methods (#2334).
+
+    A full-row ``save()`` of an instance loaded before a cancel writes
+    ``cancelled=False, finished=False`` back, so the cancelled job reappears
+    as running.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.job = LongRunningJob.create_job(
+            user=self.user, job_type=LongRunningJob.JOB_SCAN_PHOTOS, start_now=True
+        )
+
+    def test_full_row_save_of_an_existing_job_is_refused(self):
+        job = LongRunningJob.objects.get(pk=self.job.pk)
+        job.progress_current = 5
+        with self.assertRaises(RuntimeError):
+            job.save()
+        job.refresh_from_db()
+        self.assertEqual(job.progress_current, 0)
+
+    def test_save_with_update_fields_is_allowed(self):
+        job = LongRunningJob.objects.get(pk=self.job.pk)
+        job.progress_current = 5
+        job.save(update_fields=["progress_current"])
+        job.refresh_from_db()
+        self.assertEqual(job.progress_current, 5)
+
+    def stale_and_cancelled(self):
+        """An instance loaded before the job was cancelled elsewhere."""
+        stale = LongRunningJob.objects.get(pk=self.job.pk)
+        LongRunningJob.objects.get(pk=self.job.pk).cancel()
+        return stale
+
+    def assert_row_cancelled(self):
+        job = LongRunningJob.objects.get(pk=self.job.pk)
+        self.assertTrue(job.cancelled)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertEqual(job.result, {"status": "cancelled"})
+
+    def assert_still_cancelled(self, stale):
+        self.assert_row_cancelled()
+        # The stale instance now says what the row says.
+        self.assertTrue(stale.cancelled)
+        self.assertEqual(stale.result, {"status": "cancelled"})
+
+    def test_complete_does_not_overwrite_a_cancel(self):
+        stale = self.stale_and_cancelled()
+        self.assertFalse(stale.complete())
+        self.assert_still_cancelled(stale)
+
+    def test_fail_does_not_overwrite_a_cancel(self):
+        stale = self.stale_and_cancelled()
+        self.assertFalse(stale.fail(error="boom"))
+        self.assert_still_cancelled(stale)
+
+    def test_set_result_does_not_overwrite_a_cancel(self):
+        stale = self.stale_and_cancelled()
+        self.assertFalse(stale.set_result({"status": "running"}))
+        self.assert_still_cancelled(stale)
+
+    def test_progress_keeps_a_cancel(self):
+        stale = self.stale_and_cancelled()
+        stale.update_progress(current=3, target=4, step="tick")
+        self.assert_row_cancelled()
+        self.assertEqual(LongRunningJob.objects.get(pk=self.job.pk).progress_current, 3)
+
+    def test_complete_and_fail_still_write_a_job_that_was_not_cancelled(self):
+        self.assertTrue(self.job.complete({"status": "done"}))
+        job = LongRunningJob.objects.get(pk=self.job.pk)
+        self.assertTrue(job.finished)
+        self.assertEqual(job.result, {"status": "done"})
+
+        other = LongRunningJob.create_job(
+            user=self.user, job_type=LongRunningJob.JOB_SCAN_PHOTOS, start_now=True
+        )
+        self.assertTrue(other.fail(error="boom"))
+        other.refresh_from_db()
+        self.assertTrue(other.failed)
+        self.assertEqual(other.result, {"status": "failed", "error": "boom"})
+
+    def test_admin_shows_jobs_read_only(self):
+        request = RequestFactory().get("/admin/")
+        request.user = create_test_user(is_admin=True)
+        job_admin = admin.site._registry[LongRunningJob]
+        self.assertFalse(job_admin.has_add_permission(request))
+        self.assertFalse(job_admin.has_change_permission(request, self.job))
+        self.assertTrue(job_admin.has_view_permission(request, self.job))

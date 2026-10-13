@@ -141,6 +141,24 @@ admin.site.register(AlbumThing)
 admin.site.register(AlbumDate)
 admin.site.register(AlbumPlace)
 admin.site.register(Cluster)
-admin.site.register(LongRunningJob)
+
+
+@admin.register(LongRunningJob)
+class LongRunningJobAdmin(admin.ModelAdmin):
+    """A read-only job log: workers write job rows, and a change form would save
+    the whole row, undoing a cancel (``LongRunningJob.save`` refuses that)."""
+
+    list_display = ["job_id", "job_type", "started_by", "queued_at", "finished"]
+    list_filter = ["job_type", "finished", "failed", "cancelled"]
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def has_change_permission(
+        self, request: HttpRequest, obj: LongRunningJob | None = None
+    ) -> bool:
+        return False
+
+
 admin.site.register(File)
 admin.site.register(User)
