@@ -96,6 +96,10 @@ type Props = Readonly<{
   // Replaces the default header (title, counts, display menu) in the sticky bar above the grid;
   // null leaves the bar out, for a list under its page's own header (the shared photo pages).
   header?: React.ReactNode;
+  // 2 for a list under its page's own header that keeps the default header for its selection
+  // bar (the Photos tab of the public links page): the list's title becomes an h2, so the page
+  // keeps one h1. Looks the same.
+  titleOrder?: 1 | 2;
   additionalSubHeader?: React.ReactNode;
   albumID?: string;
   ownerUsername?: string;
@@ -134,6 +138,7 @@ function PhotoListViewComponent({
   date,
   dayHeaderPrefix,
   header,
+  titleOrder,
   additionalSubHeader,
   albumID,
   ownerUsername,
@@ -259,6 +264,7 @@ function PhotoListViewComponent({
                   hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
                   isPublic={isPublic}
                   countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
+                  titleOrder={titleOrder}
                 />
               </Box>
               {showHeaderToolbar && (

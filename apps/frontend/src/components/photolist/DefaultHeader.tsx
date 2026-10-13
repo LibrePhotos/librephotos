@@ -58,6 +58,8 @@ type Props = Readonly<{
   // Count the items as videos rather than photos (the Videos view and the
   // videos-only media filter).
   countsVideos?: boolean;
+  // See PhotoListView's `titleOrder`.
+  titleOrder?: 1 | 2;
 }>;
 
 // Its own component so the stats are only fetched once the dropdown is open.
@@ -103,6 +105,7 @@ export function DefaultHeader(props: Props) {
     hasEmptyState,
     isPublic,
     countsVideos,
+    titleOrder,
   } = props;
 
   // Don't fetch user data on public pages
@@ -338,6 +341,7 @@ export function DefaultHeader(props: Props) {
     <PageHeader
       icon={icon}
       title={titleNode}
+      titleOrder={titleOrder}
       subtitle={getPhotoCounter()}
       actions={
         (!hasEmptyState || numPhotosetItems > 0) && date ? (
