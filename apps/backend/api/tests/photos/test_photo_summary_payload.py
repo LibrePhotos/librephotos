@@ -86,6 +86,10 @@ class PhotoSummaryPayloadTest(TestCase):
             photo.save(update_fields=["exif_timestamp"])
         self._assert_tiles(self._get("/api/photos/notimestamp/")["results"])
 
+    def test_no_location_list(self):
+        # The fixture photos have no GPS coordinates.
+        self._assert_tiles(self._get("/api/photos/nolocation/")["results"])
+
     def test_recently_added(self):
         self._assert_tiles(self._get("/api/photos/recentlyadded/")["results"])
 

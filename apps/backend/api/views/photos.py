@@ -181,6 +181,32 @@ class NoTimestampPhotoViewSet(ListViewSet):
         return super().list(*args, **kwargs)
 
 
+class NoLocationPhotoViewSet(ListViewSet):
+    """The requester's photos without GPS coordinates, oldest added first.
+
+    A photo whose coordinates did not reverse geocode still has a location, so
+    only a missing latitude or longitude counts, not an empty
+    ``geolocation_json``.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PhotoSummarySerializer
+    pagination_class = DefaultPagination
+    filter_backends = (filters.SearchFilter,)
+    search_fields = [
+        "search_instance__search_captions",
+        "search_instance__search_location",
+        "faces__person__name",
+    ]
+
+    def get_queryset(self) -> QuerySet[Photo]:
+        return with_photo_summary_relations(
+            Photo.visible.owned_by(scope_user(self.request)).filter(
+                Q(exif_gps_lat__isnull=True) | Q(exif_gps_lon__isnull=True)
+            )
+        ).order_by("added_on")
+
+
 class BulkPhotoMutationView(APIView):
     """Set one flag on many of the requester's photos in a single UPDATE.
 
