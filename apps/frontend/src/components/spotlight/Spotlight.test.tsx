@@ -2,7 +2,6 @@
  * "Remove Missing Photos" in the Ctrl+K palette drops photo records for good, so it
  * goes through a confirmation: only Confirm starts the job, Cancel leaves it alone.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

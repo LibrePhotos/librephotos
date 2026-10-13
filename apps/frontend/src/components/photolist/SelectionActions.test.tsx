@@ -4,7 +4,6 @@
  * with the excluded tiles left out (placeholders that never loaded have no
  * hash and must not turn the request into a 400).
  */
-import "@mantine/core/styles.css";
 import { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

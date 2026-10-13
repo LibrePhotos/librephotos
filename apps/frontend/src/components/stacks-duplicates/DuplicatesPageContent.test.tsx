@@ -10,7 +10,6 @@
  * - A page past the end is a 404 (backend api/drf/pagination.py): emptying the last
  *   page steps back a page.
  */
-import "@mantine/core/styles.css";
 import { ApiError } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

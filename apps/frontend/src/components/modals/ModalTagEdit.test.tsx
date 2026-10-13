@@ -11,7 +11,6 @@
  *   - in select-all mode the selection is the query, and `selectedImages`
  *     holds the EXCLUDED photos instead.
  */
-import "@mantine/core/styles.css";
 import { Media, type BulkPhotoQuery } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";

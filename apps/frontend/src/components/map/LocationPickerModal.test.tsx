@@ -3,7 +3,6 @@
  * once, when the picker opens: picking a spot must not set it off again and pull the map
  * away from the pick, and a photo that already has a location keeps its own view.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import type { FlyToOptions } from "maplibre-gl";
 import React, { act } from "react";

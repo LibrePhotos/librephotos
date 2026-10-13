@@ -5,7 +5,6 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

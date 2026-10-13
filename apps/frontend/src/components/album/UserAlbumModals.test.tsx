@@ -6,7 +6,6 @@
  * not valid as a React child" and replaced the whole app with the router's
  * error screen. Both album pages now share this dialog.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

@@ -2,7 +2,6 @@
  * The keyword editor split on space as well as comma, so "Golden Gate" was saved
  * as the two keywords "Golden" and "Gate".
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

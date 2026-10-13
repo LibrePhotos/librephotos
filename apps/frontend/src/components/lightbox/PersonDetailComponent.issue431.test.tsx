@@ -18,7 +18,6 @@
  * Every unnamed row also keyed on `person.name`, so all of them collided on the
  * same empty React key -- see PeopleSection.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";

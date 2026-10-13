@@ -133,6 +133,16 @@ export const importBans = [
     message:
       "Parse in the package endpoint (parseResponse); the web hook calls endpoints.* from @librephotos/api-client.",
   },
+  {
+    // jsdom's getComputedStyle matches every rule of every loaded stylesheet against the element, and
+    // focus() and Popover/Menu positioning call it all the time: with Mantine's ~1,200 rules a dialog
+    // test spent most of its time there and hit the 5 s timeout on a busy machine.
+    id: "test-mantine-stylesheet",
+    files: ["src/**/*.test.{ts,tsx}"],
+    name: "@mantine/core/styles.css",
+    message:
+      "Tests do not need Mantine's whole stylesheet. Import only the sheets the assertions read, e.g. @mantine/core/styles/Button.css.",
+  },
 ];
 
 // no-restricted-syntax: `selector` (an AST selector).

@@ -7,7 +7,6 @@
  * A photo is only placed with both coordinates, and its popup shows the
  * photo's own square thumbnail.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import type { JumpToOptions } from "maplibre-gl";
 import React, { act } from "react";

@@ -20,7 +20,6 @@
  * needs: a `<form>` that submits, a username field tagged `autocomplete="username"`, and
  * a password field tagged `autocomplete="current-password"`.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";

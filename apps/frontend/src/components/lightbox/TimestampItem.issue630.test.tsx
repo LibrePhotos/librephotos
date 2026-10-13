@@ -4,7 +4,6 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import "@mantine/core/styles.css";
 import { defined } from "../../util/defined.test-utils";
 import { TimestampItem } from "./TimestampItem";
 

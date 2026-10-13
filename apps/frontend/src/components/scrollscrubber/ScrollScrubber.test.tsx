@@ -3,7 +3,6 @@
  *   scroll positions moves them.
  * - A jump of more than 600px shows the scrubber, which hides again 2.5 s after the last one.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

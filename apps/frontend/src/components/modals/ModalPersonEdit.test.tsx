@@ -4,7 +4,6 @@
  * to the selected faces or to the caller's own handler, and the dialog closes. The field is also
  * the filter of the person list below it.
  */
-import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

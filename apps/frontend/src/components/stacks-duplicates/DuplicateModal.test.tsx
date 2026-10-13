@@ -1,4 +1,3 @@
-import "@mantine/core/styles.css";
 import type { DuplicateDetail } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { act } from "react";

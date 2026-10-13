@@ -2,7 +2,6 @@
  * The lightbox's Category badge (issue #2130): Photo / Screenshot / Document
  * from its menu, who set it, where the item shows up, an Undo, and owner-only.
  */
-import "@mantine/core/styles.css";
 import type { Photo, User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

@@ -42,6 +42,7 @@ const planted = {
   "tile-index": `const plantedIndex = rowIndex * columns + columnIndex;`,
   "query-key-literal": `const plantedQuery = { queryKey: ["photoDetails", hash] };`,
   "api-client-reexport": `export type { Photo as PlantedPhoto } from "@librephotos/api-client";`,
+  "test-mantine-stylesheet": `import "@mantine/core/styles.css";`,
   "untyped-mock": `const plantedMock = vi.fn();`,
   "open-state": `const [modalOpen, setModalOpen] = useState(false);`,
   "route-modal": `const plantedDialog = <Modal opened onClose={close} />;`,
