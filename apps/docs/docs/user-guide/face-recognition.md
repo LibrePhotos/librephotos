@@ -109,6 +109,8 @@ Photos that already carry XMP `RegionInfo` face regions in the file or its XMP s
 
 _Not released yet: up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them._
 
+*Not released yet: up to 1.3.0, the face regions of a HEIC or AVIF photo whose EXIF Orientation disagrees with the file's own rotation (for example one turned with **Save to media file** in an earlier version) were read from, and written to, the wrong part of the photo.*
+
 ### Face Quality
 
 At the moment no matter, which detection methods we use, there will be face detected, which are not actually faces. The user has to manually delete these faces. In the future, we will have a new classifier, which determines if it is a face and how likely it is a face.

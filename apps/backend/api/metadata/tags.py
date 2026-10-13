@@ -93,6 +93,10 @@ class Tags:
     # ExifTool returns it only as a Composite tag: "QuickTime:Rotation" reads nothing.
     ROTATION = "Composite:Rotation"
     ORIENTATION = "EXIF:Orientation"
+    # A HEIF image's (HEIC, AVIF) irot and imir properties: the turn and the
+    # mirror libheif shows it under, whatever its EXIF Orientation says (#2615).
+    HEIF_ROTATION = "QuickTime:Rotation"
+    HEIF_MIRRORING = "QuickTime:Mirroring"
     # The orientation an XMP sidecar can hold: ExifTool cannot store
     # EXIF:Orientation in an .xmp (#2297). Written, never read: a sidecar
     # orientation must not rotate LibrePhotos' own thumbnails (SIDECAR_EQUIVALENTS).
