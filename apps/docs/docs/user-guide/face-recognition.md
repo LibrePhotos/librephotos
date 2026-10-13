@@ -110,7 +110,7 @@ If you want to change how the grouping itself is done, add images, delete wrong 
 
 - **Minimum Cluster Size** (default **Auto**) — the smallest group the algorithm will treat as a cluster. **Auto** also applies when the stored value is 0 or 1, and grows from 2 to 4, 8 and 16 as your library passes 1,000, 10,000 and 100,000 encoded faces.
 - **Minimum Samples** (default **1**) — how conservative clustering is; a higher value is more conservative and leaves more faces unclustered.
-- **Cluster Selection Epsilon** (default **0.05**, shown as "Normal") — how readily nearby clusters are merged; a higher value merges more clusters together.
+- **Cluster Selection Epsilon** (default **0.95**, shown as "Normal") — how readily nearby clusters are merged; a higher value merges more clusters together. Clustering compares face encodings scaled to length 1, so two faces are 0 to 2 apart and two photos of one person about 0.9. **Small** to **Very High** (0.9 to 1.05) merge more and more of one person's clusters; **Very High** can also put look-alikes, such as siblings, into one cluster.
 
 Steps which could be done to improve clustering are combining very similar faces from e.g. a serial recording or photo shoot, to prevent from too many small images to be clustered.
 

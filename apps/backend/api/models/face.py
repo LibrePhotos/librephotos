@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from django.db import models
 
 from api.lazy_import import LazyModule
-from api.models.cluster import Cluster
+from api.models.cluster import Cluster, unit_length
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.scopes import OwnedQuerySet
@@ -81,4 +81,5 @@ class Face(models.Model):
         return str(self.id)
 
     def get_encoding_array(self) -> npt.NDArray[float64]:
-        return np.frombuffer(bytes.fromhex(self.encoding))
+        """The stored encoding at unit length (see ``unit_length``)."""
+        return unit_length(np.frombuffer(bytes.fromhex(self.encoding)))

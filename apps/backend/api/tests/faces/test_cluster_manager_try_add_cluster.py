@@ -11,7 +11,12 @@ import numpy as np
 from django.test import TestCase
 
 from api.faces.cluster_manager import ClusterManager
-from api.models.cluster import UNKNOWN_CLUSTER_ID, UNKNOWN_CLUSTER_NAME, Cluster
+from api.models.cluster import (
+    UNKNOWN_CLUSTER_ID,
+    UNKNOWN_CLUSTER_NAME,
+    Cluster,
+    unit_length,
+)
 from api.models.face import Face
 from api.models.person import Person
 from api.tests.utils import (
@@ -121,9 +126,9 @@ class TryAddClusterTestCase(TestCase):
             # face.person is left untouched (still None)
             self.assertIsNone(face.person)
 
-        # mean encoding is the mean of the unknown faces' encodings
-        expected = np.mean(
-            [f.get_encoding_array() for f in faces], axis=0, dtype=np.float64
+        # mean encoding is the mean of the unknown faces' encodings, at unit length
+        expected = unit_length(
+            np.mean([f.get_encoding_array() for f in faces], axis=0, dtype=np.float64)
         )
         cluster.refresh_from_db()
         np.testing.assert_allclose(cluster.get_mean_encoding_array(), expected)
@@ -195,12 +200,14 @@ class TryAddClusterTestCase(TestCase):
             face.refresh_from_db()
             self.assertEqual(face.cluster_id, by_person[person.id].id)
 
-        # mean encoding for Alice's cluster is the mean over her two faces
+        # mean encoding for Alice's cluster is the mean over her two faces, at unit length
         alice_cluster = Cluster.objects.get(id=by_person[alice.id].id)
-        expected = np.mean(
-            [f1.get_encoding_array(), f2.get_encoding_array()],
-            axis=0,
-            dtype=np.float64,
+        expected = unit_length(
+            np.mean(
+                [f1.get_encoding_array(), f2.get_encoding_array()],
+                axis=0,
+                dtype=np.float64,
+            )
         )
         np.testing.assert_allclose(alice_cluster.get_mean_encoding_array(), expected)
 

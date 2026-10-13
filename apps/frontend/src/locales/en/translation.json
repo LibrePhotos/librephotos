@@ -239,7 +239,7 @@
     "min_samples": "Minimum Samples",
     "min_samples_help": "Changes how conservative clusters are. A smaller value means less conservative.",
     "cluster_selection_epsilon": "Cluster Selection Epsilon",
-    "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged.",
+    "cluster_selection_epsilon_help": "Merges clusters whose faces are this close. Higher values merge more of one person's clusters; Very High can also join look-alikes, such as siblings.",
     "save_face_tags_to_disk": "Write face tags to image files",
     "save_face_tags_to_disk_help": "When enabled, face labels are written as XMP MWG-RS region tags to the sidecar files or the image files, as chosen under \"Synchronize metadata to disk\", whenever you label a face. This makes face data portable across photo management software like Lightroom, Digikam, and XnView.",
     "save_face_tags_to_disk_needs_sync": "Needs \"Save to sidecar\" or \"Save to media file\" under \"Synchronize metadata to disk\". While that is Off, LibrePhotos does not write to your files.",

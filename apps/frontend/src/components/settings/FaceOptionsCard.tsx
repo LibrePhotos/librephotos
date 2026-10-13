@@ -47,15 +47,18 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <Radio.Group
           label={t("settings.cluster_selection_epsilon")}
           description={t("settings.cluster_selection_epsilon_help")}
-          value={choiceOf(user.cluster_selection_epsilon, "0.1")}
+          // Off is 0, a real choice here: not choiceOf, which reads 0 as unset.
+          value={user.cluster_selection_epsilon.toString()}
           onChange={value => onChange({ cluster_selection_epsilon: parseFloat(value) || 0 })}
         >
+          {/* Distances between unit-length face encodings, 0 to 2 (#1996); two faces of one person
+              are about 0.9 apart. A backend migration moved saved values here from the old scale. */}
           <Group mt="xs">
             <Radio value="0" label={t("settings.size.off")} />
-            <Radio value="0.025" label={t("settings.size.small")} />
-            <Radio value="0.05" label={t("settings.size.normal")} />
-            <Radio value="0.1" label={t("settings.size.high")} />
-            <Radio value="0.2" label={t("settings.size.veryhigh")} />
+            <Radio value="0.9" label={t("settings.size.small")} />
+            <Radio value="0.95" label={t("settings.size.normal")} />
+            <Radio value="1" label={t("settings.size.high")} />
+            <Radio value="1.05" label={t("settings.size.veryhigh")} />
           </Group>
         </Radio.Group>
         <Switch

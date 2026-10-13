@@ -26,6 +26,20 @@ UNKNOWN_CLUSTER_ID = -1
 UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"
 
 
+def unit_length(encoding: npt.ArrayLike) -> npt.NDArray[float64]:
+    """The face encoding scaled to length 1 (a zero vector stays as it is).
+
+    ArcFace returns encodings whose length (about 13 to 25) follows the quality
+    of the face, not who it shows, and they are stored that way. Clustering and
+    training compare unit-length encodings, so the distance between two faces
+    is 0 to 2 whatever the recognition model, and the Cluster Selection
+    Epsilon choices mean the same on every library (#1996).
+    """
+    vector = np.asarray(encoding, dtype=np.float64)
+    length = np.linalg.norm(vector)
+    return vector / length if length > 0 else vector
+
+
 class ClusterQuerySet(OwnedQuerySet["Cluster"]):
     """Scoped to its owner through ``owner``."""
 
@@ -52,7 +66,9 @@ class Cluster(models.Model):
         return str(self.id)
 
     def get_mean_encoding_array(self) -> npt.NDArray[float64]:
-        return np.frombuffer(bytes.fromhex(self.mean_face_encoding))
+        """The mean encoding at unit length, like ``Face.get_encoding_array``
+        (rows saved before #1996 hold the mean of unscaled encodings)."""
+        return unit_length(np.frombuffer(bytes.fromhex(self.mean_face_encoding)))
 
     def set_metadata(self, all_vectors: npt.ArrayLike) -> None:
         self.mean_face_encoding = (
@@ -80,7 +96,8 @@ class Cluster(models.Model):
     def calculate_mean_face_encoding(
         all_encodings: npt.ArrayLike,
     ) -> npt.NDArray[float64]:
-        return np.asarray(all_encodings, dtype=np.float64).mean(axis=0)
+        """The direction the encodings share: their mean, at unit length."""
+        return unit_length(np.asarray(all_encodings, dtype=np.float64).mean(axis=0))
 
 
 def get_unknown_cluster(user: User) -> Cluster:
