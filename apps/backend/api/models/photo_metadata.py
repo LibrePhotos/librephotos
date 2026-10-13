@@ -12,7 +12,9 @@ the one write path for all of them and records each change as a
 from __future__ import annotations
 
 import logging
+import math
 import numbers
+import re
 import uuid
 from collections.abc import Iterable, Mapping
 from fractions import Fraction
@@ -64,6 +66,105 @@ def _text_value(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     return value.strip() or None
+
+
+# EXIF 2.32 codes of the enums the exif service reads as numbers (-n), named
+# as ExifTool prints them. A code not listed is stored as its number in text.
+METERING_MODES = {
+    0: "Unknown",
+    1: "Average",
+    2: "Center-weighted average",
+    3: "Spot",
+    4: "Multi-spot",
+    5: "Multi-segment",
+    6: "Partial",
+    255: "Other",
+}
+WHITE_BALANCES = {0: "Auto", 1: "Manual"}
+COLOR_SPACES = {
+    1: "sRGB",
+    2: "Adobe RGB",
+    0xFFFD: "Wide Gamut RGB",
+    0xFFFE: "ICC Profile",
+    0xFFFF: "Uncalibrated",
+}
+
+# EXIF's SubjectDistance for "infinity"; 0 means "unknown".
+_INFINITE_SUBJECT_DISTANCE = 0xFFFFFFFF
+
+_MAKER_MAX_LENGTH = 100
+
+
+def _code_name(value: object, names: Mapping[int, str]) -> str | None:
+    """An EXIF enum code as its name, an unknown code as its number in text."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return names.get(value, str(value))
+
+
+def _positive_number(value: object, below: float = math.inf) -> float | None:
+    """A number greater than 0 (and below ``below``), else None.
+
+    EXIF writes 0 for "unknown" or "not used" in the subject distance, the
+    digital zoom ratio and the exposure time.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value) if 0 < value < below else None
+
+
+# Words a maker's legal name ends with, left out where it is shown next to a
+# model: "OLYMPUS IMAGING CORP." + "E-M5" shows as "OLYMPUS E-M5".
+_CORPORATE_WORDS = frozenset(
+    {
+        "ag",
+        "co",
+        "company",
+        "corp",
+        "corporation",
+        "electronics",
+        "gmbh",
+        "imaging",
+        "inc",
+        "limited",
+        "ltd",
+        "optical",
+    }
+)
+
+
+def _maker_words(make: str) -> list[str]:
+    """The words of a maker's name, without their dots ("CO.,LTD" -> CO, LTD)."""
+    return [word for word in re.split(r"[\s,.]+", make) if word]
+
+
+def _short_maker(make: str) -> str:
+    """``make`` without the corporate words it ends with ("NIKON CORPORATION" -> "NIKON")."""
+    words = _maker_words(make)
+    while len(words) > 1 and words[-1].casefold() in _CORPORATE_WORDS:
+        words.pop()
+    return " ".join(words)
+
+
+def _names_the_maker(name: str, make: str) -> bool:
+    """Whether a model or lens name starts with a word of its maker's name:
+    "NIKON D850" for "NIKON CORPORATION", "LG-H870" for "LG Electronics",
+    but not "Leicaflex" for "Leica"."""
+    folded = name.casefold()
+    return any(
+        re.match(rf"{re.escape(word)}(?![^\W_])", folded)
+        for word in (word.casefold() for word in _maker_words(make))
+        if word not in _CORPORATE_WORDS
+    )
+
+
+def with_maker(make: str | None, name: str | None) -> str | None:
+    """A camera or lens name with its maker in front, unless it names it already."""
+    if make and name:
+        if _names_the_maker(name, make):
+            return name
+        return f"{_short_maker(make)} {name}"
+    return name or make
 
 
 # The field name of the "restore from file" marker revert-all records; only
@@ -246,6 +347,12 @@ class PhotoMetadata(models.Model):
     # White balance
     white_balance = models.CharField(max_length=50, null=True, blank=True)
 
+    # Distance to the subject in metres
+    subject_distance = models.FloatField(null=True, blank=True)
+
+    # Digital zoom ratio; EXIF's 0 ("not used") is stored as NULL
+    digital_zoom_ratio = models.FloatField(null=True, blank=True)
+
     # ==================== Camera/Lens Info ====================
     camera_make = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     camera_model = models.CharField(
@@ -328,21 +435,12 @@ class PhotoMetadata(models.Model):
     @property
     def camera_display(self) -> str | None:
         """Returns a human-readable camera name."""
-        if self.camera_make and self.camera_model:
-            # Avoid duplicating make in model
-            if self.camera_model.startswith(self.camera_make):
-                return self.camera_model
-            return f"{self.camera_make} {self.camera_model}"
-        return self.camera_model or self.camera_make
+        return with_maker(self.camera_make, self.camera_model)
 
     @property
     def lens_display(self) -> str | None:
         """Returns a human-readable lens name."""
-        if self.lens_make and self.lens_model:
-            if self.lens_model.startswith(self.lens_make):
-                return self.lens_model
-            return f"{self.lens_make} {self.lens_model}"
-        return self.lens_model or self.lens_make
+        return with_maker(self.lens_make, self.lens_model)
 
     @classmethod
     def apply_file_values(
@@ -415,6 +513,8 @@ class PhotoMetadata(models.Model):
                 Fraction(shutter_speed).limit_denominator(1000)
             )
 
+        PhotoMetadata._apply_camera_fields(metadata, values)
+
         subsec_time_original = values["subsec_time_original"]
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
@@ -424,6 +524,52 @@ class PhotoMetadata(models.Model):
             metadata.keywords = keywords
 
         PhotoMetadata._apply_text_fields(metadata, values)
+
+    @staticmethod
+    def _apply_camera_fields(
+        metadata: PhotoMetadata, values: Mapping[str, object]
+    ) -> None:
+        """Maker, serial number and the exposure columns beyond the basics.
+
+        A tag the file does not have leaves its column as it was: NULL on
+        the first scan, never a 0 or "" placeholder.
+        """
+        for field in ("camera_make", "lens_make", "serial_number"):
+            # A serial number of digits only comes back from ExifTool as a number.
+            text = _text_value(values[field])
+            if text is not None:
+                setattr(metadata, field, text[:_MAKER_MAX_LENGTH])
+
+        # 0 EV and sea level are values.
+        _assign_number(
+            metadata, "exposure_compensation", values["exposure_compensation"]
+        )
+        _assign_number(metadata, "gps_altitude", values["gps_altitude"])
+
+        for field, value in (
+            ("shutter_speed_seconds", _positive_number(values["shutter_speed"])),
+            (
+                "subject_distance",
+                _positive_number(
+                    values["subject_distance"], below=_INFINITE_SUBJECT_DISTANCE
+                ),
+            ),
+            ("digital_zoom_ratio", _positive_number(values["digital_zoom_ratio"])),
+            ("metering_mode", _code_name(values["metering_mode"], METERING_MODES)),
+            ("white_balance", _code_name(values["white_balance"], WHITE_BALANCES)),
+            ("color_space", _code_name(values["color_space"], COLOR_SPACES)),
+        ):
+            if value is not None:
+                setattr(metadata, field, value)
+
+        flash = values["flash"]
+        if isinstance(flash, int) and not isinstance(flash, bool):
+            # Bit 0 of EXIF's Flash: whether it fired.
+            metadata.flash_fired = bool(flash & 1)
+
+        bits = values["bits_per_sample"]
+        if isinstance(bits, int) and not isinstance(bits, bool) and bits > 0:
+            metadata.bit_depth = bits
 
     @staticmethod
     def _apply_text_fields(

@@ -51,9 +51,10 @@ class GetTagsSecurityTest(SimpleTestCase):
         # real tags still resolve.
         self.assertEqual(resp.get_json()["values"], ["EOS", None, None])
         # ExifTool was only ever asked for the safe tags (and the sidecar name
-        # of one of them, SIDECAR_EQUIVALENTS).
+        # of each of them, SIDECAR_EQUIVALENTS).
         self.assertEqual(
-            fake.batch_calls, [(["EXIF:Model", "EXIF:Make", "XMP:Model"], ["/a.jpg"])]
+            fake.batch_calls,
+            [(["EXIF:Model", "EXIF:Make", "XMP:Model", "XMP:Make"], ["/a.jpg"])],
         )
         for tags, _files in fake.batch_calls:
             self.assertNotIn("FileName=../evil.jpg", tags)

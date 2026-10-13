@@ -57,6 +57,16 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("hierarchical_subject", Tags.HIERARCHICAL_SUBJECT),
     ("gps_latitude", Tags.LATITUDE),
     ("gps_longitude", Tags.LONGITUDE),
+    ("camera_make", Tags.MAKE),
+    ("lens_make", Tags.LENS_MAKE),
+    ("serial_number", Tags.SERIAL_NUMBER),
+    ("exposure_compensation", Tags.EXPOSURE_COMPENSATION),
+    ("flash", Tags.FLASH),
+    ("metering_mode", Tags.METERING_MODE),
+    ("white_balance", Tags.WHITE_BALANCE),
+    ("color_space", Tags.COLOR_SPACE),
+    ("bits_per_sample", Tags.BITS_PER_SAMPLE),
+    ("gps_altitude", Tags.GPS_ALTITUDE),
 )
 
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)

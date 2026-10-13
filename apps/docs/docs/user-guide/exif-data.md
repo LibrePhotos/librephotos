@@ -113,6 +113,48 @@ sidebar_position: 18
         <td>Lens in Info</td>
     </tr>
     <tr>
+        <td>EXIF:Make, EXIF:LensMake</td>
+        <td>Camera and lens maker</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Shown in front of the camera model and lens in Info ("Fujifilm X-T5"), unless the model already starts with it ("NIKON D850", not "NIKON CORPORATION NIKON D850"). Corporate words at the end of a maker's name are left out there ("OLYMPUS IMAGING CORP." shows as "OLYMPUS"). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>EXIF:SerialNumber</td>
+        <td>Camera serial number</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Stored in the photo's metadata (<code>{"/api/photos/{id}/metadata/"}</code>), not shown in Info and not sent with every photo. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>EXIF:ExposureCompensation, EXIF:Flash, EXIF:MeteringMode, EXIF:WhiteBalance</td>
+        <td>Exposure compensation, flash fired, metering mode, white balance</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Stored in the photo's metadata; metering mode and white balance under the names ExifTool prints (Multi-segment, Auto, ...). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>EXIF:ColorSpace, File:BitsPerSample</td>
+        <td>Colour space, bit depth</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Stored in the photo's metadata. Bit depth is read from JPEG files only. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>Composite:GPSAltitude</td>
+        <td>Altitude</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Altitude in metres, negative below sea level, stored in the photo's metadata. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
+        <td>EXIF:SubjectDistance, EXIF:DigitalZoomRatio</td>
+        <td>Subject distance, digital zoom</td>
+        <td>✔️</td>
+        <td>❌</td>
+        <td>Shown under "Show more" in Info. 0, which EXIF uses for "unknown" and "not used", is left empty. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+    </tr>
+    <tr>
         <td>File:FileSize</td>
         <td>File Size</td>
         <td>✔️</td>
@@ -269,6 +311,8 @@ properties in the sidecar under their XMP names, and LibrePhotos reads these the
 | `EXIF:Model` | `tiff:Model` |
 | `EXIF:LensModel` | `exifEX:LensModel` |
 | `EXIF:FNumber`, `EXIF:ExposureTime`, `EXIF:ISO`, `EXIF:FocalLength`, `EXIF:FocalLengthIn35mmFormat` | `exif:FNumber`, `exif:ExposureTime`, `exif:ISOSpeedRatings`, `exif:FocalLength`, `exif:FocalLengthIn35mmFilm` |
+| `EXIF:Make`, `EXIF:LensMake` | `tiff:Make`, `exifEX:LensMake` (_not released yet_) |
+| `EXIF:ExposureCompensation`, `EXIF:MeteringMode`, `EXIF:WhiteBalance`, `EXIF:SubjectDistance`, `EXIF:DigitalZoomRatio` | `exif:ExposureBiasValue`, `exif:MeteringMode`, `exif:WhiteBalance`, `exif:SubjectDistance`, `exif:DigitalZoomRatio` (_not released yet_) |
 
 _Not released yet:_ before this, only the XMP-native fields (rating, keywords, description,
 `XMP:DateCreated`, face regions) were taken from a sidecar. Photos already in your library pick
