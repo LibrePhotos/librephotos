@@ -217,9 +217,22 @@ class BuildLiveCommandTest(SimpleTestCase):
         self.assertNotIn("-readrate_initial_burst", command)
 
     def test_progress_output_is_turned_off(self):
-        """It is written to a pipe nothing drains; see the stderr tests below."""
+        """The stats line and log chatter: only errors reach stderr's tail."""
         command = media.build_live_command("/x.mp4")
         self.assertEqual(command[command.index("-loglevel") + 1], "error")
+
+    def test_progress_lines_go_to_stderr_where_the_transcoder_reads_them(self):
+        """They decide when the seekable copy may start beside it (#2002)."""
+        command = media.build_live_command("/x.mp4")
+        self.assertEqual(command[command.index("-progress") + 1], "pipe:2")
+        self.assertLess(command.index("-progress"), command.index("-i"))
+
+    def test_an_ffmpeg_without_progress_does_not_get_it(self):
+        with mock.patch.object(
+            media.ffmpeg_budget, "supports", side_effect=lambda o: o != "progress"
+        ):
+            command = media.build_live_command("/x.mp4")
+        self.assertNotIn("-progress", command)
 
     def test_the_height_is_still_a_ceiling_and_not_a_target(self):
         command = media.build_live_command("/x.mp4")
@@ -395,3 +408,112 @@ class VideoTranscoderFailedStartTest(SimpleTestCase):
         self.assertEqual(
             [], [f"{hook.exc_type.__name__}: {hook.exc_value}" for hook in unraisable]
         )
+
+
+# What ffmpeg -progress writes every half second, ending each block with
+# progress=continue and the last one with progress=end.
+PROGRESS_BLOCK = (
+    b"frame=150\nfps=61.2\nbitrate=   8.1kbits/s\ntotal_size=655360\n"
+    b"out_time_us=%d\nout_time_ms=%d\nout_time=00:00:05.000000\n"
+    b"dup_frames=0\ndrop_frames=0\nspeed= 2.6x\nprogress=%s\n"
+)
+
+
+def _progress(seconds, last=False):
+    microseconds = int(seconds * 1_000_000)
+    return PROGRESS_BLOCK % (
+        microseconds,
+        microseconds,
+        b"end" if last else b"continue",
+    )
+
+
+class VideoTranscoderProgressTest(SimpleTestCase):
+    """#2002: how far the live conversion has got, read from its -progress lines."""
+
+    def _transcoder(self, stderr_chunks):
+        process = FakePopen(stderr_chunks, [])
+        with contextlib.ExitStack() as stack:
+            for patch in _only_the_conversion_is_fake(process):
+                stack.enter_context(patch)
+            stack.enter_context(
+                mock.patch.object(media.ffmpeg_budget, "supports", return_value=True)
+            )
+            stack.enter_context(
+                mock.patch.object(media.time, "monotonic", return_value=0)
+            )
+            transcoder = media.VideoTranscoder("/x.mp4")
+        transcoder._drain.join(timeout=5)
+        return transcoder
+
+    def test_reads_how_much_video_has_been_converted(self):
+        transcoder = self._transcoder([_progress(5), _progress(42.5)])
+        self.assertEqual(transcoder.converted_seconds, 42.5)
+        self.assertFalse(transcoder.converted_all)
+
+    def test_a_line_split_across_reads_is_still_read(self):
+        block = _progress(75)
+        transcoder = self._transcoder([block[:60], block[60:]])
+        self.assertEqual(transcoder.converted_seconds, 75)
+
+    def test_knows_when_everything_is_converted(self):
+        transcoder = self._transcoder([_progress(5), _progress(90, last=True)])
+        self.assertTrue(transcoder.converted_all)
+
+    def test_progress_lines_stay_out_of_the_tail_kept_for_the_log(self):
+        transcoder = self._transcoder(
+            [_progress(5), b"[h264 @ 0x1] Invalid data found\n", _progress(6)]
+        )
+        self.assertEqual(transcoder.stderr_tail(), "[h264 @ 0x1] Invalid data found")
+
+    def test_a_progress_value_ffmpeg_does_not_know_yet_is_ignored(self):
+        transcoder = self._transcoder([b"out_time_us=N/A\nprogress=continue\n"])
+        self.assertEqual(transcoder.converted_seconds, 0)
+
+
+class CopyCanStartTest(SimpleTestCase):
+    """When a second ffmpeg, the seekable copy, may run beside the live one."""
+
+    def _transcoder(self, converted, after, rate_limited=True, converted_all=False):
+        transcoder = media.VideoTranscoder.__new__(media.VideoTranscoder)
+        transcoder.started = 1000.0
+        transcoder.converted_seconds = converted
+        transcoder.converted_all = converted_all
+        transcoder.rate_limited = rate_limited
+        clock = mock.patch.object(media.time, "monotonic", return_value=1000.0 + after)
+        clock.start()
+        self.addCleanup(clock.stop)
+        return transcoder
+
+    def test_not_while_the_burst_has_only_just_started(self):
+        """At the start both would fight over the first frames (#1991)."""
+        self.assertFalse(self._transcoder(converted=30, after=1).copy_can_start())
+
+    def test_once_a_minute_ahead_of_anything_the_viewer_can_have_seen(self):
+        lead = media.COPY_LEAD_SECONDS
+        self.assertTrue(
+            self._transcoder(converted=30 + lead, after=30).copy_can_start()
+        )
+        self.assertFalse(
+            self._transcoder(converted=29 + lead, after=30).copy_can_start()
+        )
+
+    def test_never_beside_a_conversion_running_flat_out(self):
+        """No -readrate: it takes its whole share until it is done."""
+        transcoder = self._transcoder(converted=3600, after=10, rate_limited=False)
+        self.assertFalse(transcoder.copy_can_start())
+
+    def test_a_host_too_slow_to_get_ahead_waits_for_the_end(self):
+        transcoder = self._transcoder(converted=300, after=280)
+        self.assertFalse(transcoder.copy_can_start())
+
+    def test_always_once_everything_is_converted(self):
+        for rate_limited in (True, False):
+            with self.subTest(rate_limited=rate_limited):
+                transcoder = self._transcoder(
+                    converted=20,
+                    after=10,
+                    rate_limited=rate_limited,
+                    converted_all=True,
+                )
+                self.assertTrue(transcoder.copy_can_start())
