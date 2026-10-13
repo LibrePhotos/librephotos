@@ -58,14 +58,14 @@ function SharedByMe() {
             <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="photos" keepMounted={false}>
+          <Tabs.Panel value="photos">
             <Stack gap="md" pt="md">
               <PhotoSharesSection />
               <PhotosSharedByMe />
             </Stack>
           </Tabs.Panel>
 
-          <Tabs.Panel value="albums" keepMounted={false} pt="md">
+          <Tabs.Panel value="albums" pt="md">
             <AlbumsSharedByMe />
           </Tabs.Panel>
         </Tabs>

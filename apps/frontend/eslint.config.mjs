@@ -170,6 +170,15 @@ export const syntaxBans = [
     message:
       "Move the dialog into a *Modal component (components/album or components/modals) and open it with useDisclosure.",
   },
+  {
+    // Mantine mounts a panel when `ctx.keepMounted || keepMounted`, and <Tabs> defaults keepMounted to
+    // true, so keepMounted={false} on a panel is a no-op.
+    id: "tabs-panel-keep-mounted",
+    selector:
+      "JSXOpeningElement[name.object.name='Tabs'][name.property.name='Panel'] > JSXAttribute[name.name='keepMounted'][value.expression.value=false]",
+    message:
+      "keepMounted={false} on Tabs.Panel does nothing: <Tabs> keeps panels mounted by default and wins. Hidden panels render under React <Activity mode='hidden'> (no effects, no fetches, state kept); to unmount them set keepMounted={false} on <Tabs>.",
+  },
   // Dates: util/dateUtils is the one module that parses and formats them (AGENTS.md).
   {
     // Parsing a wall-clock exif_timestamp as an instant shifts it by the viewer's offset; the

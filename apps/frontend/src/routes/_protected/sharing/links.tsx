@@ -91,7 +91,7 @@ function PublicLinksPage() {
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="albums" keepMounted={false}>
+          <Tabs.Panel value="albums">
             {isLoadingAlbums ? (
               <PageLoader label={t("loading")} />
             ) : publicAlbums.length === 0 ? (
@@ -103,7 +103,7 @@ function PublicLinksPage() {
             )}
           </Tabs.Panel>
 
-          <Tabs.Panel value="photos" keepMounted={false}>
+          <Tabs.Panel value="photos">
             <Stack gap="md" pt="md">
               <PhotoSharesSection />
               {isLoadingPhotos || isLoadingShares ? (
