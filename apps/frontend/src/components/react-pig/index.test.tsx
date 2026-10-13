@@ -1,6 +1,6 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import "../../i18n";
 import Pig from ".";
 import { defined } from "../../util/defined.test-utils";
@@ -203,5 +203,82 @@ describe("react-pig expanded tile", () => {
 
     act(() => defined(photo).click());
     expect(header.style.zIndex).toBe("1");
+  });
+});
+
+describe("react-pig container width", () => {
+  // Captures the observers Pig creates, so a test can report a resize of the grid's own element
+  // (a sidebar, a side panel or a scrollbar taking width) with no window resize event.
+  const observers: { callback: ResizeObserverCallback; observer: ResizeObserver }[] = [];
+  let width = 1000;
+
+  beforeEach(() => {
+    observers.length = 0;
+    width = 1000;
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, get: () => width });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          observers.push({ callback, observer: this });
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {
+          const index = observers.findIndex(entry => entry.observer === this);
+          if (index >= 0) observers.splice(index, 1);
+        }
+      }
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, get: () => 1000 });
+  });
+
+  const nextFrame = () => new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
+
+  async function resizeContainer(next: number) {
+    width = next;
+    await act(async () => {
+      // Pig reads the width from the element, not from the entries.
+      for (const { callback, observer } of [...observers]) callback([], observer);
+      await nextFrame();
+    });
+  }
+
+  function renderTiles() {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const tiles = ["a", "b"].map(id => ({ id, image_hash: id, aspectRatio: 1.5, dominantColor: "#123456" }));
+    act(() => {
+      defined(root).render(<Pig imageData={tiles} getUrl={(imageHash: string) => `/media/${imageHash}`} />);
+    });
+    return () => Array.from(defined(container).querySelectorAll("img")).map(img => Number(img.getAttribute("width")));
+  }
+
+  it("lays the grid out again when its container narrows without a window resize", async () => {
+    const tileWidths = renderTiles();
+    // Two 1.5 tiles share a row (above 800px wide) less the 8px gap between them.
+    expect(tileWidths()[0]).toBeCloseTo(496);
+
+    await resizeContainer(900);
+
+    expect(tileWidths()[0]).toBeCloseTo(446);
+  });
+
+  it("keeps the layout while the container is hidden (0px wide) and stops observing on unmount", async () => {
+    const tileWidths = renderTiles();
+
+    await resizeContainer(0);
+    expect(tileWidths()[0]).toBeCloseTo(496);
+
+    act(() => defined(root).unmount());
+    root = null;
+    defined(container).remove();
+    container = null;
+    expect(observers).toHaveLength(0);
   });
 });

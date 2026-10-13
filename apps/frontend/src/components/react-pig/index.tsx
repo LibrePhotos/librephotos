@@ -1,4 +1,4 @@
-import { useDebouncedCallback, useThrottledCallback } from "@mantine/hooks";
+import { useThrottledCallback } from "@mantine/hooks";
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import calcRenderableItems from "./calcRenderableItems";
 import type { ScrollDirection } from "./calcRenderableItems";
@@ -21,6 +21,7 @@ import type {
   PigTile,
   ScrollSpeed,
 } from "./types";
+import { useGridResize } from "./useGridResize";
 import getScrollSpeed from "./utils/getScrollSpeed";
 import getUrl from "./utils/getUrl";
 import sortByDate from "./utils/sortByDate";
@@ -330,10 +331,8 @@ function Pig<T extends ImageItem>(
     windowHeightRef.current = window.innerHeight;
   }, [getUpdatedImageLayout, storeLayout, setRenderedItemsFunc]);
 
-  // Create throttled and debounced functions using Mantine hooks
+  // Throttle the scroll handler (the resize handlers live in useGridResize)
   const throttledScroll = useThrottledCallback(onScroll, scrollThrottleMs);
-
-  const debouncedResize = useDebouncedCallback(onResize, 500);
 
   // Equivalent to componentDidMount and componentWillUnmount
   useEffect(() => {
@@ -347,13 +346,13 @@ function Pig<T extends ImageItem>(
     if (layout) setRenderedItemsFunc(layout);
 
     window.addEventListener("scroll", throttledScroll);
-    window.addEventListener("resize", debouncedResize);
 
     return () => {
       window.removeEventListener("scroll", throttledScroll);
-      window.removeEventListener("resize", debouncedResize);
     };
-  }, [throttledScroll, debouncedResize, getUpdatedImageLayout, storeLayout, setRenderedItemsFunc]);
+  }, [throttledScroll, getUpdatedImageLayout, storeLayout, setRenderedItemsFunc]);
+
+  useGridResize(containerRef, onResize);
 
   // Equivalent to componentDidUpdate
   useEffect(() => {
