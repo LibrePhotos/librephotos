@@ -2,6 +2,7 @@
 import dayjs from "dayjs";
 import { Settings } from "luxon";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LANGUAGE_OPTIONS } from "./components/settings/languageOptions";
 import translationDa from "./locales/da/translation.json";
 import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
@@ -145,5 +146,69 @@ describe("loadDayjsLocale", () => {
 
     expect(await loadDayjsLocale("en")).toBe("en");
     expect(await loadDayjsLocale(undefined)).toBe("en");
+  });
+});
+
+// Every translation file as text, so a broken one fails its own test instead of the import.
+const localeSources = import.meta.glob<string>("./locales/*/translation.json", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+// "./locales/pt_BR/translation.json" -> "pt_BR"
+const localeDirectories = Object.keys(localeSources)
+  .map(path => path.split("/")[2] ?? path)
+  .sort();
+const translatedLocales = localeDirectories.filter(locale => locale !== "en");
+const pickerValues = LANGUAGE_OPTIONS.map(option => option.value);
+
+const parseLocale = (locale: string): unknown =>
+  JSON.parse(localeSources[`./locales/${locale}/translation.json`] ?? "");
+
+// Weblate adds a directory under src/locales when a translator starts a language. i18n.ts loads it
+// without a code change; the picker and dayjs need a human-written entry, so these tests ask for one.
+describe("locale directories", () => {
+  afterEach(() => {
+    window.localStorage.removeItem("i18nextLng");
+    Settings.defaultLocale = originalDefaultLocale;
+  });
+
+  it("finds the locales Weblate maintains", () => {
+    expect(localeDirectories).toContain("en");
+    expect(localeDirectories).toContain("pt_BR");
+    expect(translatedLocales.length).toBeGreaterThan(30);
+  });
+
+  it.each(localeDirectories)("%s/translation.json is a JSON object", locale => {
+    const translation = parseLocale(locale);
+
+    expect(translation).toBeTypeOf("object");
+    expect(Array.isArray(translation)).toBe(false);
+  });
+
+  it("offers every locale directory in the language picker (components/settings/languageOptions.ts)", () => {
+    expect(localeDirectories.filter(locale => !pickerValues.includes(locale))).toEqual([]);
+  });
+
+  it("offers no language without a locale directory", () => {
+    expect(pickerValues.filter(value => !localeDirectories.includes(value))).toEqual([]);
+    expect(new Set(pickerValues).size).toBe(pickerValues.length);
+  });
+
+  it("loads every locale directory through the lazy backend", async () => {
+    window.localStorage.setItem("i18nextLng", "en");
+    const i18n = await loadI18n();
+
+    for (const locale of translatedLocales) {
+      await i18n.changeLanguage(locale);
+      expect(i18n.getResourceBundle(locale, "translation"), locale).toEqual(parseLocale(locale));
+    }
+  });
+
+  it("gives every locale directory a dayjs locale for the date pickers (dayjsLocaleLoaders in i18n.ts)", async () => {
+    const { loadDayjsLocale } = await import("./i18n");
+    const names = await Promise.all(translatedLocales.map(locale => loadDayjsLocale(locale)));
+
+    expect(translatedLocales.filter((_, index) => names[index] === "en")).toEqual([]);
   });
 });

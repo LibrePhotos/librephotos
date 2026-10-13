@@ -33,6 +33,7 @@ import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { dataUrlToFile } from "../../util/dataUrl";
 import { PageHeader } from "../PageHeader";
+import { LANGUAGE_OPTIONS } from "./languageOptions";
 import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
 import { SaveChangesDialog } from "./SaveChangesDialog";
@@ -245,140 +246,7 @@ export function Profile() {
               // The detector stores the browser's code as is ("en-US", "de-DE"), which matches no
               // option; resolvedLanguage is the bundle actually in use ("en", "de", "pt_BR").
               value={i18n.resolvedLanguage ?? "en"}
-              data={[
-                {
-                  value: "en",
-                  label: t("settings.english"),
-                },
-                {
-                  value: "ca",
-                  label: t("settings.catalan"),
-                },
-                {
-                  value: "de",
-                  label: t("settings.german"),
-                },
-                {
-                  value: "es",
-                  label: t("settings.spanish"),
-                },
-                {
-                  value: "eo",
-                  label: t("settings.esperanto"),
-                },
-                {
-                  value: "et",
-                  label: t("settings.estonian"),
-                },
-                {
-                  value: "fr",
-                  label: t("settings.french"),
-                },
-                {
-                  value: "it",
-                  label: t("settings.italian"),
-                },
-                {
-                  value: "nb_NO",
-                  label: t("settings.norwegianbokmal"),
-                },
-                {
-                  value: "zh_Hans",
-                  label: t("settings.simplifiedchinese"),
-                },
-                {
-                  value: "zh_Hant",
-                  label: t("settings.traditionalchinese"),
-                },
-                {
-                  value: "ru",
-                  label: t("settings.russian"),
-                },
-                {
-                  value: "ja",
-                  label: t("settings.japanese"),
-                },
-                {
-                  value: "sv",
-                  label: t("settings.swedish"),
-                },
-                {
-                  value: "pl",
-                  label: t("settings.polish"),
-                },
-                {
-                  value: "nl",
-                  label: t("settings.dutch"),
-                },
-                {
-                  value: "cs",
-                  label: t("settings.czech"),
-                },
-                {
-                  value: "da",
-                  label: t("settings.danish"),
-                },
-                {
-                  value: "pt",
-                  label: t("settings.portuguese"),
-                },
-                {
-                  value: "fi",
-                  label: t("settings.finnish"),
-                },
-                {
-                  value: "eu",
-                  label: t("settings.basque"),
-                },
-                {
-                  value: "uk",
-                  label: t("settings.ukrainian"),
-                },
-                {
-                  value: "vi",
-                  label: t("settings.vietnamese"),
-                },
-                {
-                  value: "ar",
-                  label: t("settings.arabic"),
-                },
-                {
-                  value: "hu",
-                  label: t("settings.hungarian"),
-                },
-                {
-                  value: "ko",
-                  label: t("settings.korean"),
-                },
-                {
-                  value: "pt_BR",
-                  label: t("settings.portuguesebr"),
-                },
-                {
-                  value: "ro",
-                  label: t("settings.romanian"),
-                },
-                {
-                  value: "sk",
-                  label: t("settings.slovak"),
-                },
-                {
-                  value: "ur",
-                  label: t("settings.urdu"),
-                },
-                {
-                  value: "hi",
-                  label: t("settings.hindi"),
-                },
-                {
-                  value: "ta",
-                  label: t("settings.tamil"),
-                },
-                {
-                  value: "tr",
-                  label: t("settings.turkish"),
-                },
-              ]}
+              data={LANGUAGE_OPTIONS.map(({ value, label }) => ({ value, label: t(label) }))}
             />
             <Button
               component="a"

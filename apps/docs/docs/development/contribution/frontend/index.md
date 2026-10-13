@@ -140,6 +140,12 @@ Everything below is relative to
   cross-cutting hooks and helpers, such as authentication and notifications.
 - [locales](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/locales) holds the
   translations, set up in `i18n.ts`. Translations are contributed through
-  [Weblate](https://hosted.weblate.org/engage/librephotos/) rather than edited directly.
+  [Weblate](https://hosted.weblate.org/engage/librephotos/) rather than edited directly: its
+  `librephotos-frontend` component translates `apps/frontend/src/locales/*/translation.json` against
+  the English file, `apps/frontend/src/locales/en/translation.json`. English ships in the main bundle,
+  and `i18n.ts` loads every other directory under `locales` as its own chunk, so a language Weblate
+  adds loads without a code change. To offer it in the Profile language picker, give it an entry in
+  `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
+  `src/i18n.test.ts` fails until both are there.
 - In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find
   miscellaneous functions.

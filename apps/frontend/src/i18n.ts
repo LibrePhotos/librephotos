@@ -7,48 +7,22 @@ import translationEn from "./locales/en/translation.json";
 export const i18nResolvedLanguage = () => (i18n.resolvedLanguage ? i18n.resolvedLanguage.replace("_", "-") : "en");
 
 // English ships in the main bundle: it is the fallback language and the one
-// most people use. Every other locale is its own chunk, fetched the first time
-// that language is needed (initial detection or a switch in the settings).
-const localeLoaders: Record<string, () => Promise<{ default: ResourceKey }>> = {
-  ar: () => import("./locales/ar/translation.json"),
-  ca: () => import("./locales/ca/translation.json"),
-  cs: () => import("./locales/cs/translation.json"),
-  da: () => import("./locales/da/translation.json"),
-  de: () => import("./locales/de/translation.json"),
-  eo: () => import("./locales/eo/translation.json"),
-  es: () => import("./locales/es/translation.json"),
-  et: () => import("./locales/et/translation.json"),
-  eu: () => import("./locales/eu/translation.json"),
-  fi: () => import("./locales/fi/translation.json"),
-  fr: () => import("./locales/fr/translation.json"),
-  hi: () => import("./locales/hi/translation.json"),
-  hu: () => import("./locales/hu/translation.json"),
-  it: () => import("./locales/it/translation.json"),
-  ja: () => import("./locales/ja/translation.json"),
-  ko: () => import("./locales/ko/translation.json"),
-  nb_NO: () => import("./locales/nb_NO/translation.json"),
-  nl: () => import("./locales/nl/translation.json"),
-  pl: () => import("./locales/pl/translation.json"),
-  pt: () => import("./locales/pt/translation.json"),
-  pt_BR: () => import("./locales/pt_BR/translation.json"),
-  ro: () => import("./locales/ro/translation.json"),
-  ru: () => import("./locales/ru/translation.json"),
-  sk: () => import("./locales/sk/translation.json"),
-  sv: () => import("./locales/sv/translation.json"),
-  ta: () => import("./locales/ta/translation.json"),
-  tr: () => import("./locales/tr/translation.json"),
-  uk: () => import("./locales/uk/translation.json"),
-  ur: () => import("./locales/ur/translation.json"),
-  vi: () => import("./locales/vi/translation.json"),
-  zh_Hans: () => import("./locales/zh_Hans/translation.json"),
-  zh_Hant: () => import("./locales/zh_Hant/translation.json"),
-};
+// most people use. Every other directory under ./locales is its own chunk,
+// fetched the first time that language is needed (initial detection or a
+// switch in the settings). The list comes from the files, so a language that
+// Weblate adds loads with no change here.
+const localeFiles = import.meta.glob<{ default: ResourceKey }>([
+  "./locales/*/translation.json",
+  "!./locales/en/translation.json",
+]);
+// "./locales/pt_BR/translation.json" -> "pt_BR"
+const localeLoaders = new Map(Object.entries(localeFiles).map(([path, load]) => [path.split("/")[2] ?? path, load]));
 
 const lazyLocaleBackend: BackendModule = {
   type: "backend",
   init: () => {},
   read(language, _namespace, callback) {
-    const load = localeLoaders[language];
+    const load = localeLoaders.get(language);
     if (!load) {
       // Region variants ("de-DE", "en-US") and unknown codes have no file of
       // their own; an empty bundle lets i18next fall through to "de" / "en".
