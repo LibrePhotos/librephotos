@@ -116,10 +116,23 @@ else:
     defer(logging.DEBUG, "use SECRET_KEY from file")
 
 
+# The thumbnail settings apply to what is rendered from now on: newly scanned
+# photos, a rotation, a file whose content changed. Existing thumbnails keep
+# the size and quality they were rendered with. Out-of-range values are
+# clamped to the nearest limit.
+#
 # WebP quality (1-100) of the 500 and 250 px square thumbnails the photo grids
-# show; the big 1080 px thumbnail stays at 95. Applies to thumbnails rendered
-# from now on (a scan of new photos, a rotate, "Generate thumbnails").
+# show.
 SQUARE_THUMBNAIL_QUALITY = min(100, max(1, env_int("SQUARE_THUMBNAIL_QUALITY", 80)))
+# WebP quality (1-100) and height in pixels (500-4320) of the big thumbnail the
+# lightbox shows and duplicate detection and the ML models read. Never lower
+# than the 500 px square, which is resized from it.
+BIG_THUMBNAIL_QUALITY = min(100, max(1, env_int("BIG_THUMBNAIL_QUALITY", 95)))
+BIG_THUMBNAIL_HEIGHT = min(4320, max(500, env_int("BIG_THUMBNAIL_HEIGHT", 1080)))
+# The animated previews of videos in the grids: the first 1-30 seconds,
+# encoded with this x264 CRF (0-51; lower looks better and takes more space).
+VIDEO_PREVIEW_SECONDS = min(30, max(1, env_int("VIDEO_PREVIEW_SECONDS", 5)))
+VIDEO_PREVIEW_CRF = min(51, max(0, env_int("VIDEO_PREVIEW_CRF", 20)))
 
 
 # Demo mode ignores password changes (see api/serializers/user.py), so it is

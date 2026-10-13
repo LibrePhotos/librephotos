@@ -84,21 +84,27 @@ UNCOMPARABLE = "uncomparable"  # rebuild what is cheap, keep what was labelled
 
 
 def _rendered_perceptual_hash(
-    path: str, local_orientation: int, legacy: bool = False
+    path: str,
+    local_orientation: int,
+    legacy: bool = False,
+    height: int | None = None,
 ) -> str | None:
     """The perceptual hash of ``path`` as ``_process_photo`` would record it.
 
     ``Photo.perceptual_hash`` is taken from the big thumbnail rather than the
     original, so the candidate has to go through the same resize to be
-    comparable. ``legacy`` renders it as older releases did. Returns None when
-    no comparison is possible.
+    comparable: ``height`` is that of the indexed big thumbnail, which
+    BIG_THUMBNAIL_HEIGHT may no longer match. ``legacy`` renders it as older
+    releases did. Returns None when no comparison is possible.
     """
     if is_video(path):
         return None
     try:
         with tempfile.TemporaryDirectory() as tmp:
             rendered = os.path.join(tmp, "candidate.webp")
-            render_big_thumbnail_to(path, rendered, local_orientation, legacy)
+            render_big_thumbnail_to(
+                path, rendered, local_orientation, legacy, height=height
+            )
             return calculate_perceptual_hash(rendered)
     except Exception:
         logger.exception("could not render %s to compare it with the index", path)
@@ -131,7 +137,10 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     if photo is None or not photo.perceptual_hash or photo.local_orientation != 1:
         return UNCOMPARABLE
     stored = photo.perceptual_hash
-    candidate = _rendered_perceptual_hash(path, photo.local_orientation)
+    indexed = render.big_thumbnail_size(photo.image_hash)
+    candidate = _rendered_perceptual_hash(
+        path, photo.local_orientation, height=indexed[1] if indexed else None
+    )
     if candidate == stored:
         return SAME_PICTURE
     # The photo may have been indexed before thumbnails were rendered the way

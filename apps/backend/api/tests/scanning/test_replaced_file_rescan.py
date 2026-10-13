@@ -642,10 +642,10 @@ class PictureVerdictAcrossRenderVersionsTest(ReplacedFileTestCase):
     def _verdict(self, current, legacy):
         from api.directory_watcher import file_handlers
 
-        photo = MagicMock(perceptual_hash="stored", local_orientation=1)
+        photo = MagicMock(perceptual_hash="stored", local_orientation=1, image_hash="h")
         renders = []
 
-        def fake_render(path, local_orientation, legacy=False):
+        def fake_render(path, local_orientation, legacy=False, height=None):
             renders.append(legacy)
             return legacy_hash if legacy else current
 
@@ -678,6 +678,34 @@ class PictureVerdictAcrossRenderVersionsTest(ReplacedFileTestCase):
 
         self.assertEqual(self._verdict("changed", None)[0], UNCOMPARABLE)
         self.assertEqual(self._verdict(None, "changed")[0], UNCOMPARABLE)
+
+    def _heights(self, indexed_size):
+        from api.directory_watcher import file_handlers
+
+        photo = MagicMock(perceptual_hash="stored", local_orientation=1, image_hash="h")
+        heights = []
+
+        def fake_render(path, local_orientation, legacy=False, height=None):
+            heights.append(height)
+            return "stored"
+
+        with (
+            patch.object(
+                file_handlers.render, "big_thumbnail_size", return_value=indexed_size
+            ),
+            patch.object(
+                file_handlers, "_rendered_perceptual_hash", side_effect=fake_render
+            ),
+        ):
+            file_handlers._picture_verdict(photo, self.path)
+        return heights
+
+    def test_the_render_has_the_height_of_the_indexed_big_thumbnail(self):
+        # BIG_THUMBNAIL_HEIGHT may have changed since the photo was indexed.
+        self.assertEqual(self._heights((933, 700)), [700])
+
+    def test_without_an_indexed_big_thumbnail_the_setting_decides(self):
+        self.assertEqual(self._heights(None), [None])
 
     def test_legacy_render_of_a_png_is_libwebps_default_effort(self):
         from api.directory_watcher.file_handlers import _rendered_perceptual_hash

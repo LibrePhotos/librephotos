@@ -33,6 +33,7 @@ from api.thumbnails.metadata import (
 )
 from api.thumbnails.render import (
     WEBP,
+    _big_webp,
     _render_raw_thumbnail,
     _render_thumbnail,
     _reorient_file_in_place,
@@ -126,7 +127,7 @@ class GeneratedThumbnailMetadataTest(MediaRootTestCase):
 
     def test_rotated_thumbnail_has_none(self):
         out = self.path("thumbnails_big")
-        _render_thumbnail(self.source, 1080, out, 6)
+        _render_thumbnail(self.source, 1080, out, 6, _big_webp())
         self.assertEqual(_metadata_fields(_load(out)), [])
 
     def test_icc_profile_is_kept_byte_for_byte(self):

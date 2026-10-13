@@ -17,6 +17,7 @@ from api.models.thumbnail import (
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
 from api.runtime import binaries, sidecars
+from api.thumbnails import face_boxes
 from api.video import color
 
 if TYPE_CHECKING:
@@ -84,11 +85,27 @@ def _apply_local_orientation(
 # keywords, and a public photo link (which only serves the big thumbnail)
 # handed them out whatever the owner's share_location setting said. The ICC
 # profile stays, or a wide-gamut photo would render with the wrong colours.
+#
+# The quality ``Q`` is a setting per size: see ``_big_webp`` and
+# ``_square_webp``.
 WEBP: dict[str, object] = {
-    "Q": 95,
     "effort": 2,
     "keep": "icc",
 }  # pyvips.enums.ForeignKeep.ICC
+
+# The big thumbnail of the releases before BIG_THUMBNAIL_HEIGHT and
+# BIG_THUMBNAIL_QUALITY existed, and still their defaults. A legacy render
+# (``render_big_thumbnail_to``) reproduces those releases.
+LEGACY_BIG_HEIGHT = 1080
+LEGACY_BIG_QUALITY = 95
+
+
+def _big_webp() -> dict[str, object]:
+    """WEBP for the big thumbnail, at BIG_THUMBNAIL_QUALITY (95 by default).
+
+    The lightbox shows it, and pHash and the ML models read it.
+    """
+    return {**WEBP, "Q": settings.BIG_THUMBNAIL_QUALITY}
 
 
 def _square_webp() -> dict[str, object]:
@@ -97,14 +114,13 @@ def _square_webp() -> dict[str, object]:
     They are the bulk of what a timeline downloads, and at Q95 they cost a
     third of the big thumbnail's bytes. At SQUARE_THUMBNAIL_QUALITY (80 by
     default, as in the Rust experiment) they shrink by 60-70 % and encode a
-    third faster for an SSIM of ~0.95 against the source; the big thumbnail,
-    which the lightbox shows and pHash and the ML models read, stays at 95.
+    third faster for an SSIM of ~0.95 against the source.
     """
     return {**WEBP, "Q": settings.SQUARE_THUMBNAIL_QUALITY}
 
 
 def _webp_for(output_path: str) -> dict[str, object]:
-    return WEBP if "thumbnails_big" in output_path else _square_webp()
+    return _big_webp() if "thumbnails_big" in output_path else _square_webp()
 
 
 def renders_exif_orientation(path: str) -> bool:
@@ -155,16 +171,23 @@ def _reorient_file_in_place(complete_path: str, local_orientation: int) -> None:
     x = pyvips.Image.new_from_file(complete_path)
     x = x.copy_memory()
     x = _apply_local_orientation(x, local_orientation)
-    x.write_to_file(complete_path, **WEBP)
+    x.write_to_file(complete_path, **_big_webp())
 
 
 def _request_raw_thumbnail(
-    input_path: str, output_height: int, complete_path: str, local_orientation: int
+    input_path: str,
+    output_height: int,
+    complete_path: str,
+    local_orientation: int,
+    quality: int | None = None,
 ) -> str:
+    """Have the RAW service render a big thumbnail, at ``quality`` or else
+    BIG_THUMBNAIL_QUALITY."""
     json = {
         "source": input_path,
         "destination": complete_path,
         "height": output_height,
+        "quality": settings.BIG_THUMBNAIL_QUALITY if quality is None else quality,
     }
     from api.runtime.http_timeouts import THUMBNAIL
 
@@ -212,7 +235,7 @@ def _render_thumbnail(
     output_height: int,
     complete_path: str,
     local_orientation: int,
-    webp: dict[str, object] = WEBP,
+    webp: dict[str, object],
 ) -> str:
     x = _decode_thumbnail(input_path, output_height, local_orientation)
     x.write_to_file(complete_path, **webp)
@@ -228,7 +251,7 @@ def _render_raw_thumbnail(
         return _request_raw_thumbnail(
             input_path, output_height, complete_path, local_orientation
         )
-    _oriented(preview, local_orientation).write_to_file(complete_path, **WEBP)
+    _oriented(preview, local_orientation).write_to_file(complete_path, **_big_webp())
     return complete_path
 
 
@@ -236,7 +259,7 @@ def _render_big_thumbnail(
     input_path: str, complete_path: str, local_orientation: int
 ) -> pyvips.Image | None:
     """Write the big thumbnail; return it in memory when it was rendered here."""
-    height = STATIC_THUMBNAIL_HEIGHTS["thumbnails_big"]
+    height = settings.BIG_THUMBNAIL_HEIGHT
     if is_raw(input_path):
         image = decoding.raw_preview(input_path, height)
         if image is None:
@@ -245,7 +268,7 @@ def _render_big_thumbnail(
         image = _oriented(image, local_orientation)
     else:
         image = _decode_thumbnail(input_path, height, local_orientation)
-    image.write_to_file(complete_path, **WEBP)
+    image.write_to_file(complete_path, **_big_webp())
     return image
 
 
@@ -261,28 +284,48 @@ def render_big_thumbnail_to(
     output_path: str,
     local_orientation: int = 1,
     legacy: bool = False,
+    height: int | None = None,
 ) -> str:
     """Render the big thumbnail of ``input_path`` to an arbitrary file.
 
     Same image ``create_thumbnail`` would put in ``thumbnails_big``, RAW files
     through the same service, but written where the caller asks instead of
     under MEDIA_ROOT, for comparing a file against what is already indexed.
+    It is BIG_THUMBNAIL_HEIGHT high unless the caller passes the ``height`` of
+    the thumbnail it compares with.
 
     ``legacy`` renders it as releases before the embedded RAW previews and
-    WebP effort 2 did: every RAW through the service, libwebp's default effort.
-    A photo indexed by one of them carries a perceptual hash of that render.
+    WebP effort 2 did: every RAW through the service, libwebp's default effort,
+    1080 px at Q95. A photo indexed by one of them carries a perceptual hash of
+    that render.
     """
     if legacy:
-        if is_raw(input_path):
-            return _request_raw_thumbnail(
-                input_path, 1080, output_path, local_orientation
-            )
-        image = _decode_thumbnail(input_path, 1080, local_orientation)
-        image.write_to_file(output_path, Q=95, keep=WEBP["keep"])
-        return output_path
+        return _render_legacy_big_thumbnail_to(
+            input_path, output_path, local_orientation
+        )
+    if height is None:
+        height = settings.BIG_THUMBNAIL_HEIGHT
     if is_raw(input_path):
-        return _render_raw_thumbnail(input_path, 1080, output_path, local_orientation)
-    return _render_thumbnail(input_path, 1080, output_path, local_orientation)
+        return _render_raw_thumbnail(input_path, height, output_path, local_orientation)
+    return _render_thumbnail(
+        input_path, height, output_path, local_orientation, _big_webp()
+    )
+
+
+def _render_legacy_big_thumbnail_to(
+    input_path: str, output_path: str, local_orientation: int
+) -> str:
+    if is_raw(input_path):
+        return _request_raw_thumbnail(
+            input_path,
+            LEGACY_BIG_HEIGHT,
+            output_path,
+            local_orientation,
+            quality=LEGACY_BIG_QUALITY,
+        )
+    image = _decode_thumbnail(input_path, LEGACY_BIG_HEIGHT, local_orientation)
+    image.write_to_file(output_path, Q=LEGACY_BIG_QUALITY, keep=WEBP["keep"])
+    return output_path
 
 
 def create_thumbnail(
@@ -314,9 +357,9 @@ def create_thumbnail(
         raise e
 
 
-# Output directory -> height of the static (WebP) thumbnails, largest first.
-STATIC_THUMBNAIL_HEIGHTS = {
-    "thumbnails_big": 1080,
+# Output directory -> height of the square (WebP) thumbnails. They are resized
+# from the big one, which is BIG_THUMBNAIL_HEIGHT high.
+SQUARE_THUMBNAIL_HEIGHTS = {
     "square_thumbnails": 500,
     "square_thumbnails_small": 250,
 }
@@ -347,7 +390,7 @@ def create_static_thumbnails(
         for output_path in smaller:
             small = big.thumbnail_image(
                 10000,
-                height=STATIC_THUMBNAIL_HEIGHTS[output_path],
+                height=SQUARE_THUMBNAIL_HEIGHTS[output_path],
                 size=pyvips.enums.Size.DOWN,
             )
             small.write_to_file(
@@ -359,7 +402,8 @@ def create_static_thumbnails(
 
 
 # A five-second clip of a 4K HEVC video takes a slow ARM box well under a
-# minute; ffmpeg still running after this is stuck on the file.
+# minute (VIDEO_PREVIEW_SECONDS allows up to 30); ffmpeg still running after
+# this is stuck on the file.
 FFMPEG_TIMEOUT = 300
 
 
@@ -399,7 +443,7 @@ def create_animated_thumbnail(
     hash: str,
     transfer: str | None = None,
 ) -> None:
-    """Write the first five seconds of a video, ``output_height`` high, as an mp4."""
+    """Write the first VIDEO_PREVIEW_SECONDS of a video, ``output_height`` high, as an mp4."""
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4")
         command = [
@@ -407,11 +451,11 @@ def create_animated_thumbnail(
             "-i",
             input_path,
             "-to",
-            "00:00:05",
+            str(settings.VIDEO_PREVIEW_SECONDS),
             "-vcodec",
             "libx264",
             "-crf",
-            "20",
+            str(settings.VIDEO_PREVIEW_CRF),
             "-an",
             *NO_METADATA,
             # Tonemapped when the source is HDR, or the gallery shows the same
@@ -464,6 +508,18 @@ def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
     return os.path.exists(
         os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp")
     )
+
+
+def big_thumbnail_size(hash: str) -> tuple[int, int] | None:
+    """Width and height of the big thumbnail on disk, or None if there is none.
+
+    Only the header is read.
+    """
+    try:
+        with Image.open(_media_path("thumbnails_big", hash, ".webp")) as image:
+            return image.size
+    except OSError:
+        return None
 
 
 def does_video_thumbnail_exist(output_path: str, hash: str) -> bool:
@@ -614,6 +670,7 @@ def regenerate_thumbnails(
     is no longer the photo's, so those still start from nothing.
     """
     photo_hash = thumbnail.photo.image_hash
+    big_before = big_thumbnail_size(photo_hash)
     if not keep_old_on_failure:
         delete_thumbnail_files(photo_hash)
         generate_thumbnail(thumbnail)
@@ -635,6 +692,10 @@ def regenerate_thumbnails(
 
     calculate_aspect_ratio(thumbnail)
     refresh_perceptual_hash(thumbnail)
+    # BIG_THUMBNAIL_HEIGHT may have changed since the faces were found.
+    face_boxes.rescale_face_boxes(
+        thumbnail.photo, big_before, big_thumbnail_size(photo_hash)
+    )
 
 
 def refresh_dominant_color(thumbnail: Thumbnail) -> None:

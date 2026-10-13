@@ -264,15 +264,23 @@ Unlike the cached copy, the live conversion is **not** niced: somebody is watchi
 
 `TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
 
-### Thumbnail quality
+### Thumbnail size and quality
 
-Every photo gets three WebP thumbnails: a big one, 1080 px high, which the lightbox shows and the duplicate detection and machine learning read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size.
+Every photo gets three WebP thumbnails: a big one, 1080 px high by default, which the lightbox shows and the duplicate detection, face detection and search read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size. A video gets a still big thumbnail and, instead of the squares, two short silent mp4 previews of its first seconds, 500 and 250 px high, which the grids play.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `SQUARE_THUMBNAIL_QUALITY` | `squareThumbnailQuality` | `80` | WebP quality (1–100) of the 500 and 250 px square thumbnails. `95` brings back the old size and look. |
+| `BIG_THUMBNAIL_QUALITY` | `bigThumbnailQuality` | `95` | _Not released yet._ WebP quality (1–100) of the big thumbnail. |
+| `BIG_THUMBNAIL_HEIGHT` | `bigThumbnailHeight` | `1080` | _Not released yet._ Height in pixels (500–4320) of the big thumbnail. A photo smaller than that is never enlarged. |
+| `VIDEO_PREVIEW_SECONDS` | `videoPreviewSeconds` | `5` | _Not released yet._ Length in seconds (1–30) of the animated video previews. |
+| `VIDEO_PREVIEW_CRF` | `videoPreviewCrf` | `20` | _Not released yet._ x264 quality (CRF, 0–51) of the animated video previews. Lower looks better and takes more space; every 6 roughly doubles or halves the file size. |
 
-It applies to thumbnails rendered from then on, such as those of newly scanned or rotated photos. Existing thumbnails keep their quality until they are rendered again.
+A value outside its range is set to the nearest limit. The thumbnails stay WebP and the previews mp4: every client and the server's media serving rely on those formats, so there is no setting for the format.
+
+A larger or higher-quality big thumbnail looks sharper in the lightbox, especially on a 4K screen, but takes more disk space and makes each scan and the jobs that read it (faces, search, captions) slower. A taller big thumbnail also means fewer RAW files can use the preview their camera embedded, and more of them go through the slower RAW conversion. Longer video previews take longer to make and more space, and the grids download them in full.
+
+These settings apply to thumbnails rendered from then on: those of newly scanned photos, and of a photo you rotate or whose file changed on disk. Existing thumbnails keep their size and quality until they are rendered again; there is no job that renders every thumbnail again. When a big thumbnail is rendered again at a new height, the face boxes found on the old one are scaled with it. Do not delete thumbnail files by hand to have them rendered again: a face box is stored in pixels of the big thumbnail its face was found on, and it would no longer line up with the face.
 
 ### Stuck jobs
 

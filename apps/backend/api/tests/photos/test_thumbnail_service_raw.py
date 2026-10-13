@@ -60,6 +60,16 @@ class RenderRawTests(unittest.TestCase):
         self.assertTrue(FakeRaw.calls[0]["half_size"])
         self.assertTrue(FakeRaw.calls[0]["use_camera_wb"])
 
+    def test_writes_at_the_requested_quality(self):
+        with (
+            patch("service.thumbnail.main.rawpy.imread", FakeRaw),
+            patch.object(pyvips.Image, "webpsave") as save,
+        ):
+            render_raw("/photos/x.nef", self.out, 150)
+            render_raw("/photos/x.nef", self.out, 150, 30)
+
+        self.assertEqual([c.kwargs["Q"] for c in save.call_args_list], [95, 30])
+
     def test_full_demosaic_when_half_size_would_be_too_small(self):
         with patch("service.thumbnail.main.rawpy.imread", FakeRaw):
             render_raw("/photos/x.nef", self.out, 200)
@@ -94,7 +104,7 @@ class DestinationTests(unittest.TestCase):
         media_root.start()
         self.addCleanup(media_root.stop)
 
-    def post(self, destination):
+    def post(self, destination, **extra):
         with patch.object(thumbnail_main, "render_raw") as render:
             response = app.test_client().post(
                 "/",
@@ -102,6 +112,7 @@ class DestinationTests(unittest.TestCase):
                     "source": "/photos/x.nef",
                     "destination": destination,
                     "height": 30,
+                    **extra,
                 },
             )
         return response, render
@@ -137,4 +148,23 @@ class DestinationTests(unittest.TestCase):
         response, render = self.post(inside)
 
         self.assertEqual(response.status_code, 201)
-        render.assert_called_once_with("/photos/x.nef", inside, 30)
+        # Without a quality in the request, the one the big thumbnail always had.
+        render.assert_called_once_with("/photos/x.nef", inside, 30, 95)
+
+    def test_the_requested_quality_is_used_clamped_to_1_to_100(self):
+        inside = os.path.join(self.media_root, "thumbnails_big", "thumb.webp")
+        for requested, used in [(70, 70), (0, 1), (250, 100)]:
+            with self.subTest(requested=requested):
+                response, render = self.post(inside, quality=requested)
+
+                self.assertEqual(response.status_code, 201)
+                render.assert_called_once_with("/photos/x.nef", inside, 30, used)
+
+    def test_a_quality_that_is_not_a_whole_number_is_refused(self):
+        inside = os.path.join(self.media_root, "thumbnails_big", "thumb.webp")
+        for requested in ["high", 80.5, True, None]:
+            with self.subTest(requested=requested):
+                response, render = self.post(inside, quality=requested)
+
+                self.assertEqual(response.status_code, 400)
+                render.assert_not_called()
