@@ -12,7 +12,7 @@ import os
 from unittest.mock import patch
 
 import numpy as np
-import PIL
+import PIL.Image
 from django.test import TestCase
 
 from api.faces.photo_faces import DetectedFace, save_detected_face

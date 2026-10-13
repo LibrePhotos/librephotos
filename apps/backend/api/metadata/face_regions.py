@@ -6,7 +6,7 @@ import unicodedata
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
 
-import PIL
+import PIL.Image
 
 from api.metadata.orientation import normalize_orientation, region_to_stored
 from api.metadata.reader import (

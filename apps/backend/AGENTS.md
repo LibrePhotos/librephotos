@@ -158,6 +158,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `api/mime.py` (compare `extension(path)`, lower case), `protected_media` and `data_models` paths from
   `protected_media_root()`/`data_models_root()` in `librephotos/env.py`, which the sidecars import too.
   A copied literal drifts; `api/tests/infra/test_single_definitions.py` fails on one.
+- A module that uses `PIL.Image` (or another PIL submodule) imports it (`import PIL.Image`); a bare `import PIL`
+  only works when something else loaded it first (`api/tests/infra/test_submodule_imports.py`).
 
 ## Tests
 
