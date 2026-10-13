@@ -20,12 +20,25 @@ logger = logging.getLogger(__name__)
 
 
 def missing_files(photo: Photo) -> list[File]:
-    """The photo's files that are gone from disk."""
-    return [
-        file
-        for file in photo.files.all()
-        if not file.path or not os.path.exists(file.path)
-    ]
+    """The photo's files that are gone from disk.
+
+    A file whose own path is gone but which has an exact copy on disk (a
+    ``FileCopy``, #2417) is not missing: the copy takes the file over here,
+    as the next scan would, so the photo is not flagged missing meanwhile.
+    """
+    return [file for file in photo.files.all() if not _on_disk(file)]
+
+
+def _on_disk(file: File) -> bool:
+    """Whether ``file`` is on disk, at its own path or at a copy that takes it over."""
+    if file.path and os.path.exists(file.path):
+        return True
+    for copy in file.copies.values_list("path", flat=True):
+        if os.path.exists(copy):
+            logger.info("a copy takes over the missing file %s", file.hash)
+            file.take_over_copy(copy)
+            return True
+    return False
 
 
 def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> None:

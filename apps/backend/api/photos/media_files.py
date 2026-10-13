@@ -74,10 +74,7 @@ def _as_copy(file: File, path: str) -> File:
     """
     if file.missing or not os.path.exists(file.path):
         logger.info("a copy takes over the missing file %s", file.hash)
-        file.path = path
-        file.missing = False
-        file.save(update_fields=["path", "missing"])
-        FileCopy.objects.filter(path=path).delete()
+        file.take_over_copy(path)
         return file
     FileCopy.objects.update_or_create(path=path, defaults={"file": file})
     return file

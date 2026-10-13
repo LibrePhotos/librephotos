@@ -10,6 +10,10 @@ has photos in it; and the missing-file check changes nothing when more than
 ``SCAN_MISSING_MAX_FRACTION`` of the photos (and more than
 ``MISSING_PHOTOS_FLOOR``) would lose all their files. An admin sets the
 fraction to 1 to let a user who really removed their library clear it.
+
+A file whose own path is gone but whose exact copy is on disk (#2417) is not
+missing, so its photo does not count towards that fraction
+(``api.photos.files.missing_files``).
 """
 
 import logging
