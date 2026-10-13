@@ -166,6 +166,12 @@
     },
     "favoriteupdate": "Update",
     "savechanges": "Save changes?",
+    "leavewithoutsaving": {
+      "title": "Leave without saving?",
+      "description": "Your changes on this page have not been saved.",
+      "stay": "Stay on page",
+      "leave": "Leave without saving"
+    },
     "experimentaloptions": "Experimental Options",
     "transcodevideo": "Always transcode videos",
     "publicsharingdefaults": "Public Sharing Defaults",

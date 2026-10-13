@@ -4,6 +4,9 @@ import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
+import { ErrorState } from "../common/ErrorState";
+import { PageLoader } from "../common/PageLoader";
+import { useListFailure } from "../common/useListFailure";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SectionLink } from "./SettingsSection";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
@@ -77,7 +80,31 @@ function translateOptions(options: ModelOption[], t: TFunction<"translation", un
   });
 }
 
+/**
+ * The site settings card. Its controls appear only once the settings are loaded: each switch
+ * saves the opposite of what it shows, so a click before then saved the wrong value, and a
+ * failed request showed every switch "off" whatever the server had (#2224).
+ */
 export function SiteSettings() {
+  const { t } = useTranslation();
+  const settingsQuery = useGetSettingsQuery();
+  const failure = useListFailure(settingsQuery);
+
+  if (settingsQuery.data) {
+    return <SiteSettingsForm />;
+  }
+  return (
+    <Card shadow="md">
+      <Title order={4}>
+        {t("adminarea.sitesettings")}
+        <SectionLink />
+      </Title>
+      {failure ? <ErrorState failure={failure} compact /> : <PageLoader />}
+    </Card>
+  );
+}
+
+function SiteSettingsForm() {
   const [mapApiKey, setMapApiKey] = useState("");
   const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
   const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");

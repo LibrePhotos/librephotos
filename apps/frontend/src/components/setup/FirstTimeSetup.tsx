@@ -207,10 +207,9 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     if (settingsChanged) {
       updateSettings(
         { allow_upload: allowUpload ?? false, allow_registration: allowRegistration ?? false },
-        {
-          onSuccess: goNext,
-          onError: goNext,
-        }
+        // A refused save is toasted by the QueryClient; stay on the step so it can be retried
+        // instead of skipping it without a word (#2224).
+        { onSuccess: goNext }
       );
       return;
     }

@@ -227,6 +227,31 @@ describe("Library Nextcloud settings", () => {
   });
 });
 
+// #2224: the "Save changes?" prompt is what guards leaving the page (SaveChangesDialog.leaving.test.tsx),
+// so it has to be open exactly while edits are pending: from the first edit until Save or Cancel.
+describe("Library unsaved edits", () => {
+  const prompt = () => document.body.querySelector('[data-testid="save-dialog"]');
+
+  it("guards leaving after an edit, and no longer after Cancel", async () => {
+    expect(prompt()).toBeNull();
+    await setInputValue(byPlaceholder("User name"), "mara");
+    expect(prompt()).not.toBeNull();
+
+    await click(buttonByText("dialog-cancel"));
+
+    expect(prompt()).toBeNull();
+  });
+
+  it("no longer guards leaving once the save went through", async () => {
+    mocks.mutate.mockImplementation((_data, options) => options?.onSuccess?.());
+    await setInputValue(byPlaceholder("User name"), "mara");
+
+    await click(buttonByText("dialog-save"));
+
+    expect(prompt()).toBeNull();
+  });
+});
+
 describe("Library actions", () => {
   it("regenerates the titles of the existing event albums", async () => {
     await click(buttonByText("Regenerate"));
