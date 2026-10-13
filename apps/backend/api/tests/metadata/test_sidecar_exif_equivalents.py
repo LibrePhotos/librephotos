@@ -8,9 +8,7 @@ asks for, so the scan has to ask a sidecar by those names.
 """
 
 import os
-from unittest.mock import patch
 
-from api.geocode.photo_location import geolocate_photo
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import extract_exif_data
 from api.models.photo import Photo
@@ -55,8 +53,7 @@ class SidecarExifPropertiesTest(RealExifToolTestCase):
         )
         photo = self.photo_for(self.image, self.user)
 
-        with patch("api.geocode.photo_location.reverse_geocode", return_value=None):
-            geolocate_photo(photo)
+        extract_exif_data(photo)
 
         photo = Photo.objects.get(pk=photo.pk)
         self.assertEqual((-33.9, -118.4), (photo.exif_gps_lat, photo.exif_gps_lon))

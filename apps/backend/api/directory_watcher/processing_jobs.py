@@ -23,7 +23,11 @@ from api.directory_watcher.utils import (
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.photo_faces import extract_faces
-from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
+from api.geocode.photo_location import (
+    add_location_to_album_dates,
+    geolocate_photo,
+    needs_geocoding,
+)
 from api.jobs.queue import enqueue_task
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
@@ -692,19 +696,21 @@ def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
-        full_scan: If True, process all photos; otherwise only new ones
+        full_scan: If True, process all photos; otherwise the new ones and
+            those whose position has no place looked up for it yet (#2264):
+            a scan changed it, or an earlier lookup failed
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_ADD_GEOLOCATION, job_id)
     if lrj is None:
         return
 
     try:
+        owned = Photo.objects.owned_by(user)
         existing_photos = _limit_to_photos_added_since_last_scan(
-            Photo.objects.owned_by(user),
-            user,
-            LongRunningJob.JOB_ADD_GEOLOCATION,
-            full_scan,
+            owned, user, LongRunningJob.JOB_ADD_GEOLOCATION, full_scan
         )
+        if not full_scan:
+            existing_photos = existing_photos | owned.filter(needs_geocoding())
         if not _begin_photo_scan(lrj, existing_photos):
             return
 

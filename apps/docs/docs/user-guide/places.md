@@ -15,7 +15,9 @@ When you take a photo with a GPS-enabled device (smartphone, camera with GPS, et
 - `Composite:GPSLatitude` - The latitude coordinate
 - `Composite:GPSLongitude` - The longitude coordinate
 
-The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video's creation time or a photo's GPS time is stored in UTC, and the photo's position tells which time zone to turn it into. A position the photo already has, such as one you set by hand, is kept. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; **Rescan** fixes photos scanned before.)
+The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video's creation time or a photo's GPS time is stored in UTC, and the photo's position tells which time zone to turn it into. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; **Rescan** fixes photos scanned before.)
+
+GPS edited in another program is picked up by the next scan: a photo you geotag in digiKam, darktable or a GPX tagger gets the new position and, once the geocoding job has run, its new place. When the GPS is removed from the file (for example with `exiftool -gps:all=` before sharing a folder), the photo loses its position, its place and its Places albums too. A location you set in LibrePhotos (see [Setting a Location Manually](#setting-a-location-manually)) is kept either way. Photos indexed before this change keep a position the file no longer has, because LibrePhotos cannot tell whether you set it; new GPS in their files still replaces it. (Not released yet: up to 1.3.0 a scan never changed or removed a position once the photo had one.)
 
 ### 2. Reverse Geocoding
 
@@ -115,7 +117,7 @@ If no place name can be found for the new position (reverse geocoding is turned 
 1. **Check if photos have GPS data**: Open a photo's info panel and look for GPS coordinates
 2. **Scan for new photos**: If you recently added photos, run a **Scan** from the Library page
 3. **Check geocoding provider**: Ensure your geocoding provider is configured correctly in **Admin Area → Site Settings**. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored
-4. **Run a full Rescan after fixing the provider**: Go to **Library → Scan Library**, open the dropdown next to the **Scan** button, and choose **Rescan**. The plain **Scan** button only geolocates photos added since the previous geolocation run, so it will not re-geocode your existing library
+4. **Scan again after fixing the provider**: Go to **Library → Scan Library** and click **Scan**. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full **Rescan** was needed)
 5. **Give geocoding time to finish**: Geocoding runs as a background job after the scan. With Nominatim on a large library this can take a while, and places keep filling in after the scan reports done — wait before re-scanning
 
 ### Some photos don't show locations

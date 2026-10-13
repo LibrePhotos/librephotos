@@ -45,6 +45,7 @@ from django.utils.dateparse import parse_datetime
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.geocode.photo_location import (
+    clear_location,
     find_album_places,
     forget_place,
     usable_coordinates,
@@ -56,7 +57,7 @@ from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.album_place import get_album_place
-from api.models.photo import Photo
+from api.models.photo import LocationSource, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
     IMPORTED_DESCRIPTION_KEY,
@@ -84,7 +85,15 @@ KEYWORDS = "keywords"
 TEXT_FIELDS = ("title", "copyright", "creator")
 # The Photo columns a location edit writes. Not a whole-row save: a job may
 # have written other columns since the row was loaded (geolocate_photo).
-LOCATION_COLUMNS = ["exif_gps_lat", "exif_gps_lon", "geolocation_json", "last_modified"]
+LOCATION_COLUMNS = [
+    "exif_gps_lat",
+    "exif_gps_lon",
+    "location_source",
+    "geolocation_json",
+    "geocoded_lat",
+    "geocoded_lon",
+    "last_modified",
+]
 
 #: Fields whose MetadataEdit rows the revert endpoint can apply.
 REVERTIBLE_FIELDS = frozenset(
@@ -180,31 +189,36 @@ def set_location(
     The coordinates are saved first, so a geocoder failure still keeps them;
     the reverse-geocoded place then feeds ``geolocation_json``, the search
     location and the Places albums. Without one (geocoding off, no result, an
-    error) the photo has no place (``has_place``), not the old one.
+    error) the photo has no place (``has_place``), not the old one, and the
+    geolocation job tries again. The position (or its absence) is the user's
+    from now on: a rescan neither replaces nor clears it (#2264).
     """
     old = _location_value(photo)
-    _apply_location(photo, latitude, longitude)
+    _apply_location(photo, latitude, longitude, LocationSource.USER)
     new = _location_value(photo)
     if new != old:
         _record(user, LOCATION, [Change(photo.id, old, new)])
 
 
 def _apply_location(
-    photo: Photo, latitude: float | None, longitude: float | None
+    photo: Photo,
+    latitude: float | None,
+    longitude: float | None,
+    source: LocationSource,
 ) -> None:
-    # The place of the old coordinates goes with them, whatever the geocoder
-    # says about the new ones (#2253).
-    forget_place(photo, find_album_places(photo))
     if latitude is None or longitude is None:
-        photo.exif_gps_lat = None
-        photo.exif_gps_lon = None
-        # No coordinates, rather than coordinates not geocoded yet ({}).
-        photo.geolocation_json = None
+        clear_location(photo)
+        photo.location_source = source
         photo.save(update_fields=LOCATION_COLUMNS)
         return
 
+    # The place of the old coordinates goes with them, whatever the geocoder
+    # says about the new ones (#2253).
+    forget_place(photo, find_album_places(photo))
+    photo.geocoded_lat = photo.geocoded_lon = None
     photo.exif_gps_lat = float(latitude)
     photo.exif_gps_lon = float(longitude)
+    photo.location_source = source
     # Saved before the geocoder runs, so its failure still keeps them.
     photo.save(update_fields=LOCATION_COLUMNS)
     try:
@@ -220,6 +234,7 @@ def _apply_location(
 
     geocode_result["_v"] = GEOCODE_VERSION
     photo.geolocation_json = geocode_result
+    photo.geocoded_lat, photo.geocoded_lon = photo.exif_gps_lat, photo.exif_gps_lon
     _update_search_location(photo, geocode_result)
     _add_to_album_places(photo, geocode_result)
     photo.save(update_fields=LOCATION_COLUMNS)
@@ -502,8 +517,11 @@ def _restore_location_from_file(photo: Photo) -> None:
     position = usable_coordinates(latitude, longitude)
     if position is None:
         if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
-            _apply_location(photo, None, None)
+            _apply_location(photo, None, None, LocationSource.FILE)
+        else:
+            photo.location_source = LocationSource.FILE
         return
     if (photo.exif_gps_lat, photo.exif_gps_lon) == position:
+        photo.location_source = LocationSource.FILE
         return
-    _apply_location(photo, *position)
+    _apply_location(photo, *position, LocationSource.FILE)

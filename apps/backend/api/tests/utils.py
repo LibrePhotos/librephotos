@@ -32,6 +32,7 @@ from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
 from api.models.long_running_job import LongRunningJob
+from api.models.photo_metadata import MetadataEdit
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
@@ -269,6 +270,25 @@ def create_test_album_place(
     """A place album for ``owner``. Titles are unique per owner, so the default is random."""
     title = title or f"{fake.city()} {uuid.uuid4().hex[:8]}"
     return AlbumPlace.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_metadata_edit(
+    photo: Photo,
+    field_name: str,
+    created_at: datetime.datetime | None = None,
+    **kwargs: Any,
+) -> MetadataEdit:
+    """An edit of ``field_name`` in the photo's edit history, by its owner.
+
+    ``created_at`` backdates it (the column is ``auto_now_add``), so tests can
+    order edits made within the same clock tick.
+    """
+    kwargs.setdefault("user", photo.owner)
+    edit = MetadataEdit.objects.create(photo=photo, field_name=field_name, **kwargs)
+    if created_at is not None:
+        MetadataEdit.objects.filter(pk=edit.pk).update(created_at=created_at)
+        edit.created_at = created_at
+    return edit
 
 
 def create_test_thumbnail(photo: Photo, **kwargs: Any) -> Thumbnail:

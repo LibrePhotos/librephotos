@@ -12,20 +12,22 @@ import math
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 
 import api.models
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.metadata.photo_datetime import find_album_date
-from api.metadata.reader import get_metadata, sidecar_files_for_photo
-from api.metadata.tags import Tags
+from api.models.photo import LocationSource
 
 if TYPE_CHECKING:
     from api.models.album_place import AlbumPlace
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
+
+# The columns geolocate_photo writes.
+GEOCODED_COLUMNS = ["geolocation_json", "geocoded_lat", "geocoded_lon", "last_modified"]
 
 
 def _coordinate(value: object) -> float | None:
@@ -55,21 +57,62 @@ def usable_coordinates(lat: object, lon: object) -> tuple[float, float] | None:
     return latitude, longitude
 
 
-def store_file_position(photo: Photo, lat: object, lon: object) -> None:
-    """Store the position read from the photo's file on a photo that has none.
+def apply_file_position(photo: Photo, lat: object, lon: object) -> None:
+    """Bring the photo's position in line with what its file says.
 
     The scan calls this with the values it read, so the date rules that turn
     a UTC date into the local time at the photo's position see it in the same
-    pass (#2263); the geolocation job only looks up the place name. Nothing
-    is saved here. A position the row already has is kept, whether the user
-    set it or an earlier read of the file did: ``geolocate_photo`` compares
-    the file with it to decide whether the place needs a new lookup.
+    pass (#2263). The position is saved with the photo by the caller; the
+    geolocation job then looks up the place of any position that differs from
+    the one it last looked up (``needs_geocoding``).
+
+    A position the user set (``location_source == "user"``) is never touched.
+    Otherwise the file's position replaces the stored one, and the place of
+    the old position goes with it (#2253); when the file has no position any
+    more, one that came from the file is cleared together with its place
+    (#2264). A position of unknown origin (``NULL``, rows from before the
+    column) is replaced but never cleared.
     """
-    if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
+    if photo.location_source == LocationSource.USER:
         return
     position = usable_coordinates(lat, lon)
-    if position is not None:
-        photo.exif_gps_lat, photo.exif_gps_lon = position
+    if position is None:
+        if photo.location_source == LocationSource.FILE:
+            clear_location(photo)
+        return
+    stored = (photo.exif_gps_lat, photo.exif_gps_lon)
+    if stored not in ((None, None), position):
+        forget_place(photo, find_album_places(photo))
+    photo.exif_gps_lat, photo.exif_gps_lon = position
+    photo.location_source = LocationSource.FILE
+
+
+def clear_location(photo: Photo) -> None:
+    """Remove the photo's position and everything derived from it: the place
+    (``geolocation_json``), the search location and the Places albums.
+
+    The Places albums and the search row are updated here; the photo's own
+    columns are saved by the caller.
+    """
+    forget_place(photo, find_album_places(photo))
+    photo.exif_gps_lat = None
+    photo.exif_gps_lon = None
+    photo.location_source = None
+    # No coordinates, rather than coordinates not geocoded yet ({}).
+    photo.geolocation_json = None
+    photo.geocoded_lat = None
+    photo.geocoded_lon = None
+
+
+def needs_geocoding() -> Q:
+    """Photos with a position whose place was not looked up for it yet: never
+    geocoded, a lookup that failed, or a position that changed since."""
+    return Q(exif_gps_lat__isnull=False, exif_gps_lon__isnull=False) & (
+        Q(geocoded_lat__isnull=True)
+        | Q(geocoded_lon__isnull=True)
+        | ~Q(geocoded_lat=F("exif_gps_lat"))
+        | ~Q(geocoded_lon=F("exif_gps_lon"))
+    )
 
 
 def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
@@ -77,59 +120,50 @@ def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
 
 
 def geolocate_photo(photo: Photo, commit: bool = True) -> None:
-    """Read the GPS fix from the file, reverse geocode it and file the photo
-    under the matching Places albums.
+    """Reverse geocode the photo's stored position and file the photo under
+    the matching Places albums.
 
-    The new coordinates are saved before the geocoder runs, so a geocoder
-    failure still leaves them persisted.
+    The position comes from the row, not the file: the scan keeps it in line
+    with the file (``apply_file_position``), and reading the file here again
+    would bring back a position the user moved or cleared. Nothing happens
+    when the place is current for that position already.
 
-    Both saves write only the columns set here. The geolocation job runs from a
+    The save writes only the columns set here. The geolocation job runs from a
     row loaded before the geocoder's network call, alongside other jobs on the
-    same photos -- Probe Videos among them -- and a whole-row save put back
-    whatever the rest of the row held when it was loaded, the video fields
-    that job had just filled in going back to empty.
+    same photos -- Probe Videos and the scan among them -- and a whole-row save
+    put back whatever the rest of the row held when it was loaded.
     """
-    old_gps_lat = photo.exif_gps_lat
-    old_gps_lon = photo.exif_gps_lon
-    assert photo.main_file is not None
-    new_gps_lat, new_gps_lon = get_metadata(
-        photo.main_file.path,
-        tags=[Tags.LATITUDE, Tags.LONGITUDE],
-        sidecar_files=sidecar_files_for_photo(photo),
-    )
-    old_album_places = find_album_places(photo)
-    position = usable_coordinates(new_gps_lat, new_gps_lon)
+    position = usable_coordinates(photo.exif_gps_lat, photo.exif_gps_lon)
     if position is None:
         return
-    new_gps_lat, new_gps_lon = position
+    old_album_places = find_album_places(photo)
     if (
-        old_gps_lat == new_gps_lat
-        and old_gps_lon == new_gps_lon
+        (photo.geocoded_lat, photo.geocoded_lon) == position
         and old_album_places.exists()
         and _has_current_geolocation(photo)
     ):
         return
-    photo.exif_gps_lon = new_gps_lon
-    photo.exif_gps_lat = new_gps_lat
-    if commit:
-        photo.save(update_fields=["exif_gps_lat", "exif_gps_lon", "last_modified"])
 
-    res = _reverse_geocode_safely(new_gps_lat, new_gps_lon)
+    res = _reverse_geocode_safely(*position)
     if not res:
-        # The place of the old coordinates no longer applies (#2253); for the
-        # same coordinates it still does.
-        if (old_gps_lat, old_gps_lon) != (photo.exif_gps_lat, photo.exif_gps_lon):
+        # The place of other coordinates no longer applies (#2253); for the
+        # same coordinates it still does. Left ungeocoded, the photo is
+        # looked up again by the next geolocation job.
+        geocoded = (photo.geocoded_lat, photo.geocoded_lon)
+        if geocoded not in ((None, None), position):
             forget_place(photo, old_album_places)
+            photo.geocoded_lat = photo.geocoded_lon = None
             if commit:
-                photo.save(update_fields=["geolocation_json", "last_modified"])
+                photo.save(update_fields=GEOCODED_COLUMNS)
         return
 
     photo.geolocation_json = res
+    photo.geocoded_lat, photo.geocoded_lon = position
     _update_search_location(photo, res)
     _move_to_album_places(photo, old_album_places)
 
     if commit:
-        photo.save(update_fields=["geolocation_json", "last_modified"])
+        photo.save(update_fields=GEOCODED_COLUMNS)
 
 
 def forget_place(photo: Photo, album_places: Iterable[AlbumPlace]) -> None:

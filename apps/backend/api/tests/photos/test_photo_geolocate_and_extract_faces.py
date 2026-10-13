@@ -2,14 +2,14 @@
 
 These pin the behaviour of the two high-CRAP functions, which used to be
 ``Photo._geolocate`` and ``Photo._extract_faces``. Everything expensive is
-mocked: ``get_metadata`` / ``reverse_geocode`` at the
-``api.geocode.photo_location`` module level, ``face_extractor`` and
+mocked: ``reverse_geocode`` at the ``api.geocode.photo_location`` module
+level, ``face_extractor`` and
 ``PIL.Image.open`` at ``api.faces.photo_faces``. No network, no exiftool, no ML
 models.
 
 Quirks deliberately pinned (see inline comments):
-  * ``geolocate_photo`` writes the new coordinates (and saves) BEFORE the geocoder
-    runs, so a geocoder failure still leaves the new lat/lon persisted.
+  * ``geolocate_photo`` looks up the stored position; a failed lookup leaves
+    it ungeocoded, so the next geolocation job tries again.
   * ``AlbumPlace.geolocation_level`` is only assigned when the photo is not
     already a member of that album place.
   * ``extract_faces`` swallows ``IntegrityError`` (retrying exactly once) but
@@ -23,7 +23,7 @@ from django.db.utils import IntegrityError
 from django.test import TestCase, override_settings
 
 from api.faces.photo_faces import extract_faces
-from api.geocode.photo_location import geolocate_photo
+from api.geocode.photo_location import geolocate_photo, needs_geocoding
 from api.metadata.reader import sidecar_files_for_photo
 from api.models import Face, Person, Photo
 from api.models.album_place import AlbumPlace, get_album_place
@@ -51,93 +51,109 @@ def _thumb_image(mode="RGB", size=(200, 200)):
     return PIL.Image.new(mode, size, (10, 20, 30) if mode == "RGB" else None)
 
 
+GEOCODER = "api.geocode.photo_location.reverse_geocode"
+
+
 class GeolocateCharacterizationTest(TestCase):
+    """``geolocate_photo`` looks up the place of the photo's stored position.
+
+    The position itself comes from the scan (``apply_file_position``) or the
+    user; ``geocoded_lat/lon`` record which position the place is for (#2264).
+    """
+
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
+        self.at(52.5, 13.4)
+
+    def at(self, lat, lon):
+        Photo.objects.filter(pk=self.photo.pk).update(
+            exif_gps_lat=lat, exif_gps_lon=lon
+        )
+        self.photo.refresh_from_db()
 
     # ---- early returns ------------------------------------------------
 
-    @patch("api.geocode.photo_location.reverse_geocode")
-    @patch("api.geocode.photo_location.get_metadata", return_value=(None, None))
-    def test_missing_coordinates_returns_early(self, _meta, reverse_geocode):
+    @patch(GEOCODER)
+    def test_missing_coordinates_returns_early(self, reverse_geocode):
+        self.at(None, None)
+
         geolocate_photo(self.photo)
 
         reverse_geocode.assert_not_called()
-        self.assertIsNone(self.photo.exif_gps_lat)
         self.assertIsNone(self.photo.geolocation_json)
 
-    @patch("api.geocode.photo_location.reverse_geocode")
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, None))
-    def test_missing_longitude_only_returns_early(self, _meta, reverse_geocode):
-        geolocate_photo(self.photo)
-
-        reverse_geocode.assert_not_called()
-        self.assertIsNone(self.photo.exif_gps_lat)
-
-    @patch("api.geocode.photo_location.reverse_geocode")
-    @patch("api.geocode.photo_location.get_metadata", return_value=(0.0, 0.0))
-    def test_null_island_returns_early(self, _meta, reverse_geocode):
-        geolocate_photo(self.photo)
-
-        reverse_geocode.assert_not_called()
-        self.assertIsNone(self.photo.exif_gps_lon)
-
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_unchanged_coordinates_with_current_version_short_circuits(
-        self, _meta, reverse_geocode
-    ):
-        """All four conditions met -> nothing is re-geocoded."""
-        self.photo.exif_gps_lat = 52.5
-        self.photo.exif_gps_lon = 13.4
-        self.photo.geolocation_json = {"_v": "1", "features": []}
-        self.photo.save()
-        get_album_place("Berlin", owner=self.user).photos.add(self.photo)
+    @patch(GEOCODER)
+    def test_missing_longitude_only_returns_early(self, reverse_geocode):
+        self.at(52.5, None)
 
         geolocate_photo(self.photo)
 
         reverse_geocode.assert_not_called()
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_stale_geocode_version_is_regeocoded(self, _meta, reverse_geocode):
-        self.photo.exif_gps_lat = 52.5
-        self.photo.exif_gps_lon = 13.4
-        self.photo.geolocation_json = {"_v": "0", "features": []}
-        self.photo.save()
-        get_album_place("Berlin", owner=self.user).photos.add(self.photo)
+    @patch(GEOCODER)
+    def test_null_island_returns_early(self, reverse_geocode):
+        self.at(0.0, 0.0)
+
+        geolocate_photo(self.photo)
+
+        reverse_geocode.assert_not_called()
+
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_a_current_place_for_this_position_short_circuits(self, reverse_geocode):
+        self._place_in_berlin()
+
+        geolocate_photo(self.photo)
+
+        reverse_geocode.assert_not_called()
+
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_stale_geocode_version_is_regeocoded(self, reverse_geocode):
+        self._place_in_berlin(version="0")
 
         geolocate_photo(self.photo)
 
         reverse_geocode.assert_called_once_with(52.5, 13.4)
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_same_coordinates_without_album_place_is_regeocoded(
-        self, _meta, reverse_geocode
-    ):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_same_position_without_album_place_is_regeocoded(self, reverse_geocode):
         """No AlbumPlace membership defeats the short circuit."""
-        self.photo.exif_gps_lat = 52.5
-        self.photo.exif_gps_lon = 13.4
-        self.photo.geolocation_json = {"_v": "1", "features": []}
-        self.photo.save()
+        self._place_in_berlin()
+        AlbumPlace.objects.get(title="Berlin").photos.remove(self.photo)
 
         geolocate_photo(self.photo)
 
         reverse_geocode.assert_called_once()
 
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_a_position_that_moved_since_its_lookup_is_regeocoded(
+        self, reverse_geocode
+    ):
+        # A scan read new GPS from the file (#2264).
+        self._place_in_berlin()
+        self.at(48.85, 2.35)
+
+        geolocate_photo(self.photo)
+
+        reverse_geocode.assert_called_once_with(48.85, 2.35)
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (48.85, 2.35), (self.photo.geocoded_lat, self.photo.geocoded_lon)
+        )
+
     # ---- happy path ---------------------------------------------------
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=("52.5", "13.4"))
-    def test_happy_path_persists_everything(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_happy_path_persists_everything(self, _rev):
         geolocate_photo(self.photo)
         self.photo.refresh_from_db()
 
-        # Strings from the metadata reader are coerced to float.
-        self.assertEqual(self.photo.exif_gps_lat, 52.5)
-        self.assertEqual(self.photo.exif_gps_lon, 13.4)
+        self.assertEqual(
+            (52.5, 13.4), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+        self.assertEqual(
+            (52.5, 13.4), (self.photo.geocoded_lat, self.photo.geocoded_lon)
+        )
         self.assertEqual(self.photo.geolocation_json, GEO_RESULT)
 
         search = PhotoSearch.objects.get(photo=self.photo)
@@ -148,9 +164,8 @@ class GeolocateCharacterizationTest(TestCase):
         )
         self.assertEqual(titles, {"Mitte", "Berlin", "Germany"})
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_geolocation_level_is_reverse_index_of_feature(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_geolocation_level_is_reverse_index_of_feature(self, _rev):
         geolocate_photo(self.photo)
 
         levels = {
@@ -160,9 +175,8 @@ class GeolocateCharacterizationTest(TestCase):
         # len(features) - enumerate index => 3, 2, 1
         self.assertEqual(levels, {"Mitte": 3, "Berlin": 2, "Germany": 1})
 
-    @patch("api.geocode.photo_location.reverse_geocode")
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_features_without_text_or_numeric_text_are_skipped(self, _meta, rev):
+    @patch(GEOCODER)
+    def test_features_without_text_or_numeric_text_are_skipped(self, rev):
         rev.return_value = {
             "_v": "1",
             "features": [{"id": "no-text"}, {"text": "12345"}, {"text": "Berlin"}],
@@ -178,9 +192,8 @@ class GeolocateCharacterizationTest(TestCase):
         # feature gets 3 - 2 == 1.
         self.assertEqual(AlbumPlace.objects.get(title="Berlin").geolocation_level, 1)
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_old_album_places_are_removed(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_old_album_places_are_removed(self, _rev):
         stale = get_album_place("Paris", owner=self.user)
         stale.photos.add(self.photo)
 
@@ -191,11 +204,8 @@ class GeolocateCharacterizationTest(TestCase):
             AlbumPlace.objects.filter(title="Berlin", photos=self.photo).exists()
         )
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_place_the_photo_already_belonged_to_is_removed_then_readded(
-        self, _meta, _rev
-    ):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_place_the_photo_already_belonged_to_is_removed_then_readded(self, _rev):
         """A surviving place is first removed as an "old" place, so by the time
         the add loop runs the membership check fails and ``geolocation_level``
         IS assigned. The ``if not ... exists()`` guard therefore only protects
@@ -212,48 +222,44 @@ class GeolocateCharacterizationTest(TestCase):
 
     # ---- geocoder failures --------------------------------------------
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_empty_geocode_result_returns_after_saving_coordinates(self, _meta, _rev):
+    @patch(GEOCODER, return_value={})
+    def test_empty_geocode_result_leaves_the_position_to_retry(self, _rev):
         geolocate_photo(self.photo)
         self.photo.refresh_from_db()
 
-        # Coordinates were committed before the geocoder ran; they are new,
-        # so the photo has no place rather than the old one (#2253).
         self.assertEqual(self.photo.exif_gps_lat, 52.5)
-        self.assertEqual(self.photo.geolocation_json, {})
-        self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
+        # Not geocoded: the next geolocation job tries again.
+        self.assertIsNone(self.photo.geocoded_lat)
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
 
-    @patch(
-        "api.geocode.photo_location.reverse_geocode", side_effect=RuntimeError("boom")
-    )
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_geocoder_exception_is_swallowed(self, _meta, _rev):
+    @patch(GEOCODER, side_effect=RuntimeError("boom"))
+    def test_geocoder_exception_is_swallowed(self, _rev):
         geolocate_photo(self.photo)  # must not raise
         self.photo.refresh_from_db()
 
         self.assertEqual(self.photo.exif_gps_lon, 13.4)
-        self.assertEqual(self.photo.geolocation_json, {})
+        self.assertIsNone(self.photo.geocoded_lon)
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(48.85, 2.35))
-    def test_moved_coordinates_without_a_result_forget_the_old_place(self, _meta, _rev):
-        # #2253: the file's GPS changed and the geocoder failed; the photo
+    @patch(GEOCODER, return_value={})
+    def test_moved_coordinates_without_a_result_forget_the_old_place(self, _rev):
+        # #2253: the position changed and the geocoder failed; the photo
         # kept the address, search text and Places albums of its old fix.
         self._place_in_berlin()
+        self.at(48.85, 2.35)
 
         geolocate_photo(self.photo)
         self.photo.refresh_from_db()
 
         self.assertEqual(self.photo.exif_gps_lat, 48.85)
         self.assertEqual(self.photo.geolocation_json, {})
+        self.assertEqual(
+            (None, None), (self.photo.geocoded_lat, self.photo.geocoded_lon)
+        )
         self.assertEqual(PhotoSearch.objects.get(photo=self.photo).search_location, "")
         self.assertFalse(AlbumPlace.objects.filter(photos=self.photo).exists())
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_same_coordinates_without_a_result_keep_their_place(self, _meta, _rev):
+    @patch(GEOCODER, return_value={})
+    def test_same_coordinates_without_a_result_keep_their_place(self, _rev):
         # A stale geocode version is retried; failing that, the place of the
         # unchanged coordinates still applies.
         self._place_in_berlin(version="0")
@@ -270,6 +276,8 @@ class GeolocateCharacterizationTest(TestCase):
         Photo.objects.filter(pk=self.photo.pk).update(
             exif_gps_lat=52.5,
             exif_gps_lon=13.4,
+            geocoded_lat=52.5,
+            geocoded_lon=13.4,
             geolocation_json={**GEO_RESULT, "_v": version},
         )
         self.photo.refresh_from_db()
@@ -281,40 +289,40 @@ class GeolocateCharacterizationTest(TestCase):
     # ---- concurrent writers ---------------------------------------------
     #
     # The geolocation job holds a row loaded before the geocoder's network
-    # call, while Probe Videos fills in the same photos' video fields.
+    # call, while Probe Videos fills in the same photos' video fields and a
+    # scan may read new GPS from the file.
 
-    def _probed_meanwhile(self):
+    def _changed_meanwhile(self):
         held_by_job = Photo.objects.get(pk=self.photo.pk)
         Photo.objects.filter(pk=self.photo.pk).update(
-            video_color_transfer="smpte2084", video_pixel_format="yuv420p10le"
+            video_color_transfer="smpte2084",
+            video_pixel_format="yuv420p10le",
+            exif_gps_lat=48.85,
+            exif_gps_lon=2.35,
         )
         return held_by_job
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_a_video_probed_while_the_job_held_the_row_keeps_its_fields(
-        self, _meta, _rev
-    ):
-        geolocate_photo(self._probed_meanwhile())
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_columns_changed_while_the_job_held_the_row_are_kept(self, _rev):
+        geolocate_photo(self._changed_meanwhile())
         self.photo.refresh_from_db()
 
         self.assertEqual(self.photo.video_color_transfer, "smpte2084")
         self.assertEqual(self.photo.video_pixel_format, "yuv420p10le")
-        self.assertEqual(self.photo.exif_gps_lat, 52.5)
         self.assertEqual(self.photo.geolocation_json, GEO_RESULT)
+        # The place is for the old position, so the new one is looked up next.
+        self.assertEqual(
+            (48.85, 2.35), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+        self.assertEqual(
+            (52.5, 13.4), (self.photo.geocoded_lat, self.photo.geocoded_lon)
+        )
+        self.assertTrue(
+            Photo.objects.filter(pk=self.photo.pk).filter(needs_geocoding()).exists()
+        )
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_the_coordinates_alone_do_not_overwrite_it_either(self, _meta, _rev):
-        geolocate_photo(self._probed_meanwhile())
-        self.photo.refresh_from_db()
-
-        self.assertEqual(self.photo.video_color_transfer, "smpte2084")
-        self.assertEqual(self.photo.exif_gps_lon, 13.4)
-
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_geolocating_still_tells_the_sync_feed(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_geolocating_still_tells_the_sync_feed(self, _rev):
         before = Photo.objects.get(pk=self.photo.pk).last_modified
 
         geolocate_photo(Photo.objects.get(pk=self.photo.pk))
@@ -323,35 +331,23 @@ class GeolocateCharacterizationTest(TestCase):
 
     # ---- commit flag ---------------------------------------------------
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_commit_false_leaves_database_row_untouched(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_commit_false_leaves_database_row_untouched(self, _rev):
         geolocate_photo(self.photo, commit=False)
 
         # In-memory instance is updated ...
-        self.assertEqual(self.photo.exif_gps_lat, 52.5)
+        self.assertEqual(self.photo.geocoded_lat, 52.5)
         self.assertEqual(self.photo.geolocation_json, GEO_RESULT)
         # ... but the row is not, even though AlbumPlace/PhotoSearch side
         # effects still happen unconditionally.
         fresh = type(self.photo).objects.get(pk=self.photo.pk)
-        self.assertIsNone(fresh.exif_gps_lat)
+        self.assertIsNone(fresh.geocoded_lat)
         self.assertIsNone(fresh.geolocation_json)
         self.assertTrue(AlbumPlace.objects.filter(photos=self.photo).exists())
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
 
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_metadata_is_read_from_main_file_with_sidecar(self, get_metadata, _rev):
-        geolocate_photo(self.photo)
-
-        args, kwargs = get_metadata.call_args
-        self.assertEqual(args[0], self.photo.main_file.path)
-        self.assertEqual(kwargs["sidecar_files"], sidecar_files_for_photo(self.photo))
-        self.assertEqual(len(kwargs["tags"]), 2)
-
-    @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
-    @patch("api.geocode.photo_location.get_metadata", return_value=(52.5, 13.4))
-    def test_existing_photo_search_row_is_reused(self, _meta, _rev):
+    @patch(GEOCODER, return_value=GEO_RESULT)
+    def test_existing_photo_search_row_is_reused(self, _rev):
         PhotoSearch.objects.create(photo=self.photo, search_location="stale")
 
         geolocate_photo(self.photo)

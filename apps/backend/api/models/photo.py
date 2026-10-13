@@ -70,6 +70,13 @@ def visible_photo_q(prefix: str = "") -> Q:
     )
 
 
+class LocationSource(models.TextChoices):
+    """Where a photo's position (``Photo.location_source``) came from."""
+
+    FILE = "file", "File"
+    USER = "user", "User"
+
+
 _PhotoManagerBase = models.Manager.from_queryset(PhotoQuerySet)
 
 
@@ -107,6 +114,18 @@ class Photo(models.Model):
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
+    # Who set exif_gps_lat/lon (#2264). A scan replaces a position read from
+    # the file ("file") when the file changes and clears it when the file's
+    # GPS is gone; it never touches one the user set ("user"). NULL: not
+    # known (rows from before the column): a scan may replace it, never clear it.
+    location_source = models.CharField(
+        max_length=8, blank=True, null=True, choices=LocationSource.choices
+    )
+    # The position geolocation_json was looked up for. The geolocation job
+    # picks up every photo whose position differs from it, so a position a
+    # scan changed gets its place whenever the photo was added.
+    geocoded_lat = models.FloatField(blank=True, null=True)
+    geocoded_lon = models.FloatField(blank=True, null=True)
     exif_timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
 
     exif_json = models.JSONField(blank=True, null=True)
