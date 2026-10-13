@@ -9,4 +9,5 @@ export * from "./useRegenerateEventTitlesMutation";
 export * from "./useRescanPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";
+export * from "./useStripThumbnailMetadataMutation";
 export * from "./useWorkerQuery";

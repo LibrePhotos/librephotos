@@ -74,7 +74,13 @@ Changes made since the upgrade (faces named, albums edited, photos added) are no
 
 ## After upgrading from 1.2.1 or older {#strip-thumbnail-metadata}
 
-Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS position, camera serial number and keywords. A public link serves those thumbnails, so anyone holding one can read the location, even with location sharing off. Since 1.3.0, new thumbnails are written without it, but the ones already on disk keep it until you run the cleanup once:
+Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS position, camera serial number and keywords. A public link serves those thumbnails, so anyone holding one can read the location, even with location sharing off. Since 1.3.0, new thumbnails are written without it, but the ones already on disk keep it until you run the cleanup once.
+
+An admin starts it in the web app: **Account menu > Admin Area > Admin Tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker Logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
+
+Not released yet: up to 1.3.0, the cleanup is only available as the command below.
+
+To run it from a script, or without the web app, use the management command:
 
 ```sh
 # Standard Docker setup, from the folder with your docker-compose.yml and .env
@@ -86,7 +92,7 @@ docker exec librephotos python manage.py strip_thumbnail_metadata
 
 On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage strip_thumbnail_metadata` in `cmd`.
 
-The command only rewrites thumbnails that still carry metadata, and keeps their pixels and colour profile, so running it again is safe. Add `--dry-run` to only count them. See [Management Commands](../user-guide/library.md#management-commands).
+Both only rewrite thumbnails that still carry metadata, and keep their pixels and colour profile, so running them again is safe. Add `--dry-run` to the command to only count them. See [Management Commands](../user-guide/library.md#management-commands).
 
 ## After upgrading from 1.3.0 or older {#refresh-exposure-time}
 

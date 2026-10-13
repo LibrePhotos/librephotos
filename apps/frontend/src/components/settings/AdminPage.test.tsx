@@ -44,6 +44,7 @@ vi.mock("./FeaturesCard", () => ({ FeaturesCard: () => null }));
 vi.mock("./ServerLogsCard", () => ({ ServerLogsCard: () => null }));
 vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
+vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -143,6 +144,13 @@ describe("AdminPage", () => {
       "#admin-users",
       "#admin-jobs",
     ]);
+  });
+
+  it("offers the thumbnail metadata cleanup among the admin tools (#2321)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+
+    expect(document.getElementById("admin-tools")?.textContent).toContain("strip-thumbnail-metadata-tool");
   });
 
   it("asks before deleting all auto created albums", async () => {

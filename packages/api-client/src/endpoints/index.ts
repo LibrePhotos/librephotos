@@ -725,6 +725,14 @@ export async function generateOcr(client: ApiClient, fullScan: boolean): Promise
   return triggerJob(client, "/generateocr/", S.JobTriggerResponse, "generate OCR", { full_scan: fullScan });
 }
 
+/**
+ * Remove photo details (EXIF, GPS, XMP) from the thumbnails older releases wrote, over the whole
+ * instance (admins only, #2321). Returns the queued (or already running) job.
+ */
+export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
+}
+
 /** Make event albums from the photos added or changed since the last run, and title them. */
 export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");

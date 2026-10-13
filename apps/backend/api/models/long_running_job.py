@@ -138,6 +138,7 @@ class LongRunningJob(models.Model):
     JOB_PROBE_VIDEOS = 19
     # 20 and 21 are planned for the upload and Nextcloud import jobs (#2191).
     JOB_DETECT_STACKS = 22
+    JOB_STRIP_THUMBNAIL_METADATA = 23
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -160,6 +161,7 @@ class LongRunningJob(models.Model):
         (JOB_GENERATE_OCR, "Extract Text (OCR)"),
         (JOB_PROBE_VIDEOS, "Probe Videos"),
         (JOB_DETECT_STACKS, "Detect Stacks"),
+        (JOB_STRIP_THUMBNAIL_METADATA, "Remove Photo Details from Thumbnails"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.
@@ -286,16 +288,22 @@ class LongRunningJob(models.Model):
             self.result = result
         return self._write_unless_cancelled(["finished", "finished_at", "result"])
 
-    def fail(self, error: BaseException | str | None = None) -> bool:
+    def fail(
+        self,
+        error: BaseException | str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> bool:
         """Mark job as failed with optional error message, unless it was cancelled.
 
-        Returns False when the job had been cancelled; the row is left as is.
+        ``details`` (counts, the failed items) go into the result next to the
+        error. Returns False when the job had been cancelled; the row is left
+        as is.
         """
         self.failed = True
         self.finished = True
         self.finished_at = timezone.now()
         if error is not None:
-            self.result = {"status": "failed", "error": str(error)}
+            self.result = {**(details or {}), "status": "failed", "error": str(error)}
         return self._write_unless_cancelled(
             ["failed", "finished", "finished_at", "result"]
         )

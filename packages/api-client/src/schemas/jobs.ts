@@ -75,6 +75,14 @@ export type JobListParams = {
   mine?: boolean;
 };
 
+/** What a view that starts a job answers (`api.jobs.start.start_jobs`): the job's id, and every step's. */
+export const JobStartedResponse = z.looseObject({
+  status: z.boolean(),
+  job_id: z.string(),
+  job_ids: z.array(z.string()).optional(),
+});
+export type JobStartedResponse = z.infer<typeof JobStartedResponse>;
+
 /** What a job trigger answers when a job of its kind is already queued or running (a 409). */
 export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
 

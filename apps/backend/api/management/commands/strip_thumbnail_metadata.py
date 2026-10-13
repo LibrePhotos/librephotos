@@ -3,14 +3,18 @@ from typing import Any
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 from api.runtime import binaries
-from api.thumbnails.metadata import strip_thumbnail_metadata
+from api.thumbnails.metadata import strip_problems, strip_thumbnail_metadata
+
+# A line per this many thumbnails; the Admin Area job reports more often.
+PROGRESS_LINE_EVERY = 10000
 
 
 class Command(BaseCommand):
     help = (
         "Remove the original photo's metadata (EXIF incl. GPS, XMP, a video's "
         "location) from thumbnails written before it was left out. Pixels and the "
-        "ICC colour profile are kept; files without metadata are not touched."
+        "ICC colour profile are kept; files without metadata are not touched. "
+        "Admins can start the same work from Admin Area > Admin Tools."
     )
 
     def add_arguments(self, parser: CommandParser) -> None:
@@ -20,10 +24,16 @@ class Command(BaseCommand):
             help="Only count the thumbnails that still carry metadata",
         )
 
+    def _progress(self, done: int, total: int) -> None:
+        if done:
+            self.stdout.write(f"{done}/{total} thumbnails checked")
+
     def handle(self, *args: Any, **options: Any) -> None:
         try:
             result = strip_thumbnail_metadata(
-                dry_run=options["dry_run"], progress=self.stdout.write
+                dry_run=options["dry_run"],
+                progress=self._progress,
+                progress_every=PROGRESS_LINE_EVERY,
             )
         except binaries.ToolError as failure:
             # ExifTool could not say which video thumbnails carry metadata.
@@ -39,15 +49,7 @@ class Command(BaseCommand):
         for path in result.still_with_metadata:
             self.stderr.write(f"Could not strip {path}")
         summary = f"Stripped {result.stripped} thumbnails."
-        # A thumbnail that could not be read or rewritten is not counted as
-        # still carrying metadata, but nothing says it does not. Errors are
-        # not thumbnails: a failed ExifTool batch of videos is one.
-        problems = []
-        if result.still_with_metadata:
-            problems.append(f"{len(result.still_with_metadata)} still carry metadata")
-        if result.errors:
-            count = len(result.errors)
-            problems.append(f"{count} error{'' if count == 1 else 's'} (see above)")
+        problems = strip_problems(result)
         if problems:
-            raise CommandError(f"{summary} {', '.join(problems)}.")
+            raise CommandError(f"{summary} {', '.join(problems)} (see above).")
         self.stdout.write(self.style.SUCCESS(summary))

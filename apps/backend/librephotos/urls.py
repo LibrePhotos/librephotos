@@ -25,7 +25,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
-from django.urls import include, re_path
+from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from rest_framework import routers
 from rest_framework.permissions import AllowAny, BasePermission
@@ -336,6 +336,10 @@ urlpatterns = [
     ),
     re_path(r"^api/classifymedia/?$", scan_triggers.ClassifyMediaView.as_view()),
     re_path(r"^api/generateocr/?$", scan_triggers.GenerateOcrView.as_view()),
+    path(
+        "api/strip-thumbnail-metadata/",
+        scan_triggers.StripThumbnailMetadataView.as_view(),
+    ),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(
         r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()

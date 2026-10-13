@@ -60,7 +60,13 @@ export function removeJobMessage(job: RemovableJob, t: TFunction): string {
   return (ranToTheEnd(job) && baselineMessage(job, t)) || t("confirmdialog.removejob.plain");
 }
 
-export function DeleteJobButton({ job }: Readonly<{ job: Job }>) {
+type DeleteJobButtonProps = Readonly<{
+  job: Job;
+  /** Called once the server has removed the job, e.g. to leave the job's own page (#2213). */
+  onDeleted?: () => void;
+}>;
+
+export function DeleteJobButton({ job, onDeleted }: DeleteJobButtonProps) {
   const { t } = useTranslation();
   const { mutate: deleteJob, isPending } = useDeleteJobMutation();
   const [confirmOpened, { open, close }] = useDisclosure(false);
@@ -73,7 +79,14 @@ export function DeleteJobButton({ job }: Readonly<{ job: Job }>) {
       <ConfirmModal
         opened={confirmOpened}
         onClose={close}
-        onConfirm={() => deleteJob(job.id, { onSuccess: close })}
+        onConfirm={() =>
+          deleteJob(job.id, {
+            onSuccess: () => {
+              close();
+              onDeleted?.();
+            },
+          })
+        }
         loading={isPending}
         irreversible
         title={t("confirmdialog.removejob.title")}

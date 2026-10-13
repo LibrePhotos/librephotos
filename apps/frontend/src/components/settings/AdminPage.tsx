@@ -44,6 +44,7 @@ import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
+import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
 
 function UserTable() {
   const { t } = useTranslation();
@@ -223,6 +224,7 @@ function AdminTools() {
             {t("adminarea.download")}
           </Button>
         </Flex>
+        <StripThumbnailMetadataTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
       </Stack>
       <Modal
         opened={confirmOpen}
