@@ -19,9 +19,16 @@ from typing import Any
 
 from librephotos import env
 
-# Renamed to librephotos.log in a follow-up PR. Named once, here, so that rename
-# is a one-line change instead of a grep across settings, services and docs.
-LOG_FILENAME = "ownphotos.log"
+# Named once, here, so the settings, the server-log download and the tests
+# cannot disagree about it.
+LOG_FILENAME = "librephotos.log"
+# What releases up to 1.3.0 called it (the project was forked from OwnPhotos).
+# rename_legacy_log_file moves an existing one, and its rotated backups, to
+# LOG_FILENAME on the first start of a newer release (#170).
+LEGACY_LOG_FILENAME = "ownphotos.log"
+# Left in BASE_LOGS once the "old log file left in place" note has been logged,
+# so it is logged once rather than by every process on every start.
+LEGACY_LOG_NOTED_MARKER = ".ownphotos.log.noted"
 
 # The name dictConfig gives the rotating file handler. get_file_handler resolves
 # the live handler object by this name, so api.apps can apply the constance
@@ -37,10 +44,10 @@ DEFAULT_LOGS_ROOT = "/logs/"
 DEFAULT_LOG_LEVEL = "INFO"
 VALID_LEVELS = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
 
-# Keep this format string exactly as it is. People grep and parse ownphotos.log,
-# and reshaping a line breaks whatever they built on top of it. It changes
-# together with the file rename, so their parsers have to be updated once rather
-# than twice.
+# Keep this format string exactly as it is. People grep and parse the log file,
+# and reshaping a line breaks whatever they built on top of it. The rename from
+# ownphotos.log (#170) deliberately kept it: their parsers only need the new
+# path, not a new pattern.
 LOG_FORMAT = (
     "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : "
     "%(levelname)s : %(message)s"
@@ -192,6 +199,105 @@ def ensure_logs_root(path: str) -> str:
             "fix the permissions on that path."
         )
     return path
+
+
+def _backup_suffixes(logs_root: str, filename: str) -> list[str]:
+    """The ``.N`` suffixes of the rotated backups of ``filename`` in ``logs_root``."""
+    prefix = filename + "."
+    try:
+        names = os.listdir(logs_root)
+    except OSError:
+        return []
+    return sorted(
+        name[len(filename) :]
+        for name in names
+        if name.startswith(prefix) and name[len(prefix) :].isdigit()
+    )
+
+
+def _rename_backups(logs_root: str) -> list[str]:
+    """Move ``ownphotos.log.N`` to ``librephotos.log.N``; the names it could not
+    move (the target exists, or the OS refused) are returned."""
+    left_behind = []
+    for suffix in _backup_suffixes(logs_root, LEGACY_LOG_FILENAME):
+        legacy = os.path.join(logs_root, LEGACY_LOG_FILENAME + suffix)
+        target = os.path.join(logs_root, LOG_FILENAME + suffix)
+        if os.path.exists(target):
+            left_behind.append(legacy)
+            continue
+        try:
+            os.rename(legacy, target)
+        except FileNotFoundError:
+            pass  # another process starting at the same time moved it
+        except OSError:
+            left_behind.append(legacy)
+    return left_behind
+
+
+def _note_legacy_log_left(logs_root: str, legacy: str, current: str) -> None:
+    """Say once that ``legacy`` is no longer written to, then leave a marker so
+    the next start does not say it again."""
+    marker = os.path.join(logs_root, LEGACY_LOG_NOTED_MARKER)
+    if os.path.exists(marker):
+        return
+    defer(
+        logging.INFO,
+        f"LibrePhotos now logs to {current}. The old log file {legacy} is no "
+        "longer written to and was left as it is; delete it once you no longer "
+        "need it.",
+    )
+    try:
+        with open(marker, "w", encoding="utf-8"):
+            pass
+    except OSError:
+        pass  # the note comes again on the next start, nothing worse
+
+
+def rename_legacy_log_file(logs_root: str) -> bool:
+    """Move ``ownphotos.log`` and its rotated backups to the ``librephotos.log``
+    names, so an upgrade keeps the log history (#170). True when it moved it.
+
+    Runs from the settings module, before the logging configuration opens the
+    file. Nothing here may stop the start: when the old file cannot be moved
+    (on Windows another process holding it open refuses the rename) it is left
+    where it is and the reason is logged once logging works; the next start
+    finds both files and says once that the old one is no longer used. When a
+    librephotos.log exists already the old file is never touched.
+
+    Every process that loads the settings runs this, possibly at the same time.
+    os.rename of a file another process has just moved fails with
+    FileNotFoundError, which counts as done: only one of them reports it.
+    """
+    legacy = os.path.join(logs_root, LEGACY_LOG_FILENAME)
+    current = os.path.join(logs_root, LOG_FILENAME)
+    if not os.path.exists(legacy):
+        return False
+    if os.path.exists(current):
+        _note_legacy_log_left(logs_root, legacy, current)
+        return False
+    try:
+        os.rename(legacy, current)
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        defer_warning(
+            f"could not rename the log file {legacy} to {current}: {error}. "
+            f"LibrePhotos logs to {current} from now on; the old file is left "
+            "as it is."
+        )
+        return False
+    left_behind = _rename_backups(logs_root)
+    defer_warning(
+        f"Renamed the log file {legacy} to {current}, together with its rotated "
+        "backups. Point log shippers, fail2ban filters and scripts that read "
+        "the old name at the new one."
+        + (
+            f" Could not rename {', '.join(left_behind)}; they are left as they are."
+            if left_behind
+            else ""
+        )
+    )
+    return True
 
 
 def _more_restrictive(level_a: str, level_b: str) -> str:

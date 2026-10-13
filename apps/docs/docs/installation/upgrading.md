@@ -110,6 +110,14 @@ On the [Windows standalone](windows-standalone.md) build, run `start /wait libre
 
 It reads only the exposure time and writes only the shutter speed, so running it again is safe. Add `--dry-run` to only count the photos. A Rescan from the Library page fixes them too.
 
+### The log file is now `librephotos.log` {#log-file-renamed}
+
+_Not released yet._ Up to 1.3.0, the backend log in the logs folder (`BASE_LOGS`, `/logs` in the container) is called `ownphotos.log`. Newer releases call it `librephotos.log`. The first start of a newer release renames `ownphotos.log` and its older parts (`ownphotos.log.1`, `ownphotos.log.2`, ...) to the new name, so the history is kept, and logs a warning saying so. The lines in it look the same as before.
+
+Anything that reads the file by name has to be pointed at the new one: Promtail, Fluent Bit or Vector configs, fail2ban filters (`logpath`), `tail -f` aliases and scripts. The **Server Logs** download in the Admin Area follows by itself.
+
+If the old file cannot be renamed (on Windows, another program such as an editor or a log viewer has it open), it is left as it is, the backend logs a warning and writes to a new `librephotos.log`. The same happens to an old file found next to an existing `librephotos.log`: it is left alone, and the log says so once. Delete `ownphotos.log` once you no longer need it. The `.__ownphotos.lock` file next to it is no longer used either and can be deleted.
+
 ## Upgrading from a release older than 2026w10 {#old-releases}
 
 Releases after 1.1.0 combine the first 100 database migrations into a single one. That keeps new installs and the test suite fast, but it means these releases can no longer bring a database from an older release up to date on their own.

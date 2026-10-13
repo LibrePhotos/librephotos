@@ -63,16 +63,16 @@ docker ps | grep librephoto
 
 Finally, you can access the UI by going to http://unraidip:3000
 
-Furthermore, you can also monitor progress from the shell prompt by tailing the backend log. It lives at `logs/ownphotos.log` inside the `data` folder you set in .env (with the example above, that is `/mnt/user/appdata/librephotos/logs/ownphotos.log`):
+Furthermore, you can also monitor progress from the shell prompt by tailing the backend log. It lives at `logs/librephotos.log` inside the `data` folder you set in .env (with the example above, that is `/mnt/user/appdata/librephotos/logs/librephotos.log`; `ownphotos.log` in 1.3.0 and older, see [Upgrading](upgrading.md#log-file-renamed)):
 
 ```bash
-tail -f /mnt/user/appdata/librephotos/logs/ownphotos.log
+tail -f /mnt/user/appdata/librephotos/logs/librephotos.log
 ```
 
 Or, independent of where you mounted it - the backend container is always named `backend`:
 
 ```bash
-docker exec backend tail -f /logs/ownphotos.log
+docker exec backend tail -f /logs/librephotos.log
 ```
 
 To shut everything down:

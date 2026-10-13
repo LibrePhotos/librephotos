@@ -15,6 +15,7 @@ from librephotos.logging_bootstrap import (
     build_logging_config,
     defer,
     ensure_logs_root,
+    rename_legacy_log_file,
     resolve_to_console,
 )
 from librephotos.secret_key import load_or_create_secret_key
@@ -76,6 +77,9 @@ LOGS_ROOT = BASE_LOGS
 # it, so an install without a /logs volume fails here, naming the path, rather
 # than with a FileNotFoundError that never mentions logs.
 ensure_logs_root(LOGS_ROOT)
+# Releases up to 1.3.0 wrote ownphotos.log; move it (and its rotated backups)
+# to the new name before the handler below creates an empty one.
+rename_legacy_log_file(LOGS_ROOT)
 
 # Matplotlib comes along with insightface, which the face recognition service
 # imports. Left to itself it keeps its font cache under $HOME, and when the home

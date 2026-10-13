@@ -192,7 +192,7 @@ The sidebar shows a storage bar for the disk holding your LibrePhotos data direc
 
 ### Server Logs
 
-The Admin Area shows a **Server Logs** panel with the most recent log lines (1–1000, default 100) and a **Refresh** button. The download icon saves the full `ownphotos.log` file.
+The Admin Area shows a **Server Logs** panel with the most recent log lines (1–1000, default 100) and a **Refresh** button. The download icon saves the full `librephotos.log` file (`ownphotos.log` in 1.3.0 and older).
 
 ### Image Version
 
