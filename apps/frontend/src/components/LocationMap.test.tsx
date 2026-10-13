@@ -13,6 +13,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { serverAddress } from "../api_client/urls";
+import i18n from "../i18n";
 import { LocationMap } from "./LocationMap";
 
 const stubs = vi.hoisted(() => ({ jumpTo: vi.fn<(options: JumpToOptions) => void>(), mounts: 0 }));
@@ -53,7 +54,7 @@ vi.mock("react-map-gl/maplibre", async () => {
 let root: Root;
 let container: HTMLDivElement;
 
-beforeAll(() => {
+beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
@@ -66,6 +67,7 @@ beforeAll(() => {
     dispatchEvent: () => false,
   });
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  await i18n.changeLanguage("en");
 });
 
 beforeEach(() => {
@@ -134,5 +136,7 @@ describe("LocationMap", () => {
     expect(container.querySelector('[data-testid="popup"] img')?.getAttribute("src")).toBe(
       `${serverAddress}/media/square_thumbnails/abc123`
     );
+    // #2245: the popup holds nothing but the photo, so it says what it is
+    expect(container.querySelector('[data-testid="popup"] img')?.getAttribute("alt")).toBe("Photo taken here");
   });
 });

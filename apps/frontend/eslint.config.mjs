@@ -5,6 +5,7 @@ import js from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import prettier from "eslint-plugin-prettier";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
@@ -338,6 +339,15 @@ export const syntaxBans = [
       "Wrap the control in <DisabledReason reason={...}> (components/common/DisabledReason) instead of a Tooltip around a disabled control.",
   },
   {
+    // An ActionIcon holds only an icon, and a Tooltip is not an accessible name: a screen reader
+    // announced such a button as just "button" (#2245). A decorative one is component="span".
+    id: "action-icon-name",
+    selector:
+      "JSXOpeningElement[name.name='ActionIcon']:not(:has(JSXAttribute[name.name=/^aria-label(ledby)?$/])):not(:has(JSXAttribute[name.name='component'][value.value='span'])):not(:has(JSXSpreadAttribute))",
+    message:
+      'Name the ActionIcon with aria-label (the Tooltip text, or a shorter t() key); a Tooltip is not an accessible name. A decorative one is component="span".',
+  },
+  {
     // A `disabled` Menu.Item never says why, and Mantine's arrow keys skip it, so a keyboard user
     // never reaches it (#2592, #2608). DisabledReason keeps it in the arrow-key order with its reason.
     id: "menu-item-disabled",
@@ -628,6 +638,58 @@ export default [
     },
   },
   ...banConfigs(),
+  {
+    // Accessible names (#2245): an image has alt text (alt="" when it is decorative), a link has
+    // content, and a control has a text label. The plugin sees Mantine's components as the elements
+    // they render (and `component="..."` on the polymorphic ones). A childless capitalised component
+    // inside a control counts as a label to the plugin, unless it matches controlComponents: Icon*
+    // keeps a Tabler icon from naming its button. Test mocks render bare controls on purpose.
+    name: "a11y/names",
+    files: ["src/**/*.tsx"],
+    ignores: TEST_FILES,
+    plugins: { "jsx-a11y": jsxA11y },
+    settings: {
+      "jsx-a11y": {
+        polymorphicPropName: "component",
+        polymorphicAllowList: ["Box", "UnstyledButton", "Badge", "Anchor", "Button", "ActionIcon"],
+        components: {
+          ActionIcon: "button",
+          Button: "button",
+          CloseButton: "button",
+          UnstyledButton: "button",
+          Image: "img",
+          Anchor: "a",
+        },
+      },
+    },
+    rules: {
+      "jsx-a11y/alt-text": "error",
+      "jsx-a11y/anchor-has-content": "error",
+      // The element and role lists are the plugin's documented defaults for this rule: a media or
+      // canvas element and a composite widget get their name elsewhere.
+      "jsx-a11y/control-has-associated-label": [
+        "error",
+        {
+          controlComponents: ["Icon*"],
+          depth: 4,
+          ignoreElements: ["audio", "canvas", "embed", "input", "textarea", "tr", "video"],
+          ignoreRoles: [
+            "grid",
+            "listbox",
+            "menu",
+            "menubar",
+            "radiogroup",
+            "row",
+            "tablist",
+            "toolbar",
+            "tree",
+            "treegrid",
+          ],
+          includeRoles: ["alert", "dialog"],
+        },
+      ],
+    },
+  },
   {
     // The Playwright suite has its own dependencies (e2e/yarn.lock); its types come from there.
     files: ["e2e/**/*.{ts,tsx}"],

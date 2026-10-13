@@ -60,7 +60,7 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
 
         <Box className={classes.photoGrid}>
           <SimpleGrid cols={{ base: 3, xs: 4, sm: 5, md: 6 }} spacing="sm">
-            {visiblePhotos.map(photo => (
+            {visiblePhotos.map((photo, index) => (
               <UnstyledButton
                 key={photo.id}
                 onClick={() => handleSelectPhoto(photo.id)}
@@ -72,6 +72,7 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
                   width={120}
                   image_hash={photo.id}
                   video={photo.type === Media.VIDEO}
+                  alt={t("photoofcount", { index: index + 1, count: photos.length })}
                 />
               </UnstyledButton>
             ))}

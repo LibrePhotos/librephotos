@@ -2200,9 +2200,11 @@
     "remove_message": "The photo leaves the map, its Places albums and location search. The photo file is not changed, and a rescan does not bring the location back."
   },
   "map": {
-    "display_disabled": "Map display is turned off in site settings."
+    "display_disabled": "Map display is turned off in site settings.",
+    "photohere": "Photo taken here"
   },
   "viewfull": "View full size",
+  "photoofcount": "Photo {{index}} of {{count}}",
   "moreactions": "More actions",
   "folder": "Folder",
   "folders_count_one": "{{count}} folder with photos",

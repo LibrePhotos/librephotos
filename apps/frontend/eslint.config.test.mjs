@@ -53,6 +53,7 @@ const planted = {
   "unknown-person-literal": `const plantedName = person.name === "Unknown - Other";`,
   "tooltip-disabled-control": `const plantedTooltip = <Tooltip label="Why"><Button disabled>Go</Button></Tooltip>;`,
   "menu-item-disabled": `const plantedMenuItem = <Menu.Item disabled={true}>Go</Menu.Item>;`,
+  "action-icon-name": `const plantedIcon = <ActionIcon onClick={go}><IconTrash /></ActionIcon>;`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,
@@ -276,6 +277,53 @@ export { probeMedia } from "../api_client/media/mediaUrl";
 const plantedAvatar = serverAddress + user.avatar_url;
 const plantedModule = await import("../api_client/media/mediaUrl");`;
     expect(await firedBans(code, "src/components/Sample.tsx")).toEqual(new Set());
+  });
+});
+
+// Accessible names (#2245): eslint-plugin-jsx-a11y sees Mantine's components as the elements they
+// render, an icon inside a control is not its label, and the ActionIcon ban takes a name or a
+// decorative span.
+describe("eslint.config.mjs accessible names", () => {
+  const a11yLint = new ESLint({
+    cwd,
+    overrideConfig: { languageOptions: { parserOptions: { project: null } } },
+    ruleFilter: ({ ruleId }) => ruleId.startsWith("jsx-a11y/") || ruleId === "ban/action-icon-name",
+  });
+  beforeAll(() => loadConfig(a11yLint), LOAD_TIMEOUT);
+  const lint = async (code, file = "src/components/Sample.tsx") => {
+    const [result] = await a11yLint.lintText(code, { filePath: path.join(cwd, file) });
+    expect(result.messages.filter(message => message.fatal)).toEqual([]);
+    return result.messages.map(message => message.ruleId);
+  };
+
+  it.each([
+    [`const a = <Image src={src} />;`, "jsx-a11y/alt-text"],
+    [`const a = <img src={src} />;`, "jsx-a11y/alt-text"],
+    [`const a = <Anchor href="/x" />;`, "jsx-a11y/anchor-has-content"],
+    [`const a = <UnstyledButton onClick={go}><IconTrash /></UnstyledButton>;`, "jsx-a11y/control-has-associated-label"],
+    [`const a = <Badge component="button" onClick={go} />;`, "jsx-a11y/control-has-associated-label"],
+    [`const a = <ActionIcon onClick={go}><IconTrash /></ActionIcon>;`, "ban/action-icon-name"],
+    [`const a = <ActionIcon onClick={go}>{busy ? <IconA /> : <IconB />}</ActionIcon>;`, "ban/action-icon-name"],
+  ])("%s fails %s", async (code, ruleId) => {
+    expect(await lint(code)).toContain(ruleId);
+  });
+
+  it.each([
+    `const a = <Image src={src} alt="" />;`,
+    `const a = <UnstyledButton onClick={go}>Save</UnstyledButton>;`,
+    `const a = <ActionIcon aria-label={t("delete")} onClick={go}><IconTrash /></ActionIcon>;`,
+    `const a = <ActionIcon component="span" variant="light"><IconTrash /></ActionIcon>;`,
+    `const a = <ActionIcon {...props}><IconTrash /></ActionIcon>;`,
+    `const a = <Anchor renderRoot={props => <Link to="/x" {...props} />}>Settings</Anchor>;`,
+    `const a = <video src={src} muted />;`,
+  ])("%s passes", async code => {
+    expect(await lint(code)).toEqual([]);
+  });
+
+  it("leaves test mocks alone", async () => {
+    expect(await lint(`const a = <button type="button" onClick={go} />;`, "src/components/Sample.test.tsx")).toEqual(
+      []
+    );
   });
 });
 

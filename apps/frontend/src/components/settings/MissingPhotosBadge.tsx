@@ -37,7 +37,8 @@ export function MissingPhotosBadge({ count }: MissingPhotosBadgeProps) {
       {count > 0 && (
         <HoverCard width={280} shadow="md">
           <HoverCard.Target>
-            <Badge onClick={open} color="red" ml={10}>
+            {/* A real button, so Tab reaches it and Enter or Space open the dialog */}
+            <Badge component="button" type="button" onClick={open} color="red" ml={10}>
               {count} <Trans i18nKey="settings.missingphotos" />
             </Badge>
           </HoverCard.Target>

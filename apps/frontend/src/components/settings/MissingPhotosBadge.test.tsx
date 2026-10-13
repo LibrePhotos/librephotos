@@ -78,6 +78,17 @@ describe("MissingPhotosBadge", () => {
     expect(container.textContent).toContain("This permanently deletes 1 missing photo and its metadata");
   });
 
+  // #2245: a plain Badge with onClick was neither focusable nor announced as a control.
+  it("is a real button, so Tab reaches it and Enter or Space open the dialog", async () => {
+    await renderBadge(3);
+
+    const badge = container.querySelector<HTMLElement>(".mantine-Badge-root");
+    expect(badge?.tagName).toBe("BUTTON");
+    expect(badge?.getAttribute("type")).toBe("button");
+    expect(badge?.tabIndex).toBe(0);
+    expect(badge?.textContent).toContain("3");
+  });
+
   it("deletes only on Confirm", async () => {
     await renderBadge(3);
     await openDialog();

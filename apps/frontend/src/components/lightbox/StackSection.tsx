@@ -1,4 +1,4 @@
-import type { Photo, PhotoStackDetail, StackTypeEnum } from "@librephotos/api-client";
+import type { Photo, PhotoStackDetail, StackPhotoDetail, StackTypeEnum } from "@librephotos/api-client";
 import {
   Accordion,
   ActionIcon,
@@ -25,11 +25,12 @@ import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
+import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
 type StackSectionProps = {
-  photoDetail: Photo;
+  photoDetail: Pick<Photo, "id" | "stacks">;
   onPhotoSelect?: (photoId: string) => void;
 };
 
@@ -55,6 +56,71 @@ function formatBytes(bytes: number | null | undefined): string {
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
+}
+
+type StackPhotoThumbnailProps = {
+  stackPhoto: StackPhotoDetail;
+  /** Its accessible name, e.g. "Photo 2 of 3". */
+  label: string;
+  /** The photo the lightbox shows now. */
+  isCurrent: boolean;
+  onPhotoSelect?: (photoId: string) => void;
+};
+
+/**
+ * One photo of a stack. Another photo of the stack is a button that switches to it (Tab, then
+ * Enter or Space, like a click); the one on screen is marked aria-current and does nothing.
+ */
+function StackPhotoThumbnail({ stackPhoto, label, isCurrent, onPhotoSelect }: StackPhotoThumbnailProps) {
+  const { t } = useTranslation();
+  const selectable = onPhotoSelect !== undefined && !isCurrent;
+  const interaction = selectable
+    ? buttonRoleProps(() => onPhotoSelect(stackPhoto.id))
+    : { role: "img" as const, "aria-current": isCurrent ? ("true" as const) : undefined };
+
+  return (
+    <Tooltip
+      label={
+        <Stack gap={2}>
+          <Text size="xs">
+            {stackPhoto.width} × {stackPhoto.height}
+          </Text>
+          <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
+          {stackPhoto.is_primary && (
+            <Text size="xs" fw={700}>
+              {t("lightbox.sidebar.primary")}
+            </Text>
+          )}
+          {selectable && (
+            <Text size="xs" c="blue">
+              {t("lightbox.sidebar.clickToView")}
+            </Text>
+          )}
+        </Stack>
+      }
+    >
+      <Card
+        p={0}
+        withBorder
+        aria-label={label}
+        {...interaction}
+        style={{
+          borderColor: stackPhoto.is_primary ? "var(--mantine-color-blue-5)" : undefined,
+          borderWidth: stackPhoto.is_primary ? 2 : 1,
+          opacity: isCurrent ? 1 : 0.7,
+          cursor: selectable ? "pointer" : "default",
+        }}
+      >
+        <Image
+          src={stackPhoto.thumbnail_url ? `${serverAddress}${stackPhoto.thumbnail_url}` : undefined}
+          alt=""
+          h={60}
+          fit="cover"
+          fallbackSrc={PLACEHOLDER_IMAGE}
+        />
+      </Card>
+    </Tooltip>
+  );
 }
 
 type SingleStackCardProps = {
@@ -89,52 +155,14 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
             {/* Stack photo thumbnails */}
             <ScrollArea.Autosize type="auto" mah={160}>
               <SimpleGrid cols={4} spacing="xs">
-                {stack.photos.map(stackPhoto => (
-                  <Tooltip
+                {stack.photos.map((stackPhoto, index) => (
+                  <StackPhotoThumbnail
                     key={stackPhoto.id}
-                    label={
-                      <Stack gap={2}>
-                        <Text size="xs">
-                          {stackPhoto.width} × {stackPhoto.height}
-                        </Text>
-                        <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
-                        {stackPhoto.is_primary && (
-                          <Text size="xs" fw={700}>
-                            {t("lightbox.sidebar.primary")}
-                          </Text>
-                        )}
-                        {onPhotoSelect && stackPhoto.id !== photoId && (
-                          <Text size="xs" c="blue">
-                            {t("lightbox.sidebar.clickToView")}
-                          </Text>
-                        )}
-                      </Stack>
-                    }
-                  >
-                    <Card
-                      p={0}
-                      withBorder
-                      style={{
-                        borderColor: stackPhoto.is_primary ? "var(--mantine-color-blue-5)" : undefined,
-                        borderWidth: stackPhoto.is_primary ? 2 : 1,
-                        opacity: stackPhoto.id === photoId ? 1 : 0.7,
-                        cursor: onPhotoSelect && stackPhoto.id !== photoId ? "pointer" : "default",
-                      }}
-                      onClick={() => {
-                        if (onPhotoSelect && stackPhoto.id !== photoId) {
-                          onPhotoSelect(stackPhoto.id);
-                        }
-                      }}
-                    >
-                      <Image
-                        src={stackPhoto.thumbnail_url ? `${serverAddress}${stackPhoto.thumbnail_url}` : undefined}
-                        alt=""
-                        h={60}
-                        fit="cover"
-                        fallbackSrc={PLACEHOLDER_IMAGE}
-                      />
-                    </Card>
-                  </Tooltip>
+                    stackPhoto={stackPhoto}
+                    label={t("photoofcount", { index: index + 1, count: stack.photos.length })}
+                    isCurrent={stackPhoto.id === photoId}
+                    onPhotoSelect={onPhotoSelect}
+                  />
                 ))}
               </SimpleGrid>
             </ScrollArea.Autosize>
@@ -243,54 +271,14 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                     {/* Stack photo thumbnails */}
                     <ScrollArea.Autosize type="auto" mah={160}>
                       <SimpleGrid cols={4} spacing="xs">
-                        {stack.photos.map(stackPhoto => (
-                          <Tooltip
+                        {stack.photos.map((stackPhoto, index) => (
+                          <StackPhotoThumbnail
                             key={stackPhoto.id}
-                            label={
-                              <Stack gap={2}>
-                                <Text size="xs">
-                                  {stackPhoto.width} × {stackPhoto.height}
-                                </Text>
-                                <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
-                                {stackPhoto.is_primary && (
-                                  <Text size="xs" fw={700}>
-                                    {t("lightbox.sidebar.primary")}
-                                  </Text>
-                                )}
-                                {onPhotoSelect && stackPhoto.id !== photoDetail.id && (
-                                  <Text size="xs" c="blue">
-                                    {t("lightbox.sidebar.clickToView")}
-                                  </Text>
-                                )}
-                              </Stack>
-                            }
-                          >
-                            <Card
-                              p={0}
-                              withBorder
-                              style={{
-                                borderColor: stackPhoto.is_primary ? "var(--mantine-color-blue-5)" : undefined,
-                                borderWidth: stackPhoto.is_primary ? 2 : 1,
-                                opacity: stackPhoto.id === photoDetail.id ? 1 : 0.7,
-                                cursor: onPhotoSelect && stackPhoto.id !== photoDetail.id ? "pointer" : "default",
-                              }}
-                              onClick={() => {
-                                if (onPhotoSelect && stackPhoto.id !== photoDetail.id) {
-                                  onPhotoSelect(stackPhoto.id);
-                                }
-                              }}
-                            >
-                              <Image
-                                src={
-                                  stackPhoto.thumbnail_url ? `${serverAddress}${stackPhoto.thumbnail_url}` : undefined
-                                }
-                                alt=""
-                                h={60}
-                                fit="cover"
-                                fallbackSrc={PLACEHOLDER_IMAGE}
-                              />
-                            </Card>
-                          </Tooltip>
+                            stackPhoto={stackPhoto}
+                            label={t("photoofcount", { index: index + 1, count: stack.photos.length })}
+                            isCurrent={stackPhoto.id === photoDetail.id}
+                            onPhotoSelect={onPhotoSelect}
+                          />
                         ))}
                       </SimpleGrid>
                     </ScrollArea.Autosize>

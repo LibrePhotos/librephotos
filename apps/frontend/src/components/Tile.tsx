@@ -7,6 +7,11 @@ type DefaultProps = {
   style: CSSProperties;
   video: boolean;
   className: string;
+  /**
+   * The text alternative. Empty (decorative) by default: most tiles sit next to their title.
+   * A tile that is the only content of a link or button names it here.
+   */
+  alt: string;
 };
 
 type Props = {
@@ -26,7 +31,7 @@ function stopPreview(element: HTMLVideoElement) {
   element.currentTime = 0;
 }
 
-export function Tile({ video, width, height, style, image_hash, className }: Props) {
+export function Tile({ video, width, height, style, image_hash, className, alt = "" }: Props) {
   const [videoFailed, setVideoFailed] = useState(false);
   const src = mediaUrl.squareThumbnail(image_hash);
   const videoNode = useRef<HTMLVideoElement | null>(null);
@@ -95,8 +100,11 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
         onMouseEnter={event => startPreview(event.currentTarget)}
         onMouseLeave={event => stopPreview(event.currentTarget)}
         onError={() => setVideoFailed(true)}
+        // A <video> has no alt: the name comes from aria-label, and a decorative one is hidden
+        aria-label={alt || undefined}
+        aria-hidden={alt ? undefined : true}
       />
     );
   }
-  return <Image className={className} style={style} width={width} height={height} src={src} />;
+  return <Image className={className} style={style} width={width} height={height} src={src} alt={alt} />;
 }

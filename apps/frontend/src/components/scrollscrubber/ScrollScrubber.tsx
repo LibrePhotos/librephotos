@@ -5,15 +5,11 @@ import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useStat
 import type { MouseEvent, ReactNode } from "react";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
-import { alphabetMarkerLetter, isUnknownPersonLabel } from "./alphabetMarker";
 import classes from "./ScrollScrubber.module.css";
 import { findScrollScrubberTarget } from "./scrollScrubberTarget";
 import type { ScrollerData, ScrollerPosition } from "./scrollScrubberTypes";
 import { ScrollerType } from "./scrollScrubberTypes";
-
-// Minimum vertical distance between two markers: a marker chip is 18px tall,
-// so anything closer overlaps its neighbour.
-const MIN_MARKER_GAP = 20;
+import { alphabetMarkers, dateMarkers, labelMarkers } from "./scrubberMarkers";
 
 type Props = Readonly<{
   type: ScrollerType; // Type of scroller marks to display
@@ -86,89 +82,14 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return "";
   };
 
-  const getLabelsMarkers = useCallback((): ScrollerPosition[] => {
-    const markers: ScrollerPosition[] = [];
-    positions.forEach(item => {
-      const lastMarker = markers.at(-1);
-      if (lastMarker === undefined || item.scrollerY - lastMarker.scrollerY > MIN_MARKER_GAP) {
-        markers.push({
-          label: item.label,
-          targetY: item.targetY,
-          scrollerY: item.scrollerY,
-          scrollerYPercent: item.scrollerYPercent,
-        });
-      }
-    });
-    return markers;
-  }, [positions]);
-
-  const getAlphabetMarkers = useCallback((): ScrollerPosition[] => {
-    const alphabet: ScrollerPosition[] = [];
-    let currentLetter: string | null = null;
-    positions.forEach(item => {
-      const letter = alphabetMarkerLetter(item.label);
-      if (letter !== currentLetter || isUnknownPersonLabel(item.label)) {
-        currentLetter = letter;
-        const label = isUnknownPersonLabel(item.label) ? item.label : currentLetter;
-        // Only display letter if there is enough space with preivous letter
-        const lastLetter = alphabet.at(-1);
-        if (lastLetter === undefined || item.scrollerY - lastLetter.scrollerY > MIN_MARKER_GAP) {
-          alphabet.push({
-            label,
-            targetY: item.targetY,
-            scrollerY: item.scrollerY,
-            scrollerYPercent: item.scrollerYPercent,
-          });
-        }
-      }
-    });
-    return alphabet;
-  }, [positions]);
-
-  const getLabelForDateMarker = (item: ScrollerPosition, dateType: string): string => {
-    if (dateType === "years" && item.year) return item.year.toString();
-    if (dateType === "months" && item.month) return item.month;
-    return item.label;
-  };
-
-  const getDateMarkers = useCallback(
-    (dateType: string = "years"): ScrollerPosition[] => {
-      const dates: ScrollerPosition[] = [];
-      let countDifferentValues = 0;
-      let currentDate: string = "";
-      positions.forEach(item => {
-        const label = getLabelForDateMarker(item, dateType);
-        if (label !== currentDate) {
-          currentDate = label;
-          countDifferentValues += 1;
-          const lastDate = dates.at(-1);
-          if (lastDate === undefined || item.scrollerY - lastDate.scrollerY > MIN_MARKER_GAP) {
-            dates.push({
-              label: currentDate,
-              targetY: item.targetY,
-              scrollerY: item.scrollerY,
-              scrollerYPercent: item.scrollerYPercent,
-            });
-          }
-        }
-      });
-      if (dateType === "years" && countDifferentValues < 10) return getDateMarkers("months");
-      // Per-day labels are long ("Wednesday, March 12, 2025") and cover the
-      // grid, so keep month markers unless everything is in one month.
-      if (dateType === "months" && countDifferentValues < 2) return getLabelsMarkers();
-      return dates;
-    },
-    [positions, getLabelsMarkers]
-  );
-
   useEffect(() => {
     let markersType = type;
     if (positions.length < 10) markersType = ScrollerType.enum.labels;
 
-    if (markersType === ScrollerType.enum.alphabet) setMarkerPositions(getAlphabetMarkers());
-    else if (markersType === ScrollerType.enum.date) setMarkerPositions(getDateMarkers());
-    else setMarkerPositions(getLabelsMarkers());
-  }, [positions, type, getAlphabetMarkers, getDateMarkers, getLabelsMarkers]);
+    if (markersType === ScrollerType.enum.alphabet) setMarkerPositions(alphabetMarkers(positions));
+    else if (markersType === ScrollerType.enum.date) setMarkerPositions(dateMarkers(positions));
+    else setMarkerPositions(labelMarkers(positions));
+  }, [positions, type]);
 
   // Lay the markers out again when the positions or the scale they are mapped with change: a
   // grid that grows without new scroll positions needs its markers moved to its new height.
@@ -443,7 +364,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   return (
     <div>
       {children}
+      {/* Mouse only: keyboard and screen reader users scroll the page itself */}
       <Box
+        aria-hidden
         className={classes.backgroundLayer}
         style={{
           opacity: scrollerIsVisible ? 0.9 : 0,
@@ -454,6 +377,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       />
       <Box
         ref={scrubberRef}
+        aria-hidden
         className={classes.scrubber}
         style={{
           opacity: scrollerIsVisible ? 1 : 0,

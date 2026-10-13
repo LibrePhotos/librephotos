@@ -70,7 +70,7 @@ function AlbumTag() {
   function renderCover(tag: TagListEntry, size: number) {
     const cover = tag.cover_photos[0];
     return cover ? (
-      <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
+      <Link to="/album/tags/$id" params={{ id: String(tag.id) }} aria-label={tag.name}>
         <Tile
           className={gridClasses.cover}
           video={cover.video === true}
@@ -80,7 +80,7 @@ function AlbumTag() {
         />
       </Link>
     ) : (
-      <Link to="/album/tags/$id" params={{ id: String(tag.id) }}>
+      <Link to="/album/tags/$id" params={{ id: String(tag.id) }} aria-label={tag.name}>
         <Flex align="center" justify="center" h={size} w={size} bg="var(--mantine-color-default-hover)">
           <Tag size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
         </Flex>

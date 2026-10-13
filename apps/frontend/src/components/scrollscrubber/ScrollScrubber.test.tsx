@@ -119,6 +119,14 @@ describe("ScrollScrubber", () => {
     expect(markerTops()[1]).toBeCloseTo((1000 * 100) / (4000 - viewport));
   });
 
+  // #2245: mouse only; keyboard and screen reader users scroll the page itself
+  it("is hidden from assistive technology, its background layer too", () => {
+    renderMeasured(2000);
+
+    expect(scrubber().getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector(`.${defined(classes.backgroundLayer)}`)?.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("shows itself on a long scroll and hides again", () => {
     renderMeasured(5000);
     expect(scrubber().style.opacity).toBe("0");
