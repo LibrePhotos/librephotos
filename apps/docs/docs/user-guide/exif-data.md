@@ -166,7 +166,7 @@ sidebar_position: 18
         <td>Keywords / People</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility.</td>
+        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility. The photo's other keywords stay, and relabelling a face removes the previous name. A new XMP sidecar starts from the photo's own keywords (XMP:Subject and IPTC:Keywords), so they are not hidden behind it. <em>Not released yet</em>: earlier versions replaced the keywords with the names.</td>
     </tr>
     <tr>
         <td>IPTC:Keywords</td>

@@ -22,7 +22,9 @@ from api.metadata.jobs import write_photo_ratings
 from api.metadata.tags import Tags
 from api.metadata.writer import (
     MetadataWriteError,
+    add_to,
     one_exiftool_process,
+    remove_from,
     write_metadata,
 )
 from api.models.face import Face
@@ -115,6 +117,18 @@ class WriteMetadataReportsFailuresTest(RealExifToolTestCase):
         result = write_metadata(path, {Tags.REGION_INFO_WRITE: ""}, use_sidecar=True)
 
         self.assertEqual((0, 1), (result.updated, result.unchanged))
+
+    def test_removing_a_keyword_the_sidecar_lacks_is_no_failure(self):
+        path = self.make_image(".jpg")
+        write_metadata(path, {Tags.SUBJECT: ["Holiday"]}, use_sidecar=True)
+
+        removal = {remove_from(Tags.SUBJECT): ["Alice"]}
+        self.assertEqual(0, write_metadata(path, removal, use_sidecar=True).updated)
+        added = {add_to(Tags.SUBJECT): ["Bob"]}
+        self.assertEqual(1, write_metadata(path, added, use_sidecar=True).updated)
+
+        subject = self.read_tags(self.sidecar_of(path), "XMP-dc:Subject")
+        self.assertEqual(["Holiday", "Bob"], subject["XMP-dc:Subject"])
 
     def test_the_error_survives_pickling(self):
         # django-q and the parallel test runner pickle exceptions.

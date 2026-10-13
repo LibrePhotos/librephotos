@@ -392,28 +392,84 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
     def test_portrait_jpeg_into_the_media_file(self):
         self._portrait_round_trip(MEDIA_FILE)
 
+    def _scan_keywords(self, photo):
+        """The photo's keywords as the next scan reads them."""
+        return extract_exif_data(photo, commit=False).keywords
+
+    def _file_keywords(self, path):
+        (subject,) = self.read_tags(path, "XMP-dc:Subject").values()
+        if subject is None:
+            return []
+        return subject if isinstance(subject, list) else [subject]
+
     def _keywords_survive(self, mode):
         path = self.make_image(".jpg")
         self.tag(path, "-XMP-dc:Subject=Holiday", "-XMP-dc:Subject=Beach")
         photo = self._face_photo(path, mode, FACE_LANDSCAPE)
+        use_sidecar = mode == SIDECAR
+        target = self.sidecar_of(path) if use_sidecar else path
 
         write_photo_metadata(
-            photo, use_sidecar=mode == SIDECAR, metadata_types=["face_tags"]
+            photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
         )
 
         (subject,) = get_metadata(path, tags=[Tags.SUBJECT], try_sidecar=True)
         keywords = subject if isinstance(subject, list) else [subject]
         self.assertCountEqual(["Holiday", "Beach", "Alice"], keywords)
+        self.assertEqual(["Alice", "Beach", "Holiday"], self._scan_keywords(photo))
+        self.assertCountEqual(
+            ["Holiday", "Beach", "Alice"], self._file_keywords(target)
+        )
 
-    # #2291: the person names are assigned to XMP:Subject, replacing the
+        # Relabelled: the previous name goes, the keywords stay.
+        self._label_face(photo)
+        self.assertCountEqual(["Holiday", "Beach", "Bob"], self._file_keywords(target))
+
+        # Written again: no duplicate.
+        write_photo_metadata(
+            photo, use_sidecar=use_sidecar, metadata_types=["face_tags"]
+        )
+        self.assertCountEqual(["Holiday", "Beach", "Bob"], self._file_keywords(target))
+        self.assertEqual(["Beach", "Bob", "Holiday"], self._scan_keywords(photo))
+        self.assertWritesLanded(expected=3)
+        if use_sidecar:
+            self.assertCountEqual(["Holiday", "Beach"], self._file_keywords(path))
+
+    # #2291: the person names were assigned to XMP:Subject, replacing the
     # photo's keywords (in the file, or in the sidecar the scan reads instead).
-    @unittest.expectedFailure
     def test_keywords_survive_in_the_sidecar(self):
         self._keywords_survive(SIDECAR)
 
-    @unittest.expectedFailure  # #2291, as above
     def test_keywords_survive_in_the_media_file(self):
         self._keywords_survive(MEDIA_FILE)
+
+    def test_a_new_sidecar_starts_from_the_iptc_keywords_too(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Subject=Holiday", "-IPTC:Keywords=Sunset")
+        photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
+
+        write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
+
+        self.assertCountEqual(
+            ["Holiday", "Sunset", "Alice"], self._file_keywords(self.sidecar_of(path))
+        )
+        self.assertEqual(["Alice", "Holiday", "Sunset"], self._scan_keywords(photo))
+
+    def test_keywords_of_an_existing_sidecar_survive(self):
+        """A digiKam sidecar's keywords stay, and the media file's are not copied in."""
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Subject=Original")
+        sidecar = path + ".xmp"
+        write_metadata(path, {Tags.SUBJECT: ["Holiday", "Beach"]}, use_sidecar=True)
+        self.assertEqual(sidecar, self.sidecar_of(path))
+        photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
+
+        write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
+
+        self.assertCountEqual(
+            ["Holiday", "Beach", "Alice"], self._file_keywords(sidecar)
+        )
+        self.assertEqual(["Alice", "Beach", "Holiday"], self._scan_keywords(photo))
 
     def _label_face(self, photo):
         client = APIClient()

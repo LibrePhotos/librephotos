@@ -19,6 +19,14 @@ from api.tests.utils import (
     create_test_user,
 )
 
+# What the mocked get_metadata finds: no orientation, a 4000 x 3000 original,
+# no face regions or keywords yet.
+FILE_METADATA = {Tags.IMAGE_WIDTH: 4000, Tags.IMAGE_HEIGHT: 3000}
+
+
+def _file_metadata(media_file, tags, **kwargs):
+    return [FILE_METADATA.get(tag) for tag in tags]
+
 
 class TestThumbnailCoordsToNormalized(TestCase):
     def test_basic_conversion(self):
@@ -202,23 +210,49 @@ class TestBuildFaceRegionExiftoolArgs(TestCase):
         self.assertNotIn("AppliedToDimensions", value)
 
     def test_subject_keywords_for_named_faces(self):
-        """Named faces should be added as XMP:Subject keywords."""
+        """Named faces are added to XMP:Subject, never assigned to it (#2291)."""
         regions = [
             {"name": "Alice", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1},
             {"name": "Bob", "x": 0.7, "y": 0.5, "w": 0.15, "h": 0.2},
             {"name": "", "x": 0.5, "y": 0.8, "w": 0.12, "h": 0.1},
+            {"name": "Alice", "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1},
         ]
         result = build_face_region_exiftool_args(regions)
-        self.assertIn("XMP:Subject", result)
-        self.assertEqual(result["XMP:Subject"], ["Alice", "Bob"])
+        self.assertNotIn("XMP:Subject", result)
+        # Removed and added again: ExifTool adds each name once.
+        self.assertEqual(result["XMP:Subject-"], ["Alice", "Bob"])
+        self.assertEqual(result["XMP:Subject+"], ["Alice", "Bob"])
+        self.assertEqual(["XMP:Subject-", "XMP:Subject+"], list(result)[1:])
+
+    def test_a_relabelled_face_removes_the_previous_name(self):
+        regions = [{"name": "Bob", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1}]
+        result = build_face_region_exiftool_args(
+            regions, previous_names=["Alice", "Bob", "Alice"]
+        )
+        self.assertEqual(result["XMP:Subject-"], ["Alice", "Bob"])
+        self.assertEqual(result["XMP:Subject+"], ["Bob"])
+
+    def test_a_new_keyword_list_starts_from_the_photos_keywords(self):
+        """A sidecar without keywords gets the photo's own plus the names."""
+        regions = [{"name": "Bob", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1}]
+        result = build_face_region_exiftool_args(
+            regions,
+            previous_names=["Alice"],
+            keywords=["Alice", "Beach", "Bob", "Holiday"],
+        )
+        self.assertEqual(result["XMP:Subject"], ["Beach", "Bob", "Holiday"])
+        self.assertNotIn("XMP:Subject-", result)
+        self.assertNotIn("XMP:Subject+", result)
 
     def test_no_subject_keywords_when_all_unnamed(self):
-        """No XMP:Subject should be set when all faces are unnamed."""
+        """No XMP:Subject change when all faces are unnamed."""
         regions = [
             {"name": "", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1},
         ]
         result = build_face_region_exiftool_args(regions)
-        self.assertNotIn("XMP:Subject", result)
+        self.assertEqual(["XMP-mwg-rs:RegionInfo"], list(result))
+        result = build_face_region_exiftool_args(regions, keywords=[])
+        self.assertEqual(["XMP-mwg-rs:RegionInfo"], list(result))
 
 
 class TestRoundTripCoordinates(TestCase):
@@ -279,9 +313,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Alice", tags["XMP-mwg-rs:RegionInfo"])
@@ -290,9 +324,8 @@ class TestGetFaceRegionTags(TestCase):
             "AppliedToDimensions={W=4000,H=3000,Unit=pixel}",
             tags["XMP-mwg-rs:RegionInfo"],
         )
-        # XMP:Subject should contain the person name
-        self.assertIn("XMP:Subject", tags)
-        self.assertEqual(tags["XMP:Subject"], ["Alice"])
+        # The person name is added to XMP:Subject
+        self.assertEqual(tags["XMP:Subject+"], ["Alice"])
 
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")
@@ -317,9 +350,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         value = tags["XMP-mwg-rs:RegionInfo"]
         self.assertIn("Alice", value)
@@ -350,9 +383,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         value = tags["XMP-mwg-rs:RegionInfo"]
@@ -381,9 +414,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         value = tags["XMP-mwg-rs:RegionInfo"]
@@ -422,9 +455,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         value = tags["XMP-mwg-rs:RegionInfo"]
         self.assertIn("Alice", value)
@@ -466,9 +499,9 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
-        tags = get_face_region_tags(photo)
+        tags = get_face_region_tags(photo, use_sidecar=False)
 
         value = tags["XMP-mwg-rs:RegionInfo"]
         self.assertIn("Active", value)
@@ -504,7 +537,7 @@ class TestSaveMetadataIntegration(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
         write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
 
@@ -564,7 +597,7 @@ class TestSaveMetadataIntegration(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None, 4000, 3000)
+        mock_get_metadata.side_effect = _file_metadata
 
         write_photo_metadata(
             photo, use_sidecar=True, metadata_types=["ratings", "face_tags"]
