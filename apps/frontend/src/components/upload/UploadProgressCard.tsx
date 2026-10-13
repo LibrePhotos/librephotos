@@ -15,6 +15,7 @@ import {
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
 import { useUpload } from "./UploadContext";
 import classes from "./UploadProgressCard.module.css";
 import type { UploadItem, UploadStatus } from "./useUploadQueue";
@@ -162,19 +163,18 @@ function StopOrCloseButton() {
     );
   }
   return (
-    <Tooltip label={t("upload.cancel_hint")}>
+    <DisabledReason label={t("upload.cancel_hint")} reason={isCancelling && t("upload.cancelling")}>
       <Button
         size="compact-sm"
         variant="subtle"
         color="red"
         leftSection={<IconPlayerStop size={14} />}
         onClick={cancel}
-        disabled={isCancelling}
         data-testid="upload-cancel"
       >
         {t("upload.cancel")}
       </Button>
-    </Tooltip>
+    </DisabledReason>
   );
 }
 

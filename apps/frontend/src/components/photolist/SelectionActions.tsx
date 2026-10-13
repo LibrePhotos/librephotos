@@ -7,7 +7,6 @@ import {
   IconDownload as Download,
   IconEye as Eye,
   IconEyeOff as EyeOff,
-  IconFileMinus as FileMinus,
   IconFileText as FileText,
   IconGlobe as Globe,
   IconLayersLinked,
@@ -45,7 +44,9 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
+import { DisabledReason } from "../common/DisabledReason";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
+import { RemoveFromAlbumMenuItem } from "./RemoveFromAlbumMenuItem";
 
 /** The albums whose cover the selection can set. */
 export type AlbumCoverType = "person" | "useralbum";
@@ -217,6 +218,7 @@ export function SelectionActions(props: Readonly<Props>) {
             {t("selectionactions.album")}
           </Menu.Item>
 
+          {/* No `disabled`: this menu only opens with a selection (its button is disabled without one). */}
           <Tooltip label={t("selectionactions.tagdescription")} position="left">
             <Menu.Item
               leftSection={<Tag size={ICON_SIZE.menu} />}
@@ -225,7 +227,6 @@ export function SelectionActions(props: Readonly<Props>) {
                   t
                 </Text>
               }
-              disabled={!hasSelection}
               onClick={() => hasSelection && onAddTags()}
             >
               {t("selectionactions.tag")}
@@ -559,13 +560,11 @@ export function SelectionActions(props: Readonly<Props>) {
 
               <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
 
-              <Tooltip
-                label={t("selectionactions.albumcovermultiselect")}
-                disabled={selectedItems.length <= 1 && !selectAllMode}
+              <DisabledReason
+                reason={(selectedItems.length > 1 || selectAllMode) && t("selectionactions.albumcovermultiselect")}
                 position="left"
               >
                 <Menu.Item
-                  disabled={selectedItems.length > 1 || selectAllMode}
                   leftSection={<Photo size={ICON_SIZE.menu} />}
                   onClick={() => {
                     if (location.pathname.startsWith("/album/persons/")) {
@@ -582,7 +581,7 @@ export function SelectionActions(props: Readonly<Props>) {
                 >
                   {t("selectionactions.albumcover")}
                 </Menu.Item>
-              </Tooltip>
+              </DisabledReason>
 
               {location.pathname.startsWith("/album/user/") && (
                 <>
@@ -590,23 +589,15 @@ export function SelectionActions(props: Readonly<Props>) {
                     {t("selectionactions.sharing")}
                   </Menu.Item>
 
-                  <Menu.Item
-                    leftSection={<FileMinus size={ICON_SIZE.menu} />}
-                    disabled={!hasSelection || selectAllMode || albumLocked}
-                    onClick={() => {
-                      // Remove from album doesn't support selectAll mode
-                      if (!selectAllMode && !albumLocked) {
-                        removePhotosFromAlbum.mutate({
-                          id: `${albumID ?? ""}`,
-                          title,
-                          photos: getImageHashes(),
-                        });
-                      }
+                  <RemoveFromAlbumMenuItem
+                    hasSelection={hasSelection}
+                    selectAllMode={selectAllMode}
+                    albumLocked={albumLocked}
+                    onRemove={() => {
+                      removePhotosFromAlbum.mutate({ id: `${albumID ?? ""}`, title, photos: getImageHashes() });
                       resetSelection();
                     }}
-                  >
-                    {t("selectionactions.removephotos")}
-                  </Menu.Item>
+                  />
                 </>
               )}
             </>

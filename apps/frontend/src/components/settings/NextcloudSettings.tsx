@@ -12,6 +12,7 @@ import {
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useScanNextcloudPhotosMutation } from "../../api_client/jobs/hooks";
+import { DisabledReason } from "../common/DisabledReason";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
@@ -34,7 +35,8 @@ type NextcloudSettingsProps = {
   /** The pending edits, saved through the library's save dialog. */
   editedUser: User | null;
   setEditedUser: React.Dispatch<React.SetStateAction<User | null>>;
-  workerAvailability: boolean;
+  /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
+  busyReason?: string;
   isNextcloudFetching: boolean;
   isNextcloudSuccess: boolean;
   isNextcloudError: boolean;
@@ -46,7 +48,7 @@ export function NextcloudSettings({
   userSelfDetails,
   editedUser,
   setEditedUser,
-  workerAvailability,
+  busyReason,
   isNextcloudFetching,
   isNextcloudSuccess,
   isNextcloudError,
@@ -168,17 +170,25 @@ export function NextcloudSettings({
         </Grid>
         <Grid justify="flex-end">
           <Grid.Col span={{ base: 12, sm: "content" }}>
-            <Button
-              onClick={() => {
-                scanNextcloudPhotos.mutate();
-              }}
-              disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
-              variant="filled"
-              leftSection={<BrandNextcloud />}
-              fullWidth
+            <DisabledReason
+              reason={
+                busyReason ??
+                (userSelfDetails.nextcloud_server_address ? undefined : t("settings.nextcloudaddressfirst"))
+              }
             >
-              <Trans i18nKey="settings.scannextcloudphotos" />
-            </Button>
+              {/* While the connection is checked the button waits (loading) rather than disabled. */}
+              <Button
+                onClick={() => {
+                  scanNextcloudPhotos.mutate();
+                }}
+                loading={isNextcloudFetching}
+                variant="filled"
+                leftSection={<BrandNextcloud />}
+                fullWidth
+              >
+                <Trans i18nKey="settings.scannextcloudphotos" />
+              </Button>
+            </DisabledReason>
           </Grid.Col>
         </Grid>
       </Stack>

@@ -10,6 +10,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { TimestampItem } from "./TimestampItem";
 
 type MutateCallbacks = { onSuccess?: () => void; onError?: () => void };
@@ -259,7 +260,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await click(button(container, "Edit date and time"));
     await typeTime(container, "");
 
-    expect(button(container, "Save")?.disabled).toBe(true);
+    expectDisabledWithReason(defined(button(container, "Save")), "Invalid timestamp");
     await click(button(container, "Save"));
     expect(updatePhoto).not.toHaveBeenCalled();
   });
@@ -273,7 +274,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await click(dayCell(container, "10"));
 
     expect(container.querySelector<HTMLInputElement>('input[type="time"]')?.value).toBe("");
-    expect(button(container, "Save")?.disabled).toBe(true);
+    expectDisabledWithReason(defined(button(container, "Save")), "Invalid timestamp");
   });
 
   it("starts an undated photo's new day at midnight", async () => {
@@ -284,7 +285,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await click(dayCell(container, "10"));
 
     expect(container.querySelector<HTMLInputElement>('input[type="time"]')?.value).toBe("00:00:00");
-    expect(button(container, "Save")?.disabled).toBe(false);
+    expect(button(container, "Save")?.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("keeps a time typed before the date on an undated photo", async () => {

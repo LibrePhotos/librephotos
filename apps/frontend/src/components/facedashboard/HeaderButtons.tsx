@@ -14,10 +14,11 @@ import {
   IconUserOff as UserOff,
 } from "@tabler/icons-react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { PAGE_GUTTER } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
@@ -46,24 +47,16 @@ export function HeaderButtons({
   toggleAllCollapsed,
   canCollapse,
 }: Props) {
-  const [jobType, setJobType] = useState("");
   const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
-  const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const navigate = useNavigate();
   const trainFacesMutation = useTrainFacesMutation();
   const { t } = useTranslation();
   const search = routeApi.useSearch();
   const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = search;
-
-  useEffect(() => {
-    if (trainFacesMutation.isPending) {
-      setQueueCanAcceptJob(false);
-      setJobType("Train Faces");
-    } else {
-      setQueueCanAcceptJob(true);
-      setJobType("");
-    }
-  }, [trainFacesMutation.isPending]);
+  const collapseLabel = allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall");
+  // The toolbar's face actions work on the selection; their tooltips say what they do and, until a
+  // face is selected, why they cannot (#2237).
+  const noSelection = selectedFaces.length === 0 && t("facesdashboard.selectfacesfirst");
 
   return (
     <>
@@ -145,55 +138,45 @@ export function HeaderButtons({
           )}
         </Group>
         <Group h={36} wrap="nowrap">
-          <Tooltip label={allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall")}>
-            <ActionIcon
-              variant="light"
-              color="gray"
-              disabled={!canCollapse}
-              aria-label={allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall")}
-              onClick={toggleAllCollapsed}
-            >
+          <DisabledReason label={collapseLabel} reason={!canCollapse && t("facesdashboard.nogroups")}>
+            <ActionIcon variant="light" color="gray" aria-label={collapseLabel} onClick={toggleAllCollapsed}>
               {allCollapsed ? <ChevronsDown /> : <ChevronsUp />}
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
           <Divider orientation="vertical" />
-          <Tooltip label={t("facesdashboard.explanationadding")}>
+          <DisabledReason label={t("facesdashboard.explanationadding")} reason={noSelection}>
             <ActionIcon
               variant="light"
               color="green"
-              disabled={selectedFaces.length === 0}
               aria-label={t("facesdashboard.explanationadding")}
               onClick={addFaces}
             >
               <Plus />
             </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t("facesdashboard.notthisperson")}>
+          </DisabledReason>
+          <DisabledReason label={t("facesdashboard.notthisperson")} reason={noSelection}>
             <ActionIcon
               variant="light"
               color="orange"
-              disabled={selectedFaces.length === 0}
               aria-label={t("facesdashboard.notthisperson")}
               onClick={() => notThisPerson()}
             >
               <UserOff />
             </ActionIcon>
-          </Tooltip>
-          <Tooltip label={t("facesdashboard.explanationdeleting")}>
+          </DisabledReason>
+          <DisabledReason label={t("facesdashboard.explanationdeleting")} reason={noSelection}>
             <ActionIcon
               variant="light"
               color="red"
-              disabled={selectedFaces.length === 0}
               aria-label={t("facesdashboard.explanationdeleting")}
               onClick={() => openDeleteDialog()}
             >
               <Trash />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
           <Tooltip label={t("facesdashboard.explanationtraining")}>
             <ActionIcon
-              disabled={!queueCanAcceptJob}
-              loading={jobType === "Train Faces"}
+              loading={trainFacesMutation.isPending}
               color="blue"
               variant="light"
               aria-label={t("facesdashboard.explanationtraining")}

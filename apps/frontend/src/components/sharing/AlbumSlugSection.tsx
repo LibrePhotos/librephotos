@@ -1,6 +1,6 @@
 import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
 import { type PublicSharingDefaults } from "@librephotos/api-client";
-import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
@@ -11,6 +11,7 @@ import { ApiError } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
 import { copyToClipboard } from "../../util/util";
+import { DisabledReason } from "../common/DisabledReason";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
 import { publicAlbumLink } from "./publicAlbum";
 
@@ -175,6 +176,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
 
   // derived values
   const slugLink = album?.public_slug ? publicAlbumLink(album.public_slug) : "";
+  const noLinkYet = !slugLink && t("sharing.generating");
 
   // Follow the server's copy, but never over a setting the owner is editing: the dirty fields are
   // guards here, not triggers.
@@ -244,12 +246,15 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           readOnly
           leftSection={<LinkIcon size={16} />}
         />
-        <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} opened={copied ? true : undefined}>
+        <DisabledReason
+          label={copied ? t("sharing.copied") : t("sharing.copyLink")}
+          opened={copied ? true : undefined}
+          reason={noLinkYet}
+        >
           <ActionIcon
             variant="light"
             size="lg"
             aria-label={t("sharing.copyLink")}
-            disabled={!slugLink}
             onClick={() => {
               if (!slugLink) return;
               copyToClipboard(slugLink);
@@ -259,18 +264,12 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           >
             <CopyIcon size={18} />
           </ActionIcon>
-        </Tooltip>
-        <Tooltip label={t("sharing.openPublicLink")}>
-          <ActionIcon
-            variant="light"
-            size="lg"
-            aria-label={t("sharing.openPublicLink")}
-            disabled={!slugLink}
-            onClick={openLink}
-          >
+        </DisabledReason>
+        <DisabledReason label={t("sharing.openPublicLink")} reason={noLinkYet}>
+          <ActionIcon variant="light" size="lg" aria-label={t("sharing.openPublicLink")} onClick={openLink}>
             <LinkIcon size={18} />
           </ActionIcon>
-        </Tooltip>
+        </DisabledReason>
       </Group>
 
       <Text size="xs" c="dimmed" mt={4}>

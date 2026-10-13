@@ -47,6 +47,7 @@ import {
 import { serverAddress } from "../../api_client/urls";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { DisabledReason } from "../common/DisabledReason";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
@@ -317,17 +318,18 @@ export function StacksPageContent() {
                 </Box>
               </Menu.Dropdown>
             </Menu>
-            <Button
-              size="sm"
-              fullWidth={isPhone}
-              leftSection={<IconRefresh size={16} />}
-              onClick={handleDetect}
-              loading={isDetecting}
-              // Bursts are the only thing to detect: with it unchecked the job would do nothing
-              disabled={!detectOptions.detect_bursts}
-            >
-              {t("stacks.detect")}
-            </Button>
+            {/* Bursts are the only thing to detect: with it unchecked the job would do nothing. */}
+            <DisabledReason reason={!detectOptions.detect_bursts && t("stacks.nothingtodetect")}>
+              <Button
+                size="sm"
+                fullWidth={isPhone}
+                leftSection={<IconRefresh size={16} />}
+                onClick={handleDetect}
+                loading={isDetecting}
+              >
+                {t("stacks.detect")}
+              </Button>
+            </DisabledReason>
           </ButtonGroup>
         </Group>
       </Group>

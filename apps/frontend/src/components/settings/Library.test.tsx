@@ -9,13 +9,14 @@
  * - A rejected save closed the "Save changes?" dialog without a word.
  * - "Regenerate Event Titles" ran Generate Event Albums instead.
  */
-import type { User } from "@librephotos/api-client";
+import type { User, WorkerAvailabilityResponse } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
 import { Library } from "./Library";
 
 /** The mutate options Library passes when it saves the profile. */
@@ -40,11 +41,20 @@ const mocks = vi.hoisted(() => {
     regenerateEventTitles: vi.fn<() => void>(),
     user,
     auth: { access: { is_admin: true } },
+    // useWorkerQuery's answer; undefined until the server answers.
+    worker: { data: { queue_can_accept_job: true } } as { data?: Partial<WorkerAvailabilityResponse> },
   };
 });
 
 const noopMutation = { mutate: () => {}, mutateAsync: async () => {}, isPending: false };
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ to, children, ...rest }: { to: string; children: React.ReactNode }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 vi.mock("../../api_client/api", () => ({ ApiError: mocks.ApiError }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: mocks.auth }) }));
@@ -62,7 +72,7 @@ vi.mock("../../api_client/jobs/hooks", () => ({
   useRescanPhotosMutation: () => noopMutation,
   useScanNextcloudPhotosMutation: () => noopMutation,
   useScanPhotosMutation: () => noopMutation,
-  useWorkerQuery: () => ({ data: { queue_can_accept_job: true } }),
+  useWorkerQuery: () => mocks.worker,
 }));
 vi.mock("../../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => noopMutation }));
 vi.mock("../../api_client/settings/hooks", () => ({
@@ -129,6 +139,7 @@ beforeEach(async () => {
   mocks.generateAutoAlbums.mockReset();
   mocks.updateUserError.mockReset();
   mocks.regenerateEventTitles.mockReset();
+  mocks.worker = { data: { queue_can_accept_job: true } };
   mocks.user = {
     id: 1,
     username: "admin",
@@ -249,6 +260,79 @@ describe("Library unsaved edits", () => {
     await click(buttonByText("dialog-save"));
 
     expect(prompt()).toBeNull();
+  });
+});
+
+/** Mounts the page afresh with this worker answer (a new mount, as on a page load). */
+const rerender = async (worker: typeof mocks.worker) => {
+  mocks.worker = worker;
+  await act(async () => {
+    root.unmount();
+  });
+  root = createRoot(container);
+  await act(async () => {
+    root.render(
+      <MantineProvider>
+        <Library />
+      </MantineProvider>
+    );
+  });
+};
+
+const SCAN_JOB = {
+  id: 7,
+  job_id: "abc",
+  queued_at: "2026-10-10T10:00:00Z",
+  started_at: "2026-10-10T10:00:01Z",
+  finished_at: null,
+  finished: false,
+  failed: false,
+  cancelled: false,
+  job_type_str: "Scan Photos",
+  job_type: 1,
+  started_by: { id: 1, username: "admin", first_name: "Ada", last_name: "" },
+  progress_target: 10,
+  progress_current: 2,
+};
+
+// #2237: every job button was disabled while any job ran, and before the worker status had loaded,
+// with nothing on the page saying why.
+describe("Library while a job runs", () => {
+  it("names the running job above the buttons and links to the job list", async () => {
+    await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: SCAN_JOB } });
+
+    const notice = found(container.querySelector("[data-testid=job-queue-busy]"), "the busy notice");
+    expect(notice.textContent).toContain("A job is running: Scan Photos");
+    expect(notice.querySelector("a")?.getAttribute("href")).toBe("/jobs");
+  });
+
+  it("says another user's job is running without naming it", async () => {
+    await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: null } });
+
+    const notice = found(container.querySelector("[data-testid=job-queue-busy]"), "the busy notice");
+    expect(notice.textContent).toContain("Another user's job is running");
+    expect(notice.querySelector("a")).toBeNull();
+  });
+
+  it("gives every job button the reason", async () => {
+    await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: null } });
+
+    for (const label of [i18n.t("settings.statusscanphotosfalse"), i18n.t("settings.generate")]) {
+      const button = buttonByText(label);
+      expectDisabledWithReason(button, i18n.t("jobs.queuebusy.reason"));
+      expect(await focusAndReadTooltip(button)).toContain(i18n.t("jobs.queuebusy.reason"));
+    }
+    await click(buttonByText(i18n.t("settings.generate")));
+    expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
+  });
+
+  it("does not report the queue busy before the worker status has loaded", async () => {
+    await rerender({ data: undefined });
+
+    expect(container.querySelector("[data-testid=job-queue-busy]")).toBeNull();
+    const generate = buttonByText(i18n.t("settings.generate"));
+    expect(generate.getAttribute("aria-disabled")).toBeNull();
+    expect(generate.disabled).toBe(false);
   });
 });
 

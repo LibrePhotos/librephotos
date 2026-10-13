@@ -51,6 +51,7 @@ const planted = {
   "date-set-locale": `const plantedLabel = plantedInstant.setLocale("de").toFormat("D");`,
   "date-constructor": `const plantedDate = new Date(value);`,
   "unknown-person-literal": `const plantedName = person.name === "Unknown - Other";`,
+  "tooltip-disabled-control": `const plantedTooltip = <Tooltip label="Why"><Button disabled>Go</Button></Tooltip>;`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,

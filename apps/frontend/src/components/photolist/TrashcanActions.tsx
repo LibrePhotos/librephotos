@@ -1,5 +1,5 @@
 import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Space, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
@@ -7,6 +7,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
 import type { SelectionState } from "../../api_client/photos/types";
+import { DisabledReason } from "../common/DisabledReason";
 
 type Props = {
   selectedItems: PigPhoto[];
@@ -80,6 +81,7 @@ export function TrashcanActions(props: Readonly<Props>) {
   // Shared by each Tooltip and the aria-label of its icon-only button.
   const restoreLabel =
     selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount });
+  const noSelection = !hasSelection && t("selectionactions.selectphotosfirst");
   const deleteLabel =
     selectedCount === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count: selectedCount });
 
@@ -87,9 +89,8 @@ export function TrashcanActions(props: Readonly<Props>) {
     <Group>
       {location.pathname.startsWith("/deleted") && (
         <>
-          <Tooltip label={restoreLabel} position="bottom" withArrow>
+          <DisabledReason label={restoreLabel} reason={noSelection} position="bottom">
             <ActionIcon
-              disabled={!hasSelection}
               variant="light"
               color="blue"
               aria-label={restoreLabel}
@@ -135,11 +136,10 @@ export function TrashcanActions(props: Readonly<Props>) {
             >
               <ArrowBackUp />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
 
-          <Tooltip label={deleteLabel} position="bottom" withArrow>
+          <DisabledReason label={deleteLabel} reason={noSelection} position="bottom">
             <ActionIcon
-              disabled={!hasSelection}
               variant="light"
               color="red"
               aria-label={deleteLabel}
@@ -149,7 +149,7 @@ export function TrashcanActions(props: Readonly<Props>) {
             >
               <Trash />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
         </>
       )}
 

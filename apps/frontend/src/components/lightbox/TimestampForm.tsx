@@ -5,6 +5,7 @@ import { IconCalendar as Calendar, IconCheck as Check, IconEraser, IconX as X } 
 import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { parsePickerDate, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
+import { DisabledReason } from "../common/DisabledReason";
 import { makeTimestampFormSchema, WHOLE_TIME } from "./TimestampForm.schema";
 
 type Props = Readonly<{
@@ -95,19 +96,21 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
               <X size={16} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={t("lightbox.sidebar.save")}>
+          <DisabledReason
+            label={t("lightbox.sidebar.save")}
+            reason={!form.isValid() && t("lightbox.sidebar.invalidtimestamp")}
+          >
             <ActionIcon
               variant="subtle"
               color="blue"
               size="sm"
               aria-label={t("lightbox.sidebar.save")}
-              disabled={!form.isValid()}
               loading={saving}
               onClick={() => save()}
             >
               <Check size={16} />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
         </Group>
       </Group>
       <Stack>
