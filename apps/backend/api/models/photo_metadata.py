@@ -56,6 +56,49 @@ def _turned_sideways(rotation: object) -> bool:
     return isinstance(rotation, int | float) and rotation % 180 == 90
 
 
+# The EXIF orientations that turn the image a quarter (transpose, 90 CW,
+# transverse, 270 CW): they swap its width and height.
+_SIDEWAYS_ORIENTATIONS = frozenset({5, 6, 7, 8})
+
+
+def _orientation_turns_sideways(orientation: object) -> bool:
+    """Whether an EXIF ``Orientation`` (1-8) swaps width and height.
+
+    The exif service reads with ``-n``, so the value arrives as a number.
+    """
+    return isinstance(orientation, int) and orientation in _SIDEWAYS_ORIENTATIONS
+
+
+def _shown_sideways(
+    values: Mapping[str, object],
+    local_orientation: int,
+    shown_aspect_ratio: float | None,
+) -> bool:
+    """Whether the photo is shown turned a quarter from its stored size.
+
+    The big thumbnail is the photo as shown, so where its aspect ratio and
+    the stored size disagree on landscape or portrait, the photo is shown
+    turned. That covers what the tags cannot say for every format: a HEIC's
+    own rotation, a RAW file turned by LibRaw. Without a ratio to go by (no
+    thumbnail yet, or a square one) the tags decide: a video's rotation or a
+    photo's orientation, with the user's rotation (``local_orientation``) on
+    top; two quarter turns cancel out.
+    """
+    width, height = values["width"], values["height"]
+    if (
+        shown_aspect_ratio is not None
+        and shown_aspect_ratio != 1
+        and isinstance(width, int | float)
+        and isinstance(height, int | float)
+        and width != height
+    ):
+        return (width > height) != (shown_aspect_ratio > 1)
+    by_file = _turned_sideways(values["rotation"]) or _orientation_turns_sideways(
+        values["orientation"]
+    )
+    return by_file != _orientation_turns_sideways(local_orientation)
+
+
 def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
@@ -476,7 +519,17 @@ class PhotoMetadata(models.Model):
         metadata, created = cls.objects.get_or_create(
             photo=photo, defaults={"source": cls.Source.EMBEDDED}
         )
-        cls._apply_to_metadata(metadata, values)
+        # The scan renders the thumbnails first: their aspect ratio is the
+        # photo as shown. Read from the row, which the renderer saved.
+        shown_aspect_ratio = (
+            type(photo)
+            .objects.filter(pk=photo.pk)
+            .values_list("thumbnail__aspect_ratio", flat=True)
+            .first()
+        )
+        cls._apply_to_metadata(
+            metadata, values, photo.local_orientation, shown_aspect_ratio
+        )
 
         if commit:
             metadata.save()
@@ -512,9 +565,16 @@ class PhotoMetadata(models.Model):
 
     @staticmethod
     def _apply_to_metadata(
-        metadata: PhotoMetadata, values: Mapping[str, object]
+        metadata: PhotoMetadata,
+        values: Mapping[str, object],
+        local_orientation: int,
+        shown_aspect_ratio: float | None,
     ) -> None:
-        """Populate the PhotoMetadata columns from the extracted EXIF values."""
+        """Populate the PhotoMetadata columns from the extracted EXIF values.
+
+        ``width`` and ``height`` are the size the photo is shown at, as its
+        thumbnails, their aspect ratio and its face boxes are.
+        """
         for field, name in (
             ("aperture", "fstop"),
             ("focal_length", "focal_length"),
@@ -524,12 +584,14 @@ class PhotoMetadata(models.Model):
             _assign_nonzero_number(metadata, field, values[name])
 
         width, height = values["width"], values["height"]
-        if _turned_sideways(values["rotation"]):
+        if _shown_sideways(values, local_orientation, shown_aspect_ratio):
             # A portrait phone video is stored landscape with a rotation of 90
-            # or 270 degrees: keep the size it is shown at, as its thumbnail is.
+            # or 270 degrees, a portrait photo often with an EXIF orientation
+            # of 5-8 (#2568): keep the size it is shown at.
             width, height = height, width
         _assign_nonzero_number(metadata, "width", width)
         _assign_nonzero_number(metadata, "height", height)
+        _assign_number(metadata, "orientation", values["orientation"])
 
         # Videos carry no EXIF; their camera is in the QuickTime atoms.
         _assign_string(

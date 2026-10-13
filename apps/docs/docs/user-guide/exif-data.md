@@ -40,7 +40,7 @@ sidebar_position: 18
         <td>Width and height</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are then swapped, so Info shows the size it plays at. <em>Not released yet; videos scanned before get it with a Rescan from the Library page.</em></td>
+        <td>A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are then swapped, so Info shows the size it plays at. <em>Not released yet; the update fixes the size of videos scanned before.</em></td>
     </tr>
     <tr>
         <td>EXIF:DateTimeOriginal</td>
@@ -306,7 +306,7 @@ sidebar_position: 18
         <td>Orientation</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read to transform face-region coordinates. Written back (composed with your rotation) when you rotate a photo, but only if "Synchronize metadata to disk" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format. HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
+        <td>Read to transform face-region coordinates, and to store the size a photo is shown at: an orientation of 5-8 turns the photo a quarter, so its width and height are swapped, as they are when you rotate it a quarter yourself. <em>Not released yet; the update fixes the size of photos scanned before.</em> Written back (composed with your rotation) when you rotate a photo, but only if "Synchronize metadata to disk" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format. HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
     </tr>
     <tr>
         <td>EXIF:SubSecTimeOriginal</td>

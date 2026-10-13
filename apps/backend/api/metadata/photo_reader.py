@@ -75,6 +75,8 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("quicktime_make", Tags.QUICKTIME_MAKE),
     ("quicktime_model", Tags.QUICKTIME_MODEL),
     ("rotation", Tags.ROTATION),
+    # A photo's EXIF orientation, which turns its stored size into the shown one (#2568).
+    ("orientation", Tags.ORIENTATION),
 )
 
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)
