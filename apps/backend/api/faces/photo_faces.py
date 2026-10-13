@@ -142,7 +142,10 @@ def _detect_and_save_faces(
 
     assert photo.main_file is not None
     regions = extractor.extract_from_exif(
-        photo.main_file.path, thumbnail_path, sidecar_files_for_photo(photo)
+        photo.main_file.path,
+        thumbnail_path,
+        sidecar_files_for_photo(photo),
+        local_orientation=photo.local_orientation,
     )
     _save_new_faces(scan, regions or [])
     _save_new_faces(scan, extractor.extract_from_face_service(thumbnail_path))

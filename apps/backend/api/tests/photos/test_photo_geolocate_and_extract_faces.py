@@ -390,6 +390,7 @@ class ExtractFacesCharacterizationTest(TestCase):
             self.photo.main_file.path,
             self.photo.thumbnail.thumbnail_big.path,
             sidecar_files_for_photo(self.photo),
+            local_orientation=self.photo.local_orientation,
         )
         extractor.extract_from_face_service.assert_called_once_with(
             self.photo.thumbnail.thumbnail_big.path
