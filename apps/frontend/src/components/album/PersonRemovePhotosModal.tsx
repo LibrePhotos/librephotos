@@ -1,7 +1,7 @@
-import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotosFromPersonMutation } from "../../api_client/albums/hooks";
+import { ConfirmModal } from "../modals/ConfirmModal";
 
 type Props = Readonly<{
   opened: boolean;
@@ -20,30 +20,18 @@ export function PersonRemovePhotosModal({ opened, onClose, personId, personName,
   const removePhotos = useRemovePhotosFromPersonMutation();
 
   return (
-    <Modal
+    <ConfirmModal
       opened={opened}
       onClose={onClose}
+      onConfirm={() => {
+        removePhotos.mutate({ personId, personName, photoIds });
+        onClose();
+        onRemoved();
+      }}
       title={t("personalbum.removephotostitle", { count: photoIds.length, name: personName })}
-    >
-      <Stack>
-        <Text size="sm">{t("personalbum.removephotosdescription", { count: photoIds.length, name: personName })}</Text>
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button
-            color="red"
-            onClick={() => {
-              removePhotos.mutate({ personId, personName, photoIds });
-              onClose();
-              onRemoved();
-            }}
-          >
-            {/* The title names the person: a long name would not fit the button */}
-            {t("selectionactions.removefromperson")}
-          </Button>
-        </Group>
-      </Stack>
-    </Modal>
+      message={t("personalbum.removephotosdescription", { count: photoIds.length, name: personName })}
+      // The title names the person: a long name would not fit the button
+      confirmLabel={t("selectionactions.removefromperson")}
+    />
   );
 }

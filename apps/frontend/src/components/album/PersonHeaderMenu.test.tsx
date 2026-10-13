@@ -130,7 +130,11 @@ describe("PersonHeaderMenu", () => {
 
     expect(document.body.textContent).toContain("Delete Anna Becker?");
     expect(document.body.textContent).toContain("The 3 faces labelled Anna Becker go back to unknown faces");
-    await act(async () => button("Delete").click());
+    const dialog = defined(document.body.querySelector('[role="dialog"]'), "the confirmation");
+    const confirm = Array.from(dialog.querySelectorAll("button")).find(
+      el => el.textContent?.trim() === "Delete Person"
+    );
+    await act(async () => defined(confirm, "the confirm button").click());
 
     expect(stubs.remove).toHaveBeenCalledTimes(1);
     const [id, options] = defined(stubs.remove.mock.calls[0]);
