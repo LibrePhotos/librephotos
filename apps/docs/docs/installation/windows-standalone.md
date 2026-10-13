@@ -27,7 +27,8 @@ of the Docker deployments.
    folder in your home directory.
 2. Double-click `librephotos.exe`. No window opens: LibrePhotos runs in the background with an icon
    in the notification area (the tray, bottom right), and after the first migrations your browser
-   opens `http://localhost:8000/`.
+   opens `http://localhost:8000/`. Windows 11 may put a new icon behind the **^** arrow next to the
+   clock; drag it onto the taskbar to keep it in view.
 3. Create the admin account on the first-time setup screen, then set the scan directory of your user
    (Admin area → Users) to the folder with your photos and start a scan.
 
@@ -37,12 +38,26 @@ scan, into the data directory below; that needs an internet connection once.
 Right-click the tray icon for **Open LibrePhotos** (also a plain click), **Open data folder**,
 **Open logs** and **Quit LibrePhotos**. Quitting stops everything: the workers and the machine
 learning processes are children of `librephotos.exe` and go down with it, also when it is ended
-from Task Manager. Starting it a second time just opens the browser on the running instance. If it
-cannot start, a message box says why: for example that another program already uses port 8000 (see
-[Using another port](#using-another-port)).
+from Task Manager. If it cannot start, a message box says why: for example that another program
+already uses port 8000 (see [Using another port](#using-another-port)).
+
+Not released yet: the icon appears right after the double-click. While LibrePhotos starts, the
+first, greyed line of its menu and its tooltip say what it is doing: **Starting...**, **Updating
+the database (3 of 7)** after an update with database changes, **Starting services...**, and
+finally **Running at http://127.0.0.1:8000/**. The first start after such an update also shows a
+notification, because updating the database can take a few minutes. **Quit LibrePhotos** works
+during the start too.
+
+Only one LibrePhotos runs per data folder. Starting it a second time, also while the first one is
+still starting, shows the notification "LibrePhotos is already starting" and then opens the browser
+on the running one; nothing else happens. Up to 1.3.0 a second start during the first one's database
+update started a second copy, which could show an error and stop the first copy's background
+services.
 
 Started from a terminal instead, it prints its log there and Ctrl-C stops it; `--no-tray` leaves the
-icon out. Without a terminal that output goes to `console.log` in the logs folder. Because
+icon out. Without a terminal that output goes to `console.log` in the logs folder; the log of the
+start before is kept as `console.previous.log` next to it (not released yet), so a failed start can
+still be explained after you tried again. Because
 `librephotos.exe` is a Windows GUI program, `cmd` and PowerShell do not wait for it: for commands
 whose output you want to read in order, use `start /wait librephotos.exe manage ...` in `cmd`, or pipe
 it (`librephotos.exe manage ... | more`).

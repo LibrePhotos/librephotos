@@ -399,6 +399,7 @@ class BackgroundModeTest(SimpleTestCase):
 
     def test_a_second_start_shows_the_running_instance(self):
         with (
+            patch.object(standalone.instance_lock, "acquire", return_value=MagicMock()),
             patch.object(standalone, "_already_running", return_value=True),
             patch.object(standalone, "_take_children_down_with_us") as job,
             patch("webbrowser.open") as browser,
@@ -446,6 +447,7 @@ class StartupStepTest(SimpleTestCase):
             patch.object(standalone, "_already_running", return_value=False),
             patch.object(standalone, "_take_children_down_with_us"),
             patch.object(standalone, "check_port"),
+            patch.object(standalone.instance_lock, "acquire", return_value=MagicMock()),
             patch.object(standalone, "run_teed", side_effect=list(results)) as teed,
             patch("django.setup") as setup,
             self.assertRaises(standalone.StartupError) as raised,
@@ -511,27 +513,22 @@ class ServeTest(SimpleTestCase):
             config=SimpleNamespace(host="127.0.0.1", port=8000),
         )
         cluster = object()
-        icon = MagicMock()
+        startup = standalone.Startup()
         with (
             patch.object(standalone, "_set_console_title"),
-            patch.object(standalone, "_start_tray", return_value=icon) as tray,
             patch.object(standalone, "_open_browser_when_up") as browser,
             patch.object(standalone, "_shutdown") as shutdown,
+            patch.object(startup, "status") as status,
         ):
             try:
-                standalone._serve(server, cluster, "http://x/", True, True)
+                standalone._serve(server, cluster, "http://x/", True, startup)
             finally:
                 shutdown.assert_called_once_with(cluster)
         browser.assert_called_once_with("http://x/")
-        return tray, icon
+        return status
 
     def test_runs_until_the_server_stops_then_shuts_down(self):
-        tray, icon = self.serve(started=True)
-        if sys.platform == "win32":
-            tray.assert_called_once()
-            icon.stop.assert_called_once_with()
-        else:
-            tray.assert_not_called()
+        self.serve(started=True)
 
     def test_a_server_that_never_started_is_an_error(self):
         with self.assertRaisesMessage(RuntimeError, "127.0.0.1:8000"):

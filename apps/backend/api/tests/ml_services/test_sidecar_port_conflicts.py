@@ -451,12 +451,14 @@ class StandalonePreflightTest(SimpleTestCase):
         error = standalone.StartupError("ports")
         with (
             patch.object(standalone, "_already_running", return_value=False),
+            patch.object(standalone.instance_lock, "acquire", return_value=MagicMock()),
             patch.object(standalone, "_capture_console_output"),
             patch.object(standalone, "check_port"),
             patch.object(standalone, "_take_children_down_with_us"),
             patch.object(standalone, "prepare_database"),
             patch("django.setup"),
             patch.object(standalone, "check_sidecar_ports", side_effect=error),
+            patch.object(standalone, "_shutdown"),
             patch.object(standalone, "run_manage") as manage,
             self.assertRaises(standalone.StartupError),
         ):

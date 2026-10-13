@@ -264,4 +264,6 @@ def backup_database(
         pending_migrations=pending,
     )
     target = backup_sqlite(source, backup_dir(source), info, keep)
-    return f"Backed up the database to {target}"
+    # The standalone build reads the count for its tray status (#2316).
+    applying = f" before applying {len(pending)} pending migrations" if pending else ""
+    return f"Backed up the database to {target}{applying}"
