@@ -88,6 +88,13 @@ describe("PageHeader", () => {
     expect(container.querySelector("h1 .mantine-Loader-root")).not.toBeNull();
   });
 
+  it("renders the title as an h2 when nested under the page's header", async () => {
+    await render(<PageHeader icon={IconStar} title="Public Photos" titleOrder={2} />);
+
+    expect(container.querySelectorAll("h1")).toHaveLength(0);
+    expect(container.querySelector("h2")?.textContent).toBe("Public Photos");
+  });
+
   it("shows no loader when not loading", async () => {
     await render(<PageHeader icon={IconStar} title="Albums" />);
 
@@ -110,4 +117,40 @@ describe("the page h1", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  // PhotoListView's default header is a PageHeader too: under a page that has its own, it must be
+  // left out (`header`) or demoted (`titleOrder={2}`). A component file is always nested in a page.
+  it("is not repeated by a photo list nested under a page header", () => {
+    const sources = import.meta.glob<string>(["/src/**/*.tsx", "!/src/**/*.test.tsx"], {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    });
+    const offenders = Object.entries(sources)
+      .filter(([path, source]) => nestsSecondH1(path, source))
+      .map(([path]) => path);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("catches a nested photo list with its default header", () => {
+    const list = "<PhotoListView title={t('x')} selectable />";
+    const page = `<><PageHeader title="Page" />${list}</>`;
+
+    expect(nestsSecondH1("/src/routes/_protected/page.tsx", page)).toBe(true);
+    expect(nestsSecondH1("/src/components/sharing/Photos.tsx", list)).toBe(true);
+    expect(nestsSecondH1("/src/routes/_protected/photos.tsx", list)).toBe(false);
+    expect(nestsSecondH1("/src/routes/_protected/page.tsx", page.replace("selectable", "titleOrder={2}"))).toBe(false);
+    expect(nestsSecondH1("/src/components/sharing/Photos.tsx", list.replace("selectable", "header={null}"))).toBe(
+      false
+    );
+  });
 });
+
+// A `<PhotoListView ... />` element that renders its default header (its own h1), in a file that
+// also renders a PageHeader or is not a route (so sits inside some page's body).
+function nestsSecondH1(path: string, source: string): boolean {
+  const nestedInPage = !path.startsWith("/src/routes/") || source.includes("<PageHeader");
+  const lists = source.match(/<PhotoListView\b[\s\S]*?\/>/g) ?? [];
+  return nestedInPage && lists.some(list => !/\bheader=|\btitleOrder=\{2\}/.test(list));
+}

@@ -122,6 +122,8 @@ function PublicLinksPage() {
                   photoset={publicPhotosGrouped ?? []}
                   idx2hash={photosFlat}
                   selectable
+                  // Keeps its header for the selection bar, under this page's h1
+                  titleOrder={2}
                 />
               )}
             </Stack>
