@@ -1,10 +1,10 @@
 import type { FaceAnalysisMethod } from "@librephotos/api-client";
-import { faceKeys, UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
+import { faceKeys } from "@librephotos/api-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList } from "../../../api_client/faces";
 import { fetchFaces, useFetchIncompleteFacesQuery } from "../../../api_client/faces";
-import { FacesTab, type FacesRouteOrder } from "../facesTab";
+import { FacesTab, isUnknownGroup, type FacesRouteOrder } from "../facesTab";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
 const PAGE_SIZE = 100;
@@ -63,9 +63,9 @@ export function useFaceDataFetching(
   // Filter data by category - MEMOIZED to prevent recalculation on every render
   const lists = useMemo(
     () => ({
-      unknown: inferredFacesListUnfiltered.filter(person => person.name === UNKNOWN_PERSON_NAME),
-      inferred: inferredFacesListUnfiltered.filter(person => person.name !== UNKNOWN_PERSON_NAME),
-      labeled: labeledFacesListUnfiltered.filter(person => person.name !== UNKNOWN_PERSON_NAME),
+      unknown: inferredFacesListUnfiltered.filter(isUnknownGroup),
+      inferred: inferredFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
+      labeled: labeledFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
     }),
     [inferredFacesListUnfiltered, labeledFacesListUnfiltered]
   );

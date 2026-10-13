@@ -22,16 +22,25 @@ export type FaceActionHandlers = Readonly<{
 export type WrongMatch = "person" | "cluster" | null;
 
 /**
- * A one-click Confirm only makes sense for an inferred face whose group is a named person: a
- * cluster's name ("Unknown 001") is no one's, and the unknown group is where faces go when rejected.
+ * Whether a group is a person the user named. Only such a group can be confirmed, renamed or
+ * deleted: a cluster's name ("Unknown 001") is no one's, and "Unknown - Other" (see
+ * `isUnknownGroup`, its kind is its name) is where faces go when rejected and has no person row.
+ * An allow-list on purpose: listing the kinds to leave out missed the unknown group (#2600).
+ */
+export function isNamedPerson(group: CompletePersonFace): boolean {
+  return group.kind === "USER";
+}
+
+/**
+ * A one-click Confirm only makes sense for an inferred face whose group is a named person.
  * The group header's "Confirm all" follows the same rule.
  */
 export function canConfirmFace(tab: FacesTab, group: CompletePersonFace): boolean {
-  return tab === "inferred" && group.kind === "USER";
+  return tab === "inferred" && isNamedPerson(group);
 }
 
 export function wrongMatchFor(group: CompletePersonFace): WrongMatch {
-  if (group.kind === "USER") return "person";
+  if (isNamedPerson(group)) return "person";
   if (group.kind === "CLUSTER") return "cluster";
   return null;
 }
