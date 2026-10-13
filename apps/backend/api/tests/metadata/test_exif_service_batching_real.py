@@ -28,8 +28,12 @@ EXIFTOOL = shutil.which("exiftool")
 FIXTURES = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
 )
+# Written into sidecars, never read (#2297). The batched read files values by
+# tag name, so it would answer a family-1 group like this one with the EXIF tag.
+WRITE_ONLY_TAGS = {Tags.ORIENTATION_XMP}
 ALL_TAGS = sorted(
-    {value for name, value in vars(Tags).items() if name.isupper()} | set(EXIF_TAGS)
+    {value for name, value in vars(Tags).items() if name.isupper()} - WRITE_ONLY_TAGS
+    | set(EXIF_TAGS)
 )
 
 

@@ -230,19 +230,38 @@ class FailedWritesReachTheCallerTest(RealExifToolTestCase):
             (0, 1), (response.json()["written"], response.json()["errors"])
         )
 
-    def test_a_rotation_the_sidecar_cannot_hold_is_reported(self):
-        # EXIF:Orientation into a sidecar (#2297): the rotation is kept in the
-        # database and the response says the file was not written.
-        user = create_test_user(save_metadata_to_disk=SIDECAR)
-        photo = self.photo_for(self.make_image(".jpg"), user, thumbnails=True)
+    def _rotate(self, photo, angle=90):
         client = APIClient()
-        client.force_authenticate(user=user)
-
-        response = client.post(
+        client.force_authenticate(user=photo.owner)
+        return client.post(
             "/api/photosedit/rotate",
-            {"image_hash": photo.image_hash, "angle": 90},
+            {"image_hash": photo.image_hash, "angle": angle},
             format="json",
         )
+
+    def test_a_rotation_reaches_the_sidecar(self):
+        # #2297: as XMP-tiff:Orientation; EXIF:Orientation cannot live there.
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        path = self.make_image(".jpg")
+        photo = self.photo_for(path, user, thumbnails=True)
+
+        response = self._rotate(photo)
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(6, response.json()["local_orientation"])
+        self.assertIsNone(response.json()["write_error"])
+        sidecar = self.sidecar_of(path)
+        self.assertEqual(
+            {Tags.ORIENTATION_XMP: 8}, self.read_tags(sidecar, Tags.ORIENTATION_XMP)
+        )
+
+    @patch("api.thumbnails.render.regenerate_thumbnails")
+    def test_a_rotation_that_cannot_be_written_is_reported(self, regenerate):
+        # The rotation is kept in the database and the response says the file
+        # was not written.
+        photo, _, _ = self._face_photo(MEDIA_FILE, damaged=True)
+
+        response = self._rotate(photo)
 
         self.assertEqual(200, response.status_code, response.content)
         self.assertEqual(6, response.json()["local_orientation"])

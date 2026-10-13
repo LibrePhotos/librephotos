@@ -1171,8 +1171,9 @@ class RotatePhotoView(APIView):
     Applies a clockwise rotation (and optional horizontal flip) to a photo by
     updating the ``local_orientation`` field and regenerating thumbnails.
     The original file is never modified unless the user has opted into
-    ``save_metadata_to_disk``, in which case the combined EXIF Orientation tag
-    is also written to the file / sidecar.
+    ``save_metadata_to_disk``: then the orientation is also written to the
+    XMP sidecar, or into a JPEG, PNG, TIFF or WebP original (never into HEIC,
+    AVIF or RAW).
 
     **Request body (JSON)**::
 

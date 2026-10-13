@@ -18,6 +18,7 @@ export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
       <Flex align="flex-start" direction="column" gap="md">
         <Radio.Group
           label={t("settings.sync")}
+          description={t("settings.syncdescription")}
           value={user.save_metadata_to_disk}
           onChange={value => onChange({ save_metadata_to_disk: value || "OFF" })}
         >
