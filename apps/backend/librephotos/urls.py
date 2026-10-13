@@ -330,6 +330,7 @@ urlpatterns = [
     re_path(r"^api/photosedit/savecaption/?$", photos.SavePhotoCaption.as_view()),
     re_path(r"^api/photosedit/rotate/?$", photos.RotatePhotoView.as_view()),
     re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
+    path("api/useralbum/leave/", sharing.LeaveSharedAlbum.as_view()),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),

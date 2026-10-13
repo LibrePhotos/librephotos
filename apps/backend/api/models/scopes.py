@@ -74,3 +74,14 @@ class SharedOwnedQuerySet(OwnedQuerySet[_M]):
         if account is None:
             return self.none()
         return self.filter(self.owner_q(account) | Q(shared_to=account)).distinct()
+
+    def shared_with(self, user: User | AnonymousUser | None) -> Self:
+        """Rows someone else shared to ``user``: what they see but do not own.
+
+        One join row per (row, user), so no ``distinct()``. A row its owner
+        shared to themselves is left out: they own it.
+        """
+        account = _account(user)
+        if account is None:
+            return self.none()
+        return self.filter(shared_to=account).exclude(self.owner_q(account))

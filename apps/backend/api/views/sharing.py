@@ -2,7 +2,8 @@ import logging
 
 from django.db.models import Count, Model, Prefetch, Q, QuerySet
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +15,7 @@ from api.drf.request_user import request_user
 from api.models import AlbumUser, Photo, User
 from api.serializers.album_user import (
     AlbumUserListSerializer,
+    LeaveSharedAlbumRequest,
     SetUserAlbumSharedRequest,
     album_user_card,
     with_album_user_list_relations,
@@ -165,3 +167,29 @@ class SetUserAlbumShared(APIView):
 
         user_album_to_share.save()
         return Response(album_user_card(user_album_to_share))
+
+
+class LeaveSharedAlbum(APIView):
+    """A recipient takes an album someone shared with them off their list (#2210).
+
+    Only the caller leaves: the owner and the other recipients keep the album.
+    An album that is not shared with the caller, their own included, is a 404,
+    so the answer does not tell whether the id exists.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=LeaveSharedAlbumRequest, responses={204: None})
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        album_id = parse_body(request, LeaveSharedAlbumRequest)["album_id"]
+        try:
+            album = AlbumUser.objects.shared_with(user).get(id=album_id)
+        except AlbumUser.DoesNotExist:
+            raise NotFound("No such album shared with you")
+        # Through the related manager, so the m2m_changed receiver in
+        # api/sync_signals.py bumps the album and writes the tombstone that
+        # takes it off the caller's phone, as an unshare by the owner does.
+        album.shared_to.remove(user)
+        logger.info("User %s left album %s", user.id, album.id)
+        return Response(status=status.HTTP_204_NO_CONTENT)

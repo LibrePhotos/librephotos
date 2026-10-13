@@ -1,17 +1,14 @@
-import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PigPhoto } from "@librephotos/api-client";
-import { ActionIcon, Box, Group, RemoveScroll, Tooltip, useComputedColorScheme, useMantineTheme } from "@mantine/core";
-import { useDisclosure, useViewportSize } from "@mantine/hooks";
-import { IconLink, type TablerIcon } from "@tabler/icons-react";
+import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PigPhoto, User } from "@librephotos/api-client";
+import { Box, Group, RemoveScroll, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { useViewportSize } from "@mantine/hooks";
+import type { TablerIcon } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useRef } from "react";
-import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOP_MENU_HEIGHT } from "../../uiConstants";
+import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups } from "../../util/util";
-import { EmptyState } from "../common/EmptyState";
-import { ErrorState } from "../common/ErrorState";
 import type { ListFailure } from "../common/useListFailure";
 import Pig from "../react-pig";
 import type { PigHandle, PigVisibleGroup } from "../react-pig";
@@ -20,10 +17,10 @@ import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import { DefaultHeader } from "./DefaultHeader";
 import { MediaTypeHint } from "./MediaTypeHint";
-import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDialogs } from "./PhotoListDialogs";
-import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
+import { PhotoListFallback } from "./PhotoListFallback";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
+import { PhotoListToolbar } from "./PhotoListToolbar";
 import { StackOverlay } from "./StackOverlay";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
@@ -102,6 +99,8 @@ type Props = Readonly<{
   // keeps one h1. Looks the same.
   titleOrder?: 1 | 2;
   additionalSubHeader?: React.ReactNode;
+  // After the title, inside the heading: a user album's "Locked" badge.
+  titleBadge?: React.ReactNode;
   albumID?: string;
   ownerUsername?: string;
   albumLocked?: boolean;
@@ -117,19 +116,32 @@ type Props = Readonly<{
   mediaType?: MediaType;
   // Extra controls for the header's right-hand toolbar, before the display
   // options (the main timeline's Filter button). Shown even when the view is
-  // empty, so a filter that matches nothing can always be changed back.
+  // empty, so a filter that matches nothing can always be changed back, and on
+  // a view that is otherwise read-only (`isPublic`): leaving a shared album.
   headerActions?: React.ReactNode;
   // Scrolls away above the grid, unlike the sticky header (the timeline's memories).
   banner?: React.ReactNode;
 }>;
 
+// An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
+// welcome, so the empty state stays out (two messages otherwise).
+function isFirstTimeSetupView(
+  isLoading: boolean,
+  pathname: string,
+  auth: ReturnType<typeof useAccessToken>["data"],
+  userSelfDetails: Pick<User, "scan_directory"> | undefined
+): boolean {
+  if (isLoading || pathname !== "/" || !auth?.access?.is_admin) return false;
+  return !userSelfDetails?.scan_directory;
+}
+
 function PhotoListViewComponent({
-  title = "",
-  loading = true,
+  title,
+  loading,
   icon,
-  photoset = [],
-  idx2hash = [],
-  selectable = false,
+  photoset,
+  idx2hash,
+  selectable,
   isPublic = false,
   isAlbumPubliclyShared = false,
   publicAlbumSlug,
@@ -141,6 +153,7 @@ function PhotoListViewComponent({
   header,
   titleOrder,
   additionalSubHeader,
+  titleBadge,
   albumID,
   ownerUsername,
   albumLocked = false,
@@ -151,7 +164,6 @@ function PhotoListViewComponent({
   headerActions,
   banner,
 }: Props) {
-  const { t } = useTranslation();
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -164,20 +176,10 @@ function PhotoListViewComponent({
   const isLoading = loading || (!isPublic && userDetailsLoading);
   const { dataForScrollIndicator, gridHeight } = usePhotoListScrollScrubber(isLoading, pigRef);
 
-  // Check if we're in first-time setup mode (DefaultHeader shows setup dialog)
-  // Don't show EmptyState in this case to avoid duplicate messages
-  const isFirstTimeSetup =
-    !isLoading && auth?.access && location.pathname === "/" && auth.access.is_admin && !userSelfDetails?.scan_directory;
+  const isFirstTimeSetup = isFirstTimeSetupView(isLoading, location.pathname, auth, userSelfDetails);
 
-  const {
-    localImageScale,
-    localTextAlignment,
-    localHeaderSize,
-    handleThumbnailSizeChange,
-    handleTextAlignmentChange,
-    handleHeaderSizeChange,
-  } = usePhotoListPreferences(userSelfDetails);
-  const [displayMenuOpened, { open: openDisplayMenu, close: closeDisplayMenu }] = useDisclosure(false);
+  const preferences = usePhotoListPreferences(userSelfDetails);
+  const { localImageScale, localTextAlignment, localHeaderSize } = preferences;
 
   const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef);
 
@@ -222,15 +224,8 @@ function PhotoListViewComponent({
   });
 
   // Use live prop length so UI reflects data availability immediately on load
-  const getNumPhotos = () => (idx2hash ? idx2hash.length : 0);
+  const getNumPhotos = () => idx2hash.length;
   const isUserAlbum = location.pathname.startsWith("/album/user/");
-  // headerActions stay mounted while the view reloads: changing the timeline
-  // filter refetches, and an open filter popover must not close under the
-  // pointer. The other controls wait for the photos.
-  const showHeaderToolbar =
-    !isPublic &&
-    !isFirstTimeSetup &&
-    (!!headerActions || (!isLoading && (getNumPhotos() > 0 || mediaType !== undefined)));
 
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
@@ -259,6 +254,7 @@ function PhotoListViewComponent({
                   numPhotos={getNumPhotos()}
                   icon={icon}
                   title={title}
+                  titleBadge={titleBadge}
                   dayHeaderPrefix={dayHeaderPrefix}
                   date={date}
                   additionalSubHeader={additionalSubHeader}
@@ -269,40 +265,16 @@ function PhotoListViewComponent({
                   filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
                 />
               </Box>
-              {showHeaderToolbar && (
-                <Box ml="auto">
-                  <Group gap="xs" wrap="nowrap">
-                    {/* The media-type filter stays visible even when the current
-                      filter yields no photos, so the user is never trapped. */}
-                    {!isLoading && mediaType !== undefined && <MediaTypeSelector />}
-                    {headerActions}
-                    {!isLoading && getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
-                      <Tooltip label={t("sidemenu.sharing")} position="bottom">
-                        <ActionIcon
-                          variant="default"
-                          size={TOOLBAR_ACTION_SIZE}
-                          aria-label={t("sidemenu.sharing")}
-                          onClick={() => dialogs.albumShare.open()}
-                        >
-                          <IconLink size={ICON_SIZE.toolbar} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {!isLoading && getNumPhotos() > 0 && (
-                      <PhotoListDisplayMenu
-                        displayMenuOpened={displayMenuOpened}
-                        openDisplayMenu={openDisplayMenu}
-                        closeDisplayMenu={closeDisplayMenu}
-                        localImageScale={localImageScale}
-                        localTextAlignment={localTextAlignment}
-                        localHeaderSize={localHeaderSize}
-                        onThumbnailSizeChange={handleThumbnailSizeChange}
-                        onTextAlignmentChange={handleTextAlignmentChange}
-                        onHeaderSizeChange={handleHeaderSizeChange}
-                      />
-                    )}
-                  </Group>
-                </Box>
+              {!isFirstTimeSetup && (
+                <PhotoListToolbar
+                  headerActions={headerActions}
+                  listControls={!isLoading && !isPublic}
+                  hasPhotos={getNumPhotos() > 0}
+                  mediaFilter={mediaType !== undefined}
+                  publicLink={isAlbumPubliclyShared && isUserAlbum}
+                  onOpenSharing={() => dialogs.albumShare.open()}
+                  preferences={preferences}
+                />
               )}
             </Group>
           )}
@@ -324,7 +296,7 @@ function PhotoListViewComponent({
         </Box>
       )}
       {banner}
-      {!isLoading && photos && photos.length > 0 ? (
+      {!isLoading && photos.length > 0 ? (
         <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
           scrollToY={scrollToY}
@@ -336,7 +308,7 @@ function PhotoListViewComponent({
               ref={pigRef}
               className={SCROLL_SCRUBBER_TARGET}
               imageData={photos}
-              selectable={selectable === undefined || selectable}
+              selectable={selectable}
               selectedItems={pigSelectedItems}
               handleSelection={handleSelection}
               handleClick={handleClick}
@@ -346,7 +318,7 @@ function PhotoListViewComponent({
               toprightoverlay={TopRightOverlay}
               bottomleftoverlay={StackOverlay}
               bottomrightoverlay={VideoOverlay}
-              numberOfItems={numberOfItems ?? idx2hashRef.current.length}
+              numberOfItems={numberOfItems}
               updateItems={updateItems ? throttledUpdateItems : noop}
               updateGroups={updateGroups ? throttledUpdateGroups : noop}
               bgColor="inherit"
@@ -355,20 +327,13 @@ function PhotoListViewComponent({
             />
           </Box>
         </ScrollScrubber>
-      ) : !isLoading && error ? (
-        <ErrorState failure={error} />
-      ) : !isLoading && emptyStateConfig && !isFirstTimeSetup ? (
-        <EmptyState
-          icon={emptyStateConfig.icon}
-          title={emptyStateConfig.title}
-          description={emptyStateConfig.description}
-          actionLabel={emptyStateConfig.actionLabel}
-          actionLink={emptyStateConfig.actionLink}
-          onAction={emptyStateConfig.onAction}
-          progress={emptyStateConfig.progress}
-        />
       ) : (
-        <div />
+        <PhotoListFallback
+          isLoading={isLoading}
+          error={error}
+          emptyStateConfig={emptyStateConfig}
+          isFirstTimeSetup={isFirstTimeSetup}
+        />
       )}
 
       <div

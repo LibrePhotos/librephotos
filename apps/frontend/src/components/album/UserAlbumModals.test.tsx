@@ -6,7 +6,7 @@
  * not valid as a React child" and replaced the whole app with the router's
  * error screen. Both album pages now share this dialog.
  *
- * Both dialogs also closed the moment Rename or Confirm was clicked, so a rename the
+ * Both dialogs also closed the moment Rename or Delete was clicked, so a rename the
  * server refused (a 400, or a 502 while the backend is down) just looked like nothing
  * happened (#2222). They now stay open until the server answered, and say why it failed.
  */
@@ -219,7 +219,7 @@ describe("the delete dialog", () => {
         </QueryClientProvider>
       );
     });
-    await act(async () => button("Confirm").click());
+    await act(async () => button("Delete album").click());
     await settle();
 
     expect(stubs.remove).toHaveBeenCalledWith({ id: "7", albumTitle: "Trip" });
@@ -237,10 +237,57 @@ describe("the delete dialog", () => {
         </QueryClientProvider>
       );
     });
-    await act(async () => button("Confirm").click());
+    await act(async () => button("Delete album").click());
     await settle();
 
     expect(onClose).not.toHaveBeenCalled();
     expect(container.querySelector("[role=alert]")?.textContent).toContain("You do not own this album.");
+  });
+
+  it("reports the delete once it went through, for the album page to leave", async () => {
+    const onDeleted = vi.fn<() => void>();
+    let answer: () => void = () => {};
+    stubs.remove.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          answer = () => resolve(undefined);
+        })
+    );
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <MantineProvider env="test">
+            <DeleteUserAlbumModal opened onClose={onClose} albumId="7" albumTitle="Trip" onDeleted={onDeleted} />
+          </MantineProvider>
+        </QueryClientProvider>
+      );
+    });
+    await act(async () => button("Delete album").click());
+    await settle();
+    // Not while the server has not answered
+    expect(onDeleted).not.toHaveBeenCalled();
+
+    answer();
+    await settle();
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("does not report a delete that failed", async () => {
+    const onDeleted = vi.fn<() => void>();
+    stubs.remove.mockRejectedValue(new ApiError("Forbidden", 403, "You do not own this album.", "/albums/user/7/"));
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <MantineProvider env="test">
+            <DeleteUserAlbumModal opened onClose={onClose} albumId="7" albumTitle="Trip" onDeleted={onDeleted} />
+          </MantineProvider>
+        </QueryClientProvider>
+      );
+    });
+    await act(async () => button("Delete album").click());
+    await settle();
+
+    expect(onDeleted).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,5 @@
+/* Inside the page title: sits on the title's middle, not its baseline. */
+.badge {
+  vertical-align: middle;
+  margin-left: var(--mantine-spacing-xs);
+}

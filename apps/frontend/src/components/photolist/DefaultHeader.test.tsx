@@ -156,3 +156,13 @@ describe("DefaultHeader date", () => {
     expect(el.textContent).toContain("someday");
   });
 });
+
+describe("DefaultHeader title badge", () => {
+  it("sits after the title, inside the heading", async () => {
+    route.pathname = "/album/user/7";
+    const el = await render({ title: "Lisbon 2026", titleBadge: <span data-testid="badge">Locked</span> });
+
+    expect(defined(el.querySelector("h1")).textContent).toBe("Lisbon 2026Locked");
+    expect(el.querySelector('h1 [data-testid="badge"]')).not.toBeNull();
+  });
+});

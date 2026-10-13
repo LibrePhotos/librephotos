@@ -7961,6 +7961,48 @@
         }
       }
     },
+    "/api/useralbum/leave/": {
+      "post": {
+        "operationId": "api_useralbum_leave_create",
+        "description": "A recipient takes an album someone shared with them off their list (#2210).\n\nOnly the caller leaves: the owner and the other recipients keep the album.\nAn album that is not shared with the caller, their own included, is a 404,\nso the answer does not tell whether the id exists.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveSharedAlbumRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveSharedAlbumRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveSharedAlbumRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
     "/api/useralbum/makepublic/": {
       "post": {
         "operationId": "api_useralbum_makepublic_create",
@@ -9903,6 +9945,18 @@
         ],
         "type": "string",
         "description": "* `USER` - User Labelled\n* `CLUSTER` - Cluster ID\n* `UNKNOWN` - Unknown Person"
+      },
+      "LeaveSharedAlbumRequestRequest": {
+        "type": "object",
+        "properties": {
+          "album_id": {
+            "type": "integer",
+            "description": "An album someone shared with you"
+          }
+        },
+        "required": [
+          "album_id"
+        ]
       },
       "LongRunningJob": {
         "type": "object",

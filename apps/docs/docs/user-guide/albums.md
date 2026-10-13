@@ -98,6 +98,10 @@ On the **Albums** page, every User Album card has a **three-dot menu** (⋮) in 
 - **Sharing** — open the album sharing dialog (see the [Sharing guide](./sharing.md)).
 - **Delete** — a confirmation dialog appears before the album is removed.
 
+The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Rename**, **Sharing**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
+
+*Not released yet: up to 1.3.0, an album could only be renamed, locked or deleted from its card.*
+
 :::caution
 Deleting an album is permanent and cannot be undone, but it only removes the album itself. The photos it contained stay in your library.
 :::
@@ -109,9 +113,8 @@ Deleting an album is permanent and cannot be undone, but it only removes the alb
 User Albums can be shared with other users on your LibrePhotos instance, or publicly via a link. For full details on all sharing features, see the [Sharing guide](./sharing.md).
 
 1. Navigate to the User Album you want to share
-2. Click the **three-dot menu** (⋮) in the selection toolbar
-3. Under "Album Actions", click **"Sharing"**
-4. Search for and select the users you want to share with
+2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **Sharing** (or, in the selection toolbar's ⋮, **Sharing** under "Album Actions")
+3. Search for and select the users you want to share with
 
 ---
 
@@ -199,8 +202,8 @@ This only removes the photos from the album. The original photos remain in your 
 
 ## Locking user albums (since 1.3.0)
 
-In the user album list, open an album’s three-dot menu and choose **Lock album**. A lock icon marks locked albums. Choose **Unlock album** from the same menu to allow changes again.
+In the user album list, open an album’s three-dot menu and choose **Lock album**; on the album's own page, the same item is in the **⋮** at the right of its header. A lock icon marks locked albums in the list, and a grey **Locked** badge follows the title on the album's page. Choose **Unlock album** from the same menus to allow changes again.
 
-Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker, and **Remove from album** is disabled in a locked album’s selection menu. The lock protects which photos are in the album, not the photos themselves: you can still favorite, hide, share, tag or delete them, rename the album, change its cover, and manage album sharing.
+Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker, and **Remove Photos** is disabled in a locked album’s selection menu, saying that the album is locked and has to be unlocked first. The lock protects which photos are in the album, not the photos themselves: you can still favorite, hide, share, tag or delete them, rename the album, change its cover, and manage album sharing.
 
 The API enforces the album membership lock. This does not protect the underlying photos from changes made elsewhere in your library or prevent deleting the album itself.

@@ -473,6 +473,10 @@ class SetUserAlbumSharedRequest(serializers.Serializer[None]):
     album_id = serializers.IntegerField()
 
 
+class LeaveSharedAlbumRequest(serializers.Serializer[None]):
+    album_id = serializers.IntegerField(help_text="An album someone shared with you")
+
+
 class AlbumUserQuery(PublicViewQuery):
     """Opening a user album, also through its public link."""
 

@@ -471,6 +471,8 @@ class CrossTenantWriteTest(TestCase):
                 "/api/useralbum/makepublic",
                 {"album_id": self.v_album.pk, "val_public": True},
             ),
+            # leaving an album that is not shared with the attacker
+            ("post", "/api/useralbum/leave/", {"album_id": self.v_album.pk}),
             # per-photo share links, by id and by hash, for every action
             *(
                 ("post", "/api/photo/share", {"photo_id": ref, "action": action})
