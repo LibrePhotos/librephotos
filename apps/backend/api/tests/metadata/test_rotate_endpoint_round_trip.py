@@ -10,8 +10,17 @@ reads: the sidecar's ``XMP-tiff:Orientation`` when there is one, the file's
 own EXIF Orientation otherwise. They also check the size the photo is shown
 at (#2568), and where a face labelled on the turned photo is written and
 read back (#2606).
+
+A HEIC is shown under its HEIF irot/imir, not its EXIF Orientation, which
+can disagree with them (#2615). Its sidecar orientation is still relative to
+the stored pixels, as Apple's EXIF tag and digiKam (which decodes HEIF
+without the transformations and applies the orientation it reads, the
+sidecar's first) take it: the turn libheif shows, with the user's rotation
+on top.
 """
 
+import numpy as np
+import pyvips
 from rest_framework.test import APIClient
 
 from api.faces.extractor import extract_from_exif
@@ -27,10 +36,12 @@ from api.tests.metadata.exiftool_harness import (
     autorotated,
     layout,
     load,
+    quadrants,
     shown_layout,
     stored_pixels,
 )
 from api.tests.utils import create_test_face, create_test_person, create_test_user
+from api.thumbnails.render import regenerate_thumbnails
 
 SIDECAR = User.SaveMetadata.SIDECAR_FILE
 MEDIA_FILE = User.SaveMetadata.MEDIA_FILE
@@ -38,6 +49,10 @@ MEDIA_FILE = User.SaveMetadata.MEDIA_FILE
 # A positive angle turns the photo counter-clockwise as shown, a negative one
 # clockwise (#2595).
 LEFT, RIGHT = 90, -90
+
+# (orientation libheif shows a HEIC under, from irot/imir; its EXIF
+# Orientation). The EXIF tag agrees, disagrees or is missing.
+HEIC_CASES = [(6, 6), (1, 1), (6, 1), (6, None), (1, 6), (8, 3), (5, 1)]
 
 
 def _turned(shown, angle):
@@ -54,10 +69,13 @@ def _colour_at(image, fx, fy):
 
 
 class RotateEndpointRoundTripTest(RealExifToolTestCase):
-    def _photo(self, mode, start, name):
-        path = self.make_image(".jpg", name)
-        if start is not None:
-            self.tag(path, f"-EXIF:Orientation#={start}")
+    def _photo(self, mode, start, name, heic=None):
+        if heic is None:
+            path = self.make_image(".jpg", name)
+            if start is not None:
+                self.tag(path, f"-EXIF:Orientation#={start}")
+        else:
+            path = self.make_heic(name, *heic)
         user = create_test_user(save_metadata_to_disk=mode, save_face_tags_to_disk=True)
         photo = self.photo_for(path, user, thumbnails=True)
         # The size the photo is shown at, as the scan stores it (#2568).
@@ -174,3 +192,34 @@ class RotateEndpointRoundTripTest(RealExifToolTestCase):
                     )
                     for read, written in zip(box, expected):
                         self.assertAlmostEqual(read, written, delta=1)
+
+    def test_a_turned_heic_sidecar_shows_what_the_thumbnail_shows(self):
+        """The sidecar's orientation shows the stored pixels the way the
+        thumbnail does, whatever the HEIC's own EXIF Orientation says, and a
+        rebuild of the thumbnails (a rescan) leaves them as they are."""
+        stored = pyvips.Image.new_from_array(np.asarray(quadrants()))
+        for decoder, exif in HEIC_CASES:
+            for angle in (LEFT, RIGHT):
+                with self.subTest(decoder=decoder, exif=exif, angle=angle):
+                    photo, path, client = self._photo(
+                        SIDECAR, None, f"heic-{decoder}-{exif}-{angle}", (decoder, exif)
+                    )
+                    shown = self._thumbnail(photo)
+                    self.assertEqual(
+                        layout(autorotated(stored, decoder)),
+                        layout(shown),
+                        "the fixture does not render as the test assumes",
+                    )
+
+                    for _ in range(2):
+                        self._rotate(client, photo, angle)
+
+                        shown = self._thumbnail(photo)
+                        viewer = self._viewer_orientation(path, SIDECAR)
+                        self.assertEqual(
+                            layout(shown),
+                            layout(autorotated(stored, viewer)),
+                            f"the sidecar shows it otherwise (orientation {viewer})",
+                        )
+                    regenerate_thumbnails(Photo.objects.get(pk=photo.pk).thumbnail)
+                    self.assertEqual(layout(shown), layout(self._thumbnail(photo)))

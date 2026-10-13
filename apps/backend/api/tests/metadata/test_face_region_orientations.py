@@ -22,7 +22,6 @@ import unittest
 from typing import TYPE_CHECKING
 
 import numpy as np
-import PIL.Image
 from django.test import SimpleTestCase
 
 from api.faces.extractor import extract_from_exif
@@ -34,14 +33,12 @@ from api.models.photo import Photo
 from api.models.user import User
 from api.tests.metadata.exiftool_harness import (
     HEIGHT,
-    QUADRANTS,
-    STORED_LAYOUT,
     WIDTH,
     RealExifToolTestCase,
     autorotated,
-    heic_encoder,
     layout,
     load,
+    quadrants,
 )
 from api.tests.utils import create_test_face, create_test_person, create_test_user
 from api.thumbnails.render import _apply_local_orientation
@@ -50,7 +47,6 @@ if TYPE_CHECKING:
     import pyvips
 
 SIDECAR = User.SaveMetadata.SIDECAR_FILE
-EXIF_ORIENTATION = 0x0112
 
 # A face region in the stored image (normalized centre, width, height):
 # off-centre and wider than tall, so every rotation and flip moves it.
@@ -74,15 +70,6 @@ HEIC_CASES = [(o, o) for o in range(1, 9)] + [
 AVIF_CASES = [(1, 1), (6, 6), (5, 5), (1, 6), (6, 1), (7, 2)]
 # The user's rotations and flips in LibrePhotos.
 LOCAL_ORIENTATIONS = (1, 2, 5, 6, 8)
-
-
-def _stored_image() -> PIL.Image.Image:
-    image = PIL.Image.new("RGB", (WIDTH, HEIGHT))
-    half_w, half_h = WIDTH // 2, HEIGHT // 2
-    for index, colour in enumerate(STORED_LAYOUT):
-        left, top = (index % 2) * half_w, (index // 2) * half_h
-        image.paste(QUADRANTS[colour], (left, top, left + half_w, top + half_h))
-    return image
 
 
 def _mask(area: tuple[float, float, float, float]) -> pyvips.Image:
@@ -121,28 +108,13 @@ def _shown(
 class FaceRegionOrientationTest(RealExifToolTestCase):
     def _jpeg(self, name: str, decoder: int, exif: int | None) -> str:
         path = os.path.join(self.directory, name + ".jpg")
-        _stored_image().save(path, quality=95)
+        quadrants().save(path, quality=95)
         if exif is not None:
             self.tag(path, f"-EXIF:Orientation#={exif}")
         return path
 
     def _heic(self, name: str, decoder: int, exif: int | None) -> str:
-        """A HEIC shown under ``decoder`` (pillow-heif writes it as irot/imir
-        and as EXIF), its EXIF Orientation then set to ``exif``."""
-        if not heic_encoder():
-            raise unittest.SkipTest("this pillow-heif build has no HEVC encoder")
-        path = os.path.join(self.directory, name + ".heic")
-        if decoder == 1:
-            _stored_image().save(path)
-        else:
-            tags = PIL.Image.Exif()
-            tags[EXIF_ORIENTATION] = decoder
-            _stored_image().save(path, exif=tags.tobytes())
-        if exif is None:
-            self.tag(path, "-EXIF:Orientation=")
-        elif exif != decoder:
-            self.tag(path, f"-EXIF:Orientation#={exif}")
-        return path
+        return self.make_heic(name, decoder, exif)
 
     def _avif(self, name: str, decoder: int, exif: int | None) -> str:
         """An AVIF shown under ``decoder`` (libvips writes it as irot/imir and
@@ -150,7 +122,7 @@ class FaceRegionOrientationTest(RealExifToolTestCase):
         import pyvips
 
         path = os.path.join(self.directory, name + ".avif")
-        image = pyvips.Image.new_from_array(np.asarray(_stored_image())).copy()
+        image = pyvips.Image.new_from_array(np.asarray(quadrants())).copy()
         image.set_type(pyvips.GValue.gint_type, "orientation", decoder)
         try:
             image.heifsave(path, compression="av1", lossless=True)
@@ -181,7 +153,7 @@ class FaceRegionOrientationTest(RealExifToolTestCase):
         """The fixture renders under ``decoder``: the premise of the test."""
         import pyvips
 
-        stored = pyvips.Image.new_from_array(np.asarray(_stored_image()))
+        stored = pyvips.Image.new_from_array(np.asarray(quadrants()))
         self.assertEqual(
             layout(_shown(stored, decoder, local)),
             layout(load(photo.thumbnail.thumbnail_big.path)),

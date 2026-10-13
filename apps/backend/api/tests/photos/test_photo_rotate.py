@@ -14,8 +14,9 @@ Quirks deliberately pinned (see inline comments):
     once exiftool is confirmed to have written it, ``local_orientation``
     goes back to 1 (#2050). HEIC and the other formats whose renderer
     ignores the tag are not written at all (#2297).
-  * Under SIDECAR_FILE, ``XMP-tiff:Orientation`` gets the original's own tag
-    with the whole ``local_orientation`` on top, and the rotation stays in
+  * Under SIDECAR_FILE, ``XMP-tiff:Orientation`` gets the orientation the
+    original is shown under (its own tag; a HEIF's irot/imir, #2620) with
+    the whole ``local_orientation`` on top, and the rotation stays in
     the database (#2297). ``PhotoMetadata.orientation`` is never the base.
 """
 
