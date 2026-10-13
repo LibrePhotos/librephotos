@@ -12,7 +12,6 @@ Tests cover:
 - Edge cases and error handling
 """
 
-import re
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -66,45 +65,73 @@ class BurstRuleCategoryTestCase(TestCase):
 
 
 class BurstFilenamePatternTestCase(TestCase):
-    """Tests for predefined filename patterns."""
+    """Tests for predefined filename patterns: the burst and frame they read."""
+
+    def _frame(self, pattern_type, basename):
+        found = BURST_FILENAME_PATTERNS[pattern_type].match(basename)
+        return None if found is None else (found["burst"], int(found["frame"]))
 
     def test_burst_suffix_pattern(self):
         """Test _BURST pattern matching."""
-        pattern, _ = BURST_FILENAME_PATTERNS["burst_suffix"]
-        self.assertIsNotNone(re.search(pattern, "IMG_001_BURST001"))
-        self.assertIsNotNone(re.search(pattern, "photo_BURST123"))
-        self.assertIsNone(re.search(pattern, "IMG_001"))
-        self.assertIsNone(re.search(pattern, "BURST_photo"))
+        self.assertEqual(
+            ("IMG_001", 1), self._frame("burst_suffix", "IMG_001_BURST001")
+        )
+        self.assertEqual(("photo", 123), self._frame("burst_suffix", "photo_BURST123"))
+        self.assertEqual(
+            ("IMG_20151009_143426", 2),
+            self._frame("burst_suffix", "IMG_20151009_143426_BURST2_COVER"),
+        )
+        # Pixel: the frame comes first, the burst is its start time.
+        self.assertEqual(
+            ("20200302155220435", 1),
+            self._frame("burst_suffix", "00001IMG_00001_BURST20200302155220435"),
+        )
+        self.assertIsNone(self._frame("burst_suffix", "IMG_001"))
+        self.assertIsNone(self._frame("burst_suffix", "BURST_photo"))
 
     def test_sequence_suffix_pattern(self):
         """Test sequence number pattern matching."""
-        pattern, _ = BURST_FILENAME_PATTERNS["sequence_suffix"]
-        self.assertIsNotNone(re.search(pattern, "IMG_001"))
-        self.assertIsNotNone(re.search(pattern, "photo_1234"))
-        self.assertIsNone(re.search(pattern, "IMG_01"))  # Only 2 digits
-        self.assertIsNone(re.search(pattern, "IMG_001_extra"))  # Not at end
+        self.assertEqual(("IMG", 1), self._frame("sequence_suffix", "IMG_001"))
+        self.assertEqual(("photo", 1234), self._frame("sequence_suffix", "photo_1234"))
+        self.assertIsNone(self._frame("sequence_suffix", "IMG_01"))  # Only 2 digits
+        self.assertIsNone(self._frame("sequence_suffix", "IMG_001_extra"))
 
     def test_bracketed_sequence_pattern(self):
         """Test (1), (2) pattern matching."""
-        pattern, _ = BURST_FILENAME_PATTERNS["bracketed_sequence"]
-        self.assertIsNotNone(re.search(pattern, "photo (1)"))
-        self.assertIsNotNone(re.search(pattern, "image (99)"))
-        self.assertIsNotNone(re.search(pattern, "photo(1)"))  # Pattern allows no space
-        self.assertIsNone(re.search(pattern, "(1) photo"))  # Not at end
+        self.assertEqual(("photo", 1), self._frame("bracketed_sequence", "photo (1)"))
+        self.assertEqual(("image", 99), self._frame("bracketed_sequence", "image (99)"))
+        self.assertEqual(("photo", 1), self._frame("bracketed_sequence", "photo(1)"))
+        self.assertIsNone(self._frame("bracketed_sequence", "(1) photo"))
 
     def test_samsung_burst_pattern(self):
-        """Test Samsung burst pattern."""
-        pattern, _ = BURST_FILENAME_PATTERNS["samsung_burst"]
-        self.assertIsNotNone(re.search(pattern, "IMG_001_COVER"))
-        self.assertIsNotNone(re.search(pattern, "photo_123_COVER"))
-        self.assertIsNone(re.search(pattern, "IMG_COVER"))
+        """Samsung names a burst after its start time and numbers the frames."""
+        self.assertEqual(
+            ("20200115_123456", 1),
+            self._frame("samsung_burst", "20200115_123456_001_COVER"),
+        )
+        self.assertEqual(
+            ("20200115_123456", 2), self._frame("samsung_burst", "20200115_123456_002")
+        )
+        self.assertIsNone(self._frame("samsung_burst", "IMG_001_COVER"))
+        self.assertIsNone(self._frame("samsung_burst", "IMG_0001"))
+        self.assertIsNone(self._frame("samsung_burst", "20200115_123456"))
 
     def test_iphone_burst_pattern(self):
         """Test iPhone burst pattern."""
-        pattern, _ = BURST_FILENAME_PATTERNS["iphone_burst"]
-        self.assertIsNotNone(re.search(pattern, "IMG_1234_5"))
-        self.assertIsNotNone(re.search(pattern, "IMG_0001_123"))
-        self.assertIsNone(re.search(pattern, "IMG_123_5"))  # Only 3 digits
+        self.assertEqual(("IMG_1234", 5), self._frame("iphone_burst", "IMG_1234_5"))
+        self.assertEqual(("IMG_0001", 123), self._frame("iphone_burst", "IMG_0001_123"))
+        self.assertIsNone(self._frame("iphone_burst", "IMG_123_5"))  # Only 3 digits
+
+    def test_default_patterns_are_the_burst_names(self):
+        """Pattern type "all" checks the names that say "burst", no counters."""
+        self.assertEqual(
+            {"burst_suffix", "samsung_burst"},
+            {
+                name
+                for name, pattern in BURST_FILENAME_PATTERNS.items()
+                if pattern.names_a_burst
+            },
+        )
 
 
 class BurstDetectionRuleTestCase(TestCase):
@@ -481,8 +508,8 @@ class FilenamePatternRuleTestCase(TestCase):
         self.assertIsNotNone(group_key)
         self.assertIn("filename_", group_key)
 
-    def test_sequence_suffix_detected(self):
-        """Test sequence suffix detection."""
+    def test_sequence_suffix_not_in_all(self):
+        """A camera's file counter is no burst name (#2555)."""
         rule = BurstDetectionRule(
             {
                 "id": 1,
@@ -494,10 +521,10 @@ class FilenamePatternRuleTestCase(TestCase):
         photo = self._create_mock_photo("/photos/IMG_001.jpg")
 
         is_burst, _ = rule.is_burst_photo(photo, {})
-        self.assertTrue(is_burst)
+        self.assertFalse(is_burst)
 
-    def test_bracketed_sequence_detected(self):
-        """Test (1), (2) pattern detection."""
+    def test_bracketed_sequence_not_in_all(self):
+        """Download copies, photo (1) and photo (2), are no burst (#2555)."""
         rule = BurstDetectionRule(
             {
                 "id": 1,
@@ -509,7 +536,7 @@ class FilenamePatternRuleTestCase(TestCase):
         photo = self._create_mock_photo("/photos/photo (1).jpg")
 
         is_burst, _ = rule.is_burst_photo(photo, {})
-        self.assertTrue(is_burst)
+        self.assertFalse(is_burst)
 
     def test_custom_pattern(self):
         """Test custom regex pattern."""
@@ -588,8 +615,8 @@ class FilenamePatternRuleTestCase(TestCase):
             }
         )
 
-        photo1 = self._create_mock_photo("/dir1/IMG_001.jpg")
-        photo2 = self._create_mock_photo("/dir2/IMG_001.jpg")
+        photo1 = self._create_mock_photo("/dir1/IMG_001_BURST1.jpg")
+        photo2 = self._create_mock_photo("/dir2/IMG_001_BURST1.jpg")
 
         _, key1 = rule.is_burst_photo(photo1, {})
         _, key2 = rule.is_burst_photo(photo2, {})
@@ -998,7 +1025,7 @@ class EdgeCasesTestCase(TestCase):
                 "id": 1,
                 "rule_type": BurstRuleTypes.FILENAME_PATTERN,
                 "enabled": True,
-                "pattern_type": "all",
+                "pattern_type": "bracketed_sequence",
             }
         )
 
@@ -1058,22 +1085,22 @@ class CheckFilenamePatternTestCase(TestCase):
         self.assertIn("filename_", group_key)
 
     def test_check_any_pattern_sequence(self):
-        """Test detecting sequence suffix with any pattern."""
+        """A file counter is no burst name (#2555)."""
         photo = create_test_photo(owner=self.user)
         photo.main_file.path = "/photos/IMG_001.jpg"
         photo.main_file.save()
 
         matches, group_key = check_filename_pattern(photo, pattern_type="any")
-        self.assertTrue(matches)
+        self.assertFalse(matches)
 
     def test_check_any_pattern_bracketed(self):
-        """Test detecting bracketed sequence with any pattern."""
+        """A bracketed number (a download copy) is no burst name (#2555)."""
         photo = create_test_photo(owner=self.user)
         photo.main_file.path = "/photos/vacation (1).jpg"
         photo.main_file.save()
 
         matches, group_key = check_filename_pattern(photo, pattern_type="any")
-        self.assertTrue(matches)
+        self.assertFalse(matches)
 
     def test_check_specific_pattern(self):
         """Test checking specific pattern type."""
@@ -1102,11 +1129,11 @@ class CheckFilenamePatternTestCase(TestCase):
     def test_group_key_includes_directory(self):
         """Test that group key includes directory for grouping."""
         photo1 = create_test_photo(owner=self.user)
-        photo1.main_file.path = "/photos/2024/IMG_001.jpg"
+        photo1.main_file.path = "/photos/2024/IMG_001_BURST1.jpg"
         photo1.main_file.save()
 
         photo2 = create_test_photo(owner=self.user)
-        photo2.main_file.path = "/photos/2023/IMG_001.jpg"
+        photo2.main_file.path = "/photos/2023/IMG_001_BURST1.jpg"
         photo2.main_file.save()
 
         matches1, key1 = check_filename_pattern(photo1, pattern_type="any")
@@ -1120,11 +1147,11 @@ class CheckFilenamePatternTestCase(TestCase):
     def test_same_directory_same_base_grouped(self):
         """Test that same directory + base name get same group key."""
         photo1 = create_test_photo(owner=self.user)
-        photo1.main_file.path = "/photos/burst/IMG_001.jpg"
+        photo1.main_file.path = "/photos/burst/IMG_20240101_120000_BURST1.jpg"
         photo1.main_file.save()
 
         photo2 = create_test_photo(owner=self.user)
-        photo2.main_file.path = "/photos/burst/IMG_002.jpg"
+        photo2.main_file.path = "/photos/burst/IMG_20240101_120000_BURST2.jpg"
         photo2.main_file.save()
 
         matches1, key1 = check_filename_pattern(photo1, pattern_type="any")
@@ -1132,8 +1159,7 @@ class CheckFilenamePatternTestCase(TestCase):
 
         self.assertTrue(matches1)
         self.assertTrue(matches2)
-        # Same directory + same base (IMG) = same group
-        # Note: This depends on implementation details
+        self.assertEqual(key1, key2)
 
 
 class GroupPhotosByTimestampDbTestCase(TestCase):
@@ -1219,7 +1245,7 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
     def test_no_extension(self):
         """Test handling files without extension."""
         photo = create_test_photo(owner=self.user)
-        photo.main_file.path = "/photos/IMG_001"  # No extension
+        photo.main_file.path = "/photos/IMG_001_BURST1"  # No extension
         photo.main_file.save()
 
         matches, _ = check_filename_pattern(photo, pattern_type="any")
@@ -1257,7 +1283,7 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
     def test_special_characters_in_path(self):
         """Test handling special characters in path."""
         photo = create_test_photo(owner=self.user)
-        photo.main_file.path = "/photos/my folder (2024)/IMG_001.jpg"
+        photo.main_file.path = "/photos/my folder (2024)/IMG_001_BURST1.jpg"
         photo.main_file.save()
 
         matches, _ = check_filename_pattern(photo, pattern_type="any")

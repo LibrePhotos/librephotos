@@ -62,11 +62,15 @@ Burst detection runs a list of rules stored per user. Enabled by default (hard c
 
 - **EXIF Burst Mode Tag** — camera burst / continuous-drive flags
 - **EXIF Sequence Number** — sequence metadata written by the camera
-- **Filename Burst Pattern** — naming conventions such as `IMG_001_BURST001` or `photo (1)`
+- **Filename Burst Pattern** — file names that say "burst": Google and other Android cameras (`IMG_20151009_143426_BURST1`), Pixel (`00001IMG_00001_BURST20200302155220435`) and Samsung (`20200115_123456_001`, the cover `..._COVER`). Frames with the same burst name in one folder are one stack
 
 The two EXIF rules build one burst from consecutive frames of the same camera (model, and serial number when the photo has one) taken at most 2 seconds apart, using the sub-second capture time (`SubSecTimeOriginal`). A burst that crosses a second boundary stays one stack, two cameras shooting at the same moment get one stack each, and a sequence number that starts again begins a new burst. A frame whose sequence number says "single shot" (0) is not a burst frame. Frames are ordered by capture time, and the stack's cover is the middle frame.
 
 _Not released yet:_ before this, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made **Detect Stacks** fail. Run **Detect Stacks** again to regroup existing bursts.
+
+A camera's file counter (`IMG_0001`, `DSC_0815`) or a download copy (`photo (1)`) does not make a burst by default: every camera numbers its files. A filename rule set to a counter pattern (`sequence_suffix`, `bracketed_sequence`, `iphone_burst`) or to a custom pattern still matches them, but then its frames also have to come from the same camera, count up by one and follow each other within the rule's interval (2 seconds by default).
+
+_Not released yet:_ before this, the default filename rule took every `IMG_xxxx` file of a folder for one burst. Run **Detect Stacks** again to regroup existing bursts.
 
 Available but **disabled by default** (soft criteria — these estimate, and can group unrelated photos):
 

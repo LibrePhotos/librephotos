@@ -7,7 +7,7 @@ as JSON in each user's profile and applied sequentially.
 
 Rules are divided into two categories:
 - Hard criteria: Deterministic detection based on EXIF data and filename patterns
-  (e.g., BurstMode tag, SequenceNumber, filename patterns like IMG_001_BURST001)
+  (e.g., BurstMode tag, SequenceNumber, file names like IMG_20151009_143426_BURST1)
 - Soft criteria: Estimation based on timestamp proximity and visual similarity
   (e.g., photos within 2 seconds of each other from the same camera)
 
@@ -21,6 +21,7 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -133,16 +134,20 @@ def split_into_bursts(
     photos: Sequence[Photo],
     interval: timedelta | None,
     position: Callable[[Photo], int | None] | None = None,
+    consecutive: bool = False,
 ) -> list[list[Photo]]:
     """``photos`` in frame order, cut where a frame comes more than ``interval``
     after the previous one or where its ``position`` (sequence number) does
-    not rise, as when the camera starts a new burst. With ``interval`` None
-    the capture times do not cut.
+    not rise, as when the camera starts a new burst. With ``consecutive`` the
+    position has to rise by exactly one (a file counter). With ``interval``
+    None the capture times do not cut.
     """
     bursts: list[list[Photo]] = []
     previous: Photo | None = None
     for photo in sorted(photos, key=frame_order):
-        if previous is None or _starts_new_burst(previous, photo, interval, position):
+        if previous is None or _starts_new_burst(
+            previous, photo, interval, position, consecutive
+        ):
             bursts.append([photo])
         else:
             bursts[-1].append(photo)
@@ -155,6 +160,7 @@ def _starts_new_burst(
     photo: Photo,
     interval: timedelta | None,
     position: Callable[[Photo], int | None] | None,
+    consecutive: bool,
 ) -> bool:
     if interval is not None:
         before, after = capture_time(previous), capture_time(photo)
@@ -162,12 +168,10 @@ def _starts_new_burst(
             return True
     if position is not None:
         before_number, after_number = position(previous), position(photo)
-        if (
-            before_number is not None
-            and after_number is not None
-            and after_number <= before_number
-        ):
-            return True
+        if before_number is not None and after_number is not None:
+            if consecutive:
+                return after_number != before_number + 1
+            return after_number <= before_number
     return False
 
 
@@ -191,24 +195,86 @@ class BurstRuleCategory:
     SOFT = "soft"  # Estimation (timestamps, visual similarity)
 
 
+@dataclass(frozen=True)
+class FilenamePattern:
+    """A way cameras and tools name the frames of a sequence.
+
+    Each regex matches a whole base name (without extension, in any case)
+    and has a ``burst`` group, naming the sequence, and a ``frame`` group,
+    the frame's number in it.
+    """
+
+    regexes: tuple[str, ...]
+    description: str
+    # True when the name alone says "burst". A counter does not: every
+    # camera numbers its files, so the frames of a counter pattern also have
+    # to come from one camera, count up by one and follow each other within
+    # the rule's interval.
+    names_a_burst: bool
+
+    def match(self, basename: str) -> re.Match[str] | None:
+        for regex in self.regexes:
+            found = re.fullmatch(regex, basename, re.IGNORECASE)
+            if found is not None:
+                return found
+        return None
+
+
 # Predefined filename patterns for burst detection
-BURST_FILENAME_PATTERNS = {
-    # Pattern name: (regex, description)
-    "burst_suffix": (
-        r"_BURST\d+",
-        "Files with _BURST followed by numbers (e.g., IMG_001_BURST001.jpg)",
+BURST_FILENAME_PATTERNS: dict[str, FilenamePattern] = {
+    "burst_suffix": FilenamePattern(
+        (
+            # Pixel: 00001IMG_00001_BURST20200302155220435[_COVER]
+            r"(?P<frame>\d+)IMG_\d+_BURST(?P<burst>\d+)(?:_COVER)?",
+            # Google Camera and other Android cameras: IMG_20151009_143426_BURST2
+            r"(?P<burst>.+)_BURST(?P<frame>\d+)(?:_COVER)?",
+        ),
+        "Files with _BURST followed by numbers (e.g., IMG_20151009_143426_BURST1.jpg)",
+        names_a_burst=True,
     ),
-    "sequence_suffix": (
-        r"_\d{3,}$",
-        "Files ending with 3+ digit sequence number (e.g., IMG_001.jpg, IMG_002.jpg)",
+    "samsung_burst": FilenamePattern(
+        (r"(?P<burst>\d{8}_\d{6})_(?P<frame>\d{3})(?:_COVER)?",),
+        "Samsung burst frames (e.g., 20200115_123456_001_COVER.jpg, 20200115_123456_002.jpg)",
+        names_a_burst=True,
     ),
-    "bracketed_sequence": (
-        r"\(\d+\)$",
+    "sequence_suffix": FilenamePattern(
+        (r"(?P<burst>.+)_(?P<frame>\d{3,})",),
+        "Files ending with a 3+ digit counter (e.g., IMG_0001.jpg, IMG_0002.jpg)",
+        names_a_burst=False,
+    ),
+    "bracketed_sequence": FilenamePattern(
+        (r"(?P<burst>.*?)\s*\((?P<frame>\d+)\)",),
         "Files with bracketed numbers at end (e.g., photo (1).jpg, photo (2).jpg)",
+        names_a_burst=False,
     ),
-    "samsung_burst": (r"_\d{3}_COVER", "Samsung burst cover images"),
-    "iphone_burst": (r"IMG_\d{4}_\d+", "iPhone burst sequence pattern"),
+    "iphone_burst": FilenamePattern(
+        (r"(?P<burst>IMG_\d{4})_(?P<frame>\d+)",),
+        "Frames numbered after one file (e.g., IMG_1234_1.jpg, IMG_1234_2.jpg)",
+        names_a_burst=False,
+    ),
 }
+# The patterns of pattern type "all": the names that say "burst".
+BURST_NAME_PATTERNS = {
+    name: pattern
+    for name, pattern in BURST_FILENAME_PATTERNS.items()
+    if pattern.names_a_burst
+}
+# The counter at the end of the names a custom pattern matches, if any.
+_TRAILING_COUNTER = FilenamePattern(
+    BURST_FILENAME_PATTERNS["burst_suffix"].regexes[1:]
+    + BURST_FILENAME_PATTERNS["sequence_suffix"].regexes
+    + BURST_FILENAME_PATTERNS["bracketed_sequence"].regexes,
+    "The counter at the end of a name",
+    names_a_burst=False,
+)
+
+
+@dataclass(frozen=True)
+class FilenameFrame:
+    """The sequence a file name puts a photo in, and its number there."""
+
+    burst: str
+    number: int | None
 
 
 class BurstDetectionRule:
@@ -260,15 +326,42 @@ class BurstDetectionRule:
 
     def burst_interval(self) -> timedelta | None:
         """The longest pause within one burst of this rule, or None when the
-        rule's group key alone makes the burst (filename patterns)."""
-        if self.rule_type in (
-            BurstRuleTypes.EXIF_BURST_MODE,
-            BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+        rule's group key alone makes the burst (names that say "burst")."""
+        if (
+            self.rule_type
+            in (
+                BurstRuleTypes.EXIF_BURST_MODE,
+                BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+            )
+            or self._matches_counters()
         ):
             return timedelta(
                 milliseconds=self.params.get("interval_ms", DEFAULT_BURST_INTERVAL_MS)
             )
         return None
+
+    def frame_number(self, photo: Photo, exif_tags: dict[str, Any]) -> int | None:
+        """The photo's number in its burst, for the rules that number frames:
+        the EXIF sequence number, or the file counter of a counter pattern."""
+        if self.rule_type == BurstRuleTypes.EXIF_SEQUENCE_NUMBER:
+            return sequence_position(exif_tags.get(Tags.SEQUENCE_NUMBER))
+        if self._matches_counters():
+            frame = self._filename_frame(photo)
+            return frame.number if frame else None
+        return None
+
+    def split_bursts(
+        self, photos: Sequence[Photo], position: Callable[[Photo], int | None]
+    ) -> list[list[Photo]]:
+        """The bursts in one group of this rule, cut on the capture time
+        (``burst_interval``) and where the frame number (``frame_number``)
+        does not rise; a file counter has to rise by exactly one."""
+        return split_into_bursts(
+            photos,
+            self.burst_interval(),
+            position,
+            consecutive=self._matches_counters(),
+        )
 
     def _check_condition_path(self, path: str) -> bool:
         """Check if path matches condition_path regex."""
@@ -373,59 +466,72 @@ class BurstDetectionRule:
             return True, None
         return True, f"seq_{camera_of(photo) or 'unknown'}"
 
+    def _filename_patterns(self) -> dict[str, FilenamePattern]:
+        """The predefined patterns this rule checks: those that say "burst"
+        for "all", one by name, none for a custom or unknown pattern type."""
+        pattern_type = self.params.get("pattern_type", "all")
+        if pattern_type in {"all", "any"}:
+            return BURST_NAME_PATTERNS
+        if pattern_type in BURST_FILENAME_PATTERNS:
+            return {pattern_type: BURST_FILENAME_PATTERNS[pattern_type]}
+        return {}
+
+    def _matches_counters(self) -> bool:
+        """Whether this is a filename rule whose names may be file counters:
+        a custom pattern, or a predefined one that does not say "burst"."""
+        if self.rule_type != BurstRuleTypes.FILENAME_PATTERN:
+            return False
+        if self.params.get("custom_pattern"):
+            return True
+        return any(
+            not pattern.names_a_burst for pattern in self._filename_patterns().values()
+        )
+
+    def _filename_frame(self, photo: Photo) -> FilenameFrame | None:
+        """The sequence the photo's file name puts it in, or None."""
+        if not photo.main_file:
+            return None
+        basename = os.path.splitext(os.path.basename(photo.main_file.path))[0]
+
+        custom_pattern = self.params.get("custom_pattern")
+        if custom_pattern:
+            if not re.search(custom_pattern, basename):
+                return None
+            counter = _TRAILING_COUNTER.match(basename)
+            if counter is None:
+                return FilenameFrame(basename, None)
+            return FilenameFrame(counter["burst"], int(counter["frame"]))
+
+        for pattern in self._filename_patterns().values():
+            found = pattern.match(basename)
+            if found is not None:
+                return FilenameFrame(found["burst"], int(found["frame"]))
+        return None
+
     def _check_filename_pattern(
         self, photo: Photo, exif_tags: dict[str, Any]
     ) -> tuple[bool, str | None]:
-        """Check if filename matches burst pattern."""
-        if not photo.main_file:
+        """Check if the photo's file name makes it a frame of a burst.
+
+        A name that says "burst" groups on the burst it names, per folder.
+        A counter groups per folder and camera, and only a photo with a
+        capture time: ``split_bursts`` then keeps the frames that count up
+        by one within the interval.
+        """
+        frame = self._filename_frame(photo)
+        if frame is None or photo.main_file is None:
             return False, None
-
-        filename = os.path.basename(photo.main_file.path)
-        basename = os.path.splitext(filename)[0]
-
-        # Get pattern type from params, default to checking all patterns
-        pattern_type = self.params.get("pattern_type", "all")
-        custom_pattern = self.params.get("custom_pattern")
-
-        if custom_pattern:
-            if re.search(custom_pattern, basename):
-                # Extract base name for grouping (remove trailing numbers/burst suffix)
-                base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\))$", "", basename)
-                directory = os.path.dirname(photo.main_file.path)
-                group_key = f"filename_{directory}_{base}"
-                return True, group_key
-        elif pattern_type == "all":
-            # Check all predefined patterns
-            for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
-                if re.search(pattern, basename, re.IGNORECASE):
-                    base = re.sub(
-                        r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                        "",
-                        basename,
-                        flags=re.IGNORECASE,
-                    )
-                    directory = os.path.dirname(photo.main_file.path)
-                    group_key = f"filename_{directory}_{base}"
-                    return True, group_key
-        # Check specific pattern
-        elif pattern_type in BURST_FILENAME_PATTERNS:
-            pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
-            if re.search(pattern, basename, re.IGNORECASE):
-                base = re.sub(
-                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                    "",
-                    basename,
-                    flags=re.IGNORECASE,
-                )
-                directory = os.path.dirname(photo.main_file.path)
-                group_key = f"filename_{directory}_{base}"
-                return True, group_key
-
-        return False, None
+        directory = os.path.dirname(photo.main_file.path)
+        if not self._matches_counters():
+            return True, f"filename_{directory}_{frame.burst}"
+        camera = camera_of(photo)
+        if camera is None or capture_time(photo) is None:
+            return False, None
+        return True, f"filename_{directory}_{frame.burst}_{camera}"
 
 
 def check_filename_pattern(
-    photo: Photo, pattern_type: str = "any"
+    photo: Photo, pattern_type: str = "all"
 ) -> tuple[bool, str | None]:
     """
     Check if a photo's filename matches a burst pattern.
@@ -434,47 +540,19 @@ def check_filename_pattern(
 
     Args:
         photo: Photo model instance with main_file
-        pattern_type: "any" to check all patterns, or specific pattern name
-                     (e.g., "burst_suffix", "sequence_suffix", "bracketed_sequence",
-                      "samsung_burst", "iphone_burst")
+        pattern_type: "all" (or "any") for the names that say "burst"
+                     ("burst_suffix", "samsung_burst"), or one pattern name,
+                     also a counter ("sequence_suffix", "bracketed_sequence",
+                     "iphone_burst")
 
     Returns:
         Tuple of (matches: bool, group_key: str or None)
         group_key can be used to group photos into the same burst
     """
-    if not photo.main_file:
-        return False, None
-
-    filename = os.path.basename(photo.main_file.path)
-    basename = os.path.splitext(filename)[0]
-    directory = os.path.dirname(photo.main_file.path)
-
-    if pattern_type in {"any", "all"}:
-        # Check all predefined patterns
-        for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
-            if re.search(pattern, basename, re.IGNORECASE):
-                base = re.sub(
-                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                    "",
-                    basename,
-                    flags=re.IGNORECASE,
-                )
-                group_key = f"filename_{directory}_{base}"
-                return True, group_key
-    # Check specific pattern
-    elif pattern_type in BURST_FILENAME_PATTERNS:
-        pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
-        if re.search(pattern, basename, re.IGNORECASE):
-            base = re.sub(
-                r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
-                "",
-                basename,
-                flags=re.IGNORECASE,
-            )
-            group_key = f"filename_{directory}_{base}"
-            return True, group_key
-
-    return False, None
+    rule = BurstDetectionRule(
+        {"rule_type": BurstRuleTypes.FILENAME_PATTERN, "pattern_type": pattern_type}
+    )
+    return rule.is_burst_photo(photo, {})
 
 
 def group_photos_by_timestamp(
@@ -587,7 +665,7 @@ DEFAULT_HARD_RULES: list[dict[str, Any]] = [
         "enabled": True,
         "is_default": True,
         "pattern_type": "all",
-        "description": "Detects burst sequences from filename patterns (e.g., IMG_001_BURST001, photo (1), photo (2))",
+        "description": "Detects burst sequences from file names that say burst (e.g., IMG_20151009_143426_BURST1, Samsung 20200115_123456_001)",
     },
 ]
 
