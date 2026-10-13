@@ -18,7 +18,12 @@ from constance.test import override_config
 from django.test import TestCase
 from geopy.exc import GeocoderTimedOut
 
-from api.geocode.photo_location import geolocate_photo, has_place, needs_geocoding
+from api.geocode.photo_location import (
+    geocode_status,
+    geolocate_photo,
+    has_place,
+    needs_geocoding,
+)
 from api.metadata import edits
 from api.models import Photo
 from api.models.album_place import AlbumPlace, get_album_place
@@ -137,6 +142,8 @@ class GeolocateNoPlaceTest(TestCase):
 
         self.assertFalse(self.still_to_geocode())
         self.assertFalse(has_place(self.photo))
+        # The edit response says so: not a failed lookup (#2589).
+        self.assertEqual("no_place", geocode_status(self.photo))
 
     def test_a_failed_location_edit_lookup_is_looked_up_again(
         self, get_geocoder: MagicMock, _wait: MagicMock
@@ -147,3 +154,4 @@ class GeolocateNoPlaceTest(TestCase):
         self.photo.refresh_from_db()
 
         self.assertTrue(self.still_to_geocode())
+        self.assertEqual("failed", geocode_status(self.photo))

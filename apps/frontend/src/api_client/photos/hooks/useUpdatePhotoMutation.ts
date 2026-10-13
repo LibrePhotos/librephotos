@@ -1,9 +1,20 @@
 import { endpoints, photoKeys, statsKeys } from "@librephotos/api-client";
-import type { Photo } from "@librephotos/api-client";
+import type { Photo, PhotoEditResponse } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
+
+/**
+ * The coordinates are saved either way. A lookup that failed gets a warning; a spot with no place
+ * name (open sea) is not a failure (#2589). Older servers only send `geocoded`.
+ */
+function notifyLocationSaved({ geocode_status: status, geocoded }: PhotoEditResponse) {
+  if (status === "no_place") notification.locationSavedNoPlace();
+  else if (status === "failed" || (status === undefined && geocoded === false))
+    notification.locationSavedWithoutPlace();
+  else notification.updatePhoto();
+}
 
 export const useUpdatePhotoMutation = () => {
   const queryClient = useQueryClient();
@@ -11,14 +22,9 @@ export const useUpdatePhotoMutation = () => {
     mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
       const result = await endpoints.updatePhoto(apiClient, id, data);
       // A removed location has no place to look up (#2209).
-      if ("exif_gps_lat" in data && data.exif_gps_lat === null) {
-        notification.locationRemoved();
-      } else if ("exif_gps_lat" in data && result.geocoded === false) {
-        // The coordinates are saved either way; say so when no place name came with them.
-        notification.locationSavedWithoutPlace();
-      } else {
-        notification.updatePhoto();
-      }
+      if ("exif_gps_lat" in data && data.exif_gps_lat === null) notification.locationRemoved();
+      else if ("exif_gps_lat" in data) notifyLocationSaved(result);
+      else notification.updatePhoto();
       return result;
     },
     onSuccess: (data, { data: patch }) => {

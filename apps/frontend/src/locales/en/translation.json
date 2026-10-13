@@ -1713,6 +1713,7 @@
     "locationremoved": "The photo is no longer on the map or in Places.",
     "locationremovedtitle": "Location removed",
     "locationsavedwithoutplace": "Location saved. The place name could not be looked up.",
+    "locationsavednoplace": "Location saved. There is no place name for this spot.",
     "rotatephotoclockwise": "Photo rotated {{degrees}}° clockwise.",
     "rotatephotocounterclockwise": "Photo rotated {{degrees}}° counter-clockwise.",
     "rotatephototitle": "Rotate photo",
