@@ -2,7 +2,6 @@ import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
-import { PageLoader } from "../../components/common/PageLoader";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
@@ -17,13 +16,11 @@ export const Route = createFileRoute("/_protected")({
 function AppShellProtected() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
-  const { data: isAuthenticated, isLoading } = useIsAuthenticatedQuery();
+  // A cookie read, known on the first render: the first paint is the app shell or the redirect,
+  // never a loading state of its own (#2238).
+  const { data: isAuthenticated } = useIsAuthenticatedQuery();
   // Keep the query string too, so the login can return to exactly this view.
   const { pathname, search } = window.location;
-
-  if (isLoading) {
-    return <PageLoader />;
-  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" search={{ redirect: pathname + search }} replace />;
