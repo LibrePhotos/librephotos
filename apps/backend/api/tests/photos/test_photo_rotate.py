@@ -108,6 +108,31 @@ class RotateCharacterizationTest(TestCase):
         rotate_photo(self.photo, 90, flip_horizontal=True)
         self.assertEqual(self.photo.local_orientation, 7)
 
+    # ---- shown size (#2568) --------------------------------------------
+
+    def _shown_size(self, photo):
+        metadata = PhotoMetadata.objects.get(photo=photo)
+        return metadata.width, metadata.height
+
+    @patch("api.thumbnails.render.regenerate_thumbnails")
+    def test_a_quarter_turn_swaps_the_shown_size(self, regen):
+        photo = create_test_photo(owner=self.user, width=96, height=64)
+
+        rotate_photo(photo, 90)
+        self.assertEqual((64, 96), self._shown_size(photo))
+
+        rotate_photo(photo, -90, flip_horizontal=True)
+        self.assertEqual((96, 64), self._shown_size(photo))
+
+    @patch("api.thumbnails.render.regenerate_thumbnails")
+    def test_a_half_turn_or_a_flip_keeps_the_shown_size(self, regen):
+        photo = create_test_photo(owner=self.user, width=96, height=64)
+
+        rotate_photo(photo, 180)
+        rotate_photo(photo, 0, flip_horizontal=True)
+
+        self.assertEqual((96, 64), self._shown_size(photo))
+
     # ---- metadata-to-disk branch --------------------------------------
     #
     # ``read_orientation`` (exiftool reading the media file) is replaced by a

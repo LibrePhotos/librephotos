@@ -161,6 +161,7 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.QUICKTIME_MAKE,
                 Tags.QUICKTIME_MODEL,
                 Tags.ROTATION,
+                Tags.ORIENTATION,
             ],
         )
 

@@ -168,11 +168,22 @@ def rotate_photo(
         flip_h=flip_horizontal,
     )
     photo.save()
+    if angle % 180 == 90:
+        _swap_shown_size(photo)
 
     # Regenerate thumbnails so the UI sees the updated orientation.
     render.regenerate_thumbnails(photo.thumbnail)
 
     return write_orientation_to_disk(photo)
+
+
+def _swap_shown_size(photo: Photo) -> None:
+    """A quarter turn swaps the size the photo is shown at (#2568)."""
+    metadata = getattr(photo, "metadata", None)
+    if metadata is None:
+        return
+    metadata.width, metadata.height = metadata.height, metadata.width
+    metadata.save(update_fields=["width", "height"])
 
 
 def write_orientation_to_disk(photo: Photo) -> str | None:
