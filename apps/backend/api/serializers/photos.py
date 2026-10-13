@@ -1249,7 +1249,7 @@ class SaveMetadataRequest(serializers.Serializer[None]):
 
 @extend_schema_field(OpenApiTypes.INT)
 class RotationAngleField(serializers.Field[int, str | int | float, int, Any]):
-    """Degrees clockwise, a multiple of 90; a number or a numeric string.
+    """Degrees counter-clockwise, a multiple of 90; a number or a numeric string.
 
     Read with ``int()``, so a float is truncated (90.7 is 90).
     """
@@ -1274,7 +1274,10 @@ class RotatePhotoRequest(serializers.Serializer[None]):
     angle = RotationAngleField(
         default=0,
         error_messages={"null": "angle must be an integer"},
-        help_text="Degrees clockwise, a multiple of 90; negative turns left",
+        help_text=(
+            "Degrees counter-clockwise as the photo is shown, a multiple of 90: "
+            "90 turns it left, -90 right"
+        ),
     )
     flip_horizontal = serializers.BooleanField(default=False)
 
@@ -1285,7 +1288,11 @@ class RotatePhotoResponse(serializers.Serializer[None]):
     status = serializers.BooleanField()
     image_hash = serializers.CharField()
     local_orientation = serializers.IntegerField(
-        help_text="The new EXIF orientation code, 1 to 8"
+        help_text=(
+            "The new orientation code, 1 to 8. Numbered like EXIF Orientation, "
+            "but 6 and 8 render swapped: 6 is a quarter turn counter-clockwise, "
+            "8 clockwise"
+        )
     )
     last_modified = serializers.DateTimeField()
     write_error = serializers.CharField(

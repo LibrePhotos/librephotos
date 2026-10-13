@@ -140,9 +140,11 @@ def rotate_photo(
 
     Args:
         photo: The photo to rotate.
-        angle: Clockwise rotation in degrees. Must be a multiple of 90.
-            Use negative values for counter-clockwise rotation (e.g. -90
-            for 90° CCW).
+        angle: Counter-clockwise rotation in degrees, as the photo is
+            shown. Must be a multiple of 90. Use negative values for a
+            clockwise turn (e.g. -90 for 90° CW, what the web app's
+            clockwise button sends). Pinned by
+            ``api/tests/photos/test_rotate_direction.py`` (#2595).
         flip_horizontal: If True, apply a horizontal flip on top of the
             rotation.
 
@@ -162,6 +164,9 @@ def rotate_photo(
 
     from api.thumbnails import render
 
+    # ``compose_orientation`` counts clockwise in EXIF terms, but the
+    # renderer draws local orientation 6 as a turn counter-clockwise
+    # (``_apply_local_orientation``), so ``angle`` comes out counter-clockwise.
     photo.local_orientation = compose_orientation(
         photo.local_orientation,
         delta_angle_cw=angle,

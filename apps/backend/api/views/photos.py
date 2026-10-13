@@ -1208,7 +1208,7 @@ def _get_rotatable_photo(image_hash: str, user: User) -> Photo:
 class RotatePhotoView(APIView):
     """Non-destructive photo rotation.
 
-    Applies a clockwise rotation (and optional horizontal flip) to a photo by
+    Applies a counter-clockwise rotation (and optional horizontal flip) to a photo by
     updating the ``local_orientation`` field and regenerating thumbnails.
     The original file is never modified unless the user has opted into
     ``save_metadata_to_disk``: then the orientation is also written to the
@@ -1219,21 +1219,28 @@ class RotatePhotoView(APIView):
 
         {
             "image_hash": "<md5-hash>",   // required
-            "angle": 90,                  // degrees CW, must be multiple of 90
+            "angle": 90,                  // degrees CCW, must be multiple of 90
             "flip_horizontal": false      // optional, default false
         }
 
-    Negative ``angle`` values rotate counter-clockwise (e.g. ``-90`` = 90° CCW).
+    A positive ``angle`` turns the photo counter-clockwise as LibrePhotos shows
+    it, a negative one clockwise: ``90`` turns it left, ``-90`` turns it right
+    (the web app's clockwise button sends ``-90``). Each call composes on top of
+    the photo's current rotation (#2595).
 
     **Response**::
 
         {
             "status": true,
             "image_hash": "<md5-hash>",
-            "local_orientation": 6,          // new EXIF orientation code (1–8)
+            "local_orientation": 6,          // new orientation code (1–8), see below
             "last_modified": "2024-01-01T00:00:00Z",  // for client cache-busting
             "write_error": null  // why the file or sidecar was not written
         }
+
+    ``local_orientation`` numbers the turn like EXIF Orientation, but 6 and 8
+    render swapped: 6 is a quarter turn counter-clockwise, 8 clockwise.
+    Treat it as opaque; the thumbnails already show it.
     """
 
     permission_classes = (IsAuthenticated,)

@@ -237,7 +237,9 @@ class Photo(models.Model):
     # From EXIF:ImageNumber or MakerNotes
     image_sequence_number = models.IntegerField(blank=True, null=True)
 
-    # User-controlled orientation override (EXIF Orientation code 1–8).
+    # User-controlled orientation override, numbered 1–8 like EXIF Orientation
+    # (but 6 and 8 render swapped, a turn counter-clockwise for 6, see
+    # ``api.thumbnails.render._apply_local_orientation``).
     # Stored as the *additional* rotation applied on top of whatever pyvips
     # auto-orientation produces from the file's own EXIF tag.  Defaults to 1
     # (identity – no extra rotation).  The value is updated by the rotate
