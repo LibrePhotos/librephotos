@@ -46,7 +46,11 @@ class AlbumThingSerializer(serializers.ModelSerializer):
 
 
 class AlbumThingListSerializer(serializers.ModelSerializer):
-    cover_photos = PhotoHashListSerializer(many=True, read_only=True)
+    # Up to four of the album's visible photos, prefetched by the list view;
+    # not the stored cover_photos, which keep photos hidden or trashed since.
+    cover_photos = PhotoHashListSerializer(
+        source="visible_cover_photos", many=True, read_only=True
+    )
     photo_count = serializers.SerializerMethodField()
 
     class Meta:

@@ -106,6 +106,22 @@ class AlbumListVisiblePhotosTest(TestCase):
         self.assertEqual(card["photo_count"], 1)
         self.assertEqual(self._cover_hashes(card), {self.kept.image_hash})
 
+    def test_a_thing_whose_stored_covers_are_hidden_keeps_a_cover(self):
+        # #2234: the stored covers are the first four photos and are never
+        # replaced, so hiding or trashing all four left the card without a
+        # cover (and the web grid without a link) while it still had photos.
+        others = [create_test_photo(owner=self.user) for _ in range(3)]
+        album = self._thing(self.gone, *others)
+        album.photos.add(self.kept)
+        stored = set(album.cover_photos.values_list("pk", flat=True))
+        self.assertEqual(len(stored), 4)
+        self.assertNotIn(self.kept.pk, stored)
+        Photo.objects.filter(pk__in=stored - {others[0].pk}).update(hidden=True)
+        Photo.objects.filter(pk=others[0].pk).update(in_trashcan=True)
+
+        card = self._card("/api/albums/thing/list/", album)
+        self.assertEqual(self._cover_hashes(card), {self.kept.image_hash})
+
     def test_a_thing_whose_photos_are_all_trashed_has_no_card(self):
         album = self._thing(self.gone)
         self._trash()

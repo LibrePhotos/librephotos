@@ -199,15 +199,19 @@ class AlbumThingListViewSet(ListViewSet):
             return AlbumThing.objects.none()
 
         active_types = _get_active_tag_thing_types()
-        # The card shows the stored photo_count. cover_photos are stored too
-        # and not refreshed when one is hidden or trashed, so they are
-        # filtered here.
+        # The card shows the stored photo_count. The covers come from the
+        # album's visible photos, as on the place list: the stored
+        # cover_photos are never replaced once hidden or trashed, so an album
+        # could be listed with none of them left (#2234).
+        cover_photos_query = Photo.visible.only("image_hash", "video")
         queryset = (
             AlbumThing.objects.owned_by(user)
             .filter(_thing_has_visible_photo())
             .prefetch_related(
                 Prefetch(
-                    "cover_photos", queryset=Photo.visible.only("image_hash", "video")
+                    "photos",
+                    queryset=cover_photos_query[:4],
+                    to_attr="visible_cover_photos",
                 )
             )
             .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
