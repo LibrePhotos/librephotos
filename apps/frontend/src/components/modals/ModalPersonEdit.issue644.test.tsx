@@ -301,7 +301,7 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
           {
             id: 42,
             image: null,
-            face_url: null,
+            face_url: "/media/faces/42.jpg",
             photo: "somehash",
             person_label_probability: 1,
             person: 3,

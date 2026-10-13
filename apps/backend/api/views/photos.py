@@ -69,6 +69,7 @@ from api.serializers.photos import (
     PhotoSummarySerializer,
     RecentlyAddedPhotosSerializer,
     RotatePhotoRequest,
+    RotatePhotoResponse,
     SaveMetadataRequest,
     SavePhotoCaptionRequest,
     SetMainFileRequest,
@@ -1230,7 +1231,7 @@ class RotatePhotoView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=RotatePhotoRequest)
+    @extend_schema(request=RotatePhotoRequest, responses=RotatePhotoResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         data = parse_body(request, RotatePhotoRequest)
         image_hash = data["image_hash"]

@@ -38,3 +38,21 @@ export function reportMutationError(error: unknown, mutation: Mutation<unknown, 
   if (reportedElsewhere(error, mutation)) return;
   notification.saveFailed(error instanceof ApiError ? error.serverMessage : null);
 }
+
+/** The server's reason when a response says the saved edit did not reach the file (`write_error`, #2294). */
+function writeErrorOf(data: unknown): string | null {
+  if (typeof data !== "object" || data === null || !("write_error" in data)) return null;
+  const { write_error: writeError } = data;
+  return typeof writeError === "string" && writeError !== "" ? writeError : null;
+}
+
+/**
+ * The QueryClient's MutationCache `onSuccess`: an edit that LibrePhotos saved but ExifTool could not
+ * write to the file or its sidecar (face tags, a drawn face, a rotation) gets a warning with the
+ * server's reason, whichever page the edit came from (#2564). The hook's "done" toast stays: the edit
+ * itself did save.
+ */
+export function reportWriteError(data: unknown): void {
+  const reason = writeErrorOf(data);
+  if (reason !== null) notification.notWrittenToFile(reason);
+}

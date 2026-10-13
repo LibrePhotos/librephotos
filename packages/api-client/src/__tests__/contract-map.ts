@@ -48,6 +48,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PersonFace: { schema: S.PersonFace, components: ["PersonFaceList"] },
   PersonFaceListResponse: { schema: S.PersonFaceListResponse, components: ["PaginatedPersonFaceListList"] },
   IncompletePersonFace: { schema: S.IncompletePersonFace, components: ["IncompletePersonFaceList"] },
+  LabelledFace: { schema: S.LabelledFace, components: ["FaceList"] },
+  SetFacesLabelResponse: { schema: S.SetFacesLabelResponse, components: ["SetFacePersonLabelResponse"] },
+  AddFaceResponse: { schema: S.AddFaceResponse, components: ["AddFaceResponse"] },
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs
@@ -56,6 +59,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
   CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
   JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
+  // photo edits
+  RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
   // users and auth
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },
@@ -153,7 +158,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (SharedFromMePhoto); the view's wrapper is not a component",
   SharedAlbumsResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
-  SetFacesLabelResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   DeleteFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
@@ -218,7 +222,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   StatusResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   DeletePhotosResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  RotatePhotoResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   MetadataFile:
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
   BulkMetadataUpdateResponse:
@@ -240,7 +243,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   WordCloudResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   SocialGraph: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ClusterFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  AddFaceResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ImageTag: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   StorageStats: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ServerLogs: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",

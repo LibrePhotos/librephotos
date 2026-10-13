@@ -31,6 +31,19 @@ function saveFailed(serverMessage: string | null) {
   toast.error(serverMessage ?? i18n.t("toasts.requestfailed"), { title: i18n.t("toasts.requestfailedtitle") });
 }
 
+/**
+ * An edit saved in LibrePhotos that ExifTool could not write to the file or its sidecar (#2564), with
+ * the server's reason. It stays until closed, and one is up at a time, so rotating ten HEIC photos
+ * does not stack ten of them.
+ */
+function notWrittenToFile(reason: string) {
+  toast.warning(i18n.t("toasts.notwrittentofile", { reason }), {
+    title: i18n.t("toasts.notwrittentofiletitle"),
+    id: "not-written-to-file",
+    autoClose: false,
+  });
+}
+
 /** An unhandled exception on the server (HTTP 500). The endpoint helps a bug report. */
 function serverError(endpoint: string) {
   toast.error(i18n.t("toasts.servererror", { endpoint }), { title: i18n.t("toasts.servererrortitle") });
@@ -45,6 +58,7 @@ export const worker = {
   jobAlreadyRunning,
   jobCancelled,
   jobFinished,
+  notWrittenToFile,
   parseError,
   requestFailed,
   saveFailed,

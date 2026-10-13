@@ -44,12 +44,33 @@ export type IncompletePersonFace = z.infer<typeof IncompletePersonFace>;
 export const IncompleteFacesResponse = IncompletePersonFace.array();
 export type IncompleteFacesResponse = z.infer<typeof IncompleteFacesResponse>;
 
+/**
+ * One relabelled face in the answer of POST /api/labelfaces (FaceListSerializer). `person` is null
+ * and `person_name` is "Unknown - Other" for a face moved back to unknown.
+ */
+export const LabelledFace = z.looseObject({
+  id: z.number(),
+  image: z.string().nullable().optional(),
+  face_url: z.string().optional(),
+  photo: z.string().nullable().optional(),
+  timestamp: z.string().nullable().optional(),
+  person: z.number().nullable().optional(),
+  person_label_probability: z.number().optional(),
+  person_name: z.string().optional(),
+});
+export type LabelledFace = z.infer<typeof LabelledFace>;
+
 /** POST /api/labelfaces response. */
 export const SetFacesLabelResponse = z.looseObject({
   status: z.boolean(),
-  results: PersonFace.array().default([]),
-  updated: PersonFace.array().default([]),
-  not_updated: PersonFace.array().default([]),
+  results: LabelledFace.array().default([]),
+  updated: LabelledFace.array().default([]),
+  not_updated: LabelledFace.array().default([]),
+  /**
+   * Why the edit, saved in LibrePhotos, did not reach the file or its sidecar (read-only library, a
+   * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
+   */
+  write_error: z.string().nullable().optional(),
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 
@@ -109,6 +130,11 @@ export type NormalizedFaceBox = { top: number; right: number; bottom: number; le
 /** `POST /addface` (201): the new face, its box in big-thumbnail pixels like every other face's. */
 export const AddFaceResponse = z.object({
   status: z.boolean(),
+  /**
+   * Why the edit, saved in LibrePhotos, did not reach the file or its sidecar (read-only library, a
+   * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
+   */
+  write_error: z.string().nullable().optional(),
   face: z.object({
     face_id: z.number(),
     face_url: z.string(),

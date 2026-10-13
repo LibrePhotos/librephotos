@@ -9,7 +9,7 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { notification } from "../service/notifications";
 import { ApiError } from "./apiError";
 import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
-import { reportMutationError } from "./mutationErrors";
+import { reportMutationError, reportWriteError } from "./mutationErrors";
 import { notifyParseError } from "./parseErrors";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
@@ -206,6 +206,9 @@ export const queryClient = new QueryClient({
     onError: (error, _variables, _onMutateResult, mutation) => {
       notifyParseError(error);
       reportMutationError(error, mutation);
+    },
+    onSuccess: data => {
+      reportWriteError(data);
     },
   }),
   defaultOptions: {
