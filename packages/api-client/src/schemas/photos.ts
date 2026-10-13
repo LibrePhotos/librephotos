@@ -191,5 +191,9 @@ export const BulkPhotoQuery = z.object({
   person: z.number().optional(),
   folder: z.string().optional(),
   username: z.string().optional(),
+  // Only photos without a date: the "Photos without Timestamps" page.
+  no_timestamp: z.boolean().optional(),
+  // Stacked photos too, not only each stack's primary photo (for pages that list them all).
+  show_all_stack_photos: z.boolean().optional(),
 });
 export type BulkPhotoQuery = z.infer<typeof BulkPhotoQuery>;

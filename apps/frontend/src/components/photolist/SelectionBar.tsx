@@ -23,6 +23,10 @@ export function SelectionBar(props: Readonly<Props>) {
   const [openedAll, { open: openAll, close: closeAll }] = useDisclosure(false);
   const [openedSelect, { open: openSelect, close: closeSelect }] = useDisclosure(false);
 
+  // Without a server-side query, select all can only take the loaded photos. On a page that
+  // still shows placeholders, say so instead of claiming the whole set (#2227).
+  const selectsLoadedOnly = !photosetQuery && idx2hash.some(item => item.isTemp);
+
   // Calculate display count based on mode
   const getDisplayText = () => {
     if (selectAllMode) {
@@ -32,11 +36,15 @@ export function SelectionBar(props: Readonly<Props>) {
       }
       return `${t("selectionbar.all")} ${totalCount} ${t("selectionbar.selected")}`;
     }
+    if (selectsLoadedOnly && selectedItems.length > 0) {
+      return t("selectionbar.selectedoftotal", { selected: selectedItems.length, total: totalCount });
+    }
     return `${selectedItems.length} ${t("selectionbar.selected")}`;
   };
 
   // Determine if "all" are selected; an empty grid is not "all selected" (0 === 0)
   const isAllSelected = selectAllMode || (idx2hash.length > 0 && selectedItems.length === idx2hash.length);
+  const selectAllLabel = selectsLoadedOnly ? t("selectionbar.selectloaded") : t("selectionbar.select");
 
   return (
     <Group gap="xs">
@@ -47,7 +55,7 @@ export function SelectionBar(props: Readonly<Props>) {
             onMouseLeave={() => closeAll()}
             variant="light"
             size={TOOLBAR_ACTION_SIZE}
-            aria-label={isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}
+            aria-label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel}
             onClick={() => {
               if (isAllSelected) {
                 // Already fully selected (server-side or every loaded item) - deselect
@@ -70,8 +78,9 @@ export function SelectionBar(props: Readonly<Props>) {
                 });
               } else {
                 // No server-side query (thing/place/user albums, search): the full set
-                // is already loaded, so select every loaded item client-side. Avoids the
-                // empty-query fallback that would otherwise match the whole library.
+                // is normally already loaded, so select every loaded item client-side.
+                // Avoids the empty-query fallback that would otherwise match the whole
+                // library. Placeholders are left out; the count then reads "N of M".
                 updateSelectionState({
                   selectMode: true,
                   selectAllMode: false,
@@ -85,7 +94,7 @@ export function SelectionBar(props: Readonly<Props>) {
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
-          <Text size="sm">{isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}</Text>
+          <Text size="sm">{isAllSelected ? t("selectionbar.deselect") : selectAllLabel}</Text>
         </Popover.Dropdown>
       </Popover>
       <div>

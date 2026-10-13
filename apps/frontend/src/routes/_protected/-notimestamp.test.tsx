@@ -139,4 +139,28 @@ describe("the no-timestamp page", () => {
     });
     stubs.media = "all";
   });
+
+  // #2227: only 100 photos are loaded at a time, so select all has to name the whole set
+  // with a server-side query: undated photos, stacked ones too, narrowed by the media filter.
+  it("selects all through a server-side query for every undated photo", async () => {
+    stubs.pages = { 1: { data: { count: 350, results: photos(1) }, isPlaceholderData: false } };
+    const NoTimestamp = defined(stubs.component);
+    const root = createRoot(document.createElement("div"));
+
+    await act(async () => {
+      root.render(<NoTimestamp />);
+    });
+    expect(stubs.props?.photosetQuery).toEqual({ no_timestamp: true, show_all_stack_photos: true });
+
+    stubs.media = "videos";
+    await act(async () => {
+      root.render(<NoTimestamp />);
+    });
+    expect(stubs.props?.photosetQuery).toEqual({ no_timestamp: true, show_all_stack_photos: true, video: true });
+
+    await act(async () => {
+      root.unmount();
+    });
+    stubs.media = "all";
+  });
 });
