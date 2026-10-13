@@ -9,6 +9,10 @@ The design goal: feature parity with the web frontend for everything that makes
 sense on a phone, plus mobile-only superpowers — camera-roll backup and fully
 offline browsing.
 
+**Status: not released yet.** There is no build on the Google Play Store, the
+App Store, F-Droid or TestFlight, and no `.apk` on the releases page. The only
+way to use the app today is to run it from source (see [Dev setup](#dev-setup)).
+
 ## Architecture
 
 The full design lives in [`plans/mobile-v2/`](../../plans/mobile-v2/). Start
@@ -155,8 +159,8 @@ runtime has no filesystem dependency (see "Regenerating migrations" below).
 
 ### Prerequisites
 
-- **Node 22** via [`fnm`](https://github.com/Schniz/fnm). All commands below
-  assume `fnm exec --using=22 -- <cmd>`.
+- **Node 24** (what CI uses) via [`fnm`](https://github.com/Schniz/fnm). All
+  commands below assume `fnm exec --using=24 -- <cmd>`.
 - On **Windows**, invoke the `.cmd` shims: `npm.cmd` / `npx.cmd` (bare `npm` /
   `npx` may not resolve under some shells).
 - **Android**: Android Studio + an emulator or a device. **iOS**: a Mac with
@@ -178,7 +182,7 @@ This app is an npm **workspace**. Install from the **repo root** so the root
 
 ```bash
 cd <repo-root>
-fnm exec --using=22 -- npm.cmd ci        # or: npm install
+fnm exec --using=24 -- npm.cmd ci        # or: npm install
 ```
 
 ### Run it
@@ -191,7 +195,7 @@ interactive prompt) for Expo Go:
 
 ```bash
 cd apps/mobile
-fnm exec --using=22 -- npx.cmd expo start --go   # scan the QR with Expo Go
+fnm exec --using=24 -- npx.cmd expo start --go   # scan the QR with Expo Go
 ```
 
 A [dev build](https://docs.expo.dev/develop/development-builds/introduction/)
@@ -200,8 +204,8 @@ share extension, background tasks under load) — on Android it needs nothing
 but a device or emulator; on iOS it needs a paid Apple Developer account:
 
 ```bash
-fnm exec --using=22 -- npx.cmd expo run:android   # builds + installs a dev build
-fnm exec --using=22 -- npx.cmd expo start --dev-client
+fnm exec --using=24 -- npx.cmd expo run:android   # builds + installs a dev build
+fnm exec --using=24 -- npx.cmd expo start --dev-client
 ```
 
 > **Note:** no `expo start` / Metro run happens in CI — CI only typechecks,
@@ -221,17 +225,17 @@ Jest runs **two projects** (configured in `jest.config.js`):
 
 ```bash
 cd apps/mobile
-fnm exec --using=22 -- npm.cmd run test        # both projects
-fnm exec --using=22 -- npm.cmd run typecheck   # tsc --noEmit
-fnm exec --using=22 -- npm.cmd run lint         # eslint (flat config)
-fnm exec --using=22 -- npm.cmd run check        # typecheck + lint + test
+fnm exec --using=24 -- npm.cmd run test        # both projects
+fnm exec --using=24 -- npm.cmd run typecheck   # tsc --noEmit
+fnm exec --using=24 -- npm.cmd run lint         # eslint (flat config)
+fnm exec --using=24 -- npm.cmd run check        # typecheck + lint + test
 ```
 
 The shared API package has its own suite:
 
 ```bash
 cd packages/api-client
-fnm exec --using=22 -- npx.cmd vitest run       # zod schema + endpoint contract tests
+fnm exec --using=24 -- npx.cmd vitest run       # zod schema + endpoint contract tests
 ```
 
 ## Regenerating migrations
@@ -241,7 +245,7 @@ migrations and the inlined runtime module:
 
 ```bash
 cd apps/mobile
-fnm exec --using=22 -- npm.cmd run db:generate
+fnm exec --using=24 -- npm.cmd run db:generate
 ```
 
 This runs `drizzle-kit generate` (writes `src/db/migrations/`) and then
@@ -272,8 +276,8 @@ These are load-bearing — changing them breaks the build or tests:
   runtime), and the app uses `expo-file-system/legacy` for the same reason.
   On SDK 54 media-library's classic API was the main entry instead, so these
   two imports are the first thing to re-check on any SDK move.
-- **zod v3**, not v4. `packages/api-client` pins `zod@^3` and its peer range is
-  `^3.23.0`. The schemas rely on v3 semantics; do not bump to v4.
+- **zod v4**. `packages/api-client` declares `zod@^4` as a peer and this app
+  depends on the same major, so both resolve to one copy; move them together.
 - **Single `@types/react`**. React types must resolve to **one** copy across the
   workspace (apps/mobile and api-client both pin `~19.2.x`). A duplicate
   `@types/react` produces spurious JSX type errors — dedupe if `tsc` starts
@@ -334,8 +338,9 @@ manifest to edit):
 | Deep-link `scheme` | `librephotos://` |
 
 The Android package **deliberately matches the original React Native app**
-(`com.librephotosmobile`) so this app ships as an **in-place Play Store update**
-rather than a separate listing — existing users upgrade without reinstalling.
+(`com.librephotosmobile`) so that, once published, this app ships as an
+**in-place Play Store update** rather than a separate listing — existing users
+of the legacy app upgrade without reinstalling.
 This requires signing with the **same upload key** as the legacy app. If the
 project instead wants a clean-slate listing, change `android.package` *before*
 the first store upload; afterwards it is immovable. The original iOS project
@@ -344,7 +349,7 @@ never moved off the React Native template identifier
 
 ## F-Droid / FOSS
 
-The app must stay publishable on F-Droid:
+The app is not on F-Droid yet, but it must stay publishable there:
 
 - **No OTA updates.** `expo-updates` is disabled for the FOSS flavor — F-Droid
   forbids remote code loading. OTA is Play/App Store only.

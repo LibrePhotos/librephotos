@@ -1,6 +1,6 @@
 ---
 title: "📱 LibrePhotos Mobile"
-description: "Install and use the offline-first LibrePhotos mobile app: first login, offline browsing, camera-roll backup, sync status, memories, and the share target."
+description: "Try the offline-first LibrePhotos mobile app (not released yet, run it from source): first login, offline browsing, camera-roll backup, sync status, memories, and the share target."
 sidebar_position: 3
 ---
 
@@ -11,17 +11,47 @@ the server and to back up new photos from your phone.
 
 It runs on Android and iOS.
 
-## Installing the app
+:::caution Not released yet
+LibrePhotos Mobile has not been published anywhere yet: there is no build on
+the Google Play Store, the App Store, F-Droid, or TestFlight, and no `.apk` of it on
+the GitHub releases page. Until it is, the only way to use it is to run it from
+the source code, as described below. If you want an app you can install from a
+store today, see [UhuruPhotos](./index.md#uhuruphotos).
+:::
 
-Install a build for your platform:
+## Trying the app
 
-- **Android** — from the Google Play Store, or the FOSS build on **F-Droid**.
-  The F-Droid build contains no Google services and never downloads code
-  updates over the air.
-- **iOS** — from the App Store (or TestFlight during beta).
+The app lives in
+[`apps/mobile/`](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile)
+of the LibrePhotos repository. To run it you need a computer with
+[Node.js](https://nodejs.org/) 24 and a checkout of the repository:
 
-If you self-host and prefer to build from source, follow the developer
-[README in the repository](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile).
+```bash
+git clone https://github.com/LibrePhotos/librephotos.git
+cd librephotos
+npm ci            # installs the app and the shared API client
+cd apps/mobile
+```
+
+Then pick one of two ways to get it onto your phone:
+
+- **Expo Go (quickest).** Install the free [Expo Go](https://expo.dev/go) app
+  on your phone, run `npx expo start --go` on the computer, and scan the QR
+  code it prints. The phone has to reach the computer over the network, and
+  Expo Go loads the app from it, so keep `expo start` running while you use
+  the app. This works on Android and on iPhone.
+- **Development build (closer to a real install).** On Android, with
+  Android Studio and a phone connected over USB (or an emulator), run
+  `npx expo run:android`. It builds the app and installs it on the device as
+  **LibrePhotos**. Background backup and the share target behave best in a
+  development build. On iOS a development build needs a Mac with Xcode and a
+  paid Apple Developer account.
+
+The [developer guide](../../development/contribution/mobile/index.md) and the
+[app README](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile#readme)
+cover the setup in more detail. Problems and feedback are welcome on the
+[issue tracker](https://github.com/LibrePhotos/librephotos/issues) with the
+`mobile` label.
 
 ## First login
 
@@ -58,10 +88,10 @@ set on the web.
 
 :::note Star ratings (since 1.3.0)
 Until this fix, a star rating set in the app showed on the phone but never
-reached the server. Saving ratings needs an updated app and a server newer than
-1.2.1 (1.3.0 or later); an older server rejects the rating and the app shows an error. Ratings
-set before the fix exist only on that phone, so set them again once both are
-updated.
+reached the server. Saving ratings needs a build of the app that includes the
+fix and a server newer than 1.2.1 (1.3.0 or later); an older server rejects the
+rating and the app shows an error. Ratings set before the fix exist only on
+that phone, so set them again once both are updated.
 :::
 
 Full-resolution originals are fetched on demand when you open a photo, so
@@ -126,5 +156,6 @@ scheduled on the device, so it works without any push service.
 
 LibrePhotos Mobile registers as a **share target**. From another app —
 Photos, a browser, a messaging app — use the system **Share** sheet and pick
-LibrePhotos to send images into your library. On Android this works out of the
-box; on iOS the share extension is being finalized.
+LibrePhotos to send images into your library. On Android this works in a
+development build (not in Expo Go, which registers as its own app); on iOS the
+share extension is being finalized.
