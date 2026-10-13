@@ -584,6 +584,22 @@ def _adopt_as_variant(user: User, path: str) -> Photo | None:
     return None
 
 
+def _photo_of_path(user: User, path: str) -> Photo | None:
+    """The user's Photo that already holds ``path``, the scan's matching rule.
+
+    Matching on ``main_file`` as well as the files m2m, as
+    ``group_files_into_photo`` does, finds a photo whose file went missing and
+    came back. Without it a second call for an indexed path built a second
+    Photo on the same File (#2257).
+    """
+    return (
+        Photo.objects.owned_by(user)
+        .filter(Q(files__path=path) | Q(main_file__path=path))
+        .order_by("added_on")
+        .first()
+    )
+
+
 def create_new_image(user: User, path: str) -> Photo | None:
     """
     Creates a new Photo object based on user input and file path.
@@ -603,6 +619,7 @@ def create_new_image(user: User, path: str) -> Photo | None:
         This function implements file variant grouping (PhotoPrism-like):
         - RAW files are attached to existing JPEG Photos as file variants
         - Live Photo videos (.mov) are attached to existing image Photos as file variants
+        - A path the user already has a Photo for returns that Photo
         - Other files create new Photo entities
     """
     if not is_valid_media(path=path, user=user):
@@ -620,7 +637,7 @@ def create_new_image(user: User, path: str) -> Photo | None:
     if replaced_photo:
         return replaced_photo
 
-    existing_photo = _adopt_as_variant(user, path)
+    existing_photo = _photo_of_path(user, path) or _adopt_as_variant(user, path)
     if existing_photo:
         return existing_photo
 

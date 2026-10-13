@@ -278,20 +278,28 @@ class CreateNewImageTests(FileHandlerTestBase):
         self.assertEqual([path], [f.path for f in photo.files.all()])
         self.assertEqual(File.IMAGE, photo.main_file.type)
 
-    def test_rescanning_same_path_reuses_file_but_creates_second_photo(self):
-        """Current behavior (documented, arguably a bug): calling
-        create_new_image twice for the same standalone image reuses the File
-        (unique path) but builds a *second* Photo, and the File's m2m /
-        main_file are re-pointed at the newer Photo."""
+    def test_rescanning_same_path_returns_the_existing_photo(self):
+        """#2257: the Nextcloud scan hands every file to create_new_image on
+        every run, so a second call for an indexed path must not build a
+        second Photo on the same File."""
         path = _write_image(self.p("dup.png"), width=16)
 
         first = create_new_image(self.user, path)
         second = create_new_image(self.user, path)
 
-        self.assertNotEqual(first.pk, second.pk)
-        self.assertEqual(2, Photo.objects.count())
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(1, Photo.objects.count())
         self.assertEqual(1, File.objects.filter(path=path).count())
-        self.assertEqual(first.image_hash, second.image_hash)
+
+    def test_another_users_photo_on_the_same_path_is_not_returned(self):
+        path = _write_image(self.p("shared.png"), width=18)
+        other = create_test_user()
+        theirs = create_new_image(other, path)
+
+        mine = create_new_image(self.user, path)
+
+        self.assertNotEqual(theirs.pk, mine.pk)
+        self.assertEqual(self.user, mine.owner)
 
     @override_settings(FEATURE_PROCESS_EMBEDDED_MEDIA=True, FEATURE_VIDEO=True)
     def test_embedded_motion_video_is_extracted_and_linked(self):

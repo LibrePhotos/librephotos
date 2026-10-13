@@ -7,9 +7,10 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Protocol
 
 from django.conf import settings
+from django.db import models
 
 from api.directory_watcher import handle_new_image
-from api.models import LongRunningJob, User
+from api.models import File, LongRunningJob, Photo, User
 from api.photos.media_files import is_metadata, is_raw
 from api.search.similarity import build_image_similarity_index
 from nextcloud.server_address import connect
@@ -118,6 +119,20 @@ def download(nc: owncloud.Client, remote_path: str, local_path: str) -> bool:
             os.remove(temp_path)
 
 
+def indexed_paths(user: User, root: str) -> set[str]:
+    """The paths below ``root`` that already belong to one of the user's photos.
+
+    A file is indexed once it is a photo's main file or one of its files (a
+    RAW variant, a sidecar), the rule ``create_new_image`` reuses a photo by.
+    """
+    photos = Photo.objects.owned_by(user)
+    return set(
+        File.objects.filter(path__startswith=os.path.join(root, ""))
+        .filter(models.Q(photo__in=photos) | models.Q(main_photo__in=photos))
+        .values_list("path", flat=True)
+    )
+
+
 def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_PHOTOS, job_id)
     if lrj is None:
@@ -137,6 +152,9 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
         paths: list[str] = []
 
         collect_photos(nc, user.nextcloud_scan_directory, photos)
+        # Only files new to the library are handed on: every one of them is
+        # processed in full, and an indexed file has nothing new to give (#2257).
+        indexed = indexed_paths(user, root)
 
         for photo in photos:
             local_path = local_path_for(root, photo)
@@ -153,6 +171,8 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
                     logger.warning("Nextcloud did not return %r, skipping it", photo)
                     continue
                 logger.info("Downloaded photo from nextcloud to %s", local_path)
+            elif local_path in indexed:
+                continue
             paths.append(local_path)
 
         paths.sort()

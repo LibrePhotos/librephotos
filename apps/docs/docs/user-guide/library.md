@@ -73,8 +73,14 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 
 In the **Nextcloud** section, click **Scan** to download and scan photos from your configured Nextcloud directory. Files are copied to the local filesystem under `nextcloud_media/<username>/` before being processed.
 
+A repeat scan downloads and processes only files that are not in your library yet; photos imported by an earlier scan are left as they are.
+
 :::note
 Nextcloud scanning indexes the same media as a local scan: images, videos, RAW files and XMP sidecars.
+:::
+
+:::info Duplicate photos from earlier Nextcloud scans
+Up to version 1.3.0, every Nextcloud scan added another copy of each photo it had already imported. The first start after upgrading merges those copies into one photo per file (not released yet). The merged photo keeps the albums, tags, faces, shares and edit history of every copy and the highest rating among them; its caption, date and location come from a single copy: one that is not in the trash, preferring the copy you edited most, then the oldest.
 :::
 
 ## Library Actions
