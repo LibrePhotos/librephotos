@@ -198,6 +198,30 @@ sidebar_position: 18
     </tr>
 </table>
 
+## XMP sidecars
+
+A sidecar (`photo.xmp` or `photo.jpg.xmp` next to `photo.jpg`) is read together with the
+photo, and a value found in the sidecar wins over the one embedded in the file. Apps that
+leave the original untouched (geotaggers, digiKam, darktable, Lightroom) store EXIF
+properties in the sidecar under their XMP names, and LibrePhotos reads these there too:
+
+| Field | Read from the sidecar as |
+| --- | --- |
+| `EXIF:DateTimeOriginal` | `exif:DateTimeOriginal` |
+| `Composite:GPSLatitude`, `Composite:GPSLongitude` | `exif:GPSLatitude`, `exif:GPSLongitude` |
+| `Composite:GPSDateTime` | `exif:GPSTimeStamp` |
+| `EXIF:Model` | `tiff:Model` |
+| `EXIF:LensModel` | `exifEX:LensModel` |
+| `EXIF:FNumber`, `EXIF:ExposureTime`, `EXIF:ISO`, `EXIF:FocalLength`, `EXIF:FocalLengthIn35mmFormat` | `exif:FNumber`, `exif:ExposureTime`, `exif:ISOSpeedRatings`, `exif:FocalLength`, `exif:FocalLengthIn35mmFilm` |
+
+_Not released yet:_ before this, only the XMP-native fields (rating, keywords, description,
+`XMP:DateCreated`, face regions) were taken from a sidecar. Photos already in your library pick
+up a sidecar's date and camera with a **Rescan** from the Library page; a position in the
+sidecar of a photo that is already in the library does not reach the map yet ([#2264](https://github.com/LibrePhotos/librephotos/issues/2264)). A sidecar's
+modify date and orientation are never read: they describe the last edit, not the photo.
+
+## Rules
+
 Some tags are only read when a matching rule is active. The burst/stacking detection
 rules read `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive` and
 `MakerNotes:SequenceNumber` only when the corresponding stack-detection rule is enabled

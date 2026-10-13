@@ -233,6 +233,8 @@ type = "forbidden"
 # Python runs api/__init__.py and api/runtime/__init__.py before
 # api.runtime.sidecars, and the contract above does not see them: they import
 # nothing. As modules, not packages: the rest of api.runtime needs Django.
-source_modules = ["api", "api.runtime"]
+# The exif service reads api.metadata.tags (SIDECAR_EQUIVALENTS), so the same
+# holds for api/metadata/__init__.py.
+source_modules = ["api", "api.runtime", "api.metadata"]
 forbidden_modules = ["django"]
 as_packages = false
