@@ -28,9 +28,25 @@ EXIFTOOL = shutil.which("exiftool")
 FIXTURES = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
 )
-# Written into sidecars, never read (#2297). The batched read files values by
-# tag name, so it would answer a family-1 group like this one with the EXIF tag.
-WRITE_ONLY_TAGS = {Tags.ORIENTATION_XMP}
+# Written, never read (#2297, #2289, #2290). The batched read files values by
+# tag name, so it would answer a family-1 group like these with another
+# group's tag, and MWG:Description needs a module the reader never loads.
+WRITE_ONLY_TAGS = {
+    Tags.ORIENTATION_XMP,
+    Tags.DESCRIPTION_XMP,
+    Tags.DESCRIPTION_MWG,
+    Tags.GPS_LATITUDE_XMP,
+    Tags.GPS_LONGITUDE_XMP,
+    Tags.GPS_LATITUDE,
+    Tags.GPS_LATITUDE_REF,
+    Tags.GPS_LONGITUDE,
+    Tags.GPS_LONGITUDE_REF,
+    Tags.GPS_ALTITUDE_EXIF,
+    Tags.GPS_ALTITUDE_REF,
+    Tags.GPS_COORDINATES_KEYS,
+    Tags.GPS_COORDINATES_USER_DATA,
+    Tags.GPS_COORDINATES_ITEM_LIST,
+}
 ALL_TAGS = sorted(
     {value for name, value in vars(Tags).items() if name.isupper()} - WRITE_ONLY_TAGS
     | set(EXIF_TAGS)

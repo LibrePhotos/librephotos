@@ -198,16 +198,16 @@ describe("Settings write edits to files (#2281)", () => {
   it("is called Write edits to files and names what stays in LibrePhotos", () => {
     expect(container.textContent).toContain("Write edits to files");
     expect(container.textContent).not.toContain("Synchronize metadata to disk");
-    expect(container.textContent).toContain("Not written yet: captions, tags, and locations.");
+    expect(container.textContent).toContain("Not written yet: tags.");
   });
 
   it("says what each option writes, from the one list of written fields", () => {
     expect(optionText("Off")).toContain("Your files are never changed.");
     expect(optionText("Save to sidecar")).toContain(
-      "Writes ratings, dates, and rotations to an .xmp file next to the photo. The photo itself is not changed."
+      "Writes ratings, dates, rotations, captions, and locations to an .xmp file next to the photo. The photo itself is not changed."
     );
     expect(optionText("Save to media file")).toContain(
-      "Writes ratings, dates, and rotations into the photo file itself."
+      "Writes ratings, dates, rotations, captions, and locations into the photo file itself."
     );
   });
 

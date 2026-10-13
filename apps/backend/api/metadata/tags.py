@@ -25,6 +25,26 @@ class Tags:
     MATROSKA_DURATION = "Matroska:Duration"
     LATITUDE = "Composite:GPSLatitude"
     LONGITUDE = "Composite:GPSLongitude"
+    # Where a location edit is written (#2290). ExifTool builds the two
+    # Composite tags above from each of these, except from the sidecar's,
+    # which SIDECAR_EQUIVALENTS reads as XMP:GPSLatitude/GPSLongitude.
+    # An XMP sidecar holds signed decimal degrees.
+    GPS_LATITUDE_XMP = "XMP-exif:GPSLatitude"
+    GPS_LONGITUDE_XMP = "XMP-exif:GPSLongitude"
+    # An image's EXIF GPS block holds unsigned degrees and the hemisphere as a
+    # letter. The writer runs with -n, under which ExifTool takes no signed
+    # number for the Ref tags, so the letters are written explicitly.
+    GPS_LATITUDE = "GPS:GPSLatitude"
+    GPS_LATITUDE_REF = "GPS:GPSLatitudeRef"
+    GPS_LONGITUDE = "GPS:GPSLongitude"
+    GPS_LONGITUDE_REF = "GPS:GPSLongitudeRef"
+    GPS_ALTITUDE_EXIF = "GPS:GPSAltitude"
+    GPS_ALTITUDE_REF = "GPS:GPSAltitudeRef"
+    # An MP4 or MOV: "<lat> <lon>" in the Keys atom, what phones write. The
+    # UserData and ItemList atoms can hold an older copy.
+    GPS_COORDINATES_KEYS = "Keys:GPSCoordinates"
+    GPS_COORDINATES_USER_DATA = "UserData:GPSCoordinates"
+    GPS_COORDINATES_ITEM_LIST = "ItemList:GPSCoordinates"
     GPS_DATE_TIME = "Composite:GPSDateTime"
     FILE_SIZE = "File:FileSize"
     FSTOP = "EXIF:FNumber"
@@ -67,6 +87,12 @@ class Tags:
     # under DESCRIPTION, so this is the fallback; get_tag keeps the first one.
     # The wildcard does not match the untagged x-default entry itself.
     DESCRIPTION_ANY_LANGUAGE = "XMP:Description-*"
+    # Where a caption edit is written (#2289): the x-default entry in a
+    # sidecar; in a media file the MWG composite, which also sets
+    # EXIF:ImageDescription and an IPTC:Caption-Abstract the file already has
+    # (written with WriteOption.MWG).
+    DESCRIPTION_XMP = "XMP-dc:Description"
+    DESCRIPTION_MWG = "MWG:Description"
     # Older captions: the IPTC record (Photoshop, Picasa, newsroom tools) and
     # the EXIF one, which some cameras fill with a placeholder.
     IPTC_CAPTION = "IPTC:Caption-Abstract"

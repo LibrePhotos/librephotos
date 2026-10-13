@@ -1,7 +1,7 @@
 """Writing a photo's LibrePhotos edits back to its file or XMP sidecar.
 
-Ratings, capture dates, face regions and rotations. Moved out of ``Photo``;
-every function takes the photo as its first argument. ``Photo.save()`` only
+Ratings, capture dates, captions, locations, face regions and rotations.
+Moved out of ``Photo``; every function takes the photo as its first argument. ``Photo.save()`` only
 saves: a caller that applies a user's edit calls the writer itself, for the
 fields it changed (#2336).
 """
@@ -9,13 +9,21 @@ fields it changed (#2336).
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from django.db import transaction
 
 from api.metadata.orientation import compose_orientation
+from api.metadata.reader import existing_sidecars
 from api.metadata.tags import Tags
-from api.metadata.writer import MetadataWriteError, TagValue, write_metadata
+from api.metadata.writer import (
+    MetadataWriteError,
+    TagValue,
+    WriteOption,
+    write_metadata,
+)
+from api.models.photo_caption import PhotoCaption
 from api.models.user import User
 from api.photos.paths import is_nextcloud_copy
 
@@ -126,6 +134,163 @@ def write_photo_metadata(
     if tags_to_write and _keeps_edits(photo):
         assert photo.main_file is not None
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
+
+
+# ---------------------------------------------------------- caption, location
+
+
+def caption_tags(caption: str, use_sidecar: bool) -> dict[str, TagValue]:
+    """The tags that make ``caption`` the description; an empty one removes it."""
+    tag = Tags.DESCRIPTION_XMP if use_sidecar else Tags.DESCRIPTION_MWG
+    return {tag: caption}
+
+
+def write_caption(photo: Photo, use_sidecar: bool) -> None:
+    """Write the photo's caption as its description (#2289).
+
+    The lightbox caption (``captions_json["user_caption"]``) as it is when the
+    write runs; a generated caption is never written. An empty caption removes
+    the description. Into the sidecar as ``XMP-dc:Description``; into the
+    media file through ExifTool's MWG composite, which also sets
+    ``EXIF:ImageDescription`` and an ``IPTC:Caption-Abstract`` the file
+    already has (a file without IPTC gains none). Line breaks are kept.
+
+    Raises ``MetadataWriteError`` when ExifTool did not write it.
+    """
+    captions = (
+        PhotoCaption.objects.filter(photo=photo)
+        .values_list("captions_json", flat=True)
+        .first()
+    )
+    caption = captions.get("user_caption") if isinstance(captions, dict) else None
+    _write_edit(
+        photo,
+        caption_tags(caption if isinstance(caption, str) else "", use_sidecar),
+        use_sidecar,
+        options=(WriteOption.MWG, WriteOption.MULTILINE),
+    )
+
+
+def _degrees(value: float) -> str:
+    """Decimal degrees to a tenth of a millimetre of arc, without trailing zeros."""
+    return f"{value:.7f}".rstrip("0").rstrip(".")
+
+
+def location_tags(
+    latitude: float | None, longitude: float | None, use_sidecar: bool, video: bool
+) -> dict[str, TagValue]:
+    """The tags that put the photo at ``latitude``, ``longitude`` (#2290).
+
+    Either one None removes the location. Each target gets the tags ExifTool
+    builds ``Composite:GPSLatitude``/``GPSLongitude`` from there (or, for a
+    sidecar, the ones ``SIDECAR_EQUIVALENTS`` reads):
+
+    * sidecar: ``XMP-exif:GPSLatitude``/``GPSLongitude`` in signed degrees;
+    * video file: ``Keys:GPSCoordinates`` as "<lat> <lon>", the older
+      ``UserData`` and ``ItemList`` copies removed;
+    * image file: ``GPS:GPSLatitude``/``GPSLongitude`` unsigned, with the
+      hemisphere letters in the ``Ref`` tags (``_image_location_tags``).
+    """
+    if latitude is None or longitude is None:
+        position = None
+    else:
+        position = (latitude, longitude)
+    if use_sidecar:
+        return _sidecar_location_tags(position)
+    if video:
+        return _video_location_tags(position)
+    return _image_location_tags(position)
+
+
+def _sidecar_location_tags(position: tuple[float, float] | None) -> dict[str, TagValue]:
+    latitude, longitude = (
+        (_degrees(value) for value in position) if position else ("", "")
+    )
+    return {Tags.GPS_LATITUDE_XMP: latitude, Tags.GPS_LONGITUDE_XMP: longitude}
+
+
+def _video_location_tags(position: tuple[float, float] | None) -> dict[str, TagValue]:
+    coordinates = " ".join(_degrees(value) for value in position) if position else ""
+    return {
+        Tags.GPS_COORDINATES_KEYS: coordinates,
+        Tags.GPS_COORDINATES_USER_DATA: "",
+        Tags.GPS_COORDINATES_ITEM_LIST: "",
+    }
+
+
+def _image_location_tags(position: tuple[float, float] | None) -> dict[str, TagValue]:
+    """The EXIF GPS tags of ``position``, or their removal.
+
+    The hemisphere is a letter computed here: the writer's ``-n`` makes
+    ExifTool ignore the sign of a number written to a ``Ref`` tag (#2290).
+    The altitude goes, since it belonged to the old position, and so does an
+    embedded XMP position, which would otherwise disagree with the new one.
+    """
+    tags: dict[str, TagValue] = {
+        Tags.GPS_LATITUDE: "",
+        Tags.GPS_LATITUDE_REF: "",
+        Tags.GPS_LONGITUDE: "",
+        Tags.GPS_LONGITUDE_REF: "",
+        Tags.GPS_ALTITUDE_EXIF: "",
+        Tags.GPS_ALTITUDE_REF: "",
+        Tags.GPS_LATITUDE_XMP: "",
+        Tags.GPS_LONGITUDE_XMP: "",
+    }
+    if position is not None:
+        latitude, longitude = position
+        tags[Tags.GPS_LATITUDE] = _degrees(abs(latitude))
+        tags[Tags.GPS_LATITUDE_REF] = "S" if latitude < 0 else "N"
+        tags[Tags.GPS_LONGITUDE] = _degrees(abs(longitude))
+        tags[Tags.GPS_LONGITUDE_REF] = "W" if longitude < 0 else "E"
+    return tags
+
+
+def write_location(photo: Photo, use_sidecar: bool) -> None:
+    """Write the photo's position (``exif_gps_lat``/``lon``) as it is now (#2290).
+
+    No position removes the location tags. Removing them from a sidecar
+    leaves the position embedded in the original, which a fresh import reads
+    again; inside LibrePhotos the removal stays (``location_source``).
+
+    Raises ``MetadataWriteError`` when ExifTool did not write it.
+    """
+    _write_edit(
+        photo,
+        location_tags(photo.exif_gps_lat, photo.exif_gps_lon, use_sidecar, photo.video),
+        use_sidecar,
+    )
+
+
+def _write_edit(
+    photo: Photo,
+    tags: dict[str, TagValue],
+    use_sidecar: bool,
+    options: tuple[WriteOption, ...] = (),
+) -> None:
+    """Write one edited field's ``tags`` into the photo's file or sidecar.
+
+    A removal from a sidecar that does not exist has nothing to do.
+    """
+    if not _keeps_edits(photo):
+        return
+    assert photo.main_file is not None
+    path = photo.main_file.path
+    removes_only = all(value == "" for value in tags.values())
+    if use_sidecar and removes_only and not existing_sidecars(path):
+        return
+    write_metadata(path, tags, use_sidecar=use_sidecar, options=options)
+
+
+def _write_rating(photo: Photo, use_sidecar: bool) -> None:
+    write_photo_metadata(photo, modified_fields=["rating"], use_sidecar=use_sidecar)
+
+
+#: The writer of each field ``api.metadata.jobs`` writes in the background.
+FIELD_WRITERS: dict[str, Callable[[Photo, bool], None]] = {
+    "rating": _write_rating,
+    "caption": write_caption,
+    "location": write_location,
+}
 
 
 def rotate_photo(

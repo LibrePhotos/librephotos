@@ -5,6 +5,7 @@ a person name like ``"Joe\\n-if\\n<perl>"`` used to become an ``-if`` option
 whose Perl expression ExifTool evaluated.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -15,7 +16,7 @@ import PIL.Image
 from django.test import SimpleTestCase
 
 from api.metadata.face_regions import build_face_region_exiftool_args
-from api.metadata.writer import write_metadata
+from api.metadata.writer import WriteOption, write_metadata
 from api.runtime import binaries
 
 INJECTED = "Joe\n-IFD0:Copyright=INJECTED"
@@ -83,6 +84,40 @@ class WriteMetadataRefusesLineBreaksTest(SimpleTestCase):
             )
 
         self.assertEqual(self._copyright(), "")
+
+    def _description(self):
+        result = subprocess.run(
+            [EXIFTOOL, "-j", "-XMP-dc:Description", self.photo],
+            capture_output=True,
+            check=True,
+        )
+        return json.loads(result.stdout)[0].get("Description")
+
+    def test_a_multiline_value_is_written_as_text(self):
+        # A caption keeps its line breaks (#2289): they travel XML-escaped and
+        # ExifTool decodes them inside the value, so none starts an argument.
+        write_metadata(
+            self.photo,
+            {"XMP-dc:Description": INJECTED + "\r\nthird line"},
+            use_sidecar=False,
+            options=(WriteOption.MULTILINE,),
+        )
+
+        self.assertEqual(self._copyright(), "")
+        self.assertEqual(
+            self._description(), "Joe\n-IFD0:Copyright=INJECTED\r\nthird line"
+        )
+
+    def test_a_typed_entity_stays_text(self):
+        write_metadata(
+            self.photo,
+            {"XMP-dc:Description": "a&#xa;-IFD0:Copyright=INJECTED &amp; b"},
+            use_sidecar=False,
+            options=(WriteOption.MULTILINE,),
+        )
+
+        self.assertEqual(self._copyright(), "")
+        self.assertEqual(self._description(), "a&#xa;-IFD0:Copyright=INJECTED &amp; b")
 
     def test_face_tags_with_an_injected_name_write_only_the_name(self):
         tags = build_face_region_exiftool_args(

@@ -170,7 +170,7 @@ _Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
 
-While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. Of these edits, only the date is written to files; captions, tags and locations stay in LibrePhotos. _Not released yet._
+While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. Of these edits, the date, the caption and the location are written to files; tags stay in LibrePhotos. _Not released yet._
 
 ### Timestamp
 

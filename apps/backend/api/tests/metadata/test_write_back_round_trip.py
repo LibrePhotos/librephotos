@@ -23,15 +23,19 @@ from rest_framework.test import APIClient
 
 from api.directory_watcher.file_handlers import _process_photo
 from api.faces.extractor import extract_from_exif
+from api.geocode.photo_location import geolocate_photo
+from api.metadata import edits
 from api.metadata.jobs import queue_rating_write, write_photo_ratings
 from api.metadata.photo_datetime import extract_date_time
-from api.metadata.photo_reader import extract_exif_data
+from api.metadata.photo_reader import extract_exif_data, read_file_values
 from api.metadata.photo_writer import rotate_photo, write_photo_metadata
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.metadata.writer import MetadataWriteError, write_metadata
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.photo_caption import PhotoCaption
+from api.models.photo_metadata import description_of
 from api.models.user import User
 from api.serializers.photos import PhotoEditSerializer
 from api.tests.metadata.exiftool_harness import (
@@ -296,6 +300,422 @@ class DateRoundTripTest(RealExifToolTestCase):
         path = self.make_image(".jpg")
         with self.assertUntouched(path):
             self._edit_date(path, OFF)
+
+
+CAPTION = "Golden Gate at dusk & fog\n\nSecond paragraph"
+
+
+class CaptionRoundTripTest(RealExifToolTestCase):
+    """A caption edit (``edits.set_caption``) read back as the scan reads it (#2289)."""
+
+    def _photo(self, path, mode, **fields):
+        return self.photo_for(
+            path, create_test_user(save_metadata_to_disk=mode), **fields
+        )
+
+    def _caption(self, photo, text):
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            edits.set_caption(photo, text, photo.owner)
+
+    def _description_the_scan_reads(self, photo):
+        return description_of(read_file_values(photo))
+
+    def _round_trip(self, path, mode, **fields):
+        photo = self._photo(path, mode, **fields)
+
+        self._caption(photo, CAPTION)
+
+        self.assertEqual(CAPTION, self._description_the_scan_reads(photo))
+        self.assertWritesLanded(expected=1)
+        target = self.exiftool.writes[0].target
+        self.assertEqual(self.sidecar_of(path) if mode == SIDECAR else path, target)
+        return photo
+
+    def test_image_formats(self):
+        for extension in IMAGE_FORMATS:
+            for mode in MODES:
+                with self.subTest(extension=extension, mode=mode):
+                    self.exiftool.writes.clear()
+                    self._round_trip(self.make_image(extension, f"c-{mode}"), mode)
+
+    def test_video(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                self._round_trip(self.make_video(f"c-{mode}"), mode, video=True)
+
+    def test_the_media_file_gets_the_exif_description_too(self):
+        path = self.make_image(".jpg")
+        self._round_trip(path, MEDIA_FILE)
+
+        found = self.read_tags(path, Tags.IMAGE_DESCRIPTION, Tags.IPTC_CAPTION)
+        self.assertEqual(CAPTION, found[Tags.IMAGE_DESCRIPTION])
+        # MWG writes IPTC only into a file that has an IPTC block already.
+        self.assertIsNone(found[Tags.IPTC_CAPTION])
+
+    def test_an_existing_iptc_caption_follows_the_edit(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-IPTC:Caption-Abstract=Old caption")
+
+        self._round_trip(path, MEDIA_FILE)
+
+        self.assertEqual(
+            CAPTION, self.read_tags(path, Tags.IPTC_CAPTION)[Tags.IPTC_CAPTION]
+        )
+
+    def test_the_sidecar_caption_wins_over_the_embedded_description(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Description=From the camera")
+
+        with self._original_kept(path):
+            self._round_trip(path, SIDECAR)
+
+    def test_clearing_the_caption_removes_the_description(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"clear-{mode}")
+                photo = self._round_trip(path, mode)
+
+                self._caption(photo, "")
+
+                self.assertIsNone(self._description_the_scan_reads(photo))
+                self.assertWritesLanded(expected=2)
+
+    def test_clearing_without_a_sidecar_creates_none(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR)
+        self._caption_silently(photo, "typed before write-back was on")
+
+        with self.assertUntouched(path):
+            self._caption(photo, "")
+
+    def _caption_silently(self, photo, text):
+        """A caption set while nothing is written."""
+        with patch("api.metadata.edits.queue_field_write"):
+            edits.set_caption(photo, text, photo.owner)
+
+    def test_a_rescan_keeps_the_caption(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Description=From the camera")
+        photo = self._photo(path, MEDIA_FILE)
+        extract_exif_data(photo, commit=True)
+        self.assertEqual("From the camera", self._user_caption(photo))
+
+        self._caption(photo, CAPTION)
+        extract_exif_data(Photo.objects.get(pk=photo.pk), commit=True)
+
+        self.assertEqual(CAPTION, self._user_caption(photo))
+
+    def _user_caption(self, photo):
+        return PhotoCaption.objects.get(photo=photo).captions_json["user_caption"]
+
+    def test_the_same_caption_again_writes_nothing(self):
+        photo = self._round_trip(self.make_image(".jpg"), SIDECAR)
+        self.exiftool.writes.clear()
+
+        self._caption(photo, CAPTION)
+
+        self.assertEqual([], self.exiftool.writes)
+
+    def test_nothing_is_written_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF)
+
+        with self.assertUntouched(path):
+            self._caption(photo, CAPTION)
+
+    def test_a_rolled_back_edit_leaves_the_file_alone(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE)
+
+        with (
+            self.assertUntouched(path),
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            with self.assertRaises(RuntimeError), transaction.atomic():
+                edits.set_caption(photo, CAPTION, photo.owner)
+                raise RuntimeError("the request fails after the save")
+
+    def test_importing_the_file_description_writes_nothing(self):
+        # The scan carries the file's description over to the caption
+        # through PhotoCaption.apply_user_caption, not the edit service.
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"import-{mode}")
+                self.tag(path, "-XMP-dc:Description=From the camera")
+                photo = self._photo(path, mode)
+
+                with (
+                    self.assertUntouched(path),
+                    patch("api.metadata.jobs.enqueue_task", run_now),
+                    self.captureOnCommitCallbacks(execute=True),
+                ):
+                    extract_exif_data(photo, commit=True)
+
+                self.assertEqual("From the camera", self._user_caption(photo))
+
+    def test_the_lightbox_caption_reaches_the_sidecar(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.post(
+                "/api/photosedit/savecaption/",
+                {"image_hash": photo.image_hash, "caption": CAPTION},
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(CAPTION, self._description_the_scan_reads(photo))
+        self.assertWritesLanded(expected=1)
+
+    def test_a_bulk_caption_is_one_job(self):
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        photos = [
+            self.photo_for(self.make_image(".jpg", f"bulk-{index}"), user)
+            for index in range(2)
+        ]
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        with (
+            patch("api.metadata.jobs.enqueue_task", side_effect=run_now) as queued,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.patch(
+                "/api/photos/metadata/bulk/",
+                {
+                    "photo_ids": [str(photo.pk) for photo in photos],
+                    "updates": {"caption": CAPTION},
+                },
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(1, queued.call_count)
+        self.assertWritesLanded(expected=2)
+        for photo in photos:
+            self.assertEqual(CAPTION, self._description_the_scan_reads(photo))
+
+    @contextmanager
+    def _original_kept(self, path):
+        with open(path, "rb") as handle:
+            before = handle.read()
+        yield
+        with open(path, "rb") as handle:
+            self.assertEqual(before, handle.read(), f"{path} was rewritten")
+
+
+# South and west, so a lost sign shows.
+LATITUDE, LONGITUDE = -33.856784, -70.5
+
+
+class LocationRoundTripTest(RealExifToolTestCase):
+    """A location edit (``edits.set_location``) read back as the scan reads it (#2290)."""
+
+    def setUp(self):
+        super().setUp()
+        # No geocoder here; its failure must not stop the write anyway.
+        geocoder = patch("api.metadata.edits.reverse_geocode", return_value=None)
+        geocoder.start()
+        self.addCleanup(geocoder.stop)
+
+    def _photo(self, path, mode, **fields):
+        return self.photo_for(
+            path, create_test_user(save_metadata_to_disk=mode), **fields
+        )
+
+    def _locate(self, photo, latitude=LATITUDE, longitude=LONGITUDE):
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            edits.set_location(photo, latitude, longitude, photo.owner)
+
+    def _position_the_scan_reads(self, photo):
+        values = read_file_values(photo)
+        return values["gps_latitude"], values["gps_longitude"]
+
+    def assertPosition(self, photo, latitude=LATITUDE, longitude=LONGITUDE):
+        read_latitude, read_longitude = self._position_the_scan_reads(photo)
+        self.assertAlmostEqual(latitude, read_latitude, places=6)
+        self.assertAlmostEqual(longitude, read_longitude, places=6)
+
+    def _round_trip(self, path, mode, **fields):
+        photo = self._photo(path, mode, **fields)
+
+        self._locate(photo)
+
+        self.assertPosition(photo)
+        self.assertWritesLanded(expected=1)
+        target = self.exiftool.writes[0].target
+        self.assertEqual(self.sidecar_of(path) if mode == SIDECAR else path, target)
+        return photo
+
+    def test_image_formats(self):
+        for extension in IMAGE_FORMATS:
+            for mode in MODES:
+                with self.subTest(extension=extension, mode=mode):
+                    self.exiftool.writes.clear()
+                    self._round_trip(self.make_image(extension, f"l-{mode}"), mode)
+
+    def test_video(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                self._round_trip(self.make_video(f"l-{mode}"), mode, video=True)
+
+    def test_every_hemisphere(self):
+        for latitude, longitude in ((48.858844, 2.294351), (-0.5, 0.25), (1.5, -170)):
+            with self.subTest(latitude=latitude, longitude=longitude):
+                photo = self._photo(self.make_image(".jpg", "h"), MEDIA_FILE)
+                self._locate(photo, latitude, longitude)
+                self.assertPosition(photo, latitude, longitude)
+
+    def test_the_sidecar_position_wins_over_the_embedded_one(self):
+        path = self.make_image(".jpg")
+        self.tag(
+            path,
+            "-GPS:GPSLatitude=10",
+            "-GPS:GPSLatitudeRef=N",
+            "-GPS:GPSLongitude=20",
+            "-GPS:GPSLongitudeRef=E",
+            "-GPS:GPSAltitude=120",
+        )
+
+        with self.assertOriginalKept(path):
+            self._round_trip(path, SIDECAR)
+
+    def test_the_media_file_loses_the_old_altitude(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-GPS:GPSAltitude=120", "-GPS:GPSAltitudeRef=0")
+
+        self._round_trip(path, MEDIA_FILE)
+
+        self.assertIsNone(
+            self.read_tags(path, Tags.GPS_ALTITUDE_EXIF)[Tags.GPS_ALTITUDE_EXIF]
+        )
+
+    def test_a_video_loses_its_older_position(self):
+        path = self.make_video()
+        self.tag(path, "-UserData:GPSCoordinates=10 20")
+
+        self._round_trip(path, MEDIA_FILE, video=True)
+
+        found = self.read_tags(path, Tags.GPS_COORDINATES_USER_DATA)
+        self.assertIsNone(found[Tags.GPS_COORDINATES_USER_DATA])
+
+    def test_removing_the_location_removes_the_tags(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"clear-{mode}")
+                photo = self._round_trip(path, mode)
+
+                self._locate(photo, None, None)
+
+                self.assertEqual((None, None), self._position_the_scan_reads(photo))
+                self.assertWritesLanded(expected=2)
+
+    def test_removing_a_video_location(self):
+        path = self.make_video()
+        photo = self._round_trip(path, MEDIA_FILE, video=True)
+
+        self._locate(photo, None, None)
+
+        self.assertEqual((None, None), self._position_the_scan_reads(photo))
+
+    def test_removing_without_a_sidecar_creates_none(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR, exif_gps_lat=10.0, exif_gps_lon=20.0)
+
+        with self.assertUntouched(path):
+            self._locate(photo, None, None)
+
+    def test_a_geocoder_failure_does_not_stop_the_write(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE)
+
+        with patch(
+            "api.metadata.edits.reverse_geocode", side_effect=RuntimeError("down")
+        ):
+            self._locate(photo)
+
+        self.assertPosition(photo)
+
+    def test_the_same_position_again_writes_nothing(self):
+        photo = self._round_trip(self.make_image(".jpg"), SIDECAR)
+        self.exiftool.writes.clear()
+
+        self._locate(Photo.objects.get(pk=photo.pk))
+
+        self.assertEqual([], self.exiftool.writes)
+
+    def test_nothing_is_written_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF)
+
+        with self.assertUntouched(path):
+            self._locate(photo)
+
+    def test_the_geolocation_job_writes_nothing(self):
+        # "Add geolocation" looks up the place of the stored position; the
+        # position is not an edit.
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"geo-{mode}")
+                photo = self._photo(
+                    path, mode, exif_gps_lat=LATITUDE, exif_gps_lon=LONGITUDE
+                )
+
+                with (
+                    self.assertUntouched(path),
+                    patch(
+                        "api.geocode.photo_location._reverse_geocode_safely",
+                        return_value={"features": [], "_v": 1},
+                    ),
+                    patch("api.metadata.jobs.enqueue_task", run_now),
+                    self.captureOnCommitCallbacks(execute=True),
+                ):
+                    geolocate_photo(photo)
+
+    def test_the_picker_reaches_the_media_file(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.patch(
+                f"/api/photos/edit/{photo.image_hash}/",
+                {"exif_gps_lat": LATITUDE, "exif_gps_lon": LONGITUDE},
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertWritesLanded(expected=1)
+        self.assertPosition(photo)
+
+    @contextmanager
+    def assertOriginalKept(self, path):
+        with open(path, "rb") as handle:
+            before = handle.read()
+        yield
+        with open(path, "rb") as handle:
+            self.assertEqual(before, handle.read(), f"{path} was rewritten")
 
 
 # Face box in the big thumbnail (display space), pixels: top, right, bottom,
@@ -832,6 +1252,9 @@ EXERCISED_WRITERS = {
     ),
     "api.metadata.photo_writer._write_sidecar_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",
+    "api.metadata.photo_writer._write_edit": (
+        "CaptionRoundTripTest, LocationRoundTripTest"
+    ),
 }
 
 BACKEND = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -920,6 +1343,7 @@ class WriteTargetGuardTest(RealExifToolTestCase):
             for extension in (".jpg", ".heic"):
                 path = self.make_image(extension, f"guard-rotate-{mode}")
                 rotate_photo(self.photo_for(path, user, thumbnails=True), CLOCKWISE)
+        self._edit_caption_and_location()
 
         self.assertWritesLanded()
         emitted = set().union(*(write.tags for write in self.exiftool.writes))
@@ -931,9 +1355,29 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 Tags.SUBJECT,
                 Tags.ORIENTATION,
                 Tags.ORIENTATION_XMP,
+                Tags.DESCRIPTION_XMP,
+                Tags.DESCRIPTION_MWG,
+                Tags.GPS_LATITUDE_XMP,
+                Tags.GPS_LATITUDE,
+                Tags.GPS_LATITUDE_REF,
+                Tags.GPS_COORDINATES_KEYS,
             },
             emitted,
         )
+
+    @patch("api.metadata.edits.reverse_geocode", return_value=None)
+    def _edit_caption_and_location(self, geocoder):
+        for mode in MODES:
+            user = create_test_user(save_metadata_to_disk=mode)
+            image = self.photo_for(self.make_image(".jpg", f"guard-edit-{mode}"), user)
+            video = self.photo_for(self.make_video(f"guard-{mode}"), user, video=True)
+            with (
+                patch("api.metadata.jobs.enqueue_task", run_now),
+                self.captureOnCommitCallbacks(execute=True),
+            ):
+                for photo in (image, video):
+                    edits.set_caption(photo, CAPTION, user)
+                    edits.set_location(photo, LATITUDE, LONGITUDE, user)
 
     def test_the_guard_fails_a_tag_exiftool_leaves_unchanged(self):
         path = self.make_image(".jpg")

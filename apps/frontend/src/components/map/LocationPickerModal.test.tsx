@@ -51,6 +51,10 @@ vi.mock("../../api_client/photos/hooks/useUpdatePhotoMutation", () => ({
   useUpdatePhotoMutation: () => ({ mutate: stubs.mutate, isPending: false }),
 }));
 vi.mock("../../api_client/albums/invalidatePlaces", () => ({ invalidatePlaces: stubs.invalidatePlaces }));
+// The removal dialog's note on the file follows the user's settings; RemoveLocationModal.test.tsx covers it.
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
+}));
 
 // Stands in for react-map-gl's <Map>: a click on it picks a fixed spot, its handle flies, and
 // the marker shows where it is.

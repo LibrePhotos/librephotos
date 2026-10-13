@@ -17,6 +17,7 @@ from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
 from api.metadata import edits
+from api.metadata.jobs import queue_field_write, write_photo_fields
 from api.models import Photo, User
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
@@ -610,6 +611,72 @@ class ServiceTest(TestCase):
         )
 
 
+class QueuedFieldWriteTest(TestCase):
+    """``queue_field_write`` and its job; the files themselves are in
+    ``test_write_back_round_trip``."""
+
+    def setUp(self):
+        self.user = create_test_user(save_metadata_to_disk=User.SaveMetadata.MEDIA_FILE)
+        self.photo = create_test_photo(owner=self.user)
+
+    def test_a_field_without_a_writer_is_refused(self):
+        with self.assertRaises(ValueError):
+            queue_field_write(self.user, [self.photo.id], "keywords")
+
+    def test_the_job_is_queued_after_the_commit(self):
+        with patch("api.metadata.jobs.enqueue_task") as queued:
+            with self.captureOnCommitCallbacks() as callbacks:
+                queue_field_write(self.user, [self.photo.id], "caption")
+            queued.assert_not_called()
+            for callback in callbacks:
+                callback()
+
+        queued.assert_called_once_with(
+            write_photo_fields, [self.photo.id], "caption", False
+        )
+
+    def test_a_failure_to_queue_is_logged(self):
+        with (
+            patch("api.metadata.jobs.enqueue_task", side_effect=RuntimeError("down")),
+            self.assertLogs("api.metadata.jobs", "ERROR"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            queue_field_write(self.user, [self.photo.id], "location")
+
+    def test_nothing_is_queued_when_off(self):
+        User.objects.filter(pk=self.user.pk).update(
+            save_metadata_to_disk=User.SaveMetadata.OFF
+        )
+        self.user.refresh_from_db()
+
+        with self.captureOnCommitCallbacks() as callbacks:
+            queue_field_write(self.user, [self.photo.id], "caption")
+
+        self.assertEqual([], callbacks)
+
+    def test_an_unexpected_error_counts_as_a_failure(self):
+        def broken(photo, use_sidecar):
+            raise RuntimeError("bug")
+
+        with (
+            patch.dict("api.metadata.photo_writer.FIELD_WRITERS", caption=broken),
+            self.assertLogs("api.metadata.jobs", "ERROR"),
+        ):
+            failures = write_photo_fields([self.photo.id], "caption", False)
+
+        self.assertEqual(1, failures)
+
+    def test_a_nextcloud_copy_is_not_written(self):
+        with (
+            patch("api.metadata.photo_writer.is_nextcloud_copy", return_value=True),
+            patch("api.metadata.photo_writer.write_metadata") as write,
+        ):
+            failures = write_photo_fields([self.photo.id], "location", False)
+
+        self.assertEqual(0, failures)
+        write.assert_not_called()
+
+
 # The calls that apply a user's edit of a metadata field. Outside the edit
 # service only the scan may make them (importing the file's description as
 # the caption); any other caller is an edit path that skips the history, the
@@ -621,6 +688,7 @@ EDIT_CALLS = {
     },
     "sync_tags_from_keywords": {"api.metadata.edits"},
     "queue_rating_write": {"api.metadata.edits"},
+    "queue_field_write": {"api.metadata.edits"},
 }
 
 BACKEND = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))

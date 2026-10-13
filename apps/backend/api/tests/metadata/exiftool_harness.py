@@ -25,6 +25,8 @@ One ExifTool process pair per test class keeps this fast.
 
 from __future__ import annotations
 
+import html
+import math
 import os
 import shutil
 import subprocess
@@ -72,6 +74,27 @@ STORED_LAYOUT = ("red", "green", "blue", "white")
 # What ExifTool prints on stdout for a write that reached the file.
 WRITE_LANDED = (b"1 image files updated", b"1 image files created")
 
+# A tag a write names that the check reads back under another name. The
+# shared reader never loads ExifTool's MWG module (it would change the batched
+# reads), and MWG:Description always writes XMP-dc:Description.
+READ_BACK_AS = {"MWG:Description": "XMP-dc:Description"}
+
+# Family 1 groups whose tags ExifTool's JSON files under another family 0
+# group than their own prefix (XMP-dc reads back as XMP:..., which the exif
+# service matches by itself).
+FAMILY_0 = {
+    "GPS": "EXIF",
+    "Keys": "QuickTime",
+    "UserData": "QuickTime",
+    "ItemList": "QuickTime",
+}
+
+
+def _as_returned(tag: str) -> str:
+    """``tag`` under the group ExifTool's ``-G`` JSON names it with."""
+    group, _, name = tag.rpartition(":")
+    return f"{FAMILY_0.get(group, group)}:{name}" if group else name
+
 
 @dataclass
 class WriteRecord:
@@ -100,6 +123,18 @@ def _parse_write_argument(parameter: str) -> tuple[str, str, str] | None:
 def _as_list(value: object) -> list[str]:
     values = value if isinstance(value, list) else [value]
     return [str(item) for item in values]
+
+
+def _same_number(written: str, found: object) -> bool:
+    """Whether ``found`` is the number ``written``, to ExifTool's precision.
+
+    EXIF stores GPS degrees as rationals: 151.215297 reads back as
+    151.21529699985.
+    """
+    try:
+        return math.isclose(float(written), float(str(found)), abs_tol=1e-6)
+    except ValueError:
+        return False
 
 
 class RecordingExifTool(exiftool.ExifTool):
@@ -158,7 +193,7 @@ class RecordingExifTool(exiftool.ExifTool):
 
         result = self.execute_json("-struct", *(f"-{tag}" for tag in tags), path)
         data = result[0] if result else {}
-        values, _ = _attribute(data, list(tags))
+        values, _ = _attribute(data, [_as_returned(tag) for tag in tags])
         return dict(zip(tags, values))
 
     def check_write(self, params: tuple[bytes, ...], output: bytes) -> WriteRecord:
@@ -168,6 +203,9 @@ class RecordingExifTool(exiftool.ExifTool):
             for parsed in (_parse_write_argument(os.fsdecode(p)) for p in params[:-1])
             if parsed is not None
         ]
+        if b"-ex" in params:
+            # WriteOption.MULTILINE: ExifTool decoded the XML-escaped values.
+            arguments = [(t, o, html.unescape(v)) for t, o, v in arguments]
         record = WriteRecord(target, arguments, output.decode("utf-8", "replace"))
         if not output.strip().startswith(WRITE_LANDED):
             record.problems.append(
@@ -176,14 +214,20 @@ class RecordingExifTool(exiftool.ExifTool):
         if not os.path.exists(target):
             record.problems.append(f"{target} does not exist after the write")
             return record
-        on_disk = self.read(target, *sorted(record.tags))
+        on_disk = self.read(
+            target, *sorted({READ_BACK_AS.get(tag, tag) for tag in record.tags})
+        )
         for tag, operator, value in arguments:
             if operator == "-=" or value == "":
                 continue  # a removal or a delete: nothing to find
-            found = on_disk[tag]
+            found = on_disk[READ_BACK_AS.get(tag, tag)]
             if found is None:
                 record.problems.append(f"{tag} is not in {target} after the write")
-            elif not value.startswith("{") and value not in _as_list(found):
+            elif (
+                not value.startswith("{")
+                and value not in _as_list(found)
+                and not _same_number(value, found)
+            ):
                 record.problems.append(
                     f"{tag} reads back as {found!r} from {target}, not {value!r}"
                 )
