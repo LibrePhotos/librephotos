@@ -1,0 +1,10 @@
+/* The file marker sits on the text baseline of a badge, pill or hint line. */
+.fromFileIcon {
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}
+
+/* In running text (a pill, the hint) it needs its own gap; a Badge section has one. */
+.inText {
+  margin-inline-end: 0.25rem;
+}

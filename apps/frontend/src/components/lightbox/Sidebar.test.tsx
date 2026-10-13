@@ -1,8 +1,11 @@
 /**
- * A viewer who is not the owner (a shared album's recipient, a public page's
- * visitor) gets no photo details. The panel used to say only that details are
- * for the owner, while the grid behind it showed the photo's date and place.
+ * Which sections the lightbox sidebar shows to whom. A viewer who is not the
+ * owner (a shared album's recipient, a public page's visitor) gets no photo
+ * details: the panel used to say only that details are for the owner, while the
+ * grid behind it showed the photo's date and place. A public album page shows
+ * what the album shares. The owner gets one Tags section (#2230).
  */
+import type { Photo, PublicPhotoDetailResponse } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -10,16 +13,43 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import type { LightboxItem } from "./lightbox.types";
+import { makePhoto } from "./photoFixture.test-utils";
 import { Sidebar } from "./Sidebar";
 
+const stubs = vi.hoisted(() => ({
+  ownPhoto: undefined as Photo | undefined,
+  tagsSections: [] as string[],
+  publicAlbumPhoto: undefined as PublicPhotoDetailResponse | undefined,
+  people: [] as string[],
+}));
+
 vi.mock("../../api_client/photos/hooks", () => ({
-  useFetchPhotoDetailsQuery: () => ({ data: undefined, isError: false }),
-  useFetchPublicPhotoDetailQuery: () => ({ data: undefined, isLoading: false }),
+  useFetchPhotoDetailsQuery: () => ({ data: stubs.ownPhoto, isError: false }),
+  useFetchPublicPhotoDetailQuery: () => ({ data: stubs.publicAlbumPhoto, isLoading: false }),
   useUpdatePhotoMutation: () => ({ mutate: () => {} }),
 }));
 vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
+// The owner's sections have hooks of their own; only which sections render matters here.
+vi.mock("./VersionComponent", () => ({ VersionComponent: () => null, CameraInfoSection: () => null }));
+vi.mock("./CategoryBadge", () => ({ CategoryBadge: () => null }));
+vi.mock("./StackSection", () => ({ StackSection: () => null }));
+vi.mock("./PeopleSection", () => ({
+  PeopleSection: ({ photoDetail }: { photoDetail: { people: Array<{ name: string }> } }) => {
+    stubs.people.push(...photoDetail.people.map(person => person.name));
+    return null;
+  },
+}));
+vi.mock("./Description", () => ({ Description: () => null }));
+vi.mock("./AlbumsSection", () => ({ AlbumsSection: () => null }));
+vi.mock("./SimilarPhotosSection", () => ({ SimilarPhotosSection: () => null }));
+vi.mock("./TagsSection", () => ({
+  TagsSection: ({ photoDetail }: { photoDetail: Photo }) => {
+    stubs.tagsSections.push(photoDetail.id);
+    return null;
+  },
+}));
 
 beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -40,16 +70,27 @@ const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
+  stubs.ownPhoto = undefined;
+  stubs.tagsSections = [];
+  stubs.publicAlbumPhoto = undefined;
+  stubs.people = [];
 });
 
-async function renderSidebar(gridItem?: LightboxItem) {
+async function renderSidebar(gridItem?: LightboxItem, isPublic = true, publicAlbumSlug?: string) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <Sidebar id="h1" isPublic gridItem={gridItem} closeSidepanel={() => {}} setFaceLocation={() => {}} />
+        <Sidebar
+          id="h1"
+          isPublic={isPublic}
+          publicAlbumSlug={publicAlbumSlug}
+          gridItem={gridItem}
+          closeSidepanel={() => {}}
+          setFaceLocation={() => {}}
+        />
       </MantineProvider>
     );
   });
@@ -85,5 +126,67 @@ describe("Sidebar for a viewer who is not the owner", () => {
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.withouttimestamp"));
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.no_location"));
     expect(container.textContent).toContain(i18n.t("lightbox.sidebar.ownerOnlyDetails"));
+  });
+});
+
+describe("Sidebar for the owner", () => {
+  it("lists tags in one section, with no separate keywords editor (#2230)", async () => {
+    stubs.ownPhoto = makePhoto({ id: "p1", image_hash: "h1" });
+
+    const container = await renderSidebar(undefined, false);
+
+    expect(stubs.tagsSections).toEqual(["p1"]);
+    expect(container.textContent).not.toMatch(/keyword/i);
+  });
+});
+
+const sharing = (shared: Partial<PublicPhotoDetailResponse["sharing_settings"]>) => ({
+  share_location: false,
+  share_camera_info: false,
+  share_timestamps: false,
+  share_captions: false,
+  share_faces: false,
+  ...shared,
+});
+
+const publicPhoto: PublicPhotoDetailResponse["results"] = {
+  image_hash: "h1",
+  video: false,
+  square_thumbnail_url: "",
+  big_thumbnail_url: "",
+  small_square_thumbnail_url: "",
+  exif_timestamp: "2023-05-06T04:57:00+00:00",
+  search_location: "Berlin, Germany",
+  people: [{ name: "Ada", face_url: null, face_id: 7 }],
+};
+
+describe("Sidebar on a public album page", () => {
+  it("shows what the album shares", async () => {
+    stubs.publicAlbumPhoto = {
+      results: publicPhoto,
+      sharing_settings: sharing({ share_timestamps: true, share_location: true, share_faces: true }),
+    };
+
+    const container = await renderSidebar(undefined, true, "slug");
+
+    expect(container.textContent).toContain("May 6, 2023");
+    expect(container.textContent).toContain("Berlin, Germany");
+    expect(stubs.people).toEqual(["Ada"]);
+    expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.noAdditionalDetails"));
+  });
+
+  it("says there is nothing more when the album shares no details", async () => {
+    stubs.publicAlbumPhoto = { results: publicPhoto, sharing_settings: sharing({}) };
+
+    const container = await renderSidebar(undefined, true, "slug");
+
+    expect(container.textContent).not.toContain("Berlin, Germany");
+    expect(container.textContent).toContain(i18n.t("lightbox.sidebar.noAdditionalDetails"));
+  });
+
+  it("says so when the photo could not be loaded", async () => {
+    const container = await renderSidebar(undefined, true, "slug");
+
+    expect(container.textContent).toContain(i18n.t("lightbox.sidebar.detailsLoadFailed"));
   });
 });

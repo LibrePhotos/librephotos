@@ -1,9 +1,11 @@
-import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Badge, Group, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
-import { IconCheck, IconPencil, IconTag, IconX } from "@tabler/icons-react";
+import type { Photo as PhotoType, Tag } from "@librephotos/api-client";
+import type { ComboboxRenderPillInput } from "@mantine/core";
+import { ActionIcon, Badge, Group, Pill, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
+import { IconCheck, IconFileImport, IconPencil, IconTag, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useFetchPhotoMetadataQuery } from "../../api_client/photos/hooks";
 import {
   useAddPhotosToTagMutation,
   useCreateTagMutation,
@@ -13,10 +15,25 @@ import {
 } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
+import classes from "./TagsSection.module.css";
 
 type TagsSectionProps = {
   photoDetail: PhotoType;
 };
+
+/** How a name is compared with the file's keywords: a scan makes a tag of each keyword, trimmed. */
+const keywordKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * Tells whether a tag name is among the photo's file keywords (XMP Subject,
+ * IPTC Keywords). A scan turns every keyword into a tag, so such a tag came
+ * from the file; one the user typed did not.
+ */
+function useIsFromFile(photoId: string): (name: string) => boolean {
+  const { data: metadata } = useFetchPhotoMetadataQuery(photoId);
+  const keys = new Set((metadata?.keywords ?? []).map(keywordKey));
+  return name => keys.has(keywordKey(name));
+}
 
 export function TagsSection(props: TagsSectionProps) {
   // The draft belongs to one photo: remount when the photo changes, or an editor
@@ -24,9 +41,52 @@ export function TagsSection(props: TagsSectionProps) {
   return <TagsEditor key={props.photoDetail.image_hash} {...props} />;
 }
 
-function TagsEditor({ photoDetail }: TagsSectionProps) {
+/** The file marker. It names itself, so a screen reader hears where the tag came from. */
+function FromFileIcon({ inText = false }: { inText?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <IconFileImport
+      size={12}
+      className={inText ? `${classes.fromFileIcon} ${classes.inText}` : classes.fromFileIcon}
+      role="img"
+      aria-label={t("lightbox.sidebar.tagFromFile")}
+    />
+  );
+}
+
+function TagBadge({ tag, fromFile }: { tag: Tag; fromFile: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const badge = (
+    // A button, so the tag can be reached and opened from the keyboard, with
+    // the focus ring of the edit button above.
+    <Badge
+      component="button"
+      type="button"
+      className="mantine-focus-auto"
+      color="teal"
+      variant="light"
+      style={{ cursor: "pointer" }}
+      leftSection={fromFile ? <FromFileIcon /> : undefined}
+      onClick={() => navigate({ to: `/album/tags/${tag.id}` })}
+    >
+      {tag.name}
+    </Badge>
+  );
+  if (!fromFile) return badge;
+  return (
+    <Tooltip
+      label={t("lightbox.sidebar.tagFromFile")}
+      openDelay={400}
+      events={{ hover: true, focus: true, touch: false }}
+    >
+      {badge}
+    </Tooltip>
+  );
+}
+
+function TagsEditor({ photoDetail }: TagsSectionProps) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [draftTags, setDraftTags] = useState<string[]>([]);
 
@@ -35,6 +95,7 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
   const { mutateAsync: createTag } = useCreateTagMutation();
   const { mutateAsync: addPhotos, isPending: isAdding } = useAddPhotosToTagMutation();
   const { mutateAsync: removePhotos, isPending: isRemoving } = useRemovePhotosFromTagMutation();
+  const isFromFile = useIsFromFile(photoDetail.id);
 
   const tags = photoTags ?? [];
   const isSaving = isAdding || isRemoving;
@@ -76,6 +137,14 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
     setEditing(false);
     setDraftTags([]);
   };
+
+  // The same pill TagsInput draws, with the file marker in front of a file keyword.
+  const renderPill = ({ value, onRemove, disabled }: ComboboxRenderPillInput) => (
+    <Pill withRemoveButton={!disabled} onRemove={onRemove} disabled={disabled}>
+      {value !== undefined && isFromFile(value) && <FromFileIcon inText />}
+      {value}
+    </Pill>
+  );
 
   return (
     <Stack gap="xs">
@@ -127,33 +196,29 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
       </Group>
 
       {editing ? (
-        <TagsInput
-          value={draftTags}
-          onChange={setDraftTags}
-          data={(allTags ?? []).map(tag => tag.name)}
-          filter={tagOptionsFilter}
-          limit={TAG_SUGGESTION_LIMIT}
-          placeholder={t("lightbox.sidebar.addTag")}
-          splitChars={[","]}
-          clearable
-        />
+        <>
+          <TagsInput
+            value={draftTags}
+            onChange={setDraftTags}
+            data={(allTags ?? []).map(tag => tag.name)}
+            filter={tagOptionsFilter}
+            limit={TAG_SUGGESTION_LIMIT}
+            placeholder={t("lightbox.sidebar.addTag")}
+            splitChars={[","]}
+            renderPill={renderPill}
+            clearable
+          />
+          {draftTags.some(isFromFile) && (
+            <Text size="xs" c="dimmed">
+              <IconFileImport size={12} className={`${classes.fromFileIcon} ${classes.inText}`} aria-hidden />
+              {t("lightbox.sidebar.tagsFromFileHint")}
+            </Text>
+          )}
+        </>
       ) : tags.length > 0 ? (
         <Group gap="xs">
           {tags.map(tag => (
-            // A button, so the tag can be reached and opened from the keyboard, with
-            // the focus ring of the edit button above.
-            <Badge
-              key={tag.id}
-              component="button"
-              type="button"
-              className="mantine-focus-auto"
-              color="teal"
-              variant="light"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate({ to: `/album/tags/${tag.id}` })}
-            >
-              {tag.name}
-            </Badge>
+            <TagBadge key={tag.id} tag={tag} fromFile={isFromFile(tag.name)} />
           ))}
         </Group>
       ) : (

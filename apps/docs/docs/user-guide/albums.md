@@ -152,7 +152,7 @@ Every tag in the box is applied to every photo in the selection. Tagging is addi
 
 ### Tagging one photo
 
-Open a photo and use the **Tags** section of the [sidebar](./viewing-photos.md) — the pencil button opens the same comma-separated editor, and here it both adds and removes: whatever you leave in the box is what the photo ends up with. Click a tag badge to jump to that tag's album.
+Open a photo and use the **Tags** section of the [sidebar](./viewing-photos.md) — the pencil button opens the same comma-separated editor, and here it both adds and removes: whatever you leave in the box is what the photo ends up with. Click a tag badge to jump to that tag's album. A tag that came from the file's keywords carries a small file icon there; see [Tags](./viewing-photos.md#tags).
 
 ### Renaming, merging and deleting tags
 

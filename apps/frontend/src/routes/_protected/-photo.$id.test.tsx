@@ -84,7 +84,6 @@ vi.mock("../../components/lightbox/AlbumsSection", () => ({ AlbumsSection: () =>
 vi.mock("../../components/lightbox/CameraInfoComponent", () => ({ CameraInfoComponent: () => null }));
 vi.mock("../../components/lightbox/Description", () => ({ Description: () => null }));
 vi.mock("../../components/lightbox/FileInfoComponent", () => ({ FileInfoComponent: () => null }));
-vi.mock("../../components/lightbox/KeywordsSection", () => ({ KeywordsSection: () => null }));
 vi.mock("../../components/lightbox/LocationSection", () => ({ LocationSection: () => null }));
 vi.mock("../../components/lightbox/SimilarPhotosSection", () => ({ SimilarPhotosSection: () => null }));
 vi.mock("../../components/lightbox/TagsSection", () => ({ TagsSection: () => null }));

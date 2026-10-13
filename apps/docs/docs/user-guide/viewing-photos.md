@@ -201,17 +201,13 @@ The AI-generated or manually entered caption for the photo. You can:
 
 Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
+Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject` and IPTC `Keywords`, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag, but removing one here does not change the file, so a rescan adds it back. Writing your tags back into the file is planned. _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
+
 These are not the same as the **Things** list under the caption: those come from OpenCLIP and are not editable here.
 
 To tag many photos in one go, select them in the grid and press **`t`** instead — see [Tagging photos](./albums.md#tagging-photos).
 
 Tags are not shown on public or shared album pages.
-
-### Keywords
-
-Keywords stored in the photo's own metadata (XMP `Subject` and IPTC `Keywords`). This section always appears in the sidebar when you are signed in, showing **No keywords** when none are set. Click the pencil button to open an editor where you can add or remove keywords — separate entries with a comma or a space — then use the check to save or the X to cancel. Saved keywords are written back through the photo metadata. Click any keyword badge to search your library for that term.
-
-Keywords are not shown on public or shared album pages.
 
 ### Albums
 
