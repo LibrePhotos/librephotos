@@ -1,6 +1,7 @@
 """Tests for job cancellation feature."""
 
-from django.test import TestCase
+from django.contrib import admin
+from django.test import RequestFactory, TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -259,3 +260,11 @@ class JobRowWritesTest(TestCase):
         other.refresh_from_db()
         self.assertTrue(other.failed)
         self.assertEqual(other.result, {"status": "failed", "error": "boom"})
+
+    def test_admin_shows_jobs_read_only(self):
+        request = RequestFactory().get("/admin/")
+        request.user = create_test_user(is_admin=True)
+        job_admin = admin.site._registry[LongRunningJob]
+        self.assertFalse(job_admin.has_add_permission(request))
+        self.assertFalse(job_admin.has_change_permission(request, self.job))
+        self.assertTrue(job_admin.has_view_permission(request, self.job))

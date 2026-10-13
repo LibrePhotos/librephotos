@@ -155,13 +155,15 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         target_count: int = create_all_clusters(user, lrj)
 
         lrj.update_progress(current=target_count, target=target_count)
-        lrj.complete()
+        if not lrj.complete():
+            logger.info("Face clustering job %s was cancelled", lrj.job_id)
+            return False
 
         enqueue_followup(user, LongRunningJob.JOB_TRAIN_FACES, train_faces, user)
         return True
 
-    except BaseException as err:
-        logger.exception("An error occurred")
+    except Exception as err:
+        logger.exception("Face clustering job %s failed", lrj.job_id)
         lrj.fail(error=err)
         return False
 
@@ -268,9 +270,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
-            lrj.progress_current = count
-            lrj.progress_target = target_count
-            lrj.save()
+            lrj.update_progress(current=count, target=target_count)
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
 
     logger.info("Created %s clusters", len(all_clusters))
@@ -536,7 +536,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
         lrj.complete()
         return True
 
-    except BaseException as err:
-        logger.exception("An error occurred")
+    except Exception as err:
+        logger.exception("Face training job %s failed", lrj.job_id)
         lrj.fail(error=err)
         return False

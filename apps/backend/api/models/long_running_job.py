@@ -135,27 +135,72 @@ class LongRunningJob(models.Model):
         )
         return f"Job {self.job_id} - {self.get_job_type_display()} - {status}"
 
+    # What the conditional writes below re-read when the row was cancelled.
+    _FINISH_FIELDS = ("cancelled", "failed", "finished", "finished_at", "result")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Insert a new row; an existing row is written field by field only.
+
+        Workers hold the instance for the whole job while a cancel is written
+        from the API. A full-row save of that instance puts
+        ``cancelled=False, finished=False`` back and the job reappears as
+        running (#2334), so existing rows go through the methods below, which
+        name the fields they write.
+        """
+        if not self._state.adding and kwargs.get("update_fields") is None:
+            raise RuntimeError(
+                "LongRunningJob rows are written through their methods "
+                "(update_progress, complete, fail, cancel, set_result) or with "
+                "save(update_fields=...); a full-row save would undo a cancel."
+            )
+        super().save(*args, **kwargs)
+
+    def _write_unless_cancelled(self, fields: list[str]) -> bool:
+        """Write ``fields`` unless the row has been cancelled meanwhile.
+
+        A conditional update, so a cancel made from the job list while the
+        job ran is not overwritten by the worker finishing, failing or
+        reporting a result. When it was cancelled, the instance re-reads the
+        row's outcome. Returns whether the row was written.
+        """
+        written = (
+            type(self)
+            .objects.filter(pk=self.pk, cancelled=False)
+            .update(**{field: getattr(self, field) for field in fields})
+        )
+        if not written:
+            self.refresh_from_db(fields=list(self._FINISH_FIELDS))
+        return bool(written)
+
     def start(self) -> None:
         """Mark job as started."""
         self.started_at = timezone.now()
         self.save(update_fields=["started_at"])
 
-    def complete(self, result: dict[str, Any] | None = None) -> None:
-        """Mark job as successfully completed."""
+    def complete(self, result: dict[str, Any] | None = None) -> bool:
+        """Mark job as successfully completed, unless it was cancelled.
+
+        Returns False when the job had been cancelled; the row is left as is.
+        """
         self.finished = True
         self.finished_at = timezone.now()
         if result is not None:
             self.result = result
-        self.save(update_fields=["finished", "finished_at", "result"])
+        return self._write_unless_cancelled(["finished", "finished_at", "result"])
 
-    def fail(self, error: BaseException | str | None = None) -> None:
-        """Mark job as failed with optional error message."""
+    def fail(self, error: BaseException | str | None = None) -> bool:
+        """Mark job as failed with optional error message, unless it was cancelled.
+
+        Returns False when the job had been cancelled; the row is left as is.
+        """
         self.failed = True
         self.finished = True
         self.finished_at = timezone.now()
         if error is not None:
             self.result = {"status": "failed", "error": str(error)}
-        self.save(update_fields=["failed", "finished", "finished_at", "result"])
+        return self._write_unless_cancelled(
+            ["failed", "finished", "finished_at", "result"]
+        )
 
     def cancel(self) -> None:
         """Mark job as cancelled and finished."""
@@ -168,7 +213,10 @@ class LongRunningJob(models.Model):
     def update_progress(
         self, current: int, target: int | None = None, step: str | None = None
     ) -> None:
-        """Update job progress counters and optional step description."""
+        """Update job progress counters and optional step description.
+
+        Only the progress fields are written, so a cancel stays in place.
+        """
         update_fields = ["progress_current"]
         self.progress_current = current
         if target is not None:
@@ -179,10 +227,13 @@ class LongRunningJob(models.Model):
             update_fields.append("progress_step")
         self.save(update_fields=update_fields)
 
-    def set_result(self, result: dict[str, Any]) -> None:
-        """Update the job result/progress data."""
+    def set_result(self, result: dict[str, Any]) -> bool:
+        """Update the job result/progress data, unless the job was cancelled.
+
+        Returns False when the job had been cancelled; the row is left as is.
+        """
         self.result = result
-        self.save(update_fields=["result"])
+        return self._write_unless_cancelled(["result"])
 
     @classmethod
     def create_job(
