@@ -3,18 +3,26 @@
  * passes other names than the string uses shows the raw placeholder: every
  * album rename said "{{albumTitle}} was successfully renamed to {{newAlbumTitle}}".
  */
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { notification } from ".";
 import i18n from "../../i18n";
 import { toast } from "./toast";
 
-type Shown = { title?: string; message?: string; color?: string; id?: string; autoClose?: number | false };
+type Shown = {
+  title?: string;
+  message?: string;
+  color?: string;
+  id?: string;
+  autoClose?: number | false;
+  onClose?: () => void;
+};
 
-const { showNotification, hideNotification } = vi.hoisted(() => ({
+const { showNotification, hideNotification, updateNotification } = vi.hoisted(() => ({
   showNotification: vi.fn<(notification: Shown) => void>(),
   hideNotification: vi.fn<(id: string) => void>(),
+  updateNotification: vi.fn<(notification: Shown) => void>(),
 }));
-vi.mock("@mantine/notifications", () => ({ showNotification, hideNotification }));
+vi.mock("@mantine/notifications", () => ({ showNotification, hideNotification, updateNotification }));
 
 const lastShown = (): Shown => {
   const shown = showNotification.mock.calls.at(-1)?.[0];
@@ -29,6 +37,12 @@ beforeAll(async () => {
 beforeEach(() => {
   showNotification.mockReset();
   hideNotification.mockReset();
+  updateNotification.mockReset();
+});
+
+// The mock never closes a toast: close each one, so a counted toast does not carry into the next test
+afterEach(() => {
+  showNotification.mock.calls.forEach(([shown]) => shown.onClose?.());
 });
 
 describe("notifications", () => {
@@ -111,5 +125,34 @@ describe("notification primitives", () => {
 
     expect(hideNotification).toHaveBeenCalledWith("photo-undo");
     expect(showNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe("counted toasts (#599: faces confirmed one at a time)", () => {
+  it("raise the number on the toast on screen instead of stacking another", () => {
+    notification.addFacesToPerson("Anna", 1);
+    notification.addFacesToPerson("Anna", 2);
+
+    expect(showNotification).toHaveBeenCalledTimes(1);
+    expect(updateNotification).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "faces-labeled-Anna", message: "3 face(s) were labeled as the person Anna" })
+    );
+  });
+
+  it("count each person on their own toast", () => {
+    notification.addFacesToPerson("Ben", 1);
+    notification.addFacesToPerson("Cleo", 1);
+
+    expect(showNotification).toHaveBeenCalledTimes(2);
+    expect(updateNotification).not.toHaveBeenCalled();
+  });
+
+  it("start again from the new count once the toast has closed", () => {
+    notification.deleteFaces(2);
+    lastShown().onClose?.();
+    notification.deleteFaces(1);
+
+    expect(showNotification).toHaveBeenCalledTimes(2);
+    expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "1 face(s) were deleted", color: "teal" });
   });
 });

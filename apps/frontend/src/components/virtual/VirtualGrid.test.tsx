@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { AutoSizer } from "./AutoSizer";
+import { sectionBounds, withPinnedRow } from "./useGridFocus";
 import { VirtualGrid } from "./VirtualGrid";
 import type { GridCellProps, GridScrollParams, SectionRenderedParams, VirtualGridHandle } from "./VirtualGrid";
 
@@ -192,6 +193,115 @@ describe("VirtualGrid", () => {
 
     expect(container.querySelectorAll("[data-cell]")).toHaveLength(0);
     expect(onSectionRendered).not.toHaveBeenCalled();
+  });
+});
+
+/** A cell with a button in it, as the faces grid has. */
+function renderFocusableCell({ rowIndex, columnIndex, key, style }: GridCellProps) {
+  return (
+    <div key={key} data-cell={`${rowIndex}:${columnIndex}`} style={style}>
+      <button type="button">{`${rowIndex}:${columnIndex}`}</button>
+    </div>
+  );
+}
+
+const cellButton = (cell: string) =>
+  defined(container.querySelector<HTMLButtonElement>(`[data-cell="${cell}"] button`));
+
+describe("VirtualGrid keepFocusedRowMounted (the faces grid's menus and buttons)", () => {
+  it("keeps the row with keyboard focus rendered after it scrolls out of view", async () => {
+    await renderGrid({ cellRenderer: renderFocusableCell, keepFocusedRowMounted: true });
+    const button = cellButton("1:2");
+    await act(async () => button.focus());
+
+    await scrollTo(5000);
+
+    expect(renderedRows()).toEqual([1, 48, 49, 50, 51, 52, 53, 54]);
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("does not stretch the reported section to the far-away focused row", async () => {
+    const onSectionRendered = vi.fn<(params: SectionRenderedParams) => void>();
+    await renderGrid({ cellRenderer: renderFocusableCell, keepFocusedRowMounted: true, onSectionRendered });
+    await act(async () => cellButton("1:0").focus());
+
+    await scrollTo(5000);
+
+    expect(onSectionRendered).toHaveBeenLastCalledWith(
+      expect.objectContaining({ rowOverscanStartIndex: 48, rowOverscanStopIndex: 54 })
+    );
+  });
+
+  it("lets every other grid unmount rows as before", async () => {
+    await renderGrid({ cellRenderer: renderFocusableCell });
+    await act(async () => cellButton("1:2").focus());
+
+    await scrollTo(5000);
+
+    expect(renderedRows()).toEqual([48, 49, 50, 51, 52, 53, 54]);
+  });
+
+  it("puts focus on the same control of the content that replaces the focused cell's", async () => {
+    // "face" n of the cell: a confirmed face leaves, a placeholder stands in, the next face loads
+    const cellOf = (content: "a" | "placeholder" | "b") => (props: GridCellProps) =>
+      props.rowIndex === 1 && props.columnIndex === 0 ? (
+        <div key={props.key} data-cell="1:0" style={props.style}>
+          {content !== "placeholder" && (
+            <button key={content} type="button" data-focus-key="confirm">
+              {content}
+            </button>
+          )}
+        </div>
+      ) : (
+        renderFocusableCell(props)
+      );
+    await renderGrid({ cellRenderer: cellOf("a"), keepFocusedRowMounted: true });
+    await act(async () => cellButton("1:0").focus());
+
+    await renderGrid({ cellRenderer: cellOf("placeholder"), keepFocusedRowMounted: true });
+    expect(document.activeElement).toBe(document.body);
+    await renderGrid({ cellRenderer: cellOf("b"), keepFocusedRowMounted: true });
+
+    expect(document.activeElement?.textContent).toBe("b");
+  });
+
+  it("leaves focus alone once the user has moved it elsewhere", async () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    const withButton = (shown: boolean) => (props: GridCellProps) =>
+      props.rowIndex === 1 && props.columnIndex === 0 ? (
+        <div key={props.key} data-cell="1:0" style={props.style}>
+          {shown && <button type="button" data-focus-key="confirm" />}
+        </div>
+      ) : (
+        renderFocusableCell(props)
+      );
+    await renderGrid({ cellRenderer: withButton(true), keepFocusedRowMounted: true });
+    await act(async () => cellButton("1:0").focus());
+    await renderGrid({ cellRenderer: withButton(false), keepFocusedRowMounted: true });
+
+    await act(async () => outside.focus());
+    await renderGrid({ cellRenderer: withButton(true), keepFocusedRowMounted: true });
+
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+  });
+
+  it("adds a pinned row to the rendered rows in order, once", () => {
+    expect(withPinnedRow([5, 6, 7], 1, 100)).toEqual([1, 5, 6, 7]);
+    expect(withPinnedRow([5, 6, 7], 6, 100)).toEqual([5, 6, 7]);
+    expect(withPinnedRow([5, 6, 7], null, 100)).toEqual([5, 6, 7]);
+    // The focused row is gone (the list shrank): nothing to keep
+    expect(withPinnedRow([5, 6, 7], 120, 100)).toEqual([5, 6, 7]);
+  });
+
+  it("reports the rendered rows' bounds, with a pinned row only when it touches them", () => {
+    expect(sectionBounds([1, 48, 49, 50], 1)).toEqual([48, 50]);
+    expect(sectionBounds([47, 48, 49, 50], 47)).toEqual([47, 50]);
+    expect(sectionBounds([48, 49, 50, 51], 51)).toEqual([48, 51]);
+    expect(sectionBounds([48, 49, 50], null)).toEqual([48, 50]);
+    expect(sectionBounds([3], 3)).toEqual([3, 3]);
+    expect(sectionBounds([], null)).toEqual([-1, -1]);
   });
 });
 

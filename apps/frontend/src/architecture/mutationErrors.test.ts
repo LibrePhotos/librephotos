@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 
 const LOCAL_ON_ERROR = new Map<string, string>([
+  ["/src/components/facedashboard/hooks/useFaceActions.ts", "undims the face it acted on; the toast reports"],
   ["/src/components/lightbox/CategoryBadge.tsx", "drops the optimistic badge; the hook reports"],
   ["/src/components/lightbox/ContentViewer.tsx", "undoes the preview rotation; the toast reports"],
   ["/src/components/settings/useSaveSiteSettings.ts", "reloads the settings; the toast reports"],

@@ -14,7 +14,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
@@ -25,6 +25,7 @@ import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 import { makePersonNameSchema } from "../album/personName.schema";
 import { modalTitleStyles } from "./modalTitleStyles";
+import { RecentlyTaggedGrid } from "./RecentlyTaggedGrid";
 
 /** A face the dialog labels: its id, and its crop for the preview row. */
 type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
@@ -94,6 +95,7 @@ export function ModalPersonEdit({
   const { data: people } = useFetchPeopleAlbumsQuery();
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const recentlyTaggedPeople = useRecentlyTaggedPeople(people);
+  const recentlyTaggedHeading = useId();
 
   const { t } = useTranslation();
   // The new person's name, which also filters the list of people below it.
@@ -192,12 +194,14 @@ export function ModalPersonEdit({
         >
           {showRecentlyTagged && (
             <>
-              <Title order={5}>{t("personedit.recentlytagged")}</Title>
-              <Stack>
-                {recentlyTaggedPeople.map(item => (
-                  <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />
-                ))}
-              </Stack>
+              <Title order={5} id={recentlyTaggedHeading}>
+                {t("personedit.recentlytagged")}
+              </Title>
+              <RecentlyTaggedGrid
+                people={recentlyTaggedPeople}
+                onSelect={labelSelectedFacesAs}
+                labelledBy={recentlyTaggedHeading}
+              />
               <Divider />
             </>
           )}

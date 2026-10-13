@@ -1,0 +1,24 @@
+.person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--mantine-spacing-xs) 4px;
+  border-radius: var(--mantine-radius-md);
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}
+
+.name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}

@@ -100,8 +100,11 @@ function recentlyTaggedSection(): HTMLElement | null {
   return section instanceof HTMLElement ? section : null;
 }
 
+/** The full list names people in an h4, the recently tagged grid (#865) in each button's title. */
 function namesOf(root: ParentNode | null): string[] {
-  return Array.from(root?.querySelectorAll("h4") ?? []).map(title => title.textContent ?? "");
+  return Array.from(root?.querySelectorAll("h4, button[title]") ?? []).map(
+    name => name.getAttribute("title") ?? name.textContent ?? ""
+  );
 }
 
 function personRow(name: string): HTMLButtonElement {
@@ -237,6 +240,21 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
       expect(namesOf(recentlyTaggedSection())).toEqual(["Charlie", "Alice"]);
       // The alphabetical list is still there, unchanged.
       expect(namesOf(document.body).slice(-3)).toEqual(["Alice", "Bob", "Charlie"]);
+
+      await modal.unmount();
+    });
+
+    it("lays them out as a grid of face buttons named by the person (#865)", async () => {
+      const modal = await renderModal(["3", "1", "2"]);
+
+      const group = document.querySelector('[role="group"]');
+      const heading = document.getElementById(group?.getAttribute("aria-labelledby") ?? "");
+      expect(heading?.textContent).toBe("Recently tagged");
+      const buttons = Array.from(group?.querySelectorAll("button") ?? []);
+      expect(buttons.map(button => button.title)).toEqual(["Charlie", "Alice", "Bob"]);
+      // Each button shows the person's face and name, so its accessible name starts with the name
+      expect(buttons.every(button => button.querySelector("img") !== null)).toBe(true);
+      expect(buttons[0]?.textContent).toMatch(/^Charlie/);
 
       await modal.unmount();
     });
