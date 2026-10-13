@@ -16,7 +16,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.metadata.photo_reader import extract_exif_data
-from api.metadata.reader import MetadataReadError
+from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
@@ -99,13 +99,13 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
         self.assertFalse(PhotoMetadata.objects.filter(photo=self.photo).exists())
 
     def test_get_metadata_called_with_full_tag_list_and_sidecar(self):
-        """The exact tag list / try_sidecar contract must survive refactoring."""
+        """The exact tag list / sidecar contract must survive refactoring."""
         self.extract()
 
         self.mocked_get_metadata.assert_called_once()
         args, kwargs = self.mocked_get_metadata.call_args
         self.assertEqual(args[0], self.photo.main_file.path)
-        self.assertTrue(kwargs["try_sidecar"])
+        self.assertEqual(kwargs["sidecar_files"], sidecar_files_for_photo(self.photo))
         self.assertEqual(
             kwargs["tags"],
             [

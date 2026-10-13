@@ -16,7 +16,7 @@ import api.models
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.metadata.photo_datetime import find_album_date
-from api.metadata.reader import get_metadata
+from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
     new_gps_lat, new_gps_lon = get_metadata(
         photo.main_file.path,
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
-        try_sidecar=True,
+        sidecar_files=sidecar_files_for_photo(photo),
     )
     old_album_places = find_album_places(photo)
     if not _has_usable_coordinates(new_gps_lat, new_gps_lon):

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 import PIL
 
-from api.metadata.reader import get_metadata
+from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.face import Face
 from api.models.person import Person
@@ -204,7 +204,7 @@ def get_face_region_tags(photo: Photo) -> dict[str, str | list[str]]:
     (orientation, image_width, image_height) = get_metadata(
         photo.main_file.path,
         tags=[Tags.ORIENTATION, Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT],
-        try_sidecar=True,
+        sidecar_files=sidecar_files_for_photo(photo),
     )
 
     # Convert each face's coordinates

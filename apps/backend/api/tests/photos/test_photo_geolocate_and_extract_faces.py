@@ -24,6 +24,7 @@ from django.test import TestCase, override_settings
 
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import geolocate_photo
+from api.metadata.reader import sidecar_files_for_photo
 from api.models import Face, Person, Photo
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.cluster import UNKNOWN_CLUSTER_ID
@@ -302,7 +303,7 @@ class GeolocateCharacterizationTest(TestCase):
 
         args, kwargs = get_metadata.call_args
         self.assertEqual(args[0], self.photo.main_file.path)
-        self.assertTrue(kwargs["try_sidecar"])
+        self.assertEqual(kwargs["sidecar_files"], sidecar_files_for_photo(self.photo))
         self.assertEqual(len(kwargs["tags"]), 2)
 
     @patch("api.geocode.photo_location.reverse_geocode", return_value=GEO_RESULT)
@@ -348,6 +349,7 @@ class ExtractFacesCharacterizationTest(TestCase):
             self.photo.main_file.path,
             self.photo.thumbnail.thumbnail_big.path,
             self.user,
+            sidecar_files_for_photo(self.photo),
         )
 
     # ---- creating faces ------------------------------------------------

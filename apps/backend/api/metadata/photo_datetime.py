@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import api.models
 from api.metadata import datetime_rules
-from api.metadata.reader import get_metadata
+from api.metadata.reader import get_metadata, sidecar_files_for_photo
 
 if TYPE_CHECKING:
     from api.models.album_date import AlbumDate
@@ -50,9 +50,10 @@ def extract_date_time(photo: Photo, commit: bool = True) -> None:
     """Set ``exif_timestamp`` from the file and move the photo to its day album."""
     assert photo.main_file is not None
     main_file_path = photo.main_file.path
+    sidecar_files = sidecar_files_for_photo(photo)
 
     def exif_getter(tags: list[str]) -> list[Any]:
-        return get_metadata(main_file_path, tags=tags, try_sidecar=True)
+        return get_metadata(main_file_path, tags=tags, sidecar_files=sidecar_files)
 
     # Stored as the JSON string the settings page sends (and the default is),
     # but PATCH /api/user/ also accepts the list itself.

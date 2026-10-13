@@ -66,6 +66,7 @@ class ExtractFromExifMetadataTest(ExtractFromExifBaseTest):
             tags=[Tags.REGION_INFO, Tags.ORIENTATION],
             try_sidecar=True,
             struct=True,
+            sidecar_files=None,
         )
 
     def test_no_region_info_returns_none(self):

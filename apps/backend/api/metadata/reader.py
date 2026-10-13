@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import logging
 import os
 import os.path
 import stat
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
 from api.mime import METADATA_EXTENSIONS, XMP_EXTENSION
+from api.models.file import File
 from api.runtime import sidecars
+
+if TYPE_CHECKING:
+    from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
 
@@ -46,24 +52,27 @@ def existing_sidecars(media_file: str) -> list[str]:
     found: list[str] = []
     seen: set[object] = set()
     for candidate in get_sidecar_files_in_priority_order(media_file):
-        try:
-            status = os.stat(candidate)
-        except OSError:
-            continue
-        if not stat.S_ISREG(status.st_mode):
-            continue
-        # Some file systems report no inode number; fall back to the name the
-        # platform compares (case-folded on Windows).
-        identity: object = (
-            (status.st_dev, status.st_ino)
-            if status.st_ino
-            else os.path.normcase(os.path.abspath(candidate))
-        )
-        if identity in seen:
+        identity = _file_identity(candidate)
+        if identity is None or identity in seen:
             continue
         seen.add(identity)
         found.append(candidate)
     return found
+
+
+def _file_identity(path: str) -> object | None:
+    """What makes *path* one file on disk, or None if it is not a regular file."""
+    try:
+        status = os.stat(path)
+    except OSError:
+        return None
+    if not stat.S_ISREG(status.st_mode):
+        return None
+    # Some file systems report no inode number; fall back to the name the
+    # platform compares (case-folded on Windows).
+    if status.st_ino:
+        return (status.st_dev, status.st_ino)
+    return os.path.normcase(os.path.abspath(path))
 
 
 def sidecar_for_write(media_file: str) -> str:
@@ -96,12 +105,56 @@ def _get_existing_metadata_files_reversed(
     return [media_file]
 
 
+def sidecar_files_for_photo(photo: Photo) -> list[str]:
+    """The existing XMP sidecars of every file of *photo*, lowest priority first.
+
+    For a RAW+JPEG pair the JPEG is the main file, but a RAW editor writes the
+    sidecar of the RAW (``IMG.CR2.xmp``, #2269). In rising priority:
+
+    1. sidecars attached to the photo (the scan grouped them with it) that are
+       not named after any of its files, such as ``IMG.edit.xmp``;
+    2. the sidecars named after its other files (RAW, video), by path;
+    3. the sidecars named after the main file, as ``get_metadata`` finds them
+       for a path alone, so a sidecar of the main file still wins.
+
+    A file is listed once, at its highest priority.
+    """
+    assert photo.main_file is not None
+    main_path = photo.main_file.path
+    other_files = sorted(
+        photo.files.exclude(pk=photo.main_file.pk).values_list("path", "type"),
+        key=lambda row: row[0],
+    )
+    attached = [path for path, kind in other_files if kind == File.METADATA_FILE]
+    named = [
+        sidecar
+        for path, kind in other_files
+        if kind != File.METADATA_FILE
+        for sidecar in reversed(existing_sidecars(path))
+    ] + list(reversed(existing_sidecars(main_path)))
+
+    by_file: dict[object, str] = {}
+    for path in [*attached, *named]:
+        identity = _file_identity(path)
+        if identity is None:
+            continue
+        # Re-inserting moves the file to the end, where its highest priority is.
+        by_file.pop(identity, None)
+        by_file[identity] = path
+    return list(by_file.values())
+
+
 def get_metadata(
-    media_file: str, tags: list[str], try_sidecar: bool = True, struct: bool = False
+    media_file: str,
+    tags: list[str],
+    try_sidecar: bool = True,
+    struct: bool = False,
+    sidecar_files: list[str] | None = None,
 ) -> list[Any]:
     """Get values for each metadata tag in *tags* from *media_file*.
     If *try_sidecar* is `True`, use the value set in any XMP sidecar file
-    stored alongside *media_file*.
+    stored alongside *media_file*. *sidecar_files* (lowest priority first) replaces
+    that lookup by name; see ``sidecar_files_for_photo``.
     If *struct* is `True`, use the exiftool instance which returns structured data
 
     Returns a list with the value of each tag in *tags* or `None` if the
@@ -111,9 +164,12 @@ def get_metadata(
     raise as a failure of that one file.
 
     """
-    files_by_reverse_priority = _get_existing_metadata_files_reversed(
-        media_file, try_sidecar
-    )
+    if sidecar_files is not None:
+        files_by_reverse_priority = [media_file, *sidecar_files]
+    else:
+        files_by_reverse_priority = _get_existing_metadata_files_reversed(
+            media_file, try_sidecar
+        )
 
     payload = {
         "tags": tags,

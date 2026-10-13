@@ -49,7 +49,7 @@ from api.metadata.jobs import queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
-from api.metadata.reader import get_metadata
+from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.photo import Photo
@@ -493,7 +493,7 @@ def _restore_location_from_file(photo: Photo) -> None:
     latitude, longitude = get_metadata(
         photo.main_file.path,
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
-        try_sidecar=True,
+        sidecar_files=sidecar_files_for_photo(photo),
     )
     usable = (
         isinstance(latitude, int | float)

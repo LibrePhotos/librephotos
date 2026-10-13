@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from api.metadata.reader import get_metadata
+from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
 
@@ -95,7 +95,11 @@ def read_file_values(photo: Photo) -> dict[str, object]:
     values.update(
         zip(
             EXIF_VALUE_NAMES,
-            get_metadata(photo.main_file.path, tags=EXIF_TAGS, try_sidecar=True),
+            get_metadata(
+                photo.main_file.path,
+                tags=EXIF_TAGS,
+                sidecar_files=sidecar_files_for_photo(photo),
+            ),
         )
     )
     return values
