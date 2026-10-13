@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 import PIL
 
+from api.metadata.orientation import normalize_orientation, region_to_stored
 from api.metadata.reader import (
     get_metadata,
     sidecar_files_for_photo,
@@ -48,58 +49,6 @@ def thumbnail_coords_to_normalized(
     w = (right - left) / thumb_width
     h = (bottom - top) / thumb_height
     return center_x, center_y, w, h
-
-
-def reverse_orientation_transform(
-    x: float, y: float, w: float, h: float, orientation: str | None
-) -> tuple[float, float, float, float]:
-    """Invert ``ORIENTATION_TRANSFORMS`` in ``api.faces.extractor``.
-
-    The read path applies a forward transform from XMP coords to display coords.
-    This function reverses that so we can go from display coords back to XMP coords.
-    """
-    if orientation == "Rotate 90 CW":
-        # Forward: x' = 1 - y, y' = x, swap w/h
-        # Reverse: y_orig = 1 - x', x_orig = y'
-        new_x = y
-        new_y = 1 - x
-        w, h = h, w
-        return new_x, new_y, w, h
-    elif orientation == "Mirror horizontal":
-        # Forward: x' = 1 - x
-        # Reverse: x = 1 - x'
-        return 1 - x, y, w, h
-    elif orientation == "Rotate 180":
-        # Forward: x' = 1 - x, y' = 1 - y
-        # Reverse: same
-        return 1 - x, 1 - y, w, h
-    elif orientation == "Mirror vertical":
-        # Forward: y' = 1 - y
-        # Reverse: y = 1 - y'
-        return x, 1 - y, w, h
-    elif orientation == "Mirror horizontal and rotate 270 CW":
-        # Forward: x' = 1 - y, y' = x, swap w/h
-        # Same as Rotate 90 CW (the mirror cancels differently)
-        new_x = y
-        new_y = 1 - x
-        w, h = h, w
-        return new_x, new_y, w, h
-    elif orientation == "Mirror horizontal and rotate 90 CW":
-        # Forward: x' = y, y' = 1 - x, swap w/h
-        # Reverse: x_orig = 1 - y', y_orig = x'
-        new_x = 1 - y
-        new_y = x
-        w, h = h, w
-        return new_x, new_y, w, h
-    elif orientation == "Rotate 270 CW":
-        # Forward: x' = y, y' = 1 - x, swap w/h
-        # Reverse: x_orig = 1 - y', y_orig = x'
-        new_x = 1 - y
-        new_y = x
-        w, h = h, w
-        return new_x, new_y, w, h
-    # Normal orientation or unknown — no transform
-    return x, y, w, h
 
 
 def _escape_exiftool_value(value: str) -> str:
@@ -279,10 +228,11 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         )
         return {}
 
-    # Get EXIF orientation and original image dimensions
+    # Get EXIF orientation and original image dimensions. The face boxes are
+    # in the displayed thumbnail, the regions go into the file as stored.
     assert photo.main_file is not None
     sidecar_files = sidecar_files_for_photo(photo)
-    (orientation, image_width, image_height) = get_metadata(
+    (orientation_value, image_width, image_height) = get_metadata(
         photo.main_file.path,
         tags=[Tags.ORIENTATION, Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT],
         sidecar_files=sidecar_files,
@@ -294,6 +244,7 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         struct=True,
         sidecar_files=sidecar_files,
     )
+    orientation = normalize_orientation(orientation_value)
 
     # Convert each face's coordinates
     face_regions: list[_FaceRegion] = []
@@ -306,7 +257,7 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
             thumb_width,
             thumb_height,
         )
-        x, y, w, h = reverse_orientation_transform(x, y, w, h, orientation)
+        x, y, w, h = region_to_stored((x, y, w, h), orientation)
         # Only write person name for user-labeled faces
         if face.person and face.person.kind == Person.KIND_USER:
             name = face.person.name

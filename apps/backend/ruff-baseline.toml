@@ -14,7 +14,7 @@
 "api/geocode/rate_limit.py" = ["PLW0603"]
 "api/management/commands/save_metadata.py" = ["BLE001"]
 "api/management/commands/scan.py" = ["BLE001"]
-"api/metadata/face_regions.py" = ["BLE001", "PLR0911", "PLR0913"]
+"api/metadata/face_regions.py" = ["BLE001", "PLR0913"]
 "api/metadata/photo_writer.py" = ["BLE001"]
 "api/models/album_auto.py" = ["DJ012"]
 "api/models/album_date.py" = ["BLE001"]
