@@ -106,7 +106,7 @@ describe("Remove from this person", () => {
   it("is offered on a person page", async () => {
     const root = await openMenu({ selectedItems: [photo(1)] });
 
-    expect(defined(removeItem()).disabled).toBe(false);
+    expect(defined(removeItem()).getAttribute("aria-disabled")).toBeNull();
     await act(async () => root.unmount());
   });
 
@@ -121,7 +121,7 @@ describe("Remove from this person", () => {
   it("is disabled after Select all", async () => {
     const root = await openMenu({ selectedItems: [], selectAllMode: true, selectAllQuery: { person: 5 } });
 
-    expect(defined(removeItem()).disabled).toBe(true);
+    expect(defined(removeItem()).getAttribute("aria-disabled")).toBe("true");
     await act(async () => root.unmount());
   });
 

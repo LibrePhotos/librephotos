@@ -73,7 +73,11 @@ export function AlbumSelectionActions(props: Props) {
 
       {kind === "person" && (
         <DisabledReason reason={removeFromPersonReason} position="left">
-          <Menu.Item color="red" leftSection={<IconUserMinus size={ICON_SIZE.menu} />} onClick={props.onRemoveFromPerson}>
+          <Menu.Item
+            color="red"
+            leftSection={<IconUserMinus size={ICON_SIZE.menu} />}
+            onClick={props.onRemoveFromPerson}
+          >
             {t("selectionactions.removefromperson")}
           </Menu.Item>
         </DisabledReason>
