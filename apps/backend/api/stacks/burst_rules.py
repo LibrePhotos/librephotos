@@ -109,17 +109,43 @@ def capture_time(photo: Photo) -> datetime | None:
 
 
 def camera_of(photo: Photo) -> str | None:
-    """The camera that took ``photo``: its model, and its serial number if read.
+    """The camera model that took ``photo``.
 
     Not the make: photos scanned before the make was imported (#2265) have
-    none, and a burst must not split between rescanned and older photos.
+    none, and a burst must not split between rescanned and older photos. The
+    serial number, imported at the same time, tells bodies of one model apart
+    in ``split_by_body``.
     """
     metadata = photo.metadata if hasattr(photo, "metadata") else None
     if metadata is None or not metadata.camera_model:
         return None
-    if metadata.serial_number:
-        return f"{metadata.camera_model} #{metadata.serial_number}"
     return metadata.camera_model
+
+
+def serial_number_of(photo: Photo) -> str | None:
+    """The serial number of the camera body that took ``photo``, if read."""
+    metadata = photo.metadata if hasattr(photo, "metadata") else None
+    if metadata is None or not metadata.serial_number:
+        return None
+    return metadata.serial_number
+
+
+def split_by_body(photos: Sequence[Photo]) -> list[list[Photo]]:
+    """``photos`` of one camera model, split per body (serial number).
+
+    A photo without a serial number, scanned before it was imported (#2265,
+    #2566), may come from any body: it goes with the only body the others
+    name, so a burst does not split between rescanned and older frames. When
+    they name several bodies it cannot be placed and stays on its own.
+    """
+    bodies: defaultdict[str | None, list[Photo]] = defaultdict(list)
+    for photo in photos:
+        bodies[serial_number_of(photo)].append(photo)
+    unknown = bodies.pop(None, [])
+    if len(bodies) == 1:
+        (only_body,) = bodies.values()
+        return [only_body + unknown]
+    return [*bodies.values(), *([unknown] if unknown else [])]
 
 
 def frame_order(photo: Photo) -> tuple[datetime, int, str]:
@@ -353,15 +379,20 @@ class BurstDetectionRule:
     def split_bursts(
         self, photos: Sequence[Photo], position: Callable[[Photo], int | None]
     ) -> list[list[Photo]]:
-        """The bursts in one group of this rule, cut on the capture time
-        (``burst_interval``) and where the frame number (``frame_number``)
-        does not rise; a file counter has to rise by exactly one."""
-        return split_into_bursts(
-            photos,
-            self.burst_interval(),
-            position,
-            consecutive=self._matches_counters(),
-        )
+        """The bursts in one group of this rule, per camera body
+        (``split_by_body``), cut on the capture time (``burst_interval``) and
+        where the frame number (``frame_number``) does not rise; a file
+        counter has to rise by exactly one."""
+        return [
+            burst
+            for body in split_by_body(photos)
+            for burst in split_into_bursts(
+                body,
+                self.burst_interval(),
+                position,
+                consecutive=self._matches_counters(),
+            )
+        ]
 
     def _check_condition_path(self, path: str) -> bool:
         """Check if path matches condition_path regex."""
@@ -440,8 +471,9 @@ class BurstDetectionRule:
     ) -> tuple[bool, str | None]:
         """Check if EXIF BurstMode or ContinuousDrive indicates burst.
 
-        The group key is the camera; ``split_into_bursts`` cuts its frames
-        into bursts on the capture time (``burst_interval``).
+        The group key is the camera model; ``split_bursts`` splits its frames
+        per body and cuts them into bursts on the capture time
+        (``burst_interval``).
         """
         if not (
             burst_mode_is_on(exif_tags.get(Tags.BURST_MODE))
@@ -514,9 +546,9 @@ class BurstDetectionRule:
         """Check if the photo's file name makes it a frame of a burst.
 
         A name that says "burst" groups on the burst it names, per folder.
-        A counter groups per folder and camera, and only a photo with a
-        capture time: ``split_bursts`` then keeps the frames that count up
-        by one within the interval.
+        A counter groups per folder and camera model, and only a photo with a
+        capture time: ``split_bursts`` then keeps the frames of one body that
+        count up by one within the interval.
         """
         frame = self._filename_frame(photo)
         if frame is None or photo.main_file is None:
@@ -565,8 +597,9 @@ def group_photos_by_timestamp(
 
     Frames whose capture times (to the sub-second) follow each other within
     ``interval_ms`` form a burst. With ``require_same_camera`` each camera's
-    photos are grouped on their own, so two people shooting at the same
-    moment get two bursts; photos without a camera model form their own set.
+    photos are grouped on their own (per model, then per body:
+    ``split_by_body``), so two people shooting at the same moment get two
+    bursts; photos without a camera model form their own set.
 
     Returns:
         The groups of two photos or more, each in frame order, by first frame.
@@ -578,10 +611,15 @@ def group_photos_by_timestamp(
         by_camera[camera_of(photo) if require_same_camera else None].append(photo)
 
     interval = timedelta(milliseconds=interval_ms)
+    bodies = [
+        body
+        for same_model in by_camera.values()
+        for body in (split_by_body(same_model) if require_same_camera else [same_model])
+    ]
     groups = [
         burst
-        for same_camera in by_camera.values()
-        for burst in split_into_bursts(same_camera, interval)
+        for body in bodies
+        for burst in split_into_bursts(body, interval)
         if len(burst) >= 2
     ]
     return sorted(groups, key=lambda burst: frame_order(burst[0]))

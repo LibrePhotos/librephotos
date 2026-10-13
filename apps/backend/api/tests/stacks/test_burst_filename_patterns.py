@@ -46,6 +46,7 @@ def _photo(
     path: str,
     seconds: float | None,
     camera: str | None = "Canon EOS R5",
+    serial: str | None = None,
 ) -> Photo:
     fields: dict[str, Any] = {"owner": owner}
     if seconds is not None:
@@ -54,6 +55,8 @@ def _photo(
         fields["exif_timestamp_subsec"] = f"{round((seconds - whole) * 1000):03d}"
     if camera is not None:
         fields["camera_model"] = camera
+    if serial is not None:
+        fields["serial_number"] = serial
     photo = create_test_photo(**fields)
     photo.main_file = create_test_file(path, owner)
     photo.save()
@@ -245,6 +248,28 @@ class CounterPatternTest(BurstFilenameTestCase):
         _photo(self.user, "/photos/c/IMG_0101.jpg", 0.9)
 
         self.assertEqual([], self.detect())
+
+    def test_two_bodies_of_one_model_count_on_their_own(self) -> None:
+        # With serial numbers read, each body's counter rises by one.
+        _photo(self.user, "/photos/c/IMG_0500.jpg", 0, serial="111")
+        _photo(self.user, "/photos/c/IMG_0100.jpg", 0.3, serial="222")
+        _photo(self.user, "/photos/c/IMG_0501.jpg", 0.6, serial="111")
+        _photo(self.user, "/photos/c/IMG_0101.jpg", 0.9, serial="222")
+
+        self.assertEqual(
+            [{"IMG_0100.jpg", "IMG_0101.jpg"}, {"IMG_0500.jpg", "IMG_0501.jpg"}],
+            self.detect(),
+        )
+
+    def test_a_frame_without_serial_number_counts_with_its_body(self) -> None:
+        # #2566: IMG_0002 was not rescanned since the serial number is read.
+        _photo(self.user, "/photos/c/IMG_0001.jpg", 0, serial="111")
+        _photo(self.user, "/photos/c/IMG_0002.jpg", 0.3)
+        _photo(self.user, "/photos/c/IMG_0003.jpg", 0.6, serial="111")
+
+        self.assertEqual(
+            [{"IMG_0001.jpg", "IMG_0002.jpg", "IMG_0003.jpg"}], self.detect()
+        )
 
     def test_frames_without_capture_time_or_camera_are_no_burst(self) -> None:
         _photo(self.user, "/photos/c/IMG_0001.jpg", None)
