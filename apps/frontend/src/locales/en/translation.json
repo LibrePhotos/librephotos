@@ -558,6 +558,8 @@
     "toggle": "Toggle select mode",
     "deselect": "Deselect all",
     "select": "Select all",
+    "selectloaded": "Select the loaded photos",
+    "selectedoftotal": "{{selected}} of {{total}} selected",
     "all": "All",
     "excluded": "excluded"
   },

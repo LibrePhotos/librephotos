@@ -11,7 +11,7 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
-from api.albums.timeline_filter import timeline_filter_q
+from api.albums.timeline_filter import parse_tristate, timeline_filter_q
 from api.models import Photo
 from api.models.user import User
 from api.photos.paths import folder_path_q
@@ -42,6 +42,10 @@ def build_photo_queryset(
             - person: int - Filter by person ID (faces)
             - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
+            - no_timestamp: bool - Only photos without a date (``exif_timestamp``
+              unset), the "Photos without Timestamps" page. That page lists
+              stacked photos too, so its select-all also sends
+              ``show_all_stack_photos``.
             - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
 
     Returns:
@@ -78,6 +82,11 @@ def build_photo_queryset(
     # Folder path filter
     if params.get("folder"):
         filters.append(folder_path_q("files__path", params["folder"]))
+
+    # Photos without a date ("Photos without Timestamps"). Only a true flag
+    # narrows: "false" from a client must not read as true.
+    if parse_tristate(params.get("no_timestamp")):
+        filters.append(Q(exif_timestamp__isnull=True))
 
     # Stack filtering: Show photos that are either:
     # 1. Not in any stack, OR

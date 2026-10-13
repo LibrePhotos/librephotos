@@ -1,15 +1,19 @@
-import type { PigPhoto } from "@librephotos/api-client";
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { IconCalendarOff as CalendarOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
 import { useListFailure } from "../../components/common/useListFailure";
-import { validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
+import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { addTempElementsToFlatList } from "../../util/util";
+
+// The page loads 100 photos at a time, so select all names the whole set for the server.
+// The list shows stacked photos too, not only each stack's primary photo.
+const NO_TIMESTAMP_QUERY: BulkPhotoQuery = { no_timestamp: true, show_all_stack_photos: true };
 
 export const Route = createFileRoute("/_protected/notimestamp")({
   component: NoTimestampPhotosView,
@@ -75,6 +79,7 @@ function NoTimestampPhotosView() {
       numberOfItems={photosFlat?.length}
       updateItems={getImages}
       selectable
+      photosetQuery={{ ...NO_TIMESTAMP_QUERY, ...mediaTypeToBulkQuery(mediaType) }}
       emptyStateConfig={mediaType === "all" ? emptyStateConfig : undefined}
       error={listFailure}
       mediaType={mediaType}

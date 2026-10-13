@@ -9,6 +9,8 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { defined } from "../../util/defined.test-utils";
+import { tempPigPhoto } from "../../util/util";
 import { SelectionBar } from "./SelectionBar";
 
 type SelectionBarProps = React.ComponentProps<typeof SelectionBar>;
@@ -82,5 +84,34 @@ describe("SelectionBar select-all button", () => {
     const button = await render({ idx2hash: items, selectedItems: items, selectMode: true });
 
     expect(button.getAttribute("aria-label")).toBe("Deselect all");
+  });
+});
+
+// #2227: a paginated page without a server-side query can only select what it has loaded,
+// so the bar must not claim more than that.
+describe("SelectionBar on a partly loaded page without a query", () => {
+  const loaded = [1, 2].map(n =>
+    PigPhoto.parse({ id: `00000000-0000-4000-8000-00000000000${n}`, image_hash: `hash-${n}`, aspectRatio: 1 })
+  );
+  const placeholders = [3, 4, 5].map(n => tempPigPhoto(`temp-${n}`));
+  const idx2hash = [...loaded, ...placeholders];
+
+  it("offers to select the loaded photos and selects only those", async () => {
+    const updateSelectionState = vi.fn<SelectionBarProps["updateSelectionState"]>();
+    const button = await render({ idx2hash, totalCount: 5, updateSelectionState });
+
+    expect(button.getAttribute("aria-label")).toBe("Select the loaded photos");
+    await act(async () => button.click());
+    expect(updateSelectionState).toHaveBeenCalledWith(
+      expect.objectContaining({ selectAllMode: false, selectedItems: loaded })
+    );
+  });
+
+  it("counts the selection against the total, not as all", async () => {
+    await render({ idx2hash, totalCount: 5, selectedItems: loaded, selectMode: true });
+
+    expect(defined(container).textContent).toContain("2 of 5 selected");
+    const button = defined(container?.querySelector("button"));
+    expect(button.getAttribute("aria-label")).toBe("Select the loaded photos");
   });
 });

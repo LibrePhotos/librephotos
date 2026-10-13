@@ -10,6 +10,7 @@ their own fixes, see #1980/#1981/#1982).
 """
 
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import Photo
@@ -177,3 +178,39 @@ class DeleteSelectAllOwnerScopeTest(TestCase):
         for photo in own_photos:
             photo.refresh_from_db()
             self.assertTrue(photo.removed)
+
+
+class NoTimestampSelectAllOwnerScopeTest(TestCase):
+    """The ``no_timestamp`` query (#2227) stays inside the requester's photos."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.attacker = create_test_user()
+        self.victim = create_test_user()
+        self.client.force_authenticate(user=self.attacker)
+
+    def test_no_timestamp_query_cannot_touch_other_users_photos(self):
+        victim_photos = create_test_photos(number_of_photos=3, owner=self.victim)
+        own_undated = create_test_photos(number_of_photos=2, owner=self.attacker)
+        own_dated = create_test_photos(
+            number_of_photos=1, owner=self.attacker, exif_timestamp=timezone.now()
+        )
+
+        response = self.client.post(
+            "/api/photosedit/hide/",
+            {
+                "select_all": True,
+                "query": {"no_timestamp": True, "show_all_stack_photos": True},
+                "hidden": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 2)
+        for photo in victim_photos + own_dated:
+            photo.refresh_from_db()
+            self.assertFalse(photo.hidden)
+        for photo in own_undated:
+            photo.refresh_from_db()
+            self.assertTrue(photo.hidden)
