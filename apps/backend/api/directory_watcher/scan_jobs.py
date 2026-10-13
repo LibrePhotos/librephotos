@@ -50,7 +50,7 @@ from api.directory_watcher.utils import (
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
 from api.metadata.reader import existing_sidecars
 from api.mime import VIDEO_EXTENSIONS, extension
-from api.models import File, LongRunningJob, Photo, Thumbnail, User
+from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
 from api.photos.files import detach_missing_files, missing_files
 from api.photos.media_files import is_metadata
 from api.runtime.features import feature_enabled
@@ -282,12 +282,27 @@ def _known_paths(batch_paths: list[str]) -> set[str]:
     A photo whose metadata read failed (``metadata_read_at`` is None) counts as
     unknown, so an incremental scan reads it again (#2271); its thumbnails are
     kept, ``generate_thumbnail`` skips the ones that exist.
+
+    An exact copy of such a photo's file is known too, through its
+    ``FileCopy`` (#2417), while the file it copies is still on disk: when that
+    one is gone, the scan reads the copy again and it takes the file over.
     """
-    return set(
+    known = set(
         Photo.objects.filter(
             files__path__in=batch_paths, metadata_read_at__isnull=False
         ).values_list("files__path", flat=True)
     )
+    copies = (
+        FileCopy.objects.filter(
+            path__in=batch_paths,
+            file__missing=False,
+            file__photo__metadata_read_at__isnull=False,
+        )
+        .values_list("path", "file__path")
+        .distinct()
+    )
+    known.update(path for path, original in copies if os.path.exists(original))
+    return known
 
 
 def _has_video(paths: list[str]) -> bool:

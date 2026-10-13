@@ -126,7 +126,11 @@ class OcrImageSourceHelperTest(TestCase):
     def test_raw_original_falls_back_to_thumbnail(self):
         photo = create_test_photo(owner=self.user)
         raw_path = f"/tmp/{photo.image_hash}.CR2"
-        raw_file = create_test_file(raw_path, self.user, ONE_PIXEL_PNG + photo.pk.bytes)
+        # Bytes of its own: the same bytes as the photo's PNG would make the
+        # RAW path an exact copy sharing the PNG's File row (#2417).
+        raw_file = create_test_file(
+            raw_path, self.user, ONE_PIXEL_PNG + b"raw" + photo.pk.bytes
+        )
         photo.main_file = raw_file
         photo.save()
 

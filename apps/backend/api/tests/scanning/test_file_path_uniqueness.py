@@ -168,18 +168,19 @@ class FileCreateMethodTestCase(TestCase):
 
     def test_create_determines_correct_file_type(self):
         """Test that get_or_create_file() correctly determines file type."""
+        # Different bytes each: identical ones would share one File row (#2417).
         # Create image file
-        img_path = self._create_test_file("photo.jpg")
+        img_path = self._create_test_file("photo.jpg", b"image content")
         img_file = get_or_create_file(img_path, self.user)
         self.assertEqual(img_file.type, File.IMAGE)
 
         # Create RAW file
-        raw_path = self._create_test_file("photo.CR2")
+        raw_path = self._create_test_file("photo.CR2", b"raw content")
         raw_file = get_or_create_file(raw_path, self.user)
         self.assertEqual(raw_file.type, File.RAW_FILE)
 
         # Create metadata file
-        xmp_path = self._create_test_file("photo.xmp")
+        xmp_path = self._create_test_file("photo.xmp", b"xmp content")
         xmp_file = get_or_create_file(xmp_path, self.user)
         self.assertEqual(xmp_file.type, File.METADATA_FILE)
 

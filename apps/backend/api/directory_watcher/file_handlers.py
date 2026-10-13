@@ -757,6 +757,15 @@ def _collect_file_records(user: User, file_paths: list[str]) -> list[File]:
     return files
 
 
+def _only_copies(file_paths: list[str], files: list[File]) -> bool:
+    """True when every file of the group is a row kept at another path.
+
+    ``get_or_create_file`` hands an exact copy the row of the file it copies,
+    which keeps its own path, so none of the group's paths is a row's path.
+    """
+    return not {file.path for file in files} & set(file_paths)
+
+
 def _describe_failure(path: str, error: Exception) -> str:
     # The path is part of the text because update_scan_counter de-duplicates
     # the errors list by exact string, and one dropped mount reports the same
@@ -826,6 +835,15 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
             len(files),
             elapsed,
         )
+
+        if _only_copies(file_paths, files) and photo.metadata_read_at is not None:
+            # Exact copies of a photo already read: nothing about it changed (#2417).
+            logger.info(
+                "job %s: only copies of photo %s, not re-processing",
+                job_id,
+                photo.image_hash,
+            )
+            return
 
         # Process the photo (thumbnails, EXIF, etc.) using main_file
         if photo.main_file:

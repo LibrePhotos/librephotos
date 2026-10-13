@@ -56,7 +56,12 @@ class File(models.Model):
         """
         file = File(path=path, hash=hash_value, type=file_type)
         try:
-            file.save()
+            # An INSERT, never an UPDATE: a row with this hash belongs to an
+            # exact copy at another path, and a plain save() would move that
+            # row onto this path (#2417). The savepoint keeps a failed INSERT
+            # from breaking a transaction the caller has open.
+            with transaction.atomic():
+                file.save(force_insert=True)
             return file
         except IntegrityError:
             # Race condition: another thread created the file between the
@@ -120,3 +125,19 @@ class File(models.Model):
                     photo.save(update_fields=["main_file"])
 
         return new_file
+
+
+class FileCopy(models.Model):
+    """A path whose bytes are an exact copy of an indexed File (#2417).
+
+    File rows are keyed by content hash, so a second path with the same bytes
+    has no row of its own. Recording it here lets an incremental scan skip it
+    like any other known path until it changes on disk, instead of hashing it
+    and re-processing its photo on every scan.
+    """
+
+    path = models.TextField(unique=True)
+    file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="copies")
+
+    def __str__(self) -> str:
+        return self.path

@@ -21,7 +21,7 @@ from api.mime import (
     extension,
     sniffed_mime_type,
 )
-from api.models.file import File
+from api.models.file import File, FileCopy
 from api.models.user import User
 from api.runtime.features import feature_enabled
 
@@ -38,7 +38,9 @@ def get_or_create_file(path: str, user: User, hash_value: str | None = None) -> 
     An existing row is returned as it is, without hashing the file: if its
     content has changed, the rescan re-keys it (``File.rekey``). A row flagged
     missing whose file is back on disk (a network share or removable drive
-    that was unmounted during a scan) is not missing anymore.
+    that was unmounted during a scan) is not missing anymore. A path whose
+    bytes already have a row at another path is an exact copy: it gets that
+    row, and a ``FileCopy`` so the next scan knows the path.
 
     Args:
         path: The file system path to the file
@@ -52,9 +54,33 @@ def get_or_create_file(path: str, user: User, hash_value: str | None = None) -> 
             existing.missing = False
             existing.save(update_fields=["missing"])
         return existing
-    return File.create(
-        path, hash_value or calculate_hash(user, path), detect_file_type(path)
+    hash_value = hash_value or calculate_hash(user, path)
+    file = File.objects.filter(hash=hash_value).first() or File.create(
+        path, hash_value, detect_file_type(path)
     )
+    if file.path != path:
+        return _as_copy(file, path)
+    # The path holds its own content now; it is nobody's copy anymore.
+    FileCopy.objects.filter(path=path).delete()
+    return file
+
+
+def _as_copy(file: File, path: str) -> File:
+    """``path`` holds the same bytes as ``file``: record it as a copy (#2417).
+
+    File rows are keyed by content hash, so the copy shares ``file``'s row.
+    When the row's own path is gone, the copy takes the row over instead, so
+    the photo keeps a file on disk.
+    """
+    if file.missing or not os.path.exists(file.path):
+        logger.info("a copy takes over the missing file %s", file.hash)
+        file.path = path
+        file.missing = False
+        file.save(update_fields=["path", "missing"])
+        FileCopy.objects.filter(path=path).delete()
+        return file
+    FileCopy.objects.update_or_create(path=path, defaults={"file": file})
+    return file
 
 
 def detect_file_type(path: str) -> int:
