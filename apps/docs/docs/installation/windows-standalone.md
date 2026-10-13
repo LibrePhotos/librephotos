@@ -38,7 +38,8 @@ Right-click the tray icon for **Open LibrePhotos** (also a plain click), **Open 
 **Open logs** and **Quit LibrePhotos**. Quitting stops everything: the workers and the machine
 learning processes are children of `librephotos.exe` and go down with it, also when it is ended
 from Task Manager. Starting it a second time just opens the browser on the running instance. If it
-cannot start, a message box says why.
+cannot start, a message box says why: for example that another program already uses port 8000 (see
+[Using another port](#using-another-port)).
 
 Started from a terminal instead, it prints its log there and Ctrl-C stops it; `--no-tray` leaves the
 icon out. Without a terminal that output goes to `console.log` in the logs folder. Because
@@ -97,6 +98,30 @@ console before starting `librephotos.exe`; the data directory options above only
 `BASE_LOGS` and `PHOTOS` when they are not set. A default `SECRET_KEY` is generated and kept in
 `protected_media\secret.key` in the data directory (releases after 1.3.0; 1.3.0 and older kept it in
 the logs directory, and a newer release moves it on its first start).
+
+### Using another port
+
+LibrePhotos shows its pages on port 8000. If another program already uses that port (a development
+server, another self-hosted tool), LibrePhotos does not start, and a message box names that program
+and its process ID. Not released yet: up to 1.3.0, LibrePhotos started its background processes,
+showed the tray icon for a moment and quit without a message. Either close the other program, or
+start LibrePhotos on another port:
+
+1. Right-click `librephotos.exe` and choose **Show more options** → **Create shortcut** (on Windows
+   10: **Create shortcut** directly).
+2. Right-click the new shortcut, choose **Properties**, and add ` run --port 8080` to the end of
+   **Target**, after the closing quote:
+
+   ```
+   "C:\Program Files\LibrePhotos\librephotos.exe" run --port 8080
+   ```
+
+3. Start LibrePhotos with that shortcut from now on. The browser and the tray icon's **Open LibrePhotos**
+   then use port 8080.
+
+Any free port above 1024 works. Windows keeps some port ranges for Hyper-V, WSL or Docker; if the
+message box says LibrePhotos cannot use the port, pick another one (`netsh interface ipv4 show
+excludedportrange protocol=tcp` lists the reserved ranges).
 
 ### Updating
 
