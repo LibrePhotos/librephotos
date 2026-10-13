@@ -22,6 +22,7 @@ from django.test import (
     TransactionTestCase,
     override_settings,
 )
+from owncloud import FileInfo
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
@@ -372,7 +373,7 @@ class ScanPhotosDownloadTest(TestCase):
 
     def _scan(self, remote_paths):
         def collect(nc, path, photos):
-            photos.extend(remote_paths)
+            photos.extend(FileInfo(p, "file", {}) for p in remote_paths)
 
         job_id = uuid.uuid4()
         with mock.patch(

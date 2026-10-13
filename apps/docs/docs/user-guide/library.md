@@ -73,7 +73,16 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 
 In the **Nextcloud** section, click **Scan** to download and scan photos from your configured Nextcloud directory. Files are copied to the local filesystem under `nextcloud_media/<username>/` before being processed.
 
-A repeat scan downloads and processes only files that are not in your library yet; photos imported by an earlier scan are left as they are.
+A repeat scan keeps the local copies in step with the server (not released yet):
+
+- A file that is new on the server is downloaded and imported.
+- A file that changed on the server (it is newer or has another size) is downloaded again and processed again. An XMP sidecar that changed has its photo processed again, so ratings and keywords edited in another app arrive.
+- A file that is unchanged is neither downloaded nor processed again.
+- A file deleted on the server is flagged missing, as a file deleted from a local library is: it shows up under **Remove missing photos**, and the photo and the local copy stay until you remove them. If the file comes back, the next scan attaches it again.
+
+A downloaded copy keeps the file's modification time on the server, so the "File modified time" [date rules](./settings/date-rules.md) date it by the server's time, not by the day of the download. Copies downloaded by an older version get that time on the next scan, which processes them once more to read their date again.
+
+"Synchronize metadata to disk" does not write into Nextcloud photos; see [Settings](./settings/index.md).
 
 :::note
 Nextcloud scanning indexes the same media as a local scan: images, videos, RAW files and XMP sidecars.

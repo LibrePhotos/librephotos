@@ -590,15 +590,20 @@ def _photo_of_path(user: User, path: str) -> Photo | None:
 
     Matching on ``main_file`` as well as the files m2m, as
     ``group_files_into_photo`` does, finds a photo whose file went missing and
-    came back. Without it a second call for an indexed path built a second
+    came back, and attaches the file to it again. Without it a second call for an indexed path built a second
     Photo on the same File (#2257).
     """
-    return (
+    photo = (
         Photo.objects.owned_by(user)
         .filter(Q(files__path=path) | Q(main_file__path=path))
         .order_by("added_on")
         .first()
     )
+    if photo is not None and not photo.files.filter(path=path).exists():
+        # Back after it was flagged missing: get_or_create_file clears the
+        # flag, and the photo holds the file again.
+        photo.files.add(get_or_create_file(path, user))
+    return photo
 
 
 def create_new_image(user: User, path: str) -> Photo | None:

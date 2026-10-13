@@ -17,6 +17,7 @@ from api.metadata.orientation import compose_orientation
 from api.metadata.tags import Tags
 from api.metadata.writer import TagValue, write_metadata
 from api.models.user import User
+from api.photos.paths import is_nextcloud_copy
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -38,6 +39,18 @@ def write_target(user: User) -> bool | None:
     if mode == User.SaveMetadata.MEDIA_FILE:
         return False
     return None
+
+
+def _keeps_edits(photo: Photo) -> bool:
+    """Whether an edit written into ``photo``'s file would stay there.
+
+    Not for a local copy of a Nextcloud file (#2258): the next scan that finds
+    the file changed on the server downloads it over the copy, and nothing is
+    uploaded back, so the edit would be invisible in Nextcloud and then lost.
+    The edit stays in LibrePhotos either way.
+    """
+    main_file = photo.main_file
+    return main_file is not None and not is_nextcloud_copy(main_file.path)
 
 
 def write_photo_metadata_on_commit(
@@ -101,7 +114,7 @@ def write_photo_metadata(
 
         tags_to_write.update(get_face_region_tags(photo))
 
-    if tags_to_write:
+    if tags_to_write and _keeps_edits(photo):
         assert photo.main_file is not None
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
 
@@ -157,7 +170,7 @@ def write_orientation_to_disk(photo: Photo, angle: int, flip_horizontal: bool) -
     ``local_orientation`` and writes the tag for other viewers only.
     """
     use_sidecar = write_target(photo.owner)
-    if use_sidecar is None:
+    if use_sidecar is None or not _keeps_edits(photo):
         return
 
     if not use_sidecar and _fold_rotation_into_file(photo):
