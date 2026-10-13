@@ -38,6 +38,8 @@ A folder LibrePhotos is not allowed to read, such as a `lost+found` folder owned
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
+Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. Point at or tab to a greyed-out button to see why it is unavailable (not released yet).
+
 :::note
 AI *captions* are not generated during a scan — they are created per photo on demand. Open a photo, show the details panel, and use the wand icon in the **Caption** section. See [Image Captioning](./image-captioning.md).
 :::

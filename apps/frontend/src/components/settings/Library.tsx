@@ -6,19 +6,21 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
-import { useRescanPhotosMutation, useScanPhotosMutation, useWorkerQuery } from "../../api_client/jobs/hooks";
+import { useRescanPhotosMutation, useScanPhotosMutation } from "../../api_client/jobs/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { serverAddress } from "../../api_client/urls";
 import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { useJobQueue } from "../../hooks/useJobQueue";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageLoader } from "../common/PageLoader";
 import { CountStats } from "../CountStats";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
 import { NextcloudSettings } from "./NextcloudSettings";
@@ -34,9 +36,10 @@ export function Library() {
   const { data: auth } = useAccessToken();
   const { data: userList } = useFetchUserListQuery();
   const [editedUser, setEditedUser] = useState<User | null>(null);
-  const { data: worker } = useWorkerQuery();
-  const [workerAvailability, setWorkerAvailability] = useState(false);
+  const queue = useJobQueue();
   const { t } = useTranslation();
+  // Every job button says why it is off while the queue is busy (#2237).
+  const busyReason = queue.busy ? t("jobs.queuebusy.reason") : undefined;
   const { data: siteSettings } = useGetSettingsQuery();
   const isNextcloudEnabled = siteSettings?.nextcloud_enabled ?? false;
   const ocrModel = siteSettings?.ocr_model ?? "none";
@@ -84,12 +87,6 @@ export function Library() {
       setEditedUser(userSelfDetails);
     }
   }, [userSelfDetails]);
-
-  useEffect(() => {
-    if (worker) {
-      setWorkerAvailability(worker.queue_can_accept_job);
-    }
-  }, [worker]);
 
   useEffect(() => {
     if (!isNextcloudEnabled) {
@@ -155,20 +152,22 @@ export function Library() {
               off by a fixed column width.
             */}
 
+            {queue.busy && <JobQueueBusyNotice job={queue.job} />}
+
             <ScanLibraryRow
-              workerAvailability={workerAvailability}
+              busyReason={busyReason}
               scanBlocked={scanBlocked}
               onScan={() => guardScan(() => scanPhotos.mutate())}
               onRescan={() => guardScan(() => rescanPhotos.mutate())}
             />
 
-            <LibraryActions workerAvailability={workerAvailability} isAdmin={isAdmin} isOcrEnabled={isOcrEnabled} />
+            <LibraryActions busyReason={busyReason} isAdmin={isAdmin} isOcrEnabled={isOcrEnabled} />
             {isNextcloudEnabled && (
               <NextcloudSettings
                 userSelfDetails={userSelfDetails}
                 editedUser={editedUser}
                 setEditedUser={setEditedUser}
-                workerAvailability={workerAvailability}
+                busyReason={busyReason}
                 isNextcloudFetching={isNextcloudFetching}
                 isNextcloudSuccess={isNextcloudSuccess}
                 isNextcloudError={isNextcloudError}

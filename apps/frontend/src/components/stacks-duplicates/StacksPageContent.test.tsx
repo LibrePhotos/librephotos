@@ -12,6 +12,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
 import { StacksPageContent } from "./StacksPageContent";
 
 const stubs = vi.hoisted(() => ({
@@ -112,16 +113,20 @@ describe("StacksPageContent", () => {
     expect(container.textContent).not.toContain("server label");
   });
 
-  it("disables Detect when there is nothing to detect", async () => {
+  it("disables Detect when there is nothing to detect, and says why (#2237)", async () => {
     const detect = button(i18n.t("stacks.detect"));
-    expect(detect.disabled).toBe(false);
+    expect(detect.getAttribute("aria-disabled")).toBeNull();
 
     await click(button(i18n.t("stacks.detectOptions")));
     const bursts = rendered(container.querySelector<HTMLInputElement>("input[type=checkbox]"), "the bursts option");
     await click(bursts);
 
     expect(bursts.checked).toBe(false);
-    expect(button(i18n.t("stacks.detect")).disabled).toBe(true);
+    const disabled = button(i18n.t("stacks.detect"));
+    expectDisabledWithReason(disabled, i18n.t("stacks.nothingtodetect"));
+    expect(await focusAndReadTooltip(disabled)).toContain(i18n.t("stacks.nothingtodetect"));
+    await click(disabled);
+    expect(stubs.detect).not.toHaveBeenCalled();
   });
 
   describe("Unstack", () => {

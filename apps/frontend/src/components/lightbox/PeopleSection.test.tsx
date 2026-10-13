@@ -12,6 +12,11 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import {
+  expectDisabledWithReason,
+  focusAndReadTooltip,
+  hoverAndReadTooltip,
+} from "../common/disabledReason.test-utils";
 import { PeopleSection } from "./PeopleSection";
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
@@ -116,8 +121,24 @@ describe("adding a face the scan missed", () => {
 
   it("disables the button when the photo is turned, where a drawn box would not line up", async () => {
     const container = await renderSection({ addFaceBlockedReason: "Turn the photo back upright to add a face" });
+    const button = defined(addButton(container));
 
-    expect(defined(addButton(container)).disabled).toBe(true);
+    await act(async () => {
+      button.click();
+    });
+
+    expect(onAddFaceRequest).not.toHaveBeenCalled();
+    expectDisabledWithReason(button, "Turn the photo back upright to add a face");
+  });
+
+  // #2237: the reason was the tooltip of a `disabled` button, which never fires the events that open it.
+  it.each([
+    ["hover", hoverAndReadTooltip],
+    ["keyboard focus", focusAndReadTooltip],
+  ])("says why it is disabled on %s", async (_how, read) => {
+    const container = await renderSection({ addFaceBlockedReason: "Turn the photo back upright to add a face" });
+
+    expect(await read(defined(addButton(container)))).toContain("Turn the photo back upright to add a face");
   });
 
   it("does not offer it on someone else's shared photo", async () => {

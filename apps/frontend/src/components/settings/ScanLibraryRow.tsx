@@ -19,10 +19,12 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { DisabledReason } from "../common/DisabledReason";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
 type ScanLibraryRowProps = {
-  workerAvailability: boolean;
+  /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
+  busyReason?: string;
   /** No scan directory and not an admin: scanning has to wait for an admin. */
   scanBlocked: boolean;
   onScan: () => void;
@@ -30,11 +32,12 @@ type ScanLibraryRowProps = {
 };
 
 /** The Scan library row: its help, and the scan button with rescan in its menu. */
-export function ScanLibraryRow({ workerAvailability, scanBlocked, onScan, onRescan }: ScanLibraryRowProps) {
+export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: ScanLibraryRowProps) {
   const [isScanHelpOpen, { toggle: toggleScanHelp }] = useDisclosure(false);
   const { t } = useTranslation();
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
+  const scanReason = busyReason ?? (scanBlocked ? t("toasts.scan_directory_required") : undefined);
 
   return (
     <Grid>
@@ -130,23 +133,24 @@ export function ScanLibraryRow({ workerAvailability, scanBlocked, onScan, onResc
       </Grid.Col>
       <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
         <Group wrap="nowrap" gap={0} justify="flex-end">
-          <Button
-            onClick={onScan}
-            disabled={!workerAvailability || scanBlocked}
-            leftSection={<Refresh />}
-            variant="filled"
-            style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-            fullWidth
-          >
-            {t("settings.statusscanphotosfalse")}
-          </Button>
+          <DisabledReason reason={scanReason}>
+            <Button
+              onClick={onScan}
+              leftSection={<Refresh />}
+              variant="filled"
+              style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+              fullWidth
+            >
+              {t("settings.statusscanphotosfalse")}
+            </Button>
+          </DisabledReason>
           <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
             <Menu.Target>
               <ActionIcon
                 variant="filled"
                 color="blue"
                 size={36}
-                disabled={!workerAvailability || scanBlocked}
+                disabled={!!scanReason}
                 aria-label={t("settings.statusrescanphotosfalse")}
                 style={{
                   borderTopLeftRadius: 0,
@@ -159,11 +163,7 @@ export function ScanLibraryRow({ workerAvailability, scanBlocked, onScan, onResc
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<Refresh size="1rem" />}
-                onClick={onRescan}
-                disabled={!workerAvailability || scanBlocked}
-              >
+              <Menu.Item leftSection={<Refresh size="1rem" />} onClick={onRescan} disabled={!!scanReason}>
                 {t("settings.statusrescanphotosfalse")}
               </Menu.Item>
             </Menu.Dropdown>

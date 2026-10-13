@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { UploadProgressCard } from "./UploadProgressCard";
 import type { UploadItem, UploadQueue } from "./useUploadQueue";
 
@@ -114,7 +115,10 @@ describe("UploadProgressCard", () => {
     const card = defined(byTestId("upload-progress-card"));
     expect(card.textContent).toContain("Stopping…");
     expect(card.textContent).toContain("1 cancelled");
-    expect(byTestId("upload-cancel")).toHaveProperty("disabled", true);
+    const cancel = defined(byTestId("upload-cancel"));
+    expectDisabledWithReason(cancel, "Stopping…");
+    await click(cancel);
+    expect(stubs.queue.cancel).not.toHaveBeenCalled();
   });
 
   it("says the upload was cancelled and retries cancelled and failed files with one button", async () => {

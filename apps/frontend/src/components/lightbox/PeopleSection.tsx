@@ -1,8 +1,9 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Alert, Button, Group, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Button, Group, Text, Title } from "@mantine/core";
 import { IconUserPlus, IconUsers } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { DisabledReason } from "../common/DisabledReason";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 
@@ -52,17 +53,16 @@ export function PeopleSection({
             <Title order={4}>{t("lightbox.sidebar.people")}</Title>
           </Group>
           {canAddFace && !isDrawingFace && (
-            <Tooltip label={addFaceBlockedReason ?? t("lightbox.addface.tooltip")}>
+            <DisabledReason label={t("lightbox.addface.tooltip")} reason={addFaceBlockedReason}>
               <ActionIcon
                 variant="light"
                 color="green"
                 aria-label={t("lightbox.addface.tooltip")}
-                disabled={!!addFaceBlockedReason}
                 onClick={onAddFaceRequest}
               >
                 <IconUserPlus />
               </ActionIcon>
-            </Tooltip>
+            </DisabledReason>
           )}
         </Group>
       )}

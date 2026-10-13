@@ -15,6 +15,7 @@ import {
 } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
+import { DisabledReason } from "../common/DisabledReason";
 import classes from "./TagsSection.module.css";
 
 type TagsSectionProps = {
@@ -167,18 +168,17 @@ function TagsEditor({ photoDetail }: TagsSectionProps) {
           </Tooltip>
         ) : (
           <Group gap="xs">
-            <Tooltip label={t("lightbox.sidebar.cancel")}>
+            <DisabledReason label={t("lightbox.sidebar.cancel")} reason={isSaving && t("lightbox.sidebar.saving")}>
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 size="sm"
                 aria-label={t("lightbox.sidebar.cancel")}
                 onClick={handleCancel}
-                disabled={isSaving}
               >
                 <IconX size={16} />
               </ActionIcon>
-            </Tooltip>
+            </DisabledReason>
             <Tooltip label={t("lightbox.sidebar.save")}>
               <ActionIcon
                 variant="subtle"

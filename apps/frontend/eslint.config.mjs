@@ -328,6 +328,15 @@ export const syntaxBans = [
     message: "Use UNKNOWN_PERSON_NAME from @librephotos/api-client, not the literal name of the unknown group.",
     allowIn: TEST_FILES,
   },
+  {
+    // A `disabled` control fires no mouse or focus events, so a Tooltip around it never opens and the
+    // reason it holds is lost (#2237). DisabledReason keeps the control focusable and shows the reason.
+    id: "tooltip-disabled-control",
+    selector:
+      "JSXElement[openingElement.name.name=/^(Tooltip|DisabledReason)$/] > JSXElement > JSXOpeningElement > JSXAttribute[name.name='disabled']",
+    message:
+      "Wrap the control in <DisabledReason reason={...}> (components/common/DisabledReason) instead of a Tooltip around a disabled control.",
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure

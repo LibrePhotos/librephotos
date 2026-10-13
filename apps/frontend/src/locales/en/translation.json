@@ -268,7 +268,8 @@
     "togglecolorscheme": "Toggle color scheme",
     "sceneconfidencedescription": "How sure the tagging model has to be before it adds a tag. Lower values add more tags, and more wrong ones.",
     "scandirectoryreadonly": "Change it in the user list of the Admin Area.",
-    "danish": "Danish"
+    "danish": "Danish",
+    "nextcloudaddressfirst": "Enter the Nextcloud server address first"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -375,6 +376,13 @@
       "detect_stacks": "Detect Stacks",
       "strip_thumbnail_metadata": "Remove Photo Details from Thumbnails",
       "unknown": "Other job ({{name}})"
+    },
+    "queuebusy": {
+      "reason": "A job is running. Start this one when it has finished.",
+      "title": "A job is running: {{job}}",
+      "titleother": "Another user's job is running",
+      "wait": "The buttons below are available again when it has finished.",
+      "joblist": "Open the job list"
     }
   },
   "metadata": "Metadata Options",
@@ -618,7 +626,9 @@
     "markasphoto": "Mark as photo",
     "markasscreenshot": "Mark as screenshot",
     "markasdocument": "Mark as document",
-    "addto": "Add to album or tags"
+    "addto": "Add to album or tags",
+    "removephotosselectall": "Not available with Select all: select the photos one by one",
+    "selectphotosfirst": "Select at least one photo first"
   },
   "lightbox": {
     "sidebar": {
@@ -676,7 +686,8 @@
       "ownerOnlyDetails": "Details are only shown to the owner of this photo.",
       "editCaption": "Edit caption",
       "noCaption": "No caption",
-      "generateCaption": "Generate caption"
+      "generateCaption": "Generate caption",
+      "saving": "Saving…"
     },
     "addface": {
       "tooltip": "Add a face the scan missed",
@@ -943,7 +954,8 @@
       "video": "Video",
       "metadata": "Metadata",
       "file": "File"
-    }
+    },
+    "nothingtodetect": "Choose at least one thing to detect in Detection Options"
   },
   "photos": {
     "recentlyadded": "Recently Added",
@@ -1507,7 +1519,9 @@
     "showphoto": "Show photo",
     "confidentsuffix": "% confident",
     "numberoffaces_one": "{{count}} Face",
-    "numberoffaces_other": "{{count}} Faces"
+    "numberoffaces_other": "{{count}} Faces",
+    "selectfacesfirst": "Select at least one face first",
+    "nogroups": "There are no groups on this tab"
   },
   "scan": "Scan",
   "socialgraph": "Social Graph",

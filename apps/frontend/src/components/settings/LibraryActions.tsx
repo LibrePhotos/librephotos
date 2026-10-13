@@ -13,22 +13,26 @@ import {
   useGenerateOcrMutation,
   useRegenerateEventTitlesMutation,
 } from "../../api_client/jobs/hooks";
+import { DisabledReason } from "../common/DisabledReason";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
 type LibraryActionsProps = {
-  workerAvailability: boolean;
+  /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
+  busyReason?: string;
   isAdmin: boolean;
   isOcrEnabled: boolean;
 };
 
 /** The library jobs after a scan: event albums, faces and text recognition. */
-export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: LibraryActionsProps) {
+export function LibraryActions({ busyReason, isAdmin, isOcrEnabled }: LibraryActionsProps) {
   const { t } = useTranslation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const trainFaces = useTrainFacesMutation();
   const rescanFaces = useRescanFacesMutation();
   const regenerateEventTitles = useRegenerateEventTitlesMutation();
   const generateOcr = useGenerateOcrMutation();
+  const ocrOff = t(isAdmin ? "settings.ocrdisabled" : "settings.ocrdisablednonadmin");
+  const ocrReason = busyReason ?? (isOcrEnabled ? undefined : ocrOff);
 
   const onGenerateEventAlbumsButtonClick = () => {
     generateAutoAlbums();
@@ -47,15 +51,11 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
-          <Button
-            onClick={onGenerateEventAlbumsButtonClick}
-            disabled={!workerAvailability}
-            leftSection={<RefreshDot />}
-            variant="outline"
-            fullWidth
-          >
-            {t("settings.generate")}
-          </Button>
+          <DisabledReason reason={busyReason}>
+            <Button onClick={onGenerateEventAlbumsButtonClick} leftSection={<RefreshDot />} variant="outline" fullWidth>
+              {t("settings.generate")}
+            </Button>
+          </DisabledReason>
         </Grid.Col>
       </Grid>
 
@@ -69,15 +69,16 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
-          <Button
-            onClick={() => regenerateEventTitles.mutate()}
-            disabled={!workerAvailability}
-            leftSection={<RefreshDot />}
-            variant="outline"
-            fullWidth
-          >
-            {t("settings.regenerate")}
-          </Button>
+          <DisabledReason reason={busyReason}>
+            <Button
+              onClick={() => regenerateEventTitles.mutate()}
+              leftSection={<RefreshDot />}
+              variant="outline"
+              fullWidth
+            >
+              {t("settings.regenerate")}
+            </Button>
+          </DisabledReason>
         </Grid.Col>
       </Grid>
       <Divider
@@ -99,15 +100,11 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
-          <Button
-            disabled={!workerAvailability}
-            onClick={() => trainFaces.mutate()}
-            leftSection={<FaceId />}
-            variant="outline"
-            fullWidth
-          >
-            <Trans i18nKey="settings.facesbutton" />
-          </Button>
+          <DisabledReason reason={busyReason}>
+            <Button onClick={() => trainFaces.mutate()} leftSection={<FaceId />} variant="outline" fullWidth>
+              <Trans i18nKey="settings.facesbutton" />
+            </Button>
+          </DisabledReason>
         </Grid.Col>
       </Grid>
       <Grid>
@@ -120,15 +117,11 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
-          <Button
-            disabled={!workerAvailability}
-            onClick={() => rescanFaces.mutate()}
-            leftSection={<FaceId />}
-            variant="outline"
-            fullWidth
-          >
-            <Trans i18nKey="settings.rescanfaces" />
-          </Button>
+          <DisabledReason reason={busyReason}>
+            <Button onClick={() => rescanFaces.mutate()} leftSection={<FaceId />} variant="outline" fullWidth>
+              <Trans i18nKey="settings.rescanfaces" />
+            </Button>
+          </DisabledReason>
         </Grid.Col>
       </Grid>
       <Divider labelPosition="left" label={<Text fw="bold">{t("settings.textrecognition")}</Text>} mt={20} />
@@ -137,30 +130,29 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
           <Stack gap={0}>
             <Text>{t("settings.ocrtitle")}</Text>
             <Text fz="sm" c="dimmed">
-              {isOcrEnabled
-                ? t("settings.ocrdescription")
-                : t(isAdmin ? "settings.ocrdisabled" : "settings.ocrdisablednonadmin")}
+              {isOcrEnabled ? t("settings.ocrdescription") : ocrOff}
             </Text>
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: "content" }} miw={ACTION_MIN_WIDTH}>
           <Group wrap="nowrap" gap={0} justify="flex-end">
-            <Button
-              disabled={!workerAvailability || !isOcrEnabled}
-              onClick={() => generateOcr.mutate(false)}
-              leftSection={<TextRecognition />}
-              variant="outline"
-              style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
-              fullWidth
-            >
-              {t("settings.ocrbutton")}
-            </Button>
+            <DisabledReason reason={ocrReason}>
+              <Button
+                onClick={() => generateOcr.mutate(false)}
+                leftSection={<TextRecognition />}
+                variant="outline"
+                style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
+                fullWidth
+              >
+                {t("settings.ocrbutton")}
+              </Button>
+            </DisabledReason>
             <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
               <Menu.Target>
                 <ActionIcon
                   variant="outline"
                   size={36}
-                  disabled={!workerAvailability || !isOcrEnabled}
+                  disabled={!!ocrReason}
                   aria-label={t("settings.ocrfullbutton")}
                   style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 >
@@ -171,7 +163,7 @@ export function LibraryActions({ workerAvailability, isAdmin, isOcrEnabled }: Li
                 <Menu.Item
                   leftSection={<TextRecognition size="1rem" />}
                   onClick={() => generateOcr.mutate(true)}
-                  disabled={!workerAvailability || !isOcrEnabled}
+                  disabled={!!ocrReason}
                 >
                   {t("settings.ocrfullbutton")}
                 </Menu.Item>
