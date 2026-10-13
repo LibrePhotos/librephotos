@@ -87,10 +87,50 @@ export function addTempElementsToFlatList(photosCount: number) {
   return newPhotosFlat;
 }
 
+// The combining diacritical mark blocks, as code point ranges. Only these are
+// dropped: the marks of Indic scripts, Japanese dakuten and the like change the
+// letter. A regex class of combining marks would trip no-misleading-character-class.
+const DIACRITIC_RANGES: ReadonlyArray<readonly [number, number]> = [
+  [0x0300, 0x036f],
+  [0x1ab0, 0x1aff],
+  [0x1dc0, 0x1dff],
+  [0x20d0, 0x20ff],
+  [0xfe20, 0xfe2f],
+];
+
+function isDiacritic(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  return DIACRITIC_RANGES.some(([first, last]) => code >= first && code <= last);
+}
+
+// Latin letters with no separate mark to split off, as in the backend's fold().
+const UNSPLIT_LETTERS: Record<string, string> = {
+  ß: "ss",
+  ø: "o",
+  ł: "l",
+  đ: "d",
+  ħ: "h",
+  ı: "i",
+  ŧ: "t",
+  æ: "ae",
+  œ: "oe",
+};
+
+// Lower case without diacritics, so "Zurich" and "Zürich" compare equal. The
+// backend folds search text the same way (api/models/photo_search.py fold).
+function foldText(text: string): string {
+  return Array.from(text.toLowerCase().normalize("NFKD"))
+    .filter(char => !isDiacritic(char))
+    .map(char => UNSPLIT_LETTERS[char] ?? char)
+    .join("")
+    .normalize("NFC");
+}
+
 export function fuzzyMatch(query: string, value: string): boolean {
   // Whitespace is dropped first: checking the raw query let "  " through to a
   // reduce() over no characters, which threw and crashed the search box.
-  const chars = query.toLowerCase().replace(/\s/g, "").split("");
+  // Both sides are folded, so "cafe" suggests "Café" and "café" suggests "Cafe".
+  const chars = foldText(query).replace(/\s/g, "").split("");
   if (chars.length === 0) {
     return true;
   }
@@ -98,7 +138,7 @@ export function fuzzyMatch(query: string, value: string): boolean {
     .map(a => escapeRegExp(a))
     .join(".*")
     .concat(".*");
-  return new RegExp(expression).test(value.toLowerCase());
+  return new RegExp(expression).test(foldText(value));
 }
 
 export function mergeDirTree(tree: DirTree[], branch: DirTree): DirTree[] {

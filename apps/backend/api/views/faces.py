@@ -506,10 +506,12 @@ class SetFacePersonLabel(APIView):
         PhotoSearch.objects.bulk_create(
             to_create,
             update_conflicts=True,
-            update_fields=["search_captions", "updated_at"],
+            update_fields=["search_captions", "search_folded", "updated_at"],
             unique_fields=["photo"],
         )
-        PhotoSearch.objects.bulk_update(to_update, ["search_captions", "updated_at"])
+        PhotoSearch.objects.bulk_update(
+            to_update, ["search_captions", "search_folded", "updated_at"]
+        )
 
 
 class AddFaceView(APIView):

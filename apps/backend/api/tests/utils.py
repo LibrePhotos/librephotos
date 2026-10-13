@@ -392,13 +392,16 @@ def create_test_photo(**kwargs):
     if captions_json is not None:
         PhotoCaption.objects.create(photo=photo, captions_json=captions_json)
 
-    # Create PhotoSearch if search fields are provided
+    # Create PhotoSearch if search fields are provided, folded as the app
+    # folds them whenever it writes either field.
     if search_captions is not None or search_location is not None:
-        PhotoSearch.objects.create(
+        search_row = PhotoSearch(
             photo=photo,
             search_captions=search_captions,
             search_location=search_location,
         )
+        search_row.refresh_search_folded()
+        search_row.save()
 
     # Create PhotoMetadata if metadata fields are provided
     if metadata_fields:

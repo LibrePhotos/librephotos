@@ -81,6 +81,8 @@ When you perform a search (either from the spotlight or the search bar), LibrePh
 
 Every word in your query must match, though not necessarily in the same field: searching `beach sunset` returns only photos where both `beach` and `sunset` appear somewhere in the indexed text (caption, person name, location, file path, camera, and so on). Commas separate words the same way spaces do. To search for an exact phrase, wrap it in quotes — `"golden gate bridge"` matches only photos containing that whole phrase.
 
+Accents and letter case do not matter, in either direction: `Zurich` finds photos taken in Zürich, `café` finds a caption that says "cafe", and `Lodz` finds "Łódź". This covers everything in the list above except the date, plus your tags. Text found in photos by OCR is still matched as written. The spotlight's suggestions ignore accents the same way. (Not released yet: up to 1.3.0, a search had to spell every accent. The upgrade prepares existing photos once, while the database migrates.)
+
 The search results header also has an **All / Photos / Videos** toggle in the top right for narrowing the results to only photos or only videos.
 
 Results are displayed grouped by date, similar to the main timeline view.

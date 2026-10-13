@@ -80,10 +80,13 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
         self.assertEqual(self.rating_of(self.patched), 5)
         captions = PhotoCaption.objects.get(photo_id=self.patched.pk).captions_json
         self.assertEqual(captions["user_caption"], "Grandma's 80th")
-        self.assertIn(
-            "Grandma's 80th",
-            PhotoSearch.objects.get(photo_id=self.patched.pk).search_captions,
+        # Only this column, as in rating_of: later columns are not there yet.
+        search_captions = (
+            PhotoSearch.objects.filter(photo_id=self.patched.pk)
+            .values_list("search_captions", flat=True)
+            .get()
         )
+        self.assertIn("Grandma's 80th", search_captions)
 
     def test_snapshots_without_an_edit_are_left_behind(self):
         # 0101 copied every lightbox caption into PhotoMetadata; a caption the
