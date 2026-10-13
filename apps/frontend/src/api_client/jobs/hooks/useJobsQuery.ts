@@ -1,10 +1,9 @@
-import { endpoints, pollWhile } from "@librephotos/api-client";
+import { endpoints, jobKeys, pollWhile } from "@librephotos/api-client";
+import type { JobListParams, JobsResponse } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { jobKeys } from "../keys";
-import type { JobRequest, JobsResponse } from "../types";
 
-export const useJobsQuery = (params: JobRequest) =>
+export const useJobsQuery = (params: JobListParams) =>
   useQuery({
     queryKey: jobKeys.list(params),
     // `mine` is sent only when narrowing, so the admin list's request is unchanged.

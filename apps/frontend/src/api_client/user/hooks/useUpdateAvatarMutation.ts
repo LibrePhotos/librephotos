@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, userKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { userKeys } from "../keys";
 
 export const useUpdateAvatarMutation = () =>
   useMutation({

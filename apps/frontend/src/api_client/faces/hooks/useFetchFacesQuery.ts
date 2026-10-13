@@ -1,15 +1,7 @@
 import { endpoints } from "@librephotos/api-client";
+import type { PersonFaceListRequest } from "@librephotos/api-client";
 import { apiClient } from "../../api";
-import type { FaceAnalysisMethod, FacesOrderOption, PersonFaceList } from "../types";
-
-export type PersonFaceListRequest = {
-  person?: number;
-  page: number;
-  inferred: boolean;
-  orderBy: FacesOrderOption;
-  method?: FaceAnalysisMethod;
-  minConfidence?: number;
-};
+import type { PersonFaceList } from "../types";
 
 /** One page of a person's faces (person 0: the faces of no one). */
 export const fetchFaces = async (params: PersonFaceListRequest): Promise<PersonFaceList> => {

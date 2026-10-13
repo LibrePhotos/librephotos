@@ -1,11 +1,9 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoKeys, statsKeys } from "@librephotos/api-client";
+import type { Photo } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { statsKeys } from "../../stats/keys";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
-import { photoKeys } from "../keys";
-import type { Photo } from "../types";
 
 export const useUpdatePhotoMutation = () =>
   useMutation({

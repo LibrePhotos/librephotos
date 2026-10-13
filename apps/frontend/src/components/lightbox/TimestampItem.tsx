@@ -1,3 +1,4 @@
+import type { Photo } from "@librephotos/api-client";
 import { ActionIcon, Box, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
 import {
@@ -11,7 +12,6 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
-import type { Photo } from "../../api_client/photos/types";
 import {
   parsePhotoTimestamp,
   parsePickerDate,

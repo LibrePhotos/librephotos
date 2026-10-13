@@ -1,10 +1,9 @@
-import { endpoints, type LoginPost } from "@librephotos/api-client";
+import { authKeys, endpoints, type LoginPost } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { notification } from "../../../service/notifications";
 import { apiClient, ApiError } from "../../api";
 import { setAuthCookie } from "../../authCookies";
-import { authKeys } from "../keys";
 
 const login = async (credentials: LoginPost) => {
   const data = await endpoints.login(apiClient, credentials);

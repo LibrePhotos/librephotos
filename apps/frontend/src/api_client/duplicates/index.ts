@@ -9,4 +9,3 @@
  * use the stacks API instead (`api_client/stacks`).
  */
 export * from "./hooks";
-export * from "./types";

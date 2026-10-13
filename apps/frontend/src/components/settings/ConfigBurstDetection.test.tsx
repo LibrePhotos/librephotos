@@ -8,11 +8,11 @@
  *   it), and can be deleted.
  * - Reordering moves the rules among the slots rules hold; every other entry keeps its place.
  */
+import type { BurstDetectionRule } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { BurstDetectionRule } from "../../api_client/settings/types";
 import i18n from "../../i18n";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 

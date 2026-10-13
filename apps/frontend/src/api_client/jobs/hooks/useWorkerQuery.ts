@@ -1,8 +1,7 @@
-import { endpoints, pollWhile } from "@librephotos/api-client";
+import { endpoints, jobKeys, pollWhile } from "@librephotos/api-client";
+import type { WorkerAvailabilityResponse } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { jobKeys } from "../keys";
-import type { WorkerAvailabilityResponse } from "../types";
 
 type UseWorkerQueryOptions = {
   enabled?: boolean;

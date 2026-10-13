@@ -1,5 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { AlbumCoverType } from "./SelectionActions";
 import type { PhotoListDialogState } from "./usePhotoListDialogs";
 

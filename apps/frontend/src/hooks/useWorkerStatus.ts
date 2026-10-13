@@ -1,6 +1,6 @@
+import type { JobDetail } from "@librephotos/api-client";
 import { useEffect, useState } from "react";
 import { useWorkerQuery } from "../api_client/jobs/hooks";
-import type { JobDetail } from "../api_client/jobs/types";
 
 export function useWorkerStatus() {
   const { data: worker, isLoading } = useWorkerQuery();

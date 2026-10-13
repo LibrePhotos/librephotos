@@ -1,13 +1,18 @@
-import { endpoints, invalidateAfter, ResponseParseError, type NormalizedFaceBox } from "@librephotos/api-client";
+import {
+  albumKeys,
+  endpoints,
+  faceKeys,
+  invalidateAfter,
+  photoKeys,
+  ResponseParseError,
+  statsKeys,
+  type NormalizedFaceBox,
+} from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, ApiError, queryClient } from "../../api";
-import { photoKeys } from "../../photos/keys";
-import { statsKeys } from "../../stats/keys";
-import { faceKeys } from "../keys";
 
 type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox };
 

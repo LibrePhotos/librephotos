@@ -1,9 +1,9 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { Anchor, Box, Text } from "@mantine/core";
 import { IconLink } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { albumColumnsFor } from "../../hooks/useAlbumListGridConfig";
 import gridClasses from "../album/AlbumGridCell.module.css";
 import { Tile } from "../Tile";

@@ -1,6 +1,5 @@
+import type { DatePhotosGroup, DirTree } from "@librephotos/api-client";
 import { Settings } from "luxon";
-import type { DirTree } from "../api_client/folders/types";
-import type { DatePhotosGroup } from "../api_client/photos/types";
 import i18n from "../i18n";
 import { defined } from "./defined.test-utils";
 import {

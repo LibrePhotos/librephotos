@@ -4,13 +4,12 @@
  * card put in an <img>: a broken image on the memories page.
  */
 import "@mantine/core/styles.css";
+import type { Memory } from "@librephotos/api-client";
+import { Media, MemoryType, type PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { Memory } from "../../api_client/memories";
-import { MemoryType } from "../../api_client/memories";
-import { Media, type PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { tempPigPhoto } from "../../util/util";
 import { MemoryCard } from "./MemoryCard";

@@ -1,3 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
+import { Photoset } from "@librephotos/api-client";
 import type { MantineFontSize } from "@mantine/core";
 import { Box, Button, Group, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
@@ -10,8 +12,6 @@ import {
   useFetchDateAlbumsQuery,
   useFetchFolderSubfoldersQuery,
 } from "../../../api_client/albums/hooks";
-import type { PigPhoto } from "../../../api_client/photos/types";
-import { Photoset } from "../../../api_client/photos/types";
 import { FolderListModal } from "../../../components/album/FolderListModal";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import type { PhotoGroup, PigVisibleGroup } from "../../../components/photolist/PhotoListView";

@@ -1,10 +1,10 @@
+import type { FileVariant, Photo as PhotoType } from "@librephotos/api-client";
 import { Anchor, Badge, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
 import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
-import type { FileVariant, Photo as PhotoType } from "../../api_client/photos/types";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";
 

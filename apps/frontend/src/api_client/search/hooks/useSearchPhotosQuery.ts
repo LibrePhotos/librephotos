@@ -1,8 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
+import type { MediaType } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
+import { mediaTypeToBulkQuery } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
 
 export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) => {

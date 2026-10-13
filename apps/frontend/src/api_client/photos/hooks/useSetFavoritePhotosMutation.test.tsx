@@ -2,14 +2,13 @@
  * invalidatePhotoLists listed every photo grid but the shared ones, so a favourite (or hide, trash,
  * date) change left "Shared with me" and "Shared by me" showing the old stars until a reload.
  */
+import { photoGridKeys, Photoset } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
 import { queryClient } from "../../api";
-import { photoGridKeys } from "../keys";
-import { Photoset } from "../types";
 import { useSetFavoritePhotosMutation } from "./useSetFavoritePhotosMutation";
 
 const stubs = vi.hoisted(() => ({

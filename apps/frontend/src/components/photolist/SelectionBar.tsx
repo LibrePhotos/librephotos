@@ -1,9 +1,10 @@
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { SelectionState } from "../../api_client/photos/types";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 
 type Props = {

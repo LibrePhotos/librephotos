@@ -1,7 +1,6 @@
-import { endpoints, type PlaceAlbumInfo } from "@librephotos/api-client";
+import { albumKeys, endpoints, type PlaceAlbumInfo } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { albumKeys } from "../keys";
 
 export type PlaceAlbumList = PlaceAlbumInfo[];
 

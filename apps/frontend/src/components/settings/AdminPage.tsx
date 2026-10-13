@@ -1,3 +1,4 @@
+import type { ListUser } from "@librephotos/api-client";
 import {
   ActionIcon,
   Button,
@@ -27,7 +28,6 @@ import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import type { ListUser } from "../../api_client/user/types";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";

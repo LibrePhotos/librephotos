@@ -1,10 +1,10 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Badge, Group, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
 import { IconCheck, IconHash, IconPencil, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoMetadataQuery, useUpdatePhotoMetadataMutation } from "../../api_client/photos/hooks";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 
 type KeywordsSectionProps = {
   photoDetail: PhotoType;

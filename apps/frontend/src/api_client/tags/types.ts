@@ -1,13 +1,7 @@
 import type { SelectAllPhotos } from "@librephotos/api-client";
 
-// The tag schemas are shared with the mobile app and live in packages/api-client.
-export type {
-  CreateTagParams,
-  DeleteTagParams,
-  RenameTagParams,
-  TagList,
-  TagPhotosParams,
-} from "@librephotos/api-client";
+// The web's tag hook parameters. The tag schemas and the other parameter types are in
+// @librephotos/api-client.
 
 export type MergeTagsParams = {
   id: number;

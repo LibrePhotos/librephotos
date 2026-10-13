@@ -1,8 +1,6 @@
-import { endpoints, type SignupRequest } from "@librephotos/api-client";
+import { authKeys, endpoints, userKeys, type SignupRequest } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { userKeys } from "../../user/keys";
-import { authKeys } from "../keys";
 
 export const useSignUpMutation = () =>
   useMutation({

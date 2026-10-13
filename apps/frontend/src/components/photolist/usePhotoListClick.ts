@@ -1,8 +1,9 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import type React from "react";
 import type { RefObject } from "react";
-import type { PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { SelectionState } from "../../api_client/photos/types";
 
 type Props = {
   idx2hashRef: RefObject<PigPhoto[]>;

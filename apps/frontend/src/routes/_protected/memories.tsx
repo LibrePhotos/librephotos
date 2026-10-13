@@ -1,9 +1,10 @@
+import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
 import { Group, Stack } from "@mantine/core";
 import { IconSparkles as Sparkles } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MAX_MEMORY_ITEMS, useFetchMemoriesQuery } from "../../api_client/memories";
+import { useFetchMemoriesQuery } from "../../api_client/memories";
 import { EmptyState } from "../../components/common/EmptyState";
 import type { MemoriesView } from "../../components/memories/MemoriesHeader";
 import { MemoriesHeader } from "../../components/memories/MemoriesHeader";

@@ -2,10 +2,10 @@
  * An HDR video says so on its tile. The grid shows every video converted to
  * SDR, so without the badge nothing tells a 10-bit HDR clip from any other.
  */
+import { Media } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { Media } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { VideoOverlay } from "./VideoOverlay";
 

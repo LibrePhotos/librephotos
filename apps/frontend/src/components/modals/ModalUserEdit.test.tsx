@@ -12,11 +12,11 @@
  *   loaded) sends nothing, but still says the save failed.
  */
 import "@mantine/core/styles.css";
+import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { User } from "../../api_client/user";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import type { DirectoryPicker } from "../setup/DirectoryPicker";

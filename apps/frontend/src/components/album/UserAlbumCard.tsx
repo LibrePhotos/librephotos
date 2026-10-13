@@ -1,3 +1,4 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { ActionIcon, Group, Menu, Popover, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -14,7 +15,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { Tile } from "../Tile";
 import classes from "./UserAlbumCard.module.css";
 

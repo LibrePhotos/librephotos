@@ -1,9 +1,9 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Badge, Group, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
 import { IconCheck, IconPencil, IconTag, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import {
   useAddPhotosToTagMutation,
   useCreateTagMutation,

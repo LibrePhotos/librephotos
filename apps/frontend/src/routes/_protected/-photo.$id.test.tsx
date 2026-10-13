@@ -8,11 +8,11 @@
  * The leading "-" keeps the TanStack router plugin from treating this file as
  * a route (its `routeFileIgnorePrefix`).
  */
+import type { Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { Photo } from "../../api_client/photos/types";
 import type { MediaDisplayProps } from "../../components/lightbox";
 import type { PeopleSection } from "../../components/lightbox/PeopleSection";
 import { makePhoto } from "../../components/lightbox/photoFixture.test-utils";

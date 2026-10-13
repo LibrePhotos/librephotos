@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   endpoints,
+  faceKeys,
   mediaHeaders,
   UNKNOWN_PERSON_NAME,
   useApiClient,
@@ -53,7 +54,7 @@ export function FaceTaggingScreen() {
   const query = tab === "inferred" ? inferred : unknown;
   const faces = query.data?.results ?? [];
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: ["faces"] });
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: faceKeys.personFaces() });
 
   const runLabel = async (faceIds: number[], name: string) => {
     setBusy(true);

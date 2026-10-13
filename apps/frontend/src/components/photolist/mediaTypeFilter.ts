@@ -1,4 +1,4 @@
-export type MediaType = "all" | "photos" | "videos" | "screenshots";
+import type { MediaType } from "@librephotos/api-client";
 
 export const DEFAULT_MEDIA_TYPE: MediaType = "all";
 

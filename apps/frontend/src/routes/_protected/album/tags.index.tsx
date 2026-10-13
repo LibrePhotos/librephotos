@@ -1,3 +1,4 @@
+import type { TagList } from "@librephotos/api-client";
 import { ActionIcon, Flex, Group, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -16,7 +17,6 @@ import {
   useMergeTagsMutation,
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
-import type { TagList } from "../../../api_client/tags/types";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";

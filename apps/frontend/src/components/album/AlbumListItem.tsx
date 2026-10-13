@@ -1,7 +1,7 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { Group, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { parseInstant } from "../../util/dateUtils";
 import { Tile } from "../Tile";
 import classes from "./AlbumListItem.module.css";

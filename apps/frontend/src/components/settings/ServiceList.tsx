@@ -1,3 +1,4 @@
+import { serviceKeys } from "@librephotos/api-client";
 import { ActionIcon, Badge, Button, Card, Group, Loader, Table, Title, Tooltip } from "@mantine/core";
 import { IconPlayerPlay as Play, IconRefresh as Refresh, IconPlayerStop as Stop } from "@tabler/icons-react";
 import React from "react";
@@ -5,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { queryClient } from "../../api_client/api";
 import { useServiceActionMutation } from "../../api_client/services/hooks/useServiceActionMutation";
 import { useServicesHealthQuery, useServicesListQuery } from "../../api_client/services/hooks/useServicesQuery";
-import { serviceKeys } from "../../api_client/services/keys";
 import { serviceLabel } from "./serviceLabel";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not

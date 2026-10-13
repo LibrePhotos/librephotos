@@ -1,8 +1,8 @@
+import type { JobDetail } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { JobDetail } from "../../api_client/jobs/types";
 import i18n from "../../i18n";
 import { ProfileButton } from "./ProfileButton";
 import { jobPercent } from "./WorkerJobMenuSection";

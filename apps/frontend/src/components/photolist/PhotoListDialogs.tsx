@@ -1,4 +1,5 @@
-import type { PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { PigPhoto } from "@librephotos/api-client";
+import type { SelectionState } from "../../api_client/photos/types";
 import { Lightbox } from "../lightbox/Lightbox";
 import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";

@@ -1,7 +1,7 @@
+import type { DirTree } from "@librephotos/api-client";
 import { Grid, Paper, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFetchDirsQuery } from "../../api_client/folders/hooks";
-import type { DirTree } from "../../api_client/folders/types";
 import { mergeDirTree } from "../../util/util";
 import { Leaf } from "../modals/Leaf";
 

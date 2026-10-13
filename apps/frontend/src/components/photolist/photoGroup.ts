@@ -1,4 +1,4 @@
-import type { PigPhoto } from "../../api_client/photos/types";
+import type { PigPhoto } from "@librephotos/api-client";
 
 /** A day page of a paginated date list that is still to load (`id`: the date album's). */
 export type PhotoGroup = {

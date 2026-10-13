@@ -1,9 +1,8 @@
-import { endpoints, type PhotoShareAction } from "@librephotos/api-client";
+import { endpoints, photoKeys, type PhotoShareAction } from "@librephotos/api-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, ApiError, queryClient } from "../../api";
-import { photoKeys } from "../keys";
 
 /** Create, rotate or revoke the public link for one photo (issue #2028).
  *

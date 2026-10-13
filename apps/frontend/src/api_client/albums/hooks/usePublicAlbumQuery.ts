@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, ApiError } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
 
 /**
  * A public album by its share slug, for a visitor without a session, or `null`

@@ -1,8 +1,7 @@
-import { endpoints, POLL_IDLE_MS, type ServiceHealth } from "@librephotos/api-client";
+import { endpoints, POLL_IDLE_MS, serviceKeys, type ServiceHealth } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 import { notifyParseError } from "../../parseErrors";
-import { serviceKeys } from "../keys";
 
 export const useServicesListQuery = () =>
   useQuery({

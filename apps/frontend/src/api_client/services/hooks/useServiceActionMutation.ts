@@ -1,10 +1,9 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, serviceKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { serviceLabel } from "../../../components/settings/serviceLabel";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { serviceKeys } from "../keys";
 
 type ServiceAction = {
   serviceName: string;

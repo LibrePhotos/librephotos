@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, photoKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys, photoKeys } from "../keys";
 import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
 
 type SetPhotosPublicRequest = PhotoSelection & { val_public: boolean };

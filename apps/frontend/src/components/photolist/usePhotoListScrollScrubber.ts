@@ -1,6 +1,6 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { ScrollerData } from "../scrollscrubber/scrollScrubberTypes";
 import type { PigHandle } from "./PhotoListView";
 

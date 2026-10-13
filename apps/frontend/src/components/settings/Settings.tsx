@@ -1,3 +1,4 @@
+import { PublicSharingDefaults, User, userKeys } from "@librephotos/api-client";
 import { Card, Container, Flex, Group, Radio, Select, Space, Stack, Switch, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettings as SettingIcon } from "@tabler/icons-react";
@@ -7,8 +8,6 @@ import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
 import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
-import { userKeys } from "../../api_client/user/keys";
-import { PublicSharingDefaults, User } from "../../api_client/user/types";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";

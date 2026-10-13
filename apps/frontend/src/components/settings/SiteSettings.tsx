@@ -1,10 +1,10 @@
+import type { SiteSettings as SiteSettingsType } from "@librephotos/api-client";
 import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
-import type { SiteSettings as SiteSettingsType } from "../../api_client/settings/types";
 import { notification } from "../../service/notifications";
 import { EmailSettings } from "./EmailSettings";
 

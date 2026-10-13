@@ -1,3 +1,4 @@
+import { Media } from "@librephotos/api-client";
 import { Avatar, Box, Button, Divider, Group, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconMap2 as Map2, IconSettingsAutomation as SettingsAutomation } from "@tabler/icons-react";
@@ -6,7 +7,6 @@ import { groupBy, sortBy } from "lodash-es";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchAutoAlbumQuery } from "../../../api_client/albums/hooks";
-import { Media } from "../../../api_client/photos/types";
 import { serverAddress } from "../../../api_client/urls";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { eventLocationNames } from "../../../components/album/eventLocations";

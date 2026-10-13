@@ -1,7 +1,5 @@
 import type { CountStats } from "@librephotos/api-client";
 
-export type { CountStats, LocationTimeline } from "@librephotos/api-client";
-
 export const COUNT_STATS_DEFAULTS: CountStats = {
   num_photos: 0,
   num_missing_photos: 0,

@@ -1,5 +1,5 @@
+import type { DuplicateType } from "@librephotos/api-client";
 import { IconCopy, IconPhoto } from "@tabler/icons-react";
-import type { DuplicateType } from "../../api_client/duplicates/types";
 
 export function getDuplicateTypeIcon(type: DuplicateType, size = 14) {
   switch (type) {

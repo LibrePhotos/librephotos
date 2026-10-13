@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { albumKeys } from "../keys";
 import type { CreateUserAlbumParams } from "../types";
 
 export const useCreateUserAlbumMutation = () =>

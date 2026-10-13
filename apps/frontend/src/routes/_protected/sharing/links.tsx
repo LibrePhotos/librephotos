@@ -1,3 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
+import { Photoset } from "@librephotos/api-client";
 import { Stack, Tabs, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLink } from "@tabler/icons-react";
@@ -7,8 +9,6 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
-import type { PigPhoto } from "../../../api_client/photos/types";
-import { Photoset } from "../../../api_client/photos/types";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";

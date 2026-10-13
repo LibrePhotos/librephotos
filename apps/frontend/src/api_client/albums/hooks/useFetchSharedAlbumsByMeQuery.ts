@@ -1,8 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupBy, toPairs } from "lodash-es";
 import { apiClient } from "../../api";
-import { albumKeys } from "../keys";
 import type { UserAlbumList } from "../types";
 
 /** One row of the shared-albums queries: a sharer (or recipient) and their albums. */

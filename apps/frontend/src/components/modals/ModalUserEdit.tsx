@@ -1,3 +1,4 @@
+import type { ListUser, User } from "@librephotos/api-client";
 import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
@@ -6,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
 import { useGetSettingsQuery } from "../../api_client/settings";
-import type { ListUser, User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";

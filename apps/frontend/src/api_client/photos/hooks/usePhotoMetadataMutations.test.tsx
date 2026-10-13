@@ -5,12 +5,12 @@
  * refresh the photo grids and search, not only the metadata panel.
  */
 import type { ApiClient, PhotoMetadataUpdate } from "@librephotos/api-client";
+import { photoKeys } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { photoKeys } from "../keys";
 import { useBulkUpdateMetadataMutation, useUpdatePhotoMetadataMutation } from "./usePhotoMetadataMutations";
 
 const mocks = vi.hoisted(() => ({

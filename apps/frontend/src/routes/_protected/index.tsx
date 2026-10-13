@@ -1,11 +1,11 @@
+import type { PigPhoto } from "@librephotos/api-client";
+import { Photoset } from "@librephotos/api-client";
 import { Text } from "@mantine/core";
 import { IconFilterOff as FilterOff, IconPhoto as Photo } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import type { PigPhoto } from "../../api_client/photos/types";
-import { Photoset } from "../../api_client/photos/types";
 import { jobTypeLabel } from "../../components/job/jobTypeLabel";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";

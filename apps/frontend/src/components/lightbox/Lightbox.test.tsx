@@ -7,10 +7,10 @@
  * there as its poster frame. And a timeline keeps placeholders for pages it
  * has not loaded yet, which must not be stepped onto.
  */
+import type { Photo } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { Photo } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { Lightbox } from "./Lightbox";
 import type { ContentViewerProps, LightboxItem } from "./lightbox.types";

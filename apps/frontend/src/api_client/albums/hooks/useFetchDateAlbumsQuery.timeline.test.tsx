@@ -3,13 +3,12 @@
  * day requests as params, and is part of both query keys, so a cached page of
  * one filter is never shown (or merged) under another.
  */
+import { photoGridKeys, Photoset } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { photoGridKeys } from "../../photos/keys";
-import { Photoset } from "../../photos/types";
 
 const stubs = await vi.hoisted(async () => {
   const { QueryClient } = await import("@tanstack/react-query");

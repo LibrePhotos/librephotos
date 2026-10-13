@@ -1,6 +1,7 @@
+import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useLocation } from "@tanstack/react-router";
-import type { BulkPhotoQuery, PigPhoto, SelectionState } from "../../api_client/photos/types";
+import type { SelectionState } from "../../api_client/photos/types";
 import { SelectionActions } from "./SelectionActions";
 import type { AlbumCoverType } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";

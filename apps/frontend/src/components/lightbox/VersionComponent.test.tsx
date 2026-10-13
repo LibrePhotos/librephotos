@@ -3,11 +3,11 @@
  * read as portrait), showed a Windows backend's sub-path instead of the file
  * name, and built its "+N formats" plural in English code.
  */
+import type { FileVariant, Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { FileVariant, Photo } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { makePhoto } from "./photoFixture.test-utils";
 import { VersionComponent } from "./VersionComponent";

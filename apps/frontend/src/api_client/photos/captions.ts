@@ -1,4 +1,4 @@
-import type { Photo } from "./types";
+import type { Photo } from "@librephotos/api-client";
 
 /**
  * Readers for a photo's `captions_json`: an object the backend fills as the

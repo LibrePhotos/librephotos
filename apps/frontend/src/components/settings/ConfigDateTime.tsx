@@ -1,4 +1,5 @@
 import { arrayMove } from "@dnd-kit/sortable";
+import { DateTimeRule } from "@librephotos/api-client";
 import {
   Button,
   CloseButton,
@@ -15,7 +16,6 @@ import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@table
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
-import { DateTimeRule } from "../../api_client/settings/types";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { describeRuleType, getRuleExtraInfo } from "./dateTimeSettings";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";

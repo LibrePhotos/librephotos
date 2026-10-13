@@ -1,7 +1,6 @@
-import { runningJobId } from "@librephotos/api-client";
+import { jobKeys, runningJobId } from "@librephotos/api-client";
 import { notification } from "../../service/notifications";
 import { queryClient } from "../api";
-import { jobKeys } from "./keys";
 
 /** What a job trigger led to: the server's answer, or the job of its kind that is already running. */
 type JobStart<T> = { alreadyRunning: false; data: T } | { alreadyRunning: true; jobId: string };

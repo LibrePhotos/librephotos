@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
 
 export const useFetchAutoAlbumQuery = (id: string) =>
   useQuery({

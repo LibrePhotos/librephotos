@@ -1,8 +1,8 @@
+import type { IncompleteDatePhotosGroup, PigPhoto } from "@librephotos/api-client";
+import { Photoset } from "@librephotos/api-client";
 import { describe, expect, test } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
 import { addTempElementsToGroups, tempPigPhoto } from "../../../util/util";
-import type { IncompleteDatePhotosGroup, PigPhoto } from "../../photos/types";
-import { Photoset } from "../../photos/types";
 import {
   buildDateAlbumFilter,
   DATE_ALBUM_PAGE_SIZE,

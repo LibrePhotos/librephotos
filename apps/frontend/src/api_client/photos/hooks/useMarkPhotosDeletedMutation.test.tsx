@@ -4,12 +4,12 @@
  * user stepped back onto the photo. A request that changed nothing also
  * reported "0 photo(s) were moved to trash".
  */
+import { photoKeys } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { photoKeys } from "../keys";
 import { useMarkPhotosDeletedMutation } from "./useMarkPhotosDeletedMutation";
 
 const mocks = vi.hoisted(() => ({

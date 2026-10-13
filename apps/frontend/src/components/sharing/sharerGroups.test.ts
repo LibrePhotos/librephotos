@@ -1,5 +1,5 @@
+import { Media, type PigPhoto } from "@librephotos/api-client";
 import { describe, expect, it } from "vitest";
-import { Media, type PigPhoto } from "../../api_client/photos/types";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { sharerName, sharerPhotoGroups } from "./sharerGroups";
 

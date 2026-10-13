@@ -1,3 +1,4 @@
+import type { DateTimeRule } from "@librephotos/api-client";
 import {
   ActionIcon,
   Modal,
@@ -11,7 +12,6 @@ import {
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { DateTimeRule } from "../../api_client/settings/types";
 import { fuzzyMatch } from "../../util/util";
 import { getRuleExtraInfo } from "../settings/dateTimeSettings";
 import { modalTitleStyles } from "./modalTitleStyles";

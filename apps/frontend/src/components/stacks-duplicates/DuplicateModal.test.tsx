@@ -1,9 +1,9 @@
 import "@mantine/core/styles.css";
+import type { DuplicateDetail } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DuplicateDetail } from "../../api_client/duplicates/types";
 import i18n from "../../i18n";
 import { DuplicateModal } from "./DuplicateModal";
 

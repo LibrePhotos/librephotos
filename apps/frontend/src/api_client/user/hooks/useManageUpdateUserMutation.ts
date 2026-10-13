@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, userKeys } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { userKeys } from "../keys";
 import type { ManageUserPatch } from "../types";
 
 // Manage Update User Mutation

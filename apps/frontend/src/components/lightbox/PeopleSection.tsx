@@ -1,8 +1,8 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Alert, Button, Group, Text, Title, Tooltip } from "@mantine/core";
 import { IconUserPlus, IconUsers } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 

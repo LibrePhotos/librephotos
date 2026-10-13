@@ -1,8 +1,8 @@
+import { authKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import type { Token } from "..";
 import { getAuthCookie } from "../../authCookies";
-import { authKeys } from "../keys";
 
 export const useAccessToken = () =>
   useQuery({

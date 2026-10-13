@@ -1,10 +1,7 @@
-import { endpoints, invalidateAfter } from "@librephotos/api-client";
+import { albumKeys, endpoints, faceKeys, invalidateAfter, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { albumKeys } from "../../albums/keys";
 import { apiClient, queryClient } from "../../api";
-import { statsKeys } from "../../stats/keys";
-import { faceKeys } from "../keys";
 
 const trainFaces = () => endpoints.trainFaces(apiClient);
 

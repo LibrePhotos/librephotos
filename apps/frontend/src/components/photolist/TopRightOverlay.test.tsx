@@ -2,10 +2,10 @@
  * The favourite star on a grid tile is the same filled star as in the lightbox:
  * it shows at or above the owner's favourite threshold and nothing below it.
  */
+import { PigPhoto } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { PigPhoto } from "../../api_client/photos/types";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { TopRightOverlay } from "./TopRightOverlay";
 

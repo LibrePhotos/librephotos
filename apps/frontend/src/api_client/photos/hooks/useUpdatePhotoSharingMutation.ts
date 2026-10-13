@@ -1,10 +1,9 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, photoKeys } from "@librephotos/api-client";
+import type { SimpleUser } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys, photoKeys } from "../keys";
 import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
-import type { SimpleUser } from "../types";
 
 type SharePhotosRequest = PhotoSelection & { val_shared: boolean; target_user: SimpleUser };
 

@@ -1,3 +1,4 @@
+import type { Photo, PhotoStackDetail, StackTypeEnum } from "@librephotos/api-client";
 import {
   Accordion,
   ActionIcon,
@@ -23,7 +24,6 @@ import {
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Photo, PhotoStackDetail, StackTypeEnum } from "../../api_client/photos/types";
 import { serverAddress } from "../../api_client/urls";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";

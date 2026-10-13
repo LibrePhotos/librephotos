@@ -1,8 +1,8 @@
+import type { JobDetail } from "@librephotos/api-client";
 import { Button, Menu, Progress, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useCancelJobMutation } from "../../api_client/jobs/hooks";
-import type { JobDetail } from "../../api_client/jobs/types";
 import { jobTypeLabel } from "../job/jobTypeLabel";
 
 // Share of the job done, 0-100, or null when there is nothing to measure yet.

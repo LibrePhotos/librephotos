@@ -1,9 +1,9 @@
 import { endpoints, POLL_ARCHIVE_MS, pollUntil } from "@librephotos/api-client";
+import type { BulkPhotoQuery } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
 import { fetchMedia, mediaUrl } from "../../media/mediaUrl";
-import type { BulkPhotoQuery } from "../../photos/types";
 
 // Downloads still waiting on their archive job or on the file; cancelPhotoDownloads() aborts them.
 const activeDownloads = new Set<AbortController>();

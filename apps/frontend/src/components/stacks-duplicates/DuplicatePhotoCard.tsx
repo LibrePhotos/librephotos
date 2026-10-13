@@ -1,8 +1,8 @@
+import type { DuplicatePhoto } from "@librephotos/api-client";
 import { ActionIcon, Badge, Box, Button, Card, Group, Image, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCheck, IconMaximize } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useTranslation } from "react-i18next";
-import type { DuplicatePhoto } from "../../api_client/duplicates/types";
 import { serverAddress } from "../../api_client/urls";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { formatFileSize } from "../../util/fileSize";

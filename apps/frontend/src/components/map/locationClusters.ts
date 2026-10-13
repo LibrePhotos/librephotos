@@ -1,5 +1,5 @@
+import type { LocationClusters } from "@librephotos/api-client";
 import type { FeatureCollection, Point } from "geojson";
-import type { LocationClusters } from "../../api_client/albums/hooks";
 
 /** A named place from the location cluster list. */
 export type ClusterPoint = Readonly<{ lng: number; lat: number; name: string }>;

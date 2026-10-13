@@ -1,8 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { albumKeys } from "../keys";
 import type { ToggleUserAlbumLockedParams } from "../types";
 
 export const useToggleUserAlbumLockedMutation = () =>

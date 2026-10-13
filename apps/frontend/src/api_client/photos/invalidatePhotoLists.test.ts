@@ -4,11 +4,10 @@
  * kept the old stars and kept showing trashed photos until a reload. Every
  * grid now sits under photoGridKeys.all.
  */
+import { photoGridKeys, photoKeys, Photoset } from "@librephotos/api-client";
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import { invalidatePhotoLists } from "./invalidatePhotoLists";
-import { photoGridKeys, photoKeys } from "./keys";
-import { Photoset } from "./types";
 
 describe("invalidatePhotoLists", () => {
   it("marks every photo grid stale, and nothing else", () => {

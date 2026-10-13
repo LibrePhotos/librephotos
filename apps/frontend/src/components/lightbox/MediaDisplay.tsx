@@ -1,9 +1,8 @@
+import type { NormalizedFaceBox, Photo, PhotoOcrBlock } from "@librephotos/api-client";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { NormalizedFaceBox } from "../../api_client/faces/types";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
-import type { Photo, PhotoOcrBlock } from "../../api_client/photos/types";
 import { convertedUrl, needsConversion } from "../../util/videoPlayback";
 import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";

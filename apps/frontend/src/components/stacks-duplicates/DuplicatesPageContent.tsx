@@ -4,6 +4,7 @@
  * This component focuses on storage cleanup by finding and removing duplicate files.
  * Supports both exact copies (identical files) and visual duplicates (similar images).
  */
+import { DuplicateType, ReviewStatus } from "@librephotos/api-client";
 import { Button, Group, Pagination, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconCopy } from "@tabler/icons-react";
@@ -16,7 +17,6 @@ import {
   useDuplicatesQuery,
   useDuplicateStatsQuery,
 } from "../../api_client/duplicates";
-import { DuplicateType, ReviewStatus } from "../../api_client/duplicates/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";

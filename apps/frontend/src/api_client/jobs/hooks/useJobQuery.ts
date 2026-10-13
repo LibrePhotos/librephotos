@@ -1,8 +1,7 @@
-import { endpoints, pollWhile } from "@librephotos/api-client";
+import { endpoints, jobKeys, pollWhile } from "@librephotos/api-client";
+import type { JobDetail } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { jobKeys } from "../keys";
-import type { JobDetail } from "../types";
 
 export const useJobQuery = (id: number) =>
   useQuery({

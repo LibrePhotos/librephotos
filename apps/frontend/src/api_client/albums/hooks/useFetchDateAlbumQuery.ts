@@ -1,10 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys } from "@librephotos/api-client";
+import type { IncompleteDatePhotosGroup, MediaType, Photoset } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import type { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { dateAlbumRequestFilter, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {

@@ -1,3 +1,4 @@
+import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import {
@@ -19,7 +20,6 @@ import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import { autoTagsOf, generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { fuzzyMatch } from "../../util/util";
 import { AISuggestionButton } from "./AISuggestionButton";

@@ -1,8 +1,8 @@
+import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
 import { Button, SegmentedControl } from "@mantine/core";
 import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { MAX_MEMORY_ITEMS } from "../../api_client/memories";
 import { ICON_SIZE } from "../../uiConstants";
 import { PageHeader } from "../PageHeader";
 

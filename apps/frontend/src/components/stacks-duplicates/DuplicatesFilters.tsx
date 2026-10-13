@@ -1,8 +1,8 @@
+import type { DuplicateListItem, DuplicateType, ReviewStatus } from "@librephotos/api-client";
 import { Button, Checkbox, Group, Menu, SegmentedControl, Select } from "@mantine/core";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import type { Duplicate, DuplicateType, ReviewStatus } from "../../api_client/duplicates/types";
 
 // Select options cannot be "", so "all statuses" gets a sentinel value
 export const ALL_STATUSES = "all";
@@ -18,7 +18,7 @@ export function DuplicatesFilters({
   setTypeFilter,
   duplicateTypes,
 }: {
-  duplicates: Duplicate[];
+  duplicates: DuplicateListItem[];
   selectedOnPage: number;
   setSelectedDuplicateIds: Dispatch<SetStateAction<Set<string>>>;
   statusFilter: ReviewStatus | undefined;

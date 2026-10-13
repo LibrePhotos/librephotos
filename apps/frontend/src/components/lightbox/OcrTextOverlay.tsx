@@ -1,5 +1,5 @@
+import type { PhotoOcrBlock } from "@librephotos/api-client";
 import React, { useEffect, useMemo, useRef } from "react";
-import type { PhotoOcrBlock } from "../../api_client/photos/types";
 import classes from "./OcrTextOverlay.module.css";
 
 // The viewBox is a fixed 1000 user units wide; its height follows the image

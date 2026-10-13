@@ -1,8 +1,8 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] -- no ++ outside for-loop updates */
+import type { DirTree } from "@librephotos/api-client";
+import { Media, type DatePhotosGroup, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
 import { escapeRegExp } from "lodash-es";
 import { DateTime } from "luxon";
-import type { DirTree } from "../api_client/folders/types";
-import { Media, type DatePhotosGroup, type IncompleteDatePhotosGroup, type PigPhoto } from "../api_client/photos/types";
 import i18n from "../i18n";
 import { parsePhotoTimestamp } from "./dateUtils";
 

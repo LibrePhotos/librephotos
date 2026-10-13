@@ -1,3 +1,4 @@
+import type { EmailConfig, EmailConfigUpdate } from "@librephotos/api-client";
 import {
   Alert,
   Anchor,
@@ -17,13 +18,11 @@ import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
-import type { EmailConfigUpdate } from "../../api_client/settings/hooks/useEmailConfig";
 import {
   useGetEmailConfigQuery,
   useSendTestEmailMutation,
   useUpdateEmailConfigMutation,
 } from "../../api_client/settings/hooks/useEmailConfig";
-import type { EmailConfig } from "../../api_client/settings/types";
 import { notification } from "../../service/notifications";
 import { makeEmailSettingsSchema } from "./EmailSettings.schema";
 

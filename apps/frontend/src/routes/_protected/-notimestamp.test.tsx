@@ -8,10 +8,10 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
+import type { PigPhoto } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { PigPhoto } from "../../api_client/photos/types";
 import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";

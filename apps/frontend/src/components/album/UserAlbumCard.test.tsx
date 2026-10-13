@@ -1,8 +1,8 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { UserAlbumInfo } from "../../api_client/albums/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { UserAlbumCard } from "./UserAlbumCard";

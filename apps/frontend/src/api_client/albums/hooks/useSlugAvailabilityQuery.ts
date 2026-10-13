@@ -1,7 +1,6 @@
-import { endpoints, ResponseParseError } from "@librephotos/api-client";
+import { albumKeys, endpoints, ResponseParseError } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, ApiError } from "../../api";
-import { albumKeys } from "../keys";
 
 /**
  * Which album holds a public share slug: its id (a number, also when an older

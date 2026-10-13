@@ -5,7 +5,7 @@
   "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 480, "function": 402 },
   "src/routes/_protected/sharing/index.tsx": { "lines": 462, "function": 428 },
-  "src/components/settings/Settings.tsx": { "lines": 459, "function": 430 },
+  "src/components/settings/Settings.tsx": { "lines": 458, "function": 430 },
   "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 427, "function": 408 },
   "src/components/lightbox/VideoPlayer.tsx": { "lines": 416, "function": 367 },

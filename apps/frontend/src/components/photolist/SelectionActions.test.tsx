@@ -5,12 +5,12 @@
  * hash and must not turn the request into a 400).
  */
 import "@mantine/core/styles.css";
+import { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useSetPhotosCategoryMutation } from "../../api_client/photos/hooks";
-import { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { addTempElementsToFlatList } from "../../util/util";

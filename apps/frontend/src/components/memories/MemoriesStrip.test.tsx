@@ -1,10 +1,10 @@
 import "@mantine/core/styles.css";
+import { MemoryType, type Memory } from "@librephotos/api-client";
+import type { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryType, type Memory } from "../../api_client/memories";
-import type { PigPhoto } from "../../api_client/photos/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";

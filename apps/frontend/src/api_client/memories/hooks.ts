@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, memoryKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../api";
-import { memoryKeys } from "./keys";
 
 /**
  * The page loads with the default page of items per memory, which is all the

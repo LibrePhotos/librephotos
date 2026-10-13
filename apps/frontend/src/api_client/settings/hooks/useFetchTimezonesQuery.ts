@@ -1,8 +1,7 @@
-import { endpoints, ResponseParseError } from "@librephotos/api-client";
+import { endpoints, ResponseParseError, settingsKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 import { notifyParseError } from "../../parseErrors";
-import { settingsKeys } from "../keys";
 
 export const useFetchTimezonesQuery = () =>
   useQuery({

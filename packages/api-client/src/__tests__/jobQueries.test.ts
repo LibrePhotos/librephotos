@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  jobKeys,
   jobListRefetchInterval,
   jobsQueryOptions,
-  queryKeys,
   workerAvailabilityQueryOptions,
   workerRefetchInterval,
 } from "../hooks";
@@ -100,6 +100,6 @@ describe("job list query", () => {
     expect(first).toEqual(jobsQueryOptions(client).queryKey);
     expect(jobsQueryOptions(client, { page: 2, pageSize: 20 }).queryKey).not.toEqual(first);
     expect(jobsQueryOptions(client, { page: 1, pageSize: 50 }).queryKey).not.toEqual(first);
-    expect(first.slice(0, queryKeys.jobs().length)).toEqual(queryKeys.jobs());
+    expect(first.slice(0, jobKeys.all.length)).toEqual(jobKeys.all);
   });
 });

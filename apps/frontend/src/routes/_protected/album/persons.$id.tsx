@@ -1,3 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
+import { Photoset } from "@librephotos/api-client";
 import { IconUser as User } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
@@ -8,8 +10,6 @@ import {
   useFetchDateAlbumsQuery,
   useFetchPeopleAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-import type { PigPhoto } from "../../../api_client/photos/types";
-import { Photoset } from "../../../api_client/photos/types";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";

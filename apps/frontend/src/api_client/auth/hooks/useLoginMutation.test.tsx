@@ -2,12 +2,12 @@
  * A login against a backend that is down or still starting (no answer at all,
  * or the proxy's 502-504) said nothing: only a 401 and a 500 were reported.
  */
+import { authKeys } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api";
-import { authKeys } from "../keys";
 import { isBackendUnreachable, useLoginMutation } from "./useLoginMutation";
 
 const stubs = vi.hoisted(() => ({

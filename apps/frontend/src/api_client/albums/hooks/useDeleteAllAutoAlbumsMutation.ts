@@ -1,10 +1,8 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { apiClient, ApiError, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { albumKeys } from "../keys";
 
 export const useDeleteAllAutoAlbumsMutation = () =>
   useMutation({

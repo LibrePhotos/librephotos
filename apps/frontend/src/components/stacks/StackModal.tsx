@@ -1,6 +1,7 @@
 /**
  * Stack Modal Component - Displays details of a photo stack
  */
+import type { PhotoStack } from "@librephotos/api-client";
 import {
   ActionIcon,
   Badge,
@@ -23,7 +24,6 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks";
-import type { PhotoStack } from "../../api_client/stacks/types";
 import { serverAddress } from "../../api_client/urls";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { formatFileSize } from "../../util/fileSize";

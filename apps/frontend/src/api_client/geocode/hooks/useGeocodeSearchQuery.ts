@@ -1,7 +1,6 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, geocodeKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { geocodeKeys } from "../keys";
 
 export const useGeocodeSearchQuery = (query: string, enabled: boolean = true) =>
   useQuery({

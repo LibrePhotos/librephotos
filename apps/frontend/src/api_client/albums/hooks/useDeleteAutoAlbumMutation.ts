@@ -1,9 +1,7 @@
-import { endpoints } from "@librephotos/api-client";
+import { albumKeys, endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { albumKeys } from "../keys";
 
 type DeleteAutoAlbumParams = {
   id: string;

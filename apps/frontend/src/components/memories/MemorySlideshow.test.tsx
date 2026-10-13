@@ -7,10 +7,10 @@
  * because the bug lived in how the two talk to each other. Passing a fixed
  * `selectedImage`, as the page first did, makes the second assertion fail.
  */
+import type { PigPhoto } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
-import type { PigPhoto } from "../../api_client/photos/types";
 import { tempPigPhoto } from "../../util/util";
 import type { ContentViewer } from "../lightbox/ContentViewer";
 import { MemorySlideshow } from "./MemorySlideshow";

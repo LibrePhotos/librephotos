@@ -1,10 +1,9 @@
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoGridKeys, tagKeys } from "@librephotos/api-client";
+import type { TagList } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { photoGridKeys } from "../../photos/keys";
-import { tagKeys } from "../keys";
-import type { TagList, TagPhotosByNameParams } from "../types";
+import type { TagPhotosByNameParams } from "../types";
 
 /** Resolve a typed name to its tag, creating the tag when it is new.
  *

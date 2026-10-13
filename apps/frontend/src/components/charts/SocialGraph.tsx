@@ -1,3 +1,4 @@
+import type { SocialGraph as SocialGraphData } from "@librephotos/api-client";
 import { useComputedColorScheme } from "@mantine/core";
 import { IconShare } from "@tabler/icons-react";
 import { drag } from "d3-drag";
@@ -11,7 +12,6 @@ import React, { useCallback, useEffect, useRef } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
-import type { PersonDataPointList } from "../../api_client/stats/hooks";
 import { SOCIAL_GRAPH_COLORS } from "../../theme/chartColors";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
@@ -34,7 +34,7 @@ type NodeDragEvent = D3DragEvent<SVGCircleElement, GraphNode, GraphNode | Subjec
 const endPosition = (end: GraphLink["source"], axis: "x" | "y") =>
   typeof end === "string" ? null : (end[axis] ?? null);
 
-function ForceGraph({ data, width, height }: { data: PersonDataPointList; width: number; height: number }) {
+function ForceGraph({ data, width, height }: { data: SocialGraphData; width: number; height: number }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const colorScheme = useComputedColorScheme();
 

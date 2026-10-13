@@ -2,12 +2,11 @@
  * React Query hook for fetching photo metadata
  */
 
-import { endpoints } from "@librephotos/api-client";
+import { endpoints, photoKeys } from "@librephotos/api-client";
+import type { PhotoMetadata } from "@librephotos/api-client";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
-import { photoKeys } from "../keys";
-import type { PhotoMetadata } from "../types";
 
 type FetchPhotoMetadataOptions = UseQueryOptions<PhotoMetadata, Error>;
 

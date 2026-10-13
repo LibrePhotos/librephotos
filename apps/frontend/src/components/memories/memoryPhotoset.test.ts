@@ -1,7 +1,6 @@
+import type { Memory, PigPhoto } from "@librephotos/api-client";
+import { MemoryType } from "@librephotos/api-client";
 import { describe, expect, test } from "vitest";
-import type { Memory } from "../../api_client/memories";
-import { MemoryType } from "../../api_client/memories";
-import type { PigPhoto } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";
 import { memoriesAreCapped, memoriesPhotoCount, memoriesToFlatItems, memoriesToPhotoGroups } from "./memoryPhotoset";

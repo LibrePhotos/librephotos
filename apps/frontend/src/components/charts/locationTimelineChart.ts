@@ -1,4 +1,4 @@
-import type { LocationTimeline } from "../../api_client/stats/types";
+import type { LocationTimeline } from "@librephotos/api-client";
 
 /**
  * Data and series for the stacked Location Timeline bar.

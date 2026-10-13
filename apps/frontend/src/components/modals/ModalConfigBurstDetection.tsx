@@ -1,9 +1,9 @@
+import type { BurstDetectionRule } from "@librephotos/api-client";
 import { ActionIcon, Badge, Modal, ScrollArea, Table, Text, TextInput, useComputedColorScheme } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BurstDetectionRule } from "../../api_client/settings/types";
 import { fuzzyMatch } from "../../util/util";
 import { modalTitleStyles } from "./modalTitleStyles";
 

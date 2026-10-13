@@ -1,3 +1,4 @@
+import type { PhotoCategory, Photo as PhotoType } from "@librephotos/api-client";
 import { Badge, Box, Button, Group, Menu, Text } from "@mantine/core";
 import {
   IconCheck as Check,
@@ -11,9 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   photoCategory,
   useSetPhotosCategoryMutation,
-  type PhotoCategory,
 } from "../../api_client/photos/hooks/useSetPhotosCategoryMutation";
-import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";

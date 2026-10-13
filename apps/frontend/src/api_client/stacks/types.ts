@@ -1,8 +1,6 @@
-// The stack schemas are shared with the mobile app and live in packages/api-client.
+// The stack schemas and types are in @librephotos/api-client.
 // Duplicates (exact copies, visual duplicates) are in api_client/duplicates.
 // RAW + JPEG pairs and Live Photos use file variants instead of stacks.
-export { countListedStacks, PhotoStack, StackType } from "@librephotos/api-client";
-export type { DetectStacksRequest } from "@librephotos/api-client";
 
 /** The photos a stack change applies to (merge, create, remove). */
 export type StackPhotosRequest = {
