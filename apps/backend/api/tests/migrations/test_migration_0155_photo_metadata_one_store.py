@@ -16,7 +16,7 @@ from django.test import TransactionTestCase
 
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.models.photo_metadata import MetadataEdit
 from api.models.photo_search import PhotoSearch
 
 from ..utils import create_test_photo, create_test_user
@@ -123,7 +123,12 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
         Photo.objects.filter(pk=self.typed.pk).update(
             rating=4, exif_timestamp=WHEN, exif_gps_lat=1.5, exif_gps_lon=2.5
         )
-        PhotoMetadata.objects.get_or_create(photo=self.typed)
+        # The model as of AFTER: the current one selects columns later
+        # migrations add, which are not there yet.
+        after_apps = self.executor.loader.project_state(AFTER).apps
+        after_apps.get_model("api", "PhotoMetadata").objects.get_or_create(
+            photo_id=self.typed.pk
+        )
 
         self.migrate(BEFORE)
 

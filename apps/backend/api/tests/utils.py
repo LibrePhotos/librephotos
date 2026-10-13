@@ -342,8 +342,8 @@ def create_test_photo(**kwargs):
         "focal_length": "focal_length",
         "shutter_speed": "shutter_speed",
         "focalLength35Equivalent": "focal_length_35mm",
-        "digitalZoomRatio": None,  # Not in new model, discard
-        "subjectDistance": None,  # Not in new model, discard
+        "digitalZoomRatio": "digital_zoom_ratio",
+        "subjectDistance": "subject_distance",
         "width": "width",
         "height": "height",
         "orientation": "orientation",

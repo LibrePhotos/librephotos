@@ -551,12 +551,12 @@ class PhotoSerializer(serializers.ModelSerializer):
         return metadata.focal_length_35mm if metadata else None
 
     def get_digitalZoomRatio(self, obj: Photo) -> float | None:
-        # Not stored in PhotoMetadata (rarely used field)
-        return None
+        metadata = self._get_metadata(obj)
+        return metadata.digital_zoom_ratio if metadata else None
 
     def get_subjectDistance(self, obj: Photo) -> float | None:
-        # Not stored in PhotoMetadata (rarely used field)
-        return None
+        metadata = self._get_metadata(obj)
+        return metadata.subject_distance if metadata else None
 
     def get_ocr(self, obj: Photo) -> dict | None:
         """OCR text plus block geometry normalized to [0, 1], owner-only.

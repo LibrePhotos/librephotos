@@ -147,6 +147,16 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.HIERARCHICAL_SUBJECT,
                 Tags.LATITUDE,
                 Tags.LONGITUDE,
+                Tags.MAKE,
+                Tags.LENS_MAKE,
+                Tags.SERIAL_NUMBER,
+                Tags.EXPOSURE_COMPENSATION,
+                Tags.FLASH,
+                Tags.METERING_MODE,
+                Tags.WHITE_BALANCE,
+                Tags.COLOR_SPACE,
+                Tags.BITS_PER_SAMPLE,
+                Tags.GPS_ALTITUDE,
             ],
         )
 

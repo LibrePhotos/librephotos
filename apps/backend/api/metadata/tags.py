@@ -29,7 +29,22 @@ class Tags:
     FOCAL_LENGTH_35MM = "EXIF:FocalLengthIn35mmFormat"
     SHUTTER_SPEED = "EXIF:ShutterSpeedValue"
     CAMERA = "EXIF:Model"
+    MAKE = "EXIF:Make"
     LENS = "EXIF:LensModel"
+    LENS_MAKE = "EXIF:LensMake"
+    # In EV; 0 is a value, not "unset".
+    EXPOSURE_COMPENSATION = "EXIF:ExposureCompensation"
+    # The exif service reads with -n, so these four arrive as their EXIF
+    # codes, mapped to names in api.models.photo_metadata.
+    FLASH = "EXIF:Flash"
+    METERING_MODE = "EXIF:MeteringMode"
+    WHITE_BALANCE = "EXIF:WhiteBalance"
+    COLOR_SPACE = "EXIF:ColorSpace"
+    # A JPEG's bits per channel, from its SOF segment.
+    BITS_PER_SAMPLE = "File:BitsPerSample"
+    # Signed (below sea level is negative), built from GPSAltitudeRef, also
+    # from a sidecar's XMP:GPSAltitude.
+    GPS_ALTITUDE = "Composite:GPSAltitude"
     SUBJECT_DISTANCE = "EXIF:SubjectDistance"
     DIGITAL_ZOOM_RATIO = "EXIF:DigitalZoomRatio"
     REGION_INFO = "XMP:RegionInfo"
@@ -106,4 +121,16 @@ SIDECAR_EQUIVALENTS: dict[str, str] = {
     Tags.FOCAL_LENGTH_35MM: "XMP:FocalLengthIn35mmFormat",
     Tags.CAMERA: "XMP:Model",
     Tags.LENS: "XMP:LensModel",
+    Tags.MAKE: "XMP:Make",
+    Tags.LENS_MAKE: "XMP:LensMake",
+    Tags.EXPOSURE_COMPENSATION: "XMP:ExposureCompensation",
+    Tags.METERING_MODE: "XMP:MeteringMode",
+    Tags.WHITE_BALANCE: "XMP:WhiteBalance",
+    Tags.SUBJECT_DISTANCE: "XMP:SubjectDistance",
+    Tags.DIGITAL_ZOOM_RATIO: "XMP:DigitalZoomRatio",
+    # Not Flash: in XMP it is a structure (Fired, Return, Mode, ...), not the
+    # EXIF bit field. Not ColorSpace: a RAW editor's sidecar names the colour
+    # space of its output, not of the file. Not SerialNumber: the struct reads
+    # are ungrouped, so XMP:SerialNumber would also answer for
+    # MakerNotes:SerialNumber.
 }
