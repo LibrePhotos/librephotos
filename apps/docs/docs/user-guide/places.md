@@ -15,6 +15,8 @@ When you take a photo with a GPS-enabled device (smartphone, camera with GPS, et
 - `Composite:GPSLatitude` - The latitude coordinate
 - `Composite:GPSLongitude` - The longitude coordinate
 
+The scan stores the position right away, also when reverse geocoding is turned off, so the photo shows up on the map before (or without) a place name. The date rules use it in the same scan: a video's creation time or a photo's GPS time is stored in UTC, and the photo's position tells which time zone to turn it into. A position the photo already has, such as one you set by hand, is kept. (Not released yet: up to 1.3.0 the position was only stored by the geocoding job after the scan, so on the first scan these dates fell back to your default time zone; **Rescan** fixes photos scanned before.)
+
 ### 2. Reverse Geocoding
 
 GPS coordinates alone are just numbers. To show meaningful place names (like "Paris, France" or "Central Park, New York"), LibrePhotos uses **reverse geocoding** - a process that converts coordinates into human-readable addresses.

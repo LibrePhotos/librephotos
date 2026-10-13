@@ -44,7 +44,11 @@ from django.utils.dateparse import parse_datetime
 
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.geocode.photo_location import find_album_places, forget_place
+from api.geocode.photo_location import (
+    find_album_places,
+    forget_place,
+    usable_coordinates,
+)
 from api.metadata.jobs import queue_rating_write
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
@@ -450,6 +454,8 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
         new_value={"source": PhotoMetadata.Source.EMBEDDED},
     )
 
+    # First, so the date rules below see the file's position.
+    _restore_location_from_file(photo)
     values = read_file_values(photo)
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)
     assert metadata is not None
@@ -461,7 +467,6 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     photo.timestamp = None
     extract_date_time(photo, commit=False)
     photo.save()
-    _restore_location_from_file(photo)
 
     previous_keywords = metadata.keywords
     metadata.keywords = merged_keywords_of(values) or None
@@ -494,15 +499,11 @@ def _restore_location_from_file(photo: Photo) -> None:
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
         sidecar_files=sidecar_files_for_photo(photo),
     )
-    usable = (
-        isinstance(latitude, int | float)
-        and isinstance(longitude, int | float)
-        and not (latitude == 0 and longitude == 0)
-    )
-    if not usable:
+    position = usable_coordinates(latitude, longitude)
+    if position is None:
         if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
             _apply_location(photo, None, None)
         return
-    if photo.exif_gps_lat == float(latitude) and photo.exif_gps_lon == float(longitude):
+    if (photo.exif_gps_lat, photo.exif_gps_lon) == position:
         return
-    _apply_location(photo, float(latitude), float(longitude))
+    _apply_location(photo, *position)

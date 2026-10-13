@@ -8,6 +8,7 @@ takes the photo as its first argument.
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
@@ -27,14 +28,48 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _has_usable_coordinates(lat: float | None, lon: float | None) -> bool:
-    """Reject missing coordinates and the (0, 0) "null island" default that
-    cameras write when there is no fix. A single zero axis (the equator or the
-    prime meridian) is a valid location and must be kept.
+def _coordinate(value: object) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, str | int | float):
+        try:
+            number = float(value)
+        except ValueError:
+            return None
+        return number if math.isfinite(number) else None
+    return None
+
+
+def usable_coordinates(lat: object, lon: object) -> tuple[float, float] | None:
+    """``(lat, lon)`` as floats, or None for a missing position.
+
+    Rejects missing or non-numeric values and the (0, 0) "null island" that
+    cameras write when they have no fix. A single zero axis (the equator or
+    the prime meridian) is a valid position and is kept.
     """
-    if lat is None or lon is None:
-        return False
-    return not (float(lat) == 0.0 and float(lon) == 0.0)
+    latitude, longitude = _coordinate(lat), _coordinate(lon)
+    if latitude is None or longitude is None:
+        return None
+    if latitude == 0 and longitude == 0:
+        return None
+    return latitude, longitude
+
+
+def store_file_position(photo: Photo, lat: object, lon: object) -> None:
+    """Store the position read from the photo's file on a photo that has none.
+
+    The scan calls this with the values it read, so the date rules that turn
+    a UTC date into the local time at the photo's position see it in the same
+    pass (#2263); the geolocation job only looks up the place name. Nothing
+    is saved here. A position the row already has is kept, whether the user
+    set it or an earlier read of the file did: ``geolocate_photo`` compares
+    the file with it to decide whether the place needs a new lookup.
+    """
+    if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
+        return
+    position = usable_coordinates(lat, lon)
+    if position is not None:
+        photo.exif_gps_lat, photo.exif_gps_lon = position
 
 
 def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
@@ -63,17 +98,19 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
         sidecar_files=sidecar_files_for_photo(photo),
     )
     old_album_places = find_album_places(photo)
-    if not _has_usable_coordinates(new_gps_lat, new_gps_lon):
+    position = usable_coordinates(new_gps_lat, new_gps_lon)
+    if position is None:
         return
+    new_gps_lat, new_gps_lon = position
     if (
-        old_gps_lat == float(new_gps_lat)
-        and old_gps_lon == float(new_gps_lon)
+        old_gps_lat == new_gps_lat
+        and old_gps_lon == new_gps_lon
         and old_album_places.exists()
         and _has_current_geolocation(photo)
     ):
         return
-    photo.exif_gps_lon = float(new_gps_lon)
-    photo.exif_gps_lat = float(new_gps_lat)
+    photo.exif_gps_lon = new_gps_lon
+    photo.exif_gps_lat = new_gps_lat
     if commit:
         photo.save(update_fields=["exif_gps_lat", "exif_gps_lon", "last_modified"])
 

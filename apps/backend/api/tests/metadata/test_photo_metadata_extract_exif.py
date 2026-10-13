@@ -15,7 +15,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.metadata.photo_reader import extract_exif_data
+from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
@@ -46,12 +46,14 @@ IDX = {
     "xmp_description": 18,
     "xmp_description_any_language": 19,
     "matroska_duration": 20,
+    "gps_latitude": EXIF_VALUE_NAMES.index("gps_latitude"),
+    "gps_longitude": EXIF_VALUE_NAMES.index("gps_longitude"),
 }
 
 
 def metadata_tuple(**overrides):
     """Build a get_metadata() result, one slot per tag, with overrides."""
-    values = [None] * len(IDX)
+    values = [None] * len(EXIF_VALUE_NAMES)
     for name, value in overrides.items():
         values[IDX[name]] = value
     return tuple(values)
@@ -143,6 +145,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.EXIF_COPYRIGHT,
                 Tags.PERSON_IN_IMAGE,
                 Tags.HIERARCHICAL_SUBJECT,
+                Tags.LATITUDE,
+                Tags.LONGITUDE,
             ],
         )
 
@@ -525,3 +529,47 @@ class ExtractExifDataVideoDurationTestCase(ExtractExifDataBaseTestCase):
 
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.video_length, "12.5")
+
+
+class ExtractExifDataPositionTestCase(ExtractExifDataBaseTestCase):
+    """The scan stores the file's GPS position (#2263)."""
+
+    def test_stores_the_position_of_a_photo_without_one(self):
+        self.extract(gps_latitude=37.7749, gps_longitude=-122.4194)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (37.7749, -122.4194), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+
+    def test_null_island_is_no_position(self):
+        self.extract(gps_latitude=0, gps_longitude=0)
+
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.exif_gps_lat)
+        self.assertIsNone(self.photo.exif_gps_lon)
+
+    def test_a_single_zero_axis_is_a_position(self):
+        self.extract(gps_latitude=0.0, gps_longitude=-78.5)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (0.0, -78.5), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )
+
+    def test_half_a_position_is_no_position(self):
+        self.extract(gps_latitude=48.1)
+
+        self.photo.refresh_from_db()
+        self.assertIsNone(self.photo.exif_gps_lat)
+
+    def test_a_stored_position_is_kept(self):
+        self.photo.exif_gps_lat, self.photo.exif_gps_lon = 52.52, 13.405
+        self.photo.save()
+
+        self.extract(gps_latitude=37.7749, gps_longitude=-122.4194)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(
+            (52.52, 13.405), (self.photo.exif_gps_lat, self.photo.exif_gps_lon)
+        )

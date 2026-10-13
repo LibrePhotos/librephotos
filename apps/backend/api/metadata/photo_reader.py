@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from api.geocode.photo_location import store_file_position
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
@@ -54,6 +55,8 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("exif_copyright", Tags.EXIF_COPYRIGHT),
     ("person_in_image", Tags.PERSON_IN_IMAGE),
     ("hierarchical_subject", Tags.HIERARCHICAL_SUBJECT),
+    ("gps_latitude", Tags.LATITUDE),
+    ("gps_longitude", Tags.LONGITUDE),
 )
 
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)
@@ -64,7 +67,8 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
     """Extract EXIF data from a photo's main file and update PhotoMetadata.
 
     This extracts metadata from the photo's main file and:
-    1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec, image_sequence_number)
+    1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec,
+       image_sequence_number, and the GPS position of a photo that has none)
     2. Gets or creates PhotoMetadata and populates it with extracted data
 
     Args:
@@ -76,7 +80,9 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
     """
     if not photo.main_file:
         return None
-    return PhotoMetadata.apply_file_values(photo, read_file_values(photo), commit)
+    values = read_file_values(photo)
+    store_file_position(photo, values["gps_latitude"], values["gps_longitude"])
+    return PhotoMetadata.apply_file_values(photo, values, commit)
 
 
 def read_file_values(photo: Photo) -> dict[str, object]:
