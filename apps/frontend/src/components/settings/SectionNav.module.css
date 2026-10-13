@@ -1,0 +1,96 @@
+/* Section navigation on /settings and /admin (#2226). */
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The table of contents beside the cards, from the lg breakpoint up. */
+.aside {
+  position: sticky;
+  top: calc(var(--app-shell-header-height, 0px) + var(--mantine-spacing-md));
+  align-self: flex-start;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+/* Below lg, a row of chips under the top bar that scrolls sideways on its own, never the page. */
+.chipBar {
+  position: sticky;
+  top: var(--app-shell-header-height, 0px);
+  z-index: 2;
+  margin-inline: calc(var(--mantine-spacing-md) * -1);
+  margin-bottom: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+/* A fade at the right edge says there are more chips. */
+.chipScroll {
+  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+}
+
+/* A card's anchor. A jump leaves room for the top bar, and on phones for the chip row too. */
+.section {
+  scroll-margin-top: calc(var(--app-shell-header-height, 0px) + var(--mantine-spacing-md));
+  border-radius: var(--mantine-radius-default);
+}
+
+.section:focus {
+  outline: none;
+}
+
+@media (max-width: 74.99em) {
+  .section {
+    scroll-margin-top: calc(var(--app-shell-header-height, 0px) + 64px);
+  }
+}
+
+/* The card a jump landed on is outlined for two seconds. */
+.flash {
+  animation: section-flash 2s ease-out;
+}
+
+@keyframes section-flash {
+  from {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+  to {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+  }
+}
+
+/* The "#" next to a card title: shown while the title is hovered or the link has focus. */
+.link {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-inline-start: 6px;
+  color: var(--mantine-color-dimmed);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.link:hover {
+  color: var(--mantine-primary-color-filled);
+}
+
+:where(h1, h2, h3, h4, h5, h6):hover > .link,
+.link:focus-visible {
+  opacity: 1;
+}
+
+/* No hover on touch screens, so the link stays visible there. */
+@media (hover: none) {
+  .link {
+    opacity: 0.6;
+  }
+}

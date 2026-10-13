@@ -21,6 +21,7 @@ import { useFetchPredefinedBurstRulesQuery } from "../../api_client/settings/hoo
 import { ModalConfigBurstDetection } from "../modals/ModalConfigBurstDetection";
 import { isHardRule, isRuleEnabled } from "./burstDetectionRules";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
+import { SectionLink } from "./SettingsSection";
 import { SortableTbody, SortableTr } from "./SortableTableRows";
 import { UnreadableSavedEntries } from "./UnreadableSavedEntries";
 
@@ -178,6 +179,7 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
     <>
       <Title order={4} mb="xs">
         {t("settings.burst.title")}
+        <SectionLink />
       </Title>
 
       <Text size="sm" c="dimmed" mb="md">

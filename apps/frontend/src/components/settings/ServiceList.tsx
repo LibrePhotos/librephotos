@@ -9,6 +9,7 @@ import { useServicesHealthQuery, useServicesListQuery } from "../../api_client/s
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { serviceLabel } from "./serviceLabel";
+import { SectionLink } from "./SettingsSection";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not
 // know yet shows its raw name.
@@ -35,7 +36,10 @@ export function ServiceList() {
     <Card shadow="md">
       <Group justify="space-between" mb={16}>
         <Group gap="xs">
-          <Title order={4}>{t("services.header")}</Title>
+          <Title order={4}>
+            {t("services.header")}
+            <SectionLink />
+          </Title>
           {isLoading && <Loader size="xs" />}
         </Group>
         {/* Same bordered icon button as the Server Logs download, flush with the table edge. */}

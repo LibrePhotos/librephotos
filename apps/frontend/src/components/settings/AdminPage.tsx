@@ -36,8 +36,11 @@ import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import { ADMIN_SECTIONS } from "./sectionIds";
+import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
+import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
 
 function UserTable() {
@@ -54,7 +57,10 @@ function UserTable() {
   return (
     <Card shadow="md">
       <Group gap="xs" mb={16}>
-        <Title order={4}>{t("adminarea.users")}</Title>
+        <Title order={4}>
+          {t("adminarea.users")}
+          <SectionLink />
+        </Title>
         {isFetching ? <Loader size="xs" /> : null}
       </Group>
       {/* Scrolls sideways on a phone instead of cutting the columns off at the card edge. */}
@@ -192,7 +198,10 @@ function AdminTools() {
   return (
     <Card shadow="md">
       <Stack>
-        <Title order={4}>{t("adminarea.admintools")}</Title>
+        <Title order={4}>
+          {t("adminarea.admintools")}
+          <SectionLink />
+        </Title>
         <Flex justify="space-between" align="center" gap="md">
           <Text>{t("adminarea.deleteallautoalbums")}</Text>
           <Button
@@ -269,25 +278,44 @@ export function AdminPage() {
     );
   }
 
+  const sections = [
+    { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
+    { id: ADMIN_SECTIONS.email, label: t("emailsettings.header") },
+    { id: ADMIN_SECTIONS.tools, label: t("adminarea.admintools") },
+    { id: ADMIN_SECTIONS.logs, label: t("adminarea.serverlogs") },
+    { id: ADMIN_SECTIONS.services, label: t("services.header") },
+    { id: ADMIN_SECTIONS.users, label: t("adminarea.users") },
+    { id: ADMIN_SECTIONS.jobs, label: t("joblist.workerlogs") },
+  ];
+
   return (
-    <Container>
+    <Container size="lg">
       {/* Outside the Stack, so the first card starts where it does on the other settings pages. */}
       <PageHeader icon={Adjustments} title={t("adminarea.header")} />
-      <Stack>
-        <SiteSettings />
-
-        <AdminTools />
-
-        <ServerLogsCard />
-
-        <ServiceList />
-
-        <UserTable />
-
-        <JobList />
-
-        <Space h="xl" />
-      </Stack>
+      <SectionNav sections={sections}>
+        <Stack>
+          {/* Site settings renders the e-mail card too, which anchors itself (admin-email). */}
+          <SettingsSection id={ADMIN_SECTIONS.site}>
+            <SiteSettings />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.tools}>
+            <AdminTools />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.logs}>
+            <ServerLogsCard />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.services}>
+            <ServiceList />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.users}>
+            <UserTable />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.jobs}>
+            <JobList />
+          </SettingsSection>
+          <Space h="xl" />
+        </Stack>
+      </SectionNav>
     </Container>
   );
 }

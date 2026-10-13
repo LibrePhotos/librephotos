@@ -4,7 +4,6 @@
   "src/components/lightbox/ContentViewer.tsx": { "lines": 546, "function": 491 },
   "src/components/photolist/SelectionActions.tsx": { "lines": 543, "function": 478 },
   "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
-  "src/components/settings/Settings.tsx": { "lines": 458, "function": 430 },
   "src/components/lightbox/LightboxControls.tsx": { "lines": 457, "function": 397 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 450, "function": 397 },
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "lines": 427, "function": 408 },

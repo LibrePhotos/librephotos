@@ -8,6 +8,7 @@ import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
+import { SectionLink } from "../settings/SettingsSection";
 import { CancelJobButton } from "./CancelJobButton";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
@@ -54,7 +55,8 @@ export function JobList({ variant = "admin" }: IJobList) {
       {/* On /jobs the page heading already says "My Jobs"; a card title repeating it read as a second page title. */}
       {!mine && (
         <Title order={4} mb={16}>
-          {t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
+          {t("joblist.workerlogs")}
+          <SectionLink /> {isLoading ? <Loader size="xs" /> : null}
         </Title>
       )}
       <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={16}>
