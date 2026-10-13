@@ -7,7 +7,7 @@ import logging
 import os
 import stat
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
 from uuid import UUID
 
 from constance import config as site_config
@@ -93,7 +93,14 @@ def _has_hidden_attribute(path: str) -> bool:
     return bool(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
 
-def walk_directory(directory: str, callback: list[str]) -> None:
+class SkippedDirectory(NamedTuple):
+    """A directory the walk could not list, and why."""
+
+    path: str
+    error: str
+
+
+def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory]:
     """
     Recursively walk a directory and collect file paths.
 
@@ -104,14 +111,27 @@ def walk_directory(directory: str, callback: list[str]) -> None:
     fails the whole scan job. A link back to a directory that is already being
     walked (a symlink loop) is skipped too, or the walk would never end.
 
+    A subdirectory that cannot be listed (a root-owned ``lost+found``, a NAS
+    recycle bin) is skipped and returned, so one folder does not fail the whole
+    scan. The scan root is not: if it cannot be listed the library itself is
+    unavailable, and the ``OSError`` propagates.
+
     Args:
         directory: Directory to scan
         callback: List to append file paths to
+
+    Returns:
+        The subdirectories that were skipped because they could not be listed.
     """
-    _walk_directory(directory, callback, _skip_patterns(), set())
+    walk = _DirectoryWalk(callback, _skip_patterns())
+    walk.walk_entries(directory, _list_directory(directory))
+    return walk.skipped
 
 
-def _directory_identity(path: str) -> tuple[int, int] | str:
+_DirectoryIdentity = tuple[int, int] | str
+
+
+def _directory_identity(path: str) -> _DirectoryIdentity:
     """Identify a directory by what it resolves to, not by the path taken to it."""
     st = os.stat(path)
     if st.st_ino:
@@ -120,36 +140,65 @@ def _directory_identity(path: str) -> tuple[int, int] | str:
     return os.path.normcase(os.path.realpath(path))
 
 
-def _walk_directory(
-    directory: str,
-    callback: list[str],
-    skip_list: list[str],
-    ancestors: set[tuple[int, int] | str],
-) -> None:
+def _list_directory(directory: str) -> tuple[_DirectoryIdentity, list[str]]:
+    """The directory's identity and the paths of its entries.
+
+    Raises ``OSError`` when it cannot be read; listing it whole up front means
+    an error halfway through (a share dropping) raises here too, not while its
+    entries are being walked.
+    """
     identity = _directory_identity(directory)
-    if identity in ancestors:
-        logger.warning(
-            "skipping %s: symlink loop back to a directory already being scanned",
-            directory,
-        )
-        return
-    ancestors.add(identity)
-    try:
-        for file in os.scandir(directory):
-            fpath = os.path.join(directory, file)
-            if is_hidden(fpath) or should_skip(fpath, skip_list):
-                continue
-            if os.path.isdir(fpath):
-                _walk_directory(fpath, callback, skip_list, ancestors)
-            elif os.path.isfile(fpath):
-                callback.append(fpath)
-            else:
-                logger.warning(
-                    "skipping %s: neither a file nor a directory (broken symlink?)",
-                    fpath,
-                )
-    finally:
-        ancestors.discard(identity)
+    with os.scandir(directory) as entries:
+        return identity, [entry.path for entry in entries]
+
+
+class _DirectoryWalk:
+    """The state of one ``walk_directory`` call."""
+
+    def __init__(self, callback: list[str], skip_list: list[str]) -> None:
+        self.callback = callback
+        self.skip_list = skip_list
+        # The directories on the current path, to cut symlink loops.
+        self.ancestors: set[_DirectoryIdentity] = set()
+        self.skipped: list[SkippedDirectory] = []
+
+    def walk_subdirectory(self, directory: str) -> None:
+        try:
+            listing = _list_directory(directory)
+        except OSError as error:
+            reason = error.strerror or str(error)
+            # The path goes into the job's result; the log keeps to the reason.
+            logger.warning("skipping a directory the scan cannot list: %s", reason)
+            self.skipped.append(SkippedDirectory(directory, reason))
+            return
+        self.walk_entries(directory, listing)
+
+    def walk_entries(
+        self, directory: str, listing: tuple[_DirectoryIdentity, list[str]]
+    ) -> None:
+        identity, paths = listing
+        if identity in self.ancestors:
+            logger.warning(
+                "skipping %s: symlink loop back to a directory already being scanned",
+                directory,
+            )
+            return
+        self.ancestors.add(identity)
+        try:
+            for fpath in paths:
+                if is_hidden(fpath) or should_skip(fpath, self.skip_list):
+                    continue
+                if os.path.isdir(fpath):
+                    self.walk_subdirectory(fpath)
+                elif os.path.isfile(fpath):
+                    self.callback.append(fpath)
+                else:
+                    logger.warning(
+                        "skipping %s: neither a file nor a directory (broken symlink?)",
+                        fpath,
+                    )
+        finally:
+            self.ancestors.discard(identity)
 
 
 def walk_files(scan_files: list[str], callback: list[str]) -> None:
@@ -220,6 +269,37 @@ def update_job_result(
     return None
 
 
+# Key in a scan job's ``result`` counting the directories it skipped, which
+# ``error_count`` includes but the failure threshold leaves out.
+_SKIPPED_DIRECTORIES_KEY = "skipped_directories"
+
+
+def record_skipped_directories(
+    job_id: UUID | str, skipped: list[SkippedDirectory]
+) -> None:
+    """List the directories a scan could not read in the job's ``errors``.
+
+    Each one counts as a failed item, so the finished job shows as a partial
+    failure naming the folder, but not towards the failure threshold: one
+    unreadable folder does not make the whole scan fail.
+    """
+    if not skipped:
+        return
+
+    def add_skipped(result: dict[str, Any], job: LongRunningJob) -> None:
+        errors: list[str] = result.get("errors") or []
+        errors.extend(f"{entry.path}: {entry.error}, skipped" for entry in skipped)
+        result["errors"] = errors[-100:]
+        result["error_count"] = result.get("error_count", 0) + len(skipped)
+        result[_SKIPPED_DIRECTORIES_KEY] = result.get(
+            _SKIPPED_DIRECTORIES_KEY, 0
+        ) + len(skipped)
+        if result.get("status") != "failed":
+            result["status"] = "partial_failure"
+
+    update_job_result(job_id, add_skipped)
+
+
 def _record_error(result: dict[str, Any], error: str | None, target: int) -> bool:
     """Add one failed item to ``result``; return whether the job counts as failed.
 
@@ -242,7 +322,10 @@ def _record_error(result: dict[str, Any], error: str | None, target: int) -> boo
     elif "error" not in result and result.get("errors"):
         result["error"] = result["errors"][0]  # Use first error as main error
 
-    job_failed = _exceeds_failure_threshold(result["error_count"], target)
+    # A skipped directory is listed and counted, but never fails the job.
+    job_failed = _exceeds_failure_threshold(
+        result["error_count"] - result.get(_SKIPPED_DIRECTORIES_KEY, 0), target
+    )
     result["status"] = "failed" if job_failed else "partial_failure"
     return job_failed
 
