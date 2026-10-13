@@ -50,8 +50,8 @@ const CONTROL_SPAN = { base: 12, sm: 4 };
 export function EmailSettings(): React.JSX.Element {
   const { t } = useTranslation();
   const { data: config, isLoading } = useGetEmailConfigQuery();
-  const { mutate: save, isPending: isSaving } = useUpdateEmailConfigMutation();
-  const { mutate: sendTest, isPending: isTesting } = useSendTestEmailMutation();
+  const { mutate: save, isPending: isSaving } = useUpdateEmailConfigMutation({ reportsErrors: true });
+  const { mutate: sendTest, isPending: isTesting } = useSendTestEmailMutation({ reportsErrors: true });
 
   const form = useForm({
     initialValues: {

@@ -62,7 +62,7 @@ export function Profile() {
     validate: schemaResolver(makeProfileSchema(t), { sync: true }),
   });
   const updateAvatar = useUpdateAvatarMutation();
-  const updateUser = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
   const dropzoneRef = useRef<DropzoneRef>(null);

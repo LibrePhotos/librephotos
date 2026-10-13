@@ -1327,6 +1327,8 @@
   "useralbum": {
     "numberof": "Showing {{number}} user created albums",
     "renamealbum": "Rename Album",
+    "renamefailed": "Could not rename the album",
+    "deletefailed": "Could not delete the album",
     "albumalreadyexists": "Album {{name}} already exists.",
     "albumplaceholder": "Album title",
     "sharedWith": "Shared with:",
@@ -1586,6 +1588,8 @@
     "deleteusererror": "The user could not be deleted.",
     "servererrortitle": "Server error",
     "servererror": "Something went wrong on the server ({{endpoint}}). Please report this issue on GitHub.",
+    "requestfailedtitle": "Could not save the change",
+    "requestfailed": "The server did not answer or refused the change. Try again in a moment.",
     "parseerrortitle": "Unexpected server response",
     "reportissue": "{{detail}}. Please report this issue on GitHub."
   },

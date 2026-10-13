@@ -2,10 +2,12 @@ import { albumKeys, endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
+import { mutationErrorMeta, type MutationErrorOptions } from "../../mutationErrors";
 import type { RenameUserAlbumParams } from "../types";
 
-export const useRenameUserAlbumMutation = () =>
+export const useRenameUserAlbumMutation = (options: MutationErrorOptions = {}) =>
   useMutation({
+    meta: mutationErrorMeta(options),
     mutationFn: async ({ id, title, newTitle }: RenameUserAlbumParams) => {
       await endpoints.renameUserAlbum(apiClient, id, newTitle);
       notification.renameAlbum(title, newTitle);
