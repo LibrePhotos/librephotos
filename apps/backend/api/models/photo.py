@@ -96,6 +96,10 @@ class Photo(models.Model):
     )
 
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
+    # When a scan or upload last read the file's metadata (EXIF and date) in
+    # full. None while a read failed, so the next incremental scan reads the
+    # file again instead of skipping it as known and unchanged (#2271).
+    metadata_read_at = models.DateTimeField(null=True, blank=True)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)

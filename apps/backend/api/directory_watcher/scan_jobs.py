@@ -263,10 +263,16 @@ def _partition_scan_paths(
 
 
 def _known_paths(batch_paths: list[str]) -> set[str]:
+    """The paths among *batch_paths* that belong to a photo whose metadata was read.
+
+    A photo whose metadata read failed (``metadata_read_at`` is None) counts as
+    unknown, so an incremental scan reads it again (#2271); its thumbnails are
+    kept, ``generate_thumbnail`` skips the ones that exist.
+    """
     return set(
-        Photo.objects.filter(files__path__in=batch_paths).values_list(
-            "files__path", flat=True
-        )
+        Photo.objects.filter(
+            files__path__in=batch_paths, metadata_read_at__isnull=False
+        ).values_list("files__path", flat=True)
     )
 
 
