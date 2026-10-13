@@ -1,0 +1,15 @@
+/*
+ * A menu item disabled with a reason (#2592). It has no `data-disabled`, so Mantine's arrow keys,
+ * Home/End and type-ahead still reach it; these rules give it Mantine's disabled look instead.
+ * Keyboard focus keeps the menu's focus background, so the user sees where they are while the
+ * tooltip reads out the reason; a mouse never focuses a menu item, and hover stays plain.
+ */
+.menuItem {
+  color: var(--mantine-color-disabled-color);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.menuItem:hover:not(:focus) {
+  background-color: transparent;
+}
