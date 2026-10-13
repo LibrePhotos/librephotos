@@ -61,10 +61,10 @@ The Documents page is not in a release yet; it ships with the first release afte
 ### Filtering a list by media type {#media-filter}
 
 :::note
-The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp and folder pages are not in a release yet; they ship with the first release after 1.3.0.
+The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp, Without Location and folder pages are not in a release yet; they ship with the first release after 1.3.0.
 :::
 
-Favorites, Hidden, Trash, Recently Added, Without Timestamp, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
+Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
 
 The choice is part of the page address (for example `?media=videos`), so it survives a reload and can be bookmarked. Every page starts with all media: the saved default of the [timeline filter](#filtering-the-timeline) never applies here.
 
@@ -73,6 +73,14 @@ Selecting all photos on a filtered list selects only what it shows. In Trash, fi
 ### Without Timestamp
 
 Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
+
+### Without Location
+
+:::note
+This view is not in a release yet; it ships with the first release after 1.3.0.
+:::
+
+Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
 
 ### My Public Photos
 

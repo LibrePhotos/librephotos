@@ -1,6 +1,6 @@
-"""The media filter on Recently added, No timestamp and Trash (#2216).
+"""The media filter on Recently added, No timestamp, No location and Trash (#2216).
 
-Recently added and No timestamp take the same ``photo`` / ``video`` /
+Recently added, No timestamp and No location take the same ``photo`` / ``video`` /
 ``is_screenshot`` / ``is_document`` flags as the date-album endpoints, and
 nothing else: the user's saved timeline default is for ``/`` only. Trash is
 a date-album list, so its select-all purge must reach only the photos the
@@ -107,6 +107,31 @@ class NoTimestampMediaFilterTest(_MediaListTestCase):
             video=True,
             added_on=timezone.now(),
             exif_timestamp=timezone.now(),
+        )
+        self._assert_media_cases(photos)
+
+    def test_saved_default_is_ignored(self):
+        _kinds(self.user, added_on=timezone.now())
+        self._assert_saved_default_ignored()
+
+    def test_count_follows_the_filter(self):
+        _kinds(self.user, added_on=timezone.now())
+
+        self.assertEqual(self.client.get(f"{self.url}?video=true").json()["count"], 1)
+
+
+class NoLocationMediaFilterTest(_MediaListTestCase):
+    url = "/api/photos/nolocation/"
+
+    def test_flags_narrow_the_list(self):
+        photos = _kinds(self.user, added_on=timezone.now())
+        # A video with coordinates stays out whatever the filter.
+        create_test_photo(
+            owner=self.user,
+            video=True,
+            added_on=timezone.now(),
+            exif_gps_lat=52.52,
+            exif_gps_lon=13.40,
         )
         self._assert_media_cases(photos)
 

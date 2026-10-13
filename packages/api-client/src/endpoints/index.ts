@@ -299,11 +299,21 @@ export async function fetchPhotosWithoutTimestamp(
   return parseResponse(S.PhotosWithoutTimestampResponse, res, "photos without timestamp");
 }
 
+/** One page of photos that have no GPS coordinates (paginated). */
+export async function fetchPhotosWithoutLocation(
+  client: ApiClient,
+  page: number,
+  filter: AlbumMediaFilter = {}
+): Promise<S.PhotosWithoutLocationResponse> {
+  const res = await client.get<unknown>(`/photos/nolocation/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
+  return parseResponse(S.PhotosWithoutLocationResponse, res, "photos without location");
+}
+
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
 /**
- * The media-type filter (`?photo=true` etc.) that album detail views, search and the Recently added
- * and No timestamp lists accept.
+ * The media-type filter (`?photo=true` etc.) that album detail views, search and the Recently added,
+ * No timestamp and No location lists accept.
  */
 export type AlbumMediaFilter = {
   photo?: boolean;

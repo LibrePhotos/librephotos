@@ -17,6 +17,7 @@ import {
   useJobsQuery as usePackageJobsQuery,
   usePeopleAlbumsQuery,
   usePhotoDetailsQuery,
+  usePhotosWithoutLocationQuery,
   usePhotosWithoutTimestampQuery,
   usePlaceAlbumQuery,
   usePlaceAlbumsQuery,
@@ -55,6 +56,7 @@ import { useFetchIncompleteFacesQuery } from "./faces/hooks/useFetchIncompleteFa
 import { useJobsQuery } from "./jobs/hooks/useJobsQuery";
 import { useWorkerQuery } from "./jobs/hooks/useWorkerQuery";
 import { useFetchPhotoDetailsQuery } from "./photos/hooks/useFetchPhotoDetailsQuery";
+import { useFetchPhotosWithoutLocationQuery } from "./photos/hooks/useFetchPhotosWithoutLocationQuery";
 import { useFetchPhotosWithoutTimestampQuery } from "./photos/hooks/useFetchPhotosWithoutTimestampQuery";
 import { useFetchRecentlyAddedPhotosQuery } from "./photos/hooks/useFetchRecentlyAddedPhotosQuery";
 import { useFetchSharedPhotosByMeQuery } from "./photos/hooks/useFetchSharedPhotosByMeQuery";
@@ -130,6 +132,7 @@ describe("a web hook and the package hook for the same answer", () => {
     ["a place album", () => useFetchPlaceAlbumQuery("6"), () => usePlaceAlbumQuery(6)],
     ["a tag album", () => useFetchTagAlbumQuery("7"), () => useTagAlbumQuery(7)],
     ["photos without a date", () => useFetchPhotosWithoutTimestampQuery(2), () => usePhotosWithoutTimestampQuery(2)],
+    ["photos without a location", () => useFetchPhotosWithoutLocationQuery(2), () => usePhotosWithoutLocationQuery(2)],
     ["the site settings", () => useGetSettingsQuery(), () => useSiteSettingsQuery()],
     ["a job list page", () => useJobsQuery({ page: 1, pageSize: 20 }), () => usePackageJobsQuery()],
     ["the worker", () => useWorkerQuery(), () => useWorkerAvailabilityQuery()],

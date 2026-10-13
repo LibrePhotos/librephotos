@@ -6,7 +6,15 @@
 import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
 import type { SelectAllPhotos } from "../endpoints";
-import { Photo, PhotoMetadata, PhotoOcrData, PigPhoto, RecentlyAddedPhotosResponse, SharedPhoto } from "../schemas";
+import {
+  Photo,
+  PhotoMetadata,
+  PhotoOcrData,
+  PhotosWithoutLocationResponse,
+  PigPhoto,
+  RecentlyAddedPhotosResponse,
+  SharedPhoto,
+} from "../schemas";
 import { ApiError, type ApiClient } from "../transport";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
@@ -71,6 +79,15 @@ describe("photo details", () => {
   it("reads recently added photos of an empty library (date null), and still requires the date", () => {
     expect(RecentlyAddedPhotosResponse.parse({ date: null, results: [] })).toEqual({ date: null, results: [] });
     expect(RecentlyAddedPhotosResponse.safeParse({ results: [] }).success).toBe(false);
+  });
+
+  it("asks for one page of the photos without a location", async () => {
+    const page = { count: 101, next: `${API}/photos/nolocation/?page=3`, previous: null, results: [] };
+    const { client, requests } = fakeServer(page);
+    const answer = await endpoints.fetchPhotosWithoutLocation(client, 2);
+    expect(defined(requests[0]).url).toBe(`${API}/photos/nolocation/?page=2`);
+    expect(answer.count).toBe(101);
+    expect(() => PhotosWithoutLocationResponse.parse({ results: [] })).toThrow();
   });
 
   it("reads the albums that hold a photo", async () => {

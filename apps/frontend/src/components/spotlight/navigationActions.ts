@@ -16,6 +16,7 @@ import {
   IconLanguage,
   IconLock,
   IconMap,
+  IconMapPinOff,
   IconMoodSmile,
   IconPhoto,
   IconRobot,
@@ -152,6 +153,13 @@ function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
       leftSection: React.createElement(IconClockOff, iconProps),
       onClick: () => void navigate({ to: "/notimestamp" }),
       keywords: ["no timestamp", "without timestamp", "no date"],
+    },
+    {
+      id: "nav-nolocation",
+      label: t("spotlight.nav.noLocation"),
+      leftSection: React.createElement(IconMapPinOff, iconProps),
+      onClick: () => void navigate({ to: "/nolocation" }),
+      keywords: ["no location", "without location", "no gps", "missing location"],
     },
     {
       id: "nav-events",

@@ -209,6 +209,14 @@ export function usePhotosWithoutTimestampQuery(page: number) {
   });
 }
 
+export function usePhotosWithoutLocationQuery(page: number) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: photoGridKeys.withoutLocation(page, "all"),
+    queryFn: () => endpoints.fetchPhotosWithoutLocation(client, page),
+  });
+}
+
 /* ---- persons ----------------------------------------------------------- */
 
 export function usePeopleAlbumsQuery() {

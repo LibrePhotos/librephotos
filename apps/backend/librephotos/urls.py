@@ -250,6 +250,11 @@ router.register(
     photos.NoTimestampPhotoViewSet,
     basename="photos_no_timestamp",
 )
+router.register(
+    r"api/photos/nolocation",
+    photos.NoLocationPhotoViewSet,
+    basename="photos_no_location",
+)
 
 router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo_edit")
 

@@ -25,6 +25,7 @@ import {
   IconFileText as FileText,
   IconGlobe as Globe,
   IconFolderSearch,
+  IconMapPinOff as MapPinOff,
   IconPhoto as Photo,
   IconScreenshot as Screenshot,
   IconSparkles as Sparkles,
@@ -194,6 +195,7 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/hidden") ||
       path.startsWith("/favorites") ||
       path.startsWith("/notimestamp") ||
+      path.startsWith("/nolocation") ||
       path.startsWith("/recent") ||
       path.startsWith("/user/") ||
       path.startsWith("/photos") ||
@@ -283,6 +285,14 @@ export function DefaultHeader(props: Props) {
             onClick={() => navigate({ to: "/notimestamp" })}
           >
             {t("sidemenu.withouttimestamp")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<MapPinOff color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+            rightSection={currentView("/nolocation")}
+            onClick={() => void navigate({ to: "/nolocation" })}
+          >
+            {t("sidemenu.withoutlocation")}
           </Menu.Item>
 
           <Menu.Divider />

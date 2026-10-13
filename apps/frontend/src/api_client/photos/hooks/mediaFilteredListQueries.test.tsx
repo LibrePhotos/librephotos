@@ -1,5 +1,5 @@
 /**
- * Recently added and No timestamp take the page's media filter (#2216): each filter is its
+ * Recently added, No timestamp and No location take the page's media filter (#2216): each filter is its
  * own cache entry, and the request carries the filter's flag.
  */
 import { photoGridKeys } from "@librephotos/api-client";
@@ -22,6 +22,7 @@ vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
 
 const { useFetchRecentlyAddedPhotosQuery } = await import("./useFetchRecentlyAddedPhotosQuery");
 const { useFetchPhotosWithoutTimestampQuery } = await import("./useFetchPhotosWithoutTimestampQuery");
+const { useFetchPhotosWithoutLocationQuery } = await import("./useFetchPhotosWithoutLocationQuery");
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -66,5 +67,13 @@ describe("the media-filtered photo lists", () => {
 
     expect(client.getQueryData(photoGridKeys.withoutTimestamp(3, "documents"))).toBeDefined();
     expect(stubs.get).toHaveBeenLastCalledWith("/photos/notimestamp/?page=3&is_document=true");
+  });
+
+  it("keys a No location page by the media filter and asks for it", async () => {
+    const client = await renderHook(() => useFetchPhotosWithoutLocationQuery(2, "screenshots"));
+
+    expect(client.getQueryData(photoGridKeys.withoutLocation(2, "screenshots"))).toBeDefined();
+    expect(client.getQueryData(photoGridKeys.withoutLocation(2, "all"))).toBeUndefined();
+    expect(stubs.get).toHaveBeenLastCalledWith("/photos/nolocation/?page=2&is_screenshot=true");
   });
 });

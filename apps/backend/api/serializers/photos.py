@@ -198,7 +198,7 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
 
 
 class PhotoMediaQuery(serializers.Serializer[None]):
-    """The media filter of the Recently added and No timestamp lists.
+    """The media filter of the Recently added, No timestamp and No location lists.
 
     The same flags as the per-view media filter on the date-album endpoints,
     resolved by ``api.albums.timeline_filter``. Only these four are read, so

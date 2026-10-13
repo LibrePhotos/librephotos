@@ -126,6 +126,7 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/photos/shared/tome": {"GET list"},
     "api/photos/shared/fromme": {"GET list"},
     "api/photos/notimestamp": {"GET list"},
+    "api/photos/nolocation": {"GET list"},
     # The two photo viewsets keep every verb ModelViewSet gave them; #2328
     # only made them explicit.
     "api/photos/edit": {
