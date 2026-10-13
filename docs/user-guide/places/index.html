@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.1fe2e526.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.9f400d74.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -101,7 +101,7 @@
 <li class=""><strong>Check if photos have GPS data</strong>: Open a photo&#x27;s info panel and look for GPS coordinates</li>
 <li class=""><strong>Scan for new photos</strong>: If you recently added photos, run a <strong>Scan</strong> from the Library page</li>
 <li class=""><strong>Check geocoding provider</strong>: Ensure your geocoding provider is configured correctly in <strong>Admin Area → Site Settings</strong>. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored</li>
-<li class=""><strong>Scan again after fixing the provider</strong>: Go to <strong>Library → Scan Library</strong> and click <strong>Scan</strong>. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full <strong>Rescan</strong> was needed)</li>
+<li class=""><strong>Scan again after fixing the provider</strong>: Go to <strong>Library → Scan Library</strong> and click <strong>Scan</strong>. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before, but not the ones where the provider found no place, such as open sea (not released yet: up to 1.3.0 only photos added since the previous geolocation run, so a full <strong>Rescan</strong> was needed)</li>
 <li class=""><strong>Give geocoding time to finish</strong>: Geocoding runs as a background job after the scan. With Nominatim on a large library this can take a while, and places keep filling in after the scan reports done — wait before re-scanning</li>
 </ol>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="some-photos-dont-show-locations">Some photos don&#x27;t show locations<a href="#some-photos-dont-show-locations" class="hash-link" aria-label="Direct link to Some photos don&#x27;t show locations" title="Direct link to Some photos don&#x27;t show locations" translate="no">​</a></h3>
