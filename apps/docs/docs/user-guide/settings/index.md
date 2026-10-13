@@ -127,9 +127,13 @@ These are settings that apply to the whole instance. Besides the panels below, t
 
   Saving a new model queues a **Download models** job immediately (if the model pack is not already present). Only faces encoded *after* the switch use the new model — existing faces keep the embeddings they were created with. **Train faces** does not re-encode them; it only generates embeddings for faces that have none yet and then re-clusters. For this reason, choose a model before your first face scan: switching later leaves your library comparing embeddings produced by two different models. See [Face recognition](../face-recognition.md).
 
+### Features
+
+_Not released yet._ Below the Site Settings card, the **Features** card has one switch per optional feature: Face detection, Face clustering, Image captioning, Things, Place names and Videos. Switch off what you do not need to make scans faster; what a feature already made (faces, names, captions, Things, place names) stays. A switch saves at once. A switch that the server's `FEATURE_*` environment variable turned off is disabled and marked **Locked**. For a feature that runs on a model, a line under the switch says whether the model is ready or shows its download. See [Feature Toggles](../feature-toggles.md#site-settings-switches).
+
 ### Email (SMTP)
 
-Directly below the Site Settings card is an **Email (SMTP)** card that configures outgoing e-mail. Outgoing e-mail must be set up here, or the **Forgot your password?** flow silently does nothing (the server logs the failure but never reveals whether an address exists).
+Below the Features card is an **Email (SMTP)** card that configures outgoing e-mail. Outgoing e-mail must be set up here, or the **Forgot your password?** flow silently does nothing (the server logs the failure but never reveals whether an address exists).
 
 - `Provider` chooses how mail is sent: `Disabled`, `Custom SMTP server`, `SendGrid`, `Mailgun`, `Postmark`, `Brevo`, `SMTP2GO` or `Amazon SES`. The hosted providers use built-in server presets, so you only supply a `From address`, `Username` and API key. `Custom SMTP server` (and `Amazon SES`, for the host) additionally shows the `SMTP host`; `Custom SMTP server` also shows `Port`, `Use STARTTLS` and `Use implicit SSL`.
 - `From address` is the address mail is sent from.

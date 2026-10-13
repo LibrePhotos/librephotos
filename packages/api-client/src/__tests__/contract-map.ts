@@ -58,6 +58,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ManageUser: { schema: S.ManageUser, components: ["ManageUser"] },
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
   SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
+  // site settings
+  SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
+  SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
+  SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },
@@ -195,7 +199,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "api/views/duplicates.py builds its answers by hand and declares no response serializer (openapi-baseline.txt, issue #485)",
   WorkerAvailabilityResponse:
     "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SiteSettings: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   EmailConfig: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   EmailTestResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ListUser:

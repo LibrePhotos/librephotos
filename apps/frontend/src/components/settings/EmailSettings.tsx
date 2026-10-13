@@ -164,7 +164,7 @@ export function EmailSettings(): React.JSX.Element {
   };
 
   return (
-    // Rendered inside SiteSettings, so it names its own anchor on the admin page.
+    // Names its own anchor on the admin page.
     <SettingsSection id={ADMIN_SECTIONS.email}>
       <Card shadow="md" component="form" onSubmit={form.onSubmit(onSave)}>
         <Stack>

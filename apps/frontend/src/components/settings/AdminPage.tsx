@@ -36,6 +36,8 @@ import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import { EmailSettings } from "./EmailSettings";
+import { FeaturesCard } from "./FeaturesCard";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
@@ -280,6 +282,7 @@ export function AdminPage() {
 
   const sections = [
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
+    { id: ADMIN_SECTIONS.features, label: t("sitesettings.features_header") },
     { id: ADMIN_SECTIONS.email, label: t("emailsettings.header") },
     { id: ADMIN_SECTIONS.tools, label: t("adminarea.admintools") },
     { id: ADMIN_SECTIONS.logs, label: t("adminarea.serverlogs") },
@@ -294,10 +297,14 @@ export function AdminPage() {
       <PageHeader icon={Adjustments} title={t("adminarea.header")} />
       <SectionNav sections={sections}>
         <Stack>
-          {/* Site settings renders the e-mail card too, which anchors itself (admin-email). */}
           <SettingsSection id={ADMIN_SECTIONS.site}>
             <SiteSettings />
           </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.features}>
+            <FeaturesCard />
+          </SettingsSection>
+          {/* Anchors itself (admin-email). */}
+          <EmailSettings />
           <SettingsSection id={ADMIN_SECTIONS.tools}>
             <AdminTools />
           </SettingsSection>

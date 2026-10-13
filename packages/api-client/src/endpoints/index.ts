@@ -568,10 +568,7 @@ export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettin
 }
 
 /** Admin: change site settings (only the keys sent); answers the settings as GET does. */
-export async function updateSiteSettings(
-  client: ApiClient,
-  settings: Partial<S.SiteSettings>
-): Promise<S.SiteSettings> {
+export async function updateSiteSettings(client: ApiClient, settings: S.SiteSettingsUpdate): Promise<S.SiteSettings> {
   const res = await client.post<unknown>("/sitesettings", settings);
   return parseResponse(S.SiteSettings, res, "update site settings");
 }

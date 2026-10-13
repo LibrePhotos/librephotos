@@ -6101,7 +6101,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSettings"
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -6139,7 +6146,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSettings"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -12807,6 +12821,172 @@
           "username"
         ]
       },
+      "SiteFeatureState": {
+        "type": "object",
+        "description": "One optional feature as the Features card shows it.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the feature runs: the environment allows it and the site switch is on."
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "The FEATURE_* environment variable turned it off; the site switch cannot."
+          },
+          "model_ready": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Whether its model is on disk; null for a feature that needs none."
+          }
+        },
+        "required": [
+          "enabled",
+          "locked",
+          "model_ready"
+        ]
+      },
+      "SiteFeatures": {
+        "type": "object",
+        "description": "The six feature switches, by feature.",
+        "properties": {
+          "video": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "face_detection": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "face_cluster": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "image_captioning": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "reverse_geocoding": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "scene_classification": {
+            "$ref": "#/components/schemas/SiteFeatureState"
+          }
+        },
+        "required": [
+          "face_cluster",
+          "face_detection",
+          "image_captioning",
+          "reverse_geocoding",
+          "scene_classification",
+          "video"
+        ]
+      },
+      "SiteModelDownload": {
+        "type": "object",
+        "description": "The newest Download Models job.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "description": "running, finished, failed or cancelled"
+          },
+          "progress_current": {
+            "type": "integer"
+          },
+          "progress_target": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "progress_current",
+          "progress_target",
+          "status"
+        ]
+      },
+      "SiteSettings": {
+        "type": "object",
+        "description": "What GET (and a successful POST) answers.\n\n``features`` and ``model_download`` are sent to staff only; the GET is\nanonymous (the login page reads it).",
+        "properties": {
+          "allow_registration": {
+            "type": "boolean"
+          },
+          "allow_upload": {
+            "type": "boolean"
+          },
+          "skip_patterns": {
+            "type": "string"
+          },
+          "heavyweight_process": {
+            "type": "integer"
+          },
+          "map_api_provider": {
+            "type": "string"
+          },
+          "map_api_key": {
+            "type": "string",
+            "description": "Blank unless the caller is staff."
+          },
+          "map_tile_provider": {
+            "type": "string"
+          },
+          "captioning_model": {
+            "type": "string"
+          },
+          "llm_model": {
+            "type": "string"
+          },
+          "tagging_model": {
+            "type": "string"
+          },
+          "ocr_model": {
+            "type": "string"
+          },
+          "face_recognition_model": {
+            "type": "string"
+          },
+          "nextcloud_enabled": {
+            "type": "boolean"
+          },
+          "auto_create_user_directory": {
+            "type": "boolean"
+          },
+          "scan_missing_max_fraction": {
+            "type": "number",
+            "format": "double"
+          },
+          "email_configured": {
+            "type": "boolean"
+          },
+          "features": {
+            "$ref": "#/components/schemas/SiteFeatures"
+          },
+          "model_download": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SiteModelDownload"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "allow_registration",
+          "allow_upload",
+          "auto_create_user_directory",
+          "captioning_model",
+          "email_configured",
+          "face_recognition_model",
+          "heavyweight_process",
+          "llm_model",
+          "map_api_key",
+          "map_api_provider",
+          "map_tile_provider",
+          "nextcloud_enabled",
+          "ocr_model",
+          "scan_missing_max_fraction",
+          "skip_patterns",
+          "tagging_model"
+        ]
+      },
       "SiteSettingsRequestRequest": {
         "type": "object",
         "description": "The settings to change: every field optional, at least one present.\n\nKeys the endpoint does not store (``heavyweight_process``, ``llm_model``,\n...) are ignored, so a client may post back what GET returned.",
@@ -12850,6 +13030,24 @@
             "maximum": 1.0,
             "minimum": 0.0,
             "description": "Largest share of a user's photos a scan may flag missing at once (0 to 1); 1 turns the check off."
+          },
+          "video_enabled": {
+            "type": "boolean"
+          },
+          "face_detection_enabled": {
+            "type": "boolean"
+          },
+          "face_cluster_enabled": {
+            "type": "boolean"
+          },
+          "image_captioning_enabled": {
+            "type": "boolean"
+          },
+          "reverse_geocoding_enabled": {
+            "type": "boolean"
+          },
+          "scene_classification_enabled": {
+            "type": "boolean"
           }
         }
       },

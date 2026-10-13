@@ -1,4 +1,4 @@
-import type { SiteSettings } from "@librephotos/api-client";
+import type { SiteSettingsUpdate } from "@librephotos/api-client";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
@@ -16,7 +16,7 @@ export function useSaveSiteSettings() {
   const { mutate } = useUpdateSettingsMutation();
 
   return useCallback(
-    (input: Partial<SiteSettings>) =>
+    (input: SiteSettingsUpdate) =>
       mutate(input, {
         onSuccess: () => notification.success(t("sitesettings.saved"), { id: "site-settings-saved", autoClose: 1500 }),
         onError: () => void refetch(),

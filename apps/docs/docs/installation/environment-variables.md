@@ -185,7 +185,7 @@ Number variables (worker counts, the `TRANSCODE_*` limits, `REFRESH_TOKEN_DAYS` 
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
 
-Not released yet: all of these but `FEATURE_PROCESS_EMBEDDED_MEDIA` also have a switch in the site settings that an admin can flip without a restart. A variable set to off is a hard off that the site setting cannot override; see [Feature Toggles](../user-guide/feature-toggles.md#site-settings-switches).
+Not released yet: all of these but `FEATURE_PROCESS_EMBEDDED_MEDIA` also have a switch in the Features card of the site settings that an admin can flip without a restart. A variable set to off is a hard off that the site setting cannot override; see [Feature Toggles](../user-guide/feature-toggles.md#site-settings-switches).
 
 With the bundled Compose setup, set the lowerCamelCase keys in your `.env`:
 
