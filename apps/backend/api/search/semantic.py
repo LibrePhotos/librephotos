@@ -24,12 +24,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 
 from api.lazy_import import LazyModule
 from api.runtime import sidecars
+from api.runtime.features import feature_enabled
 from api.runtime.http_timeouts import CLIP_EMBED
 
 if TYPE_CHECKING:
@@ -60,7 +60,7 @@ SIDECAR = "tags"
 
 def semantic_shares_tagger() -> bool:
     """Whether the tags job also produces the search embeddings."""
-    return bool(settings.FEATURE_SCENE_CLASSIFICATION)
+    return feature_enabled("SCENE_CLASSIFICATION")
 
 
 def produced_by_openclip(prefix: str = "") -> Q:
@@ -130,7 +130,7 @@ def generate_photo_tags(caption: PhotoCaption, commit: bool = True) -> None:
     the same image-tower run gives the photo's search embedding. Moved out
     of ``PhotoCaption`` so the model makes no sidecar calls (#2336).
     """
-    if not settings.FEATURE_SCENE_CLASSIFICATION:
+    if not feature_enabled("SCENE_CLASSIFICATION"):
         logger.info("Scene classification is disabled")
         return
     if not _needs_tags(caption):

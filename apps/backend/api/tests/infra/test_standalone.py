@@ -333,7 +333,12 @@ class NamedExecutableTest(SimpleTestCase):
         )
 
     def test_sidecars_start_under_their_name(self):
-        with patch("api.runtime.supervisor.subprocess.Popen") as popen:
+        with (
+            # Whether face detection is switched on is not this test's
+            # business, and reading the site setting needs the database.
+            patch("api.runtime.supervisor.is_service_enabled", return_value=True),
+            patch("api.runtime.supervisor.subprocess.Popen") as popen,
+        ):
             supervisor.start_service("face_recognition")
         argv = popen.call_args.args[0]
         self.assertEqual(os.path.basename(argv[0]), "librephotos-faces.exe")

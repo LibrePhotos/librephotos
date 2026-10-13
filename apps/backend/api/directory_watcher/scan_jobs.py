@@ -47,6 +47,7 @@ from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import LongRunningJob, Photo, Thumbnail, User
 from api.photos.files import detach_missing_files
 from api.photos.media_files import is_metadata
+from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import semantic_shares_tagger
 from api.thumbnails import render
@@ -399,7 +400,11 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
     if color.can_probe() and videos_to_probe(user).exists():
         enqueue_followup(user, LongRunningJob.JOB_PROBE_VIDEOS, probe_videos, user)
 
-    if settings.FEATURE_SCENE_CLASSIFICATION:
+    # Read once: whether the tags job runs and whether the embedding job leaves
+    # photos to it have to agree, or a switch flipped between two reads leaves
+    # photos with neither tags nor search embeddings.
+    tags_on = semantic_shares_tagger()
+    if tags_on:
         enqueue_followup(
             user,
             LongRunningJob.JOB_GENERATE_TAGS,
@@ -407,7 +412,7 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
             user,
             full_scan=full_scan,
         )
-    if settings.FEATURE_REVERSE_GEOCODING:
+    if feature_enabled("REVERSE_GEOCODING"):
         enqueue_followup(
             user,
             LongRunningJob.JOB_ADD_GEOLOCATION,
@@ -424,10 +429,10 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
             LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
             batch_calculate_clip_embedding,
             (user,),
-            {"wait_for_tags": semantic_shares_tagger()},
+            {"wait_for_tags": tags_on},
         )
     ]
-    if settings.FEATURE_FACE_DETECTION:
+    if feature_enabled("FACE_DETECTION"):
         steps.append(
             JobStep(
                 LongRunningJob.JOB_SCAN_FACES,

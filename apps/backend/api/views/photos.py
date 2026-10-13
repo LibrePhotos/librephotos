@@ -4,7 +4,6 @@ import uuid
 from collections import defaultdict
 from typing import Any
 
-from django.conf import settings
 from django.db.models import Prefetch, Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
@@ -48,6 +47,7 @@ from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photo
+from api.runtime.features import feature_enabled
 from api.runtime.ml_models import captioning_model_exists, start_model_download
 from api.serializers.album_user import (
     AlbumUserListSerializer,
@@ -833,7 +833,7 @@ class GeneratePhotoCaption(APIView):
 
     @extend_schema(request=PhotoCaptionRequest)
     def post(self, request: Request, format: str | None = None) -> Response:
-        if not settings.FEATURE_IMAGE_CAPTIONING:
+        if not feature_enabled("IMAGE_CAPTIONING"):
             raise PermissionDenied("Image captioning is disabled")
 
         image_hash = parse_body(request, PhotoCaptionRequest)["image_hash"]

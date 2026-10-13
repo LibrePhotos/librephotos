@@ -200,10 +200,16 @@ class EmbeddingsAfterTagsTest(TestCase):
         task.return_value.run.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
-    def test_nothing_to_do_without_tagging(self):
+    def test_tagging_turned_off_while_the_job_ran_still_fills_the_gaps(self):
+        """A scan queues the tags job only while tagging is on, and its
+        embedding job leaves the photos to it. Turned off since, the tags job
+        skipped them, so they are the ones still missing an embedding."""
+        from api.search.embedding_jobs import batch_calculate_clip_embedding
+
         _, task = self._finish_tags_job()
 
-        task.assert_not_called()
+        task.assert_called_once()
+        self.assertEqual(task.call_args.args[0], batch_calculate_clip_embedding)
 
 
 class ConversionTest(TestCase):

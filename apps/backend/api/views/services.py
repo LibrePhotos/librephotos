@@ -50,7 +50,9 @@ class ServiceViewSet(viewsets.ViewSet):
             raise NotFound(f"Service {service_name} not found")
 
         if not is_service_enabled(service_name):
-            # The message names the flag; the list endpoint carries it as
+            # The message names the switch to change: the environment flag
+            # when the server configuration locked the feature off, else the
+            # site setting. The retrieve endpoint carries the flag as
             # feature_flag for the settings page.
             raise Conflict(
                 f"Service {service_name} is not started: "

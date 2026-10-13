@@ -15,7 +15,6 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 
 import PIL
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db.utils import IntegrityError
 
@@ -24,6 +23,7 @@ from api.faces import extractor
 from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.faces.recognition import get_face_encodings
 from api.lazy_import import LazyModule
+from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -65,7 +65,7 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
     An ``IntegrityError`` (two workers saving at once) is retried exactly once
     and then swallowed; every other exception is re-raised.
     """
-    if not settings.FEATURE_FACE_DETECTION:
+    if not feature_enabled("FACE_DETECTION"):
         logger.info("Face detection is disabled")
         return
 

@@ -294,13 +294,14 @@ def _on_job_finished(job_id: UUID | str) -> None:
 def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> None:
     """Fill the gaps the tags job left in the search embeddings.
 
-    When tagging is on, the tags job stores each photo's search embedding,
-    and the scan's own embedding job left those photos to it. This run embeds
-    the photos it could not tag and rebuilds the index.
+    A scan queues the tags job only while tagging is on, and then the tags job
+    stores each photo's search embedding and the scan's own embedding job
+    leaves those photos to it. This run embeds the photos it could not tag and
+    rebuilds the index. It does not ask whether tagging is still on: when an
+    admin turned it off while the job ran, the photos it skipped are exactly
+    the ones still missing an embedding.
     """
-    from api.search.semantic import semantic_shares_tagger
-
-    if user_id is None or not semantic_shares_tagger():
+    if user_id is None:
         return
     from api.jobs.queue import enqueue_followup
     from api.models import User
