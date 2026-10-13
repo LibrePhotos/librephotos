@@ -22,13 +22,24 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { JobList } from "./JobList";
 
-// The row links JobList navigates to
-const navigate = vi.fn<(options: { to: string }) => void>();
+// The detail pages a row click navigates to
+const navigate = vi.fn<(options: { to: string; params: { id: string } }) => void>();
 // Records the arguments the list queries with
 const useJobsQuery = vi.fn<(...args: unknown[]) => void>();
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigate,
+  // The href the router would build from the typed route and its params
+  Link: ({
+    to,
+    params,
+    children,
+    ...rest
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { to: string; params: { id: string } }) => (
+    <a href={to.replace("$id", params.id)} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 const job = {
@@ -110,10 +121,14 @@ async function render(element: React.ReactElement) {
   return { container, unmount };
 }
 
-async function clickFirstRow(container: HTMLElement) {
+async function click(element: Element) {
   await act(async () => {
-    defined(container.querySelector("tbody tr")).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   });
+}
+
+async function clickFirstRow(container: HTMLElement) {
+  await click(defined(container.querySelector("tbody tr td")));
 }
 
 describe("JobList", () => {
@@ -134,7 +149,7 @@ describe("JobList", () => {
 
     await clickFirstRow(container);
 
-    expect(navigate).toHaveBeenCalledWith({ to: "/admin/job/42" });
+    expect(navigate).toHaveBeenCalledWith({ to: "/admin/job/$id", params: { id: "42" } });
     await unmount();
   });
 
@@ -143,7 +158,31 @@ describe("JobList", () => {
 
     await clickFirstRow(container);
 
-    expect(navigate).toHaveBeenCalledWith({ to: "/jobs/42" });
+    expect(navigate).toHaveBeenCalledWith({ to: "/jobs/$id", params: { id: "42" } });
+    await unmount();
+  });
+
+  // #2228: a row click is mouse-only, so the job type is a link Tab reaches and Enter follows
+  it.each([
+    ["admin", "/admin/job/42"],
+    ["mine", "/jobs/42"],
+  ] as const)("links each %s row's job type to the job's detail page", async (variant, href) => {
+    const { container, unmount } = await render(<JobList variant={variant} />);
+
+    const links = [...container.querySelectorAll("tbody a")];
+    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([["Scan Photos", href]]);
+    await unmount();
+  });
+
+  it("leaves a click on the link to the link instead of navigating a second time", async () => {
+    const { container, unmount } = await render(<JobList />);
+    const link = defined(container.querySelector("tbody a"));
+    // The router's Link handles the click itself; keep jsdom from following the href
+    link.addEventListener("click", e => e.preventDefault());
+
+    await click(link);
+
+    expect(navigate).not.toHaveBeenCalled();
     await unmount();
   });
 

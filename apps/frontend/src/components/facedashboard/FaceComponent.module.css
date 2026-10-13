@@ -32,9 +32,18 @@
   display: block;
   border-radius: var(--mantine-radius-md);
 
+  /*
+   * A primary ring between two body-coloured ones, lighter in dark mode: a plain primary outline
+   * vanished into the selected cell's blue there (#2228). The transparent outline is what
+   * forced-colors mode draws instead of the shadows.
+   */
   &:focus-visible {
-    outline: 3px solid var(--mantine-primary-color-filled);
+    outline: 2px solid transparent;
     outline-offset: 2px;
+    box-shadow:
+      0 0 0 2px var(--mantine-color-body),
+      0 0 0 5px light-dark(var(--mantine-primary-color-filled), var(--mantine-primary-color-4)),
+      0 0 0 7px var(--mantine-color-body);
   }
 }
 

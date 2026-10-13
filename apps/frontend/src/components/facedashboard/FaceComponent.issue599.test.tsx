@@ -81,9 +81,21 @@ afterEach(async () => {
   container.remove();
 });
 
-type Options = { of?: CompletePersonFace; tab?: FacesTab; selectMode?: boolean; pending?: boolean };
+type Options = {
+  of?: CompletePersonFace;
+  tab?: FacesTab;
+  selectMode?: boolean;
+  pending?: boolean;
+  isSelected?: boolean;
+};
 
-async function renderFace({ of = ANNA, tab = "inferred", selectMode = false, pending = false }: Options = {}) {
+async function renderFace({
+  of = ANNA,
+  tab = "inferred",
+  selectMode = false,
+  pending = false,
+  isSelected = false,
+}: Options = {}) {
   await act(async () => {
     root.render(
       // env="test": no transitions or portals, so the menu renders in place
@@ -97,7 +109,7 @@ async function renderFace({ of = ANNA, tab = "inferred", selectMode = false, pen
           isScrollingFast={false}
           selectMode={selectMode}
           entrySquareSize={131}
-          isSelected={false}
+          isSelected={isSelected}
           handleClick={handleClick}
           handleShowClick={handleShowClick}
         />
@@ -231,5 +243,63 @@ describe("issue 599 - per-face actions", () => {
 
     expect(contextMenu.defaultPrevented).toBe(true);
     expect(menuItems()).toContain("Delete face");
+  });
+});
+
+/**
+ * https://github.com/LibrePhotos/librephotos/issues/2228
+ *
+ *   Selecting faces (the core of labelling people) worked with a mouse only.
+ *
+ * The face is a native button, so the browser turns Enter and Space into a click on it, carrying
+ * the Shift key along: Shift+Enter extends the selection like Shift+click. jsdom has no such
+ * activation, so these tests send the click the browser would.
+ */
+describe("issue 2228 - selecting faces from the keyboard", () => {
+  /** The click a browser fires for Enter or Space on a button: no pointer, so detail is 0. */
+  const keyboardClick = (shiftKey: boolean) =>
+    new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0, shiftKey });
+
+  function faceButton() {
+    const face = buttonLabelled("Face in Anna");
+    if (!face) throw new Error("no face button");
+    return face;
+  }
+
+  it("is a native button in the tab order, which Enter and Space activate", async () => {
+    await renderFace();
+    const face = faceButton();
+
+    expect(face.tagName).toBe("BUTTON");
+    expect(face.type).toBe("button");
+    expect(face.tabIndex).toBe(0);
+    expect(face.disabled).toBe(false);
+  });
+
+  it.each([
+    ["Enter or Space", false],
+    ["Shift+Enter", true],
+  ])("passes the Shift key of %s on, so it toggles or extends the selection", async (_keys, shiftKey) => {
+    await renderFace();
+
+    await act(async () => faceButton().dispatchEvent(keyboardClick(shiftKey)));
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(handleClick.mock.calls[0]?.[0].shiftKey).toBe(shiftKey);
+    expect(handleClick.mock.calls[0]?.[1]).toBe(FACE);
+  });
+
+  it.each([true, false])("tells assistive technology whether the face is selected (%s)", async isSelected => {
+    await renderFace({ isSelected });
+
+    expect(faceButton().getAttribute("aria-pressed")).toBe(String(isSelected));
+  });
+
+  it("still selects while faces are selected: the face stays a button in select mode", async () => {
+    await renderFace({ selectMode: true, isSelected: true });
+
+    await act(async () => faceButton().dispatchEvent(keyboardClick(false)));
+
+    expect(handleClick).toHaveBeenCalledWith(expect.anything(), FACE);
   });
 });
