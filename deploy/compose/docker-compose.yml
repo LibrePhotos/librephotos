@@ -74,6 +74,7 @@ services:
       - ALLOW_UPLOAD=${allowUpload:-false}
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
       - NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=${nextcloudAllowPrivateAddresses:-true}
+      - NEXTCLOUD_CA_BUNDLE=${nextcloudCaBundle:-}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - FRONTEND_BASE_URL=${frontendBaseUrl:-}
       - FEATURE_VIDEO=${featureVideo:-true}

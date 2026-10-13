@@ -75,6 +75,42 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 3. Save your changes when the **Save Changes** dialog appears (click **Update**). The **Status** row at the top of the Nextcloud section then shows a green **Connected** badge. It reads **Missing credentials**, **Connecting**, or **Disconnected** while the connection is unset, in progress, or failing.
 4. Click **Browse** (folder icon) to select your Nextcloud photo directory
 
+### Nextcloud with a self-signed certificate
+
+LibrePhotos checks the certificate of an `https://` Nextcloud server, and refuses a server whose certificate it does not trust. A Nextcloud with a self-signed certificate (for example the default certificate of TrueNAS) or one from your own certificate authority then shows **Disconnected**. LibrePhotos has no switch that turns this check off. Instead, an admin tells it which certificate to trust (not released yet):
+
+1. Save the certificate as a PEM file, a text file that starts with `-----BEGIN CERTIFICATE-----`. Use the certificate of the authority that signed the Nextcloud certificate, or for a self-signed certificate the certificate itself. Export it from where it was made; in TrueNAS that is **Credentials** → **Certificates**.
+2. Give LibrePhotos the file and set `NEXTCLOUD_CA_BUNDLE` to its path, as below.
+3. Open the Library page again. The Nextcloud section now shows **Connected**.
+
+**Docker:** put the file next to `docker-compose.yml`, for example as `certs/nextcloud-ca.pem`, mount it into the `backend` service by adding a line to its `volumes`:
+
+```yaml
+  backend:
+    volumes:
+      - ./certs/nextcloud-ca.pem:/certs/nextcloud-ca.pem:ro
+```
+
+then set the path inside the container in `librephotos.env` and restart with `docker compose up -d`:
+
+```bash
+nextcloudCaBundle=/certs/nextcloud-ca.pem
+```
+
+**Windows standalone:** save the file anywhere on the PC, for example `C:\LibrePhotos\nextcloud-ca.pem`, and start LibrePhotos from a small `.cmd` file next to `librephotos.exe` that sets the variable (the same way [Using another port](../installation/windows-standalone.md#using-another-port) moves a service):
+
+```bat
+@echo off
+set NEXTCLOUD_CA_BUNDLE=C:\LibrePhotos\nextcloud-ca.pem
+start "" "%~dp0librephotos.exe"
+```
+
+Things to know:
+
+- The server address you enter has to be a name the certificate was made for. A certificate for `nextcloud.lan` is not accepted when you connect to `https://192.168.1.10`.
+- With `NEXTCLOUD_CA_BUNDLE` set, every Nextcloud server is checked against that file only, not against the public certificate authorities. If other users of your LibrePhotos connect to a Nextcloud with a public certificate (for example from Let's Encrypt), make the file a copy of a public bundle such as `/etc/ssl/certs/ca-certificates.crt` with your certificate added at the end.
+- If the file is missing or holds no PEM certificate, LibrePhotos does not connect at all: the Nextcloud section shows **Disconnected**, and **Scan** answers with a message that names `NEXTCLOUD_CA_BUNDLE`.
+
 ### Scanning from Nextcloud
 
 In the **Nextcloud** section, click **Scan** to download and scan photos from your configured Nextcloud directory. Files are copied to the local filesystem under `nextcloud_media/<username>/` before being processed.

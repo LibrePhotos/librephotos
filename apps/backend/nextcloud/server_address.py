@@ -22,12 +22,20 @@ turns that off for instances whose users should not reach the local network.
 The check runs before the connection is made, so it does not pin the address:
 a DNS answer that changes between the check and the connection is not caught.
 Redirects are checked hop by hop by ``GuardedClient``.
+
+``GuardedClient`` also decides what the server's TLS certificate is checked
+against: the public certificate authorities, or the file ``NEXTCLOUD_CA_BUNDLE``
+names, for a Nextcloud with a self-signed certificate or one from a private CA
+(#539). Certificate checking itself cannot be switched off.
 """
 
 from __future__ import annotations
 
 import ipaddress
+import logging
+import os
 import socket
+import ssl
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
@@ -48,9 +56,15 @@ _THIS_NETWORK = ipaddress.ip_network("0.0.0.0/8")
 
 _IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
+logger = logging.getLogger(__name__)
+
 
 class UnsafeServerAddress(ValueError):
     """The Nextcloud server address must not be contacted."""
+
+
+class CABundleError(ValueError):
+    """``NEXTCLOUD_CA_BUNDLE`` is set but names no usable certificate file."""
 
 
 def private_addresses_allowed() -> bool:
@@ -179,6 +193,36 @@ def is_safe_server_address(url: str) -> bool:
     return True
 
 
+def certificate_check() -> bool | str:
+    """What ``requests`` checks the Nextcloud server's certificate against.
+
+    ``True`` (the public certificate authorities) unless ``NEXTCLOUD_CA_BUNDLE``
+    is set; then the path of that file, which must hold PEM certificates. The
+    file is loaded here, on every connection, so a missing or broken file gives
+    a clear error instead of a certificate failure, and fixing it needs no
+    restart. Raises ``CABundleError``.
+    """
+    bundle = str(getattr(settings, "NEXTCLOUD_CA_BUNDLE", "") or "").strip()
+    if not bundle:
+        return True
+    if not os.path.isfile(bundle):
+        logger.warning("NEXTCLOUD_CA_BUNDLE does not name a file")
+        raise CABundleError(
+            "The certificate file NEXTCLOUD_CA_BUNDLE names does not exist. "
+            "Ask the administrator to check the path and how the file is "
+            "mounted into the container."
+        )
+    try:
+        ssl.create_default_context(cafile=bundle)
+    except (OSError, ValueError) as e:
+        logger.warning("NEXTCLOUD_CA_BUNDLE cannot be loaded: %s", type(e).__name__)
+        raise CABundleError(
+            "The certificate file NEXTCLOUD_CA_BUNDLE names cannot be read as "
+            "PEM certificates. Ask the administrator to check it."
+        ) from e
+    return bundle
+
+
 def _refuse_unsafe_redirect(
     response: requests.Response, *args: Any, **kwargs: Any
 ) -> requests.Response:
@@ -201,8 +245,14 @@ class GuardedClient(nextcloud.Client):
     """A pyocclient ``Client`` that refuses to follow redirects to unsafe hosts.
 
     pyocclient creates its ``requests`` session inside ``login()``, so the
-    redirect check is attached whenever a session is assigned.
+    redirect check is attached whenever a session is assigned. ``login()``
+    then sets ``session.verify`` from ``verify_certs``, which is always
+    ``certificate_check()``: a caller cannot pass ``verify_certs=False``.
     """
+
+    def __init__(self, url: str, **kwargs: Any) -> None:
+        kwargs["verify_certs"] = certificate_check()
+        super().__init__(url, **kwargs)
 
     @property
     def _session(self) -> requests.Session | None:
@@ -216,7 +266,10 @@ class GuardedClient(nextcloud.Client):
 
 
 def connect(user: User) -> nextcloud.Client:
-    """Log in to ``user``'s Nextcloud after checking the server address."""
+    """Log in to ``user``'s Nextcloud after checking the server address.
+
+    Raises ``UnsafeServerAddress`` or ``CABundleError`` before connecting.
+    """
     address = (user.nextcloud_server_address or "").strip()
     validate_server_address(address)
     nc = GuardedClient(address)
