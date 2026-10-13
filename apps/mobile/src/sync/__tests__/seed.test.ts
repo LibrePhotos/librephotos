@@ -7,6 +7,9 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { seedAll, seedPeople, seedPhotos, type SeedSource } from "../remote/seed";
 import { getSyncState } from "@/db/queries/sync-state";
 import { filterPhotos } from "@/db/queries/filters";
+import { pullEntity } from "../remote/delta";
+import { syncPersonToRow } from "../remote/mappers";
+import { FakeSource, emptyStore, personItem } from "./fake-source";
 
 const item = (id: string, rating = 0, date: string | null = "2024-01-02T10:00:00"): PigPhoto => ({
   id,
@@ -163,5 +166,35 @@ describe("seeder", () => {
       // No faces, no cover: "" is stored as null, like the delta sync's null.
       { id: 2, cover_photo_hash: null },
     ]);
+  });
+
+  it("keeps the first-face cover the seed stored when a delta pull updates the person", async () => {
+    // The seed reads the People list, whose cover falls back to the first
+    // face's photo. The delta feed's cover_photo_hash is the chosen cover only,
+    // so writing it over the seed blanked Ann's cover after the first pull.
+    await seedPeople(t.db, makeSource(), OPTS.now);
+    const store = emptyStore();
+    store.person = [
+      personItem(1, {
+        name: "Ann",
+        face_count: 4,
+        cover_photo_hash: null,
+        effective_cover_hash: "h1",
+        last_modified: OPTS.now + 1,
+      }),
+    ];
+    await pullEntity(t.db, new FakeSource(store), "person");
+    expect(t.db.get(sql`SELECT face_count, cover_photo_hash FROM person WHERE id = 1`)).toEqual({
+      face_count: 4,
+      cover_photo_hash: "h1",
+    });
+  });
+
+  it("reads the chosen cover from a server that sends no effective cover", () => {
+    // Servers up to 1.3.0 send only cover_photo_hash.
+    expect(syncPersonToRow(personItem(1, { cover_photo_hash: "chosen" })).coverPhotoHash).toBe("chosen");
+    expect(
+      syncPersonToRow(personItem(1, { cover_photo_hash: null, effective_cover_hash: null })).coverPhotoHash,
+    ).toBeNull();
   });
 });
