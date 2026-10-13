@@ -108,7 +108,13 @@ Rotation in LibrePhotos is **non-destructive**:
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
 
-Your **Synchronize metadata to disk** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle. With **Save to media file**, LibrePhotos writes the combined EXIF Orientation tag into the original file; with **Save to sidecar**, it writes it to the photo's XMP sidecar instead — either way the new orientation becomes visible in external tools. With **Off** — the default — only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
+Your **Synchronize metadata to disk** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
+
+- **Off**, the default: only the LibrePhotos database and thumbnails are updated, and the file on disk stays byte-for-byte identical.
+- **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that read sidecars (digiKam, darktable, Lightroom) can show the photo turned the same way.
+- **Save to media file**: for JPEG, PNG, TIFF and WebP files, LibrePhotos writes the new EXIF Orientation into the original, so every viewer shows the rotation. HEIC, AVIF and RAW files are not rewritten: their viewers ignore that tag, so the rotation stays in LibrePhotos.
+
+_Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save to media file** wrote a wrong EXIF Orientation into HEIC, AVIF and RAW originals (often the opposite turn), replacing the camera's own value. LibrePhotos' own thumbnails were not affected. If another app shows such a file turned the wrong way, set its orientation there or with `exiftool -Orientation=...`._
 
 ## Photo Details Sidebar
 

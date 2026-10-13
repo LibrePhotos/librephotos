@@ -15,7 +15,6 @@ issue and flips to an unexpected success once that bug is fixed.
 import ast
 import datetime
 import os
-import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
 
@@ -644,7 +643,7 @@ class RotationRoundTripTest(RealExifToolTestCase):
     """
 
     def _rotated_photo(self, extension, mode, orientation=None):
-        path = self.make_image(extension)
+        path = self.make_image(extension, f"photo-{orientation}")
         if orientation is not None:
             self.tag(path, f"-EXIF:Orientation#={orientation}")
         user = create_test_user(save_metadata_to_disk=mode)
@@ -682,46 +681,112 @@ class RotationRoundTripTest(RealExifToolTestCase):
 
     def _sidecar_round_trip(self, extension, orientation=None):
         photo, path = self._rotated_photo(extension, SIDECAR, orientation)
-        with open(path, "rb") as handle:
-            original = handle.read()
 
-        rotate_photo(photo, CLOCKWISE)
+        with self.assertOriginalKept(path):
+            rotate_photo(photo, CLOCKWISE)
 
         expected = TURNED_CLOCKWISE if orientation is None else TURNED_HALF
         self.assertEqual(expected, self._thumbnail(photo))
-        with open(path, "rb") as handle:
-            self.assertEqual(original, handle.read(), "the original was rewritten")
         self.assertWritesLanded(expected=1)
         self.assertEqual(expected, self._viewer_sees(path))
 
-    # #2297: the sidecar write is EXIF:Orientation, which ExifTool cannot store
-    # in an .xmp; nothing is written.
-    @unittest.expectedFailure
+    @contextmanager
+    def assertOriginalKept(self, path):
+        with open(path, "rb") as handle:
+            original = handle.read()
+        yield
+        with open(path, "rb") as handle:
+            self.assertEqual(original, handle.read(), "the original was rewritten")
+
+    def _sidecar_orientation(self, path):
+        sidecar = self.sidecar_of(path)
+        return self.read_tags(sidecar, Tags.ORIENTATION_XMP)[Tags.ORIENTATION_XMP]
+
     def test_jpeg_sidecar(self):
         self._sidecar_round_trip(".jpg")
 
-    @unittest.expectedFailure  # #2297, as above
     def test_portrait_jpeg_sidecar(self):
         self._sidecar_round_trip(".jpg", orientation=6)
 
-    @unittest.expectedFailure  # #2297, as above
     def test_heic_sidecar(self):
         self._sidecar_round_trip(".heic")
 
-    # #2297: a HEIC original gets EXIF:Orientation composed from the API angle
-    # (the opposite turn) on a base the scan never fills in. The fix keeps the
-    # rotation in the database and leaves the original alone.
-    @unittest.expectedFailure
+    def test_rotations_in_the_sidecar_do_not_pile_up(self):
+        """Each rotate writes the original's tag with the whole rotation on top."""
+        photo, path = self._rotated_photo(".jpg", SIDECAR, 6)
+
+        with self.assertOriginalKept(path):
+            rotate_photo(photo, CLOCKWISE)
+            self.assertEqual(3, self._sidecar_orientation(path))
+            rotate_photo(photo, CLOCKWISE)
+            self.assertEqual(8, self._sidecar_orientation(path))
+
+        self.assertEqual(
+            ("portrait", "green", "white", "red", "blue"), self._thumbnail(photo)
+        )
+        self.assertEqual(self._thumbnail(photo), self._viewer_sees(path))
+        self.assertWritesLanded(expected=2)
+
+    def test_every_orientation_turned_either_way_matches_the_thumbnail(self):
+        """A viewer applying the sidecar shows what LibrePhotos' thumbnail shows."""
+        for start in range(1, 9):
+            with self.subTest(orientation=start):
+                photo, path = self._rotated_photo(".jpg", SIDECAR, start)
+                with self.assertOriginalKept(path):
+                    rotate_photo(photo, CLOCKWISE)
+                    self.assertEqual(self._thumbnail(photo), self._viewer_sees(path))
+                    # Back past the start: one counter-clockwise turn from it.
+                    rotate_photo(photo, -CLOCKWISE)
+                    rotate_photo(photo, -CLOCKWISE)
+                    self.assertEqual(self._thumbnail(photo), self._viewer_sees(path))
+                self.assertNotEqual(shown_layout(path, start), self._thumbnail(photo))
+
     def test_heic_media_file_keeps_the_original(self):
-        photo, path = self._rotated_photo(".heic", MEDIA_FILE)
-        with open(path, "rb") as handle:
-            original = handle.read()
+        """#2297: HEIC renders without its EXIF tag (libheif applies ``irot``),
+        so the original is not written and the rotation stays in the database."""
+        for start in (None, 6):
+            with self.subTest(orientation=start):
+                photo, path = self._rotated_photo(".heic", MEDIA_FILE, start)
+                before = self._thumbnail(photo)
 
-        rotate_photo(photo, CLOCKWISE)
+                with self.assertUntouched(path):
+                    error = rotate_photo(photo, CLOCKWISE)
 
-        self.assertEqual(TURNED_CLOCKWISE, self._thumbnail(photo))
-        with open(path, "rb") as handle:
-            self.assertEqual(original, handle.read(), "the original was rewritten")
+                self.assertIsNone(error)
+                self.assertEqual(8, photo.local_orientation)
+                self.assertEqual(UPRIGHT, before)
+                self.assertEqual(TURNED_CLOCKWISE, self._thumbnail(photo))
+
+    def _raw_photo(self, mode):
+        """A TIFF ExifTool takes for a DNG shot in portrait. rawpy cannot
+        decode it, so it gets no thumbnails."""
+        path = self.make_image(".tif", f"raw-{mode}")
+        raw = path[: -len(".tif")] + ".dng"
+        os.replace(path, raw)
+        self.tag(raw, "-EXIF:DNGVersion=1.4.0.0", "-EXIF:Orientation#=6")
+        user = create_test_user(save_metadata_to_disk=mode)
+        return self.photo_for(raw, user), raw
+
+    @patch("api.thumbnails.render.regenerate_thumbnails")
+    def test_raw_media_file_keeps_the_original(self, regenerate):
+        photo, path = self._raw_photo(MEDIA_FILE)
+
+        with self.assertUntouched(path):
+            error = rotate_photo(photo, CLOCKWISE)
+
+        self.assertIsNone(error)
+        self.assertEqual(8, photo.local_orientation)
+        self.assertEqual(6, self.read_tags(path, Tags.ORIENTATION)[Tags.ORIENTATION])
+
+    @patch("api.thumbnails.render.regenerate_thumbnails")
+    def test_raw_sidecar(self, regenerate):
+        photo, path = self._raw_photo(SIDECAR)
+
+        with self.assertOriginalKept(path):
+            self.assertIsNone(rotate_photo(photo, CLOCKWISE))
+
+        self.assertEqual(3, self._sidecar_orientation(path))
+        self.assertWritesLanded(expected=1)
 
     def test_nothing_is_written_when_off(self):
         for extension in (".jpg", ".heic"):
@@ -742,7 +807,7 @@ EXERCISED_WRITERS = {
     "api.metadata.photo_writer.write_photo_metadata": (
         "RatingRoundTripTest, DateRoundTripTest, FaceTagRoundTripTest"
     ),
-    "api.metadata.photo_writer._write_orientation": "RotationRoundTripTest",
+    "api.metadata.photo_writer._write_sidecar_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",
 }
 
@@ -827,12 +892,11 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 write_photo_metadata(
                     photo, use_sidecar=mode == SIDECAR, metadata_types=["face_tags"]
                 )
-        # Rotation into the media file; into a sidecar it is #2297 (see
-        # RotationRoundTripTest.test_jpeg_sidecar).
-        user = create_test_user(save_metadata_to_disk=MEDIA_FILE)
-        for extension in (".jpg", ".heic"):
-            path = self.make_image(extension, "guard-rotate")
-            rotate_photo(self.photo_for(path, user, thumbnails=True), CLOCKWISE)
+        for mode in MODES:
+            user = create_test_user(save_metadata_to_disk=mode)
+            for extension in (".jpg", ".heic"):
+                path = self.make_image(extension, f"guard-rotate-{mode}")
+                rotate_photo(self.photo_for(path, user, thumbnails=True), CLOCKWISE)
 
         self.assertWritesLanded()
         emitted = set().union(*(write.tags for write in self.exiftool.writes))
@@ -843,6 +907,7 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 Tags.REGION_INFO_WRITE,
                 Tags.SUBJECT,
                 Tags.ORIENTATION,
+                Tags.ORIENTATION_XMP,
             },
             emitted,
         )

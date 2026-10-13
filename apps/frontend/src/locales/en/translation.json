@@ -158,6 +158,7 @@
     },
     "metadata": "Metadata Options",
     "sync": "Synchronize metadata to disk",
+    "syncdescription": "Writes your ratings, dates, face tags and rotations to the photo's XMP sidecar or into the photo itself. \"Save to media file\" does not rewrite HEIC, AVIF or RAW files when you rotate them: the rotation stays in LibrePhotos.",
     "favoritesyncoptions": {
       "off": "Off",
       "sidecar": "Save to sidecar",

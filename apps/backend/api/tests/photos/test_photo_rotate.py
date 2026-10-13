@@ -12,10 +12,11 @@ Quirks deliberately pinned (see inline comments):
   * Under MEDIA_FILE, a format that renders its EXIF orientation gets the
     whole rotation written into the file, starting from the file's own tag;
     once exiftool is confirmed to have written it, ``local_orientation``
-    goes back to 1 (#2050). Anything else (sidecar, HEIC and the like, an
-    unreadable file) writes the stored ``photo.metadata.orientation``
-    (default 1 when missing/absent) composed with the delta -- NOT the new
-    ``local_orientation`` -- and keeps the rotation in the database.
+    goes back to 1 (#2050). HEIC and the other formats whose renderer
+    ignores the tag are not written at all (#2297).
+  * Under SIDECAR_FILE, ``XMP-tiff:Orientation`` gets the original's own tag
+    with the whole ``local_orientation`` on top, and the rotation stays in
+    the database (#2297). ``PhotoMetadata.orientation`` is never the base.
 """
 
 from unittest.mock import patch
@@ -23,6 +24,7 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from api.metadata.photo_writer import rotate_photo
+from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
 from api.models.user import User
 from api.tests.utils import create_test_photo, create_test_user
@@ -137,6 +139,14 @@ class RotateCharacterizationTest(TestCase):
     def _written(self, write_metadata):
         return list(write_metadata.call_args[0][1].values())
 
+    def _sidecar_photo(self, orientation=1):
+        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
+        self.user.save()
+        photo = create_test_photo(owner=self.user)
+        PhotoMetadata.objects.create(photo=photo, orientation=orientation)
+        photo.refresh_from_db()
+        return photo
+
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
     def test_save_metadata_off_does_not_write(self, regen, write_metadata):
@@ -160,15 +170,15 @@ class RotateCharacterizationTest(TestCase):
 
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
-    def test_sidecar_mode_sets_use_sidecar(self, regen, write_metadata):
-        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
-        self.user.save()
-        photo = create_test_photo(owner=self.user)
-        photo.refresh_from_db()
+    def test_sidecar_mode_writes_the_xmp_orientation(self, regen, write_metadata):
+        """#2297: ExifTool cannot store EXIF:Orientation in an .xmp."""
+        photo = self._sidecar_photo()
 
         rotate_photo(photo, 180)
 
-        self.assertTrue(write_metadata.call_args.kwargs["use_sidecar"])
+        args, kwargs = write_metadata.call_args
+        self.assertEqual({Tags.ORIENTATION_XMP: 3}, args[1])
+        self.assertTrue(kwargs["use_sidecar"])
 
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
@@ -254,83 +264,73 @@ class RotateCharacterizationTest(TestCase):
     @patch("api.thumbnails.render.renders_exif_orientation", return_value=False)
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
-    def test_a_format_that_ignores_exif_orientation_keeps_local_orientation(
+    def test_a_format_that_ignores_exif_orientation_is_not_written(
         self, regen, write_metadata, renders
     ):
-        """HEIC and the like render without the EXIF orientation exiftool
-        writes, so resetting ``local_orientation`` would lose the rotation.
-        The tag is still written for other viewers, as before."""
+        """#2297: HEIC and the like render without the EXIF orientation
+        ExifTool writes, so the original is left alone and the rotation stays
+        in ``local_orientation``. Not a failed write: nothing is reported."""
         photo = self._media_file_photo()
-        self._writes_land(write_metadata)
 
-        rotate_photo(photo, 90)
+        with self.assertLogs("api.metadata.photo_writer", "INFO") as logs:
+            error = rotate_photo(photo, 90)
 
-        self.assertEqual(self._written(write_metadata), [6])
+        self.assertIsNone(error)
+        write_metadata.assert_not_called()
         self.read_orientation.assert_not_called()
+        self.assertIn("stays in LibrePhotos", logs.output[0])
         photo.refresh_from_db()
         self.assertEqual(photo.local_orientation, 6)
         self.assertEqual(photo.metadata.orientation, 1)
 
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
-    def test_an_unreadable_file_is_not_folded(self, regen, write_metadata):
-        photo = self._media_file_photo()
-        self._file_says(photo, None)
+    def test_an_unreadable_file_is_not_written(self, regen, write_metadata):
+        for photo in (self._media_file_photo(), self._sidecar_photo()):
+            with self.subTest(mode=photo.owner.save_metadata_to_disk):
+                self._file_says(photo, None)
 
-        rotate_photo(photo, 90)
+                with self.assertLogs("api.metadata.photo_writer", "WARNING"):
+                    error = rotate_photo(photo, 90)
 
-        self.assertEqual(self._written(write_metadata), [6])
-        photo.refresh_from_db()
-        self.assertEqual(photo.local_orientation, 6)
+                self.assertIn("could not read its orientation", error)
+                write_metadata.assert_not_called()
+                photo.refresh_from_db()
+                self.assertEqual(photo.local_orientation, 6)
 
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
     def test_sidecar_rotate_keeps_local_orientation(self, regen, write_metadata):
         """A sidecar leaves the image bytes alone, so the renderer still needs
         ``local_orientation`` to know about the rotation."""
-        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
-        self.user.save()
-        photo = create_test_photo(owner=self.user)
-        PhotoMetadata.objects.create(photo=photo, orientation=1)
-        photo.refresh_from_db()
+        photo = self._sidecar_photo()
+        self._writes_land(write_metadata)
 
         rotate_photo(photo, 90)
 
-        self.assertEqual(self._written(write_metadata), [6])
-        self.read_orientation.assert_not_called()
+        # A counter-clockwise quarter turn of an upright file is EXIF 8.
+        self.assertEqual(self._written(write_metadata), [8])
         self.assertEqual(photo.local_orientation, 6)
         photo.refresh_from_db()
         self.assertEqual(photo.local_orientation, 6)
         self.assertEqual(photo.metadata.orientation, 1)
 
-    @patch("api.thumbnails.render.renders_exif_orientation", return_value=False)
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")
-    def test_missing_metadata_row_defaults_exif_orientation_to_1(
-        self, regen, write_metadata, renders
+    def test_sidecar_value_starts_from_the_files_own_orientation(
+        self, regen, write_metadata
     ):
-        """Without the file to go on, the value composes the stored exif
-        orientation, 1 when there is no ``PhotoMetadata`` row."""
-        self.user.save_metadata_to_disk = User.SaveMetadata.MEDIA_FILE
-        self.user.save()
-        photo = create_test_photo(owner=self.user)  # no PhotoMetadata created
-        photo.refresh_from_db()
+        """#2297: not from ``PhotoMetadata.orientation``, which the scan never
+        fills in, and every rotate starts from the same untouched original."""
+        photo = self._sidecar_photo(orientation=None)
+        self._file_says(photo, 6)
 
-        rotate_photo(photo, 90)
-
-        self.assertEqual(self._written(write_metadata), [6])
-
-    @patch("api.thumbnails.render.renders_exif_orientation", return_value=False)
-    @patch("api.metadata.photo_writer.write_metadata")
-    @patch("api.thumbnails.render.regenerate_thumbnails")
-    def test_null_exif_orientation_falls_back_to_1(
-        self, regen, write_metadata, renders
-    ):
-        photo = self._media_file_photo(orientation=None)
-
-        rotate_photo(photo, 180)
-
+        rotate_photo(photo, -90)
         self.assertEqual(self._written(write_metadata), [3])
+
+        rotate_photo(photo, -90)
+        self.assertEqual(self._written(write_metadata), [8])
+        self.assertEqual(photo.local_orientation, 3)
 
     @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.thumbnails.render.regenerate_thumbnails")

@@ -278,7 +278,7 @@ sidebar_position: 18
         <td>Orientation</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read to transform face-region coordinates. Written back (composed with your rotation) when you rotate a photo, but only if "Synchronize metadata to disk" is enabled.</td>
+        <td>Read to transform face-region coordinates. Written back (composed with your rotation) when you rotate a photo, but only if "Synchronize metadata to disk" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format. HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
     </tr>
     <tr>
         <td>EXIF:SubSecTimeOriginal</td>
