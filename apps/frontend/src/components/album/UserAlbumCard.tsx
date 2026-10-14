@@ -4,6 +4,7 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
+  IconFolders as Folders,
   IconLink as LinkIcon,
   IconLock as Lock,
   IconLockOpen as LockOpen,
@@ -24,6 +25,8 @@ type UserAlbumCardProps = {
   showActions?: boolean;
   onRename?: (id: string, title: string) => void;
   onShare?: (id: string, title: string) => void;
+  /** Opens the album's Collections dialog (#1009). */
+  onCollections?: (id: string, title: string) => void;
   onDelete?: (id: string, title: string) => void;
   onToggleLocked?: (id: string, locked: boolean) => void;
 };
@@ -79,6 +82,7 @@ export function UserAlbumCard({
   showActions = false,
   onRename,
   onShare,
+  onCollections,
   onDelete,
   onToggleLocked,
 }: UserAlbumCardProps) {
@@ -110,7 +114,7 @@ export function UserAlbumCard({
       </Link>
 
       {/* Actions menu */}
-      {showActions && (onRename || onShare || onDelete || onToggleLocked) && (
+      {showActions && (onRename || onShare || onCollections || onDelete || onToggleLocked) && (
         <div className={classes.actions}>
           {/* Its items open dialogs: handing focus back to the trigger after close took it from
               the dialog's input. Escape still returns it (Mantine does that on its own). */}
@@ -136,6 +140,14 @@ export function UserAlbumCard({
               {onShare && (
                 <Menu.Item leftSection={<Share size={14} />} onClick={() => onShare(`${album.id}`, album.title)}>
                   {t("sidemenu.sharing")}
+                </Menu.Item>
+              )}
+              {onCollections && (
+                <Menu.Item
+                  leftSection={<Folders size={14} />}
+                  onClick={() => onCollections(`${album.id}`, album.title)}
+                >
+                  {t("albumcollections.menuitem")}
                 </Menu.Item>
               )}
               {onToggleLocked && (

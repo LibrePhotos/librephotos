@@ -22,6 +22,7 @@ from rest_framework.permissions import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from api.albums.collections import set_album_collections
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.pagination import (
     DAY_ALBUM_PAGE_PARAMETERS,
@@ -33,6 +34,7 @@ from api.drf.request_user import request_user
 from api.faces.labels import relabel_faces
 from api.faces.merge import merge_people
 from api.models import (
+    AlbumCollection,
     AlbumDate,
     AlbumPlace,
     AlbumThing,
@@ -45,6 +47,10 @@ from api.models import (
 from api.models.photo import visible_photo_q
 from api.models.photo_stack import PhotoStack
 from api.photos.paths import folder_path_q
+from api.serializers.album_collection import (
+    UserAlbumCollectionsRequest,
+    UserAlbumCollectionsSerializer,
+)
 from api.serializers.album_date import (
     AlbumDateListQuery,
     AlbumDateSerializer,
@@ -65,6 +71,7 @@ from api.serializers.album_thing import (
 )
 from api.serializers.album_user import (
     AlbumUserEditSerializer,
+    AlbumUserListQuery,
     AlbumUserListSerializer,
     AlbumUserPublicSerializer,
     AlbumUserQuery,
@@ -451,8 +458,24 @@ class AlbumUserViewSet(
             return AlbumUserPublicSerializer
         return super().get_serializer_class()
 
+    @extend_schema(
+        request=UserAlbumCollectionsRequest,
+        responses=UserAlbumCollectionsSerializer,
+    )
+    @action(detail=True, methods=["put"], url_path="collections")
+    def collections(self, request: Request, pk: str | None = None) -> Response:
+        """Put the album in exactly the listed collections of its owner (#1009).
+
+        Only the owner: a write resolves the album through ``owned_by``, and
+        every id must be one of the requester's collections.
+        """
+        album = self.get_object()
+        chosen = parse_body(request, UserAlbumCollectionsRequest)["collection_ids"]
+        return Response({"collection_ids": set_album_collections(album, chosen)})
+
 
 # To-Do: Could be the list command in AlbumUserViewSet
+@extend_schema_view(list=extend_schema(parameters=[AlbumUserListQuery]))
 class AlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
@@ -464,8 +487,17 @@ class AlbumUserListViewSet(ListViewSet):
         user = self.request.user
         if not isinstance(user, User):
             return AlbumUser.objects.none()
+        albums = AlbumUser.objects.owned_by(user)
+        collection = parse_query(self.request, AlbumUserListQuery).get("collection")
+        if collection is not None:
+            # Through the requester's collections: another user's id lists nothing.
+            albums = albums.filter(
+                collections__in=AlbumCollection.objects.owned_by(user).filter(
+                    pk=collection
+                )
+            )
         return (
-            with_album_user_list_relations(AlbumUser.objects.owned_by(user))
+            with_album_user_list_relations(albums)
             # A Q: the type checker does not see the helper's annotation.
             .filter(Q(photo_count__gt=0))
             .order_by("title")

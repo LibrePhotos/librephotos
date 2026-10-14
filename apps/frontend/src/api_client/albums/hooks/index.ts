@@ -34,3 +34,4 @@ export * from "./useSlugAvailabilityQuery";
 export * from "./useFetchPersonQuery";
 export * from "./useRemovePhotosFromPersonMutation";
 export * from "./useMergePersonMutation";
+export * from "./useAlbumCollections";

@@ -13,12 +13,14 @@ import type { ToggleUserAlbumLockedParams } from "../../api_client/albums/types"
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import type { ModalAlbumShare } from "../sharing/ModalAlbumShare";
+import type { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import { UserAlbumHeaderMenu } from "./UserAlbumHeaderMenu";
 import type { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
 
 type RenameProps = React.ComponentProps<typeof RenameUserAlbumModal>;
 type DeleteProps = React.ComponentProps<typeof DeleteUserAlbumModal>;
 type ShareProps = React.ComponentProps<typeof ModalAlbumShare>;
+type CollectionsProps = React.ComponentProps<typeof AlbumCollectionsModal>;
 
 const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
@@ -26,6 +28,7 @@ const stubs = vi.hoisted(() => ({
   rename: undefined as RenameProps | undefined,
   remove: undefined as DeleteProps | undefined,
   share: undefined as ShareProps | undefined,
+  collections: undefined as CollectionsProps | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -49,6 +52,12 @@ vi.mock("./UserAlbumModals", () => ({
     return null;
   },
 }));
+vi.mock("./AlbumCollectionsModal", () => ({
+  AlbumCollectionsModal: (props: CollectionsProps) => {
+    stubs.collections = props;
+    return null;
+  },
+}));
 vi.mock("../sharing/ModalAlbumShare", () => ({
   ModalAlbumShare: (props: ShareProps) => {
     stubs.share = props;
@@ -57,7 +66,7 @@ vi.mock("../sharing/ModalAlbumShare", () => ({
 }));
 
 const owner = { id: 1, username: "maria", first_name: "Maria", last_name: "Santos" };
-const lisbon = { id: 7, title: "Lisbon 2026", locked: false, owner } satisfies Partial<UserAlbum>;
+const lisbon = { id: 7, title: "Lisbon 2026", locked: false, owner, collection_ids: [3] } satisfies Partial<UserAlbum>;
 
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
@@ -96,6 +105,7 @@ beforeEach(() => {
   stubs.rename = undefined;
   stubs.remove = undefined;
   stubs.share = undefined;
+  stubs.collections = undefined;
 });
 
 afterEach(async () => {
@@ -116,12 +126,24 @@ async function pick(item: string) {
 }
 
 describe("UserAlbumHeaderMenu", () => {
-  it("offers rename, sharing, lock and delete", async () => {
+  it("offers rename, sharing, collections, lock and delete", async () => {
     await render();
     await act(async () => button("Album actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Sharing", "Lock album", "Delete album"]);
+    expect(items).toEqual(["Rename", "Sharing", "Collections…", "Lock album", "Delete album"]);
+  });
+
+  it("opens the collections checklist with the album's collections (#1009)", async () => {
+    await render();
+    await pick("Collections…");
+
+    expect(stubs.collections).toMatchObject({
+      opened: true,
+      albumId: "7",
+      albumTitle: "Lisbon 2026",
+      collectionIds: [3],
+    });
   });
 
   it("renames with every other album's title taken, not this one's", async () => {

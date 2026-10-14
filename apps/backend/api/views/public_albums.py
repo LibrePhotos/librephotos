@@ -80,7 +80,7 @@ class SetUserAlbumPublic(APIView):
         except IntegrityError as error:
             raise self._slug_taken() from error
 
-        return Response({"status": True, "album": album_user_card(album)})
+        return Response({"status": True, "album": album_user_card(album, request)})
 
     @staticmethod
     def _slug_taken() -> Conflict:

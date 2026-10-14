@@ -44,6 +44,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // albums
   PhotoSuperSimple: { schema: S.PhotoSuperSimple, components: ["PhotoSuperSimple"] },
   UserAlbumInfo: { schema: S.UserAlbumInfo, components: ["AlbumUserList"] },
+  AlbumCollection: { schema: S.AlbumCollection, components: ["AlbumCollection"] },
+  UserAlbumCollections: { schema: S.UserAlbumCollections, components: ["UserAlbumCollections"] },
   UserAlbum: { schema: S.UserAlbum, components: ["AlbumUser"] },
   EventTitleParts: { schema: S.EventTitleParts, components: ["EventTitleParts"] },
   AutoAlbumInfo: { schema: S.AutoAlbumInfo, components: ["AlbumAutoList"] },
@@ -233,6 +235,9 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
   FetchUserAlbumsListResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
+  PublicAlbum: "compared where it is read, as the results of FetchPublicAlbumResponse (PublicAlbumResponse)",
+  AlbumCollectionListResponse:
+    "a {results} envelope around rows compared on their own (AlbumCollection); the view's wrapper is not a component",
   PublicSharingOptions:
     "nested in AlbumUser.public_sharing_options, which the schema leaves untyped (AlbumUserSerializer.get_public_sharing_options returns a bare list or dict)",
   FetchUserAlbumsSharedResponse:

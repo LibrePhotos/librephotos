@@ -439,7 +439,7 @@ export async function fetchUserAlbum(
 }
 
 /** A public album by its link slug, for a visitor without a session. A 404 is an unknown or expired link. */
-export async function fetchPublicAlbum(client: ApiClient, slug: string): Promise<S.UserAlbum> {
+export async function fetchPublicAlbum(client: ApiClient, slug: string): Promise<S.PublicAlbum> {
   const res = await client.get<unknown>(`/public/albums/s/${encodeURIComponent(slug)}/`);
   return parseResponse(S.FetchPublicAlbumResponse, res, "public album").results;
 }
@@ -1840,6 +1840,48 @@ export async function renameUserAlbum(
 /** Delete a user album; its photos stay. Answers 204. */
 export async function deleteUserAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.delete(`/albums/user/${albumId}/`);
+}
+
+/* ---- album collections (#1009) ----------------------------------------- */
+
+/** The user's album collections by name, all pages. */
+export async function fetchAlbumCollections(client: ApiClient): Promise<S.AlbumCollection[]> {
+  const results = await fetchAllPages(client, "/albums/collections/");
+  return parseResponse(S.AlbumCollectionListResponse, { results }, "album collections").results;
+}
+
+/** Create a collection. A name the user already has (in any letter case) is a 400 on `name`. */
+export async function createAlbumCollection(client: ApiClient, name: string): Promise<S.AlbumCollection> {
+  const res = await client.post<unknown>("/albums/collections/", { name });
+  return parseResponse(S.AlbumCollection, res, "create album collection");
+}
+
+/** Rename a collection. */
+export async function renameAlbumCollection(
+  client: ApiClient,
+  collectionId: number,
+  name: string
+): Promise<S.AlbumCollection> {
+  const res = await client.patch<unknown>(`/albums/collections/${collectionId}/`, { name });
+  return parseResponse(S.AlbumCollection, res, "rename album collection");
+}
+
+/** Delete a collection; its albums stay. Answers 204. */
+export async function deleteAlbumCollection(client: ApiClient, collectionId: number): Promise<void> {
+  await client.delete(`/albums/collections/${collectionId}/`);
+}
+
+/** Put a user album in exactly these collections of its owner. */
+export async function setUserAlbumCollections(
+  client: ApiClient,
+  albumId: number | string,
+  collectionIds: number[]
+): Promise<S.UserAlbumCollections> {
+  const res = await client.request<unknown>(`/albums/user/${albumId}/collections/`, {
+    method: "PUT",
+    body: { collection_ids: collectionIds },
+  });
+  return parseResponse(S.UserAlbumCollections, res, "set user album collections");
 }
 
 /** Delete one event album. Answers 204. */

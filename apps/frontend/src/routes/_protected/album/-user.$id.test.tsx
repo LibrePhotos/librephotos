@@ -63,6 +63,7 @@ const owner = { id: 1, username: "maria", first_name: "Maria", last_name: "Santo
 const lisbon: UserAlbum = {
   id: 7,
   title: "Lisbon 2026",
+  collection_ids: [],
   owner,
   shared_to: [],
   locked: false,

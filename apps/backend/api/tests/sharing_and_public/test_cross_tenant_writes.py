@@ -54,6 +54,7 @@ from api.tests.infra.routes import (
 )
 from api.tests.utils import (
     create_test_album_auto,
+    create_test_album_collection,
     create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
@@ -260,6 +261,9 @@ class CrossTenantWriteTest(TestCase):
 
         self.v_album = create_test_album_user(title="Victim Trip", owner=self.victim)
         self.v_album.photos.add(self.v_pub, self.v_priv)
+        self.v_collection = create_test_album_collection(
+            name="Victim Collection", owner=self.victim, albums=[self.v_album]
+        )
         self.v_auto = create_test_album_auto(
             title="Victim Event", owner=self.victim, timestamp=now, created_on=now
         )
@@ -288,6 +292,9 @@ class CrossTenantWriteTest(TestCase):
         self.a_photo2 = create_test_photo(owner=self.attacker)
         self.a_tag = create_test_tag(name="attacker-tag", owner=self.attacker)
         self.a_album = create_test_album_user(title="Loot", owner=self.attacker)
+        self.a_collection = create_test_album_collection(
+            name="Loot Collection", owner=self.attacker
+        )
         self.a_stack = create_test_stack(
             owner=self.attacker, stack_type="manual", primary_photo=self.a_photo
         )
@@ -423,6 +430,29 @@ class CrossTenantWriteTest(TestCase):
                 "patch",
                 "/api/photos/metadata/bulk",
                 {"photo_ids": self._hashes(), "updates": {"title": "pwned"}},
+            ),
+            # album collections
+            ("post", "/api/albums/collections/", {"name": "Victim Collection"}),
+            (
+                "patch",
+                f"/api/albums/collections/{self.v_collection.pk}/",
+                {"name": "pwned"},
+            ),
+            ("delete", f"/api/albums/collections/{self.v_collection.pk}/", None),
+            (
+                "put",
+                f"/api/albums/user/{self.v_album.pk}/collections/",
+                {"collection_ids": [self.a_collection.pk]},
+            ),
+            (
+                "put",
+                f"/api/albums/user/{self.v_album.pk}/collections/",
+                {"collection_ids": []},
+            ),
+            (
+                "put",
+                f"/api/albums/user/{self.a_album.pk}/collections/",
+                {"collection_ids": [self.v_collection.pk]},
             ),
             # tags
             ("post", "/api/tags/", {"name": "new", "photos": self._ids()}),
@@ -759,6 +789,7 @@ class CrossTenantWriteTest(TestCase):
             "api.Person",
             "api.Tag",
             "api.AlbumUser",
+            "api.AlbumCollection",
             "api.PhotoStack",
             "api.Duplicate",
         ):

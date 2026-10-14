@@ -230,6 +230,192 @@
         }
       }
     },
+    "/api/albums/collections/": {
+      "get": {
+        "operationId": "api_albums_collections_list",
+        "description": "The requester's collections, by name. Deleting one keeps its albums.\n\nAnother user's collection id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAlbumCollectionList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_albums_collections_create",
+        "description": "The requester's collections, by name. Deleting one keeps its albums.\n\nAnother user's collection id behaves exactly like one that does not exist.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCollectionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCollectionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumCollection"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/collections/{id}/": {
+      "patch": {
+        "operationId": "api_albums_collections_partial_update",
+        "description": "The requester's collections, by name. Deleting one keeps its albums.\n\nAnother user's collection id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this album collection.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCollectionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCollectionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCollectionRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumCollection"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_albums_collections_destroy",
+        "description": "The requester's collections, by name. Deleting one keeps its albums.\n\nAnother user's collection id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this album collection.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
     "/api/albums/date/{id}/": {
       "get": {
         "operationId": "api_albums_date_retrieve",
@@ -957,6 +1143,66 @@
         }
       }
     },
+    "/api/albums/user/{id}/collections/": {
+      "put": {
+        "operationId": "api_albums_user_collections_update",
+        "description": "Put the album in exactly the listed collections of its owner (#1009).\n\nOnly the owner: a write resolves the album through ``owned_by``, and\nevery id must be one of the requester's collections.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this album user.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAlbumCollectionsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAlbumCollectionsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAlbumCollectionsRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAlbumCollections"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/albums/user/edit/": {
       "post": {
         "operationId": "api_albums_user_edit_create",
@@ -1068,6 +1314,15 @@
         "operationId": "api_albums_user_list_list",
         "description": "A viewset that provides `list` actions.\n\nTo use it, override the class and set the `.queryset` and\n`.serializer_class` attributes.",
         "parameters": [
+          {
+            "in": "query",
+            "name": "collection",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only the albums in this collection of yours"
+          },
           {
             "name": "page",
             "required": false,
@@ -10300,6 +10555,38 @@
           "timestamp"
         ]
       },
+      "AlbumCollection": {
+        "type": "object",
+        "description": "One collection: create and rename write ``name``.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AlbumCollectionRequest": {
+        "type": "object",
+        "description": "One collection: create and rename write ``name``.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "AlbumDate": {
         "type": "object",
         "properties": {
@@ -10563,9 +10850,18 @@
             "nullable": true,
             "description": "Return the per-album sharing option overrides (None values = use default).",
             "readOnly": true
+          },
+          "collection_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The ids of the owner's collections holding the album (#1009); one\nquery, as this serializer renders a single album.",
+            "readOnly": true
           }
         },
         "required": [
+          "collection_ids",
           "date",
           "grouped_photos",
           "id",
@@ -10755,9 +11051,18 @@
             "nullable": true,
             "description": "Return the per-album sharing option overrides (None values = use default).",
             "readOnly": true
+          },
+          "collection_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The ids of the owner's collections holding the album (#1009), for\nthe owner only (``_viewer_owns``).",
+            "readOnly": true
           }
         },
         "required": [
+          "collection_ids",
           "cover_photo",
           "created_on",
           "favorited",
@@ -14361,6 +14666,54 @@
           }
         }
       },
+      "PaginatedAlbumCollectionList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumCollection"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedAlbumPlaceListList": {
         "type": "object",
         "required": [
@@ -15035,6 +15388,17 @@
           "message",
           "status"
         ]
+      },
+      "PatchedAlbumCollectionRequest": {
+        "type": "object",
+        "description": "One collection: create and rename write ``name``.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
       },
       "PatchedAlbumUserEditRequest": {
         "type": "object",
@@ -20921,6 +21285,37 @@
           "transcode_videos",
           "upload_directory",
           "username"
+        ]
+      },
+      "UserAlbumCollections": {
+        "type": "object",
+        "description": "The collections an album is in after the change.",
+        "properties": {
+          "collection_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "collection_ids"
+        ]
+      },
+      "UserAlbumCollectionsRequestRequest": {
+        "type": "object",
+        "description": "``PUT /api/albums/user/<id>/collections/``: every collection the album is in.",
+        "properties": {
+          "collection_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The album's collections; any it is in now and that are not listed lose it"
+          }
+        },
+        "required": [
+          "collection_ids"
         ]
       },
       "UserStats": {

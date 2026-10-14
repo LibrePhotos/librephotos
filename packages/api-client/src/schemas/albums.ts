@@ -75,6 +75,9 @@ export const UserAlbumInfo = z.object({
   public_slug: z.string().optional(),
   public_expires_at: z.string().nullable().optional(),
   public_sharing_options: PublicSharingOptions.nullable().optional(),
+  // The owner's collections holding the album (#1009); empty on someone else's album. Optional:
+  // older servers do not send it.
+  collection_ids: z.number().array().optional().default([]),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 
@@ -100,8 +103,15 @@ export const UserAlbum = UserAlbumDetails.extend({
   public_slug: z.string().optional(),
   public_expires_at: z.string().nullable().optional(),
   public_sharing_options: PublicSharingOptions.nullable().optional(),
+  // The owner's collections holding the album (#1009). Absent from a public album and from older
+  // servers.
+  collection_ids: z.number().array().optional().default([]),
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
+
+/** A public album: the owner's UserAlbum shape without the owner's collections, which stay private. */
+export const PublicAlbum = UserAlbum.omit({ collection_ids: true });
+export type PublicAlbum = z.infer<typeof PublicAlbum>;
 
 /**
  * GET /public/albums/s/{slug}/: a public album by its link slug, for a visitor without a session,
@@ -109,7 +119,7 @@ export type UserAlbum = z.infer<typeof UserAlbum>;
  * (sharing, lock, link settings) are optional and absent here.
  */
 export const FetchPublicAlbumResponse = z.object({
-  results: UserAlbum,
+  results: PublicAlbum,
   sharing_settings: PublicSharingSettings.optional(),
 });
 export type FetchPublicAlbumResponse = z.infer<typeof FetchPublicAlbumResponse>;
@@ -124,6 +134,26 @@ export const FetchUserAlbumsSharedResponse = z.object({
   results: UserAlbumInfo.array(),
 });
 export type FetchUserAlbumsSharedResponse = z.infer<typeof FetchUserAlbumsSharedResponse>;
+
+/* ---- Album collections (#1009) ----------------------------------------- */
+
+/** A user's own grouping of their albums ("Travel", "Family"); an album can be in several. */
+export const AlbumCollection = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type AlbumCollection = z.infer<typeof AlbumCollection>;
+
+export const AlbumCollectionListResponse = z.object({
+  results: AlbumCollection.array(),
+});
+export type AlbumCollectionListResponse = z.infer<typeof AlbumCollectionListResponse>;
+
+/** PUT /albums/user/{id}/collections/: the collections the album is in after the change. */
+export const UserAlbumCollections = z.object({
+  collection_ids: z.number().array(),
+});
+export type UserAlbumCollections = z.infer<typeof UserAlbumCollections>;
 
 /* ---- Auto (event) albums ---------------------------------------------- */
 

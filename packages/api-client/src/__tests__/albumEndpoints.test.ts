@@ -382,3 +382,55 @@ describe("date albums with the timeline filter", () => {
     expect(Object.fromEntries(day.searchParams)).toEqual({ hide_documents: "true", page: "2" });
   });
 });
+
+/** AlbumCollectionViewSet and AlbumUserViewSet.collections (#1009). */
+describe("album collections", () => {
+  it("reads every page of the collections", async () => {
+    const { client, requests } = fakeServer(page([{ id: 3, name: "Travel" }]));
+    await expect(endpoints.fetchAlbumCollections(client)).resolves.toEqual([{ id: 3, name: "Travel" }]);
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/albums/collections/");
+  });
+
+  it("creates, renames and deletes a collection", async () => {
+    const created = fakeServer({ id: 3, name: "Travel" });
+    await expect(endpoints.createAlbumCollection(created.client, "Travel")).resolves.toEqual({ id: 3, name: "Travel" });
+    expect(defined(created.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/collections/",
+      method: "POST",
+      body: { name: "Travel" },
+    });
+
+    const renamed = fakeServer({ id: 3, name: "Trips" });
+    await endpoints.renameAlbumCollection(renamed.client, 3, "Trips");
+    expect(defined(renamed.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/collections/3/",
+      method: "PATCH",
+      body: { name: "Trips" },
+    });
+
+    const deleted = fakeServer(null);
+    await endpoints.deleteAlbumCollection(deleted.client, 3);
+    expect(defined(deleted.requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/albums/collections/3/",
+      method: "DELETE",
+    });
+  });
+
+  it("puts an album in exactly the given collections", async () => {
+    const { client, requests } = fakeServer({ collection_ids: [3, 5] });
+    await expect(endpoints.setUserAlbumCollections(client, "4", [3, 5])).resolves.toEqual({ collection_ids: [3, 5] });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/collections/",
+      method: "PUT",
+      body: { collection_ids: [3, 5] },
+    });
+  });
+
+  it("reads the collections of an album card, and none from an older server", async () => {
+    const [filed, older] = await endpoints.fetchUserAlbumsList(
+      fakeServer(page([{ ...card, collection_ids: [3] }, card])).client
+    );
+    expect(defined(filed).collection_ids).toEqual([3]);
+    expect(defined(older).collection_ids).toEqual([]);
+  });
+});

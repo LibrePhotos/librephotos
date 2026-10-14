@@ -20,13 +20,15 @@ const stubs = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options?: { component?: React.ComponentType }) => {
     stubs.component = options?.component;
-    return {};
+    return { useSearch: () => ({}), useNavigate: () => () => Promise.resolve() };
   },
   useNavigate: () => () => {},
 }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchUserAlbumsQuery: () => ({ ...stubs.albums, refetch: stubs.refetch }),
   useToggleUserAlbumLockedMutation: () => ({ mutate: () => {} }),
+  useFetchAlbumCollectionsQuery: () => ({ data: [] }),
+  useDeleteAlbumCollectionMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
 vi.mock("../../../components/album/UserAlbumModals", () => ({
   DeleteUserAlbumModal: () => null,
@@ -94,7 +96,7 @@ describe("My Albums", () => {
   });
 
   it("keeps the albums on screen when only a background refetch failed", async () => {
-    stubs.albums = { data: [{ id: 1 }], isLoading: false, isFetching: false, isError: true };
+    stubs.albums = { data: [{ id: 1, collection_ids: [] }], isLoading: false, isFetching: false, isError: true };
     await renderPage();
 
     expect(container.querySelector("[data-testid=grid]")?.textContent).toBe("1");

@@ -6,12 +6,13 @@ from django.db.models import Count, OuterRef, Prefetch, QuerySet, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.request import Request
 
 from api.drf.params import JsonBooleanField
 from api.drf.request_user import request_user
-from api.models import AlbumUser, Photo
+from api.models import AlbumCollection, AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
-from api.models.user import get_default_public_sharing_settings
+from api.models.user import User, get_default_public_sharing_settings
 from api.photos.selection import build_photo_queryset
 from api.serializers.album_date import PublicViewQuery
 from api.serializers.fields import (
@@ -53,6 +54,16 @@ def _album_photos(
     return cache[album.pk]
 
 
+def _viewer_owns(serializer: serializers.BaseSerializer, album: AlbumUser) -> bool:
+    """Whether the serializer's request comes from the album's owner.
+
+    Collections are their owner's private grouping: on an album someone shared
+    (or a card rendered without a request) its collections stay out.
+    """
+    viewer = getattr(serializer.context.get("request"), "user", None)
+    return isinstance(viewer, User) and viewer.pk == album.owner_id
+
+
 class AlbumUserSerializer(serializers.ModelSerializer):
     owner = SimpleUserSerializer(many=False, read_only=True)
     shared_to = SimpleUserSerializer(many=True, read_only=True)
@@ -63,6 +74,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
     public_slug = serializers.SerializerMethodField()
     public_expires_at = serializers.SerializerMethodField()
     public_sharing_options = serializers.SerializerMethodField()
+    collection_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -79,6 +91,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "public_slug",
             "public_expires_at",
             "public_sharing_options",
+            "collection_ids",
         )
 
     @extend_schema_field(GroupedPhotosSerializer(many=True))
@@ -129,6 +142,13 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "share_captions": share.share_captions,
             "share_faces": share.share_faces,
         }
+
+    def get_collection_ids(self, obj: AlbumUser) -> list[int]:
+        """The ids of the owner's collections holding the album (#1009); one
+        query, as this serializer renders a single album."""
+        if not _viewer_owns(self, obj):
+            return []
+        return sorted(obj.collections.values_list("pk", flat=True))
 
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
@@ -301,6 +321,15 @@ def with_album_user_list_relations(
                 to_attr="first_photos",
             ),
         )
+        # The owner's collections holding the album (#1009); only ids. A call
+        # of its own: one list of Prefetch over two models types as object.
+        .prefetch_related(
+            Prefetch(
+                "collections",
+                queryset=AlbumCollection.objects.only("id").order_by("pk"),
+                to_attr="loaded_collections",
+            )
+        )
     )
 
 
@@ -313,6 +342,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     public_slug = serializers.SerializerMethodField()
     public_expires_at = serializers.SerializerMethodField()
     public_sharing_options = serializers.SerializerMethodField()
+    collection_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -330,6 +360,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "public_slug",
             "public_expires_at",
             "public_sharing_options",
+            "collection_ids",
         )
 
     @extend_schema_field(PhotoSuperSimpleSerializer)
@@ -371,13 +402,23 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "share_faces": share.share_faces,
         }
 
+    def get_collection_ids(self, obj: AlbumUser) -> list[int]:
+        """The ids of the owner's collections holding the album (#1009), for
+        the owner only (``_viewer_owns``)."""
+        if not _viewer_owns(self, obj):
+            return []
+        return [
+            collection.pk
+            for collection in loaded_list(obj, "loaded_collections", AlbumCollection)
+        ]
 
-def album_user_card(album: AlbumUser) -> dict[str, Any]:
+
+def album_user_card(album: AlbumUser, request: Request) -> dict[str, Any]:
     """The card of one album, for a response about it (shared, made public)."""
     loaded_album = with_album_user_list_relations(
         AlbumUser.objects.filter(pk=album.pk)
     ).get()
-    return AlbumUserListSerializer(loaded_album).data
+    return AlbumUserListSerializer(loaded_album, context={"request": request}).data
 
 
 class AlbumUserPublicSerializer(serializers.ModelSerializer):
@@ -466,6 +507,16 @@ class SetUserAlbumSharedRequest(serializers.Serializer[None]):
 
 class LeaveSharedAlbumRequest(serializers.Serializer[None]):
     album_id = serializers.IntegerField(help_text="An album someone shared with you")
+
+
+class AlbumUserListQuery(serializers.Serializer[None]):
+    """My Albums: all of them, or the ones in one collection (#1009)."""
+
+    collection = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Only the albums in this collection of yours",
+    )
 
 
 class AlbumUserQuery(PublicViewQuery):

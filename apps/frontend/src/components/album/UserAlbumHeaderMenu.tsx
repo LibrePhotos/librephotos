@@ -1,7 +1,7 @@
 import type { UserAlbum } from "@librephotos/api-client";
 import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit, IconLock, IconLockOpen, IconShare, IconTrash } from "@tabler/icons-react";
+import { IconEdit, IconFolders, IconLock, IconLockOpen, IconShare, IconTrash } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,13 +9,14 @@ import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../..
 import { ICON_SIZE } from "../../uiConstants";
 import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
+import { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
 
-type Props = Readonly<{ album: Pick<UserAlbum, "id" | "title" | "locked" | "owner"> }>;
+type Props = Readonly<{ album: Pick<UserAlbum, "id" | "title" | "locked" | "owner" | "collection_ids"> }>;
 
 /**
- * The owner's "⋮" on an album page (#2208): the My Albums card's Rename, Sharing, Lock / Unlock
- * and Delete, where deleting goes back to My Albums.
+ * The owner's "⋮" on an album page (#2208): the My Albums card's Rename, Sharing, Collections
+ * (#1009), Lock / Unlock and Delete, where deleting goes back to My Albums.
  */
 export function UserAlbumHeaderMenu({ album }: Props) {
   const { t } = useTranslation();
@@ -23,6 +24,7 @@ export function UserAlbumHeaderMenu({ album }: Props) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [renameOpened, rename] = useDisclosure(false);
   const [shareOpened, share] = useDisclosure(false);
+  const [collectionsOpened, collections] = useDisclosure(false);
   const [deleteOpened, remove] = useDisclosure(false);
   // The other titles, for the rename's duplicate check; usually cached from My Albums.
   const { data: albums } = useFetchUserAlbumsQuery();
@@ -42,6 +44,9 @@ export function UserAlbumHeaderMenu({ album }: Props) {
         </Menu.Item>
         <Menu.Item leftSection={<IconShare size={ICON_SIZE.menu} />} onClick={share.open}>
           {t("sidemenu.sharing")}
+        </Menu.Item>
+        <Menu.Item leftSection={<IconFolders size={ICON_SIZE.menu} />} onClick={collections.open}>
+          {t("albumcollections.menuitem")}
         </Menu.Item>
         <Menu.Item
           leftSection={album.locked ? <IconLockOpen size={ICON_SIZE.menu} /> : <IconLock size={ICON_SIZE.menu} />}
@@ -67,6 +72,13 @@ export function UserAlbumHeaderMenu({ album }: Props) {
         onRequestClose={closeAndFocus(share.close)}
         albumID={albumId}
         ownerUsername={album.owner.username}
+      />
+      <AlbumCollectionsModal
+        opened={collectionsOpened}
+        onClose={closeAndFocus(collections.close)}
+        albumId={albumId}
+        albumTitle={album.title}
+        collectionIds={album.collection_ids}
       />
       <DeleteUserAlbumModal
         opened={deleteOpened}
