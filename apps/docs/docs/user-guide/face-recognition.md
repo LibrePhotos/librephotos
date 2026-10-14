@@ -70,6 +70,8 @@ Each group starts with a row that shows the person's face, their name and how ma
 
 Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
 
+To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there. _Not released yet: groups come with the release after 1.3.0._
+
 ### Act on one face
 
 You can also review faces one at a time, without selecting them first. Point at a face (or move to it with the **Tab** key) and two buttons appear on it; on a phone or tablet they are always shown:

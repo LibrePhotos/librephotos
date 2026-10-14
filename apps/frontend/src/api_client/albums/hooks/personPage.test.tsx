@@ -86,6 +86,7 @@ describe("useFetchPersonQuery", () => {
       face_photo_url: "hash",
       video: false,
       id: 5,
+      group_ids: [2],
     });
 
     const result = await fetchPerson(5);
@@ -98,6 +99,7 @@ describe("useFetchPersonQuery", () => {
       face_count: 3,
       face_photo_url: "hash",
       face_url: "",
+      group_ids: [2],
     });
   });
 

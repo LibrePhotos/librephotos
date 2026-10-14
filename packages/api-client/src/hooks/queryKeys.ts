@@ -151,6 +151,8 @@ export const albumKeys = {
   peopleAlbumsRaw: () => [...albumKeys.peopleAlbums(), "raw"] as const,
   /** One person (the person page's title), under the people list so a rename refreshes both. */
   person: (id: number) => [...albumKeys.peopleAlbums(), "person", id] as const,
+  /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */
+  personGroups: () => [...albumKeys.peopleAlbums(), "groups"] as const,
   locationClusters: () => [...albumRoot, "locationClusters"] as const,
   /** The albums I shared, grouped by recipient (web). */
   sharedByMe: () => [...albumRoot, "sharedByMe"] as const,
@@ -212,6 +214,8 @@ export type IncompletePersonFaceListRequest = {
   minConfidence?: number;
   /** Count each person's deleted faces (#127). */
   deleted?: boolean;
+  /** Only the people in this group (#1126). */
+  group?: number;
 };
 
 const faceRoot = ["faces"] as const;

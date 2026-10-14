@@ -19,11 +19,24 @@ Automatically generated albums based on face recognition. Each recognized person
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
 - **Rename** renames the person. A name another person already has offers **Merge into** that person instead (see below).
+- **Groups…** puts the person in your groups of people (see below).
 - **Merge into…** merges this person into another one you pick from your people, then shows that person's page.
 - **Manage faces** opens the face dashboard.
 - **Delete person** removes the person from People and takes you back there. The photos stay in your library; the faces labelled with that person go back to the unknown faces, where you can label them again.
 
 A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album Actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
+
+#### Groups of people
+
+Groups gather people, for example "Family", "Work" or "Climbing club", so you can look at one circle at a time. A person can be in several groups, and only you see your groups.
+
+- To put a person in groups, open the **⋮** on their tile on the People page (or on their page) and choose **Groups…**. Tick the groups they belong to; every tick is saved at once. Type a name under the list and click **Add** to make a new group with this person in it.
+- To show only one group, use the group button in the People header (it says **All people** until you pick one). The list shows each group with how many people are in it. The page keeps the choice in its address, so **Back** from a person returns to the same group.
+- **Manage groups…** at the bottom of that list renames and deletes groups and adds new ones. Deleting a group keeps its people.
+
+When you merge two people, the person you merge into joins every group the merged person was in. The [face dashboard](./face-recognition.md#browse-people) has the same group button to label one group at a time.
+
+*Not released yet: groups of people come with the release after 1.3.0.*
 
 #### Merging two people
 

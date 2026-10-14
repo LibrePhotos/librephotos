@@ -2,7 +2,7 @@ import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,12 +12,13 @@ import {
   useSetFacesPersonLabelMutation,
 } from "../../api_client/faces";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
-import { EmptyState } from "../common/EmptyState";
+import { usePersonGroupFilter } from "../album/usePersonGroupFilter";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
+import { FacesEmptyState } from "./FacesEmptyState";
 import { FacesTab } from "./facesTab";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
@@ -38,9 +39,10 @@ export function FaceDashboard() {
   const { ref, width } = useContentBoxSize<HTMLDivElement>();
   const { t } = useTranslation();
 
-  const navigate = useNavigate();
   const search = routeApi.useSearch();
   const { tab: activeTab, method: analysisMethod, orderBy, minConfidence, personOrder } = search;
+  // The people of one group only (#1126), in the Labeled and Inferred tabs
+  const { groups: personGroups, groupId } = usePersonGroupFilter(search.group);
 
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
@@ -58,7 +60,7 @@ export function FaceDashboard() {
   const [lightboxImageId, setLightboxImageId] = useState("");
 
   const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, fetchingDeletedFacesList, idx2hash } =
-    useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder);
+    useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
 
   const showLightbox = useCallback(
     (imageId: string, isValid: boolean) => {
@@ -237,37 +239,6 @@ export function FaceDashboard() {
     setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
   }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
 
-  // "Scan your photos" only fits when no tab has any face. Otherwise only this tab
-  // is empty (e.g. every face is labeled), so offer the tab that has faces instead.
-  const renderEmptyState = () => {
-    const noFacesAtAll =
-      !fetchingLabeledFacesList &&
-      !fetchingInferredFacesList &&
-      !fetchingDeletedFacesList &&
-      lists.labeled.length + lists.inferred.length + lists.unknown.length + lists.deleted.length === 0;
-    if (noFacesAtAll) {
-      return (
-        <EmptyState
-          icon={<IconFaceId size={40} />}
-          title={t("emptystate.faces.title")}
-          description={t("emptystate.faces.description")}
-          actionLabel={t("emptystate.goToLibrary")}
-          actionLink="/library"
-        />
-      );
-    }
-    const otherTab = FacesTab.options.find(tab => tab !== activeTab && lists[tab].length > 0);
-    return (
-      <EmptyState
-        icon={<IconFaceId size={40} />}
-        title={t(`emptystate.facesTab.${activeTab}.title`)}
-        description={t(`emptystate.facesTab.${activeTab}.description`)}
-        actionLabel={otherTab && t(`emptystate.facesTab.show.${otherTab}`)}
-        onAction={otherTab && (() => navigate({ to: "/faces", search: { ...search, tab: otherTab } }))}
-      />
-    );
-  };
-
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
@@ -289,9 +260,15 @@ export function FaceDashboard() {
           allCollapsed={allCollapsed}
           toggleAllCollapsed={toggleAllCollapsed}
           canCollapse={hasFaces}
+          personGroups={personGroups}
+          groupId={groupId}
         />
         {!isFetching && !hasFaces ? (
-          renderEmptyState()
+          <FacesEmptyState
+            activeTab={activeTab}
+            lists={lists}
+            fetching={fetchingLabeledFacesList || fetchingInferredFacesList || fetchingDeletedFacesList}
+          />
         ) : (
           <VirtualizedGridComponent
             containerRef={ref}

@@ -1,7 +1,8 @@
 /**
  * The person page's "⋮" (#2207): Rename and Delete open the People page's dialogs, Delete goes
  * back to People once the person is gone, Manage faces opens the face dashboard, and "Merge
- * into…" picks another person, asks, and goes on to that person once merged (#2206).
+ * into…" picks another person, asks, and goes on to that person once merged (#2206). "Groups…"
+ * opens a checklist of the user's groups that saves on every tick (#1126).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import type {
   useDeletePersonAlbumMutation,
   useMergePersonMutation,
   useRenamePersonAlbumMutation,
+  useSetPersonGroupsMutation,
 } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
@@ -23,12 +25,14 @@ import { PersonHeaderMenu } from "./PersonHeaderMenu";
 type Rename = ReturnType<typeof useRenamePersonAlbumMutation>["mutate"];
 type Delete = ReturnType<typeof useDeletePersonAlbumMutation>["mutate"];
 type Merge = ReturnType<typeof useMergePersonMutation>["mutate"];
+type SetGroups = ReturnType<typeof useSetPersonGroupsMutation>["mutate"];
 
 const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
   rename: vi.fn<Rename>(),
   remove: vi.fn<Delete>(),
   merge: vi.fn<Merge>(),
+  setGroups: vi.fn<SetGroups>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -43,6 +47,15 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useRenamePersonAlbumMutation: () => ({ mutate: stubs.rename }),
   useDeletePersonAlbumMutation: () => ({ mutate: stubs.remove }),
   useMergePersonMutation: () => ({ mutate: stubs.merge, isPending: false }),
+  useFetchPersonGroupsQuery: () => ({
+    data: [
+      { id: 3, name: "Family", person_count: 1 },
+      { id: 4, name: "Work", person_count: 0 },
+    ],
+    isLoading: false,
+  }),
+  useSetPersonGroupsMutation: () => ({ mutate: stubs.setGroups }),
+  useCreatePersonGroupMutation: () => ({ mutateAsync: vi.fn<(name: string) => Promise<void>>(), isPending: false }),
 }));
 
 const anna: Person = {
@@ -52,6 +65,7 @@ const anna: Person = {
   face_count: 3,
   face_photo_url: "hash",
   face_url: "",
+  group_ids: [3],
 };
 
 beforeAll(async () => {
@@ -86,6 +100,7 @@ beforeEach(async () => {
   stubs.rename.mockReset();
   stubs.remove.mockReset();
   stubs.merge.mockReset();
+  stubs.setGroups.mockReset();
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -120,7 +135,26 @@ describe("PersonHeaderMenu", () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Merge into…", "Manage Faces", "Delete Person"]);
+    expect(items).toEqual(["Rename", "Groups…", "Merge into…", "Manage Faces", "Delete Person"]);
+  });
+
+  it("puts the person in a group on a tick, keeping the groups they are in", async () => {
+    await pick("persongroups.menu");
+
+    expect(document.body.textContent).toContain("Groups for Anna Becker");
+    const box = (label: string) =>
+      defined(
+        Array.from(document.body.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).find(input =>
+          input.closest("label, div")?.parentElement?.textContent?.includes(label)
+        ),
+        `the ${label} box`
+      );
+    expect(box("Family").checked).toBe(true);
+    expect(box("Work").checked).toBe(false);
+    await act(async () => box("Work").click());
+
+    expect(stubs.setGroups).toHaveBeenCalledWith({ personId: "5", groupIds: [3, 4] }, expect.anything());
+    expect(box("Work").checked).toBe(true);
   });
 
   it("opens the face dashboard", async () => {

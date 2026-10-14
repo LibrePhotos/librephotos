@@ -43,9 +43,25 @@ const stubs = vi.hoisted(() => ({
   // Alphabetical, the way the query hands them over. Ids are strings here and
   // numbers on the faces the API returns.
   people: [
-    { id: "1", name: "Alice", video: false, face_count: 12, face_photo_url: "/alice", face_url: "/alice" },
-    { id: "2", name: "Bob", video: false, face_count: 8, face_photo_url: "/bob", face_url: "/bob" },
-    { id: "3", name: "Charlie", video: false, face_count: 3, face_photo_url: "/charlie", face_url: "/charlie" },
+    {
+      id: "1",
+      name: "Alice",
+      video: false,
+      face_count: 12,
+      face_photo_url: "/alice",
+      face_url: "/alice",
+      group_ids: [],
+    },
+    { id: "2", name: "Bob", video: false, face_count: 8, face_photo_url: "/bob", face_url: "/bob", group_ids: [] },
+    {
+      id: "3",
+      name: "Charlie",
+      video: false,
+      face_count: 3,
+      face_photo_url: "/charlie",
+      face_url: "/charlie",
+      group_ids: [],
+    },
   ],
   setFacesPersonLabel: vi.fn<ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"]>(),
   post: vi.fn<ApiClient["post"]>(),

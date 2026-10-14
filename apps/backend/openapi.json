@@ -2843,6 +2843,15 @@
           },
           {
             "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only the people in this group of yours (#1126); the Unknown - Other entry still comes last"
+          },
+          {
+            "in": "query",
             "name": "inferred",
             "schema": {
               "type": "boolean",
@@ -3986,10 +3995,205 @@
         }
       }
     },
+    "/api/person-groups/": {
+      "get": {
+        "operationId": "api_person_groups_list",
+        "description": "The requester's groups of people, by name. Deleting one keeps its people.\n\nAnother user's group id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPersonGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_person_groups_create",
+        "description": "The requester's groups of people, by name. Deleting one keeps its people.\n\nAnother user's group id behaves exactly like one that does not exist.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonGroup"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/person-groups/{id}/": {
+      "patch": {
+        "operationId": "api_person_groups_partial_update",
+        "description": "The requester's groups of people, by name. Deleting one keeps its people.\n\nAnother user's group id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this person group.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedPersonGroupRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedPersonGroupRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedPersonGroupRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonGroup"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_person_groups_destroy",
+        "description": "The requester's groups of people, by name. Deleting one keeps its people.\n\nAnother user's group id behaves exactly like one that does not exist.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this person group.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
     "/api/persons/": {
       "get": {
         "operationId": "api_persons_list",
         "parameters": [
+          {
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only the people in this group of yours"
+          },
           {
             "name": "page",
             "required": false,
@@ -4164,6 +4368,66 @@
         "responses": {
           "204": {
             "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/persons/{id}/groups/": {
+      "put": {
+        "operationId": "api_persons_groups_update",
+        "description": "Put the person in exactly the listed groups of the requester (#1126); a group left out loses them.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this person.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonGroupsRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonGroups"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -15069,6 +15333,54 @@
           }
         }
       },
+      "PaginatedPersonGroupList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonGroup"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedPersonList": {
         "type": "object",
         "required": [
@@ -15635,6 +15947,17 @@
           }
         }
       },
+      "PatchedPersonGroupRequest": {
+        "type": "object",
+        "description": "One group: create and rename write ``name``.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
       "PatchedPersonRequest": {
         "type": "object",
         "properties": {
@@ -16023,12 +16346,21 @@
           "id": {
             "type": "integer",
             "readOnly": true
+          },
+          "group_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The ids of the owner's groups the person is in",
+            "readOnly": true
           }
         },
         "required": [
           "face_count",
           "face_photo_url",
           "face_url",
+          "group_ids",
           "id",
           "name",
           "video"
@@ -16082,6 +16414,75 @@
           "photo",
           "photo_image_hash",
           "timestamp"
+        ]
+      },
+      "PersonGroup": {
+        "type": "object",
+        "description": "One group: create and rename write ``name``.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "person_count": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "How many people are in the group"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "person_count"
+        ]
+      },
+      "PersonGroupRequest": {
+        "type": "object",
+        "description": "One group: create and rename write ``name``.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "PersonGroups": {
+        "type": "object",
+        "description": "The groups a person is in after the change.",
+        "properties": {
+          "group_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "group_ids"
+        ]
+      },
+      "PersonGroupsRequestRequest": {
+        "type": "object",
+        "description": "``PUT /api/persons/<id>/groups/``: every group the person is in.",
+        "properties": {
+          "group_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The person's groups; any they are in now and that are not listed lose them"
+          }
+        },
+        "required": [
+          "group_ids"
         ]
       },
       "PersonMergeRequestRequest": {

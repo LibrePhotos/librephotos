@@ -31,6 +31,7 @@ from api.drf.pagination import (
 )
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
+from api.faces.groups import set_person_groups
 from api.faces.labels import relabel_faces
 from api.faces.merge import merge_people
 from api.models import (
@@ -79,13 +80,16 @@ from api.serializers.album_user import (
     with_album_user_list_relations,
 )
 from api.serializers.person import (
+    PersonListQuery,
     PersonMergeRequest,
     PersonMergeResponseSerializer,
     PersonRemovePhotosRequest,
     PersonRemovePhotosResponseSerializer,
     PersonSerializer,
     first_face_of_person,
+    person_groups_prefetch,
 )
+from api.serializers.person_group import PersonGroupsRequest, PersonGroupsSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
 )
@@ -99,6 +103,7 @@ from api.views.mixins import PartialUpdateModelMixin
 logger = logging.getLogger(__name__)
 
 
+@extend_schema_view(list=extend_schema(parameters=[PersonListQuery]))
 class PersonViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -139,10 +144,28 @@ class PersonViewSet(
                 ),
                 first_face_photo_video=Subquery(first_face.values("photo__video")[:1]),
             )
+            .prefetch_related(person_groups_prefetch())
             .order_by("name")
         )
-
+        if self.action == "list":
+            group = parse_query(self.request, PersonListQuery).get("group")
+            if group is not None:
+                qs = qs.in_group(user, group)
         return qs
+
+    @extend_schema(
+        description=(
+            "Put the person in exactly the listed groups of the requester "
+            "(#1126); a group left out loses them."
+        ),
+        request=PersonGroupsRequest,
+        responses={200: PersonGroupsSerializer},
+    )
+    @action(detail=True, methods=["put"], url_path="groups")
+    def groups(self, request: Request, pk: str | None = None) -> Response:
+        person = self.get_object()
+        chosen = parse_body(request, PersonGroupsRequest)["group_ids"]
+        return Response({"group_ids": set_person_groups(person, chosen)})
 
     @extend_schema(
         description=(

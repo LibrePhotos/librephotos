@@ -3,11 +3,12 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import OuterRef, QuerySet
+from django.db.models import OuterRef, Prefetch, QuerySet
 from rest_framework import serializers
 
 from api.drf.request_user import request_user
-from api.models import Face, Person, Photo, User
+from api.models import Face, Person, PersonGroup, Photo, User
+from api.serializers.fields import loaded_list
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +37,34 @@ def first_face_of_person(user: User) -> QuerySet[Face]:
     )
 
 
+def person_groups_prefetch(through: str = "") -> Prefetch:
+    """The group ids ``PersonSerializer.group_ids`` reads (#1126), one query
+    for a whole list. ``through`` is the path from the queried model to the
+    person, e.g. ``photos__faces__person__`` on an event album."""
+    return Prefetch(
+        f"{through}groups",
+        queryset=PersonGroup.objects.only("id").order_by("pk"),
+        to_attr="loaded_groups",
+    )
+
+
+class PersonListQuery(serializers.Serializer[None]):
+    """People: all of them, or the ones in one group (#1126)."""
+
+    group = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Only the people in this group of yours",
+    )
+
+
 class PersonSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
     face_photo_url = serializers.SerializerMethodField()
     video = serializers.SerializerMethodField()
+    group_ids = serializers.SerializerMethodField(
+        help_text="The ids of the owner's groups the person is in"
+    )
     newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
     cover_photo = serializers.CharField(max_length=100, default="", write_only=True)
 
@@ -54,6 +79,7 @@ class PersonSerializer(serializers.ModelSerializer):
             "id",
             "newPersonName",
             "cover_photo",
+            "group_ids",
         )
 
     def _first_face_value(
@@ -109,6 +135,17 @@ class PersonSerializer(serializers.ModelSerializer):
         # A boolean, never the string "False": the frontend parses the list
         # strictly, so one person without faces would empty it (#2151).
         return bool(video)
+
+    def get_group_ids(self, obj: Person) -> list[int]:
+        """The person's group ids, from ``person_groups_prefetch`` when the
+        queryset has it (the People list, an event's people). Like the cover
+        fields, a person serialized on its own still works: it pays one query.
+        Only the owner can put a person in a group, and only in their own.
+        """
+        if hasattr(obj, "loaded_groups"):
+            groups = loaded_list(obj, "loaded_groups", PersonGroup)
+            return [group.pk for group in groups]
+        return list(obj.groups.order_by("pk").values_list("pk", flat=True))
 
     def _requester(self) -> User:
         # PersonViewSet runs behind IsAuthenticated, so the request has a user.

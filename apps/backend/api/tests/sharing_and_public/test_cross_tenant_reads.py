@@ -44,6 +44,7 @@ from api.tests.utils import (
     create_test_face,
     create_test_job,
     create_test_person,
+    create_test_person_group,
     create_test_photo,
     create_test_stack,
     create_test_tag,
@@ -82,6 +83,9 @@ class CrossTenantReadTest(TestCase):
         create_test_face(photo=self.v_photo2, person=self.v_person)
         # Unlabelled: listed by the clustering view of /api/faces/.
         create_test_face(photo=self.v_photo2)
+        self.v_group = create_test_person_group(
+            name="VictimGroupName", owner=self.victim, persons=[self.v_person]
+        )
         self.v_tag = create_test_tag(name="victim-tag-name", owner=self.victim)
         self.v_tag.photos.add(*self.v_photos)
 
@@ -125,6 +129,7 @@ class CrossTenantReadTest(TestCase):
             *(str(p.pk) for p in self.v_photos),
             *(p.image_hash for p in self.v_photos),
             "VictimFriendName",
+            "VictimGroupName",
             "VictimCameraModel",
             "victim-tag-name",
             "VictimTripTitle",
@@ -179,6 +184,9 @@ class CrossTenantReadTest(TestCase):
             ),
             ("/api/persons/", "VictimFriendName"),
             (f"/api/persons/{v.v_person.pk}/", "VictimFriendName"),
+            ("/api/person-groups/", "VictimGroupName"),
+            (f"/api/persons/?group={v.v_group.pk}", "VictimFriendName"),
+            (f"/api/faces/incomplete/?group={v.v_group.pk}", "VictimFriendName"),
             (
                 f"/api/faces/?person={v.v_person.pk}&inferred=false",
                 v.v_photo.image_hash,

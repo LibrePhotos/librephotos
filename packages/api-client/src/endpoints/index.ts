@@ -660,6 +660,44 @@ export async function deletePerson(client: ApiClient, personId: number | string)
   await client.delete(`/persons/${personId}/`);
 }
 
+/* ---- person groups (#1126) --------------------------------------------- */
+
+/** The user's groups of people by name, each with its person count; all pages. */
+export async function fetchPersonGroups(client: ApiClient): Promise<S.PersonGroup[]> {
+  const results = await fetchAllPages(client, "/person-groups/");
+  return parseResponse(S.PersonGroupList, { results }, "person groups").results;
+}
+
+/** Create a group (ApiError 400 `unique` when the user has one of that name in any case). */
+export async function createPersonGroup(client: ApiClient, name: string): Promise<S.PersonGroup> {
+  const res = await client.post<unknown>("/person-groups/", { name });
+  return parseResponse(S.PersonGroup, res, "create person group");
+}
+
+/** Rename a group; its people stay in it. */
+export async function renamePersonGroup(client: ApiClient, groupId: number, name: string): Promise<S.PersonGroup> {
+  const res = await client.patch<unknown>(`/person-groups/${groupId}/`, { name });
+  return parseResponse(S.PersonGroup, res, "rename person group");
+}
+
+/** Delete a group; its people stay. Answers 204. */
+export async function deletePersonGroup(client: ApiClient, groupId: number): Promise<void> {
+  await client.delete(`/person-groups/${groupId}/`);
+}
+
+/** Put a person in exactly these groups of the user's; answers the ids they are in now. */
+export async function setPersonGroups(
+  client: ApiClient,
+  personId: number | string,
+  groupIds: readonly number[]
+): Promise<S.PersonGroupsResponse> {
+  const res = await client.request<unknown>(`/persons/${personId}/groups/`, {
+    method: "PUT",
+    body: { group_ids: groupIds },
+  });
+  return parseResponse(S.PersonGroupsResponse, res, "set person groups");
+}
+
 /* ---- search ------------------------------------------------------------ */
 
 /**
@@ -1214,7 +1252,8 @@ export async function fetchFaces(client: ApiClient, params: FaceListParams = {})
 /**
  * Every person with a face count, plus an "Unknown - Other" entry (id 0) for the faces of no one.
  * With `inferred`, the counts take in the suggested faces too (above `minConfidence`). With
- * `deleted`, they count each person's deleted faces instead (#127).
+ * `deleted`, they count each person's deleted faces instead (#127). `group`
+ * narrows the people to one of the user's groups (#1126).
  */
 export async function fetchIncompleteFaces(
   client: ApiClient,
@@ -1224,6 +1263,8 @@ export async function fetchIncompleteFaces(
     analysisMethod?: S.FaceAnalysisMethod;
     minConfidence?: number;
     deleted?: boolean;
+    /** Only the people in this group of the user's (#1126); "Unknown - Other" still comes last. */
+    group?: number;
   } = {}
 ): Promise<S.IncompleteFacesResponse> {
   const query = buildQuery({
@@ -1232,6 +1273,7 @@ export async function fetchIncompleteFaces(
     analysis_method: params.inferred ? (params.analysisMethod ?? "clustering") : undefined,
     min_confidence: params.minConfidence,
     deleted: params.deleted || undefined,
+    group: params.group,
   });
   const res = await client.get<unknown>(`/faces/incomplete/${query}`);
   return parseResponse(S.IncompleteFacesResponse, res, "incomplete faces");

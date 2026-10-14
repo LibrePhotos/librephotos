@@ -34,6 +34,7 @@ from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
 from api.models.long_running_job import LongRunningJob
+from api.models.person_group import PersonGroup
 from api.models.photo_metadata import MetadataEdit
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
@@ -115,6 +116,20 @@ def create_test_person(
         cluster_owner=cluster_owner,
         **kwargs,
     )
+
+
+def create_test_person_group(
+    owner: User,
+    name: str | None = None,
+    persons: Iterable[Person] = (),
+    **kwargs: Any,
+) -> PersonGroup:
+    """A group of people for ``owner`` holding ``persons``. Names are unique per
+    owner (in any letter case), so the default is random."""
+    name = name or f"{fake.word()}-{uuid.uuid4().hex[:8]}"
+    group = PersonGroup.objects.create(owner=owner, name=name, **kwargs)
+    group.persons.add(*persons)
+    return group
 
 
 def create_test_face(

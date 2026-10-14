@@ -9,6 +9,8 @@ export const Person = z.object({
   video: z.boolean().optional(),
   id: z.number(),
   newPersonName: z.string().optional(),
+  /** The ids of the owner's groups the person is in (#1126); servers before groups leave it out. */
+  group_ids: z.number().array().optional(),
 });
 export type Person = z.infer<typeof Person>;
 
@@ -57,3 +59,24 @@ export type PersonMergeResponse = z.infer<typeof PersonMergeResponse>;
 
 export type DeletePersonAlbumParams = { id: number; name: string };
 export type SetPersonAlbumCoverParams = { person_id: number; photo: string };
+
+/** One of the user's groups of people (#1126): `GET/POST /person-groups/`, `PATCH /person-groups/{id}/`. */
+export const PersonGroup = z.object({
+  id: z.number(),
+  name: z.string(),
+  /** How many people are in the group. */
+  person_count: z.number(),
+});
+export type PersonGroup = z.infer<typeof PersonGroup>;
+
+/** `GET /person-groups/`, every page read: the user's groups by name. */
+export const PersonGroupList = z.object({
+  results: PersonGroup.array(),
+});
+export type PersonGroupList = z.infer<typeof PersonGroupList>;
+
+/** `PUT /persons/{id}/groups/`: the groups the person is in now. */
+export const PersonGroupsResponse = z.object({
+  group_ids: z.number().array(),
+});
+export type PersonGroupsResponse = z.infer<typeof PersonGroupsResponse>;

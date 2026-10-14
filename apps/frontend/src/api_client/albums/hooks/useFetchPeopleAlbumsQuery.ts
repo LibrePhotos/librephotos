@@ -11,6 +11,8 @@ export type Person = {
   face_count: number;
   face_photo_url: string;
   face_url: string;
+  /** The ids of the user's groups the person is in (#1126). */
+  group_ids: number[];
 };
 
 export type PersonList = Person[];
@@ -29,6 +31,7 @@ export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
         face_count: item.face_count,
         face_photo_url: item.face_photo_url ?? "",
         face_url: item.face_url ?? "",
+        group_ids: item.group_ids ?? [],
       }));
 
       return orderBy(people, ["name", "face_count"], ["asc", "desc"]);

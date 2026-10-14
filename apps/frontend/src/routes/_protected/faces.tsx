@@ -1,6 +1,7 @@
 import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { PersonGroupParam } from "../../components/album/personGroupSearch";
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
 import { FacesPersonOrder, FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
 
@@ -35,6 +36,8 @@ const FacesSearch = z.object({
     .catch(DEFAULT_VALUES.minConfidence),
   // The order of the people, not of their faces (#764)
   personOrder: FacesPersonOrder.default(DEFAULT_VALUES.personOrder).catch(DEFAULT_VALUES.personOrder),
+  // Only the people of one group (#1126); left out for everybody
+  group: PersonGroupParam,
 });
 
 export const Route = createFileRoute("/_protected/faces")({

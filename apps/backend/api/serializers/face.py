@@ -123,6 +123,12 @@ class FaceIncompleteListQuery(serializers.Serializer[None]):
         true_values={"true"},
         help_text="true counts each person's deleted faces instead",
     )
+    group = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Only the people in this group of yours (#1126); the "
+        "Unknown - Other entry still comes last",
+    )
 
 
 class FaceIdsRequest(serializers.Serializer[None]):

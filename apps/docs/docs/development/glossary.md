@@ -35,6 +35,7 @@ Backend paths are relative to `apps/backend`.
 | Archive | `Photo.archived` (`api/models/photo.py`): off the timeline (`archived` in `api/albums/timeline_filter.py`) and Memories only; not part of `visible_photo_q`, unlike `hidden`, which takes a photo out of every view | `api/photosedit/archive/`, `archived` on `api/albums/date/` and in a select-all `query`, web route `/archived` | |
 | Media category | `Photo.is_screenshot`, `Photo.is_document`, `category_source`; a separate classifier, not Things | `api/classifymedia/`, `api/photosedit/category/` | |
 | Person | `Person` (`api/models/person.py`), UI "People"; kind user-labelled, cluster or unknown | `api/persons/`, `people` on an event (items carry `id`) | |
+| Group | `PersonGroup` (`api/models/person_group.py`), the user's own grouping of their people ("Family", "Work"); `Person.groups`. Not a Tag, which labels photos | `api/person-groups/`, `api/persons/<id>/groups/`, `group_ids` on a person, `?group=` on `api/persons/` and `api/faces/incomplete/` | |
 | Face | `Face` (`api/models/face.py`), one detected face, labelled with a Person | `api/faces/`, `people` on a photo (items are faces and carry `face_id`) | |
 | Face cluster | `Cluster` (`api/models/cluster.py`), unlabelled faces grouped by similarity | `api/clusterfaces/` | |
 | Place | `AlbumPlace` (`api/models/album_place.py`), photos grouped by geocoded location | `api/albums/place/` | |

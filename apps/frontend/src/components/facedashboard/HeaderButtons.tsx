@@ -1,4 +1,4 @@
-import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
+import { FaceAnalysisMethod, FaceOrderBy, type PersonGroup } from "@librephotos/api-client";
 import { ActionIcon, Button, Divider, Group, NumberInput, Select, Stack, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -19,6 +19,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { PAGE_GUTTER } from "../../uiConstants";
+import { PersonGroupFilter } from "../album/PersonGroupFilter";
 import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
@@ -36,6 +37,9 @@ type Props = Readonly<{
   allCollapsed: boolean;
   toggleAllCollapsed: () => void;
   canCollapse: boolean;
+  /** The user's groups of people, and the one the people are narrowed to (#1126). */
+  personGroups: readonly PersonGroup[];
+  groupId: number | undefined;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
@@ -51,6 +55,8 @@ export function HeaderButtons({
   allCollapsed,
   toggleAllCollapsed,
   canCollapse,
+  personGroups,
+  groupId,
 }: Props) {
   const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const navigate = useNavigate();
@@ -102,6 +108,14 @@ export function HeaderButtons({
               value={personOrder}
               onChange={order => void navigate({ to: "/faces", search: { ...search, personOrder: order } })}
             />
+            {/* The Unknown tab holds no people, so it has nothing to narrow */}
+            {activeTab !== "unknown" && (
+              <PersonGroupFilter
+                groups={personGroups}
+                value={groupId}
+                onChange={group => void navigate({ to: "/faces", search: { ...search, group } })}
+              />
+            )}
           </Group>
           {(activeTab === "inferred" || activeTab === "unknown") && (
             <>

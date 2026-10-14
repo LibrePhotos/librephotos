@@ -30,10 +30,27 @@ function faceTagsNotWritten(error: string) {
   });
 }
 
+function createPersonGroup(name: string) {
+  toast.success(i18n.t("toasts.createpersongroup", { name }), { title: i18n.t("toasts.persongrouptitle") });
+}
+
+function renamePersonGroup(oldName: string, newName: string) {
+  toast.success(i18n.t("toasts.renamepersongroup", { oldName, newName }), {
+    title: i18n.t("toasts.persongrouptitle"),
+  });
+}
+
+function deletePersonGroup(name: string) {
+  toast.success(i18n.t("toasts.deletepersongroup", { name }), { title: i18n.t("toasts.persongrouptitle") });
+}
+
 export const people = {
+  createPersonGroup,
   deletePerson,
+  deletePersonGroup,
   faceTagsNotWritten,
   mergePerson,
   removePhotosFromPerson,
   renamePerson,
+  renamePersonGroup,
 };

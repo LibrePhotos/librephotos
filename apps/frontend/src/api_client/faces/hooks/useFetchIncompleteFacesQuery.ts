@@ -13,6 +13,7 @@ const fetchIncompleteFaces = async (params: IncompletePersonFaceListRequest): Pr
     // 0 is the server's default: left out, as it always was.
     minConfidence: params.minConfidence || undefined,
     deleted: params.deleted,
+    group: params.group,
   });
   return people.map(person => {
     const completePersonFace: CompletePersonFace = { ...person, faces: [] };

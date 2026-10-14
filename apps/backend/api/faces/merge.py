@@ -3,7 +3,7 @@
 The same person can end up under two names: a typo, a nickname, two clusters
 labelled separately. A merge moves everything of one person (the source) to
 the other (the target) and deletes the source; the target keeps its name and
-cover.
+cover. The target joins every group the source was in.
 """
 
 from dataclasses import dataclass
@@ -51,6 +51,9 @@ def merge_people(user: User, source: Person, target: Person) -> MergeResult:
             classification_person=target
         )
         Cluster.objects.owned_by(user).filter(person=source).update(person=target)
+        # The merged person's groups too (#1126): both are the user's people,
+        # so the groups are the user's.
+        target.groups.add(*source.groups.all())
         # The sync tombstone is written by the pre_delete receiver.
         source.delete()
     return MergeResult(
