@@ -27,8 +27,8 @@ import { makePersonNameSchema } from "../album/personName.schema";
 import { modalTitleStyles } from "./modalTitleStyles";
 import { RecentlyTaggedGrid } from "./RecentlyTaggedGrid";
 
-/** A face the dialog labels: its id, and its crop for the preview row. */
-type FaceToLabel = Readonly<{ face_id: number; face_url: string }>;
+/** A face the dialog labels: its id, and its crop for the preview row (null: no crop, #2636). */
+type FaceToLabel = Readonly<{ face_id: number; face_url: string | null }>;
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -122,7 +122,6 @@ export function ModalPersonEdit({
   // Once the user is searching, a fixed shortcut list is only noise.
   const showRecentlyTagged = newPersonName.length === 0 && recentlyTaggedPeople.length > 0;
 
-  const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
   function applyPersonName(personName: string) {
@@ -157,11 +156,17 @@ export function ModalPersonEdit({
               number: selectedFaces.length,
             })}
         </Text>
-        {selectedImageIDs.length > 0 && (
+        {selectedFaces.length > 0 && (
           <ScrollArea style={{ height: 50 }}>
             <Group>
-              {selectedImageIDs.map(image => (
-                <Avatar key={`selected_image${image}`} size={40} src={`${serverAddress}${image}`} radius="xl" />
+              {/* A face without a crop shows the avatar's placeholder */}
+              {selectedFaces.map(face => (
+                <Avatar
+                  key={face.face_id}
+                  size={40}
+                  src={face.face_url ? `${serverAddress}${face.face_url}` : undefined}
+                  radius="xl"
+                />
               ))}
             </Group>
           </ScrollArea>

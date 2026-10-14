@@ -1687,6 +1687,7 @@
     "unknownfacescounter_other": "{{count}} Unknown Faces",
     "showphoto": "Show photo",
     "facein": "Face in {{name}}",
+    "faceinnothumbnail": "Face in {{name}} (no face thumbnail)",
     "confirmface": "Confirm as {{name}}",
     "faceactions": "Face actions ({{name}})",
     "notperson": "Not {{name}}",
