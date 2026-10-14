@@ -27,7 +27,6 @@
   "Person/Person face_url: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "Person/Person face_photo_url: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "Person/Person newPersonName: missing-in-schema": "Write-only in PersonSerializer (PATCH /api/persons/{id}/ renames with it); the zod schema doubles as the form type.",
-  "PersonFace/PersonFaceList face_url: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PersonFace/PersonFaceList person_label_probability: null-in-zod-only": "zod also accepts null; the serializer always sends a value here (\"\" or a number). Harmless for parsing; tightening it needs every reader checked first.",
   "PersonFace/PersonFaceList person: missing-in-schema": "Optional; PersonFaceListSerializer does not send it. A loose object, so nothing breaks.",
   "PersonFace/PersonFaceList person_name: missing-in-schema": "Optional; PersonFaceListSerializer does not send it. A loose object, so nothing breaks.",

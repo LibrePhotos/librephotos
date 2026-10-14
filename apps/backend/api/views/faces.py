@@ -587,10 +587,13 @@ class DeleteFaces(APIView):
         data = parse_body(request, FaceIdsRequest)
         faces = Face.objects.owned_by(user).in_bulk(data["face_ids"])
 
+        # A face without a crop (legacy rows) is deleted too; it just has no URL
+        # to list, so deleted_ids is the complete answer.
         deleted: list[str] = []
         not_deleted: list[str] = []
         for face in faces.values():
-            deleted.append(face.image.url)
+            if face.crop_url:
+                deleted.append(face.crop_url)
             face.deleted = True
             face.save()
 
@@ -634,5 +637,6 @@ class DeleteFaces(APIView):
                 "results": deleted,
                 "not_deleted": not_deleted,
                 "deleted": deleted,
+                "deleted_ids": list(faces),
             }
         )
