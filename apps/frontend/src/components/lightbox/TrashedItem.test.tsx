@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import React from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
 import { TrashedItem, TrashExpiryText } from "./TrashedItem";
 
@@ -33,7 +34,7 @@ describe("TrashedItem", () => {
     const trashedAt = daysAgo(11);
     const { container } = await renderInMantine(<TrashedItem trashedAt={trashedAt} />);
 
-    const trashedOn = DateTime.fromISO(trashedAt ?? "").toLocaleString(DateTime.DATE_MED);
+    const trashedOn = parseInstant(trashedAt ?? "").toLocaleString(DateTime.DATE_MED);
     expect(textOf(container)).toContain(`Moved to the trash on ${trashedOn}`);
     expect(textOf(container)).toContain("Deleted for good in 19 days, on");
   });

@@ -1,8 +1,8 @@
-import { DateTime } from "luxon";
 import { describe, expect, it } from "vitest";
+import { parseInstant } from "./dateUtils";
 import { trashExpiry } from "./trashRetention";
 
-const NOW = DateTime.fromISO("2026-10-13T12:00:00Z");
+const NOW = parseInstant("2026-10-13T12:00:00Z");
 
 describe("trashExpiry (#2203)", () => {
   it("has nothing to say without a trashed-on date", () => {
