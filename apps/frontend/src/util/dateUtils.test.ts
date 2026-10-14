@@ -1,5 +1,5 @@
 import { Settings } from "luxon";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   firstDayOfWeek,
   fromPickerValue,
@@ -217,5 +217,17 @@ describe("firstDayOfWeek", () => {
   ])("starts the week of %s on day %i", (locale, expected) => {
     Settings.defaultLocale = locale;
     expect(firstDayOfWeek()).toBe(expected);
+  });
+
+  // Browsers without Intl.Locale week info (older Firefox) get Luxon's
+  // fallback, which keeps Mantine's old Monday start.
+  test("falls back to Monday without Intl.Locale week info", () => {
+    vi.stubGlobal("Intl", Object.create(Intl, { Locale: { value: function Locale() {} } }));
+    try {
+      Settings.defaultLocale = "en-US";
+      expect(firstDayOfWeek()).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
