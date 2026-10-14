@@ -546,6 +546,8 @@ class KeywordRoundTripTest(RealExifToolTestCase):
     """
 
     def _photo(self, path, mode, *keywords, user=None, **fields):
+        # Its own bytes: two identical fixtures would share one File row.
+        self.tag(path, f"-XMP-dc:Source={os.path.basename(path)}")
         if keywords:
             self.tag(path, *(f"-XMP-dc:Subject={keyword}" for keyword in keywords))
         owner = user or create_test_user(save_metadata_to_disk=mode)
@@ -644,10 +646,9 @@ class KeywordRoundTripTest(RealExifToolTestCase):
 
     def test_the_original_is_untouched_in_the_sidecar_mode(self):
         path = self.make_image(".jpg")
-        self.tag(path, "-XMP-dc:Subject=Holiday", "-XMP-dc:Subject=Beach")
+        photo = self._photo(path, SIDECAR, "Holiday", "Beach")
         with open(path, "rb") as handle:
             before = handle.read()
-        photo = self._photo(path, SIDECAR)
 
         self._add([photo], "Sunset")
         self._remove(photo, "Beach")
@@ -835,8 +836,8 @@ class KeywordRoundTripTest(RealExifToolTestCase):
 
         self.assertCountEqual(["Holiday", "Sunset"], self._file_keywords(path))
         found = self.read_tags(path, Tags.PERSON_IN_IMAGE, Tags.HIERARCHICAL_SUBJECT)
-        self.assertEqual("Bob", found[Tags.PERSON_IN_IMAGE])
-        self.assertEqual("Places|Lisbon", found[Tags.HIERARCHICAL_SUBJECT])
+        self.assertEqual(["Bob"], found[Tags.PERSON_IN_IMAGE])
+        self.assertEqual(["Places|Lisbon"], found[Tags.HIERARCHICAL_SUBJECT])
         self._rescan(photo)
         self.assertEqual(["Holiday", "Lisbon", "Sunset"], self._tags(photo))
 

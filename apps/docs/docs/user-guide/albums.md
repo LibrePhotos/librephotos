@@ -192,6 +192,8 @@ On the Albums page, open **Tags → View all**. The three-dot menu on any tag of
 - **Merge** — pick another tag to fold into this one; its photos move over and it is deleted.
 - **Delete** — removes the tag. Your photos are untouched.
 
+With [Write edits to files](./settings/index.md#metadata-options) on, tags are written to the files as keywords, so a rename, merge or delete also changes the keyword in the files of every photo carrying the tag, in the background. Tagging a selection or one photo writes the same way. _Not released yet._
+
 :::note
 Tags are per user: two accounts can each have a tag called `holiday` without seeing each other's.
 :::

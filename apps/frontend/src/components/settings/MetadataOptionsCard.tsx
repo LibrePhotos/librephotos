@@ -3,7 +3,7 @@ import { Card, Flex, Group, Input, Radio, SegmentedControl, Select, Stack, Title
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
-import { fieldsNeverWritten, listFields, WRITTEN_FIELDS, type WriteMode } from "./metadataWrite";
+import { listFields, WRITTEN_FIELDS, type WriteMode } from "./metadataWrite";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -15,7 +15,7 @@ function WriteEditsChoice({ user, onChange }: UserSettingsCardProps) {
   return (
     <Radio.Group
       label={t("settings.sync")}
-      description={t("settings.syncdescription", { fields: listFields(fieldsNeverWritten(), t, i18n.language) })}
+      description={t("settings.writeeditsdescription")}
       value={user.save_metadata_to_disk}
       onChange={value => onChange({ save_metadata_to_disk: value || "OFF" })}
     >

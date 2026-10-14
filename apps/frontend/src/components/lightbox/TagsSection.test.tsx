@@ -16,6 +16,11 @@ import { TagsSection } from "./TagsSection";
 const stubs = vi.hoisted(() => ({
   keywords: undefined as string[] | null | undefined,
   tags: [] as Tag[],
+  user: undefined as { save_metadata_to_disk: string } | undefined,
+}));
+
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 
 vi.mock("../../api_client/photos/hooks", () => ({
@@ -63,6 +68,7 @@ const mounted: Array<() => Promise<void>> = [];
 beforeEach(() => {
   stubs.keywords = [];
   stubs.tags = [];
+  stubs.user = { save_metadata_to_disk: "OFF" };
 });
 
 afterEach(async () => {
@@ -176,6 +182,32 @@ describe("TagsSection", () => {
 
     expect(pillMarkers(container)).toEqual({ family: false, beach: true });
     expect(container.textContent).toContain(i18n.t("lightbox.sidebar.tagsFromFileHint"));
+  });
+
+  it("says a removed file tag stays removed once tags are written to files (#2289)", async () => {
+    stubs.tags = [tag(2, "beach")];
+    stubs.keywords = ["beach"];
+
+    for (const mode of ["SIDECAR_FILE", "MEDIA_FILE"]) {
+      stubs.user = { save_metadata_to_disk: mode };
+      const container = await renderTags();
+      await openEditor(container);
+
+      expect(container.textContent).toContain(i18n.t("lightbox.sidebar.tagsFromFileHintWritten"));
+      expect(container.textContent).not.toContain("a rescan adds it back");
+    }
+  });
+
+  it("explains the marker only once the user's settings are loaded", async () => {
+    stubs.tags = [tag(2, "beach")];
+    stubs.keywords = ["beach"];
+    stubs.user = undefined;
+
+    const container = await renderTags();
+    await openEditor(container);
+
+    expect(pillMarkers(container)).toEqual({ beach: true });
+    expect(container.textContent).not.toContain("Tags with this icon");
   });
 
   it("leaves the hint out when no tag in the editor came from the file", async () => {

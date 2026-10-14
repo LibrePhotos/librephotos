@@ -170,7 +170,7 @@ _Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
 
-While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. Of these edits, the date, the caption and the location are written to files; tags stay in LibrePhotos. _Not released yet._
+While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files. _Not released yet._
 
 ### Timestamp
 
@@ -225,7 +225,7 @@ The AI-generated or manually entered caption for the photo. You can:
 
 Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
-Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject` and IPTC `Keywords`, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag, but removing one here does not change the file, so a rescan adds it back. Writing your tags back into the file is planned. _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
+Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject` and IPTC `Keywords`, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag. With [Write edits to files](./settings/index.md#metadata-options) set to `Off`, removing one here does not change the file, so a rescan adds it back, and the editor says so. With a sidecar or the media file chosen, your tag changes are written to the file's keywords (see [EXIF Data](./exif-data.md#what-librephotos-writes)) and a removed tag stays removed (not released yet). _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
 
 These are not the same as the **Things** list under the caption: those come from OpenCLIP and are not editable here.
 

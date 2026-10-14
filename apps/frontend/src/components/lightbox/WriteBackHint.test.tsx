@@ -84,8 +84,10 @@ describe("WriteBackHint", () => {
     expect(await renderHint("location", "MEDIA_FILE")).toContain("written to the photo file.");
   });
 
-  it("says tags stay in LibrePhotos even with Save to sidecar", async () => {
-    expect(await renderHint("tags", "SIDECAR_FILE")).toContain("Saved in LibrePhotos only.");
+  it("says tags are written too (#2289)", async () => {
+    expect(await renderHint("tags", "SIDECAR_FILE")).toContain("written to the sidecar file.");
+    expect(await renderHint("tags", "MEDIA_FILE")).toContain("written to the photo file.");
+    expect(await renderHint("tags", "OFF")).toContain("Saved in LibrePhotos only.");
   });
 
   it("says a date stays in LibrePhotos while writing is Off", async () => {
