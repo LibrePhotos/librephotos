@@ -158,7 +158,7 @@ def _person_keyword_tags(
     return tags
 
 
-def _region_names(region_info: object) -> list[str]:
+def region_names(region_info: object) -> list[str]:
     """The names of the face regions in a struct read of XMP:RegionInfo."""
     if not isinstance(region_info, dict):
         return []
@@ -287,6 +287,6 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         face_regions,
         image_width,
         image_height,
-        previous_names=_region_names(region_info),
+        previous_names=region_names(region_info),
         keywords=_keywords_to_start_from(photo, use_sidecar),
     )

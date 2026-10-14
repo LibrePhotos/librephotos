@@ -15,6 +15,7 @@ from rest_framework.serializers import BaseSerializer
 from api.drf.pagination import WholeListPagination
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
+from api.metadata import edits
 from api.models import Photo, Tag
 from api.models.user import User
 from api.photos.selection import build_photo_queryset
@@ -180,13 +181,14 @@ class TagViewSet(
     def _link_photos(
         relation_method: Callable[..., None],
         photos: list[Photo] | QuerySet[Photo],
-    ) -> None:
+    ) -> list[uuid.UUID]:
         """Add or remove ``photos`` on a tag's m2m, a batch at a time.
 
         Takes primary keys rather than instances so a select-all edit never
-        loads the whole photoset into memory.
+        loads the whole photoset into memory. Returns the keys, for the
+        write-back of the edit.
         """
-        pks: Iterable[object]
+        pks: Iterable[uuid.UUID]
         if isinstance(photos, list):
             pks = [photo.pk for photo in photos]
         else:
@@ -194,14 +196,42 @@ class TagViewSet(
                 chunk_size=PHOTO_LINK_BATCH_SIZE
             )
 
-        batch: list[object] = []
+        linked: list[uuid.UUID] = []
+        batch: list[uuid.UUID] = []
         for pk in pks:
             batch.append(pk)
             if len(batch) == PHOTO_LINK_BATCH_SIZE:
                 relation_method(*batch)
+                linked.extend(batch)
                 batch = []
         if batch:
             relation_method(*batch)
+            linked.extend(batch)
+        return linked
+
+    @staticmethod
+    def _photo_ids(tag: Tag) -> list[uuid.UUID]:
+        return list(tag.photos.values_list("pk", flat=True))
+
+    def perform_update(self, serializer: BaseSerializer[Tag]) -> None:
+        """Rename the tag; its photos' files follow when they are written to."""
+        tag = serializer.instance
+        assert tag is not None
+        old_name = tag.name
+        renamed = serializer.save()
+        if renamed.name != old_name:
+            edits.tags_changed(
+                request_user(self.request),
+                self._photo_ids(renamed),
+                [old_name, renamed.name],
+            )
+
+    def perform_destroy(self, instance: Tag) -> None:
+        """Delete the tag; it leaves its photos' files when they are written to."""
+        photo_ids = self._photo_ids(instance)
+        name = instance.name
+        instance.delete()
+        edits.tags_changed(request_user(self.request), photo_ids, [name])
 
     @extend_schema(
         parameters=[TagListQuery],
@@ -235,7 +265,8 @@ class TagViewSet(
         if photos is None:
             raise ValidationError("No photos provided")
 
-        self._link_photos(tag.photos.add, photos)
+        linked = self._link_photos(tag.photos.add, photos)
+        edits.tags_changed(request_user(request), linked, [tag.name])
         return Response(TagSerializer(tag).data)
 
     @extend_schema(
@@ -253,7 +284,8 @@ class TagViewSet(
         if photos is None:
             raise ValidationError("No photos provided")
 
-        self._link_photos(tag.photos.remove, photos)
+        unlinked = self._link_photos(tag.photos.remove, photos)
+        edits.tags_changed(request_user(request), unlinked, [tag.name])
         return Response(TagSerializer(tag).data)
 
     @extend_schema(
@@ -276,6 +308,8 @@ class TagViewSet(
         if source.pk == tag.pk:
             raise ValidationError("A tag cannot be merged into itself")
 
+        photo_ids = self._photo_ids(source)
         tag.photos.add(*source.photos.all())
         source.delete()
+        edits.tags_changed(request_user(request), photo_ids, [source.name, tag.name])
         return Response(TagSerializer(tag).data)
