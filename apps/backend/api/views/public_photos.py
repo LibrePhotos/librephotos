@@ -15,25 +15,20 @@ from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.models.user import User
 from api.serializers.photos import PublicPhotoDetailSerializer, SetPhotoShareRequest
+from api.serializers.public_share import (
+    HASH_DERIVED_FIELDS,
+    PhotoShareListSerializer,
+    SetPhotoShareResponseSerializer,
+    SharedPhotoResponseSerializer,
+)
 from api.video import playback
-from api.views.media import MediaServingView
+from api.views.media import MEDIA_FILE_RESPONSES, MediaServingView
 
 # What an anonymous holder of a photo link gets to see: the big thumbnail,
 # plus the original file for videos because a <video> needs something it can
 # play (album shares stream the same file). Never the original of a still,
 # never face crops, never a URL derived from the content hash.
 SHARED_MEDIA_KINDS = ("thumbnail", "video")
-
-# Fields of PublicPhotoDetailSerializer a photo link must not hand out: the
-# content hash and the hash-addressed /media/ URLs derived from it. The page
-# gets slug-scoped media URLs instead, so revoking or replacing the link cuts
-# the media off together with the metadata.
-_HASH_DERIVED_FIELDS = (
-    "image_hash",
-    "square_thumbnail_url",
-    "big_thumbnail_url",
-    "small_square_thumbnail_url",
-)
 
 
 def shared_photo_media_url(slug: str, kind: str) -> str:
@@ -102,7 +97,9 @@ class SetPhotoShare(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetPhotoShareRequest)
+    @extend_schema(
+        request=SetPhotoShareRequest, responses=SetPhotoShareResponseSerializer
+    )
     def post(self, request: Request, format: str | None = None) -> Response:
         data = parse_body(request, SetPhotoShareRequest)
         photo_id = data["photo_id"]
@@ -140,6 +137,7 @@ class PhotoShareList(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=PhotoShareListSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         shares = (
             PhotoShare.objects.filter(
@@ -167,6 +165,7 @@ class PublicPhotoBySlug(APIView):
     @extend_schema(
         parameters=[OpenApiParameter("slug", OpenApiTypes.STR)],
         description="Returns a publicly shared photo by share slug if active",
+        responses=SharedPhotoResponseSerializer,
     )
     def get(self, request: Request, slug: str) -> Response:
         share = active_photo_share(slug)
@@ -182,7 +181,7 @@ class PublicPhotoBySlug(APIView):
                 context={"request": request, "sharing_settings": sharing_settings},
             ).data
         )
-        for field in _HASH_DERIVED_FIELDS:
+        for field in HASH_DERIVED_FIELDS:
             data.pop(field, None)
         # Names follow the owner's share_faces setting; face crops are not
         # part of a photo link.
@@ -205,6 +204,17 @@ class PublicPhotoMediaBySlug(MediaServingView):
     photo's hash-addressed /media/ URLs keep requiring a login.
     """
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "kind",
+                OpenApiTypes.STR,
+                OpenApiParameter.PATH,
+                description="thumbnail (the big one), or video for a video",
+            ),
+        ],
+        responses=MEDIA_FILE_RESPONSES,
+    )
     def get(
         self, request: Request, slug: str, kind: str, format: str | None = None
     ) -> HttpResponseBase:

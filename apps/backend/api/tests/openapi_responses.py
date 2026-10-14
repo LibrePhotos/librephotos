@@ -9,7 +9,10 @@ renames, adds or drops fails a test instead of only the clients.
 The OpenAPI 3.0 schema is turned into JSON Schema first: ``nullable`` becomes
 a ``null`` type, and an object that lists its properties accepts no other key
 (drf-spectacular leaves ``additionalProperties`` open, which would let an
-undeclared key through).
+undeclared key through). A ``oneOf`` is checked as ``anyOf``: drf-spectacular
+writes a Python union as ``oneOf``, and the branches of ``datetime | str``
+(``{"format": "date-time"}`` and a plain string) both match any string, since
+formats are not asserted, so ``oneOf`` would reject every value.
 """
 
 import functools
@@ -33,6 +36,8 @@ def to_json_schema(node: Any) -> Any:
     for key in BRANCH_KEYS:
         if key in node:
             converted[key] = [to_json_schema(branch) for branch in node[key]]
+    if "oneOf" in converted:
+        converted["anyOf"] = [*converted.pop("oneOf"), *converted.get("anyOf", [])]
     for key in CHILD_KEYS:
         if isinstance(node.get(key), dict):
             converted[key] = to_json_schema(node[key])
@@ -59,14 +64,20 @@ def _components() -> dict[str, Any]:
     return {"schemas": {name: to_json_schema(node) for name, node in schemas.items()}}
 
 
-def declared_schema(path: str, method: str, status: int) -> dict[str, Any]:
-    """The JSON body schema openapi.json declares for ``path`` (a template, e.g.
-    ``/api/stats/``), ``method`` and ``status``."""
+def declared_schema(
+    path: str, method: str, status: int, media_type: str = "application/json"
+) -> dict[str, Any]:
+    """The body schema openapi.json declares for ``path`` (a template, e.g.
+    ``/api/stats/``), ``method``, ``status`` and ``media_type``."""
     responses = _document()["paths"][path][method.lower()]["responses"]
-    schema: dict[str, Any] = responses[str(status)]["content"]["application/json"][
-        "schema"
-    ]
+    schema: dict[str, Any] = responses[str(status)]["content"][media_type]["schema"]
     return schema
+
+
+def declared_body(path: str, method: str, status: int) -> bool:
+    """Whether openapi.json declares a body for ``status`` at all."""
+    responses = _document()["paths"][path][method.lower()]["responses"]
+    return "content" in responses[str(status)]
 
 
 def openapi_mismatches(path: str, method: str, status: int, body: Any) -> list[str]:

@@ -1,8 +1,17 @@
-"""Request input of the memories view (``api/views/memories.py``)."""
+"""Request input and answer of the memories view (``api/views/memories.py``)."""
 
 from rest_framework import serializers
 
 from api.drf.params import ClampedIntegerField, QueryFlagField
+from api.serializers.fields import declare_fields
+from api.serializers.photos import PhotoSummarySerializer
+
+# What a memory is about (its ``type``). Only date-based memories exist so
+# far; the field is there so that place- or person-based ones can be added
+# without the frontend having to guess what a memory is about.
+TYPE_YEARS_AGO = "years_ago"
+TYPE_MONTH_YEARS_AGO = "month_years_ago"
+MEMORY_TYPES = (TYPE_YEARS_AGO, TYPE_MONTH_YEARS_AGO)
 
 # Days either side of the anniversary that still count as the same memory. Three
 # days keeps a weekend trip together without pulling in an unrelated week.
@@ -42,3 +51,43 @@ class MemoriesQuery(serializers.Serializer[None]):
         f"{DEFAULT_ITEMS_PER_MEMORY}, max {MAX_ITEMS_PER_MEMORY}). "
         "``numberOfItems`` always reports the full count.",
     )
+
+
+class MemorySerializer(serializers.Serializer[None]):
+    """One earlier year with photos around the day."""
+
+    id = serializers.CharField(help_text="{type}-{year}")
+    type = serializers.ChoiceField(
+        choices=MEMORY_TYPES,
+        help_text="years_ago: around the anniversary; month_years_ago: the "
+        "whole month, when no year had photos around the day",
+    )
+    years_ago = serializers.IntegerField()
+    year = serializers.IntegerField()
+    date = serializers.DateField(help_text="The day nearest the anniversary")
+    start_date = serializers.DateField(help_text="The first day with photos")
+    end_date = serializers.DateField(help_text="The last day with photos")
+    location = serializers.CharField(
+        allow_blank=True, help_text='A place of those days; "" without one'
+    )
+    cover = PhotoSummarySerializer()
+    items = PhotoSummarySerializer(
+        many=True, help_text="At most size photos, in the order they were taken"
+    )
+
+
+# Camel case predates the naming rule (LEGACY_CAMEL_CASE_FIELDS).
+declare_fields(
+    MemorySerializer,
+    numberOfItems=serializers.IntegerField(
+        help_text="Every photo of the memory, also those items leaves out"
+    ),
+)
+
+
+class MemoriesSerializer(serializers.Serializer[None]):
+    """``GET /api/memories/``: nearest year first."""
+
+    date = serializers.DateField(help_text="The day looked back from")
+    window_days = serializers.IntegerField()
+    results = MemorySerializer(many=True)

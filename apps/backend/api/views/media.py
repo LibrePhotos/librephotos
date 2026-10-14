@@ -21,6 +21,8 @@ from django.http import (
 )
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -319,6 +321,20 @@ def gen(transcoder: VideoTranscoder) -> Iterator[bytes]:
             process.returncode,
             transcoder.stderr_tail() or "no output on stderr",
         )
+
+
+# What /media/ and a photo link's media route answer: the file, or behind the
+# proxy an empty answer whose X-Accel-Redirect header has nginx send it.
+MEDIA_FILE_RESPONSES = {
+    (200, "*/*"): OpenApiResponse(
+        OpenApiTypes.BINARY,
+        description="The file with its own content type; behind the proxy, "
+        "an empty body and an X-Accel-Redirect header",
+    ),
+    (206, "*/*"): OpenApiResponse(
+        OpenApiTypes.BINARY, description="The byte range a Range header asked for"
+    ),
+}
 
 
 class MediaServingView(APIView):
@@ -1068,6 +1084,7 @@ class UnifiedMediaAccessView(MediaServingView):
     and handling public album media access.
     """
 
+    @extend_schema(parameters=[MediaQuery], responses=MEDIA_FILE_RESPONSES)
     def get(
         self,
         request: Request,

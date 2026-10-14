@@ -981,6 +981,16 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
         return PhotoSummarySerializer(getattr(obj, "photo")).data
 
 
+class PublicPhotoPersonSerializer(serializers.Serializer[None]):
+    """A person on a photo of a public album, when the album shares faces."""
+
+    name = serializers.CharField()
+    face_url = serializers.CharField(
+        allow_null=True, help_text="The face crop; null without one"
+    )
+    face_id = serializers.IntegerField()
+
+
 class PublicPhotoDetailSerializer(serializers.ModelSerializer):
     """Serializer for photo details in public albums.
 
@@ -1167,7 +1177,8 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         return {"im2txt": ""}
 
     # People/faces - conditional
-    def get_people(self, obj: Photo) -> list:
+    @extend_schema_field(PublicPhotoPersonSerializer(many=True))
+    def get_people(self, obj: Photo) -> list[dict[str, Any]]:
         if not self._get_sharing_settings().get("share_faces", False):
             return []
 

@@ -36,6 +36,7 @@ from api.models.photo_caption import PhotoCaption
 from api.models.user import User
 from api.photos.media_files import calculate_hash
 from api.search import semantic
+from api.serializers.upload import UploadExistsSerializer
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
@@ -201,7 +202,8 @@ class UploadPhotoExists(viewsets.ViewSet):
                     "the user's id (calculate_hash)"
                 ),
             )
-        ]
+        ],
+        responses=UploadExistsSerializer,
     )
     def retrieve(self, request: Request, pk: str) -> Response:
         # Only the requester's own library counts: answering for other users'

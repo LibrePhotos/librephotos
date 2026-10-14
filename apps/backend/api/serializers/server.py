@@ -6,7 +6,7 @@ them for the OpenAPI schema.
 
 from typing import Any
 
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from api.drf.openapi import INTEGER_OR_EMPTY_STRING
@@ -199,3 +199,39 @@ class ServerStatsSerializer(serializers.Serializer[None]):
     free_storage_in_mb = serializers.IntegerField()
     number_of_users = serializers.IntegerField()
     users = UserStatsSerializer(many=True)
+
+
+# One object, although the route is a ViewSet's list.
+@extend_schema_serializer(many=False)
+class ServicesSerializer(serializers.Serializer[None]):
+    """``GET /api/services/`` (admin): every sidecar service."""
+
+    services = serializers.DictField(
+        child=serializers.IntegerField(), help_text="The port of each, by name"
+    )
+
+
+class ServiceHealthSerializer(serializers.Serializer[None]):
+    """``GET /api/services/{id}/`` (admin): whether a sidecar answers."""
+
+    service_name = serializers.CharField()
+    healthy = serializers.BooleanField(help_text="False while it is switched off")
+    enabled = serializers.BooleanField(
+        help_text="False when its feature is switched off"
+    )
+    feature_flag = serializers.CharField(
+        allow_null=True,
+        help_text="The environment flag that switches it off; null for one "
+        "that is always on",
+    )
+    port_conflict = serializers.CharField(
+        allow_null=True,
+        help_text="Which program holds the port of an enabled service that is "
+        "down, in English; null when none does",
+    )
+
+
+class ServiceActionSerializer(serializers.Serializer[None]):
+    """``POST /api/services/{id}/start/`` and ``.../stop/`` (admin)."""
+
+    message = serializers.CharField(help_text="What happened, in English")

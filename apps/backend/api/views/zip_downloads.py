@@ -6,7 +6,7 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Sum
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -19,7 +19,13 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import LongRunningJob, Photo
 from api.photos.zip_downloads import create_download_job, delete_zip_file, zip_file_name
-from api.serializers.zip_download import ZipDownloadRequest, ZipDownloadStatusQuery
+from api.serializers.zip_download import (
+    ZipDownloadFinishedSerializer,
+    ZipDownloadPendingSerializer,
+    ZipDownloadRequest,
+    ZipDownloadStartedSerializer,
+    ZipDownloadStatusQuery,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +45,7 @@ def _free_space_for_archives() -> int:
 class ZipListPhotosView_V2(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=ZipDownloadRequest)
+    @extend_schema(request=ZipDownloadRequest, responses=ZipDownloadStartedSerializer)
     def post(self, request: Request) -> Response:
         from api.photos.selection import build_photo_queryset
 
@@ -88,7 +94,13 @@ class ZipListPhotosView_V2(APIView):
 
         return Response(data=response)
 
-    @extend_schema(parameters=[ZipDownloadStatusQuery])
+    @extend_schema(
+        parameters=[ZipDownloadStatusQuery],
+        responses={
+            200: ZipDownloadFinishedSerializer,
+            202: ZipDownloadPendingSerializer,
+        },
+    )
     def get(self, request: Request) -> Response:
         job_id = parse_query(request, ZipDownloadStatusQuery)["job_id"]
         # Only the user who started the download may poll it (see api/views/jobs.py).
@@ -116,6 +128,9 @@ class ZipListPhotosView_V2(APIView):
 class DeleteZipView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        responses={200: OpenApiResponse(description="The archive is deleted; no body")}
+    )
     def delete(self, request: Request, fname: str) -> Response:
         # The archive is named after the authenticated requester, so a user can
         # only ever name their own file; fname itself must be the job's UUID.

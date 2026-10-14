@@ -23,6 +23,11 @@ from api.serializers.album_user import (
     album_user_card,
 )
 from api.serializers.photos import PublicPhotoDetailSerializer
+from api.serializers.public_share import (
+    PublicAlbumResponseSerializer,
+    PublicPhotoDetailResponseSerializer,
+    SetUserAlbumPublicResponseSerializer,
+)
 
 SHARING_OPTION_FIELDS = (
     "share_location",
@@ -36,7 +41,10 @@ SHARING_OPTION_FIELDS = (
 class SetUserAlbumPublic(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetUserAlbumPublicRequest)
+    @extend_schema(
+        request=SetUserAlbumPublicRequest,
+        responses=SetUserAlbumPublicResponseSerializer,
+    )
     def post(self, request: Request, format: str | None = None) -> Response:
         data = parse_body(request, SetUserAlbumPublicRequest)
         album_id = data["album_id"]
@@ -124,6 +132,7 @@ class PublicAlbumBySlug(APIView):
     @extend_schema(
         parameters=[OpenApiParameter("slug", OpenApiTypes.STR)],
         description="Returns a public user album by slug if active",
+        responses=PublicAlbumResponseSerializer,
     )
     def get(self, request: Request, slug: str) -> Response:
         album = (
@@ -163,6 +172,7 @@ class PublicPhotoDetailBySlug(APIView):
             ),
         ],
         description="Returns photo details for a photo in a public album, filtered by sharing settings",
+        responses=PublicPhotoDetailResponseSerializer,
     )
     def get(self, request: Request, slug: str, photo_id: str) -> Response:
         # Find the public album
