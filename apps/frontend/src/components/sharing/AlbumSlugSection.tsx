@@ -1,19 +1,18 @@
 import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
 import { type PublicSharingDefaults } from "@librephotos/api-client";
-import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
-import React, { useCallback, useEffect, useEffectEvent, useState } from "react";
+import { IconPlayerPlay } from "@tabler/icons-react";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSlugAvailabilityQuery, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
-import { copyToClipboard } from "../../util/util";
-import { DisabledReason } from "../common/DisabledReason";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
-import { publicAlbumLink } from "./publicAlbum";
+import { publicAlbumLink, publicSlideshowLink } from "./publicAlbum";
+import { ShareLinkRow } from "./ShareLinkRow";
 
 /**
  * Whether another album already holds `slug`, asked of the public endpoint while `enabled` (the
@@ -146,7 +145,6 @@ const serverValues = (album: UserAlbum | undefined): LinkValues => ({
 
 export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refetch }: Props) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const toggleAlbumPublic = useToggleUserAlbumPublicMutation({ reportsErrors: true });
@@ -176,7 +174,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
 
   // derived values
   const slugLink = album?.public_slug ? publicAlbumLink(album.public_slug) : "";
-  const noLinkYet = !slugLink && t("sharing.generating");
+  const slideshowLink = album?.public_slug ? publicSlideshowLink(album.public_slug) : "";
 
   // Follow the server's copy, but never over a setting the owner is editing: the dirty fields are
   // guards here, not triggers.
@@ -232,45 +230,24 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
     );
   });
 
-  const openLink = useCallback(() => {
-    if (slugLink) window.open(slugLink, "_blank", "noopener,noreferrer");
-  }, [slugLink]);
-
   return (
     <>
-      {/* nowrap: on a phone the open-link button dropped onto a line of its own. */}
-      <Group mt="sm" align="flex-end" gap="xs" wrap="nowrap">
-        <TextInput
-          style={{ flex: 1, minWidth: 0 }}
-          value={slugLink || t("sharing.generating")}
-          readOnly
-          leftSection={<LinkIcon size={16} />}
+      <Stack mt="sm" gap="xs">
+        <ShareLinkRow
+          label={t("sharing.albumLink")}
+          link={slugLink}
+          copyLabel={t("sharing.copyLink")}
+          openLabel={t("sharing.openPublicLink")}
         />
-        <DisabledReason
-          label={copied ? t("sharing.copied") : t("sharing.copyLink")}
-          opened={copied ? true : undefined}
-          reason={noLinkYet}
-        >
-          <ActionIcon
-            variant="light"
-            size="lg"
-            aria-label={t("sharing.copyLink")}
-            onClick={() => {
-              if (!slugLink) return;
-              copyToClipboard(slugLink);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1200);
-            }}
-          >
-            <CopyIcon size={18} />
-          </ActionIcon>
-        </DisabledReason>
-        <DisabledReason label={t("sharing.openPublicLink")} reason={noLinkYet}>
-          <ActionIcon variant="light" size="lg" aria-label={t("sharing.openPublicLink")} onClick={openLink}>
-            <LinkIcon size={18} />
-          </ActionIcon>
-        </DisabledReason>
-      </Group>
+        <ShareLinkRow
+          label={t("sharing.slideshowLink")}
+          description={t("sharing.slideshowLinkDesc")}
+          link={slideshowLink}
+          copyLabel={t("sharing.copySlideshowLink")}
+          openLabel={t("sharing.openSlideshowLink")}
+          openIcon={IconPlayerPlay}
+        />
+      </Stack>
 
       <Text size="xs" c="dimmed" mt={4}>
         {t("sharing.linkRotatesOnRevoke")}

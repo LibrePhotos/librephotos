@@ -2,6 +2,8 @@
  * #2223: the public sharing switch saved on one click. Turning it off drops the album's
  * link for good (the backend mints a new one on the next enable), so a custom URL that
  * was handed out cannot be restored: that direction asks first, turning sharing on does not.
+ *
+ * The album and slideshow links (#1457) show only while public sharing is on.
  */
 import React, { act } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,7 +32,8 @@ vi.mock("../../api_client/user/hooks", () => ({
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { id: 1 } }),
 }));
-vi.mock("./AlbumSlugSection", () => ({ AlbumSlugSection: () => null }));
+// The album and slideshow links (AlbumSlugSection.test.tsx); here only whether they show.
+vi.mock("./AlbumSlugSection", () => ({ AlbumSlugSection: () => <div data-testid="public-links" /> }));
 
 const onRequestClose = vi.fn<() => void>();
 
@@ -118,5 +121,22 @@ describe("ModalAlbumShare public sharing switch", () => {
 
     expect(stubs.togglePublic).toHaveBeenCalledWith({ albumId: "5", public: true }, expect.anything());
     expect(openDialog()?.textContent).not.toContain("Turn off public sharing?");
+  });
+});
+
+describe("ModalAlbumShare public links (#1457)", () => {
+  const links = () => document.querySelector('[data-testid="public-links"]');
+
+  it("shows the album and slideshow links while the album is public", async () => {
+    await renderShareDialog();
+
+    expect(links()).not.toBeNull();
+  });
+
+  it("shows no link while public sharing is off", async () => {
+    stubs.album = { public: false, public_slug: "" };
+    await renderShareDialog();
+
+    expect(links()).toBeNull();
   });
 });

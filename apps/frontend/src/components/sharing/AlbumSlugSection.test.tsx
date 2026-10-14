@@ -3,6 +3,9 @@
  * but never over a setting the owner is editing: the dirty flags guard the sync and do not
  * trigger it. Saving clears them; that must not put the old server values back before the
  * refetch lands.
+ *
+ * Next to the album link sits the slideshow link (#1457): the same address with `?slideshow=1`,
+ * with its own Copy and Open buttons.
  */
 import { UserAlbum } from "@librephotos/api-client";
 import type { PublicSharingOptions } from "@librephotos/api-client";
@@ -24,6 +27,7 @@ const stubs = vi.hoisted(() => {
   return {
     ApiError,
     mutate: vi.fn<(params: unknown, callbacks: SaveCallbacks) => void>(),
+    copy: vi.fn<(text: string) => void>(),
     // The album that holds a slug, undefined for a free one (the server's 404), or "pending" for
     // a check that has not answered yet
     slugOwner: undefined as string | undefined,
@@ -31,7 +35,7 @@ const stubs = vi.hoisted(() => {
 });
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-vi.mock("../../util/util", () => ({ copyToClipboard: () => {} }));
+vi.mock("../../util/util", () => ({ copyToClipboard: stubs.copy }));
 vi.mock("../../api_client/albums/hooks", async () => ({
   useToggleUserAlbumPublicMutation: () => ({ mutate: stubs.mutate }),
   // The real check, on the client stubbed below.
@@ -107,6 +111,7 @@ const checkbox = (label: string) => {
 
 beforeEach(() => {
   stubs.mutate.mockReset();
+  stubs.copy.mockReset();
   stubs.slugOwner = undefined;
   queryClient.clear();
   container = document.createElement("div");
@@ -262,5 +267,70 @@ describe("AlbumSlugSection link settings", () => {
     act(() => saveButton().click());
 
     expect(container.textContent).toContain(message);
+  });
+});
+
+describe("AlbumSlugSection links (#1457)", () => {
+  const button = (name: string) => {
+    const found = container.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
+    if (!found) throw new Error(`no ${name} button`);
+    return found;
+  };
+  const field = (label: string) => {
+    const labelElement = [...container.querySelectorAll("label")].find(element => element.textContent === label);
+    const input = labelElement?.htmlFor ? document.getElementById(labelElement.htmlFor) : null;
+    if (!(input instanceof HTMLInputElement)) throw new Error(`no ${label} field`);
+    return input;
+  };
+
+  it("shows the album link and the slideshow link, each labelled", async () => {
+    await render(albumWith({}));
+
+    expect(field("sharing.albumLink").value).toMatch(/\/public\/s\/trip$/);
+    expect(field("sharing.slideshowLink").value).toMatch(/\/public\/s\/trip\?slideshow=1$/);
+    expect(container.textContent).toContain("sharing.slideshowLinkDesc");
+  });
+
+  it("copies each link with its own button", async () => {
+    await render(albumWith({}));
+
+    act(() => button("sharing.copySlideshowLink").click());
+    expect(stubs.copy).toHaveBeenLastCalledWith(expect.stringMatching(/\/public\/s\/trip\?slideshow=1$/));
+
+    act(() => button("sharing.copyLink").click());
+    expect(stubs.copy).toHaveBeenLastCalledWith(expect.stringMatching(/\/public\/s\/trip$/));
+  });
+
+  it("opens the slideshow link in a new tab", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      await render(albumWith({}));
+
+      act(() => button("sharing.openSlideshowLink").click());
+
+      expect(open).toHaveBeenCalledWith(
+        expect.stringMatching(/\/public\/s\/trip\?slideshow=1$/),
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it("copies and opens nothing while the slug is being made", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      await render(albumWith({}, { public_slug: "" }));
+
+      expect(field("sharing.slideshowLink").value).toBe("sharing.generating");
+      act(() => button("sharing.copySlideshowLink").click());
+      act(() => button("sharing.openSlideshowLink").click());
+
+      expect(stubs.copy).not.toHaveBeenCalled();
+      expect(open).not.toHaveBeenCalled();
+    } finally {
+      open.mockRestore();
+    }
   });
 });

@@ -30,6 +30,7 @@ import { usePhotoListLightbox } from "./usePhotoListLightbox";
 import { usePhotoListPreferences } from "./usePhotoListPreferences";
 import { usePhotoListScrollScrubber } from "./usePhotoListScrollScrubber";
 import { usePhotoListSelection } from "./usePhotoListSelection";
+import { usePhotoListSlideshow } from "./usePhotoListSlideshow";
 import { usePhotoListThrottledUpdates } from "./usePhotoListThrottledUpdates";
 import { VideoOverlay } from "./VideoOverlay";
 
@@ -124,6 +125,10 @@ type Props = Readonly<{
   filterBar?: React.ReactNode;
   // Scrolls away above the grid, unlike the sticky header (the timeline's memories).
   banner?: React.ReactNode;
+  // Opens the lightbox on the first photo, playing, once the photos are there (a public album's
+  // `?slideshow=1`, #1457); onSlideshowClose runs when the viewer closes that slideshow.
+  slideshow?: boolean;
+  onSlideshowClose?: () => void;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -167,6 +172,8 @@ function PhotoListViewComponent({
   headerActions,
   filterBar,
   banner,
+  slideshow = false,
+  onSlideshowClose,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
@@ -186,6 +193,7 @@ function PhotoListViewComponent({
   const { localImageScale, localTextAlignment, localHeaderSize } = preferences;
 
   const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef);
+  const slideshowState = usePhotoListSlideshow(idx2hash, lightbox, { slideshow, ready: !isLoading, onSlideshowClose });
 
   const isDateView = photoset !== idx2hash;
   // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
@@ -353,6 +361,7 @@ function PhotoListViewComponent({
       <PhotoListDialogs
         dialogs={dialogs}
         lightbox={lightbox}
+        slideshow={slideshowState}
         publicAlbumSlug={publicAlbumSlug}
         isPublic={isPublic}
         isUserAlbum={isUserAlbum}

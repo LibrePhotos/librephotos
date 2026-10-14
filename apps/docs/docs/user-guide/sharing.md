@@ -50,6 +50,21 @@ You can create a public link for any user album, making it accessible to anyone 
 
 The public album is accessible at `https://your-instance/public/s/{slug}`.
 
+The dialog shows it as the **Album link**, with buttons to copy it and to open it in a new tab.
+
+### Slideshow Link
+
+Under the album link, the dialog also shows a **Slideshow link**: the same address with `?slideshow=1` added (`https://your-instance/public/s/{slug}?slideshow=1`), with its own copy and open buttons. Whoever opens it sees the album start as a slideshow from its first photo, in the [lightbox](./viewing-photos.md), instead of the photo grid. It is handy for a photo frame, a TV or a party screen.
+
+- The slideshow link is the album link with a different start: it shows the same photos and the same Photo Details, expires with the album link, and stops working when you turn public sharing off. There is no separate link to revoke.
+- Visitors have no LibrePhotos settings, so a photo stays on screen for 5 seconds. They can change the interval in the lightbox, pause with the play button or `s`, and step through with the arrow keys.
+- The slideshow stops at the last photo. Closing the lightbox shows the album's photo grid, and the address goes back to the plain album link.
+- When the visitor's device asks for reduced motion, photos cross-fade instead of zooming in.
+
+Only whole albums can be shared as a slideshow: there is no slideshow link for a hand-picked selection of photos. Put the photos in an album and share that.
+
+*Not released yet: up to 1.3.0, a public album link always opened on the photo grid.*
+
 ### Revoking a Public Link
 
 Toggle **"Public sharing"** off again and the link stops working immediately. The slug is burned at the same time, so turning public sharing back on generates a brand-new URL rather than reviving the old one. Anyone who still holds the withdrawn link, including someone you shared it with by mistake, keeps getting a "not found" page.
@@ -93,6 +108,7 @@ Changes to the slug, expiration and Photo Details settings are **not applied unt
 Visitors to a public album link see:
 
 - A photo grid with the album's photos
+- A **Play slideshow** button above the grid (a play icon on a phone), which starts the same slideshow as the [slideshow link](#slideshow-link)
 - A lightbox viewer for browsing individual photos
 - Photo details (subject to the album's Photo Details settings)
 - No login required

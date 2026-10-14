@@ -61,7 +61,7 @@
   "src/components/setup/DirectoryPicker.tsx": { "inlineStyles": 1 },
   "src/components/setup/FirstTimeSetup.tsx": { "inlineStyles": 4 },
   "src/components/sharing/AlbumShareButton.tsx": { "colours": 1, "inlineStyles": 1 },
-  "src/components/sharing/AlbumSlugSection.tsx": { "inlineStyles": 2 },
+  "src/components/sharing/AlbumSlugSection.tsx": { "inlineStyles": 1 },
   "src/components/sharing/AlbumsSharedByMe.tsx": { "inlineStyles": 1 },
   "src/components/sharing/AlbumsSharedWithMe.tsx": { "inlineStyles": 1 },
   "src/components/sharing/PhotoShareLinkModal.tsx": { "inlineStyles": 1 },
