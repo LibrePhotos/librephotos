@@ -27,7 +27,12 @@ from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
 from api.search.similarity import search_similar_image
-from api.serializers.fields import loaded_count, prefetched, shared_serializer
+from api.serializers.fields import (
+    declare_fields,
+    loaded_count,
+    prefetched,
+    shared_serializer,
+)
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import SimpleUserSerializer
@@ -1384,7 +1389,13 @@ class SaveMetadataResponse(serializers.Serializer[None]):
 
     status = serializers.BooleanField(help_text="Always true")
     written = serializers.IntegerField()
-    errors = serializers.IntegerField(help_text="Photos that could not be written")
+
+
+# ``errors`` shadows Serializer.errors, so the class body cannot declare it.
+declare_fields(
+    SaveMetadataResponse,
+    errors=serializers.IntegerField(help_text="Photos that could not be written"),
+)
 
 
 SHARE_ACTIONS = ("enable", "rotate", "disable")
