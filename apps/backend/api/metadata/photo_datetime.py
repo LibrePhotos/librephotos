@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.db.models import QuerySet
+from django.utils import timezone
 
 import api.models
 from api.metadata import datetime_rules
@@ -97,30 +98,51 @@ def extract_date_time(photo: Photo, commit: bool = True) -> None:
     else:
         extracted_local_time = _date_time_from_file(photo)
 
+    album_date = _move_to_day_album(photo, extracted_local_time)
+    if commit:
+        photo.save()
+    album_date.save()
+
+
+def reapply_date_rules(photo: Photo) -> bool:
+    """Read the photo's date again with its owner's current datetime rules.
+
+    For photos already in the library (#437): only ``exif_timestamp``,
+    ``last_modified`` (mobile sync) and the day album change, and nothing is
+    written to the file. A date set by hand wins over the rules (#2254), also
+    one set while this ran: the row is only written while it has none.
+    Returns whether the photo moved to another date.
+    """
+    if photo.timestamp is not None:
+        return False
+    new_time = _date_time_from_file(photo)
+    if new_time == photo.exif_timestamp:
+        return False
+    written = api.models.Photo.objects.filter(
+        pk=photo.pk, timestamp__isnull=True
+    ).update(exif_timestamp=new_time, last_modified=timezone.now())
+    if not written:
+        return False
+    _move_to_day_album(photo, new_time).save()
+    return True
+
+
+def _move_to_day_album(photo: Photo, local_time: datetime | None) -> AlbumDate:
+    """Give the photo ``local_time`` and move it from its old day album to the
+    one of that day (the undated album for None). Returns the new album,
+    unsaved; the photo is not saved either."""
     old_album_date = find_album_date(photo)
-    if photo.exif_timestamp != extracted_local_time:
-        photo.exif_timestamp = extracted_local_time
+    photo.exif_timestamp = local_time
 
     if old_album_date is not None:
         old_album_date.photos.remove(photo)
         old_album_date.save()
 
-    album_date = None
-
-    if photo.exif_timestamp:
-        album_date = api.models.album_date.get_or_create_album_date(
-            date=photo.exif_timestamp.date(), owner=photo.owner
-        )
-        album_date.photos.add(photo)
-    else:
-        album_date = api.models.album_date.get_or_create_album_date(
-            date=None, owner=photo.owner
-        )
-        album_date.photos.add(photo)
-
-    if commit:
-        photo.save()
-    album_date.save()
+    album_date = api.models.album_date.get_or_create_album_date(
+        date=local_time.date() if local_time else None, owner=photo.owner
+    )
+    album_date.photos.add(photo)
+    return album_date
 
 
 def _date_time_from_file(photo: Photo) -> datetime | None:

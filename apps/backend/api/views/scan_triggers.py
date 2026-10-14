@@ -15,6 +15,7 @@ from api.directory_watcher import scan_photos
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.jobs.start import start_job
+from api.metadata.date_rules_job import reapply_date_rules_job
 from api.models import LongRunningJob
 from api.models.user import User
 from api.photos.retention import empty_trash_job
@@ -238,4 +239,26 @@ class EmptyTrashView(APIView):
             empty_trash_job,
             user,
             description="emptying the trash",
+        )
+
+
+class ReapplyDateRulesView(APIView):
+    """Read the date of the requester's photos again with their current date
+    rules (#437).
+
+    Only the requester's own photos; a date set by hand stays and nothing is
+    written to the files. A second start while one runs is a 409.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        return start_job(
+            user,
+            LongRunningJob.JOB_REAPPLY_DATE_RULES,
+            reapply_date_rules_job,
+            user,
+            description="applying the date rules",
         )

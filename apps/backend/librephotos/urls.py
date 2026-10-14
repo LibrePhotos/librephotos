@@ -293,8 +293,8 @@ urlpatterns = [
         media.UnifiedMediaAccessView.as_view(),
         name="media",
     ),
-    # Ahead of the router: its api/photos/<pk>/ route would take "no-album"
-    # and "date-summary", and the two location routes below them.
+    # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
+    # "date-summary", "reapply-date-rules" and the two location routes below them.
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
@@ -314,6 +314,11 @@ urlpatterns = [
         "api/photos/location-summary/",
         photo_locations.LocationSummaryView.as_view(),
         name="photos_location_summary",
+    ),
+    path(
+        "api/photos/reapply-date-rules/",
+        scan_triggers.ReapplyDateRulesView.as_view(),
+        name="photos_reapply_date_rules",
     ),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only

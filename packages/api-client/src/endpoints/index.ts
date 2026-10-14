@@ -873,6 +873,14 @@ export async function emptyTrash(client: ApiClient): Promise<S.JobStartedRespons
   return triggerJob(client, "/photosedit/empty-trash/", S.JobStartedResponse, "empty trash");
 }
 
+/**
+ * Read the date of the signed-in user's photos again with their current date rules (#437). A date
+ * set by hand stays and nothing is written to the files. Returns the queued (or already running) job.
+ */
+export async function reapplyDateRules(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/photos/reapply-date-rules/", S.JobStartedResponse, "apply date rules");
+}
+
 /** Make event albums from the photos added or changed since the last run, and title them. */
 export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");

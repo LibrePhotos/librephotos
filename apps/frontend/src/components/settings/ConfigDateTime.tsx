@@ -17,13 +17,15 @@ import { UnreadableSavedEntries } from "./UnreadableSavedEntries";
 type ConfigDateTimeProps = Readonly<{
   value: string;
   onChange: (rules: string) => void;
+  /** Shown above the rule list: the offer to apply saved rules to existing photos. */
+  notice?: React.ReactNode;
 }>;
 
 function isDateTimeRule(entry: unknown): entry is DateTimeRule {
   return DateTimeRule.safeParse(entry).success;
 }
 
-export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
+export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps) {
   const { t } = useTranslation();
   const { data: allRules } = useFetchPredefinedRulesQuery();
   // Every saved entry: the list shows and edits the rules, and saves the other entries as they are.
@@ -143,6 +145,8 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
           {t("settings.reset_to_defaults")}
         </Button>
       </Group>
+
+      {notice}
 
       <ScrollArea>
         <Table highlightOnHover>

@@ -218,6 +218,7 @@ CLIENT_PATHS = {
     "/api/photos/1/albums/": "api.views.photos.PhotoViewSet get=albums",
     "/api/photos/1/metadata": "api.views.photo_metadata.PhotoMetadataViewSet get=retrieve,patch=partial_update",
     "/api/photos/date-summary/": "api.views.photo_dates.DateSummaryView",
+    "/api/photos/reapply-date-rules/": "api.views.scan_triggers.ReapplyDateRulesView",
     "/api/photos/download": "api.views.zip_downloads.ZipListPhotosView_V2",
     "/api/photos/edit/1/": "api.views.photos.PhotoEditViewSet delete=destroy,get=retrieve,patch=partial_update,put=update",
     "/api/photos/metadata/bulk": "api.views.photo_metadata.BulkMetadataView",

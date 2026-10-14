@@ -141,6 +141,7 @@ class LongRunningJob(models.Model):
     JOB_STRIP_THUMBNAIL_METADATA = 23
     JOB_EMPTY_TRASH = 24
     JOB_GENERATE_CAPTIONS = 25
+    JOB_REAPPLY_DATE_RULES = 26
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -166,6 +167,7 @@ class LongRunningJob(models.Model):
         (JOB_STRIP_THUMBNAIL_METADATA, "Remove Photo Details from Thumbnails"),
         (JOB_EMPTY_TRASH, "Empty Trash"),
         (JOB_GENERATE_CAPTIONS, "Generate Captions"),
+        (JOB_REAPPLY_DATE_RULES, "Apply Date Rules"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

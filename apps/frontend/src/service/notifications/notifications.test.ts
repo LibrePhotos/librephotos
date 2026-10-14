@@ -156,3 +156,31 @@ describe("counted toasts (#599: faces confirmed one at a time)", () => {
     expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "1 face(s) were deleted", color: "teal" });
   });
 });
+
+describe("date rules applied (#437)", () => {
+  it("says how many photos moved and how many keep the date set by hand", () => {
+    notification.dateRulesApplied(312, 41, 0);
+
+    expect(lastShown()).toMatchObject({
+      title: "Date rules applied",
+      message: "312 photos moved to another day. 41 photos keep the date you set by hand.",
+      color: "teal",
+    });
+  });
+
+  it("leaves out the hand-set count when there is none", () => {
+    notification.dateRulesApplied(1, 0, 0);
+
+    expect(lastShown().message).toBe("1 photo moved to another day.");
+  });
+
+  it("stays open as a warning when some dates could not be read", () => {
+    notification.dateRulesApplied(0, 0, 2);
+
+    expect(lastShown()).toMatchObject({
+      message: "0 photos moved to another day. The dates of 2 photos could not be read; the job list has the details.",
+      color: "orange",
+      autoClose: false,
+    });
+  });
+});

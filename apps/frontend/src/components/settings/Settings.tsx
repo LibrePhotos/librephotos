@@ -6,9 +6,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
+import { useApplyDateRules } from "../../api_client/jobs/hooks";
 import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
+import { ApplyDateRulesOffer } from "./ApplyDateRulesOffer";
 import { CaptionContextCard } from "./CaptionContextCard";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
@@ -32,6 +34,9 @@ export function Settings() {
   const { t } = useTranslation();
   const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const queryClient = useQueryClient();
+  // Saved date rules only apply to new scans: offer to apply them to the library too (#437).
+  const [dateRulesSaved, setDateRulesSaved] = useState(false);
+  const applyDateRules = useApplyDateRules();
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -93,6 +98,11 @@ export function Settings() {
               <ConfigDateTime
                 value={editedUserDetails.datetime_rules}
                 onChange={value => edit({ datetime_rules: value || "[]" })}
+                notice={
+                  dateRulesSaved && (
+                    <ApplyDateRulesOffer onApply={applyDateRules.start} onClose={() => setDateRulesSaved(false)} />
+                  )
+                }
               />
             </Card>
           </SettingsSection>
@@ -130,8 +140,12 @@ export function Settings() {
           delete newUserData.scan_directory;
           delete newUserData.avatar;
           // Keep the dialog open when the server rejects the save, so the edits can be fixed.
+          const rulesChanged = newUserData.datetime_rules !== userSelfDetails.datetime_rules;
           updateUser.mutate(newUserData, {
-            onSuccess: () => closeUpdateDialog(),
+            onSuccess: () => {
+              closeUpdateDialog();
+              if (rulesChanged) setDateRulesSaved(true);
+            },
             onError: reportUserSaveError,
           });
         }}

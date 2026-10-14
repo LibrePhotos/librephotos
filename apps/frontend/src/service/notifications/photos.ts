@@ -87,6 +87,31 @@ function photosDateChanged(changed: number, skippedWithoutDate: number) {
   toast.success(message + skipped, { title: i18n.t("toasts.datechangedtitle") });
 }
 
+/** Apply date rules to existing photos (#437) queued its job. */
+function dateRulesStarted() {
+  toast.success(i18n.t("toasts.daterulesstarted"), { title: i18n.t("toasts.daterulesstartedtitle") });
+}
+
+/**
+ * The Apply date rules job went through every photo: how many moved to another day, and how many keep
+ * the date set by hand. Photos it could not read make it a warning that stays until closed.
+ */
+function dateRulesApplied(moved: number, keptHandSet: number, failed: number) {
+  const parts = [i18n.t("toasts.daterulesmoved", { count: moved })];
+  if (keptHandSet) parts.push(i18n.t("toasts.dateruleskept", { count: keptHandSet }));
+  if (failed) {
+    parts.push(i18n.t("toasts.daterulesunread", { count: failed }));
+    toast.warning(parts.join(" "), { title: i18n.t("toasts.daterulesappliedtitle"), autoClose: false });
+    return;
+  }
+  toast.success(parts.join(" "), { title: i18n.t("toasts.daterulesappliedtitle") });
+}
+
+/** The Apply date rules job failed: too many photos could not be read, or it could not start them. */
+function dateRulesFailed() {
+  toast.error(i18n.t("toasts.daterulesfailed"), { title: i18n.t("toasts.daterulesfailedtitle") });
+}
+
 function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   const notificationMessage = isHidden
     ? i18n.t("toasts.hidephoto", { numberOfPhotos })
@@ -202,6 +227,9 @@ export const photos = {
   captionModelDownloading,
   copyPhotoToClipboard,
   copyPhotoToClipboardFailed,
+  dateRulesApplied,
+  dateRulesFailed,
+  dateRulesStarted,
   deleteMissingPhotos,
   downloadCompleted,
   downloadFailed,

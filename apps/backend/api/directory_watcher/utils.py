@@ -432,3 +432,33 @@ def update_scan_counter(
             return
 
     finish_job_if_complete(job_id)
+
+
+def update_batch_counter(
+    job_id: UUID | str,
+    done: int,
+    counts: dict[str, int],
+    errors: list[str],
+) -> None:
+    """``update_scan_counter`` for a batch of ``done`` items.
+
+    Adds ``counts`` to the same keys of the job's result (``{"moved": 3}``),
+    records ``errors`` as failed items and advances the progress by ``done``,
+    all in one write, then finishes the job once it reached its target. A
+    cancelled job is left as it is.
+    """
+
+    def add_batch(result: dict[str, Any], job: LongRunningJob) -> dict[str, Any]:
+        for key, count in counts.items():
+            result[key] = result.get(key, 0) + count
+        fields: dict[str, Any] = {
+            "progress_current": F("progress_current") + done,
+            "last_progress_at": timezone.now(),
+        }
+        for error in errors:
+            fields["failed"] = _record_error(result, error, job.progress_target)
+        return fields
+
+    if update_job_result(job_id, add_batch) is None:
+        return
+    finish_job_if_complete(job_id)

@@ -78,6 +78,7 @@ vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
   useFetchNextcloudDirsQuery: () => stubs.nextcloudDirs,
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
+  useApplyDateRules: () => ({ start: () => {}, running: false }),
   useGenerateAutoAlbumsMutation: () => stubs.noopMutation,
   useGenerateOcrMutation: () => stubs.noopMutation,
   useRegenerateEventTitlesMutation: () => stubs.noopMutation,
