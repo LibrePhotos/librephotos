@@ -8,7 +8,7 @@ decides, so it can be turned off and on again without a restart.
 
 Some gates run once per file (``is_valid_media``) or per photo
 (``extract_faces``), and constance's database backend costs a query per read.
-So the six site switches are read together in one query and kept in the
+So the site switches are read together in one query and kept in the
 process for ``CACHE_SECONDS``. A change saved in this process (the site
 settings view, ``override_config`` in a test) drops that copy at once through
 constance's ``config_updated`` signal; other processes, the django-q workers
@@ -29,6 +29,9 @@ Feature = Literal[
     "IMAGE_CAPTIONING",
     "REVERSE_GEOCODING",
     "SCENE_CLASSIFICATION",
+    # The animated grid previews of videos (#649); off, a video's square
+    # thumbnails are a still frame. Needs VIDEO to matter at all.
+    "VIDEO_PREVIEWS",
 ]
 FEATURES: tuple[Feature, ...] = get_args(Feature)
 
@@ -111,7 +114,7 @@ def _site_switches() -> dict[str, bool]:
 
 
 def _read_site_switches() -> dict[str, bool]:
-    """All six site switches in one query; an unsaved one is its default (on)."""
+    """All the site switches in one query; an unsaved one is its default (on)."""
     from constance import config as site_config
     from constance import settings as constance_settings
 

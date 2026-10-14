@@ -23,7 +23,7 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 
 1. Discovers new image and video files
 2. Groups related files (RAW+JPEG pairs, Live Photos) as [file variants](./stacks-and-file-variants.md). A RAW and a JPEG with the same name in the same folder become one photo with a RAW variant; there is no setting for this.
-3. Creates thumbnails
+3. Creates thumbnails, and for a video a short animated preview for the grid (which can be [turned off](./feature-toggles.md#animated-video-previews))
 4. Extracts EXIF metadata
 5. Runs face detection
 6. Detects the things in each photo with OpenCLIP, which also gives each photo its semantic-search embedding

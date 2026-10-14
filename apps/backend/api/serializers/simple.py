@@ -5,6 +5,19 @@ from api.serializers.sync import dominant_hex
 from api.video import color
 
 
+def has_animated_preview(photo: Photo) -> bool:
+    """Whether the photo's grid square is an animated clip.
+
+    A video's square is an mp4 clip, or a WebP still when it was scanned with
+    the animated previews switched off (#649). Read from the stored name, so
+    a video keeps the kind it has until a rescan replaces it.
+    """
+    if not photo.video:
+        return False
+    thumbnail = getattr(photo, "thumbnail", None)
+    return bool(thumbnail and thumbnail.has_animated_squares)
+
+
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -19,6 +32,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     dominantColor = serializers.SerializerMethodField()
     video_length = serializers.SerializerMethodField()
     is_hdr = serializers.SerializerMethodField()
+    animated_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -37,6 +51,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "dominantColor",
             "video_length",
             "is_hdr",
+            "animated_preview",
         )
 
     def get_square_thumbnail(self, obj: Photo) -> str:
@@ -57,6 +72,9 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
 
     def get_is_hdr(self, obj: Photo) -> bool:
         return bool(obj.video and obj.video_color_transfer in color.HDR_TRANSFERS)
+
+    def get_animated_preview(self, obj: Photo) -> bool:
+        return has_animated_preview(obj)
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):

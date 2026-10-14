@@ -38,6 +38,16 @@ Feature toggles are implemented as environment variables you would have to confi
     </td>
   </tr>
   <tr>
+    <td>Animated video previews</td>
+    <td>
+      Play a short silent clip of each video in the photo grid (not released yet)
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_VIDEO_PREVIEWS=true
+    </td>
+  </tr>
+  <tr>
     <td>Face detection</td>
     <td>
       Find faces in your photos
@@ -105,6 +115,7 @@ _Not released yet._ Every feature in the table except **Embedded media** also ha
 | Feature | Name in the Features card | Site setting |
 | --- | --- | --- |
 | Video | Videos | `VIDEO_ENABLED` |
+| Animated video previews | Animated previews, under Videos | `VIDEO_PREVIEWS_ENABLED` |
 | Face detection | Face detection | `FACE_DETECTION_ENABLED` |
 | Face clustering | Face clustering | `FACE_CLUSTER_ENABLED` |
 | Image captioning | Image captioning | `IMAGE_CAPTIONING_ENABLED` |
@@ -112,6 +123,12 @@ _Not released yet._ Every feature in the table except **Embedded media** also ha
 | Things (scene classification) | Things | `SCENE_CLASSIFICATION_ENABLED` |
 
 A switch saves as soon as you flip it, like the other site settings. A change applies to the next file, photo or job. Background workers take up to a minute to see it, and so does the watchdog that starts and stops the face recognition and captioning services. Turning a feature off does not delete the faces, captions, Things or place names it already produced.
+
+### Animated video previews {#animated-video-previews}
+
+_Not released yet._ By default the photo grid plays a short silent clip of each video while you point at it, and a scan encodes two such clips per video (500 and 250 px high, `VIDEO_PREVIEW_SECONDS` long). On a large library of high-resolution videos that encoding is most of the scan time and of the thumbnail space videos take. Turn off **Animated previews**, the switch under **Videos** in the Features card, and a scan makes two WebP stills of each video's first frame instead, from the big thumbnail it makes anyway: no ffmpeg run, and tens of kilobytes per video where the clips often take hundreds. The grid then shows the still with a play icon in the middle, so a video still looks like a video, and opening it plays the whole video as before. The switch is disabled while **Videos** is off.
+
+Videos that already have an animated preview keep it: turning the switch off changes nothing on disk. **Rescan** (in the dropdown next to **Scan**) gives every video the kind of preview the switch asks for and deletes the other kind, so a rescan after turning the switch off frees the space the clips took, and one after turning it back on encodes the clips again.
 
 Face detection, image captioning and Things run on a machine learning model. Under each of these switches a line says whether its model is ready. When a model is missing, saving a switch starts the **Download models** job, and the line shows its progress with a link to the job. If the download fails, the line says so and offers **Retry**.
 

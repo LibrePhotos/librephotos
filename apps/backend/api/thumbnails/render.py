@@ -5,11 +5,13 @@ import os
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from django.db import transaction
 from PIL import Image
 
 from api.lazy_import import LazyModule
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
 from api.models.thumbnail import (
+    ANIMATED_THUMBNAIL_DIRS,
     STATIC_THUMBNAIL_DIRS,
     Thumbnail,
     thumbnail_file_paths,
@@ -17,6 +19,7 @@ from api.models.thumbnail import (
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
 from api.runtime import binaries, sidecars
+from api.runtime.features import feature_enabled
 from api.thumbnails import face_boxes
 from api.video import color
 
@@ -583,72 +586,130 @@ def _set_aside_thumbnail_files(photo_hash: str) -> list[tuple[str, str]]:
     return set_aside
 
 
+def _video_square_extension() -> str:
+    """The format of the square thumbnails a video gets now.
+
+    An mp4 clip of its first VIDEO_PREVIEW_SECONDS, or, with the animated
+    previews switched off in the site settings (#649), a WebP still resized
+    from its big thumbnail: no ffmpeg run, a few kilobytes on disk.
+    """
+    return ".mp4" if feature_enabled("VIDEO_PREVIEWS") else ".webp"
+
+
+def _video_square_exists(output_path: str, photo_hash: str, extension: str) -> bool:
+    if extension == ".mp4":
+        return does_video_thumbnail_exist(output_path, photo_hash)
+    return does_static_thumbnail_exist(output_path, photo_hash)
+
+
+def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
+    """Make the square thumbnails of a video that are missing in ``extension``.
+
+    The big thumbnail exists by now: the stills are resized from it.
+    """
+    photo = thumbnail.photo
+    photo_hash = photo.image_hash
+    missing = [
+        output_path
+        for output_path in ANIMATED_THUMBNAIL_DIRS
+        if not _video_square_exists(output_path, photo_hash, extension)
+    ]
+    if missing and extension == ".webp":
+        create_static_thumbnails(
+            input_path=thumbnail.main_file_path(),
+            hash=photo_hash,
+            output_paths=missing,
+        )
+        return
+    for output_path in missing:
+        create_animated_thumbnail(
+            input_path=thumbnail.main_file_path(),
+            output_height=SQUARE_THUMBNAIL_HEIGHTS[output_path],
+            output_path=output_path,
+            hash=photo_hash,
+            transfer=photo.video_color_transfer,
+        )
+
+
+def _remove_replaced_video_squares(photo_hash: str, extension: str) -> None:
+    """Delete the video squares of the other format, once the new ones are saved.
+
+    A rescan after the animated previews were switched off replaces each clip
+    with a still and frees its space; switched on again, the other way round.
+    """
+    replaced = ".webp" if extension == ".mp4" else ".mp4"
+    paths = [
+        _media_path(output_path, photo_hash, replaced)
+        for output_path in ANIMATED_THUMBNAIL_DIRS
+    ]
+
+    def remove() -> None:
+        for path in paths:
+            _remove_partial(path)
+
+    transaction.on_commit(remove)
+
+
+def _create_missing_static_thumbnails(thumbnail: Thumbnail) -> None:
+    """A photo's three WebP thumbnails, those that are not on disk yet."""
+    photo = thumbnail.photo
+    missing = [
+        output_path
+        for output_path in STATIC_THUMBNAIL_DIRS
+        if not does_static_thumbnail_exist(output_path, photo.image_hash)
+    ]
+    if missing:
+        create_static_thumbnails(
+            input_path=thumbnail.main_file_path(),
+            hash=photo.image_hash,
+            output_paths=missing,
+            local_orientation=getattr(photo, "local_orientation", 1) or 1,
+        )
+
+
+def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> None:
+    """A video's big thumbnail (its first frame) and its squares, those missing."""
+    photo = thumbnail.photo
+    if not does_static_thumbnail_exist("thumbnails_big", photo.image_hash):
+        create_thumbnail_for_video(
+            input_path=thumbnail.main_file_path(),
+            output_path="thumbnails_big",
+            hash=photo.image_hash,
+            file_type=".webp",
+            transfer=photo.video_color_transfer,
+        )
+    _create_video_squares(thumbnail, extension)
+
+
 def generate_thumbnail(thumbnail: Thumbnail) -> None:
     """Render the thumbnails of ``thumbnail.photo`` that are missing.
 
     A thumbnail that exists is kept. The files are named after the photo's
-    ``image_hash``, which the frontend relies on.
+    ``image_hash``, which the frontend relies on. A video's squares are made
+    in the format ``_video_square_extension`` names, and the ones of the other
+    format are deleted once the new names are saved.
     """
     photo = thumbnail.photo
     try:
         photo_hash = photo.image_hash
-        local_orientation = getattr(photo, "local_orientation", 1) or 1
-        if not photo.video:
-            missing = [
-                output_path
-                for output_path in STATIC_THUMBNAIL_DIRS
-                if not does_static_thumbnail_exist(output_path, photo_hash)
-            ]
-            if missing:
-                create_static_thumbnails(
-                    input_path=thumbnail.main_file_path(),
-                    hash=photo_hash,
-                    output_paths=missing,
-                    local_orientation=local_orientation,
-                )
-        elif not does_static_thumbnail_exist("thumbnails_big", photo_hash):
-            create_thumbnail_for_video(
-                input_path=thumbnail.main_file_path(),
-                output_path="thumbnails_big",
-                hash=photo_hash,
-                file_type=".webp",
-                transfer=photo.video_color_transfer,
-            )
-
-        if photo.video and not does_video_thumbnail_exist(
-            "square_thumbnails", photo_hash
-        ):
-            create_animated_thumbnail(
-                input_path=thumbnail.main_file_path(),
-                output_height=500,
-                output_path="square_thumbnails",
-                hash=photo_hash,
-                transfer=photo.video_color_transfer,
-            )
-
-        if photo.video and not does_video_thumbnail_exist(
-            "square_thumbnails_small", photo_hash
-        ):
-            create_animated_thumbnail(
-                input_path=thumbnail.main_file_path(),
-                output_height=250,
-                output_path="square_thumbnails_small",
-                hash=photo_hash,
-                transfer=photo.video_color_transfer,
-            )
-        filetype = ".webp"
+        square_extension = ".webp"
         if photo.video:
-            filetype = ".mp4"
+            square_extension = _video_square_extension()
+            _create_missing_video_thumbnails(thumbnail, square_extension)
+        else:
+            _create_missing_static_thumbnails(thumbnail)
         thumbnail.thumbnail_big.name = os.path.join(
             "thumbnails_big", photo_hash + ".webp"
         )
         thumbnail.square_thumbnail.name = os.path.join(
-            "square_thumbnails", photo_hash + filetype
+            "square_thumbnails", photo_hash + square_extension
         )
         thumbnail.square_thumbnail_small.name = os.path.join(
-            "square_thumbnails_small", photo_hash + filetype
+            "square_thumbnails_small", photo_hash + square_extension
         )
         thumbnail.save()
+        if photo.video:
+            _remove_replaced_video_squares(photo_hash, square_extension)
     except Exception as e:
         logger.exception(
             "could not generate thumbnail for image %s", thumbnail.main_file_path()

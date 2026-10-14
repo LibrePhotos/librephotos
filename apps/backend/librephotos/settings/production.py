@@ -157,6 +157,8 @@ FEATURE_FACE_CLUSTER = env_flag("FEATURE_FACE_CLUSTER", default=True)
 FEATURE_IMAGE_CAPTIONING = env_flag("FEATURE_IMAGE_CAPTIONING", default=True)
 FEATURE_REVERSE_GEOCODING = env_flag("FEATURE_REVERSE_GEOCODING", default=True)
 FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=True)
+# Animated grid previews of videos; off, a video's squares are a still frame.
+FEATURE_VIDEO_PREVIEWS = env_flag("FEATURE_VIDEO_PREVIEWS", default=True)
 
 # Whether a user's Nextcloud server address may resolve to a private network
 # address (LAN, Docker network, Tailscale). On by default because that is where
@@ -426,6 +428,12 @@ CONSTANCE_CONFIG = {
     "SCENE_CLASSIFICATION_ENABLED": (
         True,
         "Detect what is in photos (beach, kitchen, sunset) for the Things albums",
+        bool,
+    ),
+    "VIDEO_PREVIEWS_ENABLED": (
+        True,
+        "Make a short silent clip of each video for the photo grid; off, the"
+        " grid shows a still frame and scans skip encoding the clip",
         bool,
     ),
     "LOG_MAX_BYTES": (

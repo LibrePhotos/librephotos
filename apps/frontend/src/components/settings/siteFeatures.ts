@@ -1,7 +1,7 @@
 import type { SiteFeatureName, SiteFeatures, SiteModelDownload, SiteSettingsUpdate } from "@librephotos/api-client";
 import type { ParseKeys } from "i18next";
 
-type SiteFeatureState = SiteFeatures[SiteFeatureName];
+export type SiteFeatureState = NonNullable<SiteFeatures[SiteFeatureName]>;
 
 /** One row of the Features card: its texts and the POST body that sets its switch. */
 type FeatureRow = {
@@ -10,10 +10,14 @@ type FeatureRow = {
   description: ParseKeys;
   /** What a scan skips while the feature is off. */
   off: ParseKeys;
+  /** A further note while it is off, e.g. what happens to what the feature already made. */
+  offNote?: ParseKeys;
+  /** The feature this one refines: the row is indented under it and disabled while it is off. */
+  parent?: SiteFeatureName;
   update: (enabled: boolean) => SiteSettingsUpdate;
 };
 
-/** The six optional features (#2217), in the order the card lists them. */
+/** The optional features (#2217), in the order the card lists them. */
 export const FEATURE_ROWS: readonly FeatureRow[] = [
   {
     name: "face_detection",
@@ -56,6 +60,15 @@ export const FEATURE_ROWS: readonly FeatureRow[] = [
     description: "sitesettings.feature_video_description",
     off: "sitesettings.feature_video_off",
     update: enabled => ({ video_enabled: enabled }),
+  },
+  {
+    name: "video_previews",
+    label: "sitesettings.feature_video_previews",
+    description: "sitesettings.feature_video_previews_description",
+    off: "sitesettings.feature_video_previews_off",
+    offNote: "sitesettings.feature_video_previews_existing",
+    parent: "video",
+    update: enabled => ({ video_previews_enabled: enabled }),
   },
 ];
 

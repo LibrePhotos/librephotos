@@ -34,6 +34,11 @@ export type ImageItem = {
   date?: string | null;
   /** An HDR video; Tile says so in its label. */
   is_hdr?: boolean;
+  /**
+   * False for a video whose grid square is a still frame (animated previews off, #649): Tile shows
+   * it as an image with a play icon. Unset counts as a clip, as older backends make for every video.
+   */
+  animated_preview?: boolean;
 };
 
 /** A date group of tiles, for `groupByDate`. */

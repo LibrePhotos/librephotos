@@ -50,6 +50,7 @@ function features(overrides: Partial<SiteFeatures> = {}): SiteFeatures {
     image_captioning: { ...on, model_ready: true },
     reverse_geocoding: on,
     scene_classification: { ...on, model_ready: true },
+    video_previews: on,
     ...overrides,
   };
 }
@@ -130,6 +131,7 @@ describe("FeaturesCard", () => {
       "scene_classification",
       "reverse_geocoding",
       "video",
+      "video_previews",
     ]) {
       expect(switchOf(name).checked).toBe(true);
     }
@@ -170,6 +172,48 @@ describe("FeaturesCard", () => {
     expect(container.textContent).toContain("sitesettings.feature_locked");
     expect(container.textContent).toContain("FEATURE_IMAGE_CAPTIONING");
     expect(switchOf("video").disabled).toBe(false);
+  });
+
+  it("turns the animated previews off and says what happens to the existing ones", async () => {
+    await render();
+    await toggle("video_previews");
+    expect(defined(mocks.save.mock.calls[0])[0]).toEqual({ video_previews_enabled: false });
+    expect(container.textContent).toContain("sitesettings.feature_video_previews_off");
+    expect(container.textContent).toContain("sitesettings.feature_video_previews_existing");
+  });
+
+  it("disables the animated previews while videos are off", async () => {
+    mocks.settingsQuery.data = { features: features({ video: { ...on, enabled: false } }) };
+    await render();
+    expect(switchOf("video_previews").disabled).toBe(true);
+    // Its own value is kept, and nothing says the previews are off because of it.
+    expect(switchOf("video_previews").checked).toBe(true);
+    expect(container.textContent).not.toContain("sitesettings.feature_video_previews_off");
+  });
+
+  it("disables the animated previews as soon as videos are switched off", async () => {
+    await render();
+    expect(switchOf("video_previews").disabled).toBe(false);
+    await toggle("video");
+    expect(switchOf("video_previews").disabled).toBe(true);
+  });
+
+  it("names the variable when the environment locked the animated previews", async () => {
+    mocks.settingsQuery.data = {
+      features: features({ video_previews: { enabled: false, locked: true, model_ready: null } }),
+    };
+    await render();
+    expect(switchOf("video_previews").disabled).toBe(true);
+    expect(container.textContent).toContain("FEATURE_VIDEO_PREVIEWS");
+    expect(container.textContent).not.toContain("sitesettings.feature_video_previews_existing");
+  });
+
+  it("leaves out a switch an older backend does not have", async () => {
+    const { video_previews: _previews, ...older } = features();
+    mocks.settingsQuery.data = { features: older };
+    await render();
+    expect(container.querySelector("#site-feature-video_previews")).toBeNull();
+    expect(switchOf("video").checked).toBe(true);
   });
 
   it("follows a running model download under a switch whose model is missing", async () => {

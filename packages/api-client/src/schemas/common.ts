@@ -98,6 +98,9 @@ export const PigPhoto = z.object({
   // An HDR (PQ or HLG) video, for the badge on its tile. Absent from backends
   // that predate it, where no video is flagged.
   is_hdr: z.boolean().optional().default(false),
+  // Whether a video's grid square is an animated clip (true) or a still frame, scanned with the
+  // animated previews off (#649). Absent from older backends, where every video square is a clip.
+  animated_preview: z.boolean().optional(),
   rating: z.number().default(0),
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),
