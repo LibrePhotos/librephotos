@@ -32,6 +32,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SharedFromMePhoto: { schema: S.SharedFromMePhoto, components: ["SharedFromMePhotoThrough"] },
   PhotoMetadata: { schema: S.PhotoMetadata, components: ["PhotoMetadata"] },
   MetadataEdit: { schema: S.MetadataEdit, components: ["MetadataEdit"] },
+  SetPhotosDateTimeResponse: { schema: S.SetPhotosDateTimeResponse, components: ["SetPhotosDateTimeResponse"] },
+  DatedPhoto: { schema: S.DatedPhoto, components: ["DatedPhoto"] },
+  DateSummary: { schema: S.DateSummary, components: ["DateSummaryResponse"] },
   // date groups (timeline, albums)
   DatePhotosGroup: { schema: S.DatePhotosGroup, components: ["GroupedPhotos"] },
   IncompleteDatePhotosGroup: {
@@ -88,6 +91,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
   SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
   SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
+  TrashRetentionPreview: { schema: S.TrashRetentionPreview, components: ["TrashRetentionPreview"] },
   // search
   MetadataValue: { schema: S.MetadataValue, components: ["MetadataValue"] },
   MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },
@@ -157,6 +161,35 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SyncTagAlbumsResponse: { schema: S.SyncTagAlbumsResponse, components: ["SyncTagAlbumsResponse"] },
   SyncSharingResponse: { schema: S.SyncSharingResponse, components: ["SyncSharingResponse"] },
   SyncCounts: { schema: S.SyncCounts, components: ["SyncCounts"] },
+  // album and photo links, sharing
+  PublicSharingSettings: { schema: S.PublicSharingSettings, components: ["PublicSharingSettings"] },
+  FetchPublicAlbumResponse: { schema: S.FetchPublicAlbumResponse, components: ["PublicAlbumResponse"] },
+  SetUserAlbumPublicResponse: { schema: S.SetUserAlbumPublicResponse, components: ["SetUserAlbumPublicResponse"] },
+  PublicPhotoDetail: { schema: S.PublicPhotoDetail, components: ["PublicPhotoDetail"] },
+  PublicPhotoDetailResponse: { schema: S.PublicPhotoDetailResponse, components: ["PublicPhotoDetailResponse"] },
+  PhotoShare: { schema: S.PhotoShare, components: ["PhotoShare"] },
+  PhotoShareLink: { schema: S.PhotoShareLink, components: ["PhotoShareListItem"] },
+  PhotoShareResponse: { schema: S.PhotoShareResponse, components: ["SetPhotoShareResponse"] },
+  PhotoShareListResponse: { schema: S.PhotoShareListResponse, components: ["PhotoShareList"] },
+  SharedPhoto: { schema: S.SharedPhoto, components: ["SharedPhoto"] },
+  SharedPhotoResponse: { schema: S.SharedPhotoResponse, components: ["SharedPhotoResponse"] },
+  // folders, search, geocode, memories, metadata
+  FolderSubfolder: { schema: S.FolderSubfolder, components: ["FolderEntry"] },
+  FolderSubfoldersResponse: { schema: S.FolderSubfoldersResponse, components: ["FolderSubfoldersPage"] },
+  SearchExamplesResponse: { schema: S.SearchExamplesResponse, components: ["SearchTermExamples"] },
+  GeocodeResult: { schema: S.GeocodeResult, components: ["GeocodeSearchResult"] },
+  Memory: { schema: S.Memory, components: ["Memory"] },
+  FetchMemoriesResponse: { schema: S.FetchMemoriesResponse, components: ["Memories"] },
+  BulkMetadataUpdateResponse: { schema: S.BulkMetadataUpdateResponse, components: ["BulkMetadataUpdateResponse"] },
+  // downloads, uploads
+  PhotoDownloadStart: { schema: S.PhotoDownloadStart, components: ["ZipDownloadStarted"] },
+  PhotoDownloadStatus: { schema: S.PhotoDownloadStatus, components: ["ZipDownloadFinished", "ZipDownloadPending"] },
+  UploadExistsResponse: { schema: S.UploadExistsResponse, components: ["UploadExists"] },
+  // services, serving diagnostics
+  ServicesList: { schema: S.ServicesList, components: ["Services"] },
+  ServiceHealth: { schema: S.ServiceHealth, components: ["ServiceHealth"] },
+  ServiceActionResponse: { schema: S.ServiceActionResponse, components: ["ServiceAction"] },
+  MediaDiagnostics: { schema: S.MediaDiagnostics, components: ["MediaDiagnosis"] },
 };
 
 /** Exported zod objects that are not compared, and why. */
@@ -212,16 +245,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   FetchPeopleAlbumsResponse:
     "a {results} envelope around rows compared on their own (Person); the view's wrapper is not a component",
   PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",
-  FetchPublicAlbumResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); the album is compared as UserAlbum",
-  PublicAlbumSlugOwner: "the same answer as FetchPublicAlbumResponse, read only for its id",
-  SetUserAlbumPublicResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); the album is compared as UserAlbumInfo",
-  FolderSubfolder: "nested in FolderSubfoldersResponse (see there)",
-  FolderSubfoldersResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SearchExamplesResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  PublicAlbumSlugOwner:
+    "the answer FetchPublicAlbumResponse compares (PublicAlbumResponse), read only for its id: comparing it would report every other field as dropped",
   SearchPhotos:
     "a {results} envelope (component SearchResults) around rows compared on their own (DatePhotosGroup); comparing it would repeat DatePhotosGroup's baselined differences",
   SemanticSearchPhotos:
@@ -233,44 +258,17 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (SharedFromMePhoto); the view's wrapper is not a component",
   SharedAlbumsResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
-  PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ListUser:
     "one shape for two serializers: UserViewSet lists User rows for admins and PublicUser rows for everyone else",
   UploadOptions: "a request body",
-  UploadResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
+  UploadResponse:
+    "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
   TagListResponse:
     "a {results} envelope around rows compared on their own (Tag); the view's wrapper is not a component; its rows add cover_photos",
   TagAlbumResponse:
     "a {results} envelope around rows compared on their own (TagAlbum); the view's wrapper is not a component",
   MetadataFile:
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
-  BulkMetadataUpdateResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  PublicSharingSettings:
-    "a plain dict (get_effective_sharing_settings) in answers whose views declare no response serializer",
-  PublicPhotoDetail:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485), and no component describes PublicPhotoDetailSerializer",
-  PublicPhotoDetailResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  PhotoShare: "its views declare no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  PhotoShareResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  PhotoShareListResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SharedPhoto:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485); a PublicPhotoDetailSerializer row with the hash-derived fields swapped for slug URLs",
-  SharedPhotoResponse: "the {results} envelope of SharedPhoto (see there)",
-  ServicesList:
-    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ServiceHealth:
-    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  ServiceActionResponse:
-    "ServiceViewSet (api/views/services.py) declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   UploadCompleteResponse:
     "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
-  UploadExistsResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  GeocodeResult: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  MediaDiagnostics: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  Memory: "nested in FetchMemoriesResponse (see there)",
-  FetchMemoriesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
 };

@@ -51,7 +51,8 @@ export type IncompleteFacesResponse = z.infer<typeof IncompleteFacesResponse>;
 export const LabelledFace = z.looseObject({
   id: z.number(),
   image: z.string().nullable().optional(),
-  face_url: z.string().optional(),
+  /** null for a face without a crop (legacy rows). */
+  face_url: z.string().nullable().optional(),
   photo: z.string().nullable().optional(),
   timestamp: z.string().nullable().optional(),
   person: z.number().nullable().optional(),
@@ -74,9 +75,14 @@ export const SetFacesLabelResponse = z.looseObject({
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 
-/** POST /api/deletefaces response (arrays hold face image URLs). */
+/**
+ * POST /api/deletefaces response. The string arrays hold the crop URLs of the deleted faces; a face
+ * without a crop is only in `deleted_ids`.
+ */
 export const DeleteFacesResponse = z.looseObject({
   status: z.boolean(),
+  /** Optional: older servers omit it. */
+  deleted_ids: z.number().array().optional(),
   results: z.string().array().default([]),
   deleted: z.string().array().default([]),
   not_deleted: z.string().array().default([]),

@@ -86,6 +86,8 @@ Selecting all photos on a filtered list selects only what it shows. In Trash, fi
 
 Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
 
+To give them a date, select them and choose **Change date and time…** from the selection actions menu, then **Set** (see [Changing the date of many photos](#changing-the-date-of-many-photos)). _Not released yet._
+
 ### Without Location
 
 :::note
@@ -170,13 +172,22 @@ _Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
 
-While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. Of these edits, the date, the caption and the location are written to files; tags stay in LibrePhotos. _Not released yet._
+While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files. _Not released yet._
 
 ### Timestamp
 
 Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
 
 A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one. _Not released yet._
+
+### Changing the date of many photos
+
+A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Change date and time…**. The dialog has two tabs:
+
+- **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
+- **Set** gives every selected photo the same date and time, picked with the same calendar and time field as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
+
+When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`. _Not released yet._
 
 ### File & Camera Info
 
@@ -225,7 +236,7 @@ The AI-generated or manually entered caption for the photo. You can:
 
 Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
-Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject` and IPTC `Keywords`, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag, but removing one here does not change the file, so a rescan adds it back. Writing your tags back into the file is planned. _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
+Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject` and IPTC `Keywords`, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag. With [Write edits to files](./settings/index.md#metadata-options) set to `Off`, removing one here does not change the file, so a rescan adds it back, and the editor says so. With a sidecar or the media file chosen, your tag changes are written to the file's keywords (see [EXIF Data](./exif-data.md#what-librephotos-writes)) and a removed tag stays removed (not released yet). _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
 
 These are not the same as the **Things** list under the caption: those come from OpenCLIP and are not editable here.
 

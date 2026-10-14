@@ -71,6 +71,7 @@ function AlbumAutoGalleryView() {
       dominantColor: photo.dominantColor ?? "",
       video_length: photo.video_length,
       is_hdr: photo.is_hdr ?? false,
+      animated_preview: photo.animated_preview,
       // The grid fields an event photo has no source for
       shared_to: [],
       isTemp: false,

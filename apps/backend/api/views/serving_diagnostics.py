@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import Photo
+from api.serializers.media import MediaDiagnosisSerializer
 from api.serving.permissions import diagnose_media_path
 from api.views.photos import _get_photo_filter_kwargs
 
@@ -26,6 +28,7 @@ class MediaPermissionDiagnosticsView(APIView):
 
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(responses=MediaDiagnosisSerializer)
     def get(self, request: Request, fname: str, format: str | None = None) -> Response:
         photo = (
             Photo.objects.filter(**_get_photo_filter_kwargs(fname))

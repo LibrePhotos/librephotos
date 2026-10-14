@@ -1477,7 +1477,14 @@
         "deprecated": true,
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -1496,7 +1503,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -1519,7 +1533,14 @@
         "deprecated": true,
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -1538,7 +1559,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -1742,8 +1770,8 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "No response body"
+          "200": {
+            "description": "The archive is deleted; no body"
           }
         }
       }
@@ -2403,7 +2431,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadExists"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2635,7 +2670,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderSubfoldersPage"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -2800,7 +2842,7 @@
     },
     "/api/geocode/search/": {
       "get": {
-        "operationId": "api_geocode_search_retrieve",
+        "operationId": "api_geocode_search_list",
         "description": "Search for locations by name/address.",
         "parameters": [
           {
@@ -2835,7 +2877,17 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GeocodeSearchResult"
+                  }
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -3418,7 +3470,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDiagnosis"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -3478,7 +3537,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Memories"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -3921,7 +3987,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetPhotoShareResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -3943,7 +4016,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoShareList"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -4718,6 +4798,54 @@
         }
       }
     },
+    "/api/photos/date-summary/": {
+      "post": {
+        "operationId": "api_photos_date_summary_create",
+        "description": "How many photos the selection has, how many have no date, and its\noldest and newest dated photo: what the date dialog shows before it\nsaves. A POST because a selection can be a whole query; it changes\nnothing.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateSummaryResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/download/": {
       "get": {
         "operationId": "api_photos_download_retrieve",
@@ -4746,7 +4874,24 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipDownloadFinished"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipDownloadPending"
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -4784,7 +4929,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipDownloadStarted"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -5072,7 +5224,7 @@
     "/api/photos/metadata/bulk/": {
       "get": {
         "operationId": "api_photos_metadata_bulk_retrieve",
-        "description": "Get metadata summary for multiple photos.",
+        "description": "Get metadata summary for multiple photos, by photo id. Photos that are not the caller's are left out.",
         "parameters": [
           {
             "in": "query",
@@ -5097,7 +5249,46 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "description": "A photo's row in ``GET /api/photos/metadata/bulk/``.",
+                    "properties": {
+                      "camera": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "lens": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "date_taken": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      },
+                      "has_location": {
+                        "type": "boolean"
+                      },
+                      "rating": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "camera",
+                      "date_taken",
+                      "has_location",
+                      "lens",
+                      "rating"
+                    ]
+                  }
+                }
+              }
+            },
+            "description": ""
           }
         }
       },
@@ -5136,7 +5327,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkMetadataUpdateResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -5857,6 +6055,55 @@
         }
       }
     },
+    "/api/photosedit/datetime/": {
+      "post": {
+        "operationId": "api_photosedit_datetime_create",
+        "description": "Shift the requester's selected photos by a number of seconds, or give\nthem all one date and time.\n\nThe body names the photos as every bulk photo action does\n(``image_hashes``, or ``select_all`` with ``query`` and\n``excluded_hashes``). A shift moves each photo from the date it shows, so\nthe photos keep their order and spacing; a photo without a date is left\nalone and counted in ``skipped_without_date``. The new date is the\nuser's: it wins over the owner's date rules, and is written to the file\nor sidecar in the background when the owner syncs metadata to disk.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetPhotosDateTimeResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photosedit/delete/": {
       "delete": {
         "operationId": "api_photosedit_delete_destroy",
@@ -6445,7 +6692,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAlbumResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -6504,7 +6758,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPhotoDetailResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -6545,7 +6806,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPhotoResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -6559,9 +6827,9 @@
             "in": "path",
             "name": "kind",
             "schema": {
-              "type": "string",
-              "pattern": "^[^/]+$"
+              "type": "string"
             },
+            "description": "thumbnail (the big one), or video for a video",
             "required": true
           },
           {
@@ -6591,7 +6859,26 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "The file with its own content type; behind the proxy, an empty body and an X-Accel-Redirect header"
+          },
+          "206": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "The byte range a Range header asked for"
           }
         }
       }
@@ -7072,7 +7359,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchTermExamples"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7189,7 +7483,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Services"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7221,7 +7522,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceHealth"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7253,7 +7561,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceAction"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7285,7 +7600,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceAction"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -7356,6 +7678,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SiteSettings"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/sitesettings/trash-retention-preview/": {
+      "get": {
+        "operationId": "api_sitesettings_trash_retention_preview_retrieve",
+        "description": "What a trash retention of N days would delete at the next cleanup (#2203).\n\nThe Site settings card asks before it turns the retention on or shortens\nit, with this count. It counts every user's trash, which is what the\nretention deletes, so only an admin may ask.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "type": "integer",
+              "maximum": 36500,
+              "minimum": 1
+            },
+            "description": "Days a photo may stay in the trash.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashRetentionPreview"
                 }
               }
             },
@@ -9170,7 +9534,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetUserAlbumPublicResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -9211,7 +9582,14 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumUserList"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -9266,6 +9644,15 @@
               "pattern": "^.*$"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "transcode",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "1 asks for a video this browser cannot play to be converted"
           }
         ],
         "tags": [
@@ -9285,7 +9672,26 @@
         ],
         "responses": {
           "200": {
-            "description": "No response body"
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "The file with its own content type; behind the proxy, an empty body and an X-Accel-Redirect header"
+          },
+          "206": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "The byte range a Range header asked for"
           }
         }
       }
@@ -10023,6 +10429,59 @@
           "title"
         ]
       },
+      "AlbumUserPublic": {
+        "type": "object",
+        "description": "Serializer for publicly shared user albums.\n\nEnsures photos are grouped from a filtered subset (not hidden, not in trashcan).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "readOnly": true
+          },
+          "date": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "readOnly": true
+          },
+          "location": {
+            "type": "string",
+            "readOnly": true
+          },
+          "grouped_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupedPhotos"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "date",
+          "grouped_photos",
+          "id",
+          "location",
+          "owner",
+          "title"
+        ]
+      },
       "ApiHelp": {
         "type": "object",
         "description": "``GET /api/help``: how to sign in to the API, with absolute URLs.",
@@ -10166,6 +10625,51 @@
           "how_to",
           "obtain",
           "refresh"
+        ]
+      },
+      "BlockingPath": {
+        "type": "object",
+        "description": "The path component that stopped the web server (``Blocking``).",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "directory or file"
+          },
+          "mode": {
+            "type": "string",
+            "description": "Octal mode bits; only for a path it could stat"
+          },
+          "uid": {
+            "type": "integer"
+          },
+          "gid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "path"
+        ]
+      },
+      "BulkMetadataUpdateResponse": {
+        "type": "object",
+        "description": "``PATCH /api/photos/metadata/bulk/``.",
+        "properties": {
+          "updated_count": {
+            "type": "integer",
+            "description": "The photos changed (the caller's, among photo_ids)"
+          },
+          "message": {
+            "type": "string",
+            "description": "The count, in English"
+          }
+        },
+        "required": [
+          "message",
+          "updated_count"
         ]
       },
       "BulkPhotoMutationResponse": {
@@ -10521,6 +11025,62 @@
         "required": [
           "password",
           "username"
+        ]
+      },
+      "DateSummaryResponse": {
+        "type": "object",
+        "description": "Where a selection's dates stand before they are changed.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos in the selection"
+          },
+          "without_date": {
+            "type": "integer",
+            "description": "Photos of the selection that have no date"
+          },
+          "oldest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatedPhoto"
+              }
+            ],
+            "nullable": true,
+            "description": "The earliest dated photo, null without one"
+          },
+          "newest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatedPhoto"
+              }
+            ],
+            "nullable": true,
+            "description": "The latest dated photo, null without one"
+          }
+        },
+        "required": [
+          "count",
+          "newest",
+          "oldest",
+          "without_date"
+        ]
+      },
+      "DatedPhoto": {
+        "type": "object",
+        "description": "One photo of a selection and its date.",
+        "properties": {
+          "image_hash": {
+            "type": "string"
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The photo's local wall-clock time, tagged UTC"
+          }
+        },
+        "required": [
+          "exif_timestamp",
+          "image_hash"
         ]
       },
       "DefaultTimezoneEnum": {
@@ -11128,18 +11688,25 @@
       },
       "DeleteFacesResponse": {
         "type": "object",
-        "description": "The answer of POST /api/deletefaces: the faces deleted, by image URL.",
+        "description": "The answer of POST /api/deletefaces: the faces deleted.",
         "properties": {
           "status": {
             "type": "boolean",
             "description": "Always true"
+          },
+          "deleted_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The ids of the deleted faces"
           },
           "deleted": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "The image URLs of the deleted faces"
+            "description": "The crop URLs of the deleted faces; a face without a crop is only in deleted_ids"
           },
           "results": {
             "type": "array",
@@ -11158,6 +11725,7 @@
         },
         "required": [
           "deleted",
+          "deleted_ids",
           "not_deleted",
           "results",
           "status"
@@ -12020,6 +12588,7 @@
           },
           "face_url": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "photo": {
@@ -12073,6 +12642,140 @@
           "isFirstTimeSetup"
         ]
       },
+      "FolderEntry": {
+        "type": "object",
+        "description": "A subfolder with photos in it (``_folder_listing``).",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The caller's photos in it and below"
+          },
+          "modified": {
+            "type": "number",
+            "format": "double",
+            "description": "The folder's mtime, in seconds"
+          }
+        },
+        "required": [
+          "modified",
+          "name",
+          "path",
+          "photo_count"
+        ]
+      },
+      "FolderLegacyPagination": {
+        "type": "object",
+        "description": "The page fields as ``GET /api/folders/subfolders/`` sent them before #2327.",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "total_folders": {
+            "type": "integer",
+            "description": "Directory entries, also those without photos"
+          },
+          "total_pages": {
+            "type": "integer"
+          },
+          "has_next": {
+            "type": "boolean"
+          },
+          "has_previous": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "has_next",
+          "has_previous",
+          "page",
+          "page_size",
+          "total_folders",
+          "total_pages"
+        ]
+      },
+      "FolderSubfoldersPage": {
+        "type": "object",
+        "description": "``GET /api/folders/subfolders/``: one page of a folder's subfolders.\n\nThe page envelope (``api/drf/pagination.py``), with the folder's own paths.\nA page holds 100 directory entries, and those without photos are dropped\nafter paging, so a page can hold fewer, or none, while ``next`` says more\nfollow. ``subfolders`` and ``pagination`` repeat the page for web bundles\nup to 1.3.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Directory entries in the folder"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderEntry"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          },
+          "current_path": {
+            "type": "string",
+            "nullable": true,
+            "description": "The folder listed; null, with an empty page, for a user without a scan directory"
+          },
+          "parent_path": {
+            "type": "string",
+            "nullable": true,
+            "description": "null at the top the caller may see"
+          },
+          "subfolders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderEntry"
+            },
+            "description": "Deprecated, for web bundles up to 1.3: results"
+          },
+          "pagination": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FolderLegacyPagination"
+              }
+            ],
+            "description": "Deprecated, for web bundles up to 1.3: the page fields"
+          }
+        },
+        "required": [
+          "count",
+          "current_path",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "pagination",
+          "parent_path",
+          "previous",
+          "results",
+          "subfolders"
+        ]
+      },
       "GenerateOcrRequestRequest": {
         "type": "object",
         "properties": {
@@ -12100,6 +12803,29 @@
         "required": [
           "enabled",
           "place"
+        ]
+      },
+      "GeocodeSearchResult": {
+        "type": "object",
+        "description": "A place of ``GET /api/geocode/search``, which answers a list of them.",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "description": "The provider's name for it"
+          },
+          "lat": {
+            "type": "number",
+            "format": "double"
+          },
+          "lon": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "display_name",
+          "lat",
+          "lon"
         ]
       },
       "GeocodeStatusEnum": {
@@ -12703,6 +13429,178 @@
           "username"
         ]
       },
+      "MediaDiagnosis": {
+        "type": "object",
+        "description": "``GET /api/media/diagnostics/{fname}/`` (admin): why the web server\ncannot serve a photo's original (``diagnose_media_path``).\n\nA photo without a file has no path, ``webserver`` or ``mount``.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "exists": {
+            "type": "boolean"
+          },
+          "readable_by_webserver": {
+            "type": "boolean"
+          },
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MediaDiagnosisCauseEnum"
+              }
+            ],
+            "description": "mode_bits names the path in blocking; not_mode_bits: the bits allow the read, so something chmod cannot reach refused it\n\n* `missing` - missing\n* `mode_bits` - mode_bits\n* `not_mode_bits` - not_mode_bits\n* `unknown` - unknown"
+          },
+          "blocking": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockingPath"
+              }
+            ],
+            "nullable": true
+          },
+          "webserver": {
+            "$ref": "#/components/schemas/WebServerIds"
+          },
+          "mount": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MountSummary"
+              }
+            ],
+            "nullable": true,
+            "description": "null when no mount matches"
+          },
+          "remedies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Kinds of fix, most applicable first"
+          }
+        },
+        "required": [
+          "blocking",
+          "cause",
+          "exists",
+          "path",
+          "readable_by_webserver",
+          "remedies"
+        ]
+      },
+      "MediaDiagnosisCauseEnum": {
+        "enum": [
+          "missing",
+          "mode_bits",
+          "not_mode_bits",
+          "unknown"
+        ],
+        "type": "string",
+        "description": "* `missing` - missing\n* `mode_bits` - mode_bits\n* `not_mode_bits` - not_mode_bits\n* `unknown` - unknown"
+      },
+      "Memories": {
+        "type": "object",
+        "description": "``GET /api/memories/``: nearest year first.",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "The day looked back from"
+          },
+          "window_days": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Memory"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "results",
+          "window_days"
+        ]
+      },
+      "Memory": {
+        "type": "object",
+        "description": "One earlier year with photos around the day.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "{type}-{year}"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemoryTypeEnum"
+              }
+            ],
+            "description": "years_ago: around the anniversary; month_years_ago: the whole month, when no year had photos around the day\n\n* `years_ago` - years_ago\n* `month_years_ago` - month_years_ago"
+          },
+          "years_ago": {
+            "type": "integer"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "The day nearest the anniversary"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The first day with photos"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The last day with photos"
+          },
+          "location": {
+            "type": "string",
+            "description": "A place of those days; \"\" without one"
+          },
+          "cover": {
+            "$ref": "#/components/schemas/PhotoSummary"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            },
+            "description": "At most size photos, in the order they were taken"
+          },
+          "numberOfItems": {
+            "type": "integer",
+            "description": "Every photo of the memory, also those items leaves out"
+          }
+        },
+        "required": [
+          "cover",
+          "date",
+          "end_date",
+          "id",
+          "items",
+          "location",
+          "numberOfItems",
+          "start_date",
+          "type",
+          "year",
+          "years_ago"
+        ]
+      },
+      "MemoryTypeEnum": {
+        "enum": [
+          "years_ago",
+          "month_years_ago"
+        ],
+        "type": "string",
+        "description": "* `years_ago` - years_ago\n* `month_years_ago` - month_years_ago"
+      },
       "MergeStacksResponse": {
         "type": "object",
         "description": "``merged``, or ``no_merge_needed`` (with a message) when the photos are\nin one manual stack only.",
@@ -12821,6 +13719,51 @@
         },
         "required": [
           "results"
+        ]
+      },
+      "ModeEnum": {
+        "enum": [
+          "shift",
+          "set"
+        ],
+        "type": "string",
+        "description": "* `shift` - shift\n* `set` - set"
+      },
+      "MountSummary": {
+        "type": "object",
+        "description": "The mount backing the path (``MountSummary``).",
+        "properties": {
+          "point": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "The file system type"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions_from_mount": {
+            "type": "boolean",
+            "description": "The file system takes its permissions from mount options"
+          },
+          "network": {
+            "type": "boolean"
+          },
+          "read_only": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "network",
+          "options",
+          "permissions_from_mount",
+          "point",
+          "read_only",
+          "type"
         ]
       },
       "NullEnum": {
@@ -14129,6 +15072,7 @@
           },
           "face_url": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "photo": {
@@ -15330,6 +16274,114 @@
           "image_hash"
         ]
       },
+      "PhotoSelectionRequestRequest": {
+        "type": "object",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          }
+        }
+      },
+      "PhotoShare": {
+        "type": "object",
+        "description": "A photo's link (``_share_payload``): revoked, it has no slug and no url.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The page's path, /public/p/{slug}"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only while the link is enabled"
+          }
+        },
+        "required": [
+          "enabled",
+          "slug",
+          "url"
+        ]
+      },
+      "PhotoShareList": {
+        "type": "object",
+        "description": "``GET /api/photo/share/list/``: the caller's live photo links, newest first.",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoShareListItem"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "PhotoShareListItem": {
+        "type": "object",
+        "description": "One of the caller's live photo links.",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "The page's path, /public/p/{slug}"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "image_hash": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at",
+          "enabled",
+          "image_hash",
+          "photo_id",
+          "slug",
+          "url"
+        ]
+      },
       "PhotoSimple": {
         "type": "object",
         "properties": {
@@ -15393,9 +16445,14 @@
           "is_hdr": {
             "type": "boolean",
             "readOnly": true
+          },
+          "animated_preview": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "required": [
+          "animated_preview",
           "aspectRatio",
           "dominantColor",
           "exif_gps_lat",
@@ -15723,6 +16780,10 @@
             "type": "boolean",
             "readOnly": true
           },
+          "animated_preview": {
+            "type": "boolean",
+            "readOnly": true
+          },
           "rating": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -15773,6 +16834,7 @@
           }
         },
         "required": [
+          "animated_preview",
           "aspectRatio",
           "birthTime",
           "date",
@@ -15846,6 +16908,226 @@
         ],
         "type": "string",
         "description": "* `disabled` - Disabled\n* `custom` - Custom SMTP server\n* `sendgrid` - SendGrid\n* `mailgun` - Mailgun\n* `postmark` - Postmark\n* `brevo` - Brevo\n* `smtp2go` - SMTP2GO\n* `ses` - Amazon SES"
+      },
+      "PublicAlbumResponse": {
+        "type": "object",
+        "description": "``GET /api/public/albums/s/{slug}/``: a public album, for a visitor.",
+        "properties": {
+          "results": {
+            "$ref": "#/components/schemas/AlbumUserPublic"
+          },
+          "sharing_settings": {
+            "$ref": "#/components/schemas/PublicSharingSettings"
+          }
+        },
+        "required": [
+          "results",
+          "sharing_settings"
+        ]
+      },
+      "PublicPhotoDetail": {
+        "type": "object",
+        "description": "Serializer for photo details in public albums.\n\nConditionally includes metadata based on sharing settings passed in context.\nContext must include 'sharing_settings' dict with keys:\n- share_location: bool\n- share_camera_info: bool\n- share_timestamps: bool\n- share_captions: bool\n- share_faces: bool",
+        "properties": {
+          "image_hash": {
+            "type": "string",
+            "readOnly": true
+          },
+          "video": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "square_thumbnail_url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "big_thumbnail_url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "small_square_thumbnail_url": {
+            "type": "string",
+            "readOnly": true
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
+          },
+          "exif_gps_lat": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "exif_gps_lon": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "geolocation_json": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true,
+            "readOnly": true
+          },
+          "search_location": {
+            "type": "string",
+            "readOnly": true
+          },
+          "camera": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lens": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "focal_length": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "fstop": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "iso": {
+            "type": "integer",
+            "nullable": true,
+            "readOnly": true
+          },
+          "shutter_speed": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "width": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "height": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "search_captions": {
+            "type": "string",
+            "readOnly": true
+          },
+          "captions_json": {
+            "type": "object",
+            "additionalProperties": {},
+            "readOnly": true
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPhotoPerson"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "big_thumbnail_url",
+          "camera",
+          "captions_json",
+          "exif_gps_lat",
+          "exif_gps_lon",
+          "exif_timestamp",
+          "focal_length",
+          "fstop",
+          "geolocation_json",
+          "height",
+          "image_hash",
+          "iso",
+          "lens",
+          "people",
+          "search_captions",
+          "search_location",
+          "shutter_speed",
+          "small_square_thumbnail_url",
+          "square_thumbnail_url",
+          "video",
+          "width"
+        ]
+      },
+      "PublicPhotoDetailResponse": {
+        "type": "object",
+        "description": "``GET /api/public/albums/s/{slug}/photos/{photo_id}/``: one photo of a\npublic album, filtered by the album's sharing settings.",
+        "properties": {
+          "results": {
+            "$ref": "#/components/schemas/PublicPhotoDetail"
+          },
+          "sharing_settings": {
+            "$ref": "#/components/schemas/PublicSharingSettings"
+          }
+        },
+        "required": [
+          "results",
+          "sharing_settings"
+        ]
+      },
+      "PublicPhotoPerson": {
+        "type": "object",
+        "description": "A person on a photo of a public album, when the album shares faces.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "face_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The face crop; null without one"
+          },
+          "face_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "face_id",
+          "face_url",
+          "name"
+        ]
+      },
+      "PublicSharingSettings": {
+        "type": "object",
+        "description": "What a link shares: the owner's defaults, then the album's overrides\n(``get_effective_sharing_settings``).",
+        "properties": {
+          "share_location": {
+            "type": "boolean",
+            "description": "GPS position and place names"
+          },
+          "share_camera_info": {
+            "type": "boolean",
+            "description": "Camera, lens, exposure and size"
+          },
+          "share_timestamps": {
+            "type": "boolean",
+            "description": "When the photo was taken"
+          },
+          "share_captions": {
+            "type": "boolean",
+            "description": "Captions"
+          },
+          "share_faces": {
+            "type": "boolean",
+            "description": "The names of the people"
+          }
+        },
+        "required": [
+          "share_camera_info",
+          "share_captions",
+          "share_faces",
+          "share_location",
+          "share_timestamps"
+        ]
       },
       "PublicUser": {
         "type": "object",
@@ -16203,6 +17485,22 @@
           "results"
         ]
       },
+      "SearchTermExamples": {
+        "type": "object",
+        "description": "``GET /api/searchtermexamples/``: search suggestions from the caller's library.",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Built from a sample of the caller's photos (people, places, things, times); fixed examples for an empty library"
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
       "ServerLogs": {
         "type": "object",
         "description": "``GET /api/serverlogs/view``: the last lines of the server log.",
@@ -16281,6 +17579,69 @@
           "total_storage_in_mb",
           "used_storage_in_mb",
           "users"
+        ]
+      },
+      "ServiceAction": {
+        "type": "object",
+        "description": "``POST /api/services/{id}/start/`` and ``.../stop/`` (admin).",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "What happened, in English"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ServiceHealth": {
+        "type": "object",
+        "description": "``GET /api/services/{id}/`` (admin): whether a sidecar answers.",
+        "properties": {
+          "service_name": {
+            "type": "string"
+          },
+          "healthy": {
+            "type": "boolean",
+            "description": "False while it is switched off"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "False when its feature is switched off"
+          },
+          "feature_flag": {
+            "type": "string",
+            "nullable": true,
+            "description": "The environment flag that switches it off; null for one that is always on"
+          },
+          "port_conflict": {
+            "type": "string",
+            "nullable": true,
+            "description": "Which program holds the port of an enabled service that is down, in English; null when none does"
+          }
+        },
+        "required": [
+          "enabled",
+          "feature_flag",
+          "healthy",
+          "port_conflict",
+          "service_name"
+        ]
+      },
+      "Services": {
+        "type": "object",
+        "description": "``GET /api/services/`` (admin): every sidecar service.",
+        "properties": {
+          "services": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "The port of each, by name"
+          }
+        },
+        "required": [
+          "services"
         ]
       },
       "SetFacePersonLabelRequestRequest": {
@@ -16389,6 +17750,23 @@
           "photo_id"
         ]
       },
+      "SetPhotoShareResponse": {
+        "type": "object",
+        "description": "``POST /api/photo/share/``: the link after the action.",
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "description": "Always true"
+          },
+          "share": {
+            "$ref": "#/components/schemas/PhotoShare"
+          }
+        },
+        "required": [
+          "share",
+          "status"
+        ]
+      },
       "SetPhotosCategoryRequestRequest": {
         "type": "object",
         "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
@@ -16428,6 +17806,76 @@
         },
         "required": [
           "category"
+        ]
+      },
+      "SetPhotosDateTimeRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and the change:\n``{\"mode\": \"shift\", \"seconds\": -3600}`` or\n``{\"mode\": \"set\", \"datetime\": \"2025-10-11T10:18:00\"}``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModeEnum"
+              }
+            ],
+            "description": "shift moves every dated photo by seconds; set gives every photo datetime\n\n* `shift` - shift\n* `set` - set"
+          },
+          "seconds": {
+            "type": "integer",
+            "maximum": 3162240000,
+            "minimum": -3162240000,
+            "format": "int64",
+            "description": "With shift: how far, negative for earlier; not 0"
+          },
+          "datetime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "With set: the photos' local wall-clock time, without an offset (as the lightbox's date editor sends it)"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "SetPhotosDateTimeResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos that got the new date"
+          },
+          "skipped_without_date": {
+            "type": "integer",
+            "description": "Photos a shift left alone because they have no date"
+          }
+        },
+        "required": [
+          "count",
+          "skipped_without_date"
         ]
       },
       "SetPhotosDeletedRequestRequest": {
@@ -16706,6 +18154,23 @@
           "val_public"
         ]
       },
+      "SetUserAlbumPublicResponse": {
+        "type": "object",
+        "description": "``POST /api/useralbum/makepublic/``: the album's card with its link settings.",
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "description": "Always true"
+          },
+          "album": {
+            "$ref": "#/components/schemas/AlbumUserList"
+          }
+        },
+        "required": [
+          "album",
+          "status"
+        ]
+      },
       "SetUserAlbumSharedRequestRequest": {
         "type": "object",
         "properties": {
@@ -16754,6 +18219,163 @@
           "photo",
           "user",
           "user_id"
+        ]
+      },
+      "SharedPhoto": {
+        "type": "object",
+        "description": "A photo behind a photo link: what ``PublicPhotoDetailSerializer`` sends,\nwithout ``HASH_DERIVED_FIELDS`` and with slug-scoped media URLs instead.\n\nWhat the owner's settings leave out is null, \"\" or 0, as in the album's\nphoto detail.",
+        "properties": {
+          "video": {
+            "type": "boolean"
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "With share_timestamps"
+          },
+          "exif_gps_lat": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "With share_location"
+          },
+          "exif_gps_lon": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "With share_location"
+          },
+          "geolocation_json": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true,
+            "description": "With share_location"
+          },
+          "search_location": {
+            "type": "string",
+            "description": "With share_location"
+          },
+          "camera": {
+            "type": "string",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "lens": {
+            "type": "string",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "focal_length": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "fstop": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "iso": {
+            "type": "integer",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "shutter_speed": {
+            "type": "string",
+            "nullable": true,
+            "description": "With share_camera_info"
+          },
+          "width": {
+            "type": "integer",
+            "description": "With share_camera_info, else 0"
+          },
+          "height": {
+            "type": "integer",
+            "description": "With share_camera_info, else 0"
+          },
+          "search_captions": {
+            "type": "string",
+            "description": "With share_captions"
+          },
+          "captions_json": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "With share_captions, else {\"im2txt\": \"\"}"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPhotoPerson"
+            },
+            "description": "With share_faces, else []"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "description": "The big thumbnail, under the link's slug"
+          },
+          "video_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The video, under the link's slug; null for a still"
+          },
+          "video_playback_type": {
+            "type": "string",
+            "nullable": true,
+            "description": "The canPlayType() argument of a probed video, else null"
+          }
+        },
+        "required": [
+          "camera",
+          "captions_json",
+          "exif_gps_lat",
+          "exif_gps_lon",
+          "exif_timestamp",
+          "focal_length",
+          "fstop",
+          "geolocation_json",
+          "height",
+          "iso",
+          "lens",
+          "people",
+          "search_captions",
+          "search_location",
+          "shutter_speed",
+          "thumbnail_url",
+          "video",
+          "video_playback_type",
+          "video_url",
+          "width"
+        ]
+      },
+      "SharedPhotoPerson": {
+        "type": "object",
+        "description": "A person on a photo link: the name only, no face crop.",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SharedPhotoResponse": {
+        "type": "object",
+        "description": "``GET /api/public/photo/{slug}/``: a photo link, for a visitor.",
+        "properties": {
+          "results": {
+            "$ref": "#/components/schemas/SharedPhoto"
+          },
+          "sharing_settings": {
+            "$ref": "#/components/schemas/PublicSharingSettings"
+          }
+        },
+        "required": [
+          "results",
+          "sharing_settings"
         ]
       },
       "SignupUser": {
@@ -16926,7 +18548,7 @@
       },
       "SiteFeatures": {
         "type": "object",
-        "description": "The six feature switches, by feature.",
+        "description": "The feature switches, by feature.",
         "properties": {
           "video": {
             "$ref": "#/components/schemas/SiteFeatureState"
@@ -16945,6 +18567,9 @@
           },
           "scene_classification": {
             "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "video_previews": {
+            "$ref": "#/components/schemas/SiteFeatureState"
           }
         },
         "required": [
@@ -16953,7 +18578,8 @@
           "image_captioning",
           "reverse_geocoding",
           "scene_classification",
-          "video"
+          "video",
+          "video_previews"
         ]
       },
       "SiteModelDownload": {
@@ -17137,6 +18763,9 @@
             "type": "boolean"
           },
           "scene_classification_enabled": {
+            "type": "boolean"
+          },
+          "video_previews_enabled": {
             "type": "boolean"
           }
         }
@@ -18327,6 +19956,28 @@
           "refresh"
         ]
       },
+      "TrashRetentionPreview": {
+        "type": "object",
+        "description": "What the next daily cleanup would delete with that retention.",
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos in any user's trash for longer than ``days`` days."
+          },
+          "user_count": {
+            "type": "integer",
+            "description": "Users those photos belong to."
+          }
+        },
+        "required": [
+          "days",
+          "photo_count",
+          "user_count"
+        ]
+      },
       "UnlinkGroupResponse": {
         "type": "object",
         "description": "Deleting a stack or a duplicate group: the group is gone, its photos stay.",
@@ -18343,6 +19994,19 @@
         "required": [
           "status",
           "unlinked_count"
+        ]
+      },
+      "UploadExists": {
+        "type": "object",
+        "description": "``GET /api/exists/{id}/``: whether the caller already has the file.",
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "description": "The caller has a photo with this image_hash"
+          }
+        },
+        "required": [
+          "exists"
         ]
       },
       "User": {
@@ -18659,6 +20323,21 @@
           "total_file_size_in_mb"
         ]
       },
+      "WebServerIds": {
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "integer"
+          },
+          "gid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gid",
+          "uid"
+        ]
+      },
       "WordCloud": {
         "type": "object",
         "description": "``GET /api/wordcloud/``: the 100 most frequent OpenCLIP tags, people and places.",
@@ -18705,6 +20384,41 @@
           "y"
         ]
       },
+      "ZipDownloadFinished": {
+        "type": "object",
+        "description": "``GET /api/photos/download?job_id=`` (200): the job is over.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "SUCCESS, or FAILURE for a failed or cancelled job"
+          },
+          "result": {
+            "nullable": true,
+            "description": "With FAILURE: the job's result, which says what went wrong"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ZipDownloadPending": {
+        "type": "object",
+        "description": "``GET /api/photos/download?job_id=`` (202): the job still runs.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "PENDING"
+          },
+          "progress": {
+            "nullable": true,
+            "description": "The job's progress so far, null before any"
+          }
+        },
+        "required": [
+          "progress",
+          "status"
+        ]
+      },
       "ZipDownloadRequestRequest": {
         "type": "object",
         "description": "The photos to archive: ``image_hashes``, or ``select_all`` with a ``query``.\n\nLike the other bulk actions (``PhotoSelectionRequest``): the ``query`` is\nthe filter of ``api.photos.selection.build_photo_queryset``, minus\n``excluded_hashes``.",
@@ -18744,6 +20458,25 @@
             "description": "Also archive the other photos of their stacks"
           }
         }
+      },
+      "ZipDownloadStarted": {
+        "type": "object",
+        "description": "``POST /api/photos/download``: the archive job.",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "The job to poll"
+          },
+          "url": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The archive's name, for /media/zip/ and /api/delete/zip/"
+          }
+        },
+        "required": [
+          "job_id",
+          "url"
+        ]
       }
     },
     "securitySchemes": {

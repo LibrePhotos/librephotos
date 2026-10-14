@@ -50,6 +50,16 @@ export const PublicSharingOptions = z.object({
 });
 export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
 
+/** The metadata sharing settings in effect for a public album or a photo link (all five are sent). */
+export const PublicSharingSettings = z.object({
+  share_location: z.boolean(),
+  share_camera_info: z.boolean(),
+  share_timestamps: z.boolean(),
+  share_captions: z.boolean(),
+  share_faces: z.boolean(),
+});
+export type PublicSharingSettings = z.infer<typeof PublicSharingSettings>;
+
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
@@ -93,9 +103,14 @@ export const UserAlbum = UserAlbumDetails.extend({
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
 
-/** GET /public/albums/s/{slug}/: a public album by its link slug, for a visitor without a session. */
+/**
+ * GET /public/albums/s/{slug}/: a public album by its link slug, for a visitor without a session,
+ * and the settings that filtered it. Read with the owner's UserAlbum shape, whose owner-only fields
+ * (sharing, lock, link settings) are optional and absent here.
+ */
 export const FetchPublicAlbumResponse = z.object({
   results: UserAlbum,
+  sharing_settings: PublicSharingSettings.optional(),
 });
 export type FetchPublicAlbumResponse = z.infer<typeof FetchPublicAlbumResponse>;
 
@@ -178,6 +193,8 @@ export const PhotoSimple = z.object({
   // Seconds as a string, "" for a photo (as in PigPhoto).
   video_length: z.string().optional(),
   is_hdr: z.boolean().optional(),
+  // A video whose grid square is an animated clip, not a still (#649); older backends lack it.
+  animated_preview: z.boolean().optional(),
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

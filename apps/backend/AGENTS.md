@@ -72,7 +72,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `@extend_schema_field`; then regenerate the committed `openapi.json` with `python scripts/openapi_schema.py`
   and update the zod schema and its `contract-map.ts` entry in `packages/api-client`, which compares the
   two. CI (`test-backend.yml`) fails on a stale `openapi.json` and on a new drf-spectacular report
-  (`openapi-baseline.txt` only shrinks); `api/tests/infra/test_serializer_method_annotations.py` fails on
+  (`openapi-baseline.txt` is empty and only shrinks); `api/tests/infra/test_serializer_method_annotations.py` fails on
   a shapeless getter.
 - Names follow `apps/docs/docs/development/glossary.md`: JSON keys (serializer fields, dict keys, query
   parameters) are snake_case, a new route takes a photo as `Photo.id` in a `photo_id` argument (never

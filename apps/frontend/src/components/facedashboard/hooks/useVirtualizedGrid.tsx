@@ -15,24 +15,29 @@ export type GridCell = CompletePersonFace | PersonFace;
 export type GridRows = GroupedGridRows<CompletePersonFace, PersonFace>;
 
 /**
- * A face that has been paged in. Until then a face is a placeholder: no image or URL yet,
- * and its index in the person's list as its id.
+ * A face that has been paged in. Until then a face is a placeholder (`isTemp`): no image or URL yet,
+ * and its index in the person's list as its id. A paged-in face can still lack its crop (`image`
+ * and `face_url` null, #2636): it is a face like any other, shown without one.
  */
-export type FaceCell = PersonFace & { face_url: string };
+export type FaceCell = PersonFace;
 
 export type FaceSelection = {
   face_id: number;
-  face_url: string;
+  /** null for a face without a crop (#2636). */
+  face_url: string | null;
 };
+
+/** What a selection keeps of a face. */
+export const selectionOf = (face: FaceCell): FaceSelection => ({ face_id: face.id, face_url: face.face_url ?? null });
 
 /** Header cells are the people; faces have a person_name, not a name. */
 export function isPersonCell(cell: GridCell): cell is CompletePersonFace {
   return "name" in cell;
 }
 
-/** A face that has been paged in (the backend sends every face with its URL). */
+/** A face that has been paged in, with or without its crop (#2636). */
 export function isLoadedFace(cell: GridCell): cell is FaceCell {
-  return !isPersonCell(cell) && !cell.isTemp && cell.face_url !== null;
+  return !isPersonCell(cell) && !cell.isTemp;
 }
 
 type RenderedSection = SectionRenderedParams;

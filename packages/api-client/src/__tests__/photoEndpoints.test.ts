@@ -76,6 +76,12 @@ describe("photo details", () => {
     expect(schema.parse({ image_hash: "abc" })).toEqual({ image_hash: "abc", is_hdr: false });
   });
 
+  it("keeps whether a video's grid square is animated, absent from a server that predates it", () => {
+    const schema = PigPhoto.pick({ image_hash: true, animated_preview: true });
+    expect(schema.parse({ image_hash: "abc", animated_preview: false }).animated_preview).toBe(false);
+    expect(schema.parse({ image_hash: "abc" }).animated_preview).toBeUndefined();
+  });
+
   it("reads recently added photos of an empty library (date null), and still requires the date", () => {
     expect(RecentlyAddedPhotosResponse.parse({ date: null, results: [] })).toEqual({ date: null, results: [] });
     expect(RecentlyAddedPhotosResponse.safeParse({ results: [] }).success).toBe(false);
@@ -315,6 +321,45 @@ describe("bulk photo mutations", () => {
     await expect(endpoints.deletePhotos(fakeServer({ count: 1 }).client, ["h1"])).rejects.toBeInstanceOf(
       ResponseParseError
     );
+  });
+});
+
+describe("bulk date and time (#2278)", () => {
+  const changed = { count: 3, skipped_without_date: 1 };
+
+  it("shifts photos by hash", async () => {
+    const { client, requests } = fakeServer(changed);
+    const answer = await endpoints.setPhotosDateTime(client, ["h1"], { mode: "shift", seconds: -3600 });
+    expect(defined(requests[0])).toEqual({
+      url: `${API}/photosedit/datetime/`,
+      method: "POST",
+      body: { image_hashes: ["h1"], mode: "shift", seconds: -3600 },
+    });
+    expect(answer).toEqual(changed);
+  });
+
+  it("sets a selected-all set to one date and time", async () => {
+    const { client, requests } = fakeServer({ count: 7, skipped_without_date: 0 });
+    await endpoints.setPhotosDateTime(client, [], { mode: "set", datetime: "2025-10-11T10:18:00.000Z" }, selectAll);
+    expect(defined(requests[0]).body).toEqual({ ...selectAllBody, mode: "set", datetime: "2025-10-11T10:18:00.000Z" });
+  });
+
+  it("fails loudly on an answer without the counts", async () => {
+    await expect(
+      endpoints.setPhotosDateTime(fakeServer({ status: true }).client, ["h1"], { mode: "shift", seconds: 1 })
+    ).rejects.toBeInstanceOf(ResponseParseError);
+  });
+
+  it("reads the date summary of a selection", async () => {
+    const summary = {
+      count: 4,
+      without_date: 1,
+      oldest: { image_hash: "h1", exif_timestamp: "2025-10-09T08:14:02Z" },
+      newest: null,
+    };
+    const { client, requests } = fakeServer(summary);
+    expect(await endpoints.fetchDateSummary(client, [], selectAll)).toEqual(summary);
+    expect(defined(requests[0])).toEqual({ url: `${API}/photos/date-summary/`, method: "POST", body: selectAllBody });
   });
 });
 

@@ -1,15 +1,22 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  calendarDaysAgo,
+  calendarYear,
+  describeDuration,
   firstDayOfWeek,
+  formatCalendarDay,
+  formatPhotoDateTime,
   fromPickerValue,
   fromUnixSeconds,
+  isCalendarDay,
   parseInstant,
   parsePhotoTimestamp,
   parsePickerDate,
   photoTimestampToPickerDate,
   pickerDateToPhotoTimestamp,
   pickerValueDaysFromNow,
+  shiftPhotoTimestamp,
   toPickerValue,
 } from "./dateUtils";
 import { defined } from "./defined.test-utils";
@@ -247,5 +254,59 @@ describe("firstDayOfWeek", () => {
         vi.unstubAllGlobals();
       }
     });
+  });
+});
+
+describe("shifting and describing photo dates (#2278)", () => {
+  test("a shift keeps the wall clock, whatever the viewer's zone", () => {
+    Settings.defaultZone = "America/New_York";
+    expect(shiftPhotoTimestamp("2025-10-09T08:14:02Z", -3600)).toBe("2025-10-09T07:14:02.000Z");
+    expect(shiftPhotoTimestamp("2025-10-09T23:30:00Z", 3600)).toBe("2025-10-10T00:30:00.000Z");
+  });
+
+  test("an unreadable date shifts to null", () => {
+    expect(shiftPhotoTimestamp("not a date", 60)).toBeNull();
+  });
+
+  test("the wall clock is formatted to the second", () => {
+    Settings.defaultZone = "Asia/Tokyo";
+    Settings.defaultLocale = "en-US";
+    // ICU puts a narrow no-break space before "AM".
+    expect(formatPhotoDateTime("2025-10-09T08:14:02Z")).toMatch(/^Oct 9, 2025, 8:14:02\sAM$/);
+  });
+
+  test("a duration names only its non-zero units, and overflow carries", () => {
+    Settings.defaultLocale = "en-US";
+    expect(describeDuration(5400)).toBe("1 hour, 30 minutes");
+    expect(describeDuration(-93600)).toBe("1 day, 2 hours");
+    expect(describeDuration(61)).toBe("1 minute, 1 second");
+  });
+});
+
+describe("calendar days (search filters)", () => {
+  test.each([
+    ["2024-03-01", true],
+    ["2024-02-29", true],
+    ["2023-02-29", false],
+    ["2024-3-1", false],
+    ["2024-03-01T00:00", false],
+    ["", false],
+  ])("isCalendarDay(%j) is %s", (value, expected) => {
+    expect(isCalendarDay(value)).toBe(expected);
+  });
+
+  test("formats a day in the UI language and leaves a non-day alone", () => {
+    Settings.defaultLocale = "en-US";
+    expect(formatCalendarDay("2024-03-01")).toBe("Mar 1, 2024");
+    expect(formatCalendarDay("soon")).toBe("soon");
+  });
+
+  test("gives this year's and last year's bounds and a day some days ago, in the viewer's zone", () => {
+    Settings.defaultZone = "Pacific/Auckland";
+    // 2024-12-31 12:00Z is already 2025-01-01 in Auckland.
+    Settings.now = () => Date.UTC(2024, 11, 31, 12);
+    expect(calendarYear(0)).toEqual({ first: "2025-01-01", last: "2025-12-31" });
+    expect(calendarYear(1)).toEqual({ first: "2024-01-01", last: "2024-12-31" });
+    expect(calendarDaysAgo(365)).toBe("2024-01-02");
   });
 });

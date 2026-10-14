@@ -1,5 +1,6 @@
-import { Avatar, Box, Indicator, UnstyledButton } from "@mantine/core";
+import { Avatar, Box, Flex, Indicator, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconUser as User } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { CompletePersonFace } from "../../api_client/faces/types";
@@ -76,7 +77,9 @@ export function FaceComponent({
             <UnstyledButton
               className={classes.faceButton}
               data-focus-key="face"
-              aria-label={t("facesdashboard.facein", { name: group?.name ?? cell.person_name ?? "" })}
+              aria-label={t(cell.image ? "facesdashboard.facein" : "facesdashboard.faceinnothumbnail", {
+                name: group?.name ?? cell.person_name ?? "",
+              })}
               aria-pressed={isSelected}
               onClick={e => handleClick(e, cell)}
               onFocus={openTooltip}
@@ -87,8 +90,15 @@ export function FaceComponent({
                 openMenu();
               }}
             >
-              {/* A paged-in face always has its image; null would only be a placeholder's */}
-              <Avatar radius="md" src={cell.image ? faceImageUrl(cell.image) : undefined} size={entrySize} />
+              {cell.image ? (
+                <Avatar radius="md" src={faceImageUrl(cell.image)} size={entrySize} />
+              ) : (
+                // A face whose crop is missing still gets a tile, so it can be relabelled or deleted
+                // (#2636). The placeholder is the one of a thing album without a cover (#2234).
+                <Flex className={classes.noThumbnail} align="center" justify="center" w={entrySize} h={entrySize}>
+                  <User size={40} stroke={1.5} />
+                </Flex>
+              )}
             </UnstyledButton>
           </Indicator>
         </FaceTooltip>

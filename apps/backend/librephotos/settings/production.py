@@ -157,6 +157,8 @@ FEATURE_FACE_CLUSTER = env_flag("FEATURE_FACE_CLUSTER", default=True)
 FEATURE_IMAGE_CAPTIONING = env_flag("FEATURE_IMAGE_CAPTIONING", default=True)
 FEATURE_REVERSE_GEOCODING = env_flag("FEATURE_REVERSE_GEOCODING", default=True)
 FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=True)
+# Animated grid previews of videos; off, a video's squares are a still frame.
+FEATURE_VIDEO_PREVIEWS = env_flag("FEATURE_VIDEO_PREVIEWS", default=True)
 
 # Whether a user's Nextcloud server address may resolve to a private network
 # address (LAN, Docker network, Tailscale). On by default because that is where
@@ -428,6 +430,12 @@ CONSTANCE_CONFIG = {
         "Detect what is in photos (beach, kitchen, sunset) for the Things albums",
         bool,
     ),
+    "VIDEO_PREVIEWS_ENABLED": (
+        True,
+        "Make a short silent clip of each video for the photo grid; off, the"
+        " grid shows a still frame and scans skip encoding the clip",
+        bool,
+    ),
     "LOG_MAX_BYTES": (
         200 * 1024 * 1024,
         "Maximum log file size in bytes before rotation (default 200 MB)",
@@ -538,6 +546,10 @@ SPECTACULAR_SETTINGS = {
         "ListedStackTypeEnum": "api.serializers.stack.LISTED_STACK_TYPES",
         # A synced photo's kind (image, video, motion).
         "SyncMediaTypeEnum": "api.serializers.sync_responses.SYNC_MEDIA_TYPES",
+        # What a memory is about (years_ago, month_years_ago).
+        "MemoryTypeEnum": "api.serializers.memories.MEMORY_TYPES",
+        # What the serving diagnostics found.
+        "MediaDiagnosisCauseEnum": "api.serializers.media.DIAGNOSIS_CAUSES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

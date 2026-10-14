@@ -540,4 +540,12 @@ class ToJsonSchemaTest(SimpleTestCase):
 
     def test_branches_are_converted(self) -> None:
         converted = to_json_schema({"oneOf": [{"type": "string", "nullable": True}]})
-        self.assertEqual({"type": "null"}, converted["oneOf"][0]["anyOf"][1])
+        self.assertEqual({"type": "null"}, converted["anyOf"][0]["anyOf"][1])
+
+    def test_one_of_accepts_a_value_more_than_one_branch_matches(self) -> None:
+        # ``datetime | str``: any string matches both branches.
+        converted = to_json_schema(
+            {"oneOf": [{"type": "string", "format": "date-time"}, {"type": "string"}]}
+        )
+        self.assertNotIn("oneOf", converted)
+        self.assertEqual(2, len(converted["anyOf"]))

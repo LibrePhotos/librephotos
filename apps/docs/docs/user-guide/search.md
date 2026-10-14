@@ -50,6 +50,7 @@ Quickly jump to any page in LibrePhotos:
 
 - Photos, Albums, My Albums, People, Places, Things, Tags, Events, Folders
 - Favorites, Hidden, Videos, Trash, Recently Added, No Timestamp, No Location, Not in an Album
+- Filter photos: the search page with [filters](#search-filters) and no words (not released yet)
 - Sharing, Faces Dashboard, Statistics — and its sub-pages Place Tree, Word Clouds, Timeline, Social Graph and Face Clusters
 - Settings, Profile, Library, Admin Area
 
@@ -83,17 +84,35 @@ Every word in your query must match, though not necessarily in the same field: s
 
 Accents and letter case do not matter, in either direction: `Zurich` finds photos taken in Zürich, `café` finds a caption that says "cafe", and `Lodz` finds "Łódź". This covers everything in the list above except the date, plus your tags. Text found in photos by OCR is still matched as written. The spotlight's suggestions ignore accents the same way. (Not released yet: up to 1.3.0, a search had to spell every accent. The upgrade prepares existing photos once, while the database migrates.)
 
-The search results header also has an **All / Photos / Videos** toggle in the top right for narrowing the results to only photos or only videos.
+The search results header also has a media button in the top right for narrowing the results to photos, videos, screenshots or documents, and a **Filters** button for everything else (see [Search Filters](#search-filters)).
 
 Results are displayed grouped by date, similar to the main timeline view.
 
 ## Search Filters
 
 :::note Not released yet
-The search API takes these filters in the release after 1.3.0. The web app's filter panel comes in a later update; until then they are for scripts and other apps that call the API.
+The filters arrive in the release after 1.3.0, in the web app and in the API.
 :::
 
-Besides the words you type, a search can be narrowed by what the camera recorded, the rating, the day, the location, the file and the people in the photo. The filters are query parameters of `GET /api/photos/searchlist/`. They combine with each other, with the search words and with the **All / Photos / Videos** toggle (every condition must hold), and they also work without any search words: `/api/photos/searchlist/?camera=X-T5&iso_min=3200` lists every photo taken with that camera at ISO 3200 or more.
+Besides the words you type, a search can be narrowed by the people in the photo, the camera, the exposure, the rating, the day, the location and the file. On the search results page, click **Filters** next to the media button (on a phone, the filter icon) to open the panel:
+
+- **People**: pick one or more people. With several, you get the photos with all of them together.
+- **Camera**: the maker, the camera and the lens. The lists show the cameras of your own photos, most used first, with how many photos of your library each one took.
+- **Exposure**: ISO, aperture, focal length and 35 mm equivalent focal length, each as a lowest and a highest value (either can stay empty). A value applies when you leave the field or press Enter. Shortcuts set common ISO and focal length bands in one click.
+- **Rating**: with star ratings, the fewest stars a photo needs. With the favorite toggle (see the rating style in Settings), one **Favorites only** switch.
+- **Taken**: on or after and on or before a day, or **This year**, **Last year** and **Last 12 months**.
+- **Location**: only photos with GPS coordinates, or only those without.
+- **File**: **Has a RAW file** (also finds RAW files paired with a JPEG) and the main file's extension, for example `cr3`. Photos or videos only stays on the media button.
+
+Every change applies at once. The active filters show as chips under the title: the cross on a chip removes that filter, and **Clear all** removes every filter but keeps your words and the media type. The filters are part of the page address, so you can bookmark or share a filtered search, and Back undoes the last change.
+
+To filter without any words, open the spotlight and choose **Filter photos**, or go to `/search/`. If a filter cannot be applied, for example a person deleted in the meantime, the page says so and offers to clear the filters.
+
+Selecting all results and then acting on them (favorite, hide, tag, share, add to an album, download, move to the trash) acts on exactly the photos the search listed.
+
+### Filters in the API
+
+The filters are query parameters of `GET /api/photos/searchlist/`. They combine with each other, with the search words and with the media filter (every condition must hold), and they also work without any search words: `/api/photos/searchlist/?camera=X-T5&iso_min=3200` lists every photo taken with that camera at ISO 3200 or more.
 
 | Parameter | Finds photos… |
 |-----------|---------------|
@@ -117,7 +136,7 @@ The camera maker comes from the photo's EXIF data since the release after 1.3.0.
 
 `GET /api/search/metadata-values/?field=camera` lists the camera models of your photos with how many photos each one took, most used first. `field=make` lists the makers and `field=lens` the lenses. Pick a filter value from there to be sure it matches.
 
-The bulk actions (favorite, hide, tag, share, add to an album, download, move to the trash) take the same parameters in their select-all `query`, so selecting every result of a filtered search acts on exactly the photos it listed. Send `show_all_stack_photos: true` with them, because search lists every photo of a stack, not only the one the timeline shows. The search words themselves are not part of a select-all.
+The bulk actions take the same parameters in their select-all `query`. Send `show_all_stack_photos: true` with them, because search lists every photo of a stack, not only the one the timeline shows. The search words themselves are not part of a select-all, so after a search with words the web app sends the listed photos instead.
 
 ## Semantic Search
 

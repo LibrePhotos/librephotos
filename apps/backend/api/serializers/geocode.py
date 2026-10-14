@@ -40,3 +40,11 @@ class GeocodeReverseResponseSerializer(serializers.Serializer[None]):
         help_text="The place name a photo moved there would get; null when "
         "there is none or reverse geocoding is off",
     )
+
+
+class GeocodeSearchResultSerializer(serializers.Serializer[None]):
+    """A place of ``GET /api/geocode/search``, which answers a list of them."""
+
+    display_name = serializers.CharField(help_text="The provider's name for it")
+    lat = serializers.FloatField()
+    lon = serializers.FloatField()

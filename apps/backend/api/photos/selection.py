@@ -124,3 +124,20 @@ def build_photo_queryset(
         filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
 
     return Photo.objects.owned_by(user).filter(*filters).distinct()
+
+
+def selected_photos(
+    user: User | AnonymousUser, selection: Mapping[str, Any]
+) -> QuerySet[Photo]:
+    """The user's own photos a validated ``PhotoSelectionRequest`` names:
+    its ``image_hashes``, or with ``select_all`` its ``query`` minus the
+    ``excluded_hashes``."""
+    if not selection["select_all"]:
+        return Photo.objects.owned_by(user).filter(
+            image_hash__in=selection["image_hashes"]
+        )
+    photos = build_photo_queryset(user, selection["query"])
+    excluded_hashes = selection["excluded_hashes"]
+    if excluded_hashes:
+        photos = photos.exclude(image_hash__in=excluded_hashes)
+    return photos

@@ -1,3 +1,4 @@
+import { IconPlayerPlayFilled as PlayerPlayFilled } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { motion } from "motion/react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
@@ -75,8 +76,13 @@ function TileComponent<T extends ImageItem>({
   const isSelected = selected;
   const isExpanded = activeTileId !== null && activeTileId === item.id;
   const isVideo = !isTemp && item.type !== undefined && item.type.includes("video");
-  const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
   const [videoFailed, setVideoFailed] = useState(false);
+  // A video scanned with the animated previews off (#649) has a still square, shown like a
+  // photo's. So is a clip that fails to load: a still the list did not know about yet (a rescan
+  // replaced the clip), or else the tile's colour shows through the broken image as before.
+  const isClip = isVideo && item.animated_preview !== false && !videoFailed;
+  const isStillVideo = isVideo && !isClip;
+  const [isFullSizeLoaded, setFullSizeLoaded] = useState(isClip);
   const gridVideoRef = useReleaseOnDetach();
   const expandedVideoRef = useReleaseOnDetach();
 
@@ -159,7 +165,7 @@ function TileComponent<T extends ImageItem>({
         onClick={event => handleClick(event, item)}
         aria-label={label}
       >
-        {useLqip && !isTemp && !isVideo && (
+        {useLqip && !isTemp && !isClip && (
           // LQIP
           <img
             className={`${styles.pigImg} ${styles.pigThumbnail}${
@@ -173,7 +179,7 @@ function TileComponent<T extends ImageItem>({
           />
         )}
 
-        {scrollSpeed === "slow" && !isVideo && !isTemp && (
+        {scrollSpeed === "slow" && !isClip && !isTemp && (
           // grid image
           <img
             className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
@@ -200,7 +206,7 @@ function TileComponent<T extends ImageItem>({
           />
         )}
 
-        {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
+        {scrollSpeed === "slow" && isClip && (
           <video
             ref={gridVideoRef}
             className={`${styles.pigImg} ${styles.pigThumbnail}${
@@ -220,12 +226,12 @@ function TileComponent<T extends ImageItem>({
           />
         )}
 
-        {isExpanded && !isVideo && !isTemp && (
+        {isExpanded && !isClip && !isTemp && (
           // full size expanded image
           <img className={styles.pigImg} src={getUrl(imageHash, settings.expandedSize)} alt="" />
         )}
 
-        {isExpanded && isVideo && !isTemp && !videoFailed && (
+        {isExpanded && isClip && (
           // full size expanded video
           <video
             ref={expandedVideoRef}
@@ -241,6 +247,13 @@ function TileComponent<T extends ImageItem>({
             loop
             playsInline
           />
+        )}
+
+        {isStillVideo && (
+          // A still frame must not pass for a photo: the play icon says it is a video.
+          <span className={styles.stillPlay} aria-hidden="true">
+            <PlayerPlayFilled size={18} />
+          </span>
         )}
 
         <div>

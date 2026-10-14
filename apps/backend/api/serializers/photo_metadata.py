@@ -6,7 +6,8 @@ Capture date, location, rating and caption are shown under their old
 ``PhotoCaption`` (#2252), so ``metadata.*`` keeps its shape for the clients.
 """
 
-from typing import Any
+from datetime import datetime
+from typing import Any, TypedDict
 
 from django.core.exceptions import ObjectDoesNotExist
 from drf_spectacular.utils import extend_schema_field
@@ -357,3 +358,27 @@ class BulkMetadataUpdateRequest(serializers.Serializer[None]):
         },
         help_text="The fields of PhotoMetadataUpdateSerializer to set",
     )
+
+
+class BulkMetadataSummary(TypedDict):
+    """A photo's row in ``GET /api/photos/metadata/bulk/``."""
+
+    camera: str | None
+    lens: str | None
+    date_taken: datetime | None
+    has_location: bool
+    rating: int
+
+
+# ``GET /api/photos/metadata/bulk/``: the summaries by photo id. The caller's
+# photos only: an id that is not one of them is left out.
+BulkMetadataSummaries = dict[str, BulkMetadataSummary]
+
+
+class BulkMetadataUpdateResponse(serializers.Serializer[None]):
+    """``PATCH /api/photos/metadata/bulk/``."""
+
+    updated_count = serializers.IntegerField(
+        help_text="The photos changed (the caller's, among photo_ids)"
+    )
+    message = serializers.CharField(help_text="The count, in English")

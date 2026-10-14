@@ -11,9 +11,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.mail import email_is_configured
-from api.drf.params import parse_body
+from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import LongRunningJob, User
+from api.photos.retention import expired_trash_counts
 from api.runtime.features import FEATURES, feature_locked, site_setting_key
 from api.runtime.ml_models import (
     do_all_models_exist,
@@ -25,6 +26,8 @@ from api.search.semantic import OPENCLIP
 from api.serializers.site_settings import (
     SiteSettingsRequest,
     SiteSettingsSerializer,
+    TrashRetentionPreviewQuery,
+    TrashRetentionPreviewSerializer,
     feature_key,
 )
 
@@ -165,3 +168,25 @@ class SiteSettingsView(APIView):
             start_model_download(admin)
 
         return self.get(request, format=format)
+
+
+class TrashRetentionPreviewView(APIView):
+    """What a trash retention of N days would delete at the next cleanup (#2203).
+
+    The Site settings card asks before it turns the retention on or shortens
+    it, with this count. It counts every user's trash, which is what the
+    retention deletes, so only an admin may ask.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(
+        parameters=[TrashRetentionPreviewQuery],
+        responses=TrashRetentionPreviewSerializer,
+    )
+    def get(self, request: Request, format: str | None = None) -> Response:
+        days = parse_query(request, TrashRetentionPreviewQuery)["days"]
+        photo_count, user_count = expired_trash_counts(days)
+        return Response(
+            {"days": days, "photo_count": photo_count, "user_count": user_count}
+        )

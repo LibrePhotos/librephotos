@@ -21,7 +21,8 @@ the rule) then that rule is considered to be not applicable.
 
 ### Dates you set by hand
 
-A date you set by hand in a photo's info panel is not a rule: it always wins over every rule in
+A date you set by hand in a photo's info panel, or for many photos at once with
+[Change date and time…](../viewing-photos.md#changing-the-date-of-many-photos), is not a rule: it always wins over every rule in
 the list, on every scan and rescan, however you order or edit your rules. The info panel says
 **Set by you** under such a date. To hand the photo back to the rules, open it, edit its date and
 click **Remove timestamp**; the rules then decide its date again, so the photo keeps a date read

@@ -84,8 +84,9 @@ def build_person_color_map(user: User) -> dict[int, str]:
 def collect_visualizable_faces(
     user: User, inferred: bool
 ) -> tuple[list[npt.NDArray[float64]], list[Face]]:
-    """The user's non-deleted faces that carry an encoding, paired with those
-    encodings. Labeled faces are only included when inferred ones are wanted."""
+    """The user's non-deleted faces that carry an encoding and a crop, paired
+    with those encodings. Labeled faces are only included when inferred ones are
+    wanted. A face without a crop (legacy rows) has nothing to show on the chart."""
     face_encoding = []
     faces_with_encoding = []
     faces = Face.objects.filter(Q(photo__owner=user) & Q(deleted=False))
@@ -93,7 +94,7 @@ def collect_visualizable_faces(
 
     for page in range(1, paginator.num_pages + 1):
         for face in paginator.page(page).object_list:
-            if ((not face.person) or inferred) and face.encoding:
+            if ((not face.person) or inferred) and face.encoding and face.image:
                 face_encoding.append(face.get_encoding_array())
                 faces_with_encoding.append(face)
 

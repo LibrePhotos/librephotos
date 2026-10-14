@@ -23,8 +23,10 @@ edit history that revert works from), bumps ``Photo.last_modified`` so the
 mobile delta feed and the clients' caches see the change, refreshes
 ``PhotoSearch`` where the field is indexed, and writes the value back to the
 file or sidecar when the owner syncs metadata to disk. Write-back covers the
-rating, the capture date, the caption (#2289) and the location (#2290);
-keywords and the text fields are not written to files yet.
+rating, the capture date, the caption, the keywords (#2289) and the location
+(#2290); the text fields are not written to files yet. Tags are the keywords
+the user edits (#2230): ``tags_changed`` writes the tags an edit of the tag
+endpoints touched, which have no edit history.
 
 ``PhotoMetadata`` otherwise holds what the file says (camera, lens, exposure,
 size) and is filled by the scan, not by these setters.
@@ -34,10 +36,11 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping
-from datetime import datetime
+from collections.abc import Callable, Collection, Iterable, Mapping
+from datetime import datetime, timedelta
 from typing import NamedTuple
 
+from django.db import transaction
 from django.db.models import F, QuerySet
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -50,7 +53,11 @@ from api.geocode.photo_location import (
     forget_place,
     usable_coordinates,
 )
-from api.metadata.jobs import queue_field_write, queue_rating_write
+from api.metadata.jobs import (
+    queue_field_write,
+    queue_keyword_write,
+    queue_rating_write,
+)
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
@@ -69,7 +76,7 @@ from api.models.photo_metadata import (
     text_fields_of,
 )
 from api.models.photo_search import PhotoSearch
-from api.models.tag import sync_tags_from_keywords
+from api.models.tag import sync_tags_from_keywords, tag_names
 from api.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -170,6 +177,102 @@ def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
     extract_date_time(photo)
     if photo.exif_timestamp != old:
         _record(user, DATE_TAKEN, [Change(photo.id, old, photo.exif_timestamp)])
+
+
+class CaptureTimesResult(NamedTuple):
+    """What ``set_capture_times`` did: the photos given a new date, and those
+    left alone because there was nothing to compute it from."""
+
+    changed: int
+    skipped_without_date: int
+
+
+#: Photos per transaction in ``set_capture_times``: a select-all over a whole
+#: library must not hold one long transaction.
+CAPTURE_TIME_BATCH_SIZE = 200
+
+
+def set_capture_times(
+    photos: QuerySet[Photo],
+    compute_new: Callable[[Photo], datetime | None],
+    user: User,
+) -> CaptureTimesResult:
+    """Give each of ``photos`` the capture time ``compute_new`` returns (#2278).
+
+    What ``set_capture_time`` does for one photo, for many: the new time is the
+    user's (``Photo.timestamp``), it becomes ``exif_timestamp`` and moves the
+    photo to its day album, and every change goes into the edit history. A
+    photo ``compute_new`` returns None for (a shift of a photo without a date)
+    keeps its date and is counted as skipped. The photos are changed a batch
+    per transaction, and one background job then writes every changed date
+    to its file or sidecar when the owner syncs metadata to disk.
+    """
+    photo_ids = list(photos.order_by().values_list("id", flat=True).distinct())
+    count = skipped = 0
+    to_write: list[uuid.UUID] = []
+    try:
+        for start in range(0, len(photo_ids), CAPTURE_TIME_BATCH_SIZE):
+            batch = photo_ids[start : start + CAPTURE_TIME_BATCH_SIZE]
+            with transaction.atomic():
+                result = _set_capture_time_batch(batch, compute_new, user)
+            count += result.changed
+            skipped += result.skipped_without_date
+            to_write += result.written
+    finally:
+        # The batches committed before a failure are written all the same.
+        queue_field_write(user, to_write, DATE_TAKEN)
+    return CaptureTimesResult(changed=count, skipped_without_date=skipped)
+
+
+def shifted_by(delta: timedelta) -> Callable[[Photo], datetime | None]:
+    """``compute_new`` of a shift: each photo's date ``delta`` later (earlier
+    when negative), so the photos keep their order and spacing. None for a
+    photo without a date: there is nothing to shift."""
+
+    def compute(photo: Photo) -> datetime | None:
+        if photo.exif_timestamp is None:
+            return None
+        return photo.exif_timestamp + delta
+
+    return compute
+
+
+def set_to(value: datetime) -> Callable[[Photo], datetime | None]:
+    """``compute_new`` that gives every photo ``value``."""
+    return lambda photo: value
+
+
+class _BatchResult(NamedTuple):
+    changed: int
+    skipped_without_date: int
+    written: list[uuid.UUID]
+
+
+def _set_capture_time_batch(
+    photo_ids: list[uuid.UUID],
+    compute_new: Callable[[Photo], datetime | None],
+    user: User,
+) -> _BatchResult:
+    """``set_capture_times`` for one batch, inside its transaction."""
+    changes: list[Change] = []
+    written: list[uuid.UUID] = []
+    count = skipped = 0
+    for photo in Photo.objects.filter(id__in=photo_ids).select_related("owner"):
+        value = compute_new(photo)
+        if value is None:
+            skipped += 1
+            continue
+        count += 1
+        old = photo.exif_timestamp
+        if photo.timestamp != value:
+            written.append(photo.id)
+        photo.timestamp = value
+        extract_date_time(photo, commit=False)
+        photo.save(update_fields=["timestamp", "exif_timestamp", "last_modified"])
+        if photo.exif_timestamp != old:
+            changes.append(Change(photo.id, old, photo.exif_timestamp))
+    _record(user, DATE_TAKEN, changes)
+    return _BatchResult(count, skipped, written)
 
 
 # -------------------------------------------------------------------- location
@@ -344,16 +447,43 @@ def _apply_caption(photo: Photo, text: str, user: User) -> tuple[str, bool]:
 
 
 def set_keywords(photo: Photo, keywords: list[str] | None, user: User) -> None:
-    """Replace the photo's keywords; the tags and the search index follow."""
+    """Replace the photo's keywords; the tags and the search index follow.
+
+    The tags that changed are written to the file or sidecar (#2289).
+    """
+    changed = _apply_keywords(photo, keywords, user)
+    queue_keyword_write(user, [photo.id], changed)
+
+
+def _apply_keywords(photo: Photo, keywords: list[str] | None, user: User) -> set[str]:
+    """``set_keywords`` without the write-back; the tag names that changed."""
     metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
     old = metadata.keywords
     if old == keywords:
-        return
+        return set()
     metadata.keywords = keywords
     metadata.save(update_fields=["keywords", "updated_at"])
     sync_tags_from_keywords(photo, keywords, old)
     _recreate_search_captions(photo)
     _record(user, KEYWORDS, [Change(photo.id, old, keywords)])
+    return tag_names(old) ^ tag_names(keywords)
+
+
+# ------------------------------------------------------------------------ tags
+
+
+def tags_changed(
+    user: User, photo_ids: Iterable[uuid.UUID], names: Collection[str]
+) -> None:
+    """The tags ``names`` of these photos were added, removed or renamed.
+
+    A tag of LibrePhotos is a keyword of the file (#2230), so each photo's
+    file or sidecar gets ``names`` added or removed as the photo has them
+    when the write runs (#2289): one job for the whole edit, nothing when the
+    owner does not write edits to files. Tags have no edit history yet, so
+    nothing is recorded.
+    """
+    queue_keyword_write(user, list(photo_ids), names)
 
 
 # ----------------------------------------------------------------- text fields
@@ -391,6 +521,8 @@ def apply_updates(
         assert isinstance(rating, int)
         set_rating(Photo.objects.filter(id__in=[p.id for p in targets]), rating, user)
     captioned: list[uuid.UUID] = []
+    tagged: list[uuid.UUID] = []
+    changed_tags: set[str] = set()
     for photo in targets:
         if CAPTION in updates:
             caption = updates[CAPTION]
@@ -400,14 +532,17 @@ def apply_updates(
         if KEYWORDS in updates:
             keywords = updates[KEYWORDS]
             assert keywords is None or isinstance(keywords, list)
-            set_keywords(photo, keywords, user)
+            if changed := _apply_keywords(photo, keywords, user):
+                tagged.append(photo.id)
+                changed_tags |= changed
         for field in TEXT_FIELDS:
             if field in updates:
                 value = updates[field]
                 assert value is None or isinstance(value, str)
                 set_text_field(photo, field, value, user)
-    # One job writes every changed caption.
+    # One job writes every changed caption, one every changed tag.
     queue_field_write(user, captioned, CAPTION)
+    queue_keyword_write(user, tagged, changed_tags)
     return targets
 
 

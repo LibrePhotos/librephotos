@@ -14,6 +14,7 @@ from api.jobs.start import start_job
 from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
+from api.serializers.job import JobStartedResponseSerializer
 from api.views.custom_api_view import ListViewSet
 
 
@@ -112,10 +113,12 @@ class RegenerateAutoAlbumTitles(APIView):
     @extend_schema(
         deprecated=True,
         description="Use POST method to re-generate auto album titles.",
+        responses=JobStartedResponseSerializer,
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_title_regeneration(request)
 
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_title_regeneration(request)
 
@@ -138,10 +141,12 @@ class AutoAlbumGenerateView(APIView):
     @extend_schema(
         deprecated=True,
         description="Use POST method to re-generate auto albums.",
+        responses=JobStartedResponseSerializer,
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_regeneration(request)
 
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._schedule_auto_album_regeneration(request)
 

@@ -1,0 +1,15 @@
+/* The phone sheet: the filters scroll, the footer (Clear all, Show N photos) stays in view. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sheetFooter {
+  border-top: 1px solid var(--mantine-color-default-border);
+}

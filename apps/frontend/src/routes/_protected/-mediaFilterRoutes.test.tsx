@@ -9,9 +9,11 @@
  */
 import type { BulkPhotoQuery, MediaType } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
+import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { setUpMantineDom } from "../../components/modals/confirmModal.test-utils";
 import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
@@ -28,6 +30,8 @@ const stubs = vi.hoisted(() => ({
   props: undefined as PhotoListViewProps | undefined,
   // One answer for every render: a new array each time would make the page lay out its photos forever.
   query: { data: [], isLoading: false, isError: false, isFetching: false, refetch: () => Promise.resolve() },
+  // The site's trash retention in days (#2203); undefined: a server without the setting.
+  retentionDays: undefined as number | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -45,6 +49,9 @@ vi.mock("../../api_client/albums/hooks", () => ({
     stubs.dayOptions.push(options);
   },
 }));
+vi.mock("../../api_client/settings/hooks", () => ({
+  useGetSettingsQuery: () => ({ data: { trash_retention_days: stubs.retentionDays } }),
+}));
 vi.mock("../../components/photolist/useMediaTypeFilter", () => ({ useMediaTypeFilter: () => stubs.media }));
 vi.mock("../../components/photolist/useScanEmptyStateAction", () => ({
   useScanEmptyStateAction: (description: string) => ({ description }),
@@ -57,7 +64,7 @@ vi.mock("../../components/photolist/PhotoListView", () => ({
 }));
 
 beforeAll(async () => {
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  setUpMantineDom();
   await i18n.changeLanguage("en");
   // The cold import of the routes takes seconds, longer when the suite runs in parallel
   await Promise.all([import("./deleted"), import("./documents")]);
@@ -65,9 +72,25 @@ beforeAll(async () => {
 
 afterEach(() => {
   stubs.media = "all";
+  stubs.retentionDays = undefined;
   stubs.listOptions = [];
   stubs.dayOptions = [];
 });
+
+/** The text a node the page hands to the list renders. */
+async function textOf(node: React.ReactNode) {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  await act(async () => {
+    root.render(<MantineProvider>{node}</MantineProvider>);
+  });
+  // The provider adds its style tags: read the rendered paragraph.
+  const text = container.querySelector("p")?.textContent;
+  await act(async () => {
+    root.unmount();
+  });
+  return text;
+}
 
 async function renderRoute(path: string) {
   const Page = defined(stubs.routes[path]?.component);
@@ -107,6 +130,29 @@ describe("the trash page", () => {
     expect(props.photosetQuery).toEqual({ in_trashcan: true });
     expect(props.mediaType).toBe("all");
     expect(props.emptyStateConfig?.title).toBe(i18n.t("emptystate.deleted.title"));
+  });
+});
+
+describe("the trash page's retention (#2203)", () => {
+  it("says how long photos stay, in the subtitle and the empty state", async () => {
+    stubs.retentionDays = 30;
+    const props = await renderRoute("/_protected/deleted");
+
+    expect(await textOf(props.additionalSubHeader)).toBe("Photos in the trash are deleted for good after 30 days.");
+    expect(props.emptyStateConfig?.description).toBe(
+      "Photos you move to the trash appear here. They are deleted for good after 30 days."
+    );
+    expect(props.headerActions).toBeTruthy();
+  });
+
+  it("says photos stay until emptied while the retention is off or unknown", async () => {
+    for (const days of [0, undefined]) {
+      stubs.retentionDays = days;
+      const props = await renderRoute("/_protected/deleted");
+
+      expect(await textOf(props.additionalSubHeader)).toBe("Photos stay in the trash until you empty it.");
+      expect(props.emptyStateConfig?.description).toBe("Photos you move to the trash appear here until you empty it.");
+    }
   });
 });
 

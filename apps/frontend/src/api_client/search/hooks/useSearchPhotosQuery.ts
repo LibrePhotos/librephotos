@@ -1,11 +1,15 @@
-import { endpoints, photoGridKeys } from "@librephotos/api-client";
-import type { MediaType } from "@librephotos/api-client";
+import { ApiError, endpoints, photoGridKeys } from "@librephotos/api-client";
+import type { MediaType, SearchFilters } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { mediaTypeToBulkQuery } from "../../../components/photolist/mediaTypeFilter";
 import { apiClient } from "../../api";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
 
-export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) => {
+/**
+ * A search: the words, the media button and the structured filters (#2259, #329). With filters the
+ * words may be empty (the filter-only search page); without either nothing is asked.
+ */
+export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType, filters: SearchFilters = {}) => {
   const { data: currentUser, isError: userFailed } = useCurrentUserSelfDetailsQuery();
   // The backend picks the response shape from this user setting, so the query
   // waits for the user (on a hard load of /search/<q> it is not loaded yet, and
@@ -14,10 +18,17 @@ export const useSearchPhotosQuery = (searchTerm: string, mediaType?: MediaType) 
   // user cannot be loaded, search anyway with the default shape rather than
   // never sending the query.
   const semantic = (currentUser?.semantic_search_topk ?? 0) > 0;
+  const filtered = Object.values(filters).some(value => value !== undefined);
 
   return useQuery({
-    queryKey: photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"),
-    queryFn: () => endpoints.searchPhotos(apiClient, searchTerm, semantic, mediaTypeToBulkQuery(mediaType)),
-    enabled: searchTerm.length > 0 && (currentUser !== undefined || userFailed),
+    // Unfiltered searches keep their old key; a filtered one sits under it, so both refresh together.
+    queryKey: filtered
+      ? photoGridKeys.filteredSearch(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped", filters)
+      : photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped"),
+    queryFn: () =>
+      endpoints.searchPhotos(apiClient, searchTerm, semantic, { ...mediaTypeToBulkQuery(mediaType), ...filters }),
+    enabled: (searchTerm.length > 0 || filtered) && (currentUser !== undefined || userFailed),
+    // A 400 is a filter the server will not take (a person deleted elsewhere): asking again changes nothing.
+    retry: (failures, error) => !(error instanceof ApiError && error.status === 400) && failures < 1,
   });
 };

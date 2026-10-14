@@ -14,6 +14,29 @@ function removePhotos(numberOfPhotos: number) {
   });
 }
 
+/** Empty trash queued its job (#2203); the photos go in the background. */
+function emptyTrashStarted(count: number) {
+  toast.success(i18n.t("toasts.emptytrashstarted", { count }), { title: i18n.t("toasts.emptytrashstartedtitle") });
+}
+
+/** The Empty trash job deleted every photo it found. */
+function trashEmptied(count: number) {
+  toast.success(i18n.t("toasts.trashemptied", { count }), { title: i18n.t("toasts.trashemptiedtitle") });
+}
+
+/** The Empty trash job left photos behind: their files could not be deleted. It stays until closed. */
+function trashEmptiedWithErrors(deleted: number, failed: number) {
+  toast.warning(i18n.t("toasts.trashemptiedwitherrors", { count: failed, deleted }), {
+    title: i18n.t("toasts.trashemptiedwitherrorstitle"),
+    autoClose: false,
+  });
+}
+
+/** The Empty trash job failed before it could say how many photos it deleted. */
+function trashEmptyFailed() {
+  toast.error(i18n.t("toasts.trashemptyfailed"), { title: i18n.t("toasts.trashemptiedwitherrorstitle") });
+}
+
 function downloadStarting() {
   toast.success(i18n.t("toasts.downloadstarting"), { title: i18n.t("toasts.downloadstart") });
 }
@@ -53,6 +76,14 @@ function setPhotosRating(numberOfPhotos: number, rating: number) {
       ? i18n.t("toasts.clearrating", { count: numberOfPhotos })
       : i18n.t("toasts.setrating", { count: numberOfPhotos, rating });
   toast.success(message, { title: i18n.t("toasts.setratingtitle") });
+}
+
+// One toast for a bulk date change (#2278): how many photos moved, and how many a shift skipped
+// because they have no date.
+function photosDateChanged(changed: number, skippedWithoutDate: number) {
+  const message = i18n.t("toasts.datechanged", { count: changed });
+  const skipped = skippedWithoutDate ? ` ${i18n.t("toasts.dateskipped", { count: skippedWithoutDate })}` : "";
+  toast.success(message + skipped, { title: i18n.t("toasts.datechangedtitle") });
 }
 
 function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
@@ -149,10 +180,12 @@ export const photos = {
   downloadCompleted,
   downloadFailed,
   downloadStarting,
+  emptyTrashStarted,
   locationRemoved,
   locationSavedNoPlace,
   locationSavedWithoutPlace,
   photoRotated,
+  photosDateChanged,
   removePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,
@@ -164,9 +197,12 @@ export const photos = {
   startOcrScan,
   startPhotoScan,
   togglePhotoDelete,
-  togglePhotoSharing,
   togglePhotosFavorite,
+  togglePhotoSharing,
   togglePhotosHidden,
   togglePhotosPublic,
+  trashEmptied,
+  trashEmptiedWithErrors,
+  trashEmptyFailed,
   updatePhoto,
 };

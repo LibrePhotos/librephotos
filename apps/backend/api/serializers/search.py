@@ -26,3 +26,13 @@ class MetadataValuesSerializer(serializers.Serializer[None]):
     """``GET /api/search/metadata-values/``: most photos first."""
 
     results = MetadataValueSerializer(many=True)
+
+
+class SearchTermExamplesSerializer(serializers.Serializer[None]):
+    """``GET /api/searchtermexamples/``: search suggestions from the caller's library."""
+
+    results = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Built from a sample of the caller's photos (people, places, "
+        "things, times); fixed examples for an empty library",
+    )

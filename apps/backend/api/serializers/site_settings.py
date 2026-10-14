@@ -72,6 +72,7 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     image_captioning_enabled = JsonBooleanField(required=False)
     reverse_geocoding_enabled = JsonBooleanField(required=False)
     scene_classification_enabled = JsonBooleanField(required=False)
+    video_previews_enabled = JsonBooleanField(required=False)
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
         if not attrs:
@@ -107,7 +108,7 @@ class SiteFeatureStateSerializer(serializers.Serializer[None]):
 
 
 class SiteFeaturesSerializer(serializers.Serializer[None]):
-    """The six feature switches, by feature."""
+    """The feature switches, by feature."""
 
     video = SiteFeatureStateSerializer()
     face_detection = SiteFeatureStateSerializer()
@@ -115,6 +116,7 @@ class SiteFeaturesSerializer(serializers.Serializer[None]):
     image_captioning = SiteFeatureStateSerializer()
     reverse_geocoding = SiteFeatureStateSerializer()
     scene_classification = SiteFeatureStateSerializer()
+    video_previews = SiteFeatureStateSerializer()
 
 
 class SiteModelDownloadSerializer(serializers.Serializer[None]):
@@ -158,3 +160,23 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     email_configured = serializers.BooleanField()
     features = SiteFeaturesSerializer(required=False)
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)
+
+
+class TrashRetentionPreviewQuery(serializers.Serializer[None]):
+    """The retention to count for: the days the admin is about to save."""
+
+    days = serializers.IntegerField(
+        min_value=1,
+        max_value=MAX_TRASH_RETENTION_DAYS,
+        help_text="Days a photo may stay in the trash.",
+    )
+
+
+class TrashRetentionPreviewSerializer(serializers.Serializer[None]):
+    """What the next daily cleanup would delete with that retention."""
+
+    days = serializers.IntegerField()
+    photo_count = serializers.IntegerField(
+        help_text="Photos in any user's trash for longer than ``days`` days."
+    )
+    user_count = serializers.IntegerField(help_text="Users those photos belong to.")

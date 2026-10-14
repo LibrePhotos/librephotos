@@ -1,4 +1,4 @@
-import type { PhotoShare } from "@librephotos/api-client";
+import type { PhotoShareLink } from "@librephotos/api-client";
 import { ActionIcon, Button, CopyButton, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import {
   IconCheck as CheckIcon,
@@ -14,10 +14,10 @@ import { ConfirmPopover } from "./ConfirmPopover";
 import { ShareThumbnail } from "./ShareThumbnail";
 
 /** One link, with its own mutation so only this row shows a spinner. */
-function PhotoShareRow({ share }: Readonly<{ share: PhotoShare }>) {
+function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
   const { t } = useTranslation();
   const { mutate, isPending, variables } = usePhotoShareMutation();
-  const photoId = share.photo_id ?? "";
+  const photoId = share.photo_id;
   const fullUrl = `${shareAddress}${share.url}`;
 
   return (
@@ -107,7 +107,7 @@ export function PhotoSharesSection() {
           {t("sharing.photoLinksExplanation")}
         </Text>
         {shares.map(share => (
-          <PhotoShareRow key={share.photo_id ?? share.slug} share={share} />
+          <PhotoShareRow key={share.photo_id} share={share} />
         ))}
       </Stack>
     </Paper>

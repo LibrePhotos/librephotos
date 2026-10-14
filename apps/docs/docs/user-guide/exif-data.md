@@ -236,28 +236,28 @@ sidebar_position: 18
         <td>Keywords / People</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility. The photo's other keywords stay, and relabelling a face removes the previous name. A new XMP sidecar starts from the photo's own keywords (XMP:Subject and IPTC:Keywords), so they are not hidden behind it. <em>Not released yet</em>: earlier versions replaced the keywords with the names.</td>
+        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility. The photo's other keywords stay, and relabelling a face removes the previous name. A new XMP sidecar starts from the photo's own keywords (XMP:Subject and IPTC:Keywords), so they are not hidden behind it. <em>Not released yet</em>: earlier versions replaced the keywords with the names. Your tags are written here too when "Write edits to files" is enabled; see <a href="#what-librephotos-writes">What LibrePhotos writes</a>. <em>Not released yet.</em></td>
     </tr>
     <tr>
         <td>IPTC:Keywords</td>
         <td>Keywords</td>
         <td>✔️</td>
-        <td>❌</td>
-        <td>Merged with XMP:Subject into the photo's keywords.</td>
+        <td>✔️</td>
+        <td>Merged with XMP:Subject into the photo's keywords. With "Save to media file", your tag edits reach it too, but only in a file that already has IPTC data. <em>Not released yet.</em></td>
     </tr>
     <tr>
         <td>XMP-iptcExt:PersonInImage</td>
         <td>Keywords</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Names of the people shown (without face regions), added to the photo's keywords and so its tags. Not linked to people in LibrePhotos, which come from faces. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+        <td>Names of the people shown (without face regions), added to the photo's keywords and so its tags. Not linked to people in LibrePhotos, which come from faces. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. Never written: removing such a tag leaves the name here.</td>
     </tr>
     <tr>
         <td>XMP-lr:HierarchicalSubject</td>
         <td>Keywords</td>
         <td>✔️</td>
         <td>❌</td>
-        <td>Hierarchical keywords as written by Lightroom, digiKam and darktable. The last level of each path becomes a keyword: <code>Places|USA|San Francisco</code> adds <code>San Francisco</code>. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
+        <td>Hierarchical keywords as written by Lightroom, digiKam and darktable. The last level of each path becomes a keyword: <code>Places|USA|San Francisco</code> adds <code>San Francisco</code>. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. Never written: removing such a tag leaves the path here.</td>
     </tr>
     <tr>
         <td>XMP:Description</td>
@@ -376,16 +376,31 @@ was called "Synchronize metadata to disk"._
 | Caption | yes (_not released yet_) | `XMP-dc:Description` in the sidecar; in the file `XMP-dc:Description` and `EXIF:ImageDescription`, and `IPTC:Caption-Abstract` if the file already has IPTC data |
 | Location | yes (_not released yet_) | `XMP-exif:GPSLatitude`/`GPSLongitude` in the sidecar; in an image file `GPS:GPSLatitude`/`GPSLongitude` with their `N`/`S` and `E`/`W` references; in an MP4 or MOV `Keys:GPSCoordinates` |
 | Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject` |
-| Tags | no, they stay in LibrePhotos | |
+| Tags | yes (_not released yet_) | `XMP-dc:Subject` in the sidecar; in the file `XMP-dc:Subject`, and `IPTC:Keywords` if the file already has IPTC data |
 
 A caption keeps its line breaks. Clearing the caption removes the description, and removing a
 location removes the position tags. Setting a location in a photo file also removes the file's old
 altitude, which belonged to the old position. The place name (city, country) is never written: it
 is looked up from the position again. A generated caption is never written, only one you type.
 
-In the sidecar mode a removal only reaches the sidecar: a description or position stored in the
-photo file itself stays there, and an app that reads the file (or a new import into LibrePhotos)
-sees it again. Inside LibrePhotos the removal stays.
+Tags are written as keywords, one change at a time: adding a tag adds that keyword (once, never
+twice), removing it removes that keyword, and the file's other keywords stay. Renaming, merging or
+deleting a tag on the Albums page changes the keyword in the files of every photo that carries
+the tag, in one background job. The names of people that the face write-back adds stay, even when
+you remove a tag of the same name, and `XMP-iptcExt:PersonInImage` and
+`XMP-lr:HierarchicalSubject` are never changed. A tag that came from one of those is not written
+as a keyword unless you add it yourself. A new sidecar starts from the photo's own keywords, so
+it does not hide them.
+
+With tags written to files, a rescan only turns keywords into tags that the file did not have
+before, such as one another app added. A tag you removed stays removed, even where the file still
+carries the keyword (a people name or keyword path, or an `IPTC:Keywords` entry the sidecar cannot
+remove). With `Off`, a rescan adds every keyword of the file back as a tag, as before.
+
+In the sidecar mode a removal only reaches the sidecar: a description, position or keyword stored
+in the photo file itself stays there, and an app that reads the file (or a new import into
+LibrePhotos) sees it again. Removing the last keyword leaves the sidecar without a keyword list,
+so the photo file's keywords show again. Inside LibrePhotos the removal stays.
 
 The date editor, the caption and tags editors and the **Pick location** dialog say the same in a
 line under the editor, with a link to the setting.

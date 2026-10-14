@@ -34,6 +34,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => mocks.settingsQuery }));
 vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save }));
+// Its own test: TrashRetentionSetting.test.tsx.
+vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
 vi.mock("./ScanSettings", () => ({
   LABEL_SPAN: { base: 12, sm: 8 },
   CONTROL_SPAN: { base: 12, sm: 4 },

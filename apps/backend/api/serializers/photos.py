@@ -35,7 +35,7 @@ from api.serializers.fields import (
 )
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
-from api.serializers.simple import SimpleUserSerializer
+from api.serializers.simple import SimpleUserSerializer, has_animated_preview
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # For an HDR badge on the tile. False for a video the scan has not probed
     # yet as well as for an SDR one: the backfill job fills the older ones in.
     is_hdr = serializers.SerializerMethodField()
+    # Whether the grid square is a clip to play or a still (#649).
+    animated_preview = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -93,6 +95,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "type",
             "video_length",
             "is_hdr",
+            "animated_preview",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -136,6 +139,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def get_is_hdr(self, obj: Photo) -> bool:
         return obj.video and obj.video_color_transfer in color.HDR_TRANSFERS
+
+    def get_animated_preview(self, obj: Photo) -> bool:
+        return has_animated_preview(obj)
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -291,6 +297,8 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "image_hash",
             "thumbnail__aspect_ratio",
             "thumbnail__dominant_color",
+            # Its name says whether a video's square is a clip (animated_preview).
+            "thumbnail__square_thumbnail",
             "video",
             "main_file",
             "search_instance__search_location",
@@ -810,7 +818,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                     "left": f.location_left,
                     "right": f.location_right,
                 },
-                "face_url": f.image.url,
+                # A face without a crop (legacy rows) has no URL to show.
+                "face_url": f.crop_url or "",
                 "face_id": f.id,
             }
             for f in obj.faces.all()
@@ -978,6 +987,16 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
     def get_photo(self, obj: Model) -> dict[str, Any]:
         # obj is an instance of the auto-created shared_to through model.
         return PhotoSummarySerializer(getattr(obj, "photo")).data
+
+
+class PublicPhotoPersonSerializer(serializers.Serializer[None]):
+    """A person on a photo of a public album, when the album shares faces."""
+
+    name = serializers.CharField()
+    face_url = serializers.CharField(
+        allow_null=True, help_text="The face crop; null without one"
+    )
+    face_id = serializers.IntegerField()
 
 
 class PublicPhotoDetailSerializer(serializers.ModelSerializer):
@@ -1166,14 +1185,15 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         return {"im2txt": ""}
 
     # People/faces - conditional
-    def get_people(self, obj: Photo) -> list:
+    @extend_schema_field(PublicPhotoPersonSerializer(many=True))
+    def get_people(self, obj: Photo) -> list[dict[str, Any]]:
         if not self._get_sharing_settings().get("share_faces", False):
             return []
 
         return [
             {
                 "name": person.name,
-                "face_url": face.image.url if face.image else None,
+                "face_url": face.crop_url,
                 "face_id": face.id,
             }
             for face in obj.faces.all()

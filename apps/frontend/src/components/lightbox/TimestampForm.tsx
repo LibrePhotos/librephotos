@@ -6,7 +6,7 @@ import React, { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { parsePickerDate, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
 import { DisabledReason } from "../common/DisabledReason";
-import { makeTimestampFormSchema, WHOLE_TIME } from "./TimestampForm.schema";
+import { combineDayAndTime, formatPickerTime, makeTimestampFormSchema } from "./TimestampForm.schema";
 import { WriteBackHint } from "./WriteBackHint";
 
 type Props = Readonly<{
@@ -24,26 +24,6 @@ type Values = { day: Date | null; time: string };
 
 const MIDNIGHT = "00:00:00";
 
-function formatTime(date: Date | null) {
-  if (!date) return "";
-  return [date.getHours(), date.getMinutes(), date.getSeconds()].map(n => n.toString().padStart(2, "0")).join(":");
-}
-
-/** The day picked plus the time typed; null while either is missing or incomplete. */
-function combine({ day, time }: Values): Date | null {
-  const match = WHOLE_TIME.exec(time);
-  if (!day || !match) return null;
-  const [, hours, minutes, seconds] = match;
-  return new Date(
-    day.getFullYear(),
-    day.getMonth(),
-    day.getDate(),
-    Number(hours),
-    Number(minutes),
-    Number(seconds ?? 0)
-  );
-}
-
 /** The date editor of the info panel: a day, a time, and Remove for a date set by hand. */
 export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemove, onCancel }: Props) {
   const { t } = useTranslation();
@@ -51,7 +31,7 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
   const [initial] = useState(() => (exifTimestamp ? photoTimestampToPickerDate(exifTimestamp) : null));
   // Day and time are separate fields, so a time typed before a day is picked stays.
   const form = useForm<Values>({
-    initialValues: { day: initial, time: formatTime(initial) },
+    initialValues: { day: initial, time: formatPickerTime(initial) },
     validate: schemaResolver(makeTimestampFormSchema(t), { sync: true }),
     validateInputOnChange: ["time"],
   });
@@ -64,7 +44,7 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
   };
 
   const save = form.onSubmit(values => {
-    const value = combine(values);
+    const value = combineDayAndTime(values);
     if (!value) return;
     // Save sits where the pencil was, so a double-click saves straight away. An
     // unchanged date is a Cancel, not a metadata write and an edit-history entry.

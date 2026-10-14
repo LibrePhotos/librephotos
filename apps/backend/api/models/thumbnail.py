@@ -7,7 +7,9 @@ from django.db import models
 
 from api.models.photo import Photo
 
-# Static thumbnails are webp; the animated ones videos get instead are mp4.
+# Static thumbnails are webp. A video's squares are mp4 clips instead, or webp
+# stills when the animated previews are switched off (#649); a video can have
+# either on disk, depending on the switch when it was last scanned.
 STATIC_THUMBNAIL_DIRS = (
     "thumbnails_big",
     "square_thumbnails",
@@ -17,7 +19,10 @@ ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
 
 
 def thumbnail_file_paths(photo_hash: str) -> list[str]:
-    """Every path a thumbnail named after ``photo_hash`` can have."""
+    """Every path a thumbnail named after ``photo_hash`` can have.
+
+    Both formats of the squares: deleting a photo removes whichever exists.
+    """
     named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
     named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
     return [
@@ -46,6 +51,12 @@ class Thumbnail(models.Model):
                 name="thumbnail_ready_idx",
             ),
         ]
+
+    @property
+    def has_animated_squares(self) -> bool:
+        """Whether the squares are mp4 clips rather than WebP stills (#649)."""
+        name = self.square_thumbnail.name
+        return bool(name and name.endswith(".mp4"))
 
     def main_file_path(self) -> str:
         """Path of the photo's main file, which every thumbnail is made from."""

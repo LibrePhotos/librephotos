@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import type { FaceActionsState } from "./hooks/useFaceActions";
+import { selectionOf } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{ state: FaceActionsState }>;
 
@@ -24,7 +25,7 @@ export function FaceActionDialogs({ state }: Props) {
       <ModalPersonEdit
         isOpen={state.labelDialogOpened}
         onRequestClose={state.closeLabelDialog}
-        selectedFaces={face ? [{ face_id: face.id, face_url: face.face_url }] : []}
+        selectedFaces={face ? [selectionOf(face)] : []}
         onPersonChosen={state.labelTargetAs}
       />
       <ConfirmModal

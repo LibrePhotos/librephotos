@@ -41,7 +41,6 @@ SHAPELESS = frozenset(
         "api/serializers/photos.py:PhotoSummarySerializer.get_stacks",
         "api/serializers/photos.py:PublicPhotoDetailSerializer.get_captions_json",
         "api/serializers/photos.py:PublicPhotoDetailSerializer.get_geolocation_json",
-        "api/serializers/photos.py:PublicPhotoDetailSerializer.get_people",
     }
 )
 

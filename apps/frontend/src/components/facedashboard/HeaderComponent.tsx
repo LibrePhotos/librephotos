@@ -22,7 +22,7 @@ import { PersonRenameModal } from "../album/PersonRenameModal";
 import { canConfirmFace, isNamedPerson } from "./faceActionRules";
 import classes from "./HeaderComponent.module.css";
 import { useFocusOnMount } from "./hooks/useFocusOnMount";
-import { isLoadedFace } from "./hooks/useVirtualizedGrid";
+import { isLoadedFace, selectionOf } from "./hooks/useVirtualizedGrid";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 
 type Props = {
@@ -94,7 +94,7 @@ export function HeaderComponent({
 
   const handleClick = () => {
     if (!checked) {
-      const facesToAdd = loadedFaces.map(i => ({ face_id: i.id, face_url: i.face_url }));
+      const facesToAdd = loadedFaces.map(selectionOf);
       const merged = uniqBy([...selectedFaces, ...facesToAdd], el => el.face_id);
       setSelectedFaces(merged);
     } else {

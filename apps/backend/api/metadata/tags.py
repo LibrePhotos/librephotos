@@ -80,6 +80,10 @@ class Tags:
     REGION_INFO_WRITE = "XMP-mwg-rs:RegionInfo"
     SUBJECT = "XMP:Subject"
     IPTC_KEYWORDS = "IPTC:Keywords"
+    # Where a tag edit is written into a media file (#2289): the MWG
+    # composite, which changes XMP-dc:Subject and the IPTC:Keywords of a file
+    # that already has an IPTC block (written with WriteOption.MWG).
+    KEYWORDS_MWG = "MWG:Keywords"
     # The x-default entry of the dc:description lang-alt, embedded or sidecar.
     DESCRIPTION = "XMP:Description"
     # Every language-tagged entry of the same lang-alt (XMP:Description-de,

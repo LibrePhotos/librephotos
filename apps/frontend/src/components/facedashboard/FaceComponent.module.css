@@ -48,6 +48,16 @@
 }
 
 /*
+ * A face without a crop (#2636): a person icon on a plain square, like a thing album without a
+ * cover (#2234), one step darker so it stands out from the page's gray-0 background.
+ */
+.noThumbnail {
+  border-radius: var(--mantine-radius-md);
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+/*
  * Shown on hover and while anything in the face has keyboard focus, so tabbing reaches them;
  * always shown where there is no hover (touch screens).
  */

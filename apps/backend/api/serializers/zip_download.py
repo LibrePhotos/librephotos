@@ -111,3 +111,34 @@ class ZipDownloadStatusQuery(serializers.Serializer[None]):
         },
         help_text="The job_id the download answered",
     )
+
+
+class ZipDownloadStartedSerializer(serializers.Serializer[None]):
+    """``POST /api/photos/download``: the archive job."""
+
+    job_id = serializers.CharField(help_text="The job to poll")
+    url = serializers.UUIDField(
+        help_text="The archive's name, for /media/zip/ and /api/delete/zip/"
+    )
+
+
+class ZipDownloadFinishedSerializer(serializers.Serializer[None]):
+    """``GET /api/photos/download?job_id=`` (200): the job is over."""
+
+    status = serializers.CharField(
+        help_text="SUCCESS, or FAILURE for a failed or cancelled job"
+    )
+    result = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="With FAILURE: the job's result, which says what went wrong",
+    )
+
+
+class ZipDownloadPendingSerializer(serializers.Serializer[None]):
+    """``GET /api/photos/download?job_id=`` (202): the job still runs."""
+
+    status = serializers.CharField(help_text="PENDING")
+    progress = serializers.JSONField(
+        allow_null=True, help_text="The job's progress so far, null before any"
+    )

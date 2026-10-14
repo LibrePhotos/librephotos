@@ -11,7 +11,7 @@ const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize:
 
 type PhotoItem = ReturnType<typeof photoItem>;
 
-function photoItem(overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr">> = {}) {
+function photoItem(overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr" | "animated_preview">> = {}) {
   return {
     id: "photo-1",
     image_hash: "hash1",
@@ -204,5 +204,42 @@ describe("react-pig Tile media", () => {
 
     const videos = Array.from(button.querySelectorAll("video")).map(video => video.getAttribute("src"));
     expect(videos).toEqual(["/media/hash1?h=400", "/media/hash1?h=1000"]);
+  });
+
+  it("shows a video with a still square as an image with a play icon (#649)", () => {
+    const { button } = renderTile(photoItem({ type: "video", animated_preview: false }), { activeTileId: "photo-1" });
+
+    expect(button.querySelector("video")).toBeNull();
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
+      "/media/hash1?h=20",
+      "/media/hash1?h=400",
+      "/media/hash1?h=1000",
+    ]);
+    expect(button.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+    expect(button.getAttribute("aria-label")).toMatch(/^Video taken /);
+  });
+
+  it("plays a video whose square is a clip, or whose backend predates the flag", () => {
+    for (const animated_preview of [true, undefined]) {
+      const { button } = renderTile(photoItem({ type: "video", animated_preview }));
+      expect(button.querySelectorAll("video")).toHaveLength(1);
+      act(() => defined(root).unmount());
+      defined(container).remove();
+      root = null;
+      container = null;
+    }
+  });
+
+  it("shows the square as an image when the clip fails to load", () => {
+    const { button } = renderTile(photoItem({ type: "video" }));
+
+    act(() => {
+      defined(button.querySelector("video")).dispatchEvent(new Event("error"));
+    });
+
+    expect(button.querySelector("video")).toBeNull();
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toContain(
+      "/media/hash1?h=400"
+    );
   });
 });

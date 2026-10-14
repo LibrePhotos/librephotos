@@ -94,7 +94,7 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 ### Empty Trash
 
-_Not released yet._ Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
+_Not released yet._ Started with the **Empty trash** button on the Trash page. Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
 
 ## Where to get information about previous run jobs
 

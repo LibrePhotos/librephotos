@@ -1,6 +1,7 @@
 """Writing a photo's LibrePhotos edits back to its file or XMP sidecar.
 
-Ratings, capture dates, captions, locations, face regions and rotations.
+Ratings, capture dates, captions, locations, tags (as keywords), face regions
+and rotations.
 Moved out of ``Photo``; every function takes the photo as its first argument. ``Photo.save()`` only
 saves: a caller that applies a user's edit calls the writer itself, for the
 fields it changed (#2336).
@@ -9,10 +10,12 @@ fields it changed (#2336).
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+import os
+from collections.abc import Callable, Collection, Sequence
 from typing import TYPE_CHECKING
 
 from django.db import transaction
+from django.utils import timezone
 
 from api.metadata.orientation import compose_orientation
 from api.metadata.reader import (
@@ -20,20 +23,26 @@ from api.metadata.reader import (
     existing_sidecars,
     get_metadata,
     sidecar_files_for_photo,
+    sidecar_for_write,
 )
 from api.metadata.tags import Tags
 from api.metadata.writer import (
     MetadataWriteError,
     TagValue,
     WriteOption,
+    add_to,
+    remove_from,
     write_metadata,
 )
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
     DESCRIPTION_SOURCES,
     IMPORTED_DESCRIPTION_KEY,
+    PhotoMetadata,
     description_of,
+    merged_keywords_of,
 )
+from api.models.tag import Tag
 from api.models.user import User
 from api.photos.paths import is_nextcloud_copy
 
@@ -334,13 +343,199 @@ def _write_edit(
     return True
 
 
+# --------------------------------------------------------------------- keywords
+
+#: The keyword sources the scan merges (``merged_keywords_of``), by value name.
+FILE_KEYWORD_SOURCES = (
+    "xmp_subject",
+    "iptc_keywords",
+    "person_in_image",
+    "hierarchical_subject",
+)
+
+
+def write_keywords(photo: Photo, use_sidecar: bool, names: Collection[str]) -> None:
+    """Make the file's keywords agree with the photo's tags ``names`` (#2289).
+
+    Only ``names``, the tags one edit touched, are written: a name the photo
+    has as a tag when the job runs is added (once), any other is removed, so
+    jobs that run out of order still leave the latest state. The file's
+    other keywords stay, and so do its ``PersonInImage`` and
+    ``HierarchicalSubject`` entries. A person's name in one of the file's
+    face regions is not removed: the face write-back put it there.
+
+    Into the sidecar as ``XMP-dc:Subject``; into the media file through
+    ``MWG:Keywords``, which keeps an ``IPTC:Keywords`` the file already has
+    in step (a file without IPTC gains none). After the write the file's
+    keywords are read back and stored (``_remember_file_keywords``), so a
+    rescan does not import a removed keyword the file still gives as new.
+
+    Raises ``MetadataWriteError`` when ExifTool did not write them.
+    """
+    if not names or not _keeps_edits(photo):
+        return
+    wanted, unwanted = _split_by_tags(photo, names)
+    if unwanted:
+        faces = set(_face_names_in_file(photo))
+        unwanted = [name for name in unwanted if name not in faces]
+    tags = _keyword_tags(photo, use_sidecar, wanted, unwanted)
+    options = () if use_sidecar else (WriteOption.MWG,)
+    if tags and _write_edit(photo, tags, use_sidecar, options=options):
+        _remember_file_keywords(photo)
+
+
+def _split_by_tags(photo: Photo, names: Collection[str]) -> tuple[list[str], list[str]]:
+    """``names`` the photo has as tags now, and the ones it has not."""
+    on_photo = set(
+        Tag.objects.owned_by(photo.owner)
+        .filter(photos=photo, name__in=names)
+        .values_list("name", flat=True)
+    )
+    ordered = sorted(set(names))
+    return (
+        [name for name in ordered if name in on_photo],
+        [name for name in ordered if name not in on_photo],
+    )
+
+
+def _face_names_in_file(photo: Photo) -> list[str]:
+    """The names of the face regions the file gives (``XMP:RegionInfo``)."""
+    from api.metadata.face_regions import region_names
+
+    assert photo.main_file is not None
+    (region_info,) = get_metadata(
+        photo.main_file.path,
+        tags=[Tags.REGION_INFO],
+        struct=True,
+        sidecar_files=sidecar_files_for_photo(photo),
+    )
+    return region_names(region_info)
+
+
+def _keyword_list(value: object) -> list[str]:
+    """A keyword tag as ExifTool returns it (one text, a list, a number) as texts."""
+    return merged_keywords_of({"xmp_subject": value})
+
+
+def keyword_changes(
+    tag: str,
+    own: list[str],
+    own_iptc: list[str] | None,
+    wanted: Sequence[str],
+    unwanted: Sequence[str],
+) -> dict[str, TagValue]:
+    """The item changes of ``tag`` that add ``wanted`` and remove ``unwanted``.
+
+    ``own`` is the target's ``XMP:Subject``, ``own_iptc`` its
+    ``IPTC:Keywords`` (None: it has none). A name already where it belongs
+    is left alone, so an edit that changes nothing writes nothing. A name is
+    removed before it is added, ExifTool's way to add it once.
+    """
+    lists = [own] if own_iptc is None else [own, own_iptc]
+    remove = [name for name in unwanted if any(name in found for found in lists)]
+    add = [name for name in wanted if any(name not in found for found in lists)]
+    tags: dict[str, TagValue] = {}
+    if remove or add:
+        tags[remove_from(tag)] = [*remove, *add]
+    if add:
+        tags[add_to(tag)] = add
+    return tags
+
+
+def seeded_keywords(
+    seed: list[str], wanted: Sequence[str], unwanted: Sequence[str]
+) -> list[str] | None:
+    """A new sidecar keyword list: ``seed`` with ``wanted`` and without ``unwanted``.
+
+    None when that is ``seed`` itself: the sidecar would say what the
+    photo's own keywords already say.
+    """
+    kept = [keyword for keyword in seed if keyword not in unwanted]
+    merged = kept + [name for name in wanted if name not in kept]
+    return None if merged == seed else merged
+
+
+def _keyword_tags(
+    photo: Photo, use_sidecar: bool, wanted: list[str], unwanted: list[str]
+) -> dict[str, TagValue]:
+    """The tags that bring the target's keyword list in line; empty for none.
+
+    A sidecar without a keyword list of its own would hide the photo's
+    keywords from the scan, so its first list starts from them
+    (``XMP:Subject`` and ``IPTC:Keywords``, as for the face names, #2291). A
+    list that would end up empty is not written: ExifTool cannot store an
+    empty one, and leaving it out shows the original's keywords again.
+    """
+    assert photo.main_file is not None
+    main_path = photo.main_file.path
+    if not use_sidecar:
+        subject, iptc = get_metadata(
+            main_path, tags=[Tags.SUBJECT, Tags.IPTC_KEYWORDS], try_sidecar=False
+        )
+        own_iptc = None if iptc is None else _keyword_list(iptc)
+        return keyword_changes(
+            Tags.KEYWORDS_MWG, _keyword_list(subject), own_iptc, wanted, unwanted
+        )
+    target = sidecar_for_write(main_path)
+    own = None
+    if os.path.exists(target):
+        (own,) = get_metadata(target, tags=[Tags.SUBJECT], try_sidecar=False)
+    if own is not None:
+        return keyword_changes(Tags.SUBJECT, _keyword_list(own), None, wanted, unwanted)
+    subject, iptc = get_metadata(
+        main_path,
+        tags=[Tags.SUBJECT, Tags.IPTC_KEYWORDS],
+        sidecar_files=sidecar_files_for_photo(photo),
+    )
+    seed = merged_keywords_of({"xmp_subject": subject, "iptc_keywords": iptc})
+    merged = seeded_keywords(seed, wanted, unwanted)
+    return {Tags.SUBJECT: merged} if merged else {}
+
+
+def _remember_file_keywords(photo: Photo) -> None:
+    """Store the keywords the file gives now as the photo's file keywords.
+
+    ``PhotoMetadata.keywords`` is what the file says. With write-back on, a
+    rescan only turns keywords into tags that the file did not give before
+    (``apply_file_values``), so a removed keyword the file still gives (an
+    ``IPTC:Keywords`` behind a sidecar, a ``HierarchicalSubject`` leaf) does
+    not come back as a tag.
+    """
+    from api.metadata.photo_reader import EXIF_FIELDS
+
+    assert photo.main_file is not None
+    tag_of = dict(EXIF_FIELDS)
+    try:
+        values = get_metadata(
+            photo.main_file.path,
+            tags=[tag_of[name] for name in FILE_KEYWORD_SOURCES],
+            sidecar_files=sidecar_files_for_photo(photo),
+        )
+    except MetadataReadError as error:
+        logger.warning(
+            "The keywords of photo %s could not be read back: %s",
+            photo.image_hash,
+            error,
+        )
+        return
+    keywords = merged_keywords_of(dict(zip(FILE_KEYWORD_SOURCES, values)))
+    PhotoMetadata.objects.filter(photo=photo).update(
+        keywords=keywords or None, updated_at=timezone.now()
+    )
+
+
 def _write_rating(photo: Photo, use_sidecar: bool) -> None:
     write_photo_metadata(photo, modified_fields=["rating"], use_sidecar=use_sidecar)
+
+
+def _write_capture_time(photo: Photo, use_sidecar: bool) -> None:
+    write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=use_sidecar)
 
 
 #: The writer of each field ``api.metadata.jobs`` writes in the background.
 FIELD_WRITERS: dict[str, Callable[[Photo, bool], None]] = {
     "rating": _write_rating,
+    "date_taken": _write_capture_time,
     "caption": write_caption,
     "location": write_location,
 }

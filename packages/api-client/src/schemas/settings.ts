@@ -18,6 +18,8 @@ export const SiteFeatures = z.object({
   image_captioning: SiteFeatureState,
   reverse_geocoding: SiteFeatureState,
   scene_classification: SiteFeatureState,
+  // Animated grid previews of videos (#649). Optional: older backends do not have the switch.
+  video_previews: SiteFeatureState.optional(),
 });
 export type SiteFeatures = z.infer<typeof SiteFeatures>;
 export type SiteFeatureName = keyof SiteFeatures;
@@ -76,6 +78,17 @@ export type SiteSettingsUpdate = Partial<
     [K in SiteFeatureName as `${K}_enabled`]: boolean;
   }
 >;
+
+/**
+ * GET /api/sitesettings/trash-retention-preview/?days=N (admin): what the next daily cleanup would
+ * delete with that trash retention, across every user's trash (#2203).
+ */
+export const TrashRetentionPreview = z.object({
+  days: z.number(),
+  photo_count: z.number(),
+  user_count: z.number(),
+});
+export type TrashRetentionPreview = z.infer<typeof TrashRetentionPreview>;
 
 /** GET /api/timezones/: every time zone name the date-time rules accept. */
 export const Timezones = z.string().array();

@@ -54,21 +54,56 @@ describe("site settings", () => {
         image_captioning: { enabled: false, locked: true, model_ready: true },
         reverse_geocoding: on,
         scene_classification: { enabled: true, locked: false, model_ready: true },
+        video_previews: { enabled: false, locked: false, model_ready: null },
       },
       model_download: { id: 7, status: "running", progress_current: 2, progress_target: 12 },
     };
     const settings = await endpoints.fetchSiteSettings(fakeServer(staff).client);
     expect(settings.features?.image_captioning).toEqual({ enabled: false, locked: true, model_ready: true });
     expect(settings.model_download?.status).toBe("running");
+    expect(settings.features?.video_previews?.enabled).toBe(false);
     // Anonymous and non-staff answers have neither.
     const anonymous = await endpoints.fetchSiteSettings(fakeServer(siteSettings).client);
     expect(anonymous.features).toBeUndefined();
+  });
+
+  it("parses the features of a backend without the animated previews switch", async () => {
+    const on = { enabled: true, locked: false, model_ready: null };
+    const features = {
+      video: on,
+      face_detection: on,
+      face_cluster: on,
+      image_captioning: on,
+      reverse_geocoding: on,
+      scene_classification: on,
+    };
+    const settings = await endpoints.fetchSiteSettings(fakeServer({ ...siteSettings, features }).client);
+    expect(settings.features?.video).toEqual(on);
+    expect(settings.features?.video_previews).toBeUndefined();
   });
 
   it("posts a feature switch as a flat <feature>_enabled boolean", async () => {
     const { client, requests } = fakeServer(siteSettings);
     await endpoints.updateSiteSettings(client, { face_detection_enabled: false });
     expect(defined(requests[0]).body).toEqual({ face_detection_enabled: false });
+  });
+});
+
+describe("trash retention preview (admin)", () => {
+  it("asks for the days and parses the counts", async () => {
+    const { client, requests } = fakeServer({ days: 30, photo_count: 1204, user_count: 3 });
+    await expect(endpoints.fetchTrashRetentionPreview(client, 30)).resolves.toEqual({
+      days: 30,
+      photo_count: 1204,
+      user_count: 3,
+    });
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/sitesettings/trash-retention-preview/?days=30");
+  });
+
+  it("rejects an answer without the counts", async () => {
+    await expect(endpoints.fetchTrashRetentionPreview(fakeServer({ days: 30 }).client, 30)).rejects.toBeInstanceOf(
+      ResponseParseError
+    );
   });
 });
 

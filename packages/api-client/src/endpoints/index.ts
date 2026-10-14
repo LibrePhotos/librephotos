@@ -289,7 +289,7 @@ export async function setPhotoShareLink(
 }
 
 /** The user's active photo links, newest first. */
-export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShare[]> {
+export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShareLink[]> {
   const res = await client.get<unknown>("/photo/share/list");
   return parseResponse(S.PhotoShareListResponse, res, "photo shares").results;
 }
@@ -706,6 +706,12 @@ export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettin
 export async function updateSiteSettings(client: ApiClient, settings: S.SiteSettingsUpdate): Promise<S.SiteSettings> {
   const res = await client.post<unknown>("/sitesettings", settings);
   return parseResponse(S.SiteSettings, res, "update site settings");
+}
+
+/** Admin: how many photos, of how many users, a trash retention of `days` deletes at the next cleanup. */
+export async function fetchTrashRetentionPreview(client: ApiClient, days: number): Promise<S.TrashRetentionPreview> {
+  const res = await client.get<unknown>(`/sitesettings/trash-retention-preview/${buildQuery({ days })}`);
+  return parseResponse(S.TrashRetentionPreview, res, "trash retention preview");
 }
 
 /** A few views answer a JSON document as a JSON string (json.dumps, then Response): decode it. */
@@ -1609,6 +1615,37 @@ export async function setPhotoTimestamp(
     exif_timestamp: timestamp,
   });
   return parseResponse(S.PhotoEditResponse, res, "set timestamp");
+}
+
+/** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
+export type DateTimeChange = { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
+
+/**
+ * Shift the date of photos by `seconds` (negative for earlier), or give them all one date and time
+ * (#2278). By hash, or selected-all. The new date is the user's: it wins over the date rules and is
+ * written to the files when the user syncs metadata to disk. A shift skips photos without a date.
+ */
+export async function setPhotosDateTime(
+  client: ApiClient,
+  imageHashes: string[],
+  change: DateTimeChange,
+  selectAll?: SelectAllPhotos
+): Promise<S.SetPhotosDateTimeResponse> {
+  const res = await client.post<unknown>("/photosedit/datetime/", {
+    ...photoSelection(imageHashes, selectAll),
+    ...change,
+  });
+  return parseResponse(S.SetPhotosDateTimeResponse, res, "set photos date and time");
+}
+
+/** The dates of a selection (by hash, or selected-all): counts and the oldest and newest dated photo. */
+export async function fetchDateSummary(
+  client: ApiClient,
+  imageHashes: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.DateSummary> {
+  const res = await client.post<unknown>("/photos/date-summary/", photoSelection(imageHashes, selectAll));
+  return parseResponse(S.DateSummary, res, "date summary");
 }
 
 /** Save a user caption on one photo. */

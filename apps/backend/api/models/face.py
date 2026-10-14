@@ -77,6 +77,15 @@ class Face(models.Model):
     def timestamp(self) -> datetime | None:
         return self.photo.exif_timestamp if self.photo else None
 
+    @property
+    def crop_url(self) -> str | None:
+        """The URL of the face's crop, or None when it has none.
+
+        ``image`` is nullable: legacy rows and a crop that failed to save have no
+        file name, and ``image.url`` raises ValueError on such a field.
+        """
+        return self.image.url if self.image else None
+
     def __str__(self) -> str:
         return str(self.id)
 

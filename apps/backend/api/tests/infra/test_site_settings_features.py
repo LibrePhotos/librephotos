@@ -2,7 +2,7 @@
 
 GET gives staff a ``features`` object, one entry per optional feature, and the
 newest model download; anonymous and non-staff callers get neither. POST takes
-the six ``<feature>_enabled`` booleans and refuses one whose ``FEATURE_*``
+the ``<feature>_enabled`` booleans and refuses one whose ``FEATURE_*``
 environment variable locked it off.
 """
 
@@ -27,6 +27,7 @@ FEATURE_KEYS = {
     "image_captioning",
     "reverse_geocoding",
     "scene_classification",
+    "video_previews",
 }
 
 
@@ -61,7 +62,7 @@ class FeaturesVisibilityTest(TestCase):
 
     def test_features_without_a_model_have_no_model_state(self):
         body = self._get(create_test_user(is_admin=True))
-        for key in ("video", "face_cluster", "reverse_geocoding"):
+        for key in ("video", "face_cluster", "reverse_geocoding", "video_previews"):
             with self.subTest(key=key):
                 self.assertIsNone(body["features"][key]["model_ready"])
 
@@ -197,6 +198,29 @@ class FeatureSwitchPostTest(TestCase):
                 response = self.post({f"{key}_enabled": False})
                 self.assertEqual(response.status_code, 200, response.content)
                 self.assertIs(getattr(config, f"{key.upper()}_ENABLED"), False)
+
+    def test_turning_the_animated_video_previews_off(self, _models):
+        """#649: the sub-switch under Videos, stored like the other switches."""
+        response = self.post({"video_previews_enabled": False})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertFalse(config.VIDEO_PREVIEWS_ENABLED)
+        features = response.json()["features"]
+        self.assertFalse(features["video_previews"]["enabled"])
+        self.assertTrue(features["video"]["enabled"])
+        self.assertFalse(feature_enabled("VIDEO_PREVIEWS"))
+
+    @override_settings(FEATURE_VIDEO_PREVIEWS=False)
+    def test_the_environment_locks_the_animated_video_previews(self, _models):
+        state = self.client.get("/api/sitesettings").json()["features"]
+        self.assertEqual(
+            state["video_previews"],
+            {"enabled": False, "locked": True, "model_ready": None},
+        )
+        response = self.post({"video_previews_enabled": True})
+        self.assertEqual(response.status_code, 400)
+        [error] = response.json()["errors"]
+        self.assertEqual(error["field"], "video_previews_enabled")
+        self.assertIn("FEATURE_VIDEO_PREVIEWS", error["message"])
 
     def test_a_switch_takes_json_booleans_only(self, _models):
         response = self.post({"video_enabled": "false"})

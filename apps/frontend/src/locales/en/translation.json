@@ -167,7 +167,7 @@
     },
     "metadata": "Metadata Options",
     "sync": "Write edits to files",
-    "syncdescription": "Copies some of your edits into your files, so other apps see them. Not written yet: {{fields}}.",
+    "writeeditsdescription": "Copies your edits into your files, so other apps see them.",
     "favoritesyncoptions": {
       "off": "Off",
       "sidecar": "Save to sidecar",
@@ -397,6 +397,7 @@
       "probe_videos": "Probe Videos",
       "detect_stacks": "Detect Stacks",
       "strip_thumbnail_metadata": "Remove Photo Details from Thumbnails",
+      "empty_trash": "Empty Trash",
       "unknown": "Other job ({{name}})"
     },
     "queuebusy": {
@@ -625,6 +626,7 @@
     "ratingstars_other": "{{count}} stars",
     "norating": "No rating",
     "setratingselectall": "Ratings are set on the photos you pick. After Select all, pick the photos one by one instead.",
+    "changedatetime": "Change date and time…",
     "hide": "Hide",
     "unhide": "Unhide",
     "makepublic": "Make Public",
@@ -662,6 +664,48 @@
     "createstacktwophotos": "Select at least two photos to stack them",
     "stacksselectall": "Not available with Select all: select the photos one by one",
     "nomanualstack": "None of the selected photos is in a manual stack"
+  },
+  "changedatetime": {
+    "title_one": "Change date and time of {{count}} photo",
+    "title_other": "Change date and time of {{count}} photos",
+    "titleloading": "Change date and time",
+    "shift": "Shift",
+    "set": "Set",
+    "shifthint": "Move every selected photo by the same amount. Their order and the time between them stay the same.",
+    "sethint": "Give every selected photo the same date and time.",
+    "earlier": "Earlier",
+    "later": "Later",
+    "direction": "Direction",
+    "hourearlier": "1 h earlier",
+    "hourlater": "1 h later",
+    "days": "Days",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "nochange": "No change yet",
+    "summaryearlier": "{{duration}} earlier",
+    "summarylater": "{{duration}} later",
+    "oldest": "Oldest",
+    "newest": "Newest",
+    "now": "Now",
+    "after": "After",
+    "previewcaption": "The oldest and newest selected photo, now and after the shift",
+    "skipped_one": "{{count}} of the selected photos has no date. Shifting skips it; use Set to give it one.",
+    "skipped_other": "{{count}} of the selected photos have no date. Shifting skips them; use Set to give them one.",
+    "nothingtoshift": "None of the selected photos has a date, so there is nothing to shift. Set gives them one.",
+    "day": "Day",
+    "time": "Time",
+    "timehint": "24-hour clock, the photo's local time.",
+    "setorderlost": "They will share one time, so their order in the timeline is lost.",
+    "usersethint": "The new dates count as set by you: they win over the date rules, and a rescan keeps them.",
+    "entershift": "Enter how far to move the photos",
+    "pickdatetime": "Pick a day and a whole time",
+    "loading": "Reading the dates of the selection",
+    "shiftbutton_one": "Shift {{count}} photo",
+    "shiftbutton_other": "Shift {{count}} photos",
+    "setbutton_one": "Set {{count}} photo",
+    "setbutton_other": "Set {{count}} photos",
+    "cancel": "Cancel"
   },
   "lightbox": {
     "sidebar": {
@@ -705,6 +749,7 @@
       "noTags": "No tags",
       "tagFromFile": "From the file's keywords",
       "tagsFromFileHint": "Tags with this icon came from the file's keywords. Removing one here leaves it in the file, and a rescan adds it back.",
+      "tagsFromFileHintWritten": "Tags with this icon came from the file's keywords. Your changes to them are written back.",
       "noMentionResults": "No results",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "writeback": {
@@ -1032,7 +1077,24 @@
     "restorePhotos": "Restore {{count}} photos",
     "deletePermanently": "Delete permanently",
     "deletePhotosPermanently": "Delete {{count}} photos permanently",
-    "permanentDeleteWarning": "You are about to permanently delete {{count}} image(s). These images will be completely removed from your library and storage."
+    "deleteConfirmTitle_one": "Delete this photo permanently?",
+    "deleteConfirmTitle_other": "Delete {{count}} photos permanently?",
+    "permanentDeleteWarning": "They are removed from your library, and their original files are deleted from disk.",
+    "emptyTrash": "Empty trash",
+    "emptying": "Emptying the trash",
+    "emptyConfirmTitle": "Empty the trash?",
+    "emptyConfirmMessage_one": "The {{count}} photo or video in the trash is deleted for good, together with its original file on disk.",
+    "emptyConfirmMessage_other": "All {{count}} photos and videos in the trash are deleted for good, together with their original files on disk.",
+    "emptyConfirmFiltered_one": "This includes {{count}} that the media filter hides.",
+    "emptyConfirmFiltered_other": "This includes the {{count}} that the media filter hides.",
+    "emptyConfirmJob": "It runs in the background: follow it in the job list.",
+    "retentionOn_one": "Photos in the trash are deleted for good after {{count}} day.",
+    "retentionOn_other": "Photos in the trash are deleted for good after {{count}} days.",
+    "retentionOff": "Photos stay in the trash until you empty it.",
+    "trashedOn": "Moved to the trash on {{date}}",
+    "deletedIn_one": "Deleted for good in {{count}} day, on {{date}}",
+    "deletedIn_other": "Deleted for good in {{count}} days, on {{date}}",
+    "deletedNext": "Deleted for good at the next daily cleanup"
   },
   "login": {
     "name": "LibrePhotos",
@@ -1185,7 +1247,8 @@
       "changePassword": "Change Password",
       "changePasswordDesc": "Update your account password",
       "changeAvatar": "Change Avatar",
-      "changeAvatarDesc": "Update your profile picture"
+      "changeAvatarDesc": "Update your profile picture",
+      "filterphotos": "Filter photos"
     },
     "actions": {
       "scanPhotos": "Scan Photos",
@@ -1391,6 +1454,23 @@
     "autocreateuserdirectory": "New users get their own folder under the data root as their scan directory. Your own scan directory must be a subfolder, not the data root itself, because scan directories of different users cannot overlap.",
     "headerscanmissingmaxfraction": "Missing photos limit",
     "scanmissingmaxfraction": "A scan changes nothing and asks whether the library is mounted when more than this share of a user's photos, and more than 100 photos, would be marked missing. 100% turns the check off.",
+    "headertrashretention": "Delete photos from the trash after",
+    "trashretention": "Days a photo stays in a user's trash before it is deleted for good. 0 keeps photos in the trash until the user empties it.",
+    "trashretentionunit": "days",
+    "trashretentionwarningtitle": "Original files are deleted from disk",
+    "trashretentionwarning_one": "Every day, photos that have been in any user's trash for more than {{count}} day are deleted together with their files in the scan directory. Nobody is asked first.",
+    "trashretentionwarning_other": "Every day, photos that have been in any user's trash for more than {{count}} days are deleted together with their files in the scan directory. Nobody is asked first.",
+    "trashretentionconfirmtitle": "Delete old photos from the trash automatically?",
+    "trashretentionconfirm_one": "Photos that have been in a trash for more than {{count}} day will be deleted for good, with their original files.",
+    "trashretentionconfirm_other": "Photos that have been in a trash for more than {{count}} days will be deleted for good, with their original files.",
+    "trashretentionaffected_one": "Right now that is {{count}} photo ({{users}}), deleted at the next daily cleanup.",
+    "trashretentionaffected_other": "Right now that is {{count}} photos ({{users}}), deleted at the next daily cleanup.",
+    "trashretentionusers_one": "in {{count}} user's trash",
+    "trashretentionusers_other": "in the trash of {{count}} users",
+    "trashretentionnone": "Right now no photo has been in a trash that long, so the next cleanup deletes nothing.",
+    "trashretentioncounting": "Counting the photos this would delete",
+    "trashretentioncountfailed": "The photos this would delete could not be counted.",
+    "trashretentionconfirmbutton": "Delete automatically",
     "headerskippatterns": "Skip patterns",
     "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for Synology devices)",
     "map_api_provider_header": "Map Provider",
@@ -1438,6 +1518,10 @@
     "feature_video": "Videos",
     "feature_video_description": "Imports videos during a scan.",
     "feature_video_off": "Off: scans skip video files.",
+    "feature_video_previews": "Animated previews",
+    "feature_video_previews_description": "Plays a short silent clip of each video in the photo grid.",
+    "feature_video_previews_off": "Off: the grid shows a still frame, and scans skip encoding the clip, the slowest step of importing a video.",
+    "feature_video_previews_existing": "Videos that already have an animated preview keep it until they are rescanned; new videos get a still frame.",
     "feature_locked": "Locked",
     "feature_locked_description": "Turned off by the server configuration: <code>{{variable}}=false</code>. Change it in your compose or .env file and restart to use it.",
     "feature_model_ready": "Model ready",
@@ -1608,6 +1692,7 @@
     "unknownfacescounter_other": "{{count}} Unknown Faces",
     "showphoto": "Show photo",
     "facein": "Face in {{name}}",
+    "faceinnothumbnail": "Face in {{name}} (no face thumbnail)",
     "confirmface": "Confirm as {{name}}",
     "faceactions": "Face actions ({{name}})",
     "notperson": "Not {{name}}",
@@ -1815,6 +1900,16 @@
     "jobalreadyrunningtitle": "Already running",
     "stripthumbnailmetadata": "Removing photo details from thumbnails. Follow it in Worker Logs.",
     "stripthumbnailmetadatatitle": "Job started",
+    "emptytrashstarted_one": "{{count}} photo is being deleted in the background. Follow it in the job list.",
+    "emptytrashstarted_other": "{{count}} photos are being deleted in the background. Follow it in the job list.",
+    "emptytrashstartedtitle": "Emptying the trash",
+    "trashemptied_one": "{{count}} photo was deleted for good.",
+    "trashemptied_other": "{{count}} photos were deleted for good.",
+    "trashemptiedtitle": "Trash emptied",
+    "trashemptiedwitherrors_one": "{{deleted}} deleted. {{count}} photo could not be removed from disk and is still in the trash; the job list has the details.",
+    "trashemptiedwitherrors_other": "{{deleted}} deleted. {{count}} photos could not be removed from disk and are still in the trash; the job list has the details.",
+    "trashemptiedwitherrorstitle": "Trash emptied with errors",
+    "trashemptyfailed": "The trash could not be emptied. The job list has the details.",
     "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
     "taggedphotostitle": "Photos tagged",
     "setcategorytitle": "Set category",
@@ -1845,7 +1940,12 @@
     "notwrittentofiletitle": "Not written to the file",
     "notwrittentofile": "Saved in LibrePhotos, but not written to the file: {{reason}}",
     "parseerrortitle": "Unexpected server response",
-    "reportissue": "{{detail}}. Please report this issue on GitHub."
+    "reportissue": "{{detail}}. Please report this issue on GitHub.",
+    "datechangedtitle": "Date and time changed",
+    "datechanged_one": "{{count}} photo got its new date.",
+    "datechanged_other": "{{count}} photos got their new date.",
+    "dateskipped_one": "{{count}} photo without a date was skipped.",
+    "dateskipped_other": "{{count}} photos without a date were skipped."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1944,7 +2044,9 @@
     },
     "deleted": {
       "title": "Trash is empty",
-      "description": "Photos you delete will appear here before being permanently removed."
+      "description": "Photos you move to the trash appear here until you empty it.",
+      "descriptionretention_one": "Photos you move to the trash appear here. They are deleted for good after {{count}} day.",
+      "descriptionretention_other": "Photos you move to the trash appear here. They are deleted for good after {{count}} days."
     },
     "videos": {
       "title": "No videos yet",
@@ -2313,5 +2415,124 @@
   "featureboundary": {
     "title": "This part of the page failed to load",
     "retry": "Retry"
+  },
+  "searchfilter": {
+    "button": "Filters",
+    "title": "Search filters",
+    "activecount_one": "{{count}} filter active",
+    "activecount_other": "{{count}} filters active",
+    "filteredtitle": "Filtered photos",
+    "section": {
+      "people": "People",
+      "camera": "Camera",
+      "exposure": "Exposure",
+      "rating": "Rating",
+      "taken": "Taken",
+      "location": "Location",
+      "file": "File"
+    },
+    "people": {
+      "placeholder": "Add a person",
+      "hint": "Photos with all of them together",
+      "nothingfound": "No person with that name",
+      "facecount_one": "{{count}} face",
+      "facecount_other": "{{count}} faces"
+    },
+    "make": {
+      "label": "Maker",
+      "placeholder": "Any maker"
+    },
+    "camera": {
+      "label": "Camera",
+      "placeholder": "Any camera"
+    },
+    "lens": {
+      "label": "Lens",
+      "placeholder": "Any lens"
+    },
+    "nosuggestions": "None of your photos has this",
+    "countshint": "The numbers are photos in your library, not in these results.",
+    "range": {
+      "iso": "ISO",
+      "aperture": "Aperture",
+      "focal": "Focal length",
+      "focal35": "35 mm equivalent"
+    },
+    "min": "Min",
+    "max": "Max",
+    "rangeerror": "Lower than the lowest value",
+    "preset": {
+      "upto": "Up to {{high}}",
+      "between": "{{low}} to {{high}}",
+      "atleast": "{{low}} or more"
+    },
+    "unit": {
+      "fnumber": "f/{{value}}",
+      "mm": "{{value}} mm"
+    },
+    "rating": {
+      "any": "Any",
+      "favorites": "Favorites only"
+    },
+    "taken": {
+      "after": "On or after",
+      "before": "On or before",
+      "any": "Any day",
+      "thisyear": "This year",
+      "lastyear": "Last year",
+      "last12months": "Last 12 months"
+    },
+    "location": {
+      "any": "Any",
+      "with": "Has location",
+      "without": "No location"
+    },
+    "file": {
+      "raw": "Has a RAW file",
+      "rawhint": "Also finds RAW files paired with a JPEG",
+      "extension": "File extension",
+      "extensionplaceholder": "Any, for example cr3"
+    },
+    "clearall": "Clear all",
+    "show_one": "Show {{count}} photo",
+    "show_other": "Show {{count}} photos",
+    "chip": {
+      "remove": "Remove filter: {{label}}",
+      "person": "With {{name}}",
+      "unknownperson": "With a person not in your list",
+      "make": "Maker: {{value}}",
+      "camera": "Camera: {{value}}",
+      "lens": "Lens: {{value}}",
+      "between": "{{name}} {{low}} to {{high}}",
+      "atleast": "{{name}} {{low}} or more",
+      "atmost": "{{name}} up to {{high}}",
+      "favorites": "Favorites only",
+      "rating_one": "{{count}} star or more",
+      "rating_other": "{{count}} stars or more",
+      "takenbetween": "Taken {{after}} to {{before}}",
+      "takenafter": "Taken on or after {{day}}",
+      "takenbefore": "Taken on or before {{day}}",
+      "withlocation": "Has location",
+      "withoutlocation": "No location",
+      "filetype": {
+        "image": "Main file is an image",
+        "raw": "Has a RAW file",
+        "video": "Main file is a video"
+      },
+      "extension": ".{{value}} files"
+    },
+    "empty": {
+      "title": "No photos match these filters",
+      "description": "Remove a filter or change it to see more of your library.",
+      "action": "Clear filters"
+    },
+    "nofilters": {
+      "title": "Choose filters",
+      "description": "Open Filters to list your photos by people, camera, exposure, rating, date, location or file."
+    },
+    "rejected": {
+      "title": "Search filter not applied",
+      "description": "{{message}}. Remove or change the filter to see results."
+    }
   }
 }

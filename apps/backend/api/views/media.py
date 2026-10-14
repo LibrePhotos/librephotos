@@ -21,6 +21,8 @@ from django.http import (
 )
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -321,6 +323,20 @@ def gen(transcoder: VideoTranscoder) -> Iterator[bytes]:
         )
 
 
+# What /media/ and a photo link's media route answer: the file, or behind the
+# proxy an empty answer whose X-Accel-Redirect header has nginx send it.
+MEDIA_FILE_RESPONSES = {
+    (200, "*/*"): OpenApiResponse(
+        OpenApiTypes.BINARY,
+        description="The file with its own content type; behind the proxy, "
+        "an empty body and an X-Accel-Redirect header",
+    ),
+    (206, "*/*"): OpenApiResponse(
+        OpenApiTypes.BINARY, description="The byte range a Range header asked for"
+    ),
+}
+
+
 class MediaServingView(APIView):
     """Response builders for ``/media/`` and for the public photo-link route.
 
@@ -521,6 +537,20 @@ class MediaServingView(APIView):
         # An empty FileField raises ValueError on .path/.name access downstream.
         return field if field else None
 
+    def _unrecorded_square_format(
+        self, photo: Photo, path: str, fname: str
+    ) -> tuple[str, str]:
+        """Extension and content type of a square no ``Thumbnail`` row names.
+
+        A video's square is an mp4 clip, or a WebP still when it was scanned
+        with the animated previews off (#649): the file on disk tells which.
+        """
+        if photo.video:
+            clip = self._safe_media_join(path, fname, ".mp4")
+            if clip is not None and os.path.exists(clip):
+                return ".mp4", "video/mp4"
+        return ".webp", "image/webp"
+
     def _generate_response_proxy(
         self, photo: Photo, path: str, fname: str, transcode_videos: bool
     ) -> HttpResponseBase:
@@ -544,8 +574,8 @@ class MediaServingView(APIView):
                 # No Thumbnail row (or an unpopulated field): keep serving the
                 # legacy request-derived name rather than 500ing on the
                 # missing relation.
-                ext = ".mp4" if photo.video else ".webp"
-                response["Content-Type"] = "video/mp4" if photo.video else "image/webp"
+                ext, content_type = self._unrecorded_square_format(photo, path, fname)
+                response["Content-Type"] = content_type
                 response["X-Accel-Redirect"] = self._protected_media_url(
                     path, fname + ext
                 )
@@ -1068,6 +1098,7 @@ class UnifiedMediaAccessView(MediaServingView):
     and handling public album media access.
     """
 
+    @extend_schema(parameters=[MediaQuery], responses=MEDIA_FILE_RESPONSES)
     def get(
         self,
         request: Request,
