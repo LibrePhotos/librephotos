@@ -47,7 +47,6 @@
   "src/components/photolist/TileBadge.tsx": { "inlineStyles": 1 },
   "src/components/photolist/TimelineFilterPopover.tsx": { "inlineStyles": 1 },
   "src/components/photolist/TopRightOverlay.tsx": { "inlineStyles": 1 },
-  "src/components/photolist/TrashcanActions.tsx": { "inlineStyles": 1 },
   "src/components/photolist/VideoOverlay.tsx": { "inlineStyles": 3 },
   "src/components/react-pig/components/GroupHeader/GroupHeader.tsx": { "inlineStyles": 2 },
   "src/components/react-pig/components/Tile/Tile.tsx": { "inlineStyles": 1 },
