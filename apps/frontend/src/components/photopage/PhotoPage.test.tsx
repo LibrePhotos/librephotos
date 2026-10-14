@@ -42,6 +42,7 @@ const stubs = vi.hoisted(() => {
     navigate: vi.fn<(options: { to: string }) => Promise<void>>(async () => {}),
     markDeleted: vi.fn<(variables: { image_hashes: string[]; deleted: boolean }) => void>(),
     setHidden: vi.fn<(variables: { image_hashes: string[]; hidden: boolean }) => void>(),
+    setArchived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   });
 });
 
@@ -63,6 +64,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.markDeleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: () => {} }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.setHidden }),
+  useSetPhotosArchivedMutation: () => ({ mutate: stubs.setArchived }),
   useSetPhotosRatingMutation: () => ({ mutate: () => {}, isPending: false }),
   useUpdatePhotoMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
@@ -123,6 +125,7 @@ afterEach(async () => {
   stubs.navigate.mockClear();
   stubs.markDeleted.mockClear();
   stubs.setHidden.mockClear();
+  stubs.setArchived.mockClear();
 });
 
 async function renderPage(photoId = "abc") {
@@ -320,5 +323,20 @@ describe("photo page", () => {
     expect(container.textContent).toContain("photopage.status.hidden");
     await act(async () => button(container, "photopage.actions.show").click());
     expect(stubs.setHidden).toHaveBeenCalledWith({ image_hashes: ["abc"], hidden: false });
+  });
+
+  it("says an archived photo is archived and unarchives it from there (#545)", async () => {
+    stubs.query = { data: { ...photo, archived: true }, isError: false };
+    const container = await renderPage();
+    expect(container.textContent).toContain("photopage.status.archived");
+    await act(async () => button(container, "photopage.actions.unarchive").click());
+    expect(stubs.setArchived).toHaveBeenCalledWith({ image_hashes: ["abc"], archived: false });
+  });
+
+  it("names hidden, not archived, for a photo that is both", async () => {
+    stubs.query = { data: { ...photo, archived: true, hidden: true }, isError: false };
+    const container = await renderPage();
+    expect(container.textContent).toContain("photopage.status.hidden");
+    expect(container.textContent).not.toContain("photopage.status.archived");
   });
 });

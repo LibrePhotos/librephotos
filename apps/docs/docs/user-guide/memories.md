@@ -50,7 +50,7 @@ A memory is built from the days your timeline already groups photos under, so a 
 
 ### What is left out
 
-Memories draw from the same photos your timeline shows — your own photos, not hidden, not in the trash, and only the primary photo of a [stack](./stacks-and-file-variants.md) so a RAW/JPEG pair is not shown twice. On top of that, photos detected as **screenshots** and **documents** are skipped: a screenshot from four years ago is not a memory of anything.
+Memories draw from the same photos your timeline shows — your own photos, not hidden, not [archived](./viewing-photos.md#archive), not in the trash, and only the primary photo of a [stack](./stacks-and-file-variants.md) so a RAW/JPEG pair is not shown twice. On top of that, photos detected as **screenshots** and **documents** are skipped: a screenshot from four years ago is not a memory of anything.
 
 Place names come from reverse geocoding. If you have not run **Add Geolocation**, tiles simply show no place — see [Places](./places.md).
 

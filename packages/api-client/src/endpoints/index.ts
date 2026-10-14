@@ -109,6 +109,8 @@ export type DateAlbumFilter = {
   favorite?: boolean;
   public?: boolean;
   hidden?: boolean;
+  /** true: only archived photos (the Archive page); false: none of them (the timeline); absent: both. */
+  archived?: boolean;
   in_trashcan?: boolean;
   photo?: boolean;
   video?: boolean;
@@ -129,6 +131,7 @@ export function photosetToFilter(photoset: Photoset): DateAlbumFilter {
     favorite: photoset === Photoset.FAVORITES || undefined,
     public: photoset === Photoset.PUBLIC || undefined,
     hidden: photoset === Photoset.HIDDEN || undefined,
+    archived: photoset === Photoset.ARCHIVED || undefined,
     in_trashcan: photoset === Photoset.IN_TRASHCAN || undefined,
     photo: photoset === Photoset.PHOTOS || undefined,
     video: photoset === Photoset.VIDEOS || undefined,
@@ -137,12 +140,16 @@ export function photosetToFilter(photoset: Photoset): DateAlbumFilter {
   };
 }
 
-/** The date-album query params: each flag is "true" or left out, and buildQuery drops a blank value. */
+/**
+ * The date-album query params: each flag is "true" or left out, and buildQuery drops a blank value.
+ * `archived` is the one tri-state flag: "false" leaves archived photos out (the timeline).
+ */
 function dateAlbumParams(filter: DateAlbumFilter) {
   return {
     favorite: filter.favorite ? "true" : undefined,
     public: filter.public ? "true" : undefined,
     hidden: filter.hidden ? "true" : undefined,
+    archived: filter.archived === undefined ? undefined : String(filter.archived),
     in_trashcan: filter.in_trashcan ? "true" : undefined,
     photo: filter.photo ? "true" : undefined,
     video: filter.video ? "true" : undefined,
@@ -1609,6 +1616,23 @@ export async function setPhotosHidden(
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/hide/", { ...photoSelection(imageHashes, selectAll), hidden });
   return parseResponse(S.BulkPhotoMutationResponse, res, "set hidden");
+}
+
+/**
+ * Archive or unarchive photos (#545): archived photos leave the timeline and Memories but stay in
+ * albums, people, places, folders and search. By hash, or selected-all.
+ */
+export async function setPhotosArchived(
+  client: ApiClient,
+  imageHashes: string[],
+  archived: boolean,
+  selectAll?: SelectAllPhotos
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/archive/", {
+    ...photoSelection(imageHashes, selectAll),
+    archived,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set archived");
 }
 
 /** Move photos to / restore from the trashcan (soft delete). By hash, or selected-all. */

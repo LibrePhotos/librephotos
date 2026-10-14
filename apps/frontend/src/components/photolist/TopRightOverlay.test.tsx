@@ -85,3 +85,30 @@ describe("TopRightOverlay in stars mode", () => {
     expect((await render(0)).html).toBe("");
   });
 });
+
+describe("TopRightOverlay archive mark (#545)", () => {
+  async function renderItem(archived: boolean) {
+    const item = PigPhoto.parse({
+      id: "00000000-0000-4000-8000-000000000002",
+      image_hash: "hash-2",
+      aspectRatio: 1,
+      rating: 0,
+      archived,
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => root.render(<TopRightOverlay item={item} />));
+    const mark = container.querySelector('[role="img"]');
+    await act(async () => root.unmount());
+    return mark;
+  }
+
+  it("marks an archived tile, named for screen readers", async () => {
+    const mark = await renderItem(true);
+    expect(mark?.getAttribute("aria-label")).toBe("phototile.archived");
+  });
+
+  it("leaves other tiles alone", async () => {
+    expect(await renderItem(false)).toBeNull();
+  });
+});

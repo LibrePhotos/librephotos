@@ -46,7 +46,8 @@ def build_photo_queryset(
             - hidden: bool - Filter by hidden photos
             - in_trashcan: bool - Filter by trashed photos
             - media, video, photo, is_screenshot, is_document,
-              hide_screenshots, hide_documents, favorite, apply_default -
+              hide_screenshots, hide_documents, favorite, archived,
+              apply_default -
               the timeline filter, resolved by api.albums.timeline_filter exactly as
               the date-album endpoints resolve it, so select-all on the
               timeline acts on what it shows

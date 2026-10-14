@@ -53,7 +53,11 @@ describe("date-album queries with a timeline filter", () => {
 
     const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
     expect(url.pathname).toBe("/albums/date/list/");
-    expect(Object.fromEntries(url.searchParams)).toEqual({ media: "photos", hide_screenshots: "true" });
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      archived: "false",
+      media: "photos",
+      hide_screenshots: "true",
+    });
     const keys = stubs.queryClient
       .getQueryCache()
       .findAll({ queryKey: photoGridKeys.kind("dateAlbums") })
@@ -82,7 +86,12 @@ describe("date-album queries with a timeline filter", () => {
     const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
     // Slashed: without it Django answers every day page with a 301.
     expect(url.pathname).toBe("/albums/date/1/");
-    expect(Object.fromEntries(url.searchParams)).toEqual({ media: "photos", hide_screenshots: "true", page: "2" });
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      archived: "false",
+      media: "photos",
+      hide_screenshots: "true",
+      page: "2",
+    });
   });
 
   it("does not fetch while skipped", async () => {

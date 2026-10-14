@@ -25,6 +25,7 @@ import { Route as ProtectedAlbumThingsIdRouteImport } from "./routes/_protected/
 import { Route as ProtectedAlbumThingsIndexRouteImport } from "./routes/_protected/album/things.index";
 import { Route as ProtectedAlbumUserIdRouteImport } from "./routes/_protected/album/user.$id";
 import { Route as ProtectedAlbumUserIndexRouteImport } from "./routes/_protected/album/user.index";
+import { Route as ProtectedArchivedRouteImport } from "./routes/_protected/archived";
 import { Route as ProtectedDeletedRouteImport } from "./routes/_protected/deleted";
 import { Route as ProtectedDocumentsRouteImport } from "./routes/_protected/documents";
 import { Route as ProtectedFacesRouteImport } from "./routes/_protected/faces";
@@ -98,6 +99,11 @@ const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
 const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   id: "/admin",
   path: "/admin",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedArchivedRoute = ProtectedArchivedRouteImport.update({
+  id: "/archived",
+  path: "/archived",
   getParentRoute: () => ProtectedRouteRoute,
 } as any);
 const ProtectedDeletedRoute = ProtectedDeletedRouteImport.update({
@@ -392,6 +398,7 @@ export interface FileRoutesByFullPath {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/admin": typeof ProtectedAdminRouteWithChildren;
+  "/archived": typeof ProtectedArchivedRoute;
   "/deleted": typeof ProtectedDeletedRoute;
   "/documents": typeof ProtectedDocumentsRoute;
   "/faces": typeof ProtectedFacesRoute;
@@ -453,6 +460,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
+  "/archived": typeof ProtectedArchivedRoute;
   "/deleted": typeof ProtectedDeletedRoute;
   "/documents": typeof ProtectedDocumentsRoute;
   "/faces": typeof ProtectedFacesRoute;
@@ -519,6 +527,7 @@ export interface FileRoutesById {
   "/login": typeof LoginRoute;
   "/signup": typeof SignupRoute;
   "/_protected/admin": typeof ProtectedAdminRouteWithChildren;
+  "/_protected/archived": typeof ProtectedArchivedRoute;
   "/_protected/deleted": typeof ProtectedDeletedRoute;
   "/_protected/documents": typeof ProtectedDocumentsRoute;
   "/_protected/faces": typeof ProtectedFacesRoute;
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/admin"
+    | "/archived"
     | "/deleted"
     | "/documents"
     | "/faces"
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
   to:
     | "/login"
     | "/signup"
+    | "/archived"
     | "/deleted"
     | "/documents"
     | "/faces"
@@ -712,6 +723,7 @@ export interface FileRouteTypes {
     | "/login"
     | "/signup"
     | "/_protected/admin"
+    | "/_protected/archived"
     | "/_protected/deleted"
     | "/_protected/documents"
     | "/_protected/faces"
@@ -823,6 +835,13 @@ declare module "@tanstack/react-router" {
       path: "/admin";
       fullPath: "/admin";
       preLoaderRoute: typeof ProtectedAdminRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/archived": {
+      id: "/_protected/archived";
+      path: "/archived";
+      fullPath: "/archived";
+      preLoaderRoute: typeof ProtectedArchivedRouteImport;
       parentRoute: typeof ProtectedRouteRoute;
     };
     "/_protected/deleted": {
@@ -1241,6 +1260,7 @@ const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(Pro
 
 interface ProtectedRouteRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren;
+  ProtectedArchivedRoute: typeof ProtectedArchivedRoute;
   ProtectedDeletedRoute: typeof ProtectedDeletedRoute;
   ProtectedDocumentsRoute: typeof ProtectedDocumentsRoute;
   ProtectedFacesRoute: typeof ProtectedFacesRoute;
@@ -1295,6 +1315,7 @@ interface ProtectedRouteRouteChildren {
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
+  ProtectedArchivedRoute: ProtectedArchivedRoute,
   ProtectedDeletedRoute: ProtectedDeletedRoute,
   ProtectedDocumentsRoute: ProtectedDocumentsRoute,
   ProtectedFacesRoute: ProtectedFacesRoute,

@@ -119,6 +119,12 @@ function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   toast.success(notificationMessage, { title: i18n.t("toasts.sethidetitle") });
 }
 
+/** Archived photos leave the timeline and Memories only (#545): the toast says where they still are. */
+function togglePhotosArchived(count: number, isArchived: boolean) {
+  const message = isArchived ? i18n.t("toasts.archivephoto", { count }) : i18n.t("toasts.unarchivephoto", { count });
+  toast.success(message, { title: i18n.t("toasts.setarchivetitle") });
+}
+
 function setPhotosCategory(numberOfPhotos: number, category: "photo" | "screenshot" | "document") {
   toast.success(i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }), {
     title: i18n.t("toasts.setcategorytitle"),
@@ -255,6 +261,7 @@ export const photos = {
   togglePhotoDelete,
   togglePhotosFavorite,
   togglePhotoSharing,
+  togglePhotosArchived,
   togglePhotosHidden,
   togglePhotosPublic,
   trashEmptied,

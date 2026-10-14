@@ -18,6 +18,7 @@ type Call = (...args: unknown[]) => unknown;
 const stubs = vi.hoisted(() => ({
   favorite: vi.fn<Call>(),
   hidden: vi.fn<Call>(),
+  archived: vi.fn<Call>(),
   public: vi.fn<Call>(),
   deleted: vi.fn<Call>(),
   category: vi.fn<Call>(),
@@ -39,6 +40,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useSetFavoritePhotosMutation: () => ({ mutate: stubs.favorite }),
   useSetPhotosRatingMutation: () => ({ mutate: () => {} }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.hidden }),
+  useSetPhotosArchivedMutation: () => ({ mutate: stubs.archived }),
   useSetPhotosPublicMutation: () => ({ mutate: stubs.public }),
   useSetPhotosCategoryMutation: () => ({ mutate: stubs.category }),
 }));
@@ -135,8 +137,11 @@ async function render(props: Partial<Props>) {
 async function pick(menu: 0 | 1, label: string) {
   await act(async () => defined(container.querySelectorAll("button")[menu]).click());
   const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-    // The label without the shortcut hint ("t") some items carry on the right
-    button => button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim() === label
+    // The label without the shortcut hint ("t") some items carry on the right, or the name of an
+    // item with a note under its label (Hide, Archive)
+    button =>
+      (button.getAttribute("aria-label") ?? button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim()) ===
+      label
   );
   await act(async () => defined(item, label).click());
 }
@@ -146,6 +151,8 @@ const items: [string, Call, object][] = [
   ["Unfavorite", stubs.favorite, { favorite: false }],
   ["Hide", stubs.hidden, { hidden: true }],
   ["Unhide", stubs.hidden, { hidden: false }],
+  ["Archive", stubs.archived, { archived: true }],
+  ["Unarchive", stubs.archived, { archived: false }],
   ["Make Public", stubs.public, { val_public: true }],
   ["Make Private", stubs.public, { val_public: false }],
   ["Move to trash", stubs.deleted, { deleted: true }],
@@ -272,7 +279,9 @@ describe("the add-to menu", () => {
 async function photoAction(label: string): Promise<HTMLButtonElement> {
   await act(async () => defined(container.querySelectorAll("button")[1]).click());
   const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-    button => button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim() === label
+    button =>
+      (button.getAttribute("aria-label") ?? button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim()) ===
+      label
   );
   return defined(item, label);
 }

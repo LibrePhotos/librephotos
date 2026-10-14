@@ -14,6 +14,7 @@ export * from "./hooks/useFollowEmptyTrashJob";
 export * from "./hooks/useSetFavoritePhotosMutation";
 export * from "./hooks/useSetPhotosRatingMutation";
 export * from "./hooks/useSetPhotosHiddenMutation";
+export * from "./hooks/useSetPhotosArchivedMutation";
 export * from "./hooks/useSetPhotosPublicMutation";
 export * from "./hooks/useSetPhotosCategoryMutation";
 export * from "./hooks/useSetPhotosDateTimeMutation";

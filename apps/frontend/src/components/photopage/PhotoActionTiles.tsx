@@ -2,6 +2,8 @@ import { Media, type Photo } from "@librephotos/api-client";
 import { Menu, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconArchive,
+  IconArchiveOff,
   IconArrowBackUp,
   IconArrowsMaximize,
   IconBookmarkPlus,
@@ -183,6 +185,14 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
             onClick={actions.toggleHidden}
           >
             {actions.isHidden ? t("photopage.actions.show") : t("photopage.actions.hide")}
+          </Menu.Item>
+          <Menu.Item
+            leftSection={
+              actions.isArchived ? <IconArchiveOff size={ICON_SIZE.menu} /> : <IconArchive size={ICON_SIZE.menu} />
+            }
+            onClick={actions.toggleArchived}
+          >
+            {actions.isArchived ? t("photopage.actions.unarchive") : t("photopage.actions.archive")}
           </Menu.Item>
           <Menu.Item leftSection={<IconArrowsMaximize size={ICON_SIZE.menu} />} onClick={onOpenViewer}>
             {t("photopage.openinviewer")}

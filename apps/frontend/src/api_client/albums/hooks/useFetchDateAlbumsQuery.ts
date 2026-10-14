@@ -92,6 +92,7 @@ export function buildDateAlbumFilter(photosetType: Photoset, mediaType?: MediaTy
     favorite: Photoset.FAVORITES === photosetType || undefined,
     public: Photoset.PUBLIC === photosetType || undefined,
     hidden: Photoset.HIDDEN === photosetType || undefined,
+    archived: Photoset.ARCHIVED === photosetType || undefined,
     in_trashcan: Photoset.IN_TRASHCAN === photosetType || undefined,
     photo: Photoset.PHOTOS === photosetType || mediaType === "photos" || undefined,
     video: Photoset.VIDEOS === photosetType || mediaType === "videos" || undefined,

@@ -27,6 +27,7 @@ const stubs = vi.hoisted(() => ({
     vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: { onSuccess: () => void }) => void>(),
   setFavorite: vi.fn<(variables: { image_hashes: string[]; favorite: boolean }) => void>(),
   setRating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
+  setArchived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   user: undefined as StubUser | undefined,
   narrow: false,
 }));
@@ -37,6 +38,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useSetFavoritePhotosMutation: () => ({ mutate: stubs.setFavorite }),
   useSetPhotosRatingMutation: () => ({ mutate: stubs.setRating, isPending: false }),
   useSetPhotosHiddenMutation: () => ({ mutate: () => {} }),
+  useSetPhotosArchivedMutation: () => ({ mutate: stubs.setArchived }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
@@ -74,6 +76,7 @@ afterEach(async () => {
   stubs.markDeleted.mockClear();
   stubs.setFavorite.mockClear();
   stubs.setRating.mockClear();
+  stubs.setArchived.mockClear();
   stubs.user = FAVORITE_USER;
   stubs.narrow = false;
 });
@@ -142,6 +145,7 @@ describe("LightboxControls", () => {
     expect(labels(container)).toEqual(
       expect.arrayContaining([
         "lightbox.toolbar.hidePhoto",
+        "lightbox.toolbar.archivePhoto",
         "lightbox.toolbar.deletePhoto",
         "lightbox.toolbar.showInfoPanel",
         "lightbox.controls.close",
@@ -177,6 +181,26 @@ describe("LightboxControls", () => {
     stubs.markDeleted.mock.calls.forEach(([request]) =>
       expect(request).toEqual({ image_hashes: ["h1"], deleted: false })
     );
+  });
+
+  it("archives a photo by button and by A, and unarchives an archived one (#545)", async () => {
+    const container = await renderControls();
+    await act(async () => {
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.archivePhoto"]')).click();
+    });
+    await act(async () => {
+      lightbox.emit("archive");
+    });
+    expect(stubs.setArchived.mock.calls).toEqual([
+      [{ image_hashes: ["h1"], archived: true }],
+      [{ image_hashes: ["h1"], archived: true }],
+    ]);
+
+    const archived = await renderControls({ photo: { archived: true } });
+    await act(async () => {
+      defined(archived.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.unarchivePhoto"]')).click();
+    });
+    expect(stubs.setArchived).toHaveBeenLastCalledWith({ image_hashes: ["h1"], archived: false });
   });
 
   it("offers no rotation for a video, which the server refuses to rotate", async () => {

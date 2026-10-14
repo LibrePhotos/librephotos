@@ -4,8 +4,6 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
   IconDownload as Download,
-  IconEye as Eye,
-  IconEyeOff as EyeOff,
   IconFileText as FileText,
   IconGlobe as Globe,
   IconKey as Key,
@@ -23,7 +21,6 @@ import { shareMediaUrl } from "../../api_client/media/mediaUrl";
 import {
   useMarkPhotosDeletedMutation,
   useSetPhotosCategoryMutation,
-  useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
@@ -40,6 +37,7 @@ import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./Albu
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import { SelectionEditItems } from "./SelectionEditItems";
 import { SelectionRatingItems } from "./SelectionRatingItems";
+import { SelectionVisibilityItems } from "./SelectionVisibilityItems";
 import { StackSelectionActions } from "./StackSelectionActions";
 
 /** The albums whose cover the selection can set. */
@@ -67,7 +65,6 @@ export function SelectionActions(props: Readonly<Props>) {
   const location = useLocation();
   const { userId } = useAuth();
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
-  const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
   const setPhotosCategory = useSetPhotosCategoryMutation();
@@ -121,11 +118,6 @@ export function SelectionActions(props: Readonly<Props>) {
   // rescans and Classify Media keep it.
   const markAs = (category: PhotoCategory) => {
     setPhotosCategory.mutate({ ...photoSelection(), category });
-    resetSelection();
-  };
-
-  const setHidden = (hidden: boolean) => {
-    setPhotosHidden.mutate({ ...photoSelection(), hidden });
     resetSelection();
   };
 
@@ -196,7 +188,8 @@ export function SelectionActions(props: Readonly<Props>) {
         onAddTags={onAddTags}
       />
 
-      <Menu width={200}>
+      {/* Wide enough for the one-line notes under Hide and Archive. */}
+      <Menu width={260}>
         <Menu.Target>
           <ActionIcon
             variant="subtle"
@@ -233,17 +226,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<EyeOff size={ICON_SIZE.menu} />} onClick={() => setHidden(true)}>
-              {t("selectionactions.hide")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<Eye size={ICON_SIZE.menu} />} onClick={() => setHidden(false)}>
-              {t("selectionactions.unhide")}
-            </Menu.Item>
-          </DisabledReason>
+          <SelectionVisibilityItems disabledReason={noSelection} selection={photoSelection} onDone={resetSelection} />
 
           <Menu.Divider />
 

@@ -48,6 +48,8 @@ function makeActions(overrides: Partial<PhotoActions> = {}): PhotoActions {
     setRating: vi.fn<(rating: number) => void>(),
     isHidden: false,
     toggleHidden: vi.fn<() => void>(),
+    isArchived: false,
+    toggleArchived: vi.fn<() => void>(),
     isShared: false,
     sharingPhotoId: null,
     openShareLink: vi.fn<() => void>(),
@@ -157,7 +159,7 @@ describe("photo action tiles", () => {
     expect(items.map(item => item.getAttribute("download"))).toEqual(["IMG_1.jpg", "IMG_1.RAF"]);
   });
 
-  it("keeps copy, rotation, hiding, the viewer and the trash under More", async () => {
+  it("keeps copy, rotation, hiding, archiving, the viewer and the trash under More", async () => {
     const actions = makeActions();
     const onRotate = vi.fn<(angle: number) => void>();
     const onCopy = vi.fn<() => void>();
@@ -167,9 +169,14 @@ describe("photo action tiles", () => {
       "lightbox.toolbar.rotateCCW",
       "lightbox.toolbar.rotateCW",
       "photopage.actions.hide",
+      "photopage.actions.archive",
       "photopage.openinviewer",
       "photopage.actions.trash",
     ]);
+    await act(async () => byText(document, '[role="menuitem"]', "photopage.actions.archive").click());
+    expect(actions.toggleArchived).toHaveBeenCalledTimes(1);
+
+    await openMore(container);
     await act(async () => byText(document, '[role="menuitem"]', "lightbox.toolbar.rotateCW").click());
     expect(onRotate).toHaveBeenCalledWith(90);
 

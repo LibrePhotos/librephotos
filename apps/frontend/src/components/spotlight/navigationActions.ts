@@ -1,6 +1,7 @@
 import {
   IconAlbum,
   IconAlbumOff,
+  IconArchive,
   IconBook,
   IconCalendarEvent,
   IconChartBar,
@@ -120,6 +121,13 @@ function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
       leftSection: React.createElement(IconEyeOff, iconProps),
       onClick: () => void navigate({ to: "/hidden" }),
       keywords: ["hidden", "private"],
+    },
+    {
+      id: "nav-archived",
+      label: t("spotlight.nav.archived"),
+      leftSection: React.createElement(IconArchive, iconProps),
+      onClick: () => void navigate({ to: "/archived" }),
+      keywords: ["archive", "archived", "sorted"],
     },
     {
       id: "nav-videos",

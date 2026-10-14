@@ -1,6 +1,7 @@
 import { Badge, Menu, UnstyledButton, useMantineTheme } from "@mantine/core";
 import {
   IconAlbumOff as AlbumOff,
+  IconArchive as Archive,
   IconCalendar as Calendar,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
@@ -27,6 +28,7 @@ import classes from "./PhotosViewSwitcher.module.css";
 // The pages whose title is the Photos view switcher.
 const SWITCHER_PREFIXES = [
   "/hidden",
+  "/archived",
   "/favorites",
   "/notimestamp",
   "/nolocation",
@@ -143,6 +145,14 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
           onClick={() => void navigate({ to: "/hidden" })}
         >
           {t("sidemenu.hidden")}
+        </Menu.Item>
+
+        <Menu.Item
+          leftSection={<Archive color={theme.colors.teal[6]} size={ICON_SIZE.menu} />}
+          rightSection={currentView("/archived")}
+          onClick={() => void navigate({ to: "/archived" })}
+        >
+          {t("sidemenu.archive")}
         </Menu.Item>
 
         <Menu.Item

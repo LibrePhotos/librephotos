@@ -155,7 +155,7 @@ describe("the main timeline filter", () => {
       hide_documents: false,
       favorites: false,
     });
-    expect(listProps().photosetQuery).toEqual({ hide_screenshots: true });
+    expect(listProps().photosetQuery).toEqual({ archived: false, hide_screenshots: true });
   });
 
   it("lets URL params override the default key by key", async () => {
@@ -168,7 +168,7 @@ describe("the main timeline filter", () => {
       favorites: false,
     });
     // Select-all acts on exactly this view.
-    expect(listProps().photosetQuery).toEqual({ media: "photos", hide_documents: true });
+    expect(listProps().photosetQuery).toEqual({ archived: false, media: "photos", hide_documents: true });
   });
 
   it("waits for the saved default before fetching", async () => {

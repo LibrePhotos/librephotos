@@ -25,6 +25,7 @@ export function makePhoto(overrides: Partial<Photo> = {}): Photo {
     people: [],
     rating: 0,
     hidden: false,
+    archived: false,
     public: false,
     in_trashcan: false,
     removed: false,

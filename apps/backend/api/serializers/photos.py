@@ -102,6 +102,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "exif_gps_lon",
             "removed",
             "in_trashcan",
+            # Off the timeline, still here (#545): the tile shows a mark.
+            "archived",
             # When the photo went to the trash (null outside it): the trash
             # page says when the retention deletes it (#2203).
             "trashed_at",
@@ -313,6 +315,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "exif_gps_lon",
             "removed",
             "in_trashcan",
+            "archived",
             "trashed_at",
             "local_orientation",
             # Read by filter_photos_by_media_type for ?is_screenshot / ?is_document.
@@ -542,6 +545,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "public",
             "removed",
             "in_trashcan",
+            "archived",
             "trashed_at",
             "shared_to",
             "similar_photos",
@@ -1243,6 +1247,13 @@ class SetPhotosFavoriteRequest(PhotoSelectionRequest):
 
 class SetPhotosHiddenRequest(PhotoSelectionRequest):
     hidden = JsonBooleanField()
+
+
+class SetPhotosArchivedRequest(PhotoSelectionRequest):
+    archived = JsonBooleanField(
+        help_text="true takes the photos off the timeline and Memories, "
+        "false puts them back"
+    )
 
 
 class SetPhotosPublicRequest(PhotoSelectionRequest):

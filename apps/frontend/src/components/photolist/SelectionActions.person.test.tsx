@@ -31,6 +31,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useSetFavoritePhotosMutation: noopMutation,
   useSetPhotosRatingMutation: noopMutation,
   useSetPhotosHiddenMutation: noopMutation,
+  useSetPhotosArchivedMutation: noopMutation,
   useSetPhotosPublicMutation: noopMutation,
   useSetPhotosCategoryMutation: noopMutation,
 }));

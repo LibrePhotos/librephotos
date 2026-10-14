@@ -431,6 +431,14 @@
           },
           {
             "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
             "name": "favorite",
             "schema": {
               "type": "boolean"
@@ -634,6 +642,14 @@
               "type": "boolean"
             },
             "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
           },
           {
             "in": "query",
@@ -6450,6 +6466,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photosedit/archive/": {
+      "post": {
+        "operationId": "api_photosedit_archive_create",
+        "description": "Archive photos (#545): off the timeline and Memories, nowhere else.\n\nUnlike hiding, archiving keeps a photo in its albums, tags, things,\npeople, places, folders and search, so no count needs a refresh.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosArchivedRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosArchivedRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosArchivedRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkPhotoMutationResponse"
                 }
               }
             },
@@ -15741,6 +15806,9 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "archived": {
+            "type": "boolean"
+          },
           "trashed_at": {
             "type": "string",
             "format": "date-time",
@@ -16180,6 +16248,9 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "archived": {
+            "type": "boolean"
+          },
           "trashed_at": {
             "type": "string",
             "format": "date-time",
@@ -16336,6 +16407,7 @@
           }
         },
         "required": [
+          "archived",
           "big_thumbnail_url",
           "camera",
           "captions_json",
@@ -17156,6 +17228,9 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "archived": {
+            "type": "boolean"
+          },
           "trashed_at": {
             "type": "string",
             "format": "date-time",
@@ -17716,6 +17791,9 @@
           "in_trashcan": {
             "type": "boolean"
           },
+          "archived": {
+            "type": "boolean"
+          },
           "trashed_at": {
             "type": "string",
             "format": "date-time",
@@ -17742,6 +17820,7 @@
         },
         "required": [
           "animated_preview",
+          "archived",
           "aspectRatio",
           "birthTime",
           "date",
@@ -18732,6 +18811,43 @@
         "required": [
           "share",
           "status"
+        ]
+      },
+      "SetPhotosArchivedRequestRequest": {
+        "type": "object",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true takes the photos off the timeline and Memories, false puts them back"
+          }
+        },
+        "required": [
+          "archived"
         ]
       },
       "SetPhotosCategoryRequestRequest": {
@@ -20394,6 +20510,10 @@
           "hidden": {
             "type": "boolean"
           },
+          "archived": {
+            "type": "boolean",
+            "description": "Off the timeline and Memories, still in albums and search"
+          },
           "in_trashcan": {
             "type": "boolean"
           },
@@ -20431,6 +20551,7 @@
         },
         "required": [
           "added_on",
+          "archived",
           "aspect_ratio",
           "dominant_color",
           "hidden",

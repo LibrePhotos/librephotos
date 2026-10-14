@@ -1,0 +1,4 @@
+/* Keeps the archive mark apart from the favourite star or rating next to it (#545). */
+.archivedMark {
+  margin-right: 2px;
+}

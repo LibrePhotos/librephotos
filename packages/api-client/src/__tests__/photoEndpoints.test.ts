@@ -249,6 +249,12 @@ describe("bulk photo mutations", () => {
       send: (client, selection) => endpoints.setPhotosHidden(client, ["h1"], true, selection),
     },
     {
+      name: "archive",
+      url: "/photosedit/archive/",
+      value: { archived: true },
+      send: (client, selection) => endpoints.setPhotosArchived(client, ["h1"], true, selection),
+    },
+    {
       name: "trash",
       url: "/photosedit/setdeleted/",
       value: { deleted: true },
