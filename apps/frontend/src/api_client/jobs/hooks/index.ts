@@ -2,6 +2,7 @@ export * from "./useCancelJobMutation";
 export * from "./useDeleteJobMutation";
 export * from "./useDownloadPhotosMutation";
 export * from "./useGenerateAutoAlbumsMutation";
+export * from "./useGenerateCaptionsMutation";
 export * from "./useGenerateOcrMutation";
 export * from "./useJobQuery";
 export * from "./useJobsQuery";

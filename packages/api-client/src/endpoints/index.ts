@@ -844,6 +844,20 @@ export async function generateOcr(client: ApiClient, fullScan: boolean): Promise
 }
 
 /**
+ * Caption the signed-in user's photos (#2211): the ones without a generated caption, or with
+ * `fullScan` every photo. Captions the user wrote are never replaced. A 403 while captioning is
+ * off on the server. `downloads_model` says the job waits for the captioning model's download.
+ */
+export async function generateCaptions(
+  client: ApiClient,
+  fullScan: boolean
+): Promise<S.CaptionsJobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/generate-captions/", S.CaptionsJobStartedResponse, "generate captions", {
+    full_scan: fullScan,
+  });
+}
+
+/**
  * Remove photo details (EXIF, GPS, XMP) from the thumbnails older releases wrote, over the whole
  * instance (admins only, #2321). Returns the queued (or already running) job.
  */

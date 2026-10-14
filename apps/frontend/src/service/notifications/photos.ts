@@ -115,6 +115,15 @@ function startFullOcrScan() {
   toast.success(i18n.t("toasts.fullocrscan"), { title: i18n.t("toasts.ocrscantitle") });
 }
 
+/** The library caption job started (#2211); `downloadsModel`: it waits for the captioning model. */
+function startCaptionsJob(fullScan: boolean, downloadsModel: boolean) {
+  let message = i18n.t(fullScan ? "toasts.captionsjobfull" : "toasts.captionsjob");
+  if (downloadsModel) {
+    message = i18n.t("toasts.captionsjobmodeldownload");
+  }
+  toast.success(message, { title: i18n.t("toasts.captionsjobtitle") });
+}
+
 function startNextcloudPhotoScan() {
   toast.success(i18n.t("toasts.scannextcloudphotos"), { title: i18n.t("toasts.scannextcloudphotostitle") });
 }
@@ -191,6 +200,7 @@ export const photos = {
   scanDirectoryRequired,
   setPhotosCategory,
   setPhotosRating,
+  startCaptionsJob,
   startFullOcrScan,
   startFullPhotoScan,
   startNextcloudPhotoScan,

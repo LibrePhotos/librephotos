@@ -356,6 +356,7 @@ urlpatterns = [
     ),
     re_path(r"^api/classifymedia/?$", scan_triggers.ClassifyMediaView.as_view()),
     re_path(r"^api/generateocr/?$", scan_triggers.GenerateOcrView.as_view()),
+    path("api/generate-captions/", scan_triggers.GenerateCaptionsView.as_view()),
     path(
         "api/strip-thumbnail-metadata/",
         scan_triggers.StripThumbnailMetadataView.as_view(),

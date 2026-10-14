@@ -11,6 +11,7 @@ from api.models.user import User
 from api.runtime import sidecars
 from api.runtime.features import feature_enabled
 from api.runtime.http_timeouts import CAPTION
+from api.runtime.ml_models import captioning_model_selected
 
 if TYPE_CHECKING:
     from api.models.photo_caption import PhotoCaption
@@ -74,45 +75,61 @@ def _detail(response: requests.Response) -> str:
     )
 
 
-def generate_photo_caption(caption: PhotoCaption, commit: bool = True) -> bool:
-    """Generate a caption for the photo with the captioning sidecar.
+def captioning_available() -> bool:
+    """Whether captions may be generated now.
+
+    The ``IMAGE_CAPTIONING`` feature is on (environment flag and site switch)
+    and an admin picked a captioning model; "None" turns captioning off.
+    """
+    return feature_enabled("IMAGE_CAPTIONING") and captioning_model_selected()
+
+
+def caption_photo(caption: PhotoCaption, commit: bool = True) -> str:
+    """Caption the photo with the captioning sidecar and store it; the caption.
 
     The prompt carries the recognised person and the place when the user's
     caption settings allow it. Stored as ``captions_json["im2txt"]`` (the
-    first model's name). Moved out of ``PhotoCaption`` so the model makes no
-    sidecar calls (#2336).
+    first model's name); the user's own ``user_caption`` is never touched.
+    Raises ``CaptionError`` when the photo has no readable big thumbnail or
+    the sidecar answers without a caption; connection errors propagate.
+    Does not check whether captioning is on: see ``captioning_available``.
     """
-    if not feature_enabled("IMAGE_CAPTIONING"):
-        logger.info("Image captioning is disabled")
-        return False
-
+    image_hash = caption.photo.image_hash
     image_path = caption.resolve_thumbnail_path()
     if image_path is None:
-        return False
+        raise CaptionError(f"photo {image_hash} has no thumbnail to caption")
+
+    llm_settings = User.objects.get(username=caption.photo.owner).llm_settings
+    prompt = caption.caption_prompt(caption.caption_context(llm_settings))
+    logger.debug("Caption prompt: %s", prompt)
+
+    text = generate_caption(image_path=image_path, prompt=prompt)
+    text = text.replace("<start>", "").replace("<end>", "").strip()
 
     if caption.captions_json is None:
         caption.captions_json = {}
-    captions = caption.captions_json
+    caption.store_generated_caption(caption.captions_json, text, commit)
+
+    logger.info("generated a caption for photo %s", image_hash)
+    logger.debug("caption for photo %s: %s", image_hash, text)
+    return text
+
+
+def generate_photo_caption(caption: PhotoCaption, commit: bool = True) -> bool:
+    """``caption_photo`` when captioning is on; whether a caption was stored.
+
+    Moved out of ``PhotoCaption`` so the model makes no sidecar calls
+    (#2336). Errors are logged, not raised.
+    """
+    if not captioning_available():
+        logger.info("Image captioning is disabled")
+        return False
 
     try:
-        from constance import config as site_config
-
-        if str(site_config.CAPTIONING_MODEL).lower() == "none":
-            logger.info("Generating captions is disabled")
-            return False
-
-        llm_settings = User.objects.get(username=caption.photo.owner).llm_settings
-        context = caption.caption_context(llm_settings)
-        prompt = caption.caption_prompt(context)
-        logger.debug("Caption prompt: %s", prompt)
-
-        text = generate_caption(image_path=image_path, prompt=prompt)
-        text = text.replace("<start>", "").replace("<end>", "").strip()
-
-        caption.store_generated_caption(captions, text, commit)
-
-        logger.info("generated caption for image %s: %s", image_path, text)
-        return True
+        caption_photo(caption, commit)
     except Exception:
-        logger.exception("could not generate caption for image %s", image_path)
+        logger.exception(
+            "could not generate a caption for photo %s", caption.photo.image_hash
+        )
         return False
+    return True

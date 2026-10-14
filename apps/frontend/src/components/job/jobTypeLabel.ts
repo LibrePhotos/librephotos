@@ -26,6 +26,7 @@ const JOB_TYPE_KEYS: Partial<Record<number, ParseKeys>> = {
   22: "jobs.type.detect_stacks",
   23: "jobs.type.strip_thumbnail_metadata",
   24: "jobs.type.empty_trash",
+  25: "jobs.type.generate_captions",
 };
 
 /**

@@ -10,6 +10,19 @@ The goal of automatic image captioning is to understand the content of an image 
 
 To use the feature, open one of your own photos and click the information icon in the top bar to show the details panel. In the **Caption** section, click the pencil icon in the top-right corner of the caption box to start editing, then click the wand icon that appears in its place. Once a caption has been generated, it appears as a suggestion just above the caption box — click it to drop the text into the caption field, then press the green tick below the box to save it. (If a caption has already been generated for this photo, the suggestion appears as soon as you start editing.) The wand, cancel and tick controls are only shown while you are editing, and captions cannot be generated on publicly shared photos.
 
+## Captioning the whole library {#captioning-the-whole-library}
+
+_Not released yet._ To caption many photos at once, open **Account menu > Library**. Under the **Captions** heading is the **Generate captions** row:
+
+- **Generate** captions the photos that have no generated caption yet. The first time, that is all of your photos; after that, the photos added since. A run you cancelled continues where it stopped the next time you click **Generate**.
+- The arrow next to **Generate** opens **Generate captions again for all photos**, which writes a new generated caption for every photo. It asks first, because on a large library it runs for hours.
+
+Both start a **Generate Captions** job, which you can follow under **Account menu > My Jobs** and cancel there. It captions photos only, not videos, and skips photos in the trash and photos that have no thumbnail yet. Each user runs it for their own photos. A caption you wrote yourself is never changed: the job only writes the generated caption, which search finds next to yours.
+
+The job does not run by itself after a scan. When you have added new photos, click **Generate** again. It takes the time of one caption per photo (see below), so a library of 30,000 photos at about 2 seconds a photo keeps the job queue busy for around 17 hours; other jobs, such as a scan, wait until it has finished or you cancel it. A job that keeps making progress is not stopped by the [stuck-job check](./job-system.md#what-to-do-when-a-job-gets-stuck), however long it runs.
+
+The **Captions** section is only shown while captioning is on: the **Image captioning** switch in the [Features card](./feature-toggles.md#site-settings-switches) is on and `Captioning Model` is not `None`. When the captioning model is not downloaded yet, the job downloads it first and then starts captioning.
+
 ## Which model writes the captions?
 
 Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. There is nothing to pick: the files (about 370 MB) are fetched with the other models while captioning is on. _Not released yet:_ with captioning turned off they are not downloaded; turning it on again downloads them when you save the site settings or ask for a caption. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.

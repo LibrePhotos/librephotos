@@ -92,6 +92,15 @@ describe("job triggers", () => {
     expect(defined(requests[0]).url).toBe(`${API}/generateocr/`);
   });
 
+  it("sends whether captions are generated for every photo, and reads the model download", async () => {
+    const { client, requests } = fakeServer({ ...started, downloads_model: true });
+    const answer = await endpoints.generateCaptions(client, true);
+    await endpoints.generateCaptions(client, false);
+    expect(requests.map(request => request.body)).toEqual([{ full_scan: true }, { full_scan: false }]);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/generate-captions/`, method: "POST" });
+    expect(answer).toEqual({ ...started, downloads_model: true });
+  });
+
   it("follows the job already running instead of failing on a 409", async () => {
     for (const trigger of [
       endpoints.scanNextcloudPhotos,
@@ -100,6 +109,7 @@ describe("job triggers", () => {
       endpoints.stripThumbnailMetadata,
       endpoints.emptyTrash,
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
+      (client: Parameters<typeof endpoints.generateCaptions>[0]) => endpoints.generateCaptions(client, false),
       endpoints.detectStacks,
       endpoints.detectDuplicates,
     ]) {

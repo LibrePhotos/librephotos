@@ -14,6 +14,7 @@ import requests
 from django import db
 from django.db.models import Q, QuerySet
 
+from api.classification import captioning
 from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
@@ -35,6 +36,7 @@ from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.runtime import sidecars
+from api.runtime.ml_models import captioning_model_exists
 from api.search import semantic
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 from api.thumbnails import render
@@ -239,6 +241,94 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
     update_scan_counter(job_id, failed, error)
+
+
+def photos_to_caption(user: User, full_scan: bool) -> QuerySet[Photo]:
+    """The photos of ``user`` the caption job covers (#2211).
+
+    Photos with a big thumbnail (the captioner reads it), no videos, nothing
+    in the trash. Without ``full_scan`` only the ones without a generated
+    caption; a caption the user wrote does not count, it is never replaced.
+    """
+    photos = (
+        Photo.objects.owned_by(user)
+        .filter(video=False, in_trashcan=False, removed=False)
+        .exclude(Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big=""))
+    )
+    if full_scan:
+        return photos
+    return photos.filter(
+        Q(caption_instance__isnull=True)
+        | Q(caption_instance__captions_json__isnull=True)
+        | Q(caption_instance__captions_json__im2txt__isnull=True)
+    )
+
+
+def generate_captions(user: User, job_id: UUID, full_scan: bool = False) -> None:
+    """Caption the photos of ``user`` with the captioning sidecar (#2211).
+
+    Like :func:`generate_ocr`, the work fans out to one task per photo that
+    bumps the job's counter, so progress, cancel and the stuck-job check
+    work per photo. Without ``full_scan`` only photos without a generated
+    caption are covered, so a run picks up where a cancelled one stopped.
+    Started by hand only: captioning a library takes hours.
+
+    Args:
+        user: The user whose photos to caption
+        job_id: Job ID for tracking progress
+        full_scan: Caption again the photos that have a generated caption
+    """
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_CAPTIONS, job_id)
+    if lrj is None:
+        return
+
+    try:
+        if not captioning.captioning_available():
+            # Turned off while the job waited: nothing to do.
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
+            return
+        if not captioning_model_exists():
+            # The download chained in front of this job failed; every photo
+            # would fail the same way.
+            lrj.fail(error="The captioning model is not downloaded.")
+            return
+
+        photos = photos_to_caption(user, full_scan)
+        if not _begin_photo_scan(lrj, photos):
+            return
+
+        _queue_per_photo_tasks(
+            generate_caption_job, photos, job_id, "Generate captions job cancelled"
+        )
+
+    except Exception as err:
+        logger.exception("An error occurred: ")
+        lrj.fail(error=err)
+
+
+def generate_caption_job(photo_id: UUID | Photo, job_id: str) -> None:
+    """
+    Worker task to caption a single photo.
+
+    A photo is skipped (and counted) when captioning was turned off while
+    the job ran.
+
+    Args:
+        photo_id: Primary key of the photo to process
+        job_id: Job ID for tracking progress
+    """
+    photo = _photo_for_task(photo_id, job_id)
+    if photo is None:
+        return
+    error = None
+    if captioning.captioning_available():
+        try:
+            caption, _ = PhotoCaption.objects.get_or_create(photo=photo)
+            captioning.caption_photo(caption)
+        except Exception as err:
+            error = _record_photo_error(photo, err)
+    update_scan_counter(job_id, error is not None, error)
 
 
 # Minimum per-block confidence handed to the OCR sidecar (its contract default).

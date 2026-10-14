@@ -193,6 +193,7 @@ CLIENT_PATHS = {
     "/api/firsttimesetup/": "api.views.user.IsFirstTimeSetupView",
     "/api/folders/subfolders/": "api.views.album_folder.FolderNavigationViewSet get=subfolders",
     "/api/fullscanphotos/": "api.views.scan_triggers.FullScanPhotosView",
+    "/api/generate-captions/": "api.views.scan_triggers.GenerateCaptionsView",
     "/api/generateocr/": "api.views.scan_triggers.GenerateOcrView",
     "/api/geocode/reverse/": "api.views.geocode.GeocodeReverseView",
     "/api/geocode/search": "api.views.geocode.GeocodeSearchView",

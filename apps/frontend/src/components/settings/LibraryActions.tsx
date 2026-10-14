@@ -14,6 +14,7 @@ import {
   useRegenerateEventTitlesMutation,
 } from "../../api_client/jobs/hooks";
 import { DisabledReason } from "../common/DisabledReason";
+import { CaptionsActions } from "./CaptionsActions";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
 type LibraryActionsProps = {
@@ -21,10 +22,12 @@ type LibraryActionsProps = {
   busyReason?: string;
   isAdmin: boolean;
   isOcrEnabled: boolean;
+  /** Captions can be generated: the server has captioning on and a model picked (#2211). */
+  isCaptioningAvailable: boolean;
 };
 
-/** The library jobs after a scan: event albums, faces and text recognition. */
-export function LibraryActions({ busyReason, isAdmin, isOcrEnabled }: LibraryActionsProps) {
+/** The library jobs after a scan: event albums, faces, text recognition and captions. */
+export function LibraryActions({ busyReason, isAdmin, isOcrEnabled, isCaptioningAvailable }: LibraryActionsProps) {
   const { t } = useTranslation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const trainFaces = useTrainFacesMutation();
@@ -172,6 +175,7 @@ export function LibraryActions({ busyReason, isAdmin, isOcrEnabled }: LibraryAct
           </Group>
         </Grid.Col>
       </Grid>
+      {isCaptioningAvailable && <CaptionsActions busyReason={busyReason} />}
     </>
   );
 }

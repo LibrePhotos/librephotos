@@ -26,6 +26,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [22, "Detect Stacks"],
   [23, "Remove Photo Details from Thumbnails"],
   [24, "Empty Trash"],
+  [25, "Generate Captions"],
 ];
 
 describe("jobTypeLabel", () => {

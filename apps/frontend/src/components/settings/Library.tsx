@@ -44,6 +44,7 @@ export function Library() {
   const isNextcloudEnabled = siteSettings?.nextcloud_enabled ?? false;
   const ocrModel = siteSettings?.ocr_model ?? "none";
   const isOcrEnabled = ocrModel.trim().toLowerCase() !== "none";
+  const isCaptioningAvailable = siteSettings?.captioning_available ?? false;
   const {
     isFetching: isNextcloudFetching,
     isSuccess: isNextcloudSuccess,
@@ -161,7 +162,12 @@ export function Library() {
               onRescan={() => guardScan(() => rescanPhotos.mutate())}
             />
 
-            <LibraryActions busyReason={busyReason} isAdmin={isAdmin} isOcrEnabled={isOcrEnabled} />
+            <LibraryActions
+              busyReason={busyReason}
+              isAdmin={isAdmin}
+              isOcrEnabled={isOcrEnabled}
+              isCaptioningAvailable={isCaptioningAvailable}
+            />
             {isNextcloudEnabled && (
               <NextcloudSettings
                 userSelfDetails={userSelfDetails}
