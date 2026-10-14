@@ -8,7 +8,6 @@ from django.db.models import (
     CharField,
     Count,
     IntegerField,
-    Prefetch,
     Q,
     QuerySet,
     Value,
@@ -31,6 +30,7 @@ from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.labels import (
     RelabelResult,
+    delete_faces,
     recreate_search_captions,
     relabel_faces,
     restore_faces,
@@ -562,65 +562,31 @@ class AddFaceView(APIView):
 
 
 class DeleteFaces(APIView):
+    """Delete faces; only the requester's own faces are touched (#127, #1531).
+
+    ``delete_faces`` updates the people and the search captions, and queues
+    the write that takes the faces' regions out of the files.
+    """
+
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(request=FaceIdsRequest, responses=DeleteFacesResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, FaceIdsRequest)
-        faces = Face.objects.owned_by(user).in_bulk(data["face_ids"])
+        result = delete_faces(user, data["face_ids"])
 
         # A face without a crop (legacy rows) is deleted too; it just has no URL
         # to list, so deleted_ids is the complete answer.
-        deleted: list[str] = []
+        deleted = [face.crop_url for face in result.faces if face.crop_url]
         not_deleted: list[str] = []
-        for face in faces.values():
-            if face.crop_url:
-                deleted.append(face.crop_url)
-            face.deleted = True
-            face.save()
-
-        # A deleted face keeps its person (reads filter on ``deleted``), so the
-        # person's count and cover have to be recomputed, as on relabeling.
-        deleted_ids = set(faces)
-        affected_person_ids = {f.person_id for f in faces.values() if f.person_id}
-        # _calculate_face_count needs the owner; a legacy ownerless person is
-        # left as it is rather than failing the delete.
-        for person in Person.objects.filter(
-            id__in=affected_person_ids, cluster_owner__isnull=False
-        ):
-            if person.cover_face_id in deleted_ids:
-                person.cover_face = None
-                person.cover_photo = None
-            person._calculate_face_count()
-            person._set_default_cover_photo()
-
-        # Search indexes the names of the people on a photo, so a deleted
-        # face's person kept matching it until the next rescan.
-        # Face.photo is nullable; Django ignores a null id in an __in lookup,
-        # so leaving it out does not change which photos are found.
-        labeled_photo_ids = {
-            f.photo_id for f in faces.values() if f.person_id and f.photo_id is not None
-        }
-        if labeled_photo_ids:
-            photos = (
-                Photo.objects.owned_by(user)
-                .filter(pk__in=labeled_photo_ids)
-                .select_related("main_file", "metadata", "caption_instance")
-                .prefetch_related(
-                    "files",
-                    Prefetch("faces", queryset=Face.objects.select_related("person")),
-                )
-            )
-            recreate_search_captions(list(photos))
-
         return Response(
             {
                 "status": True,
                 "results": deleted,
                 "not_deleted": not_deleted,
                 "deleted": deleted,
-                "deleted_ids": list(faces),
+                "deleted_ids": [face.pk for face in result.faces],
             }
         )
 

@@ -8,10 +8,12 @@ are rebuilt (a person's name is something a photo is found by) and, when the
 user opted in, the face regions are written back to disk. ``relabel_faces``
 is that one path.
 
-Undoing ends the same way (#127): ``restore_faces`` brings deleted faces back,
-and ``restore_labels`` gives faces the people a labelling took from them (its
-``previous``), suggestions included, so a face confirmed or rejected by
-mistake goes back to the tab it came from.
+Deleting faces (``delete_faces``) and undoing (#127) end the same way:
+``restore_faces`` brings deleted faces back, and ``restore_labels`` gives
+faces the people a labelling took from them (its ``previous``), suggestions
+included, so a face confirmed or rejected by mistake goes back to the tab it
+came from. The face regions written to disk always follow the live faces, so
+a deleted face leaves the file and a restored one comes back (#1531).
 """
 
 import logging
@@ -122,19 +124,28 @@ def relabel_faces(
     person_id = person.pk if person is not None else None
     _refresh_people(affected_person_ids, {face.pk: person_id for face in loaded})
 
-    photos = _photos_of(loaded)
-    recreate_search_captions(photos)
-    if queue_write:
-        return RelabelResult(
-            loaded,
-            photos,
-            None,
-            write_queued=queue_face_tags_write(user, photos),
-            previous=previous,
-        )
-    return RelabelResult(
-        loaded, photos, write_face_tags_of(user, photos), previous=previous
+    return _finish(user, loaded, queue_write=queue_write, previous=previous)
+
+
+def delete_faces(user: User, face_ids: Iterable[int]) -> RelabelResult:
+    """Delete the user's faces with these ids; any other id is skipped.
+
+    A deleted face keeps its person (reads filter on ``deleted``), so
+    ``restore_faces`` can give it back. The people lose the face from their
+    count and cover, the photos are no longer found by their names and, when
+    the user opted in, the regions on disk are written again from the faces
+    left (#1531), the last one's removal clearing them. That write is queued:
+    a delete has no bound on its size.
+    """
+    loaded = list(_with_photo_rows(Face.objects.owned_by(user).filter(pk__in=face_ids)))
+    for face in loaded:
+        face.deleted = True
+    Face.objects.bulk_update(loaded, ["deleted"])
+    _refresh_people(
+        {face.person_id for face in loaded if face.person_id},
+        {face.pk: None for face in loaded},
     )
+    return _finish(user, loaded, queue_write=True)
 
 
 def restore_faces(user: User, face_ids: Iterable[int]) -> RelabelResult:
@@ -182,11 +193,31 @@ def restore_labels(user: User, labels: list[FaceLabels]) -> RelabelResult:
     return _finish(user, loaded)
 
 
-def _finish(user: User, faces: list[Face]) -> RelabelResult:
-    """Rebuild the search captions of the faces' photos and write their regions."""
+def _finish(
+    user: User,
+    faces: list[Face],
+    *,
+    queue_write: bool = False,
+    previous: list[FaceLabels] | None = None,
+) -> RelabelResult:
+    """Rebuild the search captions of the faces' photos and write their regions.
+
+    ``queue_write`` writes the regions in the background once the
+    transaction commits (``queue_face_tags_write``), in one job.
+    """
     photos = _photos_of(faces)
     recreate_search_captions(photos)
-    return RelabelResult(faces, photos, write_face_tags_of(user, photos))
+    if queue_write:
+        return RelabelResult(
+            faces,
+            photos,
+            None,
+            write_queued=queue_face_tags_write(user, photos),
+            previous=previous or [],
+        )
+    return RelabelResult(
+        faces, photos, write_face_tags_of(user, photos), previous=previous or []
+    )
 
 
 def _owned_people(user: User, labels: Iterable[FaceLabels]) -> dict[int, Person]:
