@@ -12,6 +12,7 @@ import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
 import { TOP_MENU_HEIGHT } from "./uiConstants";
+import { firstDayOfWeek } from "./util/dateUtils";
 
 // Set up a Router instance
 const router = createRouter({
@@ -94,7 +95,7 @@ function LocalizedDatesProvider({ children }: Readonly<{ children: React.ReactNo
     };
   }, [i18n.resolvedLanguage]);
 
-  return <DatesProvider settings={{ locale }}>{children}</DatesProvider>;
+  return <DatesProvider settings={{ locale, firstDayOfWeek: firstDayOfWeek() }}>{children}</DatesProvider>;
 }
 
 export function App() {

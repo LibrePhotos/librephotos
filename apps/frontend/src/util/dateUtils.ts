@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime, Info } from "luxon";
 
 /**
  * The date helpers. Parse and format dates only through this module: the UI
@@ -120,4 +120,14 @@ export function fromPickerValue(value: string): string | null {
 /** The picker value `days` calendar days from now, in the viewer's zone, for the presets. */
 export function pickerValueDaysFromNow(days: number): string {
   return DateTime.now().plus({ days }).toFormat(PICKER_FORMAT);
+}
+
+/**
+ * The day a week starts on in the UI language, as the date pickers number it
+ * (0 is Sunday, 6 is Saturday). Mantine would otherwise start every week on Monday.
+ */
+export function firstDayOfWeek(): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
+  // Luxon numbers the days 1 (Monday) to 7 (Sunday).
+  const days = [0, 1, 2, 3, 4, 5, 6] as const;
+  return days[Info.getStartOfWeek() % 7] ?? 1;
 }
