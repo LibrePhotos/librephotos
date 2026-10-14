@@ -10,6 +10,7 @@ import {
 } from "../../api_client/settings/hooks";
 import { notification } from "../../service/notifications";
 import { FeatureModelStatus } from "./FeatureModelStatus";
+import classes from "./FeaturesCard.module.css";
 import { SectionLink } from "./SettingsSection";
 import type { SiteFeatureState } from "./siteFeatures";
 import { envVariable, FEATURE_ROWS, modelStatus } from "./siteFeatures";
@@ -51,7 +52,7 @@ function FeatureDescription({ row, checked, parentOff }: { row: Row; checked: bo
       </Text>
       {off && row.offNote && (
         <Group gap={4} wrap="nowrap" align="flex-start">
-          <InfoCircle size={14} aria-hidden style={{ flexShrink: 0, marginTop: 1 }} />
+          <InfoCircle size={14} aria-hidden className={classes.noteIcon} />
           <Text fz="xs" c="dimmed">
             {t(row.offNote)}
           </Text>
@@ -109,11 +110,7 @@ function FeatureRow({ row, state, pending, parentOff, download, onChange }: Feat
 
 /** A row that refines another (the animated previews under Videos), indented under it. */
 function SubFeature({ children }: { children: React.ReactNode }) {
-  return (
-    <Box ml={18} pl="md" style={{ borderLeft: "2px solid var(--mantine-color-default-border)" }}>
-      {children}
-    </Box>
-  );
+  return <Box className={classes.subFeature}>{children}</Box>;
 }
 
 /**

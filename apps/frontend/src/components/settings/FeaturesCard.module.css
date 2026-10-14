@@ -1,0 +1,11 @@
+/* A row that refines another (the animated previews under Videos, #649). */
+.subFeature {
+  margin-left: 18px;
+  padding-left: var(--mantine-spacing-md);
+  border-left: 2px solid var(--mantine-color-default-border);
+}
+
+.noteIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
