@@ -1675,7 +1675,18 @@
     "leavealbummessage": "You will no longer see this album or its photos under Sharing. {{owner}} can share it with you again.",
     "numberof_one": "{{count}} album",
     "numberof_other": "{{count}} albums",
-    "ownedby": "Owned by {{name}}"
+    "ownedby": "Owned by {{name}}",
+    "newalbum": "New album",
+    "newalbumtitle": "New album",
+    "create": "Create album",
+    "createfailed": "Could not create the album",
+    "empty": {
+      "title": "This album is empty",
+      "description": "Drop photos and videos here, or upload them from your device. You can also select photos anywhere in your library, open the + menu and choose Album.",
+      "description_library": "Select photos anywhere in your library, open the + menu and choose Album to add them here.",
+      "action": "Upload photos"
+    },
+    "newalbumincollection": "It goes into the collection {{name}}."
   },
   "albumcollections": {
     "title": "Collections",
@@ -2352,7 +2363,10 @@
       "reject_title": "Only photos and videos can be uploaded",
       "reject_text": "Files that are not photos or videos are skipped.",
       "no_scan_directory_title": "Uploading is not set up yet",
-      "no_scan_directory_text": "Your account has no scan directory, so there is nowhere to save uploads. Ask your administrator to set one."
+      "no_scan_directory_text": "Your account has no scan directory, so there is nowhere to save uploads. Ask your administrator to set one.",
+      "album_title": "Drop to add to {{title}}",
+      "album_text": "They are saved to your upload folder and added to this album.",
+      "album_locked_text": "{{title}} is locked, so the files go to your library only."
     },
     "logout": {
       "title": "Log out while uploading?",
@@ -2360,6 +2374,15 @@
       "text_other": "Logging out stops the upload. {{count}} files have not been uploaded yet. Files that finished stay in your library.",
       "keep": "Keep uploading",
       "confirm": "Stop and log out"
+    },
+    "album": {
+      "menu": "Upload to this album…",
+      "adding": "Adding to {{title}}",
+      "added_one": "{{count}} file added to {{title}}",
+      "added_other": "{{count}} files added to {{title}}",
+      "open": "Open album",
+      "existing_added": "Already in your library: added to the album",
+      "library_only": "Added to your library only: the album is locked or was deleted"
     }
   },
   "timelinefilter": {

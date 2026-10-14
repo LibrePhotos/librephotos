@@ -1,7 +1,8 @@
 /**
  * The owner's "⋮" on an album page (#2208): Rename, Sharing, Lock / Unlock and Delete album open
  * My Albums' dialogs for this album; the rename's duplicate check leaves this album's own title
- * out, and deleting goes back to My Albums once the album is gone.
+ * out, and deleting goes back to My Albums once the album is gone. With uploads on, "Upload to this
+ * album…" comes first (#612), and says why when the album cannot take uploads.
  */
 import type { UserAlbum } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -12,7 +13,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { ToggleUserAlbumLockedParams } from "../../api_client/albums/types";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import type { ModalAlbumShare } from "../sharing/ModalAlbumShare";
+import type { AlbumUpload } from "../upload/useAlbumUpload";
 import type { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import { UserAlbumHeaderMenu } from "./UserAlbumHeaderMenu";
 import type { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
@@ -86,14 +89,16 @@ beforeAll(async () => {
 
 let root: Root | undefined;
 
-async function render(locked = false) {
+const openPicker = vi.fn<() => void>();
+
+async function render(locked = false, upload: AlbumUpload | null = null) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () =>
     defined(root).render(
       <MantineProvider env="test">
-        <UserAlbumHeaderMenu album={{ ...lisbon, locked }} />
+        <UserAlbumHeaderMenu album={{ ...lisbon, locked }} upload={upload} />
       </MantineProvider>
     )
   );
@@ -105,6 +110,7 @@ beforeEach(() => {
   stubs.rename = undefined;
   stubs.remove = undefined;
   stubs.share = undefined;
+  openPicker.mockReset();
   stubs.collections = undefined;
 });
 
@@ -144,6 +150,27 @@ describe("UserAlbumHeaderMenu", () => {
       albumTitle: "Lisbon 2026",
       collectionIds: [3],
     });
+  });
+
+  it("offers Upload to this album first when uploads are on (#612)", async () => {
+    await render(false, { open: openPicker, reason: null, inputProps: {} });
+    await act(async () => button("Album actions").click());
+
+    const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
+    expect(items).toEqual(["Upload to this album…", "Rename", "Sharing", "Collections…", "Lock album", "Delete album"]);
+    await act(async () => button("Upload to this album…").click());
+    expect(openPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it("says why the album takes no uploads", async () => {
+    const reason = "Lisbon 2026 is locked. Unlock it to add photos.";
+    await render(true, { open: openPicker, reason, inputProps: {} });
+    await act(async () => button("Album actions").click());
+
+    const upload = button("Upload to this album…");
+    expectDisabledWithReason(upload, reason);
+    await act(async () => upload.click());
+    expect(openPicker).not.toHaveBeenCalled();
   });
 
   it("renames with every other album's title taken, not this one's", async () => {

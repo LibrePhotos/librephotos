@@ -1,0 +1,7 @@
+/* An empty place files can be dropped on (an empty album, #612): the dashed frame says so before
+   anything is dragged. The drop itself is taken by the window-wide UploadDropTarget. */
+.dropZone {
+  margin: var(--mantine-spacing-md);
+  border: 2px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg);
+}

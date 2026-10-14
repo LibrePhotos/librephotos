@@ -1,3 +1,4 @@
+import { ApiError } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,10 +11,12 @@ const stubs = vi.hoisted(() => ({
   uploadChunk: vi.fn<(opts: { form_data: FormData; offset: number; chunk_size: number }) => Promise<unknown>>(),
   uploadFinished: vi.fn<(opts: { formData: FormData; shouldInvalidate: boolean }) => Promise<unknown>>(),
   invalidate: vi.fn<() => void>(),
+  patch: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
+  refreshAlbums: vi.fn<(albumIds: number[]) => void>(),
 }));
 
 vi.mock("../../api_client/api", () => ({
-  apiClient: { get: stubs.exists },
+  apiClient: { get: stubs.exists, patch: stubs.patch },
   queryClient: { invalidateQueries: () => {} },
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
@@ -24,6 +27,7 @@ vi.mock("../../api_client/upload", async importOriginal => ({
   useUploadMutation: () => ({ mutateAsync: stubs.uploadChunk }),
   useUploadFinishedMutation: () => ({ mutateAsync: stubs.uploadFinished }),
   invalidateUploadQueries: stubs.invalidate,
+  useRefreshUploadAlbums: () => stubs.refreshAlbums,
 }));
 vi.mock("./chunkedUpload", async importOriginal => ({
   ...(await importOriginal<typeof import("./chunkedUpload")>()),
@@ -59,6 +63,7 @@ beforeEach(async () => {
   stubs.exists.mockResolvedValue({ exists: false });
   stubs.uploadChunk.mockImplementation(async opts => ({ upload_id: "u1", offset: opts.offset + opts.chunk_size }));
   stubs.uploadFinished.mockResolvedValue({});
+  stubs.patch.mockResolvedValue({ id: 12 });
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -212,6 +217,127 @@ describe("useUploadQueue", () => {
     expect(latest.items[0]?.error).toBeTruthy();
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
   });
+  describe("into an album (#612)", () => {
+    const porto = { id: 12, title: "Porto 2025" };
+    const finishedForm = (call: number) =>
+      defined(stubs.uploadFinished.mock.calls[call], `finished call ${call}`)[0].formData;
+    const refusal = (code: string) =>
+      new ApiError(400, "/upload/complete/", "refused", { errors: [{ field: "album_id", message: "no", code }] });
+
+    it("sends the album with each file and refreshes the album once", async () => {
+      await act(async () => {
+        latest.start([file("a.jpg", 10), file("b.jpg", 10)], porto);
+      });
+      await settle();
+
+      expect(latest.items.map(i => [i.status, i.album, i.albumOutcome])).toEqual([
+        ["done", porto, undefined],
+        ["done", porto, undefined],
+      ]);
+      expect(finishedForm(0).get("album_id")).toBe("12");
+      expect(finishedForm(1).get("album_id")).toBe("12");
+      expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([12]);
+      expect(stubs.invalidate).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends no album for an upload into the library", async () => {
+      await act(async () => {
+        latest.start([file("a.jpg", 10)]);
+      });
+      await settle();
+
+      expect(finishedForm(0).get("album_id")).toBeNull();
+      expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([]);
+    });
+
+    it("adds the files the library already had to the album, in one request", async () => {
+      stubs.exists.mockImplementation(async url => ({ exists: true, photo_id: url.includes("one") ? "p1" : "p2" }));
+      await act(async () => {
+        latest.start([file("one.jpg", 10), file("two.jpg", 10)], porto);
+      });
+      await settle();
+
+      expect(stubs.uploadFinished).not.toHaveBeenCalled();
+      expect(stubs.patch).toHaveBeenCalledExactlyOnceWith("/albums/user/edit/12/", {
+        photos: ["p1", "p2"],
+      });
+      expect(latest.items.map(i => [i.status, i.albumOutcome])).toEqual([
+        ["duplicate", "added_existing"],
+        ["duplicate", "added_existing"],
+      ]);
+      expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([12]);
+      expect(stubs.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("leaves a known file in the library when the album will not take it", async () => {
+      stubs.exists.mockResolvedValue({ exists: true, photo_id: "p1" });
+      stubs.patch.mockRejectedValue(refusal("locked"));
+      await act(async () => {
+        latest.start([file("one.jpg", 10)], porto);
+      });
+      await settle();
+
+      expect(latest.items[0]?.albumOutcome).toBe("library_only");
+      expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([]);
+    });
+
+    it("cannot file a known file from a server that sends no photo id", async () => {
+      stubs.exists.mockResolvedValue({ exists: true });
+      await act(async () => {
+        latest.start([file("one.jpg", 10)], porto);
+      });
+      await settle();
+
+      expect(stubs.patch).not.toHaveBeenCalled();
+      expect(latest.items[0]?.albumOutcome).toBeUndefined();
+    });
+
+    it.each(["album_locked", "album_not_found"])(
+      "completes the same upload into the library when the server answers %s",
+      async code => {
+        stubs.uploadFinished.mockRejectedValueOnce(refusal(code));
+        await act(async () => {
+          latest.start([file("a.jpg", 10)], porto);
+        });
+        await settle();
+
+        expect(stubs.uploadFinished).toHaveBeenCalledTimes(2);
+        expect(finishedForm(0).get("album_id")).toBe("12");
+        expect(finishedForm(1).get("album_id")).toBeNull();
+        expect(finishedForm(1).get("upload_id")).toBe(finishedForm(0).get("upload_id"));
+        expect(latest.items[0]).toMatchObject({ status: "done", albumOutcome: "library_only" });
+        expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([]);
+        expect(stubs.invalidate).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it("fails the file on any other refusal", async () => {
+      stubs.uploadFinished.mockRejectedValueOnce(refusal("invalid"));
+      await act(async () => {
+        latest.start([file("a.jpg", 10)], porto);
+      });
+      await settle();
+
+      expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
+      expect(latest.items[0]?.status).toBe("error");
+    });
+
+    it("keeps the album when a failed file is retried", async () => {
+      stubs.uploadChunk.mockRejectedValueOnce(new Error("Network down"));
+      await act(async () => {
+        latest.start([file("a.jpg", 10)], porto);
+      });
+      await settle();
+      await act(async () => {
+        latest.retry(latest.items);
+      });
+      await settle();
+
+      expect(latest.items[0]).toMatchObject({ status: "done", album: porto });
+      expect(finishedForm(0).get("album_id")).toBe("12");
+    });
+  });
+
   describe("cancel", () => {
     /** The next chunk call waits until the returned release() is called. */
     const holdNextChunk = () => {

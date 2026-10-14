@@ -16,6 +16,7 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { AlbumOutcomeNote, UploadAlbumStrip } from "./UploadAlbumStrip";
 import { useUpload } from "./UploadContext";
 import classes from "./UploadProgressCard.module.css";
 import type { UploadItem, UploadStatus } from "./useUploadQueue";
@@ -67,6 +68,7 @@ function UploadRow({ item, onRetry }: { item: UploadItem; onRetry: (item: Upload
         </Group>
         <StatusBadge status={item.status} />
       </Group>
+      <AlbumOutcomeNote item={item} />
       {item.status === "uploading" && <Progress value={item.progress} size="xs" mt={6} />}
       {item.status === "error" && (
         <Stack gap={4} mt={6} align="flex-start">
@@ -230,6 +232,8 @@ export function UploadProgressCard() {
           <StopOrCloseButton />
         </Group>
       </Group>
+
+      <UploadAlbumStrip items={items} isUploading={isUploading} />
 
       <Progress
         value={summary.pct}

@@ -1,9 +1,21 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useBeforeUnloadWarning } from "../../hooks/useBeforeUnloadWarning";
 import { useScreenWakeLock } from "../../hooks/useScreenWakeLock";
-import { useUploadQueue, type UploadQueue } from "./useUploadQueue";
+import { useUploadQueue, type UploadAlbumTarget, type UploadQueue } from "./useUploadQueue";
 
 const UploadContext = createContext<UploadQueue | null>(null);
+
+/**
+ * The album files dropped anywhere on the page go into (#612): the owner's album page names its
+ * album here. A locked album still shows in the drop overlay, which says the files go to the
+ * library only.
+ */
+export type DropAlbum = { album: UploadAlbumTarget; locked: boolean };
+
+type DropAlbumState = { dropAlbum: DropAlbum | null; setDropAlbum: (album: DropAlbum | null) => void };
+
+// Its own context, so an album page registering itself does not re-render every queue consumer.
+const DropAlbumContext = createContext<DropAlbumState>({ dropAlbum: null, setDropAlbum: () => {} });
 
 /**
  * Lives at the protected app shell so the queue keeps running, and the
@@ -12,9 +24,15 @@ const UploadContext = createContext<UploadQueue | null>(null);
  */
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const queue = useUploadQueue();
+  const [dropAlbum, setDropAlbum] = useState<DropAlbum | null>(null);
+  const dropAlbumState = useMemo(() => ({ dropAlbum, setDropAlbum }), [dropAlbum]);
   useScreenWakeLock(queue.isUploading);
   useBeforeUnloadWarning(queue.isUploading);
-  return <UploadContext.Provider value={queue}>{children}</UploadContext.Provider>;
+  return (
+    <UploadContext.Provider value={queue}>
+      <DropAlbumContext.Provider value={dropAlbumState}>{children}</DropAlbumContext.Provider>
+    </UploadContext.Provider>
+  );
 }
 
 export function useUpload(): UploadQueue {
@@ -28,4 +46,22 @@ export function useUpload(): UploadQueue {
 /** The queue, or null outside the protected shell (public pages share the account menu). */
 export function useOptionalUpload(): UploadQueue | null {
   return useContext(UploadContext);
+}
+
+/** The album a drop on the current page files into, if the page named one. */
+export function useDropAlbum(): DropAlbum | null {
+  return useContext(DropAlbumContext).dropAlbum;
+}
+
+/** Names the album drops on this page go into, while the calling page is mounted. */
+export function useRegisterDropAlbum(target: DropAlbum | null): void {
+  const { setDropAlbum } = useContext(DropAlbumContext);
+  const id = target?.album.id;
+  const title = target?.album.title;
+  const locked = target?.locked;
+  useEffect(() => {
+    if (id === undefined || title === undefined || locked === undefined) return undefined;
+    setDropAlbum({ album: { id, title }, locked });
+    return () => setDropAlbum(null);
+  }, [id, title, locked, setDropAlbum]);
 }

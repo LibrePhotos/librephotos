@@ -10995,6 +10995,7 @@
                 "$ref": "#/components/schemas/PhotoSuperSimple"
               }
             ],
+            "nullable": true,
             "readOnly": true
           },
           "created_on": {
@@ -21049,10 +21050,17 @@
           "exists": {
             "type": "boolean",
             "description": "The caller has a photo with this image_hash"
+          },
+          "photo_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "The id of the caller's photo with this image_hash, or null"
           }
         },
         "required": [
-          "exists"
+          "exists",
+          "photo_id"
         ]
       },
       "User": {

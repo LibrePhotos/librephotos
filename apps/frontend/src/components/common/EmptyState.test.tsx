@@ -64,3 +64,13 @@ describe("EmptyState scan progress", () => {
     expect(container.textContent).not.toContain("emptystate.");
   });
 });
+
+describe("EmptyState drop zone", () => {
+  it("frames an empty album as a place to drop files (#612), and nothing else", async () => {
+    await render(<EmptyState title="This album is empty" description="" dropZone />);
+    expect(container.querySelector("[data-drop-zone]")).not.toBeNull();
+
+    await render(<EmptyState title="No photos" description="" />);
+    expect(container.querySelector("[data-drop-zone]")).toBeNull();
+  });
+});

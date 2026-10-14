@@ -26,6 +26,7 @@ export function PhotoListFallback({ isLoading, error, emptyStateConfig, isFirstT
       actionLink={emptyStateConfig.actionLink}
       onAction={emptyStateConfig.onAction}
       progress={emptyStateConfig.progress}
+      dropZone={emptyStateConfig.dropZone}
     />
   );
 }

@@ -142,13 +142,14 @@ class UploadExistsScopeTest(TestCase):
         photo = create_test_photo(owner=self.user)
         response = _client_for(self.user).get(f"/api/exists/{photo.image_hash}/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"exists": True})
+        self.assertEqual(response.json(), {"exists": True, "photo_id": str(photo.pk)})
 
     def test_other_users_hash_is_not_revealed(self):
         photo = create_test_photo(owner=self.other)
         response = _client_for(self.user).get(f"/api/exists/{photo.image_hash}/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"exists": False})
+        # Neither that it exists nor its id
+        self.assertEqual(response.json(), {"exists": False, "photo_id": None})
 
 
 class DeletePhotosHashCollisionTest(TestCase):

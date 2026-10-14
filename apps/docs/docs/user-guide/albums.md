@@ -98,6 +98,16 @@ The "Set album cover" option only appears when you're viewing a People Album or 
 
 ## Creating User Albums
 
+### An empty album
+
+_Not released yet._ On **My Albums**, click **New album** (the **+** on a phone), give it a title that none of your albums has, and click **Create album**. The new album opens right away. It is empty, and shows a drop zone: drop photos and videos on it, or click **Upload photos**, to [upload them into the album](./upload.md#uploading-into-an-album). You can also fill it from your library as below.
+
+If **My Albums** is showing one collection (see [Grouping albums into collections](#grouping-albums-into-collections)), the new album goes into that collection, and the dialog says so. Made from **All** or **Not in a collection**, it is in no collection and shows under **Not in a collection**.
+
+Empty albums stay on **My Albums** with a *No cover* tile, also when you remove the last photo from an album. (Up to 1.3.0, an album without photos was hidden there.)
+
+### From photos you select
+
 1. Select one or more photos from any view
 2. Click the **plus icon** (+) in the selection toolbar
 3. Click **"Album"**
@@ -116,7 +126,7 @@ On the **Albums** page, every User Album card has a **three-dot menu** (⋮) in 
 - **Collections…** — put the album into collections (see [Grouping albums into collections](#grouping-albums-into-collections)).
 - **Delete** — a confirmation dialog appears before the album is removed.
 
-The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
+The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Upload to this album…** (see [Uploading into an album](./upload.md#uploading-into-an-album); not released yet), **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
 
 *Not released yet: up to 1.3.0, an album could only be renamed, locked or deleted from its card.*
 

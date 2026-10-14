@@ -1396,16 +1396,24 @@ export async function uploadChunk(client: ApiClient, options: S.UploadOptions): 
   return parseResponse(S.UploadResponse, res, "upload chunk");
 }
 
-/** Finish a chunked upload (`upload_id`, `md5`, `filename` in the form): the server imports the file. */
+/**
+ * Finish a chunked upload (`upload_id`, `md5`, `filename` in the form): the server imports the file.
+ * An `album_id` in the form also adds it to that album of the uploader's (#612); an album the server
+ * refuses is a 400 with code `album_not_found` or `album_locked`, after which the same upload can
+ * be completed again without it.
+ */
 export async function completeUpload(client: ApiClient, formData: FormData): Promise<S.UploadCompleteResponse> {
   const res = await client.post<unknown>("/upload/complete/", formData);
   return parseResponse(S.UploadCompleteResponse, res, "upload complete");
 }
 
-/** Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id). */
-export async function uploadExists(client: ApiClient, md5: string, userId: number): Promise<boolean> {
+/**
+ * Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id),
+ * and that photo's id.
+ */
+export async function uploadExists(client: ApiClient, md5: string, userId: number): Promise<S.UploadExistsResponse> {
   const res = await client.get<unknown>(`/exists/${md5}${userId}`);
-  return parseResponse(S.UploadExistsResponse, res, "upload exists").exists;
+  return parseResponse(S.UploadExistsResponse, res, "upload exists");
 }
 
 /* ---- folders ------------------------------------------------------------ */
@@ -1782,6 +1790,19 @@ export async function createUserAlbum(
 ): Promise<S.CreateUserAlbumResponse> {
   const res = await client.post<unknown>("/albums/user/edit/", userAlbumPhotosBody(title, photoIds, selectAll));
   return parseResponse(S.CreateUserAlbumResponse, res, "create user album");
+}
+
+/**
+ * Add photos by UUID pk to a user album without naming its title, so a rename made meanwhile stays
+ * (an upload filing files the library already had, #612).
+ */
+export async function addPhotosToUserAlbumById(
+  client: ApiClient,
+  albumId: number | string,
+  photoIds: string[]
+): Promise<S.UserAlbumEditResponse> {
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { photos: photoIds });
+  return parseResponse(S.UserAlbumEditResponse, res, "add photos to user album by id");
 }
 
 /** Add photos (by UUID pk, or a selected-all set) to an existing user album. */
