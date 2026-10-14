@@ -14,6 +14,7 @@ import {
   useRegenerateEventTitlesMutation,
 } from "../../api_client/jobs/hooks";
 import { DisabledReason } from "../common/DisabledReason";
+import { ApplyDateRulesRow } from "./ApplyDateRulesRow";
 import { CaptionsActions } from "./CaptionsActions";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
@@ -26,7 +27,7 @@ type LibraryActionsProps = {
   isCaptioningAvailable: boolean;
 };
 
-/** The library jobs after a scan: event albums, faces, text recognition and captions. */
+/** The library jobs after a scan: event albums, faces, text recognition, captions and dates. */
 export function LibraryActions({ busyReason, isAdmin, isOcrEnabled, isCaptioningAvailable }: LibraryActionsProps) {
   const { t } = useTranslation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
@@ -176,6 +177,7 @@ export function LibraryActions({ busyReason, isAdmin, isOcrEnabled, isCaptioning
         </Grid.Col>
       </Grid>
       {isCaptioningAvailable && <CaptionsActions busyReason={busyReason} />}
+      <ApplyDateRulesRow busyReason={busyReason} />
     </>
   );
 }

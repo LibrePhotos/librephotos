@@ -149,6 +149,7 @@ The Library page provides quick access to common maintenance actions:
 | **Nextcloud** | **Scan** | Scan photos from a connected Nextcloud instance |
 | **Extract Text** | **Extract** | Read the text on photos that have not been read yet (see [Text Recognition](./text-recognition.md#extracting-text)) |
 | **Extract Text** (dropdown) | **Extract text again for all photos** | Read the text on every photo again |
+| **Apply date rules to existing photos** | **Apply** | Read the date of every photo again with your current [date rules](./settings/date-rules.md#applying-the-rules); a date you set by hand stays. Not released yet |
 
 If LibrePhotos detects photos that are no longer on disk, a red **N Missing Photos** badge appears next to the **Photos** heading. Click it to open the **Remove missing photos** dialog and confirm removal of those database entries. The badge is hidden when nothing is missing.
 

@@ -100,6 +100,10 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 _Not released yet._ Started with the **Empty trash** button on the Trash page. Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
 
+### Apply Date Rules
+
+_Not released yet._ Started with **Apply** under **Dates** on the Library page, or with **Apply to existing photos** on the date rules card after you saved changed rules. Reads the date of every photo of yours again with your current date rules and moves the photos whose date changed to their new day; a date you set by hand stays, and nothing is written to your files. A photo whose date cannot be read keeps its date and is listed in the job. See [Applying the rules](./settings/date-rules.md#applying-the-rules).
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

@@ -77,6 +77,7 @@ describe("job triggers", () => {
     ["regenerateEventAlbumTitles", "/autoalbumtitlegen/", endpoints.regenerateEventAlbumTitles],
     ["stripThumbnailMetadata", "/strip-thumbnail-metadata/", endpoints.stripThumbnailMetadata],
     ["emptyTrash", "/photosedit/empty-trash/", endpoints.emptyTrash],
+    ["reapplyDateRules", "/photos/reapply-date-rules/", endpoints.reapplyDateRules],
   ] as const)("%s POSTs %s", async (_name, path, trigger) => {
     const { client, requests } = fakeServer(started);
     const answer = await trigger(client);
@@ -108,6 +109,7 @@ describe("job triggers", () => {
       endpoints.regenerateEventAlbumTitles,
       endpoints.stripThumbnailMetadata,
       endpoints.emptyTrash,
+      endpoints.reapplyDateRules,
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
       (client: Parameters<typeof endpoints.generateCaptions>[0]) => endpoints.generateCaptions(client, false),
       endpoints.detectStacks,

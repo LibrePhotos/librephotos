@@ -11,6 +11,7 @@ Submodules:
 - ``photo_reader``: reading a photo's file metadata into ``Photo`` and ``PhotoMetadata`` (the scan's metadata step)
 - ``photo_writer``: writing a photo's edits back to its file or XMP sidecar
 - ``jobs``: background rating writes for bulk rating edits
+- ``date_rules_job``: the job that applies the current date rules to the photos already in the library
 
 Import directly from the submodules, which avoids circular imports::
 

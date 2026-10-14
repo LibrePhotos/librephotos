@@ -61,7 +61,7 @@ Videos keep their date in other tags than photos, and the default rules read thr
 - **Other MP4 and MOV files** only have the UTC `QuickTime:CreateDate`, converted with the time zone of the video's position or, without one, your default time zone.
 - **MKV and WebM files** have a UTC `Matroska:DateTimeOriginal`, converted the same way by the two "MKV/WebM creation date" rules.
 
-_Not released yet._ After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with a **Rescan**.
+_Not released yet._ After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with [Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
 
 ### What gets stored, and why times are not converted for you
 
@@ -104,9 +104,14 @@ The top rules are applied first and the bottom rules last. To change the order, 
 
 ### Applying the rules
 
-The date rules are applied on each scan. Once your rules are how you want them, open the **Library** page (from the profile menu in the top-right corner, choose **Library**; or press Ctrl+K and search for "Library"). In the **Scan Library** section, click the arrow next to the **Scan** button and choose **Rescan**. The same action is available from the command palette (Ctrl+K) as **Rescan All Photos**.
+The date rules are applied on each scan, so photos scanned after a change use the new rules. To apply them to the photos already in your library, use **Apply date rules to existing photos**. _Not released yet._
 
-Use **Rescan** specifically, not a plain **Scan**. An ordinary scan only looks at files that are new or whose contents changed since the last scan, so it will walk straight past a library that is already indexed and nothing will appear to happen. **Rescan** re-reads every file and re-runs the rules over all of them.
+- Right after you save changed rules, the date rules card shows **Your date rules changed** with an **Apply to existing photos** button.
+- At any time, open the **Library** page (from the profile menu in the top-right corner, choose **Library**; or press Ctrl+K and search for "Library") and click **Apply** in the **Dates** section.
+
+Both start the same background job, **Apply Date Rules**. It reads the date of every photo again with your current rules and moves each photo whose date changed to its new day. It does nothing else: no thumbnails, faces or other metadata are redone, and nothing is written to your files. A date you set by hand is never changed. When it is done, a message says how many photos moved to another day and how many keep the date you set by hand; the job list has the photos whose date could not be read. Event albums are not rebuilt by it: click **Generate** under **Generate Event Albums** on the Library page afterwards so your events follow the new dates.
+
+Up to version 1.3.0 the only way was a full **Rescan**: in the **Scan Library** section, click the arrow next to the **Scan** button and choose **Rescan** (or **Rescan All Photos** in the command palette). It still works, but re-processes every file, which takes much longer. A plain **Scan** does not apply changed rules to photos it has seen before: it only looks at files that are new or changed since the last scan.
 
 ### Troubleshooting
 
@@ -116,7 +121,7 @@ If your whole library is shifted by a constant amount — and that amount happen
 
 **A rule change had no effect at all.**
 
-Check that you used **Rescan** rather than a normal scan (see above), and that the rule you expect to win is above the one currently matching — the first rule that can produce a time is the one that is used. A rule that names an EXIF tag your files do not carry is silently skipped, so it is worth confirming the tag actually exists in your photos.
+Check that you applied the rules to the photos already in your library with **Apply date rules to existing photos** or **Rescan**, not a normal scan (see above), and that the rule you expect to win is above the one currently matching — the first rule that can produce a time is the one that is used. A rule that names an EXIF tag your files do not carry is silently skipped, so it is worth confirming the tag actually exists in your photos.
 
 **One particular photo ignores every rule.**
 

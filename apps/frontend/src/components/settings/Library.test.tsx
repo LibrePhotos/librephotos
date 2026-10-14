@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => {
     generateAutoAlbums: vi.fn<() => void>(),
     updateUserError: vi.fn<(message: string) => void>(),
     regenerateEventTitles: vi.fn<() => void>(),
+    applyDateRules: vi.fn<() => void>(),
     user,
     auth: { access: { is_admin: true } },
     // useGetSettingsQuery's answer.
@@ -68,6 +69,7 @@ vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
   useFetchNextcloudDirsQuery: () => ({ isFetching: false, isSuccess: false, isError: false, data: [] }),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
+  useApplyDateRules: () => ({ start: mocks.applyDateRules, running: false }),
   useGenerateAutoAlbumsMutation: () => ({ ...noopMutation, mutate: mocks.generateAutoAlbums }),
   useGenerateCaptionsMutation: () => noopMutation,
   useGenerateOcrMutation: () => noopMutation,
@@ -323,13 +325,19 @@ describe("Library while a job runs", () => {
   it("gives every job button the reason", async () => {
     await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: null } });
 
-    for (const label of [i18n.t("settings.statusscanphotosfalse"), i18n.t("settings.generate")]) {
+    for (const label of [
+      i18n.t("settings.statusscanphotosfalse"),
+      i18n.t("settings.generate"),
+      i18n.t("settings.reapplydaterulesbutton"),
+    ]) {
       const button = buttonByText(label);
       expectDisabledWithReason(button, i18n.t("jobs.queuebusy.reason"));
       expect(await focusAndReadTooltip(button)).toContain(i18n.t("jobs.queuebusy.reason"));
     }
     await click(buttonByText(i18n.t("settings.generate")));
     expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
+    await click(buttonByText(i18n.t("settings.reapplydaterulesbutton")));
+    expect(mocks.applyDateRules).not.toHaveBeenCalled();
   });
 
   // #2621: the chevrons beside Scan and text recognition were a plain `disabled`: no reason, no focus.
@@ -361,6 +369,16 @@ describe("Library actions", () => {
 
     expect(mocks.regenerateEventTitles).toHaveBeenCalledTimes(1);
     expect(mocks.generateAutoAlbums).not.toHaveBeenCalled();
+  });
+
+  // #437: the date rules only applied to photos scanned after a change.
+  it("applies the date rules to the photos already in the library", async () => {
+    expect(container.textContent).toContain("Apply date rules to existing photos");
+    expect(container.textContent).toContain("A date you set by hand is never changed.");
+
+    await click(buttonByText("Apply"));
+
+    expect(mocks.applyDateRules).toHaveBeenCalledTimes(1);
   });
 
   it("opens the scan help from the button itself", async () => {
