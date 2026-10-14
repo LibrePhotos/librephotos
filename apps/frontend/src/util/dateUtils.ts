@@ -1,4 +1,4 @@
-import { DateTime, Duration, Info } from "luxon";
+import { DateTime, Duration, Info, Settings } from "luxon";
 
 /**
  * The date helpers. Parse and format dates only through this module: the UI
@@ -123,13 +123,34 @@ export function pickerValueDaysFromNow(days: number): string {
 }
 
 /**
+ * The locale whose calendar the date pickers follow: the UI language, with the
+ * region of the first browser language in the same language when the UI language
+ * has none, so a British user with the UI in plain "en" gets Monday, not en-US's Sunday.
+ */
+function weekStartLocale(): string | undefined {
+  const ui = Settings.defaultLocale;
+  if (!ui) return undefined;
+  try {
+    const { language, region } = new Intl.Locale(ui);
+    if (region) return ui;
+    const browser = navigator.languages
+      .map(tag => new Intl.Locale(tag))
+      .find(candidate => candidate.language === language && candidate.region);
+    return browser?.toString() ?? ui;
+  } catch {
+    // A tag Intl.Locale rejects: use the UI language as it is.
+    return ui;
+  }
+}
+
+/**
  * The day a week starts on in the UI language, as the date pickers number it
  * (0 is Sunday, 6 is Saturday). Mantine would otherwise start every week on Monday.
  */
 export function firstDayOfWeek(): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
   // Luxon numbers the days 1 (Monday) to 7 (Sunday).
   const days = [0, 1, 2, 3, 4, 5, 6] as const;
-  return days[Info.getStartOfWeek() % 7] ?? 1;
+  return days[Info.getStartOfWeek({ locale: weekStartLocale() }) % 7] ?? 1;
 }
 
 /** An `exif_timestamp` moved by `seconds` (negative: earlier), still wall clock tagged UTC. */
