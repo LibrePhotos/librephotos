@@ -83,6 +83,8 @@ You can also review faces one at a time, without selecting them first. Point at 
 
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
+A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. _Not released yet: this comes with the release after 1.3._
+
 ## Delete faces
 
 Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. This cannot be undone from the interface. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan.
