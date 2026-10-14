@@ -2,7 +2,6 @@ import type { BulkPhotoQuery, PhotoCategory, PigPhoto } from "@librephotos/api-c
 import { ActionIcon, Group, Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
-  IconCalendarTime as CalendarTime,
   IconDotsVertical as DotsVertical,
   IconDownload as Download,
   IconEye as Eye,
@@ -10,7 +9,6 @@ import {
   IconFileText as FileText,
   IconGlobe as Globe,
   IconKey as Key,
-  IconMapPin as MapPin,
   IconPhoto as Photo,
   IconScreenshot as Screenshot,
   IconShare as Share,
@@ -40,6 +38,7 @@ import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
+import { SelectionEditItems } from "./SelectionEditItems";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { StackSelectionActions } from "./StackSelectionActions";
 
@@ -226,17 +225,11 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<MapPin size={ICON_SIZE.menu} />} onClick={openSetLocation}>
-              {t("selectionactions.setlocation")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<CalendarTime size={ICON_SIZE.menu} />} onClick={openDateTime}>
-              {t("selectionactions.changedatetime")}
-            </Menu.Item>
-          </DisabledReason>
+          <SelectionEditItems
+            disabledReason={noSelection}
+            onSetLocation={openSetLocation}
+            onChangeDateTime={openDateTime}
+          />
 
           <Menu.Divider />
 
