@@ -3,6 +3,8 @@ from typing import Any
 
 from django.conf import settings
 from django.db.models import QuerySet
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import (
@@ -27,9 +29,10 @@ from api.drf.params import parse_query
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
 from api.photos.paths import is_valid_path
-from api.serializers.folders import FolderPathQuery
+from api.serializers.folders import DirTreeSerializer, FolderPathQuery
 from api.serializers.user import (
     DeleteUserSerializer,
+    FirstTimeSetupSerializer,
     ManageUserSerializer,
     PublicUserSerializer,
     SignupUserSerializer,
@@ -47,10 +50,17 @@ from api.views.mixins import PartialUpdateModelMixin
 
 logger = logging.getLogger(__name__)
 
+# The rule views send the list encoded as a JSON string (a string, not an
+# array): clients decode it a second time.
+RULES_RESPONSE = OpenApiResponse(
+    OpenApiTypes.STR, description="A JSON array of rules, encoded as a string"
+)
+
 
 class DefaultRulesView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=RULES_RESPONSE)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = DEFAULT_RULES_JSON
         return Response(res)
@@ -59,6 +69,7 @@ class DefaultRulesView(APIView):
 class PredefinedRulesView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=RULES_RESPONSE)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = PREDEFINED_RULES_JSON
         return Response(res)
@@ -69,6 +80,7 @@ class DefaultBurstRulesView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=RULES_RESPONSE)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_DEFAULT_RULES_JSON
         return Response(res)
@@ -79,6 +91,7 @@ class PredefinedBurstRulesView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=RULES_RESPONSE)
     def get(self, request: Request, format: str | None = None) -> Response:
         res = BURST_PREDEFINED_RULES_JSON
         return Response(res)
@@ -87,6 +100,7 @@ class PredefinedBurstRulesView(APIView):
 class RootPathTreeView(APIView):
     permission_classes = (IsAdminUser,)
 
+    @extend_schema(parameters=[FolderPathQuery], responses=DirTreeSerializer(many=True))
     def get(self, request: Request, format: str | None = None) -> Response:
         path = parse_query(request, FolderPathQuery).get("path")
         base_path = settings.DATA_ROOT
@@ -109,6 +123,7 @@ class RootPathTreeView(APIView):
 class IsFirstTimeSetupView(APIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(responses=FirstTimeSetupSerializer)
     def get(self, request: Request) -> Response:
         return Response(
             {"isFirstTimeSetup": not User.objects.filter(is_superuser=True).exists()}

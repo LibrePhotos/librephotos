@@ -90,7 +90,8 @@ export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
  */
 export const JobTriggerResponse = z.looseObject({
   status: z.boolean(),
-  job_id: z.string().nullable().optional(),
+  // Optional: before 1.2.0 a failed start answered 200 with {"status": false} and no job_id.
+  job_id: z.string().optional(),
   already_running: z.boolean().optional(),
 });
 export type JobTriggerResponse = z.infer<typeof JobTriggerResponse>;

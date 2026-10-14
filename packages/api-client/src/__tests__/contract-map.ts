@@ -55,6 +55,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   LabelledFace: { schema: S.LabelledFace, components: ["FaceList"] },
   SetFacesLabelResponse: { schema: S.SetFacesLabelResponse, components: ["SetFacePersonLabelResponse"] },
   AddFaceResponse: { schema: S.AddFaceResponse, components: ["AddFaceResponse"] },
+  DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs
@@ -64,9 +65,14 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
   CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
   JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
+  JobTriggerResponse: { schema: S.JobTriggerResponse, components: ["JobStartedResponse"] },
   // photo edits
   RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
+  BulkPhotoMutationResponse: { schema: S.BulkPhotoMutationResponse, components: ["BulkPhotoMutationResponse"] },
+  DeletePhotosResponse: { schema: S.DeletePhotosResponse, components: ["DeletePhotosResponse"] },
+  StatusResponse: { schema: S.StatusResponse, components: ["StatusResponse"] },
   // users and auth
+  IsFirstTimeSetupResponse: { schema: S.IsFirstTimeSetupResponse, components: ["FirstTimeSetup"] },
   PasswordResetResponse: { schema: S.PasswordResetResponse, components: ["PasswordResetResponse"] },
   SsoConfig: { schema: S.SsoConfig, components: ["SSOConfig"] },
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
@@ -133,6 +139,23 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ResolveDuplicateResponse: { schema: S.ResolveDuplicateResponse, components: ["ResolveDuplicateResponse"] },
   DismissDuplicateResponse: { schema: S.DismissDuplicateResponse, components: ["DismissDuplicateResponse"] },
   RevertDuplicateResponse: { schema: S.RevertDuplicateResponse, components: ["RevertDuplicateResponse"] },
+  // delta sync (the mobile app's mirror)
+  SyncPhotoItem: { schema: S.SyncPhotoItem, components: ["SyncPhotoItem"] },
+  SyncPersonItem: { schema: S.SyncPersonItem, components: ["SyncPersonItem"] },
+  SyncUserAlbumItem: { schema: S.SyncUserAlbumItem, components: ["SyncUserAlbumItem"] },
+  SyncAutoAlbumItem: { schema: S.SyncAutoAlbumItem, components: ["SyncAutoAlbumItem"] },
+  SyncNamedAlbumItem: { schema: S.SyncNamedAlbumItem, components: ["SyncNamedAlbumItem"] },
+  SyncPlaceAlbumItem: { schema: S.SyncPlaceAlbumItem, components: ["SyncPlaceAlbumItem"] },
+  SyncSharedUserItem: { schema: S.SyncSharedUserItem, components: ["SyncSharedUserItem"] },
+  SyncPhotosResponse: { schema: S.SyncPhotosResponse, components: ["SyncPhotosResponse"] },
+  SyncPersonsResponse: { schema: S.SyncPersonsResponse, components: ["SyncPersonsResponse"] },
+  SyncUserAlbumsResponse: { schema: S.SyncUserAlbumsResponse, components: ["SyncUserAlbumsResponse"] },
+  SyncAutoAlbumsResponse: { schema: S.SyncAutoAlbumsResponse, components: ["SyncAutoAlbumsResponse"] },
+  SyncThingAlbumsResponse: { schema: S.SyncThingAlbumsResponse, components: ["SyncThingAlbumsResponse"] },
+  SyncPlaceAlbumsResponse: { schema: S.SyncPlaceAlbumsResponse, components: ["SyncPlaceAlbumsResponse"] },
+  SyncTagAlbumsResponse: { schema: S.SyncTagAlbumsResponse, components: ["SyncTagAlbumsResponse"] },
+  SyncSharingResponse: { schema: S.SyncSharingResponse, components: ["SyncSharingResponse"] },
+  SyncCounts: { schema: S.SyncCounts, components: ["SyncCounts"] },
 };
 
 /** Exported zod objects that are not compared, and why. */
@@ -145,8 +168,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   TokenClaims: "the JWT payload, not a response body",
   AuthError: "the error envelope from api/views/exception_handler.py, not a component",
   LogoutResponse: "simplejwt's TokenBlacklistView declares no response serializer (it answers {})",
-  IsFirstTimeSetupResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PublicSharingDefaults: "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
   People: "deprecated alias of PhotoPerson, kept for one release while apps/mobile moves",
   PhotoPerson:
@@ -211,8 +232,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (SharedFromMePhoto); the view's wrapper is not a component",
   SharedAlbumsResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
-  DeleteFacesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  JobTriggerResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStart: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   PhotoDownloadStatus: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   ListUser:
@@ -223,10 +242,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (Tag); the view's wrapper is not a component; its rows add cover_photos",
   TagAlbumResponse:
     "a {results} envelope around rows compared on their own (TagAlbum); the view's wrapper is not a component",
-  BulkPhotoMutationResponse:
-    "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  StatusResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  DeletePhotosResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   MetadataFile:
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
   BulkMetadataUpdateResponse:
@@ -257,34 +272,4 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   MediaDiagnostics: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
   Memory: "nested in FetchMemoriesResponse (see there)",
   FetchMemoriesResponse: "its view declares no response serializer (see apps/backend/openapi-baseline.txt, issue #485)",
-  SyncPhotoItem: "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncPersonItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncUserAlbumItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncAutoAlbumItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncNamedAlbumItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncPlaceAlbumItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncSharedUserItem:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncPhotosResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncPersonsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncUserAlbumsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncAutoAlbumsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncThingAlbumsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncPlaceAlbumsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncTagAlbumsResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncSharingResponse:
-    "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
-  SyncCounts: "the sync views (api/views/sync.py) declare no response serializer (openapi-baseline.txt, issue #485)",
 };

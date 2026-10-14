@@ -20,6 +20,7 @@ last item it has applied; ``next_cursor`` is only a loop-continuation token.
 import base64
 import binascii
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar
 from uuid import UUID
@@ -27,6 +28,8 @@ from uuid import UUID
 from django.db import models
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet, Subquery
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -63,6 +66,17 @@ from api.serializers.sync import (
     serialize_shared_user_row,
     serialize_user_album_row,
 )
+from api.serializers.sync_responses import (
+    SyncAutoAlbumsResponseSerializer,
+    SyncCountsSerializer,
+    SyncPersonsResponseSerializer,
+    SyncPhotosResponseSerializer,
+    SyncPlaceAlbumsResponseSerializer,
+    SyncSharingResponseSerializer,
+    SyncTagAlbumsResponseSerializer,
+    SyncThingAlbumsResponseSerializer,
+    SyncUserAlbumsResponseSerializer,
+)
 
 ENVELOPE_VERSION = 1
 
@@ -70,6 +84,7 @@ ENVELOPE_VERSION = 1
 Row = dict[str, Any]
 
 ModelT = TypeVar("ModelT", bound=models.Model)
+ViewT = TypeVar("ViewT", bound=APIView)
 
 
 # --------------------------------------------------------------------------- #
@@ -78,6 +93,17 @@ ModelT = TypeVar("ModelT", bound=models.Model)
 def encode_cursor(last_modified: datetime, pk: object) -> str:
     raw = f"{last_modified.isoformat()}|{pk}"
     return base64.urlsafe_b64encode(raw.encode()).decode()
+
+
+def sync_feed(
+    page: type[serializers.Serializer[None]], description: str
+) -> Callable[[type[ViewT]], type[ViewT]]:
+    """Declare a feed's GET: the cursor parameters and its page envelope."""
+    return extend_schema_view(
+        get=extend_schema(
+            parameters=[SyncQuery], responses=page, description=description
+        )
+    )
 
 
 def decode_cursor(cursor: str) -> tuple[datetime, str]:
@@ -192,6 +218,10 @@ class BaseSyncView(APIView, Generic[ModelT]):
 # --------------------------------------------------------------------------- #
 # Photos
 # --------------------------------------------------------------------------- #
+@sync_feed(
+    SyncPhotosResponseSerializer,
+    "The requester's photos and the photos shared to them.",
+)
 class SyncPhotosView(BaseSyncView[Photo]):
     entity = DeletionLog.ENTITY_PHOTO
     values_fields = PHOTO_VALUES + ("has_motion",)
@@ -212,6 +242,7 @@ class SyncPhotosView(BaseSyncView[Photo]):
 # --------------------------------------------------------------------------- #
 # Persons (only USER-kind are mirrored: the People album grid)
 # --------------------------------------------------------------------------- #
+@sync_feed(SyncPersonsResponseSerializer, "The people the requester named.")
 class SyncPersonsView(BaseSyncView[Person]):
     entity = DeletionLog.ENTITY_PERSON
     values_fields = PERSON_VALUES + ("first_face_photo_hash",)
@@ -233,6 +264,10 @@ class SyncPersonsView(BaseSyncView[Person]):
 # --------------------------------------------------------------------------- #
 # User albums (membership embedded)
 # --------------------------------------------------------------------------- #
+@sync_feed(
+    SyncUserAlbumsResponseSerializer,
+    "The requester's albums and the albums shared to them, with their photos.",
+)
 class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
     entity = DeletionLog.ENTITY_ALBUM_USER
     values_fields = USER_ALBUM_VALUES
@@ -262,6 +297,7 @@ class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
 # --------------------------------------------------------------------------- #
 # Auto albums (membership embedded)
 # --------------------------------------------------------------------------- #
+@sync_feed(SyncAutoAlbumsResponseSerializer, "The event albums, with their photos.")
 class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
     entity = DeletionLog.ENTITY_ALBUM_AUTO
     values_fields = AUTO_ALBUM_VALUES
@@ -296,6 +332,7 @@ class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
 # --------------------------------------------------------------------------- #
 # Thing / Place / Tag albums (list mirrors, no membership)
 # --------------------------------------------------------------------------- #
+@sync_feed(SyncThingAlbumsResponseSerializer, "The thing albums, without their photos.")
 class SyncThingAlbumsView(BaseSyncView[AlbumThing]):
     entity = DeletionLog.ENTITY_ALBUM_THING
     values_fields = ("id", "title", "photo_count", "last_modified")
@@ -315,6 +352,7 @@ class SyncThingAlbumsView(BaseSyncView[AlbumThing]):
         return [serialize_named_album_row(r, covers[r["id"]]) for r in rows]
 
 
+@sync_feed(SyncPlaceAlbumsResponseSerializer, "The place albums, without their photos.")
 class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
     entity = DeletionLog.ENTITY_ALBUM_PLACE
     values_fields = ("id", "title", "geolocation_level", "last_modified")
@@ -343,6 +381,9 @@ class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
         return out
 
 
+@sync_feed(
+    SyncTagAlbumsResponseSerializer, "The requester's tags, without their photos."
+)
 class SyncTagAlbumsView(BaseSyncView[Tag]):
     entity = DeletionLog.ENTITY_TAG
     values_fields = ("id", "title", "photo_count", "last_modified")
@@ -365,6 +406,10 @@ class SyncTagAlbumsView(BaseSyncView[Tag]):
 # --------------------------------------------------------------------------- #
 # Sharing surface (shared_user profiles)
 # --------------------------------------------------------------------------- #
+@sync_feed(
+    SyncSharingResponseSerializer,
+    "The users the requester shares with, and those who share with the requester.",
+)
 class SyncSharingView(BaseSyncView[User]):
     entity = None  # user profiles are not tombstoned via DeletionLog
     values_fields = SHARED_USER_VALUES
@@ -412,6 +457,7 @@ class SyncSharingView(BaseSyncView[User]):
 class SyncCountsView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=SyncCountsSerializer)
     def get(self, request: Request) -> Response:
         user = request_user(request)
         return Response(

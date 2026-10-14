@@ -120,6 +120,23 @@ class FaceIdsRequest(serializers.Serializer[None]):
     face_ids = serializers.ListField(child=serializers.IntegerField())
 
 
+class DeleteFacesResponse(serializers.Serializer[None]):
+    """The answer of POST /api/deletefaces: the faces deleted, by image URL."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    deleted = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="The image URLs of the deleted faces",
+    )
+    results = serializers.ListField(
+        child=serializers.CharField(), help_text="The same as deleted"
+    )
+    not_deleted = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Always []: a face the requester does not own is skipped",
+    )
+
+
 class SetFacePersonLabelRequest(FaceIdsRequest):
     # Trimmed and never blank: get_or_create() would make a nameless person.
     person_name = required_string("person_name must not be empty")

@@ -9,8 +9,10 @@
  * server may add later are tolerated — forward-compat by construction.
  *
  * Item shapes mirror the flat `serialize_*_row` outputs and the client's
- * `remote_*` tables (doc 02 §1). Timestamps are integer ms epoch (or null);
- * `last_modified` is the keyset-cursor ordering key.
+ * `remote_*` tables (doc 02 §1), and the OpenAPI components of
+ * `api/serializers/sync_responses.py`. Timestamps are integer ms epoch;
+ * `last_modified` is the keyset-cursor ordering key. A field is nullable only
+ * where the server can send null (every server since the feeds were added).
  */
 import { z } from "zod";
 
@@ -34,8 +36,8 @@ export const SyncPhotoItem = z.looseObject({
   image_hash: z.string(),
   owner_id: z.number(),
   timestamp: z.number().nullable(),
-  added_on: z.number().nullable(),
-  last_modified: z.number().nullable(),
+  added_on: z.number(),
+  last_modified: z.number(),
   type: z.string(),
   video_length_ms: z.number().nullable(),
   rating: z.number(),
@@ -47,7 +49,8 @@ export const SyncPhotoItem = z.looseObject({
   aspect_ratio: z.number().nullable(),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
-  search_location: z.string().nullable(),
+  /** "" without a place name. */
+  search_location: z.string(),
   dominant_color: z.string().nullable(),
 });
 export type SyncPhotoItem = z.infer<typeof SyncPhotoItem>;
@@ -56,9 +59,9 @@ export type SyncPhotoItem = z.infer<typeof SyncPhotoItem>;
 
 export const SyncPersonItem = z.looseObject({
   id: z.number(),
-  name: z.string().nullable(),
-  kind: z.string().nullable(),
-  face_count: z.number().nullable(),
+  name: z.string(),
+  kind: z.string(),
+  face_count: z.number(),
   /** The cover the user chose, else null. */
   cover_photo_hash: z.string().nullable(),
   /**
@@ -66,7 +69,7 @@ export const SyncPersonItem = z.looseObject({
    * the first face's photo, else null. Absent from servers up to 1.3.0.
    */
   effective_cover_hash: z.string().nullable().optional(),
-  last_modified: z.number().nullable(),
+  last_modified: z.number(),
 });
 export type SyncPersonItem = z.infer<typeof SyncPersonItem>;
 
@@ -75,13 +78,13 @@ export type SyncPersonItem = z.infer<typeof SyncPersonItem>;
 export const SyncUserAlbumItem = z.looseObject({
   id: z.number(),
   title: z.string(),
-  owner_id: z.number().nullable(),
+  owner_id: z.number(),
   favorited: z.boolean(),
   shared: z.number(), // 0 | 1
   cover_hash: z.string().nullable(),
   photo_count: z.number(),
-  created_on: z.number().nullable(),
-  last_modified: z.number().nullable(),
+  created_on: z.number(),
+  last_modified: z.number(),
   photo_ids: z.array(z.string()).default([]),
 });
 export type SyncUserAlbumItem = z.infer<typeof SyncUserAlbumItem>;
@@ -89,11 +92,11 @@ export type SyncUserAlbumItem = z.infer<typeof SyncUserAlbumItem>;
 export const SyncAutoAlbumItem = z.looseObject({
   id: z.number(),
   title: z.string(),
-  timestamp: z.number().nullable(),
+  timestamp: z.number(),
   favorited: z.boolean(),
   photo_count: z.number(),
   cover_hash: z.string().nullable(),
-  last_modified: z.number().nullable(),
+  last_modified: z.number(),
   photo_ids: z.array(z.string()).default([]),
 });
 export type SyncAutoAlbumItem = z.infer<typeof SyncAutoAlbumItem>;
@@ -104,7 +107,7 @@ export const SyncNamedAlbumItem = z.looseObject({
   title: z.string(),
   photo_count: z.number(),
   cover_hashes: z.array(z.string()).default([]),
-  last_modified: z.number().nullable(),
+  last_modified: z.number(),
 });
 export type SyncNamedAlbumItem = z.infer<typeof SyncNamedAlbumItem>;
 
@@ -115,7 +118,7 @@ export const SyncPlaceAlbumItem = z.looseObject({
   photo_count: z.number(),
   cover_hashes: z.array(z.string()).default([]),
   geolocation_level: z.number().nullable(),
-  last_modified: z.number().nullable(),
+  last_modified: z.number(),
 });
 export type SyncPlaceAlbumItem = z.infer<typeof SyncPlaceAlbumItem>;
 
@@ -123,11 +126,11 @@ export type SyncPlaceAlbumItem = z.infer<typeof SyncPlaceAlbumItem>;
 
 export const SyncSharedUserItem = z.looseObject({
   id: z.number(),
-  username: z.string().nullable(),
-  first_name: z.string().nullable(),
-  last_name: z.string().nullable(),
+  username: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
   avatar_url: z.string().nullable(),
-  last_modified: z.number().nullable(),
+  last_modified: z.number(),
 });
 export type SyncSharedUserItem = z.infer<typeof SyncSharedUserItem>;
 

@@ -6,7 +6,12 @@ from typing import Any
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.http import FileResponse
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
+)
 from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
@@ -62,6 +67,8 @@ from api.serializers.album_user import (
     with_album_user_list_relations,
 )
 from api.serializers.photos import (
+    BulkPhotoMutationResponse,
+    DeletePhotosResponse,
     PhotoCaptionRequest,
     PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
@@ -73,8 +80,10 @@ from api.serializers.photos import (
     RotatePhotoRequest,
     RotatePhotoResponse,
     SaveMetadataRequest,
+    SaveMetadataResponse,
     SavePhotoCaptionRequest,
     SetMainFileRequest,
+    SetMainFileResponse,
     SetPhotosCategoryRequest,
     SetPhotosDeletedRequest,
     SetPhotosFavoriteRequest,
@@ -82,6 +91,7 @@ from api.serializers.photos import (
     SetPhotosPublicRequest,
     SetPhotosRatingRequest,
     SetPhotosSharedRequest,
+    StatusResponse,
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
@@ -318,7 +328,7 @@ class BulkPhotoMutationView(APIView):
             refresh_album_thing_photo_counts(affected_thing_ids)
         return count
 
-    @extend_schema(responses={200: OpenApiTypes.OBJECT})
+    @extend_schema(responses=BulkPhotoMutationResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         # The value is a JSON boolean unless the subclass's serializer says
@@ -797,7 +807,7 @@ class PhotoEditViewSet(
 class SetPhotosShared(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetPhotosSharedRequest)
+    @extend_schema(request=SetPhotosSharedRequest, responses=BulkPhotoMutationResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         from api.photos.selection import build_photo_queryset
 
@@ -919,7 +929,7 @@ class GeneratePhotoCaption(APIView):
     # check_object_permissions), so anonymous callers reached the body.
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=PhotoCaptionRequest)
+    @extend_schema(request=PhotoCaptionRequest, responses=StatusResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         # With "None" picked the captioner is never downloaded (#2218): asking
         # for it below would start a download that skips it, answering
@@ -962,7 +972,7 @@ class GeneratePhotoCaption(APIView):
 class SavePhotoCaption(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SavePhotoCaptionRequest)
+    @extend_schema(request=SavePhotoCaptionRequest, responses=StatusResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         data = parse_body(request, SavePhotoCaptionRequest)
         image_hash = data["image_hash"]
@@ -983,7 +993,7 @@ class SavePhotoCaption(APIView):
 class DeletePhotos(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=PhotoSelectionRequest)
+    @extend_schema(request=PhotoSelectionRequest, responses={200: DeletePhotosResponse})
     def delete(self, request: Request) -> Response:
         from api.photos.selection import build_photo_queryset
 
@@ -1062,6 +1072,12 @@ class FileVariantDownloadView(APIView):
                 description="Hash of the specific file variant to download",
             ),
         ],
+        responses={
+            (200, "*/*"): OpenApiResponse(
+                OpenApiTypes.BINARY,
+                description="The file, as an attachment, with its own content type",
+            )
+        },
     )
     def get(
         self, request: Request, image_hash: str, file_hash: str
@@ -1102,7 +1118,7 @@ class SetMainFileView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetMainFileRequest)
+    @extend_schema(request=SetMainFileRequest, responses=SetMainFileResponse)
     def post(self, request: Request, image_hash: str) -> Response:
         """Set the main file for a photo."""
         file_hash = parse_body(request, SetMainFileRequest)["file_hash"]
@@ -1133,7 +1149,7 @@ class SetMainFileView(APIView):
 class SaveMetadataView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SaveMetadataRequest)
+    @extend_schema(request=SaveMetadataRequest, responses=SaveMetadataResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         """Bulk-write metadata to image files for the authenticated user's photos.
 

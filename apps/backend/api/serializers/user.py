@@ -23,7 +23,7 @@ from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
 from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
-from api.serializers.fields import loaded_count, loaded_list
+from api.serializers.fields import declare_fields, loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 from service.exif.tag_validation import is_safe_tag_name
@@ -690,3 +690,18 @@ class PasswordResetConfirmRequest(serializers.Serializer[None]):
                 "Missing parameters", code="missing_parameters"
             )
         return attrs
+
+
+class FirstTimeSetupSerializer(serializers.Serializer[None]):
+    """``GET /api/firsttimesetup/``: whether the instance still has no admin
+    (the login page then offers to create one)."""
+
+
+# A camelCase key from before the snake_case rule, kept for the clients (see
+# LEGACY_CAMEL_CASE_DICT_KEYS in api/tests/infra/test_api_naming.py).
+declare_fields(
+    FirstTimeSetupSerializer,
+    isFirstTimeSetup=serializers.BooleanField(
+        help_text="True while no superuser exists"
+    ),
+)

@@ -1317,6 +1317,76 @@ class RotatePhotoResponse(serializers.Serializer[None]):
     )
 
 
+class StatusResponse(serializers.Serializer[None]):
+    """``{"status": true}``: done. A failure is an error status, not false.
+
+    The answer of the caption views (generate, save)."""
+
+    status = serializers.BooleanField(help_text="Always true")
+
+
+class BulkPhotoMutationResponse(serializers.Serializer[None]):
+    """The answer of the bulk photo edits (``BulkPhotoMutationView``) and of
+    sharing photos with a user (``SetPhotosShared``)."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    count = serializers.IntegerField(help_text="The photos changed")
+    updated_hashes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="The photos changed; for image_hashes, not for select_all or sharing",
+    )
+    not_updated_hashes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="The photos that already had the value; for image_hashes, "
+        "not for select_all or sharing",
+    )
+
+
+class DeletePhotosResponse(serializers.Serializer[None]):
+    """The answer of DELETE /api/photosedit/delete/ (trashed photos deleted for
+    good): the hashes for image_hashes, the counts for select_all."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    deleted = serializers.ListField(
+        child=serializers.CharField(), required=False, help_text="image_hashes only"
+    )
+    results = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="image_hashes only: the same as deleted",
+    )
+    not_deleted = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="image_hashes only: unknown, not the requester's, not in the "
+        "trash, or the files could not be removed",
+    )
+    count = serializers.IntegerField(
+        required=False, help_text="select_all only: the photos deleted"
+    )
+    failed_count = serializers.IntegerField(
+        required=False,
+        help_text="select_all only: the photos whose files could not be removed",
+    )
+
+
+class SetMainFileResponse(serializers.Serializer[None]):
+    """The answer of POST /api/photos/{image_hash}/main-file/."""
+
+    status = serializers.CharField(help_text='Always "updated"')
+    main_file_hash = serializers.CharField()
+
+
+class SaveMetadataResponse(serializers.Serializer[None]):
+    """The answer of POST /api/savemetadata/: how many photos were written."""
+
+    status = serializers.BooleanField(help_text="Always true")
+    written = serializers.IntegerField()
+    errors = serializers.IntegerField(help_text="Photos that could not be written")
+
+
 SHARE_ACTIONS = ("enable", "rotate", "disable")
 
 
