@@ -793,6 +793,8 @@ def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
         return
 
     try:
+        # Needs no face service, and photos already scanned have such faces too (#2642)
+        photo_faces.restore_missing_crops(user)
         existing_photos = _faces_to_scan(user, full_scan)
         if not _begin_photo_scan(lrj, existing_photos):
             return

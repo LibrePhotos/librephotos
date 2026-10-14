@@ -83,7 +83,7 @@ You can also review faces one at a time, without selecting them first. Point at 
 
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
-A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. _Not released yet: this comes with the release after 1.3._
+A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again. _Not released yet: this comes with the release after 1.3._
 
 ## Delete faces
 
@@ -92,6 +92,8 @@ Sometimes the face recognition might find a face that is not actually a face. To
 ## Re-scan faces
 
 Re-scan faces looks through all your photos again and adds any face it finds that does not already have a face record. This will take a while, because it has to look up all the photos again.
+
+Every face scan, the one after a photo scan as well as Re-scan faces, first gives each face whose thumbnail is missing a new one, cut from the photo where the face was found. A face whose photo has no thumbnail keeps the grey person icon until the photo has one. _Not released yet: this comes with the release after 1.3._
 
 :::note
 A re-scan will not bring back faces you removed with the delete face action. Deleting a face marks it as deleted but keeps its region on record, and the re-scan skips any newly detected face that overlaps an existing record — including deleted ones. Deleting a face cannot be undone from the user interface.
