@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useGenerateCaptionsMutation } from "../../api_client/jobs/hooks";
 import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import classes from "./CaptionsActions.module.css";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
 
 type CaptionsActionsProps = {
@@ -41,7 +42,7 @@ export function CaptionsActions({ busyReason }: CaptionsActionsProps) {
                 onClick={() => generateCaptions.mutate(false)}
                 leftSection={<TextCaption />}
                 variant="outline"
-                style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
+                className={classes.main}
                 fullWidth
               >
                 {t("settings.captionsbutton")}
@@ -55,7 +56,7 @@ export function CaptionsActions({ busyReason }: CaptionsActionsProps) {
                     variant="outline"
                     size={36}
                     aria-label={t("settings.captionsfullbutton")}
-                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                    className={classes.toggle}
                   >
                     <ChevronDown size="1rem" />
                   </ActionIcon>
