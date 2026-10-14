@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import PIL.Image
 import requests
 from django.core.files.base import ContentFile
+from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from numpy import float64
 
-    from api.models import Photo
+    from api.models import Photo, User
 
 if TYPE_CHECKING:
     import numpy as np
@@ -310,14 +311,69 @@ def save_detected_face(
         person=person,
         cluster=cluster,
     )
-    face_io = BytesIO()
-    if face_image.mode in ("RGBA", "P"):
-        face_image = face_image.convert("RGB")
-    face_image.save(face_io, format="JPEG")
-    face.image.save(image_path, ContentFile(face_io.getvalue()))
-    face_io.close()
+    face.image.save(image_path, _jpeg(face_image))
     face.save()
     return face
+
+
+def _jpeg(image: PIL.Image.Image) -> ContentFile[bytes]:
+    """A face crop as the JPEG file stored for it."""
+    if image.mode in ("RGBA", "P"):
+        image = image.convert("RGB")
+    with BytesIO() as face_io:
+        image.save(face_io, format="JPEG")
+        return ContentFile(face_io.getvalue())
+
+
+def restore_missing_crops(user: User) -> int:
+    """Cut the crop of every face of ``user`` that has none again (#2642).
+
+    ``Face.image`` is empty for legacy rows and for a crop that failed to
+    save. The face's box is in big-thumbnail pixels (as ``_save_new_faces``
+    and ``AddFace`` cut it), so its crop comes from the big thumbnail again,
+    without the face service. A face that cannot be cut (no thumbnail, an
+    unreadable one, a box outside it) keeps no crop and is tried again on the
+    next run. Deleted faces are left alone. Returns how many crops were saved.
+    """
+    faces = (
+        api.models.face.Face.objects.owned_by(user)
+        .filter(Q(image="") | Q(image__isnull=True), deleted=False)
+        .select_related("photo__thumbnail")
+    )
+    restored = 0
+    for face in faces:
+        if _restore_crop(face):
+            restored += 1
+    if restored:
+        logger.info("restored the crop of %d face(s) of %s", restored, user)
+    return restored
+
+
+def _restore_crop(face: api.models.face.Face) -> bool:
+    """Cut and save the crop of one face; whether it worked."""
+    photo = face.photo
+    thumbnail = getattr(photo, "thumbnail", None) if photo else None
+    if photo is None or thumbnail is None or not thumbnail.thumbnail_big:
+        logger.warning("face %s: no big thumbnail to cut its crop from", face.id)
+        return False
+    try:
+        with PIL.Image.open(thumbnail.thumbnail_big.path) as big_thumbnail:
+            # Clamped to the thumbnail, as the detection's array slice is
+            left = max(face.location_left, 0)
+            top = max(face.location_top, 0)
+            right = min(face.location_right, big_thumbnail.width)
+            bottom = min(face.location_bottom, big_thumbnail.height)
+            if right <= left or bottom <= top:
+                logger.warning("face %s: its box is outside the big thumbnail", face.id)
+                return False
+            crop = big_thumbnail.crop((left, top, right, bottom))
+            content = _jpeg(crop)
+    except (OSError, PIL.Image.DecompressionBombError):
+        logger.warning("face %s: cannot cut its crop", face.id, exc_info=True)
+        return False
+    face.image.save(f"{photo.image_hash}_{face.id}.jpg", content, save=False)
+    face.save(update_fields=["image"])
+    return True
 
 
 def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
