@@ -774,10 +774,11 @@ class MediaServingView(APIView):
     ) -> Photo | None:
         """Choose which row a shared ``image_hash`` resolves to.
 
-        ``Photo.image_hash`` is meant to be unique per user, but two users who
-        scan the same file end up sharing one: ``get_or_create_file()`` returns the
-        existing row for a path already on disk, so the second user's Photo
-        inherits the first scanner's hash. Falling back to an arbitrary row
+        ``Photo.image_hash`` is unique per user, but two users who scanned the
+        same file before #1957 was fixed shared one: the second user's Photo
+        took the first scanner's hash from the shared File row. Migration 0175
+        gives those their owner's salt, except where that hash was taken
+        already, so a few may remain. Falling back to an arbitrary row
         then denies an owner access to their own photo, so prefer a row the
         requester can actually see. Anyone, signed in or not, can see a row in a
         public album or a public photo, so either beats an arbitrary private

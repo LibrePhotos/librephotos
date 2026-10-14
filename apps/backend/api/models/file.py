@@ -17,6 +17,17 @@ def hash_owner_part(hash_value: str) -> str:
     return hash_value[MD5_HEX_LENGTH:]
 
 
+def hash_for_owner(hash_value: str, owner_id: int | None) -> str:
+    """``hash_value``'s content hashed for ``owner_id``: a Photo's image hash.
+
+    A File is shared by every user who scans its path and carries the salt of
+    whoever scanned it first, while ``Photo.image_hash`` is unique per user:
+    thumbnails and face crops are named after it and the media routes resolve
+    it to one row (#1957). A row without an owner gets no salt.
+    """
+    return content_hash(hash_value) + ("" if owner_id is None else str(owner_id))
+
+
 # To-Do: add owner to file
 class File(models.Model):
     IMAGE = 1

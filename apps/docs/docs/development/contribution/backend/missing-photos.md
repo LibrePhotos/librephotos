@@ -54,7 +54,7 @@ class Photo(models.Model):
     # ... other fields
 ```
 
-The primary key is the UUID `id`, not `image_hash`. `image_hash` is an indexed but **non-unique** `CharField`: the database declares no `unique=True`, `unique_together`, or `UniqueConstraint` on it. Uniqueness per user is a property of how the hash is built (MD5 of content + the user's id), not a constraint the database enforces. Always look photos up as `Photo.objects.filter(image_hash=hash, owner=user)` — never `Photo.objects.get(pk=image_hash)`.
+The primary key is the UUID `id`, not `image_hash`. `image_hash` is an indexed but **non-unique** `CharField`: the database declares no `unique=True`, `unique_together`, or `UniqueConstraint` on it. Uniqueness per user is a property of how the hash is built (MD5 of content + the user's id), not a constraint the database enforces. Always look photos up as `Photo.objects.filter(image_hash=hash, owner=user)` — never `Photo.objects.get(pk=image_hash)`. A `Photo`'s `image_hash` is not always its `main_file.hash`: `File.path` is unique, so two users whose scan directories overlap share one `File` row for a file both scan, hashed with the id of whoever scanned it first, and the scan gives each user's photo `hash_for_owner(main_file.hash, user.id)` (`apps/backend/api/models/file.py`). Compare a photo with its file by `content_hash()` (the MD5 part) only. Up to 1.3.0 the second user's photo took the first user's hash; migration `0175_salt_image_hashes_per_owner` re-salts those and copies their thumbnails and face crops to the new names (#1957).
 
 **A photo is considered missing when:**
 - `files=None` (no associated files), OR

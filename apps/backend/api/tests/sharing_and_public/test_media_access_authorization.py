@@ -108,10 +108,10 @@ class PublicAlbumShareMediaAccessTest(TestCase):
 class DuplicateImageHashResolutionTest(TestCase):
     """A hash shared by two Photo rows must resolve in the requester's favour.
 
-    Two users who scan the same file end up with two Photo rows carrying an
-    identical `image_hash`, because `get_or_create_file()` returns the row that
-    already exists for that path and the second Photo inherits the first
-    scanner's hash.
+    Two users who scanned the same file before #1957 was fixed ended up with
+    two Photo rows carrying an identical `image_hash`: the second Photo took
+    the first scanner's hash from the shared File row. Migration 0175 repairs
+    them unless the owner's hash was taken already.
     """
 
     def setUp(self):

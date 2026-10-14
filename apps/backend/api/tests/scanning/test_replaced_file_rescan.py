@@ -21,7 +21,7 @@ from api.metadata.photo_writer import rotate_photo
 from api.metadata.tags import Tags
 from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, User
-from api.models.file import content_hash
+from api.models.file import content_hash, hash_for_owner
 from api.photos.media_files import calculate_hash
 from api.runtime import binaries
 from api.tests.utils import (
@@ -231,9 +231,9 @@ class ReplacedFacesTest(ReplacedFileTestCase):
 
 
 class SharedFileAcrossUsersTest(ReplacedFileTestCase):
-    """File rows and thumbnail files are shared between users who scan the
-    same directory, so a replacement has to carry every photo holding the
-    file across, not just the scanning user's."""
+    """File rows are shared between users who scan the same directory, so a
+    replacement has to carry every photo holding the file across, not just the
+    scanning user's. Each photo keeps its owner's salt (#1957)."""
 
     def test_second_user_scanning_the_same_file_changes_nothing(self):
         _write_image(self.path, 1)
@@ -275,7 +275,8 @@ class SharedFileAcrossUsersTest(ReplacedFileTestCase):
         other_user = create_test_user()
         other_photo = self._scan(user=other_user)
         self._derive(other_photo)
-        self.assertEqual(old_hash, other_photo.image_hash)
+        other_old_hash = other_photo.image_hash
+        self.assertEqual(hash_for_owner(old_hash, other_user.id), other_old_hash)
         self.assertNotEqual(photo.pk, other_photo.pk)
 
         # The owner of the directory replaces the picture and rescans.
@@ -283,14 +284,18 @@ class SharedFileAcrossUsersTest(ReplacedFileTestCase):
         rescanned = self._scan()
 
         other_photo.refresh_from_db()
-        self.assertEqual(rescanned.image_hash, other_photo.image_hash)
-        self.assertTrue(os.path.exists(self._thumbnail_path(other_photo.image_hash)))
+        new_file_hash = File.objects.get(path=self.path).hash
+        self.assertEqual(new_file_hash, rescanned.image_hash)
+        self.assertEqual(
+            hash_for_owner(new_file_hash, other_user.id), other_photo.image_hash
+        )
         for directory in THUMBNAIL_DIRS:
             self.assertTrue(
                 os.path.exists(self._thumbnail_path(other_photo.image_hash, directory)),
                 f"{directory} thumbnail missing for the other user's photo",
             )
         self.assertFalse(os.path.exists(self._thumbnail_path(old_hash)))
+        self.assertFalse(os.path.exists(self._thumbnail_path(other_old_hash)))
 
 
 def _append_a_byte(path, *args, **kwargs):
