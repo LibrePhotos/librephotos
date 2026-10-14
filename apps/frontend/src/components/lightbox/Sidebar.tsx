@@ -29,6 +29,7 @@ import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
+import { TrashedItem } from "./TrashedItem";
 import { CameraInfoSection, VersionComponent } from "./VersionComponent";
 
 type SidebarProps = {
@@ -319,6 +320,7 @@ function OwnerSidebar({
       <Stack>
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={false} />
+        {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
         <VersionComponent
           photoDetail={photoDetail}
           isPublic={false}

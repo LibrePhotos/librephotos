@@ -66,6 +66,15 @@ def expired_trash(days: int) -> QuerySet[Photo]:
     )
 
 
+def expired_trash_counts(days: int) -> tuple[int, int]:
+    """How many photos, of how many users, a retention of ``days`` deletes now.
+
+    The admin's confirmation before turning the retention on or shortening it.
+    """
+    photos = expired_trash(days)
+    return photos.count(), photos.values("owner_id").distinct().count()
+
+
 def empty_expired_trash() -> int:
     """Permanently delete the photos past the trash retention (#2203).
 

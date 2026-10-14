@@ -9,6 +9,8 @@ export * from "./hooks/useFetchSharedPhotosWithMeQuery";
 export * from "./hooks/useGenerateImageToTextCaptionMutation";
 export * from "./hooks/useMarkPhotosDeletedMutation";
 export * from "./hooks/usePurgeDeletedPhotosMutation";
+export * from "./hooks/useEmptyTrashMutation";
+export * from "./hooks/useFollowEmptyTrashJob";
 export * from "./hooks/useSetFavoritePhotosMutation";
 export * from "./hooks/useSetPhotosRatingMutation";
 export * from "./hooks/useSetPhotosHiddenMutation";

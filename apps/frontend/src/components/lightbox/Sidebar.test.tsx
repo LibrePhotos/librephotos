@@ -7,6 +7,7 @@
  */
 import type { Photo, PublicPhotoDetailResponse } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
+import { DateTime } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -27,6 +28,9 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: stubs.ownPhoto, isError: false }),
   useFetchPublicPhotoDetailQuery: () => ({ data: stubs.publicAlbumPhoto, isLoading: false }),
   useUpdatePhotoMutation: () => ({ mutate: () => {} }),
+}));
+vi.mock("../../api_client/settings/hooks", () => ({
+  useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
 }));
 vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
@@ -137,6 +141,17 @@ describe("Sidebar for the owner", () => {
 
     expect(stubs.tagsSections).toEqual(["p1"]);
     expect(container.textContent).not.toMatch(/keyword/i);
+    expect(container.textContent).not.toContain("Moved to the trash");
+  });
+
+  it("says when a trashed photo was trashed and when it is deleted for good (#2203)", async () => {
+    const trashedAt = DateTime.now().minus({ days: 10, hours: 1 }).toISO();
+    stubs.ownPhoto = makePhoto({ id: "p1", image_hash: "h1", in_trashcan: true, trashed_at: trashedAt });
+
+    const container = await renderSidebar(undefined, false);
+
+    expect(container.textContent).toContain("Moved to the trash on");
+    expect(container.textContent).toContain("Deleted for good in 20 days");
   });
 });
 

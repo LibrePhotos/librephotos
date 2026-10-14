@@ -14,6 +14,29 @@ function removePhotos(numberOfPhotos: number) {
   });
 }
 
+/** Empty trash queued its job (#2203); the photos go in the background. */
+function emptyTrashStarted(count: number) {
+  toast.success(i18n.t("toasts.emptytrashstarted", { count }), { title: i18n.t("toasts.emptytrashstartedtitle") });
+}
+
+/** The Empty trash job deleted every photo it found. */
+function trashEmptied(count: number) {
+  toast.success(i18n.t("toasts.trashemptied", { count }), { title: i18n.t("toasts.trashemptiedtitle") });
+}
+
+/** The Empty trash job left photos behind: their files could not be deleted. It stays until closed. */
+function trashEmptiedWithErrors(deleted: number, failed: number) {
+  toast.warning(i18n.t("toasts.trashemptiedwitherrors", { count: failed, deleted }), {
+    title: i18n.t("toasts.trashemptiedwitherrorstitle"),
+    autoClose: false,
+  });
+}
+
+/** The Empty trash job failed before it could say how many photos it deleted. */
+function trashEmptyFailed() {
+  toast.error(i18n.t("toasts.trashemptyfailed"), { title: i18n.t("toasts.trashemptiedwitherrorstitle") });
+}
+
 function downloadStarting() {
   toast.success(i18n.t("toasts.downloadstarting"), { title: i18n.t("toasts.downloadstart") });
 }
@@ -149,6 +172,7 @@ export const photos = {
   downloadCompleted,
   downloadFailed,
   downloadStarting,
+  emptyTrashStarted,
   locationRemoved,
   locationSavedNoPlace,
   locationSavedWithoutPlace,
@@ -164,9 +188,12 @@ export const photos = {
   startOcrScan,
   startPhotoScan,
   togglePhotoDelete,
-  togglePhotoSharing,
   togglePhotosFavorite,
+  togglePhotoSharing,
   togglePhotosHidden,
   togglePhotosPublic,
+  trashEmptied,
+  trashEmptiedWithErrors,
+  trashEmptyFailed,
   updatePhoto,
 };

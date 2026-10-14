@@ -77,6 +77,17 @@ export type SiteSettingsUpdate = Partial<
   }
 >;
 
+/**
+ * GET /api/sitesettings/trash-retention-preview/?days=N (admin): what the next daily cleanup would
+ * delete with that trash retention, across every user's trash (#2203).
+ */
+export const TrashRetentionPreview = z.object({
+  days: z.number(),
+  photo_count: z.number(),
+  user_count: z.number(),
+});
+export type TrashRetentionPreview = z.infer<typeof TrashRetentionPreview>;
+
 /** GET /api/timezones/: every time zone name the date-time rules accept. */
 export const Timezones = z.string().array();
 export type Timezones = z.infer<typeof Timezones>;

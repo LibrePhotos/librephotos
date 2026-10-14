@@ -7364,6 +7364,48 @@
         }
       }
     },
+    "/api/sitesettings/trash-retention-preview/": {
+      "get": {
+        "operationId": "api_sitesettings_trash_retention_preview_retrieve",
+        "description": "What a trash retention of N days would delete at the next cleanup (#2203).\n\nThe Site settings card asks before it turns the retention on or shortens\nit, with this count. It counts every user's trash, which is what the\nretention deletes, so only an admin may ask.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "type": "integer",
+              "maximum": 36500,
+              "minimum": 1
+            },
+            "description": "Days a photo may stay in the trash.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashRetentionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/socialgraph/": {
       "get": {
         "operationId": "api_socialgraph_retrieve",
@@ -18335,6 +18377,28 @@
         },
         "required": [
           "refresh"
+        ]
+      },
+      "TrashRetentionPreview": {
+        "type": "object",
+        "description": "What the next daily cleanup would delete with that retention.",
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos in any user's trash for longer than ``days`` days."
+          },
+          "user_count": {
+            "type": "integer",
+            "description": "Users those photos belong to."
+          }
+        },
+        "required": [
+          "days",
+          "photo_count",
+          "user_count"
         ]
       },
       "UnlinkGroupResponse": {

@@ -72,6 +72,9 @@ vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { favorite_min_rating: 4 } }),
 }));
+vi.mock("../../api_client/settings/hooks", () => ({
+  useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
+}));
 vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: true, userId: stubs.userId }) }));
 vi.mock("../../hooks/useCopyPhotoToClipboard", () => ({
@@ -255,10 +258,13 @@ describe("photo page", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/" });
   });
 
-  it("says a trashed photo is in the trash and restores it from there", async () => {
-    stubs.query = { data: { ...photo, in_trashcan: true }, isError: false };
+  it("says a trashed photo is in the trash, since when and until when, and restores it from there", async () => {
+    stubs.query = { data: { ...photo, in_trashcan: true, trashed_at: "2026-10-02T08:00:00Z" }, isError: false };
     const container = await renderPage();
     expect(container.textContent).toContain("photopage.status.trashed");
+    // The trash retention (#2203): the keys, as this test runs without the English strings.
+    expect(container.textContent).toContain("trash.trashedOn");
+    expect(container.textContent).toMatch(/trash\.(deletedIn|deletedNext)/);
     await act(async () => button(container, "photopage.actions.restore").click());
     expect(defined(stubs.markDeleted.mock.calls[0])[0]).toEqual({ image_hashes: ["abc"], deleted: false });
   });

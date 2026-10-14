@@ -708,6 +708,12 @@ export async function updateSiteSettings(client: ApiClient, settings: S.SiteSett
   return parseResponse(S.SiteSettings, res, "update site settings");
 }
 
+/** Admin: how many photos, of how many users, a trash retention of `days` deletes at the next cleanup. */
+export async function fetchTrashRetentionPreview(client: ApiClient, days: number): Promise<S.TrashRetentionPreview> {
+  const res = await client.get<unknown>(`/sitesettings/trash-retention-preview/${buildQuery({ days })}`);
+  return parseResponse(S.TrashRetentionPreview, res, "trash retention preview");
+}
+
 /** A few views answer a JSON document as a JSON string (json.dumps, then Response): decode it. */
 function decodeJsonString(res: unknown, context: string): unknown {
   return JSON.parse(parseResponse(z.string(), res, context));
