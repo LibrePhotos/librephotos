@@ -245,6 +245,8 @@ CLIENT_PATHS = {
     "/api/predefinedburstrules/": "api.views.user.PredefinedBurstRulesView",
     "/api/predefinedrules/": "api.views.user.PredefinedRulesView",
     "/api/public/albums/s/1/photos/1/": "api.views.public_albums.PublicPhotoDetailBySlug",
+    "/api/restore-face-labels/": "api.views.faces.RestoreFaceLabels",
+    "/api/restore-faces/": "api.views.faces.RestoreFaces",
     "/api/rqavailable/": "api.views.jobs.QueueAvailabilityView",
     "/api/scanfaces": "api.views.faces.ScanFacesView",
     "/api/scanphotos/": "api.views.scan_triggers.ScanPhotosView",

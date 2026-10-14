@@ -102,6 +102,11 @@ class FaceListQuery(serializers.Serializer[None]):
     order_by = serializers.CharField(
         default="", allow_blank=True, help_text="date sorts by photo date first"
     )
+    deleted = QueryFlagField(
+        true_values={"true"},
+        help_text="true lists the person's deleted faces (person 0: deleted faces "
+        "of no one); inferred and analysis_method are ignored then",
+    )
 
 
 class FaceIncompleteListQuery(serializers.Serializer[None]):
@@ -114,6 +119,10 @@ class FaceIncompleteListQuery(serializers.Serializer[None]):
         help_text="clustering or classification, with inferred",
     )
     min_confidence = serializers.FloatField(default=0)
+    deleted = QueryFlagField(
+        true_values={"true"},
+        help_text="true counts each person's deleted faces instead",
+    )
 
 
 class FaceIdsRequest(serializers.Serializer[None]):
@@ -146,6 +155,21 @@ class SetFacePersonLabelRequest(FaceIdsRequest):
     person_name = required_string("person_name must not be empty")
 
 
+class FaceLabels(serializers.Serializer[None]):
+    """A face's people: the one it is labelled with and the two suggested ones."""
+
+    id = serializers.IntegerField(help_text="The face's id")
+    person = serializers.IntegerField(
+        allow_null=True, help_text="The person the face is labelled with"
+    )
+    cluster_person = serializers.IntegerField(
+        allow_null=True, help_text="The person face clustering suggests"
+    )
+    classification_person = serializers.IntegerField(
+        allow_null=True, help_text="The person the face classifier suggests"
+    )
+
+
 class SetFacePersonLabelResponse(serializers.Serializer[None]):
     """The answer of POST /api/labelfaces: the relabelled faces."""
 
@@ -153,6 +177,35 @@ class SetFacePersonLabelResponse(serializers.Serializer[None]):
     results = FaceListSerializer(many=True)
     updated = FaceListSerializer(many=True)
     not_updated = FaceListSerializer(many=True)
+    previous = FaceLabels(
+        many=True,
+        help_text=(
+            "Each relabelled face's people before this request; POST them to "
+            "/api/restore-face-labels/ to undo it"
+        ),
+    )
+    write_error = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Why the edit, saved in LibrePhotos, was not written to the file or "
+            "its sidecar; null when it was written or writing is off (#2294)"
+        ),
+    )
+
+
+class RestoreFaceLabelsRequest(serializers.Serializer[None]):
+    """POST /api/restore-face-labels/: the ``previous`` of a labelling to undo."""
+
+    faces = FaceLabels(many=True)
+
+
+class RestoreFacesResponse(serializers.Serializer[None]):
+    """The answer of POST /api/restore-faces/ and /api/restore-face-labels/."""
+
+    restored_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="The faces restored; a face the requester does not own is skipped",
+    )
     write_error = serializers.CharField(
         allow_null=True,
         help_text=(

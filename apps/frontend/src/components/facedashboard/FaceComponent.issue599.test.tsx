@@ -71,6 +71,7 @@ beforeEach(() => {
     rejectMatch: vi.fn<FaceActionHandlers["rejectMatch"]>(),
     labelAs: vi.fn<FaceActionHandlers["labelAs"]>(),
     remove: vi.fn<FaceActionHandlers["remove"]>(),
+    restore: vi.fn<FaceActionHandlers["restore"]>(),
   };
   handleClick = vi.fn<Props["handleClick"]>();
   handleShowClick = vi.fn<Props["handleShowClick"]>();

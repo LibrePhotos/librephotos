@@ -9,6 +9,7 @@ import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/Vir
 import { FacesTab } from "../facesTab";
 import { needsCoverPage } from "../personCover";
 import { PAGE_SIZE } from "./useFaceDataFetching";
+import type { FaceGroupPage } from "./useFaceDataFetching";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */
 export type GridCell = CompletePersonFace | PersonFace;
@@ -61,14 +62,7 @@ export function useVirtualizedGrid(
   lists: Readonly<Record<FacesTab, CompletePersonFaceList>>,
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void,
   handleShowClick: (e: React.MouseEvent, cell: FaceCell) => void,
-  onSectionChange: (
-    visibleInfos: Array<{
-      page: number;
-      person: number;
-      inferred: boolean;
-      method: FaceAnalysisMethod;
-    }>
-  ) => void,
+  onSectionChange: (visibleInfos: FaceGroupPage[]) => void,
   scrollPosition: number | undefined, // Only defined for programmatic scrolls (tab changes)
   onScroll: (params: { scrollTop: number }) => void,
   selectMode: boolean,
@@ -127,8 +121,13 @@ export function useVirtualizedGrid(
         numEntrySquaresPerRow,
         collapsedPersons[FacesTab.enum.unknown]
       ).cellContents,
+      [FacesTab.enum.deleted]: calculateFaceGridCells(
+        lists.deleted,
+        numEntrySquaresPerRow,
+        collapsedPersons[FacesTab.enum.deleted]
+      ).cellContents,
     }),
-    [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow, collapsedPersons]
+    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, numEntrySquaresPerRow, collapsedPersons]
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
@@ -186,8 +185,9 @@ export function useVirtualizedGrid(
               {
                 page: needed.page,
                 person: activeTab === FacesTab.enum.unknown ? 0 : needed.person,
-                inferred: activeTab !== FacesTab.enum.labeled,
+                inferred: activeTab === FacesTab.enum.inferred || activeTab === FacesTab.enum.unknown,
                 method: analysisMethod,
+                deleted: activeTab === FacesTab.enum.deleted,
               },
             ]
           : [];

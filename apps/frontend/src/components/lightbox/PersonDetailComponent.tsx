@@ -160,13 +160,13 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         onClose={closeDelete}
         onConfirm={deleteFace}
         loading={isDeleting}
-        irreversible
         title={t("confirmdialog.deleteface.title")}
-        message={
+        // A deleted face can be restored from the Deleted tab of the Faces page (#127)
+        message={`${
           isUnnamed
             ? t("confirmdialog.deleteface.messageunnamed")
             : t("confirmdialog.deleteface.message", { name: person.name })
-        }
+        } ${t("confirmdialog.deleteface.restorable")}`}
         confirmLabel={t("confirmdialog.deleteface.confirm")}
       />
     </Group>

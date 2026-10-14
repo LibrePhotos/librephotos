@@ -56,7 +56,7 @@ If **Settings → Face Options → Write face tags to image files** is enabled, 
 
 If you click on the blue button (the barbell icon) in the face dashboard, or the **Train** button on the [Library page](./library.md) (avatar menu → **Library**, under **Faces & People**), the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person.
 
-The dashboard has three tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), and **Labeled** (faces you have already named). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about — use the **% confident** filter in the toolbar to lower this threshold and surface weaker recommendations (the filter applies to both the Inferred and Unknown tabs).
+The dashboard has four tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), **Labeled** (faces you have already named) and **Deleted** (faces you deleted, so you can [restore them](#restore-deleted-faces)). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about — use the **% confident** filter in the toolbar to lower this threshold and surface weaker recommendations (the filter applies to both the Inferred and Unknown tabs).
 
 Each tab shows how many faces it holds. Hover over a tab to see how many people (and, on the Inferred tab, groups) those faces belong to. The numbers follow the sort, Clusters/Classifications and confidence settings, so they always match the faces on screen.
 
@@ -81,13 +81,31 @@ You can also review faces one at a time, without selecting them first. Point at 
   - **Show photo** opens the photo the face is in.
   - **Delete face** removes the face after you confirm, as described in [Delete faces](#delete-faces).
 
+On the Deleted tab the menu only offers **Restore face** and **Show photo**.
+
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
 A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again. _Not released yet: this comes with the release after 1.3._
 
 ## Delete faces
 
-Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. This cannot be undone from the interface. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan.
+Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan, and so the face can be [restored](#restore-deleted-faces).
+
+## Undo a face action
+
+_Not released yet: Undo and the Deleted tab come with the release after 1.3._
+
+The message that confirms a delete, a label (**Label as…**, the green plus button, the check-person buttons) or a wrong match (**Not _name_**, the orange person-off button) has an **Undo** button. It stays for 8 seconds, longer while you point at it. Undo puts the faces back exactly as they were: deleted faces come back to their person, and labelled faces go back to the tab they came from, with the suggestion they had (a face you confirmed on the Inferred tab is a suggestion on the Inferred tab again). When you act on several faces one after the other, the message adds them up, and its Undo takes back all of them.
+
+### Restore deleted faces
+
+The **Deleted** tab lists every face you deleted, grouped by the person each face had; deleted faces that had no person are under "Unknown - Other". To bring faces back:
+
+- select them and click **Restore** in the toolbar,
+- click the green restore button next to a person's name to restore all of that person's faces, or
+- choose **Restore face** in a face's ⋮ menu.
+
+A restored face goes back to its person (or to the unknown faces), counts for that person again and is found by search under their name. If **Write face tags to image files** is on, the face's region is written to the photo again.
 
 ## Re-scan faces
 
@@ -96,7 +114,7 @@ Re-scan faces looks through all your photos again and adds any face it finds tha
 Every face scan, the one after a photo scan as well as Re-scan faces, first gives each face whose thumbnail is missing a new one, cut from the photo where the face was found. A face whose photo has no thumbnail keeps the grey person icon until the photo has one. _Not released yet: this comes with the release after 1.3._
 
 :::note
-A re-scan will not bring back faces you removed with the delete face action. Deleting a face marks it as deleted but keeps its region on record, and the re-scan skips any newly detected face that overlaps an existing record — including deleted ones. Deleting a face cannot be undone from the user interface.
+A re-scan will not bring back faces you removed with the delete face action. Deleting a face marks it as deleted but keeps its region on record, and the re-scan skips any newly detected face that overlaps an existing record — including deleted ones. To get a deleted face back, restore it from the **Deleted** tab (see [Restore deleted faces](#restore-deleted-faces)).
 :::
 
 ## Workflow

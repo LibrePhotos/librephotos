@@ -2,6 +2,7 @@ import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import {
   IconDotsVertical as DotsVertical,
   IconPhoto as Photo,
+  IconRestore as Restore,
   IconTag as Tag,
   IconTrash as Trash,
   IconUserCheck as UserCheck,
@@ -45,7 +46,7 @@ function WrongMatchItem({ face, group, actions }: Pick<Props, "face" | "group" |
   );
 }
 
-function FaceMenuItems({ face, group, actions, onShowPhoto, selectMode }: MenuProps) {
+function FaceMenuItems({ face, group, tab, actions, onShowPhoto, selectMode }: MenuProps) {
   const { t } = useTranslation();
   const showPhoto = (
     <Menu.Item leftSection={<Photo size={14} />} onClick={e => onShowPhoto(e, face)}>
@@ -53,6 +54,17 @@ function FaceMenuItems({ face, group, actions, onShowPhoto, selectMode }: MenuPr
     </Menu.Item>
   );
   if (selectMode) return showPhoto;
+  // A deleted face can only come back (#127)
+  if (tab === "deleted") {
+    return (
+      <>
+        <Menu.Item leftSection={<Restore size={14} />} onClick={() => actions.restore(face)}>
+          {t("facesdashboard.restoreface")}
+        </Menu.Item>
+        {showPhoto}
+      </>
+    );
+  }
   return (
     <>
       <WrongMatchItem face={face} group={group} actions={actions} />

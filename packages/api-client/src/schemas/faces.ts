@@ -61,6 +61,19 @@ export const LabelledFace = z.looseObject({
 });
 export type LabelledFace = z.infer<typeof LabelledFace>;
 
+/**
+ * A face's people by id: the one it is labelled with and the two suggested ones. POST
+ * /api/labelfaces answers them as they were before the request (`previous`), and
+ * POST /api/restore-face-labels/ takes them back (#127).
+ */
+export const FaceLabels = z.object({
+  id: z.number(),
+  person: z.number().nullable(),
+  cluster_person: z.number().nullable(),
+  classification_person: z.number().nullable(),
+});
+export type FaceLabels = z.infer<typeof FaceLabels>;
+
 /** POST /api/labelfaces response. */
 export const SetFacesLabelResponse = z.looseObject({
   status: z.boolean(),
@@ -72,6 +85,8 @@ export const SetFacesLabelResponse = z.looseObject({
    * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
    */
   write_error: z.string().nullable().optional(),
+  /** Each face's people before the request, for an undo. Optional: older servers omit it. */
+  previous: FaceLabels.array().optional(),
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 
@@ -88,6 +103,17 @@ export const DeleteFacesResponse = z.looseObject({
   not_deleted: z.string().array().default([]),
 });
 export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
+
+/** POST /api/restore-faces/ and /api/restore-face-labels/ response: the faces restored. */
+export const RestoreFacesResponse = z.looseObject({
+  restored_ids: z.number().array(),
+  /**
+   * Why the edit, saved in LibrePhotos, did not reach the file or its sidecar; null when it was
+   * written or writing is off.
+   */
+  write_error: z.string().nullable(),
+});
+export type RestoreFacesResponse = z.infer<typeof RestoreFacesResponse>;
 
 /**
  * POST /api/trainfaces, /api/scanphotos, /api/fullscanphotos, GET /api/scanfaces.

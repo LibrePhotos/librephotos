@@ -1,0 +1,6 @@
+/* Four tabs fit one row on a phone only with tighter padding (the count badges are hidden there) */
+@media (max-width: 35.99em) {
+  .tab {
+    padding-inline: var(--mantine-spacing-xs);
+  }
+}

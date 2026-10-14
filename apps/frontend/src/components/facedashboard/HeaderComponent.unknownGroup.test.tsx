@@ -29,6 +29,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
 }));
 vi.mock("../../api_client/faces/hooks", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
+  useRestoreFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
 }));
 
 beforeAll(async () => {

@@ -250,6 +250,42 @@ class FaceDeleteResponseTest(DeclaredResponseTestCase):
         )
         self.assertEqual(2, len(body["deleted"]))
 
+    def test_restore_faces(self) -> None:
+        user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=user)
+        person = create_test_person(cluster_owner=user)
+        face = create_test_face(
+            photo=create_test_photo(owner=user), person=person, deleted=True
+        )
+        body = self.assert_declared(
+            "/api/restore-faces/",
+            "/api/restore-faces/",
+            method="post",
+            data={"face_ids": [face.id]},
+        )
+        self.assertEqual([face.id], body["restored_ids"])
+
+    def test_restore_face_labels(self) -> None:
+        user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=user)
+        person = create_test_person(cluster_owner=user)
+        face = create_test_face(photo=create_test_photo(owner=user))
+        labels = {
+            "id": face.id,
+            "person": person.id,
+            "cluster_person": None,
+            "classification_person": None,
+        }
+        body = self.assert_declared(
+            "/api/restore-face-labels/",
+            "/api/restore-face-labels/",
+            method="post",
+            data={"faces": [labels]},
+        )
+        self.assertEqual([face.id], body["restored_ids"])
+
 
 class UserSetupResponsesTest(DeclaredResponseTestCase):
     """The setup views of ``api/views/user.py`` and the Nextcloud folder list."""

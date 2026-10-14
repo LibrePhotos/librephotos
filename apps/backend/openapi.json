@@ -2459,6 +2459,15 @@
           },
           {
             "in": "query",
+            "name": "deleted",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "true lists the person's deleted faces (person 0: deleted faces of no one); inferred and analysis_method are ignored then"
+          },
+          {
+            "in": "query",
             "name": "inferred",
             "schema": {
               "type": "boolean",
@@ -2550,6 +2559,15 @@
               "default": "clustering"
             },
             "description": "clustering or classification, with inferred"
+          },
+          {
+            "in": "query",
+            "name": "deleted",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "true counts each person's deleted faces instead"
           },
           {
             "in": "query",
@@ -7107,6 +7125,104 @@
               }
             },
             "description": "The byte range a Range header asked for"
+          }
+        }
+      }
+    },
+    "/api/restore-face-labels/": {
+      "post": {
+        "operationId": "api_restore_face_labels_create",
+        "description": "Undo a labelling: the faces get back the people in its ``previous`` (#127).\n\nOnly the requester's own faces and people are used: a person id that is\nnot theirs is restored as no one.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreFaceLabelsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreFaceLabelsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreFaceLabelsRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreFacesResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/restore-faces/": {
+      "post": {
+        "operationId": "api_restore_faces_create",
+        "description": "Bring deleted faces back to the person each one had (#127).\n\nThe Deleted tab's Restore and the Undo of a delete. Only the requester's\nown deleted faces are touched; any other id is skipped.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FaceIdsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FaceIdsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FaceIdsRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreFacesResponse"
+                }
+              }
+            },
+            "description": ""
           }
         }
       }
@@ -12832,6 +12948,68 @@
           "face_ids"
         ]
       },
+      "FaceLabels": {
+        "type": "object",
+        "description": "A face's people: the one it is labelled with and the two suggested ones.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The face's id"
+          },
+          "person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person the face is labelled with"
+          },
+          "cluster_person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person face clustering suggests"
+          },
+          "classification_person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person the face classifier suggests"
+          }
+        },
+        "required": [
+          "classification_person",
+          "cluster_person",
+          "id",
+          "person"
+        ]
+      },
+      "FaceLabelsRequest": {
+        "type": "object",
+        "description": "A face's people: the one it is labelled with and the two suggested ones.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The face's id"
+          },
+          "person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person the face is labelled with"
+          },
+          "cluster_person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person face clustering suggests"
+          },
+          "classification_person": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The person the face classifier suggests"
+          }
+        },
+        "required": [
+          "classification_person",
+          "cluster_person",
+          "id",
+          "person"
+        ]
+      },
       "FaceList": {
         "type": "object",
         "properties": {
@@ -17663,6 +17841,43 @@
           "trashed_count"
         ]
       },
+      "RestoreFaceLabelsRequestRequest": {
+        "type": "object",
+        "description": "POST /api/restore-face-labels/: the ``previous`` of a labelling to undo.",
+        "properties": {
+          "faces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaceLabelsRequest"
+            }
+          }
+        },
+        "required": [
+          "faces"
+        ]
+      },
+      "RestoreFacesResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/restore-faces/ and /api/restore-face-labels/.",
+        "properties": {
+          "restored_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The faces restored; a face the requester does not own is skipped"
+          },
+          "write_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
+          }
+        },
+        "required": [
+          "restored_ids",
+          "write_error"
+        ]
+      },
       "RevertDuplicateResponse": {
         "type": "object",
         "properties": {
@@ -18067,6 +18282,13 @@
               "$ref": "#/components/schemas/FaceList"
             }
           },
+          "previous": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaceLabels"
+            },
+            "description": "Each relabelled face's people before this request; POST them to /api/restore-face-labels/ to undo it"
+          },
           "write_error": {
             "type": "string",
             "nullable": true,
@@ -18075,6 +18297,7 @@
         },
         "required": [
           "not_updated",
+          "previous",
           "results",
           "status",
           "updated",

@@ -31,8 +31,13 @@ afterEach(async () => {
 });
 
 const noop = () => {};
-const lists = { labeled: [], inferred: [], unknown: [] };
-const collapsed = { labeled: new Set<number>(), inferred: new Set<number>(), unknown: new Set<number>() };
+const lists = { labeled: [], inferred: [], unknown: [], deleted: [] };
+const collapsed = {
+  labeled: new Set<number>(),
+  inferred: new Set<number>(),
+  unknown: new Set<number>(),
+  deleted: new Set<number>(),
+};
 
 let layout: { width: number; columns: number; cellSize: number } | undefined;
 
@@ -103,7 +108,7 @@ describe("paging in the faces a fold reveals", () => {
   }>) {
     grid = useVirtualizedGrid(
       FacesTab.enum.labeled,
-      { labeled: people, inferred: [], unknown: [] },
+      { labeled: people, inferred: [], unknown: [], deleted: [] },
       noop,
       noop,
       onSectionChange,
@@ -146,12 +151,16 @@ describe("paging in the faces a fold reveals", () => {
       });
     });
     expect(onSectionChange).toHaveBeenCalledTimes(1);
-    expect(onSectionChange).toHaveBeenLastCalledWith([{ page: 1, person: 1, inferred: false, method: "clustering" }]);
+    expect(onSectionChange).toHaveBeenLastCalledWith([
+      { page: 1, person: 1, inferred: false, method: "clustering", deleted: false },
+    ]);
 
     // Folding person 1 moves person 2's faces into the same rows; the Grid reports nothing
     await render(people, { ...collapsed, labeled: new Set([1]) });
     expect(onSectionChange).toHaveBeenCalledTimes(2);
-    expect(onSectionChange).toHaveBeenLastCalledWith([{ page: 1, person: 2, inferred: false, method: "clustering" }]);
+    expect(onSectionChange).toHaveBeenLastCalledWith([
+      { page: 1, person: 2, inferred: false, method: "clustering", deleted: false },
+    ]);
 
     // Data arriving is not a fold: the pages that just landed are not requested again
     const foldedOne = { ...collapsed, labeled: new Set([1]) };

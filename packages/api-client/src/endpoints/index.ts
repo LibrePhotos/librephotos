@@ -1186,6 +1186,8 @@ export type FaceListParams = {
   orderBy?: S.FaceOrderBy;
   analysisMethod?: S.FaceAnalysisMethod;
   minConfidence?: number;
+  /** The person's deleted faces instead (#127); the method and threshold do not apply. */
+  deleted?: boolean;
 };
 
 export async function fetchFaces(client: ApiClient, params: FaceListParams = {}): Promise<S.PersonFaceListResponse> {
@@ -1196,6 +1198,7 @@ export async function fetchFaces(client: ApiClient, params: FaceListParams = {})
     order_by: params.orderBy ?? "confidence",
     analysis_method: params.analysisMethod,
     min_confidence: params.minConfidence,
+    deleted: params.deleted || undefined,
   });
   const res = await client.get<unknown>(`/faces/${query}`);
   return parseResponse(S.PersonFaceListResponse, res, "faces");
@@ -1203,7 +1206,8 @@ export async function fetchFaces(client: ApiClient, params: FaceListParams = {})
 
 /**
  * Every person with a face count, plus an "Unknown - Other" entry (id 0) for the faces of no one.
- * With `inferred`, the counts take in the suggested faces too (above `minConfidence`).
+ * With `inferred`, the counts take in the suggested faces too (above `minConfidence`). With
+ * `deleted`, they count each person's deleted faces instead (#127).
  */
 export async function fetchIncompleteFaces(
   client: ApiClient,
@@ -1212,6 +1216,7 @@ export async function fetchIncompleteFaces(
     orderBy?: S.FaceOrderBy;
     analysisMethod?: S.FaceAnalysisMethod;
     minConfidence?: number;
+    deleted?: boolean;
   } = {}
 ): Promise<S.IncompleteFacesResponse> {
   const query = buildQuery({
@@ -1219,6 +1224,7 @@ export async function fetchIncompleteFaces(
     order_by: params.orderBy ?? "confidence",
     analysis_method: params.inferred ? (params.analysisMethod ?? "clustering") : undefined,
     min_confidence: params.minConfidence,
+    deleted: params.deleted || undefined,
   });
   const res = await client.get<unknown>(`/faces/incomplete/${query}`);
   return parseResponse(S.IncompleteFacesResponse, res, "incomplete faces");
@@ -1240,6 +1246,21 @@ export async function labelFaces(
 export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise<S.DeleteFacesResponse> {
   const res = await client.post<unknown>("/deletefaces", { face_ids: faceIds });
   return parseResponse(S.DeleteFacesResponse, res, "delete faces");
+}
+
+/** Bring deleted faces back to the person each one had (#127); other ids are skipped. */
+export async function restoreFaces(client: ApiClient, faceIds: number[]): Promise<S.RestoreFacesResponse> {
+  const res = await client.post<unknown>("/restore-faces/", { face_ids: faceIds });
+  return parseResponse(S.RestoreFacesResponse, res, "restore faces");
+}
+
+/** Undo a labelling: give the faces back the people `labelFaces` answered as `previous` (#127). */
+export async function restoreFaceLabels(
+  client: ApiClient,
+  faces: readonly S.FaceLabels[]
+): Promise<S.RestoreFacesResponse> {
+  const res = await client.post<unknown>("/restore-face-labels/", { faces });
+  return parseResponse(S.RestoreFacesResponse, res, "restore face labels");
 }
 
 export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {

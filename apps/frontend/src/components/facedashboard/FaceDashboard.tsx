@@ -1,4 +1,4 @@
-import { UNKNOWN_PERSON_NAME, type FaceAnalysisMethod } from "@librephotos/api-client";
+import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
@@ -6,7 +6,11 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import {
+  useDeleteFacesMutation,
+  useRestoreFacesMutation,
+  useSetFacesPersonLabelMutation,
+} from "../../api_client/faces";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
@@ -19,6 +23,7 @@ import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceActions } from "./hooks/useFaceActions";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
+import type { FaceGroupPage } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
@@ -46,27 +51,14 @@ export function FaceDashboard() {
   // State
   const [modalPersonEditOpen, { open: openModalPersonEdit, close: closeModalPersonEdit }] = useDisclosure(false);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
-  const [groups, setGroups] = useState<
-    Array<{
-      page: number;
-      person: number;
-      inferred: boolean;
-      method: FaceAnalysisMethod;
-    }>
-  >([]);
+  const [groups, setGroups] = useState<FaceGroupPage[]>([]);
 
   // Simple lightbox state management
   const [lightboxOpen, { open: openLightbox, close: hideLightbox }] = useDisclosure(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
 
-  const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, idx2hash } = useFaceDataFetching(
-    groups,
-    activeTab,
-    analysisMethod,
-    orderBy,
-    minConfidence,
-    personOrder
-  );
+  const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, fetchingDeletedFacesList, idx2hash } =
+    useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder);
 
   const showLightbox = useCallback(
     (imageId: string, isValid: boolean) => {
@@ -86,6 +78,7 @@ export function FaceDashboard() {
   // Mutations
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
   const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
+  const { mutate: restoreFacesMutate } = useRestoreFacesMutation();
   // Confirm, Not this person, Label as… and Delete on one face (#599)
   const faceActions = useFaceActions();
   const { clearPending } = faceActions;
@@ -190,6 +183,14 @@ export function FaceDashboard() {
     }
   }, [selectedFaces, deleteFacesMutate, clearSelection]);
 
+  // The Deleted tab's Restore (#127): the hook says "restored" once the server confirmed
+  const restoreSelectedFaces = useCallback(() => {
+    if (selectedFaces.length > 0) {
+      restoreFacesMutate({ faceIds: selectedFaces.map(face => face.face_id) });
+      clearSelection();
+    }
+  }, [selectedFaces, restoreFacesMutate, clearSelection]);
+
   const notThisPersonFunc = useCallback(() => {
     if (selectedFaces.length > 0) {
       setFacesPersonLabelMutate({
@@ -220,13 +221,14 @@ export function FaceDashboard() {
   }, []);
 
   // Check if the current tab has any faces
-  const isFetching = activeTab === FacesTab.enum.labeled ? fetchingLabeledFacesList : fetchingInferredFacesList;
-  const currentTabList =
-    activeTab === FacesTab.enum.labeled
-      ? lists.labeled
-      : activeTab === FacesTab.enum.inferred
-        ? lists.inferred
-        : lists.unknown;
+  const fetchingByTab: Record<FacesTab, boolean> = {
+    labeled: fetchingLabeledFacesList,
+    inferred: fetchingInferredFacesList,
+    unknown: fetchingInferredFacesList,
+    deleted: fetchingDeletedFacesList,
+  };
+  const isFetching = fetchingByTab[activeTab];
+  const currentTabList = lists[activeTab];
   const hasFaces = currentTabList.length > 0;
   const collapsedInActiveTab = collapsedPersons[activeTab];
   const allCollapsed = hasFaces && currentTabList.every(person => collapsedInActiveTab.has(person.id));
@@ -241,7 +243,8 @@ export function FaceDashboard() {
     const noFacesAtAll =
       !fetchingLabeledFacesList &&
       !fetchingInferredFacesList &&
-      lists.labeled.length + lists.inferred.length + lists.unknown.length === 0;
+      !fetchingDeletedFacesList &&
+      lists.labeled.length + lists.inferred.length + lists.unknown.length + lists.deleted.length === 0;
     if (noFacesAtAll) {
       return (
         <EmptyState
@@ -272,6 +275,7 @@ export function FaceDashboard() {
         <TabComponent
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}
+          fetchingDeletedFacesList={fetchingDeletedFacesList}
           lists={lists}
         />
         <HeaderButtons
@@ -281,6 +285,7 @@ export function FaceDashboard() {
           addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
+          restoreFaces={restoreSelectedFaces}
           allCollapsed={allCollapsed}
           toggleAllCollapsed={toggleAllCollapsed}
           canCollapse={hasFaces}

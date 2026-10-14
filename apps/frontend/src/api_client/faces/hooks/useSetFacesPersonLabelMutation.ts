@@ -1,31 +1,33 @@
-import {
-  albumKeys,
-  endpoints,
-  faceKeys,
-  invalidateAfter,
-  photoKeys,
-  statsKeys,
-  UNKNOWN_PERSON_NAME,
-} from "@librephotos/api-client";
-import { useMutation } from "@tanstack/react-query";
+import { endpoints, UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
+import type { FaceLabels } from "@librephotos/api-client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { apiClient, queryClient } from "../../api";
+import { apiClient } from "../../api";
+import { invalidateFaceEdits } from "./invalidateFaceEdits";
+import { useRestoreFaceLabelsMutation } from "./useRestoreFaceLabelsMutation";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
 
 const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
   endpoints.labelFaces(apiClient, data.faceIds, data.personName);
 
-export const useSetFacesPersonLabelMutation = () =>
-  useMutation({
+export const useSetFacesPersonLabelMutation = () => {
+  const queryClient = useQueryClient();
+  // The toast's Undo gives the faces back their people (#127); older servers send no `previous`
+  const { mutateAsync: restoreLabels } = useRestoreFaceLabelsMutation();
+  const undoOf = (previous: FaceLabels[] | undefined) =>
+    previous && previous.length > 0 ? () => restoreLabels(previous) : undefined;
+
+  return useMutation({
     mutationFn: setFacesPersonLabel,
     // The toast waits for the server: "not this person" used to claim success before it answered.
     onSuccess: (data, { personName }) => {
+      const undo = undoOf(data.previous);
       if (personName === UNKNOWN_PERSON_NAME) {
-        notification.removeFacesFromPerson(data.results.length);
+        notification.removeFacesFromPerson(data.results.length, undo);
       } else {
-        notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length);
+        notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length, undo);
       }
 
       // Every tagging path funnels through this mutation, so this is the one
@@ -33,15 +35,7 @@ export const useSetFacesPersonLabelMutation = () =>
       // to "Unknown - Other", which is not a pick worth remembering.
       recordRecentlyTaggedPerson(data.results[0]?.person);
 
-      // Face-related queries, people albums (face counts and labels change), statistics (num_faces,
-      // num_people, etc. change) and photo details (people array changes), after a short delay
-      // so backend processing is complete.
-      invalidateAfter(queryClient, [
-        faceKeys.incomplete(),
-        faceKeys.personFaces(),
-        albumKeys.peopleAlbums(),
-        statsKeys.counts(),
-        photoKeys.details(),
-      ]);
+      invalidateFaceEdits(queryClient);
     },
   });
+};

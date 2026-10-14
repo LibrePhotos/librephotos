@@ -6,17 +6,19 @@ import { PAGE_GUTTER } from "../../uiConstants";
 import { countFaces, type FacesTabLists } from "./facesCounters";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 import { FacesTab } from "./facesTab";
+import classes from "./TabComponent.module.css";
 
 type Props = Readonly<{
   fetchingLabeledFacesList: boolean;
   fetchingInferredFacesList: boolean;
+  fetchingDeletedFacesList: boolean;
   /** The lists the page shows; the tabs count these, never a list of their own (#2236). */
   lists: FacesTabLists;
 }>;
 
 /**
  * A tab's face count, the faces its grid shows (the Organizing page's tab badge). Not on phones:
- * with it the three tabs no longer fit in one row there.
+ * with it the four tabs no longer fit in one row there.
  */
 function CountBadge({ count }: Readonly<{ count: number }>) {
   return (
@@ -28,7 +30,12 @@ function CountBadge({ count }: Readonly<{ count: number }>) {
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesList, lists }: Props) {
+export function TabComponent({
+  fetchingLabeledFacesList,
+  fetchingInferredFacesList,
+  fetchingDeletedFacesList,
+  lists,
+}: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const search = routeApi.useSearch();
@@ -41,6 +48,7 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
         defaultValue={activeTab}
         value={activeTab}
         w="100%"
+        classNames={{ tab: classes.tab }}
         onChange={value => {
           navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
         }}
@@ -59,6 +67,12 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
           <FacesCountersHoverCard tab={FacesTab.enum.labeled} counters={counters}>
             <Tabs.Tab value={FacesTab.enum.labeled} rightSection={<CountBadge count={counters.labeled.faces} />}>
               {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+          {/* Deleted faces, so a face deleted by mistake can be restored (#127) */}
+          <FacesCountersHoverCard tab={FacesTab.enum.deleted} counters={counters}>
+            <Tabs.Tab value={FacesTab.enum.deleted} rightSection={<CountBadge count={counters.deleted.faces} />}>
+              {t("facesdashboard.deletedtab")} {fetchingDeletedFacesList ? <Loader size="sm" /> : null}
             </Tabs.Tab>
           </FacesCountersHoverCard>
         </Tabs.List>

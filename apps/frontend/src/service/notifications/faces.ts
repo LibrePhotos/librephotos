@@ -17,34 +17,52 @@ function rescanFacesFailed() {
   toast.error(i18n.t("toasts.rescanfacesfailed"), { title: i18n.t("toasts.rescanfacestitle") });
 }
 
-// The face actions run once per face on the dashboard (#599): these toasts add up while on screen
+// The face actions run once per face on the dashboard (#599): these toasts add up while on screen.
+// Each takes the undo of its action (#127), which gives the toast an Undo button.
 
-function deleteFaces(numberOfFaces: number) {
+type Undo = () => Promise<unknown>;
+
+function deleteFaces(numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     "faces-deleted",
     numberOfFaces,
     total => i18n.t("toasts.deletefaces", { numberOfFaces: total }),
-    {
-      title: i18n.t("toasts.deletefacestitle"),
-    }
+    { title: i18n.t("toasts.deletefacestitle"), undo }
   );
 }
 
-function addFacesToPerson(personName: string, numberOfFaces: number) {
+function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     `faces-labeled-${personName}`,
     numberOfFaces,
     total => i18n.t("toasts.addfacestoperson", { numberOfFaces: total, personName }),
-    { title: i18n.t("toasts.addfacestopersontitle") }
+    { title: i18n.t("toasts.addfacestopersontitle"), undo }
   );
 }
 
-function removeFacesFromPerson(numberOfFaces: number) {
+function removeFacesFromPerson(numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     "faces-unlabeled",
     numberOfFaces,
     total => i18n.t("toasts.removefacestoperson", { numberOfFaces: total }),
-    { title: i18n.t("toasts.removefacestopersontitle") }
+    { title: i18n.t("toasts.removefacestopersontitle"), undo }
+  );
+}
+
+/** Deleted faces are back with their people: from the Deleted tab, or the Undo of a delete. */
+function restoreFaces(numberOfFaces: number) {
+  toast.successCounted("faces-restored", numberOfFaces, total => i18n.t("toasts.restorefaces", { count: total }), {
+    title: i18n.t("toasts.restorefacestitle"),
+  });
+}
+
+/** The Undo of a labelling: the faces are back with the people they had. */
+function restoreFaceLabels(numberOfFaces: number) {
+  toast.successCounted(
+    "faces-labels-restored",
+    numberOfFaces,
+    total => i18n.t("toasts.restorefacelabels", { count: total }),
+    { title: i18n.t("toasts.restorefacelabelstitle") }
   );
 }
 
@@ -54,6 +72,8 @@ export const faces = {
   removeFacesFromPerson,
   rescanFaces,
   rescanFacesFailed,
+  restoreFaceLabels,
+  restoreFaces,
   trainFaces,
   trainFacesFailed,
 };

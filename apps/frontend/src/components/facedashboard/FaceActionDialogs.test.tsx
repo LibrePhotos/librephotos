@@ -27,6 +27,7 @@ vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: stubs.label }),
   useDeleteFacesMutation: () => ({ mutate: stubs.remove }),
+  useRestoreFacesMutation: () => ({ mutate: () => {} }),
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({

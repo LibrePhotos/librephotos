@@ -53,6 +53,7 @@ const LISTS: FacesTabLists = {
   labeled: [group(1, "Alice", 300), group(2, "Bob", 10)],
   inferred: [group(1, "Alice", 30), group(2, "Bob", 8), group(3, "Carol", 3)],
   unknown: [group(4, UNKNOWN_PERSON_NAME, 25)],
+  deleted: [group(1, "Alice", 2), group(0, UNKNOWN_PERSON_NAME, 1)],
 };
 
 let root: Root | undefined;
@@ -98,7 +99,12 @@ async function renderTabs() {
     root?.render(
       <MantineProvider>
         <QueryClientProvider client={queryClient}>
-          <TabComponent fetchingLabeledFacesList={false} fetchingInferredFacesList={false} lists={LISTS} />
+          <TabComponent
+            fetchingLabeledFacesList={false}
+            fetchingInferredFacesList={false}
+            fetchingDeletedFacesList={false}
+            lists={LISTS}
+          />
         </QueryClientProvider>
       </MantineProvider>
     );
@@ -141,6 +147,7 @@ describe("faces tabs' counters (#2236)", () => {
     expect(tab("Inferred").textContent).toContain("41");
     expect(tab("Unknown").textContent).toContain("25");
     expect(tab("Labeled").textContent).toContain("310");
+    expect(tab("Deleted").textContent).toContain("3");
   });
 
   it("counts the inferred tab's hover card from the page's list, the unknown group apart", async () => {
@@ -158,5 +165,10 @@ describe("faces tabs' counters (#2236)", () => {
   it("counts the unknown faces", async () => {
     await renderTabs();
     expect(await hover("Unknown")).toContain("25 Unknown Faces");
+  });
+
+  it("counts the deleted faces, of every person and of no one (#127)", async () => {
+    await renderTabs();
+    expect(await hover("Deleted")).toContain("3 deleted faces");
   });
 });

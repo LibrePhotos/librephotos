@@ -1,8 +1,11 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { z } from "zod";
 
-/** The faces dashboard's tabs (its `tab` URL parameter). */
-export const FacesTab = z.enum(["labeled", "inferred", "unknown"]);
+/**
+ * The faces dashboard's tabs (its `tab` URL parameter). "deleted" lists the deleted faces, by the
+ * person each one had, so they can be restored (#127).
+ */
+export const FacesTab = z.enum(["labeled", "inferred", "unknown", "deleted"]);
 export type FacesTab = z.infer<typeof FacesTab>;
 
 /**

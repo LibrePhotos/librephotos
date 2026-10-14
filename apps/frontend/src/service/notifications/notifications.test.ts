@@ -3,6 +3,11 @@
  * passes other names than the string uses shows the raw placeholder: every
  * album rename said "{{albumTitle}} was successfully renamed to {{newAlbumTitle}}".
  */
+import { MantineProvider } from "@mantine/core";
+import { act, createElement } from "react";
+import type { ReactNode } from "react";
+import { createRoot } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { notification } from ".";
 import i18n from "../../i18n";
@@ -10,7 +15,7 @@ import { toast } from "./toast";
 
 type Shown = {
   title?: string;
-  message?: string;
+  message?: ReactNode;
   color?: string;
   id?: string;
   autoClose?: number | false;
@@ -31,8 +36,24 @@ const lastShown = (): Shown => {
 };
 
 beforeAll(async () => {
+  // jsdom has no matchMedia, MantineProvider needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
+
+/** What a toast's message says; one with an Undo button is a component (#127). */
+const textOf = (message: ReactNode): string =>
+  renderToStaticMarkup(createElement(MantineProvider, { env: "test" }, message));
 
 beforeEach(() => {
   showNotification.mockReset();
@@ -55,7 +76,7 @@ describe("notifications", () => {
     Reflect.apply(show, undefined, [["A"], 2, true]);
 
     const { title, message } = lastShown();
-    expect(`${title ?? ""} ${message ?? ""}`).not.toContain("{{");
+    expect(`${title ?? ""} ${textOf(message)}`).not.toContain("{{");
   });
 
   it("names the old and the new title of a renamed album", () => {
@@ -182,5 +203,63 @@ describe("date rules applied (#437)", () => {
       color: "orange",
       autoClose: false,
     });
+  });
+});
+
+describe("toasts with an Undo (#127)", () => {
+  /** Shows the message as the toast would, and clicks its Undo button. */
+  async function clickUndo(message: ReactNode) {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => root.render(createElement(MantineProvider, { env: "test" }, message)));
+    const undo = Array.from(container.querySelectorAll("button")).find(button => button.textContent === "Undo");
+    if (!undo) throw new Error("the toast has no Undo button");
+    await act(async () => undo.click());
+    await act(async () => root.unmount());
+    container.remove();
+  }
+
+  it("get an Undo button and stay 8 s", () => {
+    notification.deleteFaces(2, () => Promise.resolve());
+
+    expect(lastShown().autoClose).toBe(8000);
+    expect(textOf(lastShown().message)).toContain("2 face(s) were deleted");
+    expect(textOf(lastShown().message)).toContain("Undo");
+  });
+
+  it("close and undo every action the toast adds up, the latest first", async () => {
+    const undone: string[] = [];
+    notification.removeFacesFromPerson(1, async () => {
+      undone.push("first");
+    });
+    notification.removeFacesFromPerson(1, async () => {
+      undone.push("second");
+    });
+    const latest = updateNotification.mock.calls.at(-1)?.[0];
+
+    await clickUndo(latest?.message);
+
+    expect(hideNotification).toHaveBeenCalledWith("faces-unlabeled");
+    expect(undone).toEqual(["second", "first"]);
+  });
+
+  it("stop at an undo that fails: the QueryClient reports it", async () => {
+    const later = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    notification.deleteFaces(1, later);
+    notification.deleteFaces(1, () => Promise.reject(new Error("offline")));
+
+    await clickUndo(updateNotification.mock.calls.at(-1)?.[0].message);
+
+    expect(later).not.toHaveBeenCalled();
+  });
+
+  it("start counting afresh after an Undo", async () => {
+    notification.deleteFaces(3, () => Promise.resolve());
+    await clickUndo(lastShown().message);
+    notification.deleteFaces(1);
+
+    expect(showNotification).toHaveBeenCalledTimes(2);
+    expect(lastShown()).toMatchObject({ message: "1 face(s) were deleted", autoClose: undefined });
   });
 });

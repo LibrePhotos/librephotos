@@ -135,16 +135,6 @@
       "count": 1
     }
   },
-  "src/api_client/faces/hooks/useDeleteFacesMutation.ts": {
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
-  "src/api_client/faces/hooks/useSetFacesPersonLabelMutation.ts": {
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
   "src/api_client/faces/hooks/useTrainFacesMutation.ts": {
     "ban/query-client-singleton": {
       "count": 1

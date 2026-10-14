@@ -36,6 +36,8 @@ function CountersText({ tab, counters }: Pick<Props, "tab" | "counters">) {
       );
     case FacesTab.enum.unknown:
       return <Text size="sm">{t("facesdashboard.unknownfacescounter", { count: counters.unknown.faces })}</Text>;
+    case FacesTab.enum.deleted:
+      return <Text size="sm">{t("facesdashboard.deletedfacescounter", { count: counters.deleted.faces })}</Text>;
   }
 }
 

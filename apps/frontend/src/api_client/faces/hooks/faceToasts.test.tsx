@@ -18,7 +18,7 @@ import { queryClient } from "../../api";
 import { useDeleteFacesMutation } from "./useDeleteFacesMutation";
 import { useSetFacesPersonLabelMutation } from "./useSetFacesPersonLabelMutation";
 
-type Toast = (message: ReactNode, options?: ToastOptions) => void;
+type Toast = (message: ReactNode, options?: ToastOptions & { undo?: () => Promise<unknown> }) => void;
 
 const toasts = vi.hoisted(() => ({ success: vi.fn<Toast>(), error: vi.fn<Toast>() }));
 
@@ -26,8 +26,12 @@ vi.mock("../../../service/notifications/toast", () => ({
   toast: {
     success: toasts.success,
     // The face toasts add up while on screen (#599); here each one is a plain success toast
-    successCounted: (_id: string, count: number, message: (total: number) => ReactNode, options?: ToastOptions) =>
-      toasts.success(message(count), options),
+    successCounted: (
+      _id: string,
+      count: number,
+      message: (total: number) => ReactNode,
+      options?: ToastOptions & { undo?: () => Promise<unknown> }
+    ) => toasts.success(message(count), options),
     error: toasts.error,
     warning: () => {},
     hide: () => {},
@@ -178,5 +182,52 @@ describe("moving faces back to unknown", () => {
     );
 
     expect(titles()).toEqual([i18n.t("toasts.removefacestopersontitle")]);
+  });
+});
+
+describe("the Undo of a face toast (#127)", () => {
+  /** The undo the last success toast was given. */
+  const lastUndo = () => defined(toasts.success.mock.calls.at(-1)?.[1]?.undo, "the toast's undo");
+
+  /** The last request: its URL and JSON body. */
+  function lastRequest() {
+    const [url, init] = defined(vi.mocked(fetch).mock.calls.at(-1), "a request");
+    const body: unknown = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+    return { url: String(url), body };
+  }
+
+  it("restores the faces a delete removed", async () => {
+    answer(200, { status: true, deleted_ids: [1, 2], results: [], deleted: [], not_deleted: [] });
+    await run(useDeleteFacesMutation, mutation => mutation.mutate({ faceIds: [1, 2, 3] }));
+
+    answer(200, { restored_ids: [1, 2], write_error: null });
+    await act(async () => {
+      await lastUndo()();
+    });
+
+    expect(lastRequest().url).toContain("/restore-faces/");
+    expect(lastRequest().body).toEqual({ face_ids: [1, 2] });
+    expect(titles().at(-1)).toBe(i18n.t("toasts.restorefacestitle"));
+  });
+
+  it("gives labelled faces back the people the server says they had", async () => {
+    const previous = [{ id: 3, person: null, cluster_person: 8, classification_person: null }];
+    answer(200, { status: true, results: [{ id: 3, person: 4, person_name: "Dave" }], previous });
+    await run(useSetFacesPersonLabelMutation, mutation => mutation.mutate({ faceIds: [3], personName: "Dave" }));
+
+    answer(200, { restored_ids: [3], write_error: null });
+    await act(async () => {
+      await lastUndo()();
+    });
+
+    expect(lastRequest().url).toContain("/restore-face-labels/");
+    expect(lastRequest().body).toEqual({ faces: previous });
+  });
+
+  it("offers no Undo for a labelling an older server sent no previous people for", async () => {
+    answer(200, { status: true, results: [{ id: 3, person: 4, person_name: "Dave" }] });
+    await run(useSetFacesPersonLabelMutation, mutation => mutation.mutate({ faceIds: [3], personName: "Dave" }));
+
+    expect(toasts.success.mock.calls.at(-1)?.[1]?.undo).toBeUndefined();
   });
 });
