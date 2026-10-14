@@ -22,6 +22,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { useEventTitle } from "../../../hooks/useEventTitle";
 
 export const Route = createFileRoute("/_protected/album/events/")({
   component: AlbumAuto,
@@ -38,11 +39,12 @@ function AlbumAuto() {
   const { mutate: deleteAutoAlbum } = useDeleteAutoAlbumMutation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const { t } = useTranslation();
+  const eventTitle = useEventTitle();
   const hasAlbums = albums && albums.length > 0;
 
   function deleteAlbum(album: AutoAlbumInfo) {
     setAutoAlbumID(String(album.id));
-    setAutoAlbumTitle(album.title);
+    setAutoAlbumTitle(eventTitle(album));
     showDeleteDialog();
   }
 
@@ -81,11 +83,12 @@ function AlbumAuto() {
   function renderCaption(album: AutoAlbumInfo) {
     const start = eventStartDate(album);
     const dateTimeLabel = start.isValid ? start.toLocaleString(DateTime.DATE_MED) : null;
+    const title = eventTitle(album);
     return (
       <Group justify="space-between">
         <Flex gap={0} justify="flex-start" direction="column" px={8}>
-          <Text size="sm" fw={500} lineClamp={1} title={album.title}>
-            {album.title}
+          <Text size="sm" fw={500} lineClamp={1} title={title}>
+            {title}
           </Text>
           <Text size="xs">
             {dateTimeLabel ? `${dateTimeLabel} - ` : ""}

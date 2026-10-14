@@ -2,6 +2,7 @@ import logging
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime
+from typing import TypedDict
 
 from django.db import models
 
@@ -12,12 +13,20 @@ from api.models.user import User, get_deleted_user
 
 logger = logging.getLogger(__name__)
 
+# Upper hour bound (exclusive) -> the time-of-day key stored in ``title_parts``.
 TIME_OF_DAY = (
-    (5, "Early Morning"),
-    (12, "Morning"),
-    (18, "Afternoon"),
-    (25, "Evening"),
+    (5, "early_morning"),
+    (12, "morning"),
+    (18, "afternoon"),
+    (25, "evening"),
 )
+# Time-of-day key -> its words in the English ``title``.
+TIME_OF_DAY_LABELS = {
+    "early_morning": "Early Morning",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+}
 WEEKEND = [5, 6]
 # ISO weekday (Monday is 1) -> its name in an album title.
 WEEKDAYS = {
@@ -29,15 +38,41 @@ WEEKDAYS = {
     6: "Saturday",
     7: "Sunday",
 }
+# A span of at least this many days names the event by its length ("3 days").
+MULTI_DAY_SPAN = 3
 
 
-def _time_of_day(hour: int) -> str:
+class TitleParts(TypedDict):
+    """What an event title is made of, so each client can word it in its language (#2235).
+
+    ``title`` is these parts in English (``_english_title``); the web app formats
+    them with its translations. Weekday and time of day are the first photo's
+    wall clock, stored here so no client recomputes them in its own time zone.
+    """
+
+    # ISO weekday (Monday is 1) of the first photo.
+    weekday: int | None
+    # A key of TIME_OF_DAY, or None at midnight.
+    time_of_day: str | None
+    # Whole days between the first and the last photo.
+    span_days: int
+    # The first and the last photo fall on different weekend days.
+    weekend: bool
+    # At most the two most frequent named people.
+    people: list[str]
+    # At most the two most frequent places, as the reverse geocoder named them.
+    places: list[str]
+    # The album's grouping date (YYYY-MM-DD), for "Album from <date>".
+    date: str
+
+
+def _time_of_day(hour: int) -> str | None:
     if hour <= 0:
-        return ""
-    for until, label in TIME_OF_DAY:
+        return None
+    for until, key in TIME_OF_DAY:
         if hour < until:
-            return label
-    return ""
+            return key
+    return None
 
 
 def _collect_photo_details(
@@ -51,9 +86,9 @@ def _collect_photo_details(
         if geolocation and len(geolocation.get("places", [])) > 0:
             places = geolocation["places"]
         timestamp = photo.exif_timestamp
-        # Only called from _generate_title(), which turns any exception into the
-        # fallback title. A photo without a time always ended there: min() and
-        # the span arithmetic raise on None.
+        # Only called from _title_parts(), whose caller turns any exception into
+        # the fallback title. A photo without a time always ended there: min()
+        # and the span arithmetic raise on None.
         assert timestamp is not None, "photo has no exif_timestamp"
         timestamps.append(timestamp)
         for face in photo.faces.all():
@@ -67,41 +102,85 @@ def _collect_photo_details(
     return places, people, timestamps
 
 
-def _describe_places(places: list[str]) -> str:
-    if not places:
-        return ""
-    return "in " + " and ".join(dict(Counter(places).most_common(2)).keys())
+def _top_places(places: list[str]) -> list[str]:
+    return [place for place, _ in Counter(places).most_common(2)]
 
 
-def _describe_people(people: list[str]) -> str:
-    if not people:
-        return ""
-    names = dict(
-        [
-            (k, v)
-            for k, v in Counter(people).most_common(2)
-            if k.lower() not in ("unknown", Person.UNKNOWN_PERSON_NAME.lower())
-        ]
-    ).keys()
-    if not names:
-        return ""
-    return "with " + " and ".join(names)
+def _top_people(people: list[str]) -> list[str]:
+    # The two most frequent names first, then the placeholders are dropped, so
+    # "unknown" being one of the two leaves a single name.
+    unknown = ("unknown", Person.UNKNOWN_PERSON_NAME.lower())
+    return [
+        name
+        for name, _ in Counter(people).most_common(2)
+        if name.lower() not in unknown
+    ]
 
 
-def _describe_span(timestamps: list[datetime], when: str) -> str:
-    if not timestamps:
-        return when
-    first = min(timestamps)
-    last = max(timestamps)
-    if (last - first).days >= 3:
-        when = f"{(last - first).days} days"
-    if (
+def _is_weekend(first: datetime, last: datetime) -> bool:
+    return (
         last.weekday() in WEEKEND
         and first.weekday() in WEEKEND
         and last.weekday() != first.weekday()
-    ):
-        when = "Weekend"
-    return when
+    )
+
+
+def _fallback_parts(album_timestamp: datetime) -> TitleParts:
+    """Parts that say nothing but the date: the title reads "Album from <date>"."""
+    return TitleParts(
+        weekday=None,
+        time_of_day=None,
+        span_days=0,
+        weekend=False,
+        people=[],
+        places=[],
+        date=album_timestamp.strftime("%Y-%m-%d"),
+    )
+
+
+def _title_parts(photos: Iterable[Photo], album_timestamp: datetime) -> TitleParts:
+    """The parts of the title of an event of ``photos`` anchored at ``album_timestamp``.
+
+    Reads the photos (and their faces) and writes nothing. Raises on a photo
+    without ``exif_timestamp``; ``AlbumAuto._generate_title`` falls back then.
+    """
+    places, people, timestamps = _collect_photo_details(photos)
+    parts = _fallback_parts(album_timestamp)
+    # ``album_timestamp`` is the grouping key generate_event_albums anchors the
+    # album on: the first photo's time minus 11h59, so that photos shortly
+    # before it still match the album. Read the weekday and time of day off the
+    # first photo itself, or every title lands about half a day early ("Friday
+    # Evening" for a Saturday morning at the beach). The key only stands in when
+    # the album is empty.
+    anchor = min(timestamps) if timestamps else album_timestamp
+    parts["weekday"] = anchor.isoweekday()
+    parts["time_of_day"] = _time_of_day(anchor.hour)
+    if timestamps:
+        first, last = min(timestamps), max(timestamps)
+        parts["span_days"] = (last - first).days
+        parts["weekend"] = _is_weekend(first, last)
+    parts["people"] = _top_people(people)
+    parts["places"] = _top_places(places)
+    return parts
+
+
+def _english_when(parts: TitleParts) -> str:
+    if parts["weekend"]:
+        return "Weekend"
+    if parts["span_days"] >= MULTI_DAY_SPAN:
+        return f"{parts['span_days']} days"
+    weekday = WEEKDAYS[parts["weekday"]] if parts["weekday"] else ""
+    time = TIME_OF_DAY_LABELS[parts["time_of_day"]] if parts["time_of_day"] else ""
+    return " ".join(part for part in [weekday, time] if part)
+
+
+def _english_title(parts: TitleParts) -> str:
+    """``parts`` worded as the English title stored in ``AlbumAuto.title``."""
+    people = "with " + " and ".join(parts["people"]) if parts["people"] else ""
+    places = "in " + " and ".join(parts["places"]) if parts["places"] else ""
+    # Skip the empty parts, or "Tuesday Afternoon  in Paris" gets two spaces.
+    title = " ".join(part for part in [_english_when(parts), people, places] if part)
+    return title or f"Album from {parts['date']}"
 
 
 class AlbumAutoQuerySet(SharedOwnedQuerySet["AlbumAuto"]):
@@ -112,6 +191,9 @@ class AlbumAuto(models.Model):
     title = models.CharField(
         blank=False, null=False, max_length=512, default="Untitled Album"
     )
+    # The parts ``title`` is worded from (a TitleParts), for clients that word it
+    # in the user's language. None until the next event run or title regeneration.
+    title_parts = models.JSONField(blank=True, null=True)
     timestamp = models.DateTimeField(db_index=True)
     created_on = models.DateTimeField(auto_now=False, db_index=True)
     gps_lat = models.FloatField(blank=True, null=True)
@@ -132,40 +214,16 @@ class AlbumAuto(models.Model):
         unique_together = ("timestamp", "owner")
 
     def _generate_title(self) -> None:
+        """Recompute ``title_parts`` and the English ``title`` from the photos, and save."""
         try:
-            places, people, timestamps = _collect_photo_details(self.photos.all())
-
-            # ``timestamp`` is the grouping key generate_event_albums anchors
-            # the album on: the first photo's time minus 11h59, so that photos
-            # shortly before it still match the album. Read the weekday and
-            # time of day off the first photo itself, or every title lands
-            # about half a day early ("Friday Evening" for a Saturday morning
-            # at the beach). The key only stands in when the album is empty.
-            anchor = min(timestamps) if timestamps else self.timestamp
-            weekday = ""
-            time = ""
-            if anchor is not None:
-                weekday = WEEKDAYS[anchor.isoweekday()]
-                time = _time_of_day(anchor.hour)
-
-            when = " ".join(part for part in [weekday, time] if part)
-
-            loc = _describe_places(places)
-            pep = _describe_people(people)
-            when = _describe_span(timestamps, when)
-
-            # Skip the empty parts, or "Tuesday Afternoon  in Paris" gets two spaces.
-            title = " ".join(part for part in [when, pep, loc] if part)
-            # Ensure title is never empty
-            if not title:
-                title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
-            self.title = title
-            self.save()
+            parts = _title_parts(self.photos.all(), self.timestamp)
         except Exception as e:
             logger.exception(e)
             # Set a fallback title if something goes wrong
-            self.title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
-            self.save()
+            parts = _fallback_parts(self.timestamp)
+        self.title_parts = parts
+        self.title = _english_title(parts)
+        self.save()
 
     def __str__(self) -> str:
         return f"{self.id}: {self.title}"

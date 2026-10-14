@@ -46,6 +46,10 @@ Albums that group your photos into events based on when they were taken. Groupin
 Unlike People, Places and Things albums, event albums are **not** created during a scan. To create them, open **Settings → Library**, find the **Event Albums** section and click **Generate** (or run the **Generate Event Albums** command from the search spotlight), and re-run it after importing new photos. **Regenerate Event Titles** only refreshes the titles of existing albums, which is useful once you have named faces or after reverse geocoding has filled in place names. It also cleans up titles made by 1.2.1 and older, which could read "with Unknown - Other" or contain a double space. See [Job System](./job-system.md) for the underlying jobs.
 :::
 
+Event titles follow the language you picked for the web app: "Wednesday Afternoon with Anna in Berlin" reads "Mittwochnachmittag mit Anna in Berlin" in German, once that language has the translation. Place and person names stay as they are. An event made before this change keeps its English title until the next **Generate Event Albums** run or a **Regenerate Event Titles**; the mobile app and search still use the English title.
+
+*Not released yet: up to 1.3.0, event titles were always English.*
+
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 

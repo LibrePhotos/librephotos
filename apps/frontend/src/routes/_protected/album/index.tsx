@@ -32,6 +32,7 @@ import { useListFailure } from "../../../components/common/useListFailure";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
+import { useEventTitle } from "../../../hooks/useEventTitle";
 
 export const Route = createFileRoute("/_protected/album/")({
   component: AlbumExplore,
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_protected/album/")({
 
 function AlbumExplore() {
   const { t } = useTranslation();
+  const eventTitle = useEventTitle();
 
   // Album action state
   const [albumID, setAlbumID] = useState("");
@@ -122,7 +124,7 @@ function AlbumExplore() {
 
   const autoAlbumsPreview = (autoAlbums ?? []).map(album => ({
     id: album.id,
-    title: album.title,
+    title: eventTitle(album),
     photoCount: album.photo_count,
     coverUrl: album.photos?.image_hash,
     isVideo: album.photos?.video,
