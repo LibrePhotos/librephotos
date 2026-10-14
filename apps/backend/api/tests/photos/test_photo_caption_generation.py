@@ -76,14 +76,13 @@ class Im2txtGuardTest(TestCase):
 
     @override_config(CAPTIONING_MODEL="none")
     @patch("api.classification.captioning.generate_caption")
-    def test_captioning_model_none_returns_false_but_initializes_json(
+    def test_captioning_model_none_returns_false_without_touching_the_caption(
         self, mock_generate_caption
     ):
-        # The captions_json = {} initialization happens *before* the "none"
-        # check, so the in-memory object is mutated even on the disabled path.
+        # "None" is checked with the feature switch, before anything else.
         self.assertFalse(generate_photo_caption(self.caption, commit=False))
         mock_generate_caption.assert_not_called()
-        self.assertEqual(self.caption.captions_json, {})
+        self.assertIsNone(self.caption.captions_json)
 
 
 @override_settings(FEATURE_IMAGE_CAPTIONING=True)
