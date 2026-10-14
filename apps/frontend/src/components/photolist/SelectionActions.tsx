@@ -10,6 +10,7 @@ import {
   IconFileText as FileText,
   IconGlobe as Globe,
   IconKey as Key,
+  IconMapPin as MapPin,
   IconPhoto as Photo,
   IconScreenshot as Screenshot,
   IconShare as Share,
@@ -34,6 +35,7 @@ import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
 import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
 import { DisabledReason } from "../common/DisabledReason";
+import { BulkLocationModal } from "../map/BulkLocationModal";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
@@ -123,10 +125,16 @@ export function SelectionActions(props: Readonly<Props>) {
     resetSelection();
   };
 
+  const setHidden = (hidden: boolean) => {
+    setPhotosHidden.mutate({ ...photoSelection(), hidden });
+    resetSelection();
+  };
+
   // Download modal state
   const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
   const [isRemoveFromPersonOpen, { open: openRemoveFromPerson, close: closeRemoveFromPerson }] = useDisclosure(false);
   const [isDateTimeOpen, { open: openDateTime, close: closeDateTime }] = useDisclosure(false);
+  const [isSetLocationOpen, { open: openSetLocation, close: closeSetLocation }] = useDisclosure(false);
   const albumPage = albumPageKind(location.pathname);
 
   // In select-all mode the modal can only show an upper bound, because the
@@ -167,6 +175,10 @@ export function SelectionActions(props: Readonly<Props>) {
       {/* Mounted while open only: it asks the server for the selection's dates. */}
       {isDateTimeOpen && (
         <ChangeDateTimeModal opened onClose={closeDateTime} selection={photoSelection()} onSaved={resetSelection} />
+      )}
+      {/* Mounted only while open: it asks the server about the selection. */}
+      {isSetLocationOpen && (
+        <BulkLocationModal opened onClose={closeSetLocation} selection={photoSelection()} onDone={resetSelection} />
       )}
       {albumPage === "person" && (
         <PersonRemovePhotosModal
@@ -215,6 +227,12 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<MapPin size={ICON_SIZE.menu} />} onClick={openSetLocation}>
+              {t("selectionactions.setlocation")}
+            </Menu.Item>
+          </DisabledReason>
+
+          <DisabledReason reason={noSelection} position="left">
             <Menu.Item leftSection={<CalendarTime size={ICON_SIZE.menu} />} onClick={openDateTime}>
               {t("selectionactions.changedatetime")}
             </Menu.Item>
@@ -223,25 +241,13 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<EyeOff size={ICON_SIZE.menu} />}
-              onClick={() => {
-                setPhotosHidden.mutate({ ...photoSelection(), hidden: true });
-                resetSelection();
-              }}
-            >
+            <Menu.Item leftSection={<EyeOff size={ICON_SIZE.menu} />} onClick={() => setHidden(true)}>
               {t("selectionactions.hide")}
             </Menu.Item>
           </DisabledReason>
 
           <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<Eye size={ICON_SIZE.menu} />}
-              onClick={() => {
-                setPhotosHidden.mutate({ ...photoSelection(), hidden: false });
-                resetSelection();
-              }}
-            >
+            <Menu.Item leftSection={<Eye size={ICON_SIZE.menu} />} onClick={() => setHidden(false)}>
               {t("selectionactions.unhide")}
             </Menu.Item>
           </DisabledReason>

@@ -1,0 +1,30 @@
+/* The strip scrolls sideways when its tiles do not fit (phones). */
+.strip {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* A tile of the "copy from a photo taken nearby" strip: the thumbnail, its place and its time. */
+.tile {
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: var(--mantine-radius-sm);
+  border: 2px solid transparent;
+}
+
+.tile:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.tile[data-selected] {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.thumbnail {
+  display: block;
+}

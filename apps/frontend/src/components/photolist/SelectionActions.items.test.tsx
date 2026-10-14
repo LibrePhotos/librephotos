@@ -51,6 +51,14 @@ vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
 }));
+// The real dialog is tested on its own (BulkLocationModal.test.tsx): here it shows what it got.
+vi.mock("../map/BulkLocationModal", () => ({
+  BulkLocationModal: ({ selection, onDone }: { selection: object; onDone: () => void }) => (
+    <button type="button" data-selection={JSON.stringify(selection)} onClick={onDone}>
+      location dialog
+    </button>
+  ),
+}));
 // The real dialog is tested on its own: here it only hands back the confirmation.
 vi.mock("../modals/ModalDownloadOptions", () => ({
   ModalDownloadOptions: ({ isOpen, onConfirm }: { isOpen: boolean; onConfirm: (o: object) => void }) =>
@@ -178,6 +186,20 @@ describe("the photo actions", () => {
         ? expect.objectContaining({ select_all: true, excluded_hashes: ["hash1", "hash2"], includeStackedPhotos: true })
         : expect.objectContaining({ image_hashes: ["hash1", "hash2"], userId: 1, includeStackedPhotos: true })
     );
+  });
+
+  it.each([
+    [false, { image_hashes: ["hash1", "hash2"] }],
+    [true, { select_all: true, query: { person: 5 }, excluded_hashes: ["hash1", "hash2"] }],
+  ])("Set location… opens the dialog for the selection, select all = %s", async (selectAllMode, selection) => {
+    await render({ selectAllMode, selectAllQuery: { person: 5 } });
+    expect(document.body.textContent).not.toContain("location dialog");
+
+    await pick(1, "Set location…");
+
+    expect(button("location dialog").dataset.selection).toBe(JSON.stringify(selection));
+    await act(async () => button("location dialog").click());
+    expect(callbacks.updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
   });
 
   it("opens the sharing panel", async () => {

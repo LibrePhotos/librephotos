@@ -37,6 +37,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable, Collection, Iterable, Mapping
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
@@ -47,12 +48,7 @@ from django.utils.dateparse import parse_datetime
 
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.geocode.photo_location import (
-    clear_location,
-    find_album_places,
-    forget_place,
-    usable_coordinates,
-)
+from api.geocode.photo_location import clear_location, usable_coordinates
 from api.metadata.jobs import (
     queue_field_write,
     queue_keyword_write,
@@ -63,7 +59,7 @@ from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
-from api.models.album_place import get_album_place
+from api.models.album_place import AlbumPlace, get_album_place
 from api.models.photo import LocationSource, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
@@ -75,7 +71,7 @@ from api.models.photo_metadata import (
     merged_keywords_of,
     text_fields_of,
 )
-from api.models.photo_search import PhotoSearch
+from api.models.photo_search import PhotoSearch, place_label
 from api.models.tag import sync_tags_from_keywords, tag_names
 from api.models.user import User
 
@@ -278,6 +274,16 @@ def _set_capture_time_batch(
 # -------------------------------------------------------------------- location
 
 
+@dataclass(frozen=True)
+class LocationsResult:
+    """What ``set_locations`` did: the photos it moved, the photos it left
+    alone because they had a location, and whether the spot has a place name."""
+
+    count: int
+    skipped_with_location: int
+    geocoded: bool
+
+
 def _location_value(photo: Photo) -> dict[str, float] | None:
     if photo.exif_gps_lat is None or photo.exif_gps_lon is None:
         return None
@@ -289,104 +295,177 @@ def set_location(
 ) -> None:
     """Move the photo to ``latitude``, ``longitude``; both None clears it.
 
-    The coordinates are saved first, so a geocoder failure still keeps them;
-    the reverse-geocoded place then feeds ``geolocation_json``, the search
+    The coordinates are saved even when the geocoder fails; the
+    reverse-geocoded place then feeds ``geolocation_json``, the search
     location and the Places albums. Without one the photo has no place
     (``has_place``), not the old one: the geolocation job tries again after a
     failed lookup (geocoding off, an error), not for a position the provider
     has no place for (``no_place``, #2567). The position (or its absence) is the user's
     from now on: a rescan neither replaces nor clears it (#2264). A changed
-    position is written to the file or sidecar (#2290), queued before the
-    geocoder runs, so its failure does not stop the write.
+    position (or a removed one) is written to the file or sidecar (#2290)
+    after the commit, whatever the geocoder said.
     """
-    old = _location_value(photo)
-    has_position = _save_position(photo, latitude, longitude, LocationSource.USER)
-    new = _location_value(photo)
-    if new != old:
-        queue_field_write(user, [photo.id], LOCATION)
-    if has_position:
-        _geocode_position(photo)
-    if new != old:
-        _record(user, LOCATION, [Change(photo.id, old, new)])
-
-
-def _apply_location(
-    photo: Photo,
-    latitude: float | None,
-    longitude: float | None,
-    source: LocationSource,
-) -> None:
-    if _save_position(photo, latitude, longitude, source):
-        _geocode_position(photo)
-
-
-def _save_position(
-    photo: Photo,
-    latitude: float | None,
-    longitude: float | None,
-    source: LocationSource,
-) -> bool:
-    """Save the position (None: no location); whether there is one to geocode."""
     if latitude is None or longitude is None:
-        clear_location(photo)
-        photo.location_source = source
-        photo.save(update_fields=LOCATION_COLUMNS)
-        return False
-
-    # The place of the old coordinates goes with them, whatever the geocoder
-    # says about the new ones (#2253).
-    forget_place(photo, find_album_places(photo))
-    photo.geocoded_lat = photo.geocoded_lon = None
-    photo.exif_gps_lat = float(latitude)
-    photo.exif_gps_lon = float(longitude)
-    photo.location_source = source
-    # Saved before the geocoder runs, so its failure still keeps them.
-    photo.save(update_fields=LOCATION_COLUMNS)
-    return True
+        old = _location_value(photo)
+        _clear_location(photo, LocationSource.USER)
+        if old is not None:
+            queue_field_write(user, [photo.id], LOCATION)
+            _record(user, LOCATION, [Change(photo.id, old, None)])
+        return
+    _move_and_record([photo], (float(latitude), float(longitude)), user)
 
 
-def _geocode_position(photo: Photo) -> None:
-    """Find the place of the saved position for the map, search and Places."""
-    assert photo.exif_gps_lat is not None and photo.exif_gps_lon is not None
+def set_locations(
+    photos: QuerySet[Photo],
+    latitude: float,
+    longitude: float,
+    user: User,
+    overwrite: bool,
+) -> LocationsResult:
+    """Move many photos to one spot, looked up once (#2279).
+
+    Without ``overwrite`` the photos that already have a location keep it and
+    are counted as skipped. Each moved photo gets what ``set_location`` gives
+    one photo, the edit history included, in a constant number of queries.
+    """
+    targets = list(photos.order_by())
+    located = [photo for photo in targets if _location_value(photo) is not None]
+    if not overwrite:
+        targets = [photo for photo in targets if _location_value(photo) is None]
+    skipped = 0 if overwrite else len(located)
+    if not targets:
+        return LocationsResult(count=0, skipped_with_location=skipped, geocoded=False)
+    place = _move_and_record(targets, (float(latitude), float(longitude)), user)
+    return LocationsResult(
+        count=len(targets), skipped_with_location=skipped, geocoded=bool(place)
+    )
+
+
+def _move_and_record(
+    photos: list[Photo], position: tuple[float, float], user: User
+) -> dict[str, object] | None:
+    """Move ``photos`` to ``position`` as the user's edit; return the place.
+
+    The one path of a user's location move, for one photo or many: one
+    write-back job (#2290) and one batch of edit history for all ``photos``
+    that changed. The job is queued on commit, so a failed lookup does not
+    stop it.
+    """
+    old = {photo.id: _location_value(photo) for photo in photos}
+    place = _look_up_place(position)
+    _move_photos(photos, position, LocationSource.USER, place)
+    changes = [
+        Change(photo.id, old[photo.id], new)
+        for photo in photos
+        if (new := _location_value(photo)) != old[photo.id]
+    ]
+    queue_field_write(user, [change.photo_id for change in changes], LOCATION)
+    _record(user, LOCATION, changes)
+    return place
+
+
+def _look_up_place(position: tuple[float, float]) -> dict[str, object] | None:
+    """The reverse-geocoded place at ``position``: a place, ``no_place()``, or
+    None when the lookup failed (the geolocation job then tries again)."""
     try:
-        geocode_result = reverse_geocode(photo.exif_gps_lat, photo.exif_gps_lon)
+        geocode_result = reverse_geocode(*position)
     except Exception:
-        logger.exception("Reverse geocoding failed for photo %s", photo.image_hash)
-        return
+        logger.exception("Reverse geocoding failed for a location edit")
+        return None
     if not geocode_result:
-        logger.warning("Reverse geocoding failed for photo %s", photo.image_hash)
-        return
-
+        logger.warning("Reverse geocoding failed for a location edit")
+        return None
     geocode_result["_v"] = GEOCODE_VERSION
-    photo.geolocation_json = geocode_result
-    photo.geocoded_lat, photo.geocoded_lon = photo.exif_gps_lat, photo.exif_gps_lon
-    _update_search_location(photo, geocode_result)
-    _add_to_album_places(photo, geocode_result)
+    return geocode_result
+
+
+def _clear_location(photo: Photo, source: LocationSource) -> None:
+    clear_location(photo)
+    photo.location_source = source
     photo.save(update_fields=LOCATION_COLUMNS)
 
 
-def _update_search_location(
-    photo: Photo, geocode_result: dict[str, object] | None
+def _move_photos(
+    photos: list[Photo],
+    position: tuple[float, float],
+    source: LocationSource,
+    place: dict[str, object] | None,
 ) -> None:
-    search_instance, _ = PhotoSearch.objects.get_or_create(photo=photo)
-    search_instance.update_search_location(geocode_result)
-    search_instance.save()
+    """Give ``photos`` the position and its ``place`` (None: the lookup failed).
+
+    The place of the old coordinates goes with them, whatever the lookup said
+    about the new ones (#2253). The Places albums and the search rows are
+    updated for all photos at once.
+    """
+    _leave_album_places(photos)
+    now = timezone.now()
+    for photo in photos:
+        photo.exif_gps_lat, photo.exif_gps_lon = position
+        photo.location_source = source
+        # A copy each: the photos must not share one mutable dict.
+        photo.geolocation_json = dict(place) if place else {}
+        photo.geocoded_lat, photo.geocoded_lon = position if place else (None, None)
+        photo.last_modified = now
+    Photo.objects.bulk_update(photos, LOCATION_COLUMNS, batch_size=500)
+    _set_search_locations(photos, place)
+    if place:
+        _join_album_places(photos, place)
 
 
-def _add_to_album_places(photo: Photo, geocode_result: Mapping[str, object]) -> None:
-    features = geocode_result.get("features")
+def _leave_album_places(photos: list[Photo]) -> None:
+    """Take ``photos`` out of every Places album, in one delete."""
+    links = AlbumPlace.photos.through.objects.filter(
+        photo_id__in=[photo.id for photo in photos]
+    )
+    album_ids = set(links.values_list("albumplace_id", flat=True))
+    if not album_ids:
+        return
+    links.delete()
+    # A through-table delete leaves the album's last_modified alone, which
+    # the mobile delta sync orders by.
+    AlbumPlace.objects.filter(id__in=album_ids).update(last_modified=timezone.now())
+
+
+def _set_search_locations(
+    photos: list[Photo], place: Mapping[str, object] | None
+) -> None:
+    """Index the place name of ``photos`` for search ("" without a place)."""
+    label = place_label(dict(place) if place else None)
+    rows = {
+        row.photo_id: row
+        for row in PhotoSearch.objects.filter(photo_id__in=[p.id for p in photos])
+    }
+    missing = [PhotoSearch(photo=photo) for photo in photos if photo.id not in rows]
+    PhotoSearch.objects.bulk_create(missing, batch_size=500)
+    searches = [*rows.values(), *missing]
+    for search in searches:
+        search.search_location = label
+        search.refresh_search_folded()
+    PhotoSearch.objects.bulk_update(
+        searches, ["search_location", "search_folded"], batch_size=500
+    )
+
+
+def _join_album_places(photos: list[Photo], place: Mapping[str, object]) -> None:
+    """File ``photos`` under the Places album of each named level of ``place``,
+    the album of each owner (one owner unless an admin edits)."""
+    features = place.get("features")
     if not isinstance(features, list):
         return
-    for geolocation_level, feature in enumerate(features):
-        if not isinstance(feature, dict) or "text" not in feature:
-            continue
-        if str(feature["text"]).isnumeric():
-            continue
-        album_place = get_album_place(feature["text"], owner=photo.owner)
-        if not album_place.photos.filter(image_hash=photo.image_hash).exists():
-            album_place.geolocation_level = len(features) - geolocation_level
-        album_place.photos.add(photo)
-        album_place.save()
+    by_owner: dict[int | None, list[Photo]] = {}
+    for photo in photos:
+        by_owner.setdefault(photo.owner_id, []).append(photo)
+    for owned in by_owner.values():
+        owner = owned[0].owner
+        for level, feature in enumerate(features):
+            if not isinstance(feature, dict) or "text" not in feature:
+                continue
+            if str(feature["text"]).isnumeric():
+                continue
+            album_place = get_album_place(str(feature["text"]), owner=owner)
+            album_place.geolocation_level = len(features) - level
+            album_place.save()
+            album_place.photos.add(*owned)
 
 
 # ---------------------------------------------------------------------- rating
@@ -688,11 +767,11 @@ def _restore_location_from_file(photo: Photo) -> None:
     position = usable_coordinates(latitude, longitude)
     if position is None:
         if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
-            _apply_location(photo, None, None, LocationSource.FILE)
+            _clear_location(photo, LocationSource.FILE)
         else:
             photo.location_source = LocationSource.FILE
         return
     if (photo.exif_gps_lat, photo.exif_gps_lon) == position:
         photo.location_source = LocationSource.FILE
         return
-    _apply_location(photo, *position, LocationSource.FILE)
+    _move_photos([photo], position, LocationSource.FILE, _look_up_place(position))

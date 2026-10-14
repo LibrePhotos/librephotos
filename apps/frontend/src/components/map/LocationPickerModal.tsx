@@ -1,33 +1,17 @@
-import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Button, Group, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCurrentLocation, IconMapPinOff } from "@tabler/icons-react";
-import type { ParseKeys } from "i18next";
-import React, { useCallback, useRef, useState } from "react";
+import { IconMapPinOff } from "@tabler/icons-react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { MapLayerMouseEvent, MapRef, MarkerDragEvent } from "react-map-gl/maplibre";
-import { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
 import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
+import { useLocatedNearbyQuery } from "../../api_client/photos/hooks/useLocatedNearbyQuery";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
-import { useMapStyle } from "../../util/mapStyle";
 import { WriteBackHint } from "../lightbox/WriteBackHint";
-import { LocationSearchBox } from "./LocationSearchBox";
-import { ignoreMissingStyleImages } from "./mapImages";
-import { PickedPlace } from "./PickedPlace";
+import { LocationPickerBody } from "./LocationPickerBody";
+import { hasPosition, NearbyLocatedStrip } from "./NearbyLocatedStrip";
+import { nearbyWindow } from "./nearbyTime";
 import { RemoveLocationModal } from "./RemoveLocationModal";
-import { ThemedMap } from "./ThemedMap";
-
-// Why the browser could not tell where the user is, by GeolocationPositionError code:
-// PERMISSION_DENIED, POSITION_UNAVAILABLE and TIMEOUT.
-const GEOLOCATION_ERROR_KEYS: Partial<Record<number, ParseKeys>> = {
-  1: "locationpicker.permission_denied",
-  2: "locationpicker.position_unavailable",
-  3: "locationpicker.timeout",
-};
-
-// A photo without a location opens on the whole world: neither the browser's position nor a
-// fixed city is likely where an old photo was taken (#2283).
-const WORLD_VIEW = { latitude: 20, longitude: 0, zoom: 1 };
-const PLACE_ZOOM = 13;
+import { useLocationPicker, useStartNearNearest } from "./useLocationPicker";
 
 type Props = Readonly<{
   imageHash: string;
@@ -36,6 +20,8 @@ type Props = Readonly<{
   initialLon?: number;
   /** The place name the photo has for its location, shown until another spot is picked. */
   initialPlace?: string;
+  /** When the photo was taken (`exif_timestamp`): offers the photos taken around then to copy from. */
+  takenAt?: string | null;
   /** The removal confirmation opened or closed: the dialog around the picker leaves Escape to it. */
   onNestedDialogChange?: (opened: boolean) => void;
 }>;
@@ -46,23 +32,21 @@ export function LocationPickerModal({
   initialLat,
   initialLon,
   initialPlace,
+  takenAt,
   onNestedDialogChange,
 }: Props) {
   const { t } = useTranslation();
-  const mapRef = useRef<MapRef | null>(null);
-  const setMapRef = useCallback((map: MapRef | null) => {
-    mapRef.current = map;
-    ignoreMissingStyleImages(map);
-  }, []);
-  const { mapStyle, mapsDisabled } = useMapStyle();
-
   // Fixed at mount: the photo's own location, which only it can remove.
   const [initialPosition] = useState<[number, number] | null>(() =>
     initialLat !== undefined && initialLon !== undefined ? [initialLat, initialLon] : null
   );
-  const [position, setPosition] = useState<[number, number] | null>(initialPosition);
-  const [isGeolocating, setIsGeolocating] = useState(false);
-  const [geolocationError, setGeolocationError] = useState<string | null>(null);
+  const picker = useLocationPicker(initialPosition, initialPlace);
+  const span = takenAt ? { first: takenAt, last: takenAt } : null;
+  const nearby = useLocatedNearbyQuery(nearbyWindow(span));
+  // The photo itself is no photo to copy from.
+  const others = nearby.data?.filter(photo => photo.image_hash !== imageHash);
+  // Without a location of its own, the map opens where the nearest of those was taken.
+  useStartNearNearest(picker, others?.find(hasPosition));
   const [removeOpened, removeDialog] = useDisclosure(false, {
     onOpen: () => onNestedDialogChange?.(true),
     onClose: () => onNestedDialogChange?.(false),
@@ -70,19 +54,9 @@ export function LocationPickerModal({
 
   const { mutate, isPending } = useUpdatePhotoMutation();
 
-  const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
-    const { lat, lng } = e.lngLat;
-    setPosition([lat, lng]);
-  }, []);
-
-  const handleMarkerDragEnd = useCallback((e: MarkerDragEvent) => {
-    const { lat, lng } = e.lngLat;
-    setPosition([lat, lng]);
-  }, []);
-
   const handleSave = () => {
-    if (!position) return;
-    const [lat, lon] = position;
+    if (!picker.position) return;
+    const [lat, lon] = picker.position;
     mutate(
       { id: imageHash, data: { exif_gps_lat: lat, exif_gps_lon: lon } },
       {
@@ -99,96 +73,14 @@ export function LocationPickerModal({
     onClose();
   };
 
-  // Pan to a picked spot: the map's first view is the photo's location or the world.
-  const pickAndShow = useCallback((lat: number, lon: number) => {
-    setPosition([lat, lon]);
-    mapRef.current?.flyTo({ center: [lon, lat], zoom: PLACE_ZOOM });
-  }, []);
-
-  // The only place that asks the browser for the user's position: never on open (#2283).
-  const handleUseMyLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setGeolocationError(t("locationpicker.geolocation_not_supported"));
-      return;
-    }
-
-    setIsGeolocating(true);
-    setGeolocationError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setIsGeolocating(false);
-        pickAndShow(pos.coords.latitude, pos.coords.longitude);
-      },
-      error => {
-        setIsGeolocating(false);
-        setGeolocationError(t(GEOLOCATION_ERROR_KEYS[error.code] ?? "locationpicker.unknown_error"));
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  }, [t, pickAndShow]);
-
-  const atInitialPosition =
-    position !== null &&
-    initialPosition !== null &&
-    position[0] === initialPosition[0] &&
-    position[1] === initialPosition[1];
-
   return (
     <Stack>
-      <Group gap="xs" align="flex-start" wrap="nowrap">
-        <LocationSearchBox onSelect={pickAndShow} />
-        <Tooltip label={t("locationpicker.use_my_location")}>
-          <ActionIcon
-            variant="light"
-            size="lg"
-            onClick={handleUseMyLocation}
-            loading={isGeolocating}
-            aria-label={t("locationpicker.use_my_location")}
-          >
-            <IconCurrentLocation size={18} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-
-      {geolocationError && (
-        <Text size="xs" c="red">
-          {geolocationError}
-        </Text>
+      {/* An optional shortcut: when the photos cannot be read (the failure is toasted), it is left out. */}
+      {span && !nearby.isError && (
+        <NearbyLocatedStrip photos={others} span={span} position={picker.position} onPick={picker.pickPhoto} />
       )}
 
-      <Text size="sm" c="dimmed">
-        {mapsDisabled ? t("locationpicker.instructions_no_map") : t("locationpicker.instructions")}
-      </Text>
-
-      {mapStyle !== null && (
-        <ThemedMap
-          ref={setMapRef}
-          h={350}
-          initialViewState={
-            initialPosition
-              ? { latitude: initialPosition[0], longitude: initialPosition[1], zoom: PLACE_ZOOM }
-              : WORLD_VIEW
-          }
-          mapStyle={mapStyle}
-          onClick={handleMapClick}
-          attributionControl={false}
-        >
-          <NavigationControl position="top-right" />
-          <AttributionControl compact={true} />
-          {position && (
-            <Marker
-              longitude={position[1]}
-              latitude={position[0]}
-              anchor="bottom"
-              draggable
-              onDragEnd={handleMarkerDragEnd}
-            />
-          )}
-        </ThemedMap>
-      )}
-
-      {position && <PickedPlace position={position} knownPlace={atInitialPosition ? initialPlace : undefined} />}
+      <LocationPickerBody picker={picker} initialPosition={initialPosition} />
 
       <WriteBackHint field="location" />
 
@@ -211,7 +103,7 @@ export function LocationPickerModal({
           <Button variant="default" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleSave} disabled={!position} loading={isPending}>
+          <Button onClick={handleSave} disabled={!picker.position} loading={isPending}>
             {t("save")}
           </Button>
         </Group>

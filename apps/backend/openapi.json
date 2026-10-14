@@ -5221,6 +5221,108 @@
         }
       }
     },
+    "/api/photos/located-nearby-in-time/": {
+      "get": {
+        "operationId": "api_photos_located_nearby_in_time_list",
+        "description": "The requester's geotagged photos taken from ``from`` to ``to``, nearest\nto the middle of that window first, at most 20: the photos the location\npicker offers to copy a location from.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Start of the window",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "End of the window",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocatedPhoto"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/location-summary/": {
+      "post": {
+        "operationId": "api_photos_location_summary_create",
+        "description": "How many of the selected photos have a location, their most frequent\nplace names and when the selection was taken: what the bulk location\npicker shows before it saves. A POST because a selection can be a whole\nquery; it changes nothing.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationSummaryResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/metadata/bulk/": {
       "get": {
         "operationId": "api_photos_metadata_bulk_retrieve",
@@ -6299,6 +6401,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BulkPhotoMutationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photosedit/location/": {
+      "post": {
+        "operationId": "api_photosedit_location_create",
+        "description": "Give the requester's selected photos one location, looked up once.\n\nThe body names the photos as every bulk photo action does\n(``image_hashes``, or ``select_all`` with ``query`` and\n``excluded_hashes``). With ``overwrite`` false, photos that have a\nlocation keep it and are counted in ``skipped_with_location``.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosLocationRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosLocationRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosLocationRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetPhotosLocationResponse"
                 }
               }
             },
@@ -13160,6 +13311,100 @@
         "type": "string",
         "description": "* `burst` - Burst Sequence\n* `bracket` - Exposure Bracket\n* `manual` - Manual Stack"
       },
+      "LocatedPhoto": {
+        "type": "object",
+        "description": "A geotagged photo the location picker offers to copy from.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "image_hash": {
+            "type": "string",
+            "readOnly": true
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "nullable": true
+          },
+          "exif_gps_lat": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true,
+            "nullable": true
+          },
+          "exif_gps_lon": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true,
+            "nullable": true
+          },
+          "place": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true,
+            "description": "The photo's place name; null or empty without one"
+          },
+          "short_place": {
+            "type": "string",
+            "nullable": true,
+            "description": "The town or region of the photo's place, for a small label; null\nwithout a place.",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "exif_gps_lat",
+          "exif_gps_lon",
+          "exif_timestamp",
+          "id",
+          "image_hash",
+          "place",
+          "short_place"
+        ]
+      },
+      "LocationSummaryResponse": {
+        "type": "object",
+        "description": "Where a selection stands before its location is set.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos in the selection"
+          },
+          "with_location": {
+            "type": "integer",
+            "description": "Photos of the selection that have a location"
+          },
+          "places": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlaceCount"
+            },
+            "description": "The most frequent place names of those, most photos first"
+          },
+          "first_taken": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the earliest photo was taken"
+          },
+          "last_taken": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the latest photo was taken"
+          }
+        },
+        "required": [
+          "count",
+          "first_taken",
+          "last_taken",
+          "places",
+          "with_location"
+        ]
+      },
       "LocationSunburst": {
         "type": "object",
         "description": "A node of ``GET /api/locationsunburst/`` (``SunburstNode``): the root, a\nplace with the places in it, or a leaf with its photo count.",
@@ -16885,6 +17130,21 @@
           "video"
         ]
       },
+      "PlaceCount": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "place"
+        ]
+      },
       "ProviderEnum": {
         "enum": [
           "disabled",
@@ -17975,6 +18235,81 @@
         },
         "required": [
           "hidden"
+        ]
+      },
+      "SetPhotosLocationRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and the spot.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Latitude (-90 to 90)"
+          },
+          "lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Longitude (-180 to 180)"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also move the photos that have a location; false leaves them where they are"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ]
+      },
+      "SetPhotosLocationResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos that got the location"
+          },
+          "skipped_with_location": {
+            "type": "integer",
+            "description": "Photos left alone because they have a location (overwrite false)"
+          },
+          "geocoded": {
+            "type": "boolean",
+            "description": "Whether the spot has a place name. False keeps the coordinates without one; the geolocation job tries again after a failed lookup"
+          }
+        },
+        "required": [
+          "count",
+          "geocoded",
+          "skipped_with_location"
         ]
       },
       "SetPhotosPublicRequestRequest": {

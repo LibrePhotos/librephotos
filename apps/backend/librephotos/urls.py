@@ -61,6 +61,7 @@ from api.views import (
     memories,
     password_reset,
     photo_dates,
+    photo_locations,
     photo_metadata,
     photos,
     public_albums,
@@ -293,7 +294,7 @@ urlpatterns = [
         name="media",
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album"
-    # and "date-summary".
+    # and "date-summary", and the two location routes below them.
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
@@ -303,6 +304,16 @@ urlpatterns = [
         "api/photos/date-summary/",
         photo_dates.DateSummaryView.as_view(),
         name="photos_date_summary",
+    ),
+    path(
+        "api/photos/located-nearby-in-time/",
+        photo_locations.LocatedNearbyInTimeView.as_view(),
+        name="photos_located_nearby_in_time",
+    ),
+    path(
+        "api/photos/location-summary/",
+        photo_locations.LocationSummaryView.as_view(),
+        name="photos_location_summary",
     ),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
@@ -341,6 +352,7 @@ urlpatterns = [
     re_path(r"^api/photosedit/savecaption/?$", photos.SavePhotoCaption.as_view()),
     re_path(r"^api/photosedit/rotate/?$", photos.RotatePhotoView.as_view()),
     path("api/photosedit/datetime/", photo_dates.SetPhotosDateTimeView.as_view()),
+    path("api/photosedit/location/", photo_locations.SetPhotosLocationView.as_view()),
     re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
     path("api/useralbum/leave/", sharing.LeaveSharedAlbum.as_view()),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),

@@ -3,9 +3,9 @@
  * own, a photo without a location opens on the whole world, a pasted "lat, lon" is used without a
  * place search, the picked spot is named before saving, and a photo's location can be removed.
  */
-import type { GeocodeReverseResponse, Photo } from "@librephotos/api-client";
+import type { GeocodeReverseResponse, LocatedPhoto, Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
-import type { FlyToOptions } from "maplibre-gl";
+import type { FlyToOptions, JumpToOptions } from "maplibre-gl";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,6 +18,9 @@ type ReverseLookup = { data?: GeocodeReverseResponse; isPending: boolean };
 
 const stubs = vi.hoisted(() => ({
   flyTo: vi.fn<(options: FlyToOptions) => void>(),
+  jumpTo: vi.fn<(options: JumpToOptions) => void>(),
+  nearbySpan: vi.fn<(span: { from: string; to: string } | null) => void>(),
+  nearby: { current: undefined as LocatedPhoto[] | undefined },
   geocodeSearch: vi.fn<(query: string, enabled: boolean) => void>(),
   reverseLookup: vi.fn<(position: readonly [number, number] | null) => void>(),
   reverseAnswer: { current: { data: undefined, isPending: true } as ReverseLookup },
@@ -51,6 +54,12 @@ vi.mock("../../api_client/photos/hooks/useUpdatePhotoMutation", () => ({
   useUpdatePhotoMutation: () => ({ mutate: stubs.mutate, isPending: false }),
 }));
 vi.mock("../../api_client/albums/invalidatePlaces", () => ({ invalidatePlaces: stubs.invalidatePlaces }));
+vi.mock("../../api_client/photos/hooks/useLocatedNearbyQuery", () => ({
+  useLocatedNearbyQuery: (span: { from: string; to: string } | null) => {
+    stubs.nearbySpan(span);
+    return { data: stubs.nearby.current };
+  },
+}));
 // The removal dialog's note on the file follows the user's settings; RemoveLocationModal.test.tsx covers it.
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
@@ -63,9 +72,9 @@ vi.mock("react-map-gl/maplibre", async () => {
   type ClickEvent = { lngLat: { lat: number; lng: number } };
   const MapGL = react.forwardRef(function MapGL(
     props: { children?: React.ReactNode; onClick?: (event: ClickEvent) => void; initialViewState?: ViewState },
-    ref: React.ForwardedRef<{ flyTo: typeof stubs.flyTo }>
+    ref: React.ForwardedRef<{ flyTo: typeof stubs.flyTo; jumpTo: typeof stubs.jumpTo }>
   ) {
-    react.useImperativeHandle(ref, () => ({ flyTo: stubs.flyTo }), []);
+    react.useImperativeHandle(ref, () => ({ flyTo: stubs.flyTo, jumpTo: stubs.jumpTo }), []);
     stubs.viewState.current = props.initialViewState;
     return react.createElement(
       "div",
@@ -110,6 +119,9 @@ beforeAll(() => {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   stubs.flyTo.mockReset();
+  stubs.jumpTo.mockReset();
+  stubs.nearbySpan.mockReset();
+  stubs.nearby.current = undefined;
   stubs.geocodeSearch.mockReset();
   stubs.reverseLookup.mockReset();
   stubs.mutate.mockReset();
@@ -135,6 +147,7 @@ afterEach(() => {
 });
 
 type RenderProps = {
+  takenAt?: string | null;
   initialLat?: number;
   initialLon?: number;
   initialPlace?: string;
@@ -363,5 +376,73 @@ describe("LocationPickerModal: remove location", () => {
     expect(stubs.invalidatePlaces).toHaveBeenCalled();
     expect(onNestedDialogChange).toHaveBeenLastCalledWith(false);
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+const PORTO: LocatedPhoto = {
+  id: "0b7a3d52-3c55-4c1f-9d7e-2b8f1e7a9c10",
+  image_hash: "porto",
+  exif_timestamp: "2026-10-11T07:43:00Z",
+  exif_gps_lat: 41.14,
+  exif_gps_lon: -8.61,
+  place: "Ribeira, Porto, Portugal",
+  short_place: "Porto",
+};
+
+describe("LocationPickerModal: photos taken nearby in time (#2279)", () => {
+  it("asks for the photos taken within a day of the photo", () => {
+    render({ takenAt: "2026-10-11T09:43:00Z" });
+
+    expect(stubs.nearbySpan).toHaveBeenLastCalledWith({
+      from: "2026-10-10T09:43:00.000Z",
+      to: "2026-10-12T09:43:00.000Z",
+    });
+    expect(container.textContent).toContain("locationpicker.copy_from_nearby");
+  });
+
+  it("offers no strip for a photo without a date", () => {
+    render({ takenAt: null });
+
+    expect(stubs.nearbySpan).toHaveBeenLastCalledWith(null);
+    expect(container.textContent).not.toContain("locationpicker.copy_from_nearby");
+  });
+
+  it("starts a photo without a location where the nearest of them was taken", () => {
+    stubs.nearby.current = [PORTO];
+    render({ takenAt: "2026-10-11T09:43:00Z" });
+
+    expect(stubs.jumpTo).toHaveBeenCalledWith({ center: [-8.61, 41.14], zoom: 10 });
+    expect(byTestId("marker")).toBeNull();
+  });
+
+  it("does not offer the photo itself", () => {
+    stubs.nearby.current = [{ ...PORTO, image_hash: "abc" }];
+    render({ takenAt: "2026-10-11T09:43:00Z", initialLat: 41.14, initialLon: -8.61 });
+
+    expect(() => buttonNamed("locationpicker.copy_from_photo")).toThrow();
+    expect(container.textContent).toContain("locationpicker.copy_from_nearby_none");
+  });
+
+  it("keeps a located photo on its own location", () => {
+    stubs.nearby.current = [PORTO];
+    render({ takenAt: "2026-10-11T09:43:00Z", initialLat: 38.72, initialLon: -9.14 });
+
+    expect(stubs.jumpTo).not.toHaveBeenCalled();
+  });
+
+  it("copies a nearby photo's location and its place name", () => {
+    stubs.nearby.current = [PORTO];
+    render({ takenAt: "2026-10-11T09:43:00Z" });
+
+    act(() => buttonNamed("locationpicker.copy_from_photo").click());
+
+    expect(byTestId("marker")?.textContent).toBe("41.14,-8.61");
+    expect(byTestId("picked-place")?.textContent).toContain("Ribeira, Porto, Portugal");
+    expect(stubs.reverseLookup).toHaveBeenLastCalledWith(null);
+    act(() => buttonNamed("save").click());
+    expect(defined(stubs.mutate.mock.calls[0])[0]).toEqual({
+      id: "abc",
+      data: { exif_gps_lat: 41.14, exif_gps_lon: -8.61 },
+    });
   });
 });

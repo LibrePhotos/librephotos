@@ -20,6 +20,7 @@ import os
 import shutil
 import tempfile
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import pyvips
 from django.test import TestCase
@@ -64,8 +65,13 @@ class CrossTenantReadTest(TestCase):
             camera="VictimCameraModel",
         )
         self.v_photo2 = create_test_photo(
-            owner=self.victim, public=False, exif_timestamp=year_ago
+            owner=self.victim,
+            public=False,
+            exif_timestamp=year_ago,
+            exif_gps_lat=41.1,
+            exif_gps_lon=-8.6,
         )
+        self.year_ago = year_ago
         self.v_photos = [self.v_photo, self.v_photo2]
 
         self.v_person = create_test_person(
@@ -184,6 +190,16 @@ class CrossTenantReadTest(TestCase):
             (
                 f"/api/photos/searchlist/?person={v.v_person.pk}",
                 v.v_photo.image_hash,
+            ),
+            (
+                "/api/photos/located-nearby-in-time/?"
+                + urlencode(
+                    {
+                        "from": (v.year_ago - datetime.timedelta(days=1)).isoformat(),
+                        "to": (v.year_ago + datetime.timedelta(days=1)).isoformat(),
+                    }
+                ),
+                v.v_photo2.image_hash,
             ),
             # The victim's photos are all in their album, so the owner sees none.
             ("/api/photos/no-album/", None),
