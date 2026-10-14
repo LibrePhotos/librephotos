@@ -307,6 +307,10 @@ urlpatterns = [
     re_path(r"^api/healthz/?$", health.HealthzView.as_view()),
     re_path(r"^api/django-admin/", admin.site.urls),
     re_path(r"^api/sitesettings/?$", site_settings.SiteSettingsView.as_view()),
+    path(
+        "api/sitesettings/trash-retention-preview/",
+        site_settings.TrashRetentionPreviewView.as_view(),
+    ),
     re_path(r"^api/email-config/test/?$", email_config.EmailTestView.as_view()),
     re_path(r"^api/email-config/?$", email_config.EmailConfigView.as_view()),
     re_path(r"^api/firsttimesetup/?$", user.IsFirstTimeSetupView.as_view()),

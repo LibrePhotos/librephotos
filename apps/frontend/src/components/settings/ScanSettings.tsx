@@ -8,7 +8,7 @@ import { useSaveSiteSettings } from "./useSaveSiteSettings";
 export const LABEL_SPAN = { base: 12, sm: 8 };
 export const CONTROL_SPAN = { base: 12, sm: 4 };
 
-function SettingLabel({ header, description }: { header: string; description: string }) {
+export function SettingLabel({ header, description }: { header: string; description: string }) {
   return (
     <Grid.Col span={LABEL_SPAN}>
       <Stack gap={0}>

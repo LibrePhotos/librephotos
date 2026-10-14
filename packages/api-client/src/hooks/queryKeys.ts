@@ -301,6 +301,7 @@ export const settingsKeys = {
   predefinedBurstRules: () => [...settingsRoot, "predefinedBurstRules"] as const,
   predefinedRules: () => [...settingsRoot, "predefinedRules"] as const,
   timezones: () => [...settingsRoot, "timezones"] as const,
+  trashRetentionPreview: (days: number) => [...settingsRoot, "trashRetentionPreview", days] as const,
 };
 
 const stackRoot = ["stacks"] as const;

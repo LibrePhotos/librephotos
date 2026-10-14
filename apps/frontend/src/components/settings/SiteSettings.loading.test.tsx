@@ -31,6 +31,8 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.query }));
 vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => stubs.save }));
+// Its own test: TrashRetentionSetting.test.tsx.
+vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
 
 const pending = (): QueryState => ({
   data: undefined,

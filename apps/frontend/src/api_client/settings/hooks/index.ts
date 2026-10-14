@@ -5,3 +5,4 @@ export * from "./useFetchPredefinedRulesQuery";
 export * from "./useFetchPredefinedBurstRulesQuery";
 export * from "./useFetchTimezonesQuery";
 export * from "./useFollowModelDownload";
+export * from "./useTrashRetentionPreviewQuery";

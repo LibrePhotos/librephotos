@@ -9,6 +9,7 @@ import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SectionLink } from "./SettingsSection";
+import { TrashRetentionSetting } from "./TrashRetentionSetting";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
@@ -218,6 +219,7 @@ function SiteSettingsForm() {
           <Grid justify="flex-end">
             <SkipPatternsSetting />
             <MissingPhotosLimitSetting />
+            <TrashRetentionSetting />
             <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>

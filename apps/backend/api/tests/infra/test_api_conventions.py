@@ -548,6 +548,7 @@ STAFF_ONLY_VIEWS = {
     "api.views.email_config.EmailTestView",
     "api.views.scan_triggers.StripThumbnailMetadataView",
     "api.views.services.ServiceViewSet",
+    "api.views.site_settings.TrashRetentionPreviewView",
     "api.views.serving_diagnostics.MediaPermissionDiagnosticsView",
     "api.views.user.DeleteUserViewSet",
     "api.views.user.ManageUserViewSet",

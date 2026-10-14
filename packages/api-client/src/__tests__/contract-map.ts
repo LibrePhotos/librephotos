@@ -88,6 +88,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
   SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
   SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
+  TrashRetentionPreview: { schema: S.TrashRetentionPreview, components: ["TrashRetentionPreview"] },
   // search
   MetadataValue: { schema: S.MetadataValue, components: ["MetadataValue"] },
   MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },

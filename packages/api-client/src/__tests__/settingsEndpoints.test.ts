@@ -72,6 +72,24 @@ describe("site settings", () => {
   });
 });
 
+describe("trash retention preview (admin)", () => {
+  it("asks for the days and parses the counts", async () => {
+    const { client, requests } = fakeServer({ days: 30, photo_count: 1204, user_count: 3 });
+    await expect(endpoints.fetchTrashRetentionPreview(client, 30)).resolves.toEqual({
+      days: 30,
+      photo_count: 1204,
+      user_count: 3,
+    });
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/sitesettings/trash-retention-preview/?days=30");
+  });
+
+  it("rejects an answer without the counts", async () => {
+    await expect(endpoints.fetchTrashRetentionPreview(fakeServer({ days: 30 }).client, 30)).rejects.toBeInstanceOf(
+      ResponseParseError
+    );
+  });
+});
+
 describe("time zones", () => {
   it("decodes the list the view sends as a JSON string", async () => {
     const { client, requests } = fakeServer(JSON.stringify(["Europe/Berlin", "UTC"]));

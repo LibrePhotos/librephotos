@@ -1,5 +1,5 @@
 import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Modal, Space, Stack, Text } from "@mantine/core";
+import { ActionIcon, Group } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
 import type { SelectionState } from "../../api_client/photos/types";
 import { DisabledReason } from "../common/DisabledReason";
+import { ConfirmModal } from "../modals/ConfirmModal";
 
 type Props = {
   selectedItems: PigPhoto[];
@@ -153,32 +154,16 @@ export function TrashcanActions(props: Readonly<Props>) {
         </>
       )}
 
-      <Modal
+      <ConfirmModal
         opened={deleteDialogOpen}
-        onClose={() => closeDeleteDialog()}
-        centered
-        size="md"
-        // Plain text, styled by the app's Modal theme like every other dialog's title
-        title={t("toasts.finaldeletephototitle")}
-      >
-        <Stack>
-          <Text size="sm">{t("trash.permanentDeleteWarning", { count: selectedCount })}</Text>
-
-          <Text size="sm" c="red" fw={500}>
-            {t("adminarea.cannotbeundone")}
-          </Text>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
-            <Button variant="default" onClick={closeDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Space w="md" />
-            <Button color="red" onClick={handlePermanentDelete} leftSection={<Trash size={16} />}>
-              {t("delete")}
-            </Button>
-          </div>
-        </Stack>
-      </Modal>
+        onClose={closeDeleteDialog}
+        onConfirm={handlePermanentDelete}
+        loading={purgeDeletedPhotos.isPending}
+        title={t("trash.deleteConfirmTitle", { count: selectedCount })}
+        message={t("trash.permanentDeleteWarning")}
+        confirmLabel={deleteLabel}
+        irreversible
+      />
     </Group>
   );
 }

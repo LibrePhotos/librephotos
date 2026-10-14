@@ -1,11 +1,14 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
+import { Text } from "@mantine/core";
 import { IconTrash as Trash } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
+import { EmptyTrashButton } from "../../components/photolist/EmptyTrashButton";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -28,6 +31,8 @@ function DeletedPhotos() {
   const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.IN_TRASHCAN, mediaType });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(photosQuery);
+  // Days a photo stays in the trash (#2203); 0, or a server without the setting: until emptied.
+  const retentionDays = useGetSettingsQuery().data?.trash_retention_days ?? 0;
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -55,9 +60,12 @@ function DeletedPhotos() {
     () => ({
       icon: <Trash size={40} />,
       title: t("emptystate.deleted.title"),
-      description: t("emptystate.deleted.description"),
+      description:
+        retentionDays > 0
+          ? t("emptystate.deleted.descriptionretention", { count: retentionDays })
+          : t("emptystate.deleted.description"),
     }),
-    [t]
+    [t, retentionDays]
   );
 
   return (
@@ -65,6 +73,13 @@ function DeletedPhotos() {
       title={t("photos.deleted")}
       loading={isLoading}
       icon={Trash}
+      additionalSubHeader={
+        <Text size="sm" c="dimmed">
+          {retentionDays > 0 ? t("trash.retentionOn", { count: retentionDays }) : t("trash.retentionOff")}
+        </Text>
+      }
+      // The whole trash, whatever the media filter shows; it waits for the job it starts.
+      headerActions={<EmptyTrashButton shownCount={photosFlat.length} />}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
