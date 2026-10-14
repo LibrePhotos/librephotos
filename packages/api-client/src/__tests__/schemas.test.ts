@@ -309,7 +309,7 @@ describe("loose objects keep the fields a newer server adds", () => {
     aspect_ratio: 1.5,
     latitude: null,
     longitude: null,
-    search_location: null,
+    search_location: "",
     dominant_color: null,
   };
 

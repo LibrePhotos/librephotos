@@ -49,6 +49,7 @@ from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.face import (
     AddFaceRequest,
     AddFaceResponse,
+    DeleteFacesResponse,
     FaceIdsRequest,
     FaceIncompleteListQuery,
     FaceListQuery,
@@ -58,6 +59,7 @@ from api.serializers.face import (
     SetFacePersonLabelRequest,
     SetFacePersonLabelResponse,
 )
+from api.serializers.job import JobStartedResponseSerializer
 from api.views.custom_api_view import ListViewSet
 from api.views.photos import _get_photo_filter_kwargs
 
@@ -70,10 +72,12 @@ class ScanFacesView(APIView):
     @extend_schema(
         deprecated=True,
         description="Use POST method",
+        responses=JobStartedResponseSerializer,
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_faces(request)
 
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_faces(request)
 
@@ -121,6 +125,7 @@ class TrainFaceView(APIView):
             prerequisites=missing_models_prerequisites(user),
         )
 
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._train_faces(request)
 
@@ -576,7 +581,7 @@ class AddFaceView(APIView):
 class DeleteFaces(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=FaceIdsRequest)
+    @extend_schema(request=FaceIdsRequest, responses=DeleteFacesResponse)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, FaceIdsRequest)

@@ -536,6 +536,8 @@ SPECTACULAR_SETTINGS = {
         # A stack's type, and the narrower set the stack list returns.
         "StackTypeEnum": "api.serializers.stack.STACK_TYPES",
         "ListedStackTypeEnum": "api.serializers.stack.LISTED_STACK_TYPES",
+        # A synced photo's kind (image, video, motion).
+        "SyncMediaTypeEnum": "api.serializers.sync_responses.SYNC_MEDIA_TYPES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

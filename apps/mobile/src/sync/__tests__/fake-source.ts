@@ -103,7 +103,7 @@ export function photoItem(id: string, over: Partial<SyncPhotoItem> = {}): SyncPh
     aspect_ratio: 1,
     latitude: null,
     longitude: null,
-    search_location: null,
+    search_location: "",
     dominant_color: null,
     ...over,
   };
@@ -122,7 +122,7 @@ export function userAlbumItem(id: number, over: Partial<SyncUserAlbumItem> = {})
     shared: 0,
     cover_hash: null,
     photo_count: 0,
-    created_on: null,
+    created_on: 1_700_000_000_000,
     last_modified: 1000,
     photo_ids: [],
     ...over,
@@ -133,7 +133,7 @@ export function autoAlbumItem(id: number, over: Partial<SyncAutoAlbumItem> = {})
   return {
     id,
     title: `event ${id}`,
-    timestamp: null,
+    timestamp: 1_700_000_000_000,
     favorited: false,
     photo_count: 0,
     cover_hash: null,
@@ -152,7 +152,7 @@ export function placeAlbumItem(id: number, over: Partial<SyncPlaceAlbumItem> = {
 }
 
 export function sharedUserItem(id: number, over: Partial<SyncSharedUserItem> = {}): SyncSharedUserItem {
-  return { id, username: `u${id}`, first_name: null, last_name: null, avatar_url: null, last_modified: 1000, ...over };
+  return { id, username: `u${id}`, first_name: "", last_name: "", avatar_url: null, last_modified: 1000, ...over };
 }
 
 /* ---- the fake source ---------------------------------------------------- */

@@ -52,6 +52,7 @@ LEGACY_CAMEL_CASE_FIELDS = frozenset(
         "digitalZoomRatio",
         "dominantColor",
         "focalLength35Equivalent",
+        "isFirstTimeSetup",
         "newPersonName",
         "numberOfItems",
         "removedPhotos",

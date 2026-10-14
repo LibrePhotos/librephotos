@@ -14,6 +14,8 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.jobs.start import start_job
 from api.models import LongRunningJob
+from api.serializers.folders import DirTreeSerializer
+from api.serializers.job import JobStartedResponseSerializer
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.serializers import ListDirQuery
 from nextcloud.server_address import (
@@ -30,6 +32,12 @@ logger = logging.getLogger(__name__)
 class ListDir(APIView):
     permission_classes = (IsAuthenticated, IsNextcloudEnabled)
 
+    @extend_schema(
+        parameters=[ListDirQuery],
+        responses=DirTreeSerializer(many=True),
+        description="The folders in fpath on the user's Nextcloud, without "
+        "their children; [] without a path or a Nextcloud server.",
+    )
     def get(self, request: Request, format: str | None = None) -> Response:
         path = parse_query(request, ListDirQuery)["fpath"]
         if not path:
@@ -70,12 +78,14 @@ class ListDir(APIView):
 class ScanPhotosView(APIView):
     permission_classes = (IsAuthenticated, IsNextcloudEnabled)
 
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
+        responses=JobStartedResponseSerializer,
     )
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_photos(request)
