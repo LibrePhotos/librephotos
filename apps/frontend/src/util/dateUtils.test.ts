@@ -230,4 +230,22 @@ describe("firstDayOfWeek", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  describe("when the UI language has no region", () => {
+    test.each([
+      ["en", ["en-GB", "en"], 1],
+      ["en", ["fr-FR", "en-US", "en-GB"], 0],
+      ["en", ["de-DE"], 0],
+      ["en", ["en"], 0],
+      ["en-US", ["en-GB"], 0],
+    ])("UI %s with browser languages %j starts on day %i", (ui, browser, expected) => {
+      Settings.defaultLocale = ui;
+      vi.stubGlobal("navigator", { languages: browser });
+      try {
+        expect(firstDayOfWeek()).toBe(expected);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  });
 });
