@@ -5,7 +5,8 @@
  * of /search/<q>), so a semantic user's flat list was parsed as date groups and
  * popped a "Failed to parse search photos ... report this on GitHub" toast.
  */
-import { ResponseParseError } from "@librephotos/api-client";
+import { ApiError, ResponseParseError } from "@librephotos/api-client";
+import type { MediaType, SearchFilters } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -36,9 +37,10 @@ const pigPhoto = {
 let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 let result: ReturnType<typeof useSearchPhotosQuery>;
+let args: { term: string; mediaType?: MediaType; filters?: SearchFilters } = { term: "beach" };
 
 function Probe() {
-  result = useSearchPhotosQuery("beach");
+  result = useSearchPhotosQuery(args.term, args.mediaType, args.filters);
   return null;
 }
 
@@ -70,6 +72,7 @@ afterEach(async () => {
   stubs.get.mockReset();
   stubs.user = undefined;
   stubs.userFailed = false;
+  args = { term: "beach" };
 });
 
 describe("useSearchPhotosQuery", () => {
@@ -155,5 +158,46 @@ describe("useSearchPhotosQuery", () => {
     await settle(() => result.isError);
 
     expect(result.error).toBeInstanceOf(ResponseParseError);
+  });
+
+  // #2259, #329: the structured filters go to the server under their own names, a list as a
+  // repeated key, and a search by filters alone needs no words.
+  it("sends the filters and the media type, with or without words", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockResolvedValue({ results: [] });
+    args = { term: "", mediaType: "photos", filters: { camera: "X-T5", iso_min: 3200, person: [3, 7] } };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    await settle(() => result.isSuccess);
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?photo=true&camera=X-T5&iso_min=3200&person=3&person=7");
+  });
+
+  it("asks nothing without words or filters", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    args = { term: "", filters: { camera: undefined } };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    await render(new QueryClient());
+
+    expect(stubs.get).not.toHaveBeenCalled();
+    expect(result.fetchStatus).toBe("idle");
+  });
+
+  it("does not ask again after the server refused a filter", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockRejectedValue(new ApiError(400, "/photos/searchlist/", "Bad Request", undefined, "Unknown person"));
+    args = { term: "", filters: { person: [99] } };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    // The app's QueryClient retries once; a refused filter must not be retried.
+    await render(new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } }));
+    await settle(() => result.isError);
+
+    expect(stubs.get).toHaveBeenCalledTimes(1);
   });
 });

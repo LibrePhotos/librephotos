@@ -1,11 +1,15 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  calendarDaysAgo,
+  calendarYear,
   describeDuration,
   firstDayOfWeek,
+  formatCalendarDay,
   formatPhotoDateTime,
   fromPickerValue,
   fromUnixSeconds,
+  isCalendarDay,
   parseInstant,
   parsePhotoTimestamp,
   parsePickerDate,
@@ -258,5 +262,33 @@ describe("shifting and describing photo dates (#2278)", () => {
     expect(describeDuration(5400)).toBe("1 hour, 30 minutes");
     expect(describeDuration(-93600)).toBe("1 day, 2 hours");
     expect(describeDuration(61)).toBe("1 minute, 1 second");
+  });
+});
+
+describe("calendar days (search filters)", () => {
+  test.each([
+    ["2024-03-01", true],
+    ["2024-02-29", true],
+    ["2023-02-29", false],
+    ["2024-3-1", false],
+    ["2024-03-01T00:00", false],
+    ["", false],
+  ])("isCalendarDay(%j) is %s", (value, expected) => {
+    expect(isCalendarDay(value)).toBe(expected);
+  });
+
+  test("formats a day in the UI language and leaves a non-day alone", () => {
+    Settings.defaultLocale = "en-US";
+    expect(formatCalendarDay("2024-03-01")).toBe("Mar 1, 2024");
+    expect(formatCalendarDay("soon")).toBe("soon");
+  });
+
+  test("gives this year's and last year's bounds and a day some days ago, in the viewer's zone", () => {
+    Settings.defaultZone = "Pacific/Auckland";
+    // 2024-12-31 12:00Z is already 2025-01-01 in Auckland.
+    Settings.now = () => Date.UTC(2024, 11, 31, 12);
+    expect(calendarYear(0)).toEqual({ first: "2025-01-01", last: "2025-12-31" });
+    expect(calendarYear(1)).toEqual({ first: "2024-01-01", last: "2024-12-31" });
+    expect(calendarDaysAgo(365)).toBe("2024-01-02");
   });
 });

@@ -10,6 +10,7 @@ import {
   IconEyeOff,
   IconFaceId,
   IconFileText,
+  IconFilter,
   IconFolder,
   IconFolders,
   IconGraph,
@@ -76,6 +77,14 @@ function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
       leftSection: React.createElement(IconUsers, iconProps),
       onClick: () => void navigate({ to: "/album/persons" }),
       keywords: ["people", "persons", "faces"],
+    },
+    {
+      id: "nav-filterphotos",
+      label: t("spotlight.nav.filterphotos"),
+      leftSection: React.createElement(IconFilter, iconProps),
+      // The search page without words: every photo the filters match.
+      onClick: () => void navigate({ to: "/search" }),
+      keywords: ["filter", "camera", "lens", "iso", "aperture", "rating", "raw", "date", "people", "together"],
     },
     {
       id: "nav-places",

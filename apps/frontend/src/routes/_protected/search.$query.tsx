@@ -1,61 +1,17 @@
-import { IconSearch as Search } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useSearchPhotosQuery } from "../../api_client/search/hooks";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useListFailure } from "../../components/common/useListFailure";
-import { validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
-import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import React from "react";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
+import { validateSearchPage } from "../../components/search/searchFilter";
+import { useSearchResults } from "../../components/search/useSearchResults";
 
+// A search by words, narrowed by the media button and the search filters in the URL (#2259).
 export const Route = createFileRoute("/_protected/search/$query")({
   component: SearchView,
-  validateSearch: validateMediaSearch,
+  validateSearch: validateSearchPage,
 });
-const DEFAULTS = {
-  photosFlat: [],
-  photosGroupedByDate: [],
-};
 
 function SearchView() {
-  const { t } = useTranslation();
-  const { query: searchQuery } = Route.useParams();
-  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
-  const mediaType = useMediaTypeFilter();
-
-  // isPending, not isFetching: a background refetch (after favouriting or
-  // hiding a result) must not blank the grid and lose the scroll position.
-  // Not isLoading either: that is false while the query still waits for the
-  // user, and the page flashed "No matching photos" on every hard load.
-  const searchResult = useSearchPhotosQuery(searchQuery ?? "", mediaType);
-  const { data: { photosGroupedByDate, photosFlat } = DEFAULTS, isPending } = searchResult;
-  const listFailure = useListFailure(searchResult);
-
-  // Like every other grid page, say so when nothing matched instead of
-  // leaving the page blank.
-  const emptyStateConfig: EmptyStateConfig = useMemo(
-    () => ({
-      icon: <Search size={40} />,
-      title: t("emptystate.search.title"),
-      description: t("emptystate.search.description", { query: searchQuery }),
-    }),
-    [t, searchQuery]
-  );
-
-  return (
-    <PhotoListView
-      // No trailing "...": the header shows its own loading state.
-      title={t("search.resultsfor", { query: searchQuery })}
-      loading={isPending}
-      icon={Search}
-      photoset={currentUser?.semantic_search_topk ? photosFlat : photosGroupedByDate}
-      idx2hash={photosFlat}
-      mediaType={mediaType}
-      selectable
-      emptyStateConfig={emptyStateConfig}
-      error={listFailure}
-    />
-  );
+  const { query } = Route.useParams();
+  const list = useSearchResults(query ?? "");
+  return <PhotoListView {...list} />;
 }

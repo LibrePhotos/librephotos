@@ -156,3 +156,31 @@ export function describeDuration(seconds: number): string {
   const nonZero = Object.fromEntries(DURATION_UNITS.flatMap(unit => (parts[unit] ? [[unit, parts[unit]]] : [])));
   return Duration.fromObject(nonZero).toHuman();
 }
+
+// A calendar day as the search filters and Mantine's date pickers write it, with no time or zone.
+const CALENDAR_DAY_FORMAT = "yyyy-MM-dd";
+
+/** Whether `value` is a real calendar day written `YYYY-MM-DD` (2024-02-30 is not). */
+export function isCalendarDay(value: string): boolean {
+  return DateTime.fromFormat(value, CALENDAR_DAY_FORMAT).isValid;
+}
+
+/** A `YYYY-MM-DD` day for people, in the UI language ("Mar 1, 2024"); the value itself if it is no day. */
+export function formatCalendarDay(day: string): string {
+  const parsed = DateTime.fromFormat(day, CALENDAR_DAY_FORMAT);
+  return parsed.isValid ? parsed.toLocaleString(DateTime.DATE_MED) : day;
+}
+
+/** First and last day of the year `yearsAgo` years before this one (0 is this year), as `YYYY-MM-DD`. */
+export function calendarYear(yearsAgo: number): { first: string; last: string } {
+  const year = DateTime.now().minus({ years: yearsAgo });
+  return {
+    first: year.startOf("year").toFormat(CALENDAR_DAY_FORMAT),
+    last: year.endOf("year").toFormat(CALENDAR_DAY_FORMAT),
+  };
+}
+
+/** The day `days` days before today, in the viewer's zone, as `YYYY-MM-DD`. */
+export function calendarDaysAgo(days: number): string {
+  return DateTime.now().minus({ days }).toFormat(CALENDAR_DAY_FORMAT);
+}

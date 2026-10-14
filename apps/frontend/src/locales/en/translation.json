@@ -1247,7 +1247,8 @@
       "changePassword": "Change Password",
       "changePasswordDesc": "Update your account password",
       "changeAvatar": "Change Avatar",
-      "changeAvatarDesc": "Update your profile picture"
+      "changeAvatarDesc": "Update your profile picture",
+      "filterphotos": "Filter photos"
     },
     "actions": {
       "scanPhotos": "Scan Photos",
@@ -2409,5 +2410,124 @@
   "featureboundary": {
     "title": "This part of the page failed to load",
     "retry": "Retry"
+  },
+  "searchfilter": {
+    "button": "Filters",
+    "title": "Search filters",
+    "activecount_one": "{{count}} filter active",
+    "activecount_other": "{{count}} filters active",
+    "filteredtitle": "Filtered photos",
+    "section": {
+      "people": "People",
+      "camera": "Camera",
+      "exposure": "Exposure",
+      "rating": "Rating",
+      "taken": "Taken",
+      "location": "Location",
+      "file": "File"
+    },
+    "people": {
+      "placeholder": "Add a person",
+      "hint": "Photos with all of them together",
+      "nothingfound": "No person with that name",
+      "facecount_one": "{{count}} face",
+      "facecount_other": "{{count}} faces"
+    },
+    "make": {
+      "label": "Maker",
+      "placeholder": "Any maker"
+    },
+    "camera": {
+      "label": "Camera",
+      "placeholder": "Any camera"
+    },
+    "lens": {
+      "label": "Lens",
+      "placeholder": "Any lens"
+    },
+    "nosuggestions": "None of your photos has this",
+    "countshint": "The numbers are photos in your library, not in these results.",
+    "range": {
+      "iso": "ISO",
+      "aperture": "Aperture",
+      "focal": "Focal length",
+      "focal35": "35 mm equivalent"
+    },
+    "min": "Min",
+    "max": "Max",
+    "rangeerror": "Lower than the lowest value",
+    "preset": {
+      "upto": "Up to {{high}}",
+      "between": "{{low}} to {{high}}",
+      "atleast": "{{low}} or more"
+    },
+    "unit": {
+      "fnumber": "f/{{value}}",
+      "mm": "{{value}} mm"
+    },
+    "rating": {
+      "any": "Any",
+      "favorites": "Favorites only"
+    },
+    "taken": {
+      "after": "On or after",
+      "before": "On or before",
+      "any": "Any day",
+      "thisyear": "This year",
+      "lastyear": "Last year",
+      "last12months": "Last 12 months"
+    },
+    "location": {
+      "any": "Any",
+      "with": "Has location",
+      "without": "No location"
+    },
+    "file": {
+      "raw": "Has a RAW file",
+      "rawhint": "Also finds RAW files paired with a JPEG",
+      "extension": "File extension",
+      "extensionplaceholder": "Any, for example cr3"
+    },
+    "clearall": "Clear all",
+    "show_one": "Show {{count}} photo",
+    "show_other": "Show {{count}} photos",
+    "chip": {
+      "remove": "Remove filter: {{label}}",
+      "person": "With {{name}}",
+      "unknownperson": "With a person not in your list",
+      "make": "Maker: {{value}}",
+      "camera": "Camera: {{value}}",
+      "lens": "Lens: {{value}}",
+      "between": "{{name}} {{low}} to {{high}}",
+      "atleast": "{{name}} {{low}} or more",
+      "atmost": "{{name}} up to {{high}}",
+      "favorites": "Favorites only",
+      "rating_one": "{{count}} star or more",
+      "rating_other": "{{count}} stars or more",
+      "takenbetween": "Taken {{after}} to {{before}}",
+      "takenafter": "Taken on or after {{day}}",
+      "takenbefore": "Taken on or before {{day}}",
+      "withlocation": "Has location",
+      "withoutlocation": "No location",
+      "filetype": {
+        "image": "Main file is an image",
+        "raw": "Has a RAW file",
+        "video": "Main file is a video"
+      },
+      "extension": ".{{value}} files"
+    },
+    "empty": {
+      "title": "No photos match these filters",
+      "description": "Remove a filter or change it to see more of your library.",
+      "action": "Clear filters"
+    },
+    "nofilters": {
+      "title": "Choose filters",
+      "description": "Open Filters to list your photos by people, camera, exposure, rating, date, location or file."
+    },
+    "rejected": {
+      "title": "Search filter not applied",
+      "description": "{{message}}. Remove or change the filter to see results."
+    }
   }
 }
