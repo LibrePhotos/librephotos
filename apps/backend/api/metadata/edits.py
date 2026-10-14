@@ -23,8 +23,10 @@ edit history that revert works from), bumps ``Photo.last_modified`` so the
 mobile delta feed and the clients' caches see the change, refreshes
 ``PhotoSearch`` where the field is indexed, and writes the value back to the
 file or sidecar when the owner syncs metadata to disk. Write-back covers the
-rating, the capture date, the caption (#2289) and the location (#2290);
-keywords and the text fields are not written to files yet.
+rating, the capture date, the caption, the keywords (#2289) and the location
+(#2290); the text fields are not written to files yet. Tags are the keywords
+the user edits (#2230): ``tags_changed`` writes the tags an edit of the tag
+endpoints touched, which have no edit history.
 
 ``PhotoMetadata`` otherwise holds what the file says (camera, lens, exposure,
 size) and is filled by the scan, not by these setters.
@@ -34,7 +36,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
 from typing import NamedTuple
 
@@ -50,7 +52,11 @@ from api.geocode.photo_location import (
     forget_place,
     usable_coordinates,
 )
-from api.metadata.jobs import queue_field_write, queue_rating_write
+from api.metadata.jobs import (
+    queue_field_write,
+    queue_keyword_write,
+    queue_rating_write,
+)
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
@@ -69,7 +75,7 @@ from api.models.photo_metadata import (
     text_fields_of,
 )
 from api.models.photo_search import PhotoSearch
-from api.models.tag import sync_tags_from_keywords
+from api.models.tag import sync_tags_from_keywords, tag_names
 from api.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -344,16 +350,43 @@ def _apply_caption(photo: Photo, text: str, user: User) -> tuple[str, bool]:
 
 
 def set_keywords(photo: Photo, keywords: list[str] | None, user: User) -> None:
-    """Replace the photo's keywords; the tags and the search index follow."""
+    """Replace the photo's keywords; the tags and the search index follow.
+
+    The tags that changed are written to the file or sidecar (#2289).
+    """
+    changed = _apply_keywords(photo, keywords, user)
+    queue_keyword_write(user, [photo.id], changed)
+
+
+def _apply_keywords(photo: Photo, keywords: list[str] | None, user: User) -> set[str]:
+    """``set_keywords`` without the write-back; the tag names that changed."""
     metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
     old = metadata.keywords
     if old == keywords:
-        return
+        return set()
     metadata.keywords = keywords
     metadata.save(update_fields=["keywords", "updated_at"])
     sync_tags_from_keywords(photo, keywords, old)
     _recreate_search_captions(photo)
     _record(user, KEYWORDS, [Change(photo.id, old, keywords)])
+    return tag_names(old) ^ tag_names(keywords)
+
+
+# ------------------------------------------------------------------------ tags
+
+
+def tags_changed(
+    user: User, photo_ids: Iterable[uuid.UUID], names: Collection[str]
+) -> None:
+    """The tags ``names`` of these photos were added, removed or renamed.
+
+    A tag of LibrePhotos is a keyword of the file (#2230), so each photo's
+    file or sidecar gets ``names`` added or removed as the photo has them
+    when the write runs (#2289): one job for the whole edit, nothing when the
+    owner does not write edits to files. Tags have no edit history yet, so
+    nothing is recorded.
+    """
+    queue_keyword_write(user, list(photo_ids), names)
 
 
 # ----------------------------------------------------------------- text fields
@@ -391,6 +424,8 @@ def apply_updates(
         assert isinstance(rating, int)
         set_rating(Photo.objects.filter(id__in=[p.id for p in targets]), rating, user)
     captioned: list[uuid.UUID] = []
+    tagged: list[uuid.UUID] = []
+    changed_tags: set[str] = set()
     for photo in targets:
         if CAPTION in updates:
             caption = updates[CAPTION]
@@ -400,14 +435,17 @@ def apply_updates(
         if KEYWORDS in updates:
             keywords = updates[KEYWORDS]
             assert keywords is None or isinstance(keywords, list)
-            set_keywords(photo, keywords, user)
+            if changed := _apply_keywords(photo, keywords, user):
+                tagged.append(photo.id)
+                changed_tags |= changed
         for field in TEXT_FIELDS:
             if field in updates:
                 value = updates[field]
                 assert value is None or isinstance(value, str)
                 set_text_field(photo, field, value, user)
-    # One job writes every changed caption.
+    # One job writes every changed caption, one every changed tag.
     queue_field_write(user, captioned, CAPTION)
+    queue_keyword_write(user, tagged, changed_tags)
     return targets
 
 

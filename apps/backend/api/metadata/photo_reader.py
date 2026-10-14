@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from django.db.models import Q, QuerySet
 
 from api.geocode.photo_location import apply_file_position
+from api.metadata.photo_writer import write_target
 from api.metadata.reader import MetadataReadError, get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata, format_exposure_time
@@ -102,7 +103,14 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
         return None
     values = read_file_values(photo)
     apply_file_position(photo, values["gps_latitude"], values["gps_longitude"])
-    return PhotoMetadata.apply_file_values(photo, values, commit)
+    return PhotoMetadata.apply_file_values(
+        photo, values, commit, new_keywords_only=_tags_are_written(photo)
+    )
+
+
+def _tags_are_written(photo: Photo) -> bool:
+    """Whether the owner's tag edits reach the files (``write_target``, #2289)."""
+    return write_target(photo.owner) is not None
 
 
 def read_file_values(photo: Photo) -> dict[str, object]:

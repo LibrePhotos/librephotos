@@ -6,22 +6,20 @@ export type WriteMode = "OFF" | "SIDECAR_FILE" | "MEDIA_FILE";
 /** The edits a user makes in LibrePhotos that could reach the photo's file. */
 export type EditedField = "rating" | "date" | "rotation" | "caption" | "tags" | "location";
 
-const EDITED_FIELDS: readonly EditedField[] = ["rating", "date", "rotation", "caption", "tags", "location"];
-
 /**
  * Which edits each mode writes to the file, as the backend does today (`api/metadata/photo_writer.py`):
  * the rating, the capture date (`XMP:DateCreated`), the rotation (`XMP-tiff:Orientation` in the
  * sidecar, the file's own EXIF orientation in a media file, #2550), the caption (the description,
- * #2289) and the location (the GPS position, #2290). Tags are not written yet. Face names have their
- * own switch and are not listed.
+ * #2289), the tags (the keywords, #2289) and the location (the GPS position, #2290). Face names have
+ * their own switch and are not listed.
  *
  * The one list of written fields: the settings texts and the lightbox hints both read it, so add a
  * field here when the backend starts writing it.
  */
 export const WRITTEN_FIELDS: Readonly<Record<WriteMode, readonly EditedField[]>> = {
   OFF: [],
-  SIDECAR_FILE: ["rating", "date", "rotation", "caption", "location"],
-  MEDIA_FILE: ["rating", "date", "rotation", "caption", "location"],
+  SIDECAR_FILE: ["rating", "date", "rotation", "caption", "tags", "location"],
+  MEDIA_FILE: ["rating", "date", "rotation", "caption", "tags", "location"],
 };
 
 const FIELD_NAME_KEYS: Readonly<Record<EditedField, ParseKeys>> = {
@@ -44,12 +42,6 @@ export type WriteDestination = "sidecar" | "file" | "none";
 export function writeDestination(field: EditedField, mode: WriteMode): WriteDestination {
   if (!WRITTEN_FIELDS[mode].includes(field)) return "none";
   return mode === "SIDECAR_FILE" ? "sidecar" : "file";
-}
-
-/** The edits no mode writes yet. */
-export function fieldsNeverWritten(): EditedField[] {
-  const written = new Set(Object.values(WRITTEN_FIELDS).flat());
-  return EDITED_FIELDS.filter(field => !written.has(field));
 }
 
 /** The fields as the language lists things: "ratings, dates, and rotations". */

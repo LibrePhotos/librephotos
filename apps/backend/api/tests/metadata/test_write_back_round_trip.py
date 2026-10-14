@@ -25,7 +25,11 @@ from api.directory_watcher.file_handlers import _process_photo
 from api.faces.extractor import extract_from_exif
 from api.geocode.photo_location import geolocate_photo
 from api.metadata import edits
-from api.metadata.jobs import queue_rating_write, write_photo_ratings
+from api.metadata.jobs import (
+    queue_rating_write,
+    write_photo_keywords,
+    write_photo_ratings,
+)
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import extract_exif_data, read_file_values
 from api.metadata.photo_writer import rotate_photo, write_photo_metadata
@@ -36,6 +40,7 @@ from api.models.person import Person
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import description_of
+from api.models.tag import Tag
 from api.models.user import User
 from api.serializers.photos import PhotoEditSerializer
 from api.tests.metadata.exiftool_harness import (
@@ -530,6 +535,442 @@ class CaptionRoundTripTest(RealExifToolTestCase):
         yield
         with open(path, "rb") as handle:
             self.assertEqual(before, handle.read(), f"{path} was rewritten")
+
+
+class KeywordRoundTripTest(RealExifToolTestCase):
+    """A tag edit written as the file's keywords and read back as the scan reads them (#2289).
+
+    The photos start from file keywords that a first scan turned into tags,
+    and are edited through the tag endpoints, as the lightbox and the bulk
+    tag actions do.
+    """
+
+    def _photo(self, path, mode, *keywords, user=None, **fields):
+        # Its own bytes: two identical fixtures would share one File row.
+        self.tag(path, f"-XMP-dc:Source={os.path.basename(path)}")
+        if keywords:
+            self.tag(path, *(f"-XMP-dc:Subject={keyword}" for keyword in keywords))
+        owner = user or create_test_user(save_metadata_to_disk=mode)
+        photo = self.photo_for(path, owner, **fields)
+        extract_exif_data(photo, commit=True)
+        self.exiftool.writes.clear()
+        return self._reloaded(photo)
+
+    def _reloaded(self, photo):
+        return Photo.objects.select_related("main_file", "owner").get(pk=photo.pk)
+
+    @contextmanager
+    def _jobs(self):
+        """Run the queued writes right away; yields the ``enqueue_task`` mock."""
+        with (
+            patch("api.metadata.jobs.enqueue_task", side_effect=run_now) as queued,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            yield queued
+
+    def _client(self, user):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    def _tag_id(self, user, name):
+        response = self._client(user).post("/api/tags/", {"name": name}, format="json")
+        self.assertIn(response.status_code, (200, 201), response.content)
+        return response.json()["id"]
+
+    def _post(self, user, url, body):
+        with self._jobs():
+            response = self._client(user).post(url, body, format="json")
+        self.assertEqual(200, response.status_code, response.content)
+
+    def _add(self, photos, name):
+        user = photos[0].owner
+        tag_id = self._tag_id(user, name)
+        self._post(
+            user, f"/api/tags/{tag_id}/add/", {"photos": [str(p.pk) for p in photos]}
+        )
+
+    def _remove(self, photo, name):
+        tag = Tag.objects.owned_by(photo.owner).get(name=name)
+        self._post(
+            photo.owner, f"/api/tags/{tag.id}/remove/", {"photos": [str(photo.pk)]}
+        )
+
+    def _tags(self, photo):
+        return sorted(
+            Tag.objects.owned_by(photo.owner)
+            .filter(photos=photo)
+            .values_list("name", flat=True)
+        )
+
+    def _scan_keywords(self, photo):
+        """The photo's keywords as the next scan reads them."""
+        return extract_exif_data(self._reloaded(photo), commit=False).keywords
+
+    def _rescan(self, photo):
+        extract_exif_data(self._reloaded(photo), commit=True)
+
+    def _file_keywords(self, path):
+        (subject,) = self.read_tags(path, "XMP-dc:Subject").values()
+        if subject is None:
+            return []
+        values = subject if isinstance(subject, list) else [subject]
+        return [str(value) for value in values]
+
+    def _round_trip(self, path, mode, **fields):
+        photo = self._photo(path, mode, "Holiday", "Beach", **fields)
+        self.assertEqual(["Beach", "Holiday"], self._tags(photo))
+
+        self._add([photo], "Sunset")
+        self._remove(photo, "Beach")
+
+        self.assertEqual(["Holiday", "Sunset"], self._scan_keywords(photo))
+        self.assertWritesLanded(expected=2)
+        target = self.sidecar_of(path) if mode == SIDECAR else path
+        self.assertEqual({target}, {write.target for write in self.exiftool.writes})
+        self.assertCountEqual(["Holiday", "Sunset"], self._file_keywords(target))
+        return photo
+
+    def test_image_formats(self):
+        for extension in IMAGE_FORMATS:
+            for mode in MODES:
+                with self.subTest(extension=extension, mode=mode):
+                    self.exiftool.writes.clear()
+                    self._round_trip(self.make_image(extension, f"k-{mode}"), mode)
+
+    def test_video(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                self._round_trip(self.make_video(f"k-{mode}"), mode, video=True)
+
+    def test_the_original_is_untouched_in_the_sidecar_mode(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR, "Holiday", "Beach")
+        with open(path, "rb") as handle:
+            before = handle.read()
+
+        self._add([photo], "Sunset")
+        self._remove(photo, "Beach")
+
+        with open(path, "rb") as handle:
+            self.assertEqual(before, handle.read(), f"{path} was rewritten")
+        self.assertEqual(["Holiday", "Sunset"], self._scan_keywords(photo))
+
+    def test_a_rescan_keeps_the_tags(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                photo = self._round_trip(self.make_image(".jpg", f"re-{mode}"), mode)
+
+                self._rescan(photo)
+
+                self.assertEqual(["Holiday", "Sunset"], self._tags(photo))
+
+    def test_a_removed_keyword_the_file_still_gives_stays_removed(self):
+        # A sidecar cannot remove the original's IPTC:Keywords, and no write
+        # touches a HierarchicalSubject leaf: the file still gives both.
+        path = self.make_image(".jpg")
+        self.tag(
+            path,
+            "-IPTC:Keywords=Sunset",
+            "-XMP-lr:HierarchicalSubject=Places|USA|San Francisco",
+        )
+        photo = self._photo(path, SIDECAR, "Holiday")
+        self.assertEqual(["Holiday", "San Francisco", "Sunset"], self._tags(photo))
+
+        self._remove(photo, "Sunset")
+        self._remove(photo, "San Francisco")
+        self._rescan(photo)
+        self._rescan(photo)
+
+        self.assertEqual(["Holiday"], self._tags(photo))
+        self.assertEqual(["Holiday"], self._file_keywords(self.sidecar_of(path)))
+        self.assertIn("Sunset", self._scan_keywords(photo))
+
+    def test_a_keyword_another_app_adds_becomes_a_tag(self):
+        path = self.make_image(".jpg")
+        photo = self._round_trip(path, MEDIA_FILE)
+
+        self.tag(path, "-XMP-dc:Subject+=Lighthouse")
+        self._rescan(photo)
+
+        self.assertEqual(["Holiday", "Lighthouse", "Sunset"], self._tags(photo))
+
+    def test_while_off_a_rescan_still_adds_a_removed_file_keyword_back(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF, "Holiday", "Beach")
+
+        with self.assertUntouched(path):
+            self._remove(photo, "Beach")
+        self._rescan(photo)
+
+        self.assertEqual(["Beach", "Holiday"], self._tags(photo))
+
+    def test_an_existing_iptc_block_follows_the_edit(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-IPTC:Keywords=Holiday", "-IPTC:Keywords=Beach")
+
+        self._round_trip(path, MEDIA_FILE)
+
+        (iptc,) = self.read_tags(path, Tags.IPTC_KEYWORDS).values()
+        self.assertCountEqual(["Holiday", "Sunset"], iptc)
+
+    def test_a_file_without_iptc_gains_none(self):
+        path = self.make_image(".jpg")
+
+        self._round_trip(path, MEDIA_FILE)
+
+        self.assertEqual(
+            {Tags.IPTC_KEYWORDS: None}, self.read_tags(path, Tags.IPTC_KEYWORDS)
+        )
+
+    def test_a_new_sidecar_starts_from_the_photo_keywords(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-IPTC:Keywords=Sunset")
+        photo = self._photo(path, SIDECAR, "Holiday")
+
+        self._add([photo], "Lighthouse")
+
+        self.assertCountEqual(
+            ["Holiday", "Sunset", "Lighthouse"],
+            self._file_keywords(self.sidecar_of(path)),
+        )
+        self.assertEqual(
+            ["Holiday", "Lighthouse", "Sunset"], self._scan_keywords(photo)
+        )
+
+    def test_keywords_of_an_existing_sidecar_survive(self):
+        """A digiKam sidecar's keywords stay, and the media file's are not copied in."""
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-dc:Subject=Original")
+        sidecar = path + ".xmp"
+        write_metadata(path, {Tags.SUBJECT: ["Holiday", "Beach"]}, use_sidecar=True)
+        photo = self._photo(path, SIDECAR)
+
+        self._add([photo], "Sunset")
+        self._remove(photo, "Beach")
+
+        self.assertCountEqual(["Holiday", "Sunset"], self._file_keywords(sidecar))
+        self.assertEqual(["Original"], self._file_keywords(path))
+
+    def test_removing_the_last_keyword_creates_no_sidecar(self):
+        # ExifTool cannot store an empty list; the removal stays in LibrePhotos.
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR, "Holiday")
+
+        with self.assertUntouched(path):
+            self._remove(photo, "Holiday")
+        self._rescan(photo)
+
+        self.assertEqual([], self._tags(photo))
+
+    def test_a_tag_the_file_already_has_writes_nothing(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE, "Holiday")
+        Tag.objects.owned_by(photo.owner).get(name="Holiday").photos.remove(photo)
+
+        with self.assertUntouched(path):
+            self._add([photo], "Holiday")
+
+    def test_a_tag_added_twice_is_written_once(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"twice-{mode}")
+                photo = self._photo(path, mode, "Holiday")
+                target = self.sidecar_of(path) if mode == SIDECAR else path
+
+                self._add([photo], "Sunset")
+                self._add([photo], "Sunset")
+                write_photo_keywords([photo.id], ["Sunset"], mode == SIDECAR)
+
+                self.assertEqual(["Holiday", "Sunset"], self._file_keywords(target))
+                self.assertWritesLanded(expected=1)
+                self.exiftool.writes.clear()
+
+    def test_person_names_of_the_face_regions_survive(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"faces-{mode}")
+                user = create_test_user(
+                    save_metadata_to_disk=mode, save_face_tags_to_disk=True
+                )
+                photo = self._photo(path, mode, "Holiday", user=user, thumbnails=True)
+                person = create_test_person(
+                    name="Alice", kind=Person.KIND_USER, cluster_owner=user
+                )
+                create_test_face(
+                    photo=photo,
+                    person=person,
+                    location_top=10,
+                    location_right=40,
+                    location_bottom=30,
+                    location_left=16,
+                )
+                write_photo_metadata(
+                    photo, use_sidecar=mode == SIDECAR, metadata_types=["face_tags"]
+                )
+                self._rescan(photo)
+                self.assertEqual(["Alice", "Holiday"], self._tags(photo))
+                target = self.sidecar_of(path) if mode == SIDECAR else path
+
+                self._add([photo], "Sunset")
+                self._remove(photo, "Holiday")
+                self._remove(photo, "Alice")
+
+                self.assertCountEqual(["Alice", "Sunset"], self._file_keywords(target))
+                self._rescan(photo)
+                self.assertEqual(["Sunset"], self._tags(photo))
+
+    def test_people_and_hierarchies_are_not_written_as_keywords(self):
+        path = self.make_image(".jpg")
+        self.tag(
+            path,
+            "-XMP-iptcExt:PersonInImage=Bob",
+            "-XMP-lr:HierarchicalSubject=Places|Lisbon",
+        )
+        photo = self._photo(path, MEDIA_FILE, "Holiday")
+        self.assertEqual(["Bob", "Holiday", "Lisbon"], self._tags(photo))
+
+        self._add([photo], "Sunset")
+        self._remove(photo, "Bob")
+
+        self.assertCountEqual(["Holiday", "Sunset"], self._file_keywords(path))
+        found = self.read_tags(path, Tags.PERSON_IN_IMAGE, Tags.HIERARCHICAL_SUBJECT)
+        self.assertEqual(["Bob"], found[Tags.PERSON_IN_IMAGE])
+        self.assertEqual(["Places|Lisbon"], found[Tags.HIERARCHICAL_SUBJECT])
+        self._rescan(photo)
+        self.assertEqual(["Holiday", "Lisbon", "Sunset"], self._tags(photo))
+
+    def test_renaming_a_tag_renames_the_keyword(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE, "Holiday", "Beach")
+        tag = Tag.objects.owned_by(photo.owner).get(name="Beach")
+
+        with self._jobs():
+            response = self._client(photo.owner).patch(
+                f"/api/tags/{tag.id}/", {"name": "Seaside"}, format="json"
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertCountEqual(["Holiday", "Seaside"], self._file_keywords(path))
+        self.assertWritesLanded(expected=1)
+
+    def test_deleting_a_tag_removes_the_keyword(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, SIDECAR, "Holiday", "Beach")
+        tag = Tag.objects.owned_by(photo.owner).get(name="Beach")
+
+        with self._jobs():
+            response = self._client(photo.owner).delete(f"/api/tags/{tag.id}/")
+
+        self.assertEqual(204, response.status_code, response.content)
+        self.assertEqual(["Holiday"], self._file_keywords(self.sidecar_of(path)))
+        self._rescan(photo)
+        self.assertEqual(["Holiday"], self._tags(photo))
+
+    def test_merging_tags_merges_the_keywords(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE, "Holiday", "Vacation")
+        target = Tag.objects.owned_by(photo.owner).get(name="Holiday")
+        source = Tag.objects.owned_by(photo.owner).get(name="Vacation")
+
+        self._post(photo.owner, f"/api/tags/{target.id}/merge/", {"tag": source.id})
+
+        self.assertEqual(["Holiday"], self._file_keywords(path))
+
+    def test_a_bulk_tag_is_one_job(self):
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        photos = [
+            self._photo(self.make_image(".jpg", f"bulk-{index}"), SIDECAR, user=user)
+            for index in range(2)
+        ]
+        tag_id = self._tag_id(user, "Sunset")
+
+        with self._jobs() as queued:
+            response = self._client(user).post(
+                f"/api/tags/{tag_id}/add/",
+                {"select_all": True, "query": {}},
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(1, queued.call_count)
+        self.assertWritesLanded(expected=2)
+        for photo in photos:
+            self.assertEqual(["Sunset"], self._scan_keywords(photo))
+
+    def test_a_metadata_api_keyword_edit_is_one_job(self):
+        user = create_test_user(save_metadata_to_disk=MEDIA_FILE)
+        paths = [self.make_image(".jpg", f"api-{index}") for index in range(2)]
+        photos = [self._photo(path, MEDIA_FILE, "Holiday", user=user) for path in paths]
+
+        with self._jobs() as queued:
+            response = self._client(user).patch(
+                "/api/photos/metadata/bulk/",
+                {
+                    "photo_ids": [str(photo.pk) for photo in photos],
+                    "updates": {"keywords": ["Sunset"]},
+                },
+                format="json",
+            )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual(1, queued.call_count)
+        for path in paths:
+            self.assertEqual(["Sunset"], self._file_keywords(path))
+
+    def test_writes_that_run_out_of_order_leave_the_latest_tags(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE, "Holiday")
+        queued = []
+        with (
+            patch("api.metadata.jobs.enqueue_task", lambda *job: queued.append(job)),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            tag_id = self._tag_id(photo.owner, "Sunset")
+            client = self._client(photo.owner)
+            body = {"photos": [str(photo.pk)]}
+            client.post(f"/api/tags/{tag_id}/add/", body, format="json")
+            client.post(f"/api/tags/{tag_id}/remove/", body, format="json")
+            client.post(f"/api/tags/{tag_id}/add/", body, format="json")
+        self.assertEqual(3, len(queued))
+
+        for job in reversed(queued):
+            run_now(*job)
+
+        self.assertCountEqual(["Holiday", "Sunset"], self._file_keywords(path))
+
+    def test_nothing_is_written_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF, "Holiday")
+
+        with self.assertUntouched(path):
+            self._add([photo], "Sunset")
+            self._remove(photo, "Holiday")
+            edits.set_keywords(photo, ["Beach"], photo.owner)
+
+    def test_a_rolled_back_edit_leaves_the_file_alone(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE, "Holiday")
+
+        with self.assertUntouched(path), self._jobs():
+            with self.assertRaises(RuntimeError), transaction.atomic():
+                edits.set_keywords(photo, ["Sunset"], photo.owner)
+                raise RuntimeError("the request fails after the save")
+
+    def test_the_scan_writes_nothing(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"scan-{mode}")
+                self.tag(path, "-XMP-dc:Subject=Holiday")
+                photo = self.photo_for(
+                    path, create_test_user(save_metadata_to_disk=mode)
+                )
+
+                with self.assertUntouched(path), self._jobs():
+                    extract_exif_data(photo, commit=True)
+
+                self.assertEqual(["Holiday"], self._tags(photo))
 
 
 # South and west, so a lost sign shows.
@@ -1269,7 +1710,7 @@ EXERCISED_WRITERS = {
     "api.metadata.photo_writer._write_sidecar_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",
     "api.metadata.photo_writer._write_edit": (
-        "CaptionRoundTripTest, LocationRoundTripTest"
+        "CaptionRoundTripTest, LocationRoundTripTest, KeywordRoundTripTest"
     ),
 }
 
@@ -1377,6 +1818,7 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 Tags.GPS_LATITUDE,
                 Tags.GPS_LATITUDE_REF,
                 Tags.GPS_COORDINATES_KEYS,
+                Tags.KEYWORDS_MWG,
             },
             emitted,
         )
@@ -1394,6 +1836,7 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 for photo in (image, video):
                     edits.set_caption(photo, CAPTION, user)
                     edits.set_location(photo, LATITUDE, LONGITUDE, user)
+                    edits.set_keywords(photo, ["Sunset"], user)
 
     def test_the_guard_fails_a_tag_exiftool_leaves_unchanged(self):
         path = self.make_image(".jpg")

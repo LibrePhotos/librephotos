@@ -712,6 +712,7 @@ EDIT_CALLS = {
     "sync_tags_from_keywords": {"api.metadata.edits"},
     "queue_rating_write": {"api.metadata.edits"},
     "queue_field_write": {"api.metadata.edits"},
+    "queue_keyword_write": {"api.metadata.edits"},
 }
 
 BACKEND = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))

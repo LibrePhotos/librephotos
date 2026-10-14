@@ -167,7 +167,7 @@
     },
     "metadata": "Metadata Options",
     "sync": "Write edits to files",
-    "syncdescription": "Copies some of your edits into your files, so other apps see them. Not written yet: {{fields}}.",
+    "writeeditsdescription": "Copies your edits into your files, so other apps see them.",
     "favoritesyncoptions": {
       "off": "Off",
       "sidecar": "Save to sidecar",
@@ -705,6 +705,7 @@
       "noTags": "No tags",
       "tagFromFile": "From the file's keywords",
       "tagsFromFileHint": "Tags with this icon came from the file's keywords. Removing one here leaves it in the file, and a rescan adds it back.",
+      "tagsFromFileHintWritten": "Tags with this icon came from the file's keywords. Your changes to them are written back.",
       "noMentionResults": "No results",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "writeback": {

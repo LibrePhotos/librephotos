@@ -13,9 +13,11 @@ import {
   useFetchTagsQuery,
   useRemovePhotosFromTagMutation,
 } from "../../api_client/tags/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { DisabledReason } from "../common/DisabledReason";
+import { writeDestination, writeModeOf } from "../settings/metadataWrite";
 import classes from "./TagsSection.module.css";
 import { WriteBackHint } from "./WriteBackHint";
 
@@ -60,6 +62,24 @@ function FromFileIcon({ inText = false }: { inText?: boolean }) {
       role="img"
       aria-label={t("lightbox.sidebar.tagFromFile")}
     />
+  );
+}
+
+/**
+ * The editor's note on the marked tags. While tags stay in LibrePhotos, removing a file tag leaves
+ * it in the file and a rescan adds it back; with "Write edits to files" on, the removal reaches the
+ * file and sticks (#2289). Nothing until the user's settings are loaded, like WriteBackHint.
+ */
+function FromFileHint() {
+  const { t } = useTranslation();
+  const { data: user } = useCurrentUserSelfDetailsQuery();
+  if (!user) return null;
+  const written = writeDestination("tags", writeModeOf(user.save_metadata_to_disk)) !== "none";
+  return (
+    <Text size="xs" c="dimmed">
+      <IconFileImport size={12} className={`${classes.fromFileIcon} ${classes.inText}`} aria-hidden />
+      {t(written ? "lightbox.sidebar.tagsFromFileHintWritten" : "lightbox.sidebar.tagsFromFileHint")}
+    </Text>
   );
 }
 
@@ -219,12 +239,7 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
             renderPill={renderPill}
             clearable
           />
-          {draftTags.some(isFromFile) && (
-            <Text size="xs" c="dimmed">
-              <IconFileImport size={12} className={`${classes.fromFileIcon} ${classes.inText}`} aria-hidden />
-              {t("lightbox.sidebar.tagsFromFileHint")}
-            </Text>
-          )}
+          {draftTags.some(isFromFile) && <FromFileHint />}
           <WriteBackHint field="tags" />
         </>
       ) : tags.length > 0 ? (

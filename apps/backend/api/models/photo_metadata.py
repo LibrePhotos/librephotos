@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
-from api.models.tag import link_tags_from_keywords
+from api.models.tag import link_tags_from_keywords, tag_names
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -350,6 +350,15 @@ def merged_keywords_of(values: Mapping[str, object]) -> list[str]:
     )
 
 
+def keywords_to_import(
+    keywords: list[str] | None, known: list[str] | None
+) -> list[str] | None:
+    """The ``keywords`` a scan turns into tags: all, or those not ``known`` yet."""
+    if not known or not keywords:
+        return keywords
+    return sorted(tag_names(keywords) - tag_names(known))
+
+
 class PhotoMetadata(models.Model):
     """
     What a photo's file says: technical metadata, keywords, title, copyright
@@ -508,10 +517,21 @@ class PhotoMetadata(models.Model):
 
     @classmethod
     def apply_file_values(
-        cls, photo: Photo, values: Mapping[str, object], commit: bool = True
+        cls,
+        photo: Photo,
+        values: Mapping[str, object],
+        commit: bool = True,
+        new_keywords_only: bool = False,
     ) -> PhotoMetadata:
         """Update ``photo`` and its PhotoMetadata from the values read from its
-        file (``api.metadata.photo_reader.read_file_values``)."""
+        file (``api.metadata.photo_reader.read_file_values``).
+
+        Each keyword becomes a tag. With ``new_keywords_only`` (the owner
+        writes edits to files, #2289) only a keyword the file did not give
+        before does: the tags are then the list the user edits and the file
+        follows them, so a tag the user removed is not brought back by a
+        keyword the file still has.
+        """
         cls._apply_to_photo(photo, values)
         if commit:
             photo.save()
@@ -519,6 +539,7 @@ class PhotoMetadata(models.Model):
         metadata, created = cls.objects.get_or_create(
             photo=photo, defaults={"source": cls.Source.EMBEDDED}
         )
+        known_keywords = metadata.keywords if new_keywords_only else None
         # The scan renders the thumbnails first: their aspect ratio is the
         # photo as shown. Read from the row, which the renderer saved.
         shown_aspect_ratio = (
@@ -534,7 +555,9 @@ class PhotoMetadata(models.Model):
         if commit:
             metadata.save()
             # "Import tags from EXIF": the keywords read above also become Tag rows.
-            link_tags_from_keywords(photo, metadata.keywords)
+            link_tags_from_keywords(
+                photo, keywords_to_import(metadata.keywords, known_keywords)
+            )
             cls._import_description_to_caption(photo, description_of(values))
 
         return metadata
