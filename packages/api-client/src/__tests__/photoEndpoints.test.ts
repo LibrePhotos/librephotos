@@ -76,6 +76,12 @@ describe("photo details", () => {
     expect(schema.parse({ image_hash: "abc" })).toEqual({ image_hash: "abc", is_hdr: false });
   });
 
+  it("keeps whether a video's grid square is animated, absent from a server that predates it", () => {
+    const schema = PigPhoto.pick({ image_hash: true, animated_preview: true });
+    expect(schema.parse({ image_hash: "abc", animated_preview: false }).animated_preview).toBe(false);
+    expect(schema.parse({ image_hash: "abc" }).animated_preview).toBeUndefined();
+  });
+
   it("reads recently added photos of an empty library (date null), and still requires the date", () => {
     expect(RecentlyAddedPhotosResponse.parse({ date: null, results: [] })).toEqual({ date: null, results: [] });
     expect(RecentlyAddedPhotosResponse.safeParse({ results: [] }).success).toBe(false);

@@ -12,6 +12,13 @@ describe("siteFeatures", () => {
 
   it("names the environment variable that locks a feature", () => {
     expect(envVariable("image_captioning")).toBe("FEATURE_IMAGE_CAPTIONING");
+    expect(envVariable("video_previews")).toBe("FEATURE_VIDEO_PREVIEWS");
+  });
+
+  it("lists the animated previews right under Videos, as its sub-switch", () => {
+    const names = FEATURE_ROWS.map(row => row.name);
+    expect(names.indexOf("video_previews")).toBe(names.indexOf("video") + 1);
+    expect(FEATURE_ROWS.find(row => row.name === "video_previews")?.parent).toBe("video");
   });
 
   it("shows no model line for a feature that is off or needs no model", () => {

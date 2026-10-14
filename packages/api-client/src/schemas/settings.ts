@@ -18,6 +18,8 @@ export const SiteFeatures = z.object({
   image_captioning: SiteFeatureState,
   reverse_geocoding: SiteFeatureState,
   scene_classification: SiteFeatureState,
+  // Animated grid previews of videos (#649). Optional: older backends do not have the switch.
+  video_previews: SiteFeatureState.optional(),
 });
 export type SiteFeatures = z.infer<typeof SiteFeatures>;
 export type SiteFeatureName = keyof SiteFeatures;

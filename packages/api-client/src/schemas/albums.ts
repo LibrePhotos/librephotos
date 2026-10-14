@@ -193,6 +193,8 @@ export const PhotoSimple = z.object({
   // Seconds as a string, "" for a photo (as in PigPhoto).
   video_length: z.string().optional(),
   is_hdr: z.boolean().optional(),
+  // A video whose grid square is an animated clip, not a still (#649); older backends lack it.
+  animated_preview: z.boolean().optional(),
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

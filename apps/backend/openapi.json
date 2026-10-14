@@ -16445,9 +16445,14 @@
           "is_hdr": {
             "type": "boolean",
             "readOnly": true
+          },
+          "animated_preview": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "required": [
+          "animated_preview",
           "aspectRatio",
           "dominantColor",
           "exif_gps_lat",
@@ -16775,6 +16780,10 @@
             "type": "boolean",
             "readOnly": true
           },
+          "animated_preview": {
+            "type": "boolean",
+            "readOnly": true
+          },
           "rating": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -16825,6 +16834,7 @@
           }
         },
         "required": [
+          "animated_preview",
           "aspectRatio",
           "birthTime",
           "date",
@@ -18538,7 +18548,7 @@
       },
       "SiteFeatures": {
         "type": "object",
-        "description": "The six feature switches, by feature.",
+        "description": "The feature switches, by feature.",
         "properties": {
           "video": {
             "$ref": "#/components/schemas/SiteFeatureState"
@@ -18557,6 +18567,9 @@
           },
           "scene_classification": {
             "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "video_previews": {
+            "$ref": "#/components/schemas/SiteFeatureState"
           }
         },
         "required": [
@@ -18565,7 +18578,8 @@
           "image_captioning",
           "reverse_geocoding",
           "scene_classification",
-          "video"
+          "video",
+          "video_previews"
         ]
       },
       "SiteModelDownload": {
@@ -18749,6 +18763,9 @@
             "type": "boolean"
           },
           "scene_classification_enabled": {
+            "type": "boolean"
+          },
+          "video_previews_enabled": {
             "type": "boolean"
           }
         }

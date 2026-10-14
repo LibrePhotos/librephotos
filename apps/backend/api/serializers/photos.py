@@ -35,7 +35,7 @@ from api.serializers.fields import (
 )
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
-from api.serializers.simple import SimpleUserSerializer
+from api.serializers.simple import SimpleUserSerializer, has_animated_preview
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # For an HDR badge on the tile. False for a video the scan has not probed
     # yet as well as for an SDR one: the backfill job fills the older ones in.
     is_hdr = serializers.SerializerMethodField()
+    # Whether the grid square is a clip to play or a still (#649).
+    animated_preview = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -93,6 +95,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "type",
             "video_length",
             "is_hdr",
+            "animated_preview",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -136,6 +139,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def get_is_hdr(self, obj: Photo) -> bool:
         return obj.video and obj.video_color_transfer in color.HDR_TRANSFERS
+
+    def get_animated_preview(self, obj: Photo) -> bool:
+        return has_animated_preview(obj)
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -291,6 +297,8 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "image_hash",
             "thumbnail__aspect_ratio",
             "thumbnail__dominant_color",
+            # Its name says whether a video's square is a clip (animated_preview).
+            "thumbnail__square_thumbnail",
             "video",
             "main_file",
             "search_instance__search_location",
