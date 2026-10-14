@@ -7,6 +7,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
 
 from api.geocode.geocode import no_place
@@ -347,8 +348,8 @@ class LocationSummaryTest(TestCase):
             summary["places"],
             [{"place": "Porto", "count": 2}, {"place": "Lisbon", "count": 1}],
         )
-        first = datetime.datetime.fromisoformat(summary["first_taken"])
-        last = datetime.datetime.fromisoformat(summary["last_taken"])
+        first = parse_datetime(summary["first_taken"])
+        last = parse_datetime(summary["last_taken"])
         self.assertEqual(first, bare[0].exif_timestamp)
         self.assertEqual(last, bare[1].exif_timestamp)
 
@@ -424,8 +425,7 @@ class LocatedNearbyInTimeTest(TestCase):
 
         self.assertEqual(len(rows), 20)
         offsets = [
-            abs(datetime.datetime.fromisoformat(row["exif_timestamp"]) - self.middle)
-            for row in rows
+            abs(parse_datetime(row["exif_timestamp"]) - self.middle) for row in rows
         ]
         self.assertEqual(offsets, sorted(offsets))
         self.assertLessEqual(max(offsets), datetime.timedelta(hours=10))
