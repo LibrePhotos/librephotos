@@ -46,6 +46,7 @@ import { Route as ProtectedRecentRouteImport } from "./routes/_protected/recent"
 import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route";
 import { Route as ProtectedScreenshotsRouteImport } from "./routes/_protected/screenshots";
 import { Route as ProtectedSearchQueryRouteImport } from "./routes/_protected/search.$query";
+import { Route as ProtectedSearchIndexRouteImport } from "./routes/_protected/search.index";
 import { Route as ProtectedSettingsRouteImport } from "./routes/_protected/settings";
 import { Route as ProtectedSharingBymeTabRouteImport } from "./routes/_protected/sharing/byme.$tab";
 import { Route as ProtectedSharingIndexRouteImport } from "./routes/_protected/sharing/index";
@@ -227,6 +228,11 @@ const ProtectedOrganizingTabRoute = ProtectedOrganizingTabRouteImport.update({
 const ProtectedPhotoIdRoute = ProtectedPhotoIdRouteImport.update({
   id: "/photo/$id",
   path: "/photo/$id",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedSearchIndexRoute = ProtectedSearchIndexRouteImport.update({
+  id: "/search/",
+  path: "/search/",
   getParentRoute: () => ProtectedRouteRoute,
 } as any);
 const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   "/admin/": typeof ProtectedAdminIndexRoute;
   "/album/": typeof ProtectedAlbumIndexRoute;
   "/jobs/": typeof ProtectedJobsIndexRoute;
+  "/search/": typeof ProtectedSearchIndexRoute;
   "/sharing/": typeof ProtectedSharingIndexRoute;
   "/statistics/": typeof ProtectedStatisticsIndexRoute;
   "/admin/job/$id": typeof ProtectedAdminJobIdRoute;
@@ -483,6 +490,7 @@ export interface FileRoutesByTo {
   "/admin": typeof ProtectedAdminIndexRoute;
   "/album": typeof ProtectedAlbumIndexRoute;
   "/jobs": typeof ProtectedJobsIndexRoute;
+  "/search": typeof ProtectedSearchIndexRoute;
   "/sharing": typeof ProtectedSharingIndexRoute;
   "/statistics": typeof ProtectedStatisticsIndexRoute;
   "/admin/job/$id": typeof ProtectedAdminJobIdRoute;
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   "/_protected/admin/": typeof ProtectedAdminIndexRoute;
   "/_protected/album/": typeof ProtectedAlbumIndexRoute;
   "/_protected/jobs/": typeof ProtectedJobsIndexRoute;
+  "/_protected/search/": typeof ProtectedSearchIndexRoute;
   "/_protected/sharing/": typeof ProtectedSharingIndexRoute;
   "/_protected/statistics/": typeof ProtectedStatisticsIndexRoute;
   "/_protected/admin/job/$id": typeof ProtectedAdminJobIdRoute;
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | "/admin/"
     | "/album/"
     | "/jobs/"
+    | "/search/"
     | "/sharing/"
     | "/statistics/"
     | "/admin/job/$id"
@@ -674,6 +684,7 @@ export interface FileRouteTypes {
     | "/admin"
     | "/album"
     | "/jobs"
+    | "/search"
     | "/sharing"
     | "/statistics"
     | "/admin/job/$id"
@@ -738,6 +749,7 @@ export interface FileRouteTypes {
     | "/_protected/admin/"
     | "/_protected/album/"
     | "/_protected/jobs/"
+    | "/_protected/search/"
     | "/_protected/sharing/"
     | "/_protected/statistics/"
     | "/_protected/admin/job/$id"
@@ -993,6 +1005,13 @@ declare module "@tanstack/react-router" {
       path: "/photo/$id";
       fullPath: "/photo/$id";
       preLoaderRoute: typeof ProtectedPhotoIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/search/": {
+      id: "/_protected/search/";
+      path: "/search";
+      fullPath: "/search/";
+      preLoaderRoute: typeof ProtectedSearchIndexRouteImport;
       parentRoute: typeof ProtectedRouteRoute;
     };
     "/_protected/search/$query": {
@@ -1253,6 +1272,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute;
   ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute;
   ProtectedJobsIndexRoute: typeof ProtectedJobsIndexRoute;
+  ProtectedSearchIndexRoute: typeof ProtectedSearchIndexRoute;
   ProtectedSharingIndexRoute: typeof ProtectedSharingIndexRoute;
   ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute;
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute;
@@ -1306,6 +1326,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedStatisticsWordcloudsRoute: ProtectedStatisticsWordcloudsRoute,
   ProtectedAlbumIndexRoute: ProtectedAlbumIndexRoute,
   ProtectedJobsIndexRoute: ProtectedJobsIndexRoute,
+  ProtectedSearchIndexRoute: ProtectedSearchIndexRoute,
   ProtectedSharingIndexRoute: ProtectedSharingIndexRoute,
   ProtectedStatisticsIndexRoute: ProtectedStatisticsIndexRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,

@@ -235,6 +235,12 @@ describe("navigation", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/noalbum" });
   });
 
+  it("opens the search page with filters only", async () => {
+    await render();
+    await trigger("nav-filterphotos");
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search" });
+  });
+
   it("encodes search terms", async () => {
     stubs.searchOptions = [{ value: "what? #1/2", type: SearchOptionType.EXAMPLE, data: "what? #1/2" }];
     await render();

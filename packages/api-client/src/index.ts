@@ -21,6 +21,7 @@ export type {
   DateAlbumFilter,
   DateTimeChange,
   PhotoCategory,
+  SearchFilters,
   SelectAllPhotos,
   SyncPullParams,
   UserAlbumOptions,

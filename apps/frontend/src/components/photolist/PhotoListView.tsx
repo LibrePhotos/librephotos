@@ -119,6 +119,9 @@ type Props = Readonly<{
   // empty, so a filter that matches nothing can always be changed back, and on
   // a view that is otherwise read-only (`isPublic`): leaving a shared album.
   headerActions?: React.ReactNode;
+  // Under the title row, full width, also while the view loads or is empty: the search page's
+  // active filter chips, so a filter that matches nothing can be removed where it shows.
+  filterBar?: React.ReactNode;
   // Scrolls away above the grid, unlike the sticky header (the timeline's memories).
   banner?: React.ReactNode;
 }>;
@@ -162,6 +165,7 @@ function PhotoListViewComponent({
   photosetQuery,
   mediaType,
   headerActions,
+  filterBar,
   banner,
 }: Props) {
   const { height } = useViewportSize();
@@ -278,6 +282,7 @@ function PhotoListViewComponent({
               )}
             </Group>
           )}
+          {header === undefined && filterBar}
           {!isLoading && !isPublic && getNumPhotos() > 0 && (
             <PhotoListSelectionBar
               selectionState={selectionState}
