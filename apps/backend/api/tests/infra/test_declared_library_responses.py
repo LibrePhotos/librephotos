@@ -290,7 +290,13 @@ class ServingDiagnosticsResponsesTest(DeclaredResponseTestCase):
         photo = create_test_photo(owner=self.admin)
         photo.main_file.path = os.path.join(self.folder, "gone.jpg")
         photo.main_file.save()
-        body = self.diagnose(photo)
+        # The web server owns the folder, so it walks up to the missing file
+        # (a fresh temporary folder is closed to anyone else on POSIX).
+        folder = os.stat(self.folder)
+        with patch.object(
+            permissions, "webserver_ids", return_value=(folder.st_uid, folder.st_gid)
+        ):
+            body = self.diagnose(photo)
         self.assertEqual("missing", body["cause"])
         self.assertEqual({"path", "kind"}, set(body["blocking"]))
         # No mount matches the path.
