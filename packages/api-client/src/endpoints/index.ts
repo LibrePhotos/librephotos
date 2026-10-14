@@ -1611,6 +1611,37 @@ export async function setPhotoTimestamp(
   return parseResponse(S.PhotoEditResponse, res, "set timestamp");
 }
 
+/** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
+export type DateTimeChange = { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
+
+/**
+ * Shift the date of photos by `seconds` (negative for earlier), or give them all one date and time
+ * (#2278). By hash, or selected-all. The new date is the user's: it wins over the date rules and is
+ * written to the files when the user syncs metadata to disk. A shift skips photos without a date.
+ */
+export async function setPhotosDateTime(
+  client: ApiClient,
+  imageHashes: string[],
+  change: DateTimeChange,
+  selectAll?: SelectAllPhotos
+): Promise<S.SetPhotosDateTimeResponse> {
+  const res = await client.post<unknown>("/photosedit/datetime/", {
+    ...photoSelection(imageHashes, selectAll),
+    ...change,
+  });
+  return parseResponse(S.SetPhotosDateTimeResponse, res, "set photos date and time");
+}
+
+/** The dates of a selection (by hash, or selected-all): counts and the oldest and newest dated photo. */
+export async function fetchDateSummary(
+  client: ApiClient,
+  imageHashes: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.DateSummary> {
+  const res = await client.post<unknown>("/photos/date-summary/", photoSelection(imageHashes, selectAll));
+  return parseResponse(S.DateSummary, res, "date summary");
+}
+
 /** Save a user caption on one photo. */
 export async function savePhotoCaption(
   client: ApiClient,

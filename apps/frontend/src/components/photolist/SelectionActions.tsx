@@ -2,6 +2,7 @@ import type { BulkPhotoQuery, PhotoCategory, PigPhoto } from "@librephotos/api-c
 import { ActionIcon, Group, Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconCalendarTime as CalendarTime,
   IconDotsVertical as DotsVertical,
   IconDownload as Download,
   IconEye as Eye,
@@ -36,6 +37,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
+import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { StackSelectionActions } from "./StackSelectionActions";
 
@@ -117,22 +119,14 @@ export function SelectionActions(props: Readonly<Props>) {
   // Fix the media category of the selection; pinned as set by the user, so
   // rescans and Classify Media keep it.
   const markAs = (category: PhotoCategory) => {
-    if (selectAllMode) {
-      setPhotosCategory.mutate({
-        select_all: true,
-        query: selectAllQuery ?? {},
-        excluded_hashes: getExcludedHashes(),
-        category,
-      });
-    } else {
-      setPhotosCategory.mutate({ image_hashes: getImageHashes(), category });
-    }
+    setPhotosCategory.mutate({ ...photoSelection(), category });
     resetSelection();
   };
 
   // Download modal state
   const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
   const [isRemoveFromPersonOpen, { open: openRemoveFromPerson, close: closeRemoveFromPerson }] = useDisclosure(false);
+  const [isDateTimeOpen, { open: openDateTime, close: closeDateTime }] = useDisclosure(false);
   const albumPage = albumPageKind(location.pathname);
 
   // In select-all mode the modal can only show an upper bound, because the
@@ -170,6 +164,10 @@ export function SelectionActions(props: Readonly<Props>) {
         onRequestClose={() => closeDownloadModal()}
         onConfirm={handleDownloadConfirm}
       />
+      {/* Mounted while open only: it asks the server for the selection's dates. */}
+      {isDateTimeOpen && (
+        <ChangeDateTimeModal opened onClose={closeDateTime} selection={photoSelection()} onSaved={resetSelection} />
+      )}
       {albumPage === "person" && (
         <PersonRemovePhotosModal
           opened={isRemoveFromPersonOpen}
@@ -217,22 +215,18 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <DisabledReason reason={noSelection} position="left">
+            <Menu.Item leftSection={<CalendarTime size={ICON_SIZE.menu} />} onClick={openDateTime}>
+              {t("selectionactions.changedatetime")}
+            </Menu.Item>
+          </DisabledReason>
+
+          <Menu.Divider />
+
+          <DisabledReason reason={noSelection} position="left">
             <Menu.Item
               leftSection={<EyeOff size={ICON_SIZE.menu} />}
               onClick={() => {
-                if (selectAllMode) {
-                  setPhotosHidden.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    hidden: true,
-                  });
-                } else {
-                  setPhotosHidden.mutate({
-                    image_hashes: getImageHashes(),
-                    hidden: true,
-                  });
-                }
+                setPhotosHidden.mutate({ ...photoSelection(), hidden: true });
                 resetSelection();
               }}
             >
@@ -244,19 +238,7 @@ export function SelectionActions(props: Readonly<Props>) {
             <Menu.Item
               leftSection={<Eye size={ICON_SIZE.menu} />}
               onClick={() => {
-                if (selectAllMode) {
-                  setPhotosHidden.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    hidden: false,
-                  });
-                } else {
-                  setPhotosHidden.mutate({
-                    image_hashes: getImageHashes(),
-                    hidden: false,
-                  });
-                }
+                setPhotosHidden.mutate({ ...photoSelection(), hidden: false });
                 resetSelection();
               }}
             >
@@ -321,19 +303,7 @@ export function SelectionActions(props: Readonly<Props>) {
             <Menu.Item
               leftSection={<Key size={ICON_SIZE.menu} />}
               onClick={() => {
-                if (selectAllMode) {
-                  setPhotosPublic.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    val_public: false,
-                  });
-                } else {
-                  setPhotosPublic.mutate({
-                    image_hashes: getImageHashes(),
-                    val_public: false,
-                  });
-                }
+                setPhotosPublic.mutate({ ...photoSelection(), val_public: false });
                 resetSelection();
               }}
             >
@@ -355,19 +325,7 @@ export function SelectionActions(props: Readonly<Props>) {
             <Menu.Item
               leftSection={<Trash size={ICON_SIZE.menu} />}
               onClick={() => {
-                if (selectAllMode) {
-                  setPhotosDeleted.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    deleted: true,
-                  });
-                } else {
-                  setPhotosDeleted.mutate({
-                    image_hashes: getImageHashes(),
-                    deleted: true,
-                  });
-                }
+                setPhotosDeleted.mutate({ ...photoSelection(), deleted: true });
                 resetSelection();
               }}
             >

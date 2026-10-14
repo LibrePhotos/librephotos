@@ -4718,6 +4718,54 @@
         }
       }
     },
+    "/api/photos/date-summary/": {
+      "post": {
+        "operationId": "api_photos_date_summary_create",
+        "description": "How many photos the selection has, how many have no date, and its\noldest and newest dated photo: what the date dialog shows before it\nsaves. A POST because a selection can be a whole query; it changes\nnothing.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateSummaryResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/download/": {
       "get": {
         "operationId": "api_photos_download_retrieve",
@@ -5849,6 +5897,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BulkPhotoMutationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photosedit/datetime/": {
+      "post": {
+        "operationId": "api_photosedit_datetime_create",
+        "description": "Shift the requester's selected photos by a number of seconds, or give\nthem all one date and time.\n\nThe body names the photos as every bulk photo action does\n(``image_hashes``, or ``select_all`` with ``query`` and\n``excluded_hashes``). A shift moves each photo from the date it shows, so\nthe photos keep their order and spacing; a photo without a date is left\nalone and counted in ``skipped_without_date``. The new date is the\nuser's: it wins over the owner's date rules, and is written to the file\nor sidecar in the background when the owner syncs metadata to disk.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPhotosDateTimeRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetPhotosDateTimeResponse"
                 }
               }
             },
@@ -10523,6 +10620,62 @@
           "username"
         ]
       },
+      "DateSummaryResponse": {
+        "type": "object",
+        "description": "Where a selection's dates stand before they are changed.",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos in the selection"
+          },
+          "without_date": {
+            "type": "integer",
+            "description": "Photos of the selection that have no date"
+          },
+          "oldest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatedPhoto"
+              }
+            ],
+            "nullable": true,
+            "description": "The earliest dated photo, null without one"
+          },
+          "newest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatedPhoto"
+              }
+            ],
+            "nullable": true,
+            "description": "The latest dated photo, null without one"
+          }
+        },
+        "required": [
+          "count",
+          "newest",
+          "oldest",
+          "without_date"
+        ]
+      },
+      "DatedPhoto": {
+        "type": "object",
+        "description": "One photo of a selection and its date.",
+        "properties": {
+          "image_hash": {
+            "type": "string"
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The photo's local wall-clock time, tagged UTC"
+          }
+        },
+        "required": [
+          "exif_timestamp",
+          "image_hash"
+        ]
+      },
       "DefaultTimezoneEnum": {
         "enum": [
           "Africa/Abidjan",
@@ -12831,6 +12984,14 @@
         "required": [
           "results"
         ]
+      },
+      "ModeEnum": {
+        "enum": [
+          "shift",
+          "set"
+        ],
+        "type": "string",
+        "description": "* `shift` - shift\n* `set` - set"
       },
       "NullEnum": {
         "enum": [
@@ -15340,6 +15501,36 @@
           "image_hash"
         ]
       },
+      "PhotoSelectionRequestRequest": {
+        "type": "object",
+        "description": "The photos a bulk action applies to.\n\nEither ``image_hashes``, or ``select_all`` with a filter ``query`` (see\n``api.photos.selection.build_photo_queryset``) minus ``excluded_hashes``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          }
+        }
+      },
       "PhotoSimple": {
         "type": "object",
         "properties": {
@@ -16438,6 +16629,76 @@
         },
         "required": [
           "category"
+        ]
+      },
+      "SetPhotosDateTimeRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and the change:\n``{\"mode\": \"shift\", \"seconds\": -3600}`` or\n``{\"mode\": \"set\", \"datetime\": \"2025-10-11T10:18:00\"}``.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ModeEnum"
+              }
+            ],
+            "description": "shift moves every dated photo by seconds; set gives every photo datetime\n\n* `shift` - shift\n* `set` - set"
+          },
+          "seconds": {
+            "type": "integer",
+            "maximum": 3162240000,
+            "minimum": -3162240000,
+            "format": "int64",
+            "description": "With shift: how far, negative for earlier; not 0"
+          },
+          "datetime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "With set: the photos' local wall-clock time, without an offset (as the lightbox's date editor sends it)"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "SetPhotosDateTimeResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Photos that got the new date"
+          },
+          "skipped_without_date": {
+            "type": "integer",
+            "description": "Photos a shift left alone because they have no date"
+          }
+        },
+        "required": [
+          "count",
+          "skipped_without_date"
         ]
       },
       "SetPhotosDeletedRequestRequest": {

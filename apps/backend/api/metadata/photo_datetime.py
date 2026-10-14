@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
+
+from django.db.models import QuerySet
 
 import api.models
 from api.metadata import datetime_rules
@@ -17,6 +19,41 @@ from api.metadata.reader import get_metadata, sidecar_files_for_photo
 if TYPE_CHECKING:
     from api.models.album_date import AlbumDate
     from api.models.photo import Photo
+
+
+class DatedPhoto(TypedDict):
+    image_hash: str
+    exif_timestamp: datetime
+
+
+class DateSummary(TypedDict):
+    """Where a selection's dates stand (``date_summary``)."""
+
+    count: int
+    without_date: int
+    oldest: DatedPhoto | None
+    newest: DatedPhoto | None
+
+
+def date_summary(photos: QuerySet[Photo]) -> DateSummary:
+    """How many of ``photos`` there are, how many have no date, and the
+    oldest and newest dated one: what the bulk date dialog previews (#2278)."""
+    dated = photos.filter(exif_timestamp__isnull=False)
+    return {
+        "count": photos.count(),
+        "without_date": photos.filter(exif_timestamp__isnull=True).count(),
+        "oldest": _first_dated(dated.order_by("exif_timestamp", "image_hash")),
+        "newest": _first_dated(dated.order_by("-exif_timestamp", "-image_hash")),
+    }
+
+
+def _first_dated(photos: QuerySet[Photo]) -> DatedPhoto | None:
+    row = photos.values_list("image_hash", "exif_timestamp").first()
+    if row is None:
+        return None
+    image_hash, timestamp = row
+    assert timestamp is not None
+    return {"image_hash": image_hash, "exif_timestamp": timestamp}
 
 
 def find_album_date(photo: Photo) -> AlbumDate | None:

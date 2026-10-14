@@ -55,6 +55,14 @@ function setPhotosRating(numberOfPhotos: number, rating: number) {
   toast.success(message, { title: i18n.t("toasts.setratingtitle") });
 }
 
+// One toast for a bulk date change (#2278): how many photos moved, and how many a shift skipped
+// because they have no date.
+function photosDateChanged(changed: number, skippedWithoutDate: number) {
+  const message = i18n.t("toasts.datechanged", { count: changed });
+  const skipped = skippedWithoutDate ? ` ${i18n.t("toasts.dateskipped", { count: skippedWithoutDate })}` : "";
+  toast.success(message + skipped, { title: i18n.t("toasts.datechangedtitle") });
+}
+
 function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
   const notificationMessage = isHidden
     ? i18n.t("toasts.hidephoto", { numberOfPhotos })
@@ -153,6 +161,7 @@ export const photos = {
   locationSavedNoPlace,
   locationSavedWithoutPlace,
   photoRotated,
+  photosDateChanged,
   removePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,

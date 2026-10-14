@@ -23,6 +23,35 @@ export const BulkPhotoMutationResponse = z.looseObject({
 export type BulkPhotoMutationResponse = z.infer<typeof BulkPhotoMutationResponse>;
 
 /**
+ * `POST /photosedit/datetime/` (#2278): the photos that got the new date, and those a shift left
+ * alone because they have no date.
+ */
+export const SetPhotosDateTimeResponse = z.object({
+  count: z.number(),
+  skipped_without_date: z.number(),
+});
+export type SetPhotosDateTimeResponse = z.infer<typeof SetPhotosDateTimeResponse>;
+
+/** One photo of a selection and its date (`exif_timestamp`, wall clock tagged UTC). */
+export const DatedPhoto = z.object({
+  image_hash: z.string(),
+  exif_timestamp: z.string(),
+});
+export type DatedPhoto = z.infer<typeof DatedPhoto>;
+
+/**
+ * `POST /photos/date-summary/` (#2278): how many photos a selection has, how many have no date, and
+ * its oldest and newest dated photo (null when none has a date), for the date dialog's preview.
+ */
+export const DateSummary = z.object({
+  count: z.number(),
+  without_date: z.number(),
+  oldest: DatedPhoto.nullable(),
+  newest: DatedPhoto.nullable(),
+});
+export type DateSummary = z.infer<typeof DateSummary>;
+
+/**
  * `PATCH /photos/edit/{hash}/` — single-photo field edit (timestamp, GPS). PhotoEditSerializer
  * always sends the hash; the web refreshes the photo's details by it.
  */

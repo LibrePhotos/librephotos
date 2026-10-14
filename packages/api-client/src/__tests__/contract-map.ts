@@ -32,6 +32,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SharedFromMePhoto: { schema: S.SharedFromMePhoto, components: ["SharedFromMePhotoThrough"] },
   PhotoMetadata: { schema: S.PhotoMetadata, components: ["PhotoMetadata"] },
   MetadataEdit: { schema: S.MetadataEdit, components: ["MetadataEdit"] },
+  SetPhotosDateTimeResponse: { schema: S.SetPhotosDateTimeResponse, components: ["SetPhotosDateTimeResponse"] },
+  DatedPhoto: { schema: S.DatedPhoto, components: ["DatedPhoto"] },
+  DateSummary: { schema: S.DateSummary, components: ["DateSummaryResponse"] },
   // date groups (timeline, albums)
   DatePhotosGroup: { schema: S.DatePhotosGroup, components: ["GroupedPhotos"] },
   IncompleteDatePhotosGroup: {
