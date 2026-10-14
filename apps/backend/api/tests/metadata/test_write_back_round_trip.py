@@ -1175,6 +1175,76 @@ class LocationRoundTripTest(RealExifToolTestCase):
             self.assertEqual(before, handle.read(), f"{path} was rewritten")
 
 
+class BulkDateRoundTripTest(RealExifToolTestCase):
+    """A bulk shift (``POST /api/photosedit/datetime/``, #2278): one queued
+    ``write_photo_fields`` job writes every shifted date, read back by rule 16."""
+
+    HOUR = datetime.timedelta(hours=1)
+
+    def _shift(self, mode, paths):
+        user = create_test_user(save_metadata_to_disk=mode)
+        photos = [
+            self.photo_for(path, user, exif_timestamp=TIMESTAMP) for path in paths
+        ]
+        client = APIClient()
+        client.force_authenticate(user=user)
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.post(
+                "/api/photosedit/datetime/",
+                {
+                    "image_hashes": [photo.image_hash for photo in photos],
+                    "mode": "shift",
+                    "seconds": -3600,
+                },
+                format="json",
+            )
+        self.assertEqual(200, response.status_code, response.content)
+        return photos
+
+    def _date_the_scan_reads(self, photo):
+        fresh = Photo.objects.get(pk=photo.pk)
+        fresh.timestamp = None
+        extract_date_time(fresh, commit=False)
+        return fresh.exif_timestamp
+
+    def test_every_shifted_date_reaches_its_target(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                # Two formats: two copies of one image would be one File row.
+                paths = [
+                    self.make_image(ext, f"bulk-{mode}") for ext in (".jpg", ".png")
+                ]
+
+                photos = self._shift(mode, paths)
+
+                for photo in photos:
+                    self.assertEqual(
+                        TIMESTAMP - self.HOUR, self._date_the_scan_reads(photo)
+                    )
+                self.assertWritesLanded(expected=2)
+                expected = {self.sidecar_of(p) if mode == SIDECAR else p for p in paths}
+                self.assertEqual(
+                    expected, {write.target for write in self.exiftool.writes}
+                )
+
+    def test_the_sidecar_says_the_shifted_time(self):
+        path = self.make_image(".jpg")
+
+        self._shift(SIDECAR, [path])
+
+        created = self.read_tags(self.sidecar_of(path), Tags.DATE_CREATED)
+        self.assertIn("2019:08:15 06:45:00", str(created[Tags.DATE_CREATED]))
+
+    def test_nothing_is_written_when_off(self):
+        path = self.make_image(".jpg")
+        with self.assertUntouched(path):
+            self._shift(OFF, [path])
+
+
 # Face box in the big thumbnail (display space), pixels: top, right, bottom,
 # left. Off-centre and not square, so a wrong transform cannot map it onto
 # itself.
@@ -1705,7 +1775,8 @@ class RotationRoundTripTest(RealExifToolTestCase):
 # round-trip test here.
 EXERCISED_WRITERS = {
     "api.metadata.photo_writer.write_photo_metadata": (
-        "RatingRoundTripTest, DateRoundTripTest, FaceTagRoundTripTest"
+        "RatingRoundTripTest, DateRoundTripTest, BulkDateRoundTripTest, "
+        "FaceTagRoundTripTest"
     ),
     "api.metadata.photo_writer._write_sidecar_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",

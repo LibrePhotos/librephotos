@@ -528,9 +528,14 @@ def _write_rating(photo: Photo, use_sidecar: bool) -> None:
     write_photo_metadata(photo, modified_fields=["rating"], use_sidecar=use_sidecar)
 
 
+def _write_capture_time(photo: Photo, use_sidecar: bool) -> None:
+    write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=use_sidecar)
+
+
 #: The writer of each field ``api.metadata.jobs`` writes in the background.
 FIELD_WRITERS: dict[str, Callable[[Photo, bool], None]] = {
     "rating": _write_rating,
+    "date_taken": _write_capture_time,
     "caption": write_caption,
     "location": write_location,
 }

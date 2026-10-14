@@ -60,6 +60,7 @@ from api.views import (
     media,
     memories,
     password_reset,
+    photo_dates,
     photo_metadata,
     photos,
     public_albums,
@@ -291,11 +292,17 @@ urlpatterns = [
         media.UnifiedMediaAccessView.as_view(),
         name="media",
     ),
-    # Ahead of the router: its api/photos/<pk>/ route would take "no-album".
+    # Ahead of the router: its api/photos/<pk>/ route would take "no-album"
+    # and "date-summary".
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
         name="photos_no_album",
+    ),
+    path(
+        "api/photos/date-summary/",
+        photo_dates.DateSummaryView.as_view(),
+        name="photos_date_summary",
     ),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
@@ -333,6 +340,7 @@ urlpatterns = [
     ),
     re_path(r"^api/photosedit/savecaption/?$", photos.SavePhotoCaption.as_view()),
     re_path(r"^api/photosedit/rotate/?$", photos.RotatePhotoView.as_view()),
+    path("api/photosedit/datetime/", photo_dates.SetPhotosDateTimeView.as_view()),
     re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
     path("api/useralbum/leave/", sharing.LeaveSharedAlbum.as_view()),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),

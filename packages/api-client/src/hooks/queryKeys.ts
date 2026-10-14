@@ -1,4 +1,4 @@
-import type { SearchFilters } from "../endpoints";
+import type { SearchFilters, SelectAllPhotos } from "../endpoints";
 import type {
   DuplicateType,
   FaceAnalysisMethod,
@@ -125,6 +125,9 @@ export const photoKeys = {
   publicDetail: (slug: string, imageHash: string) => [...photoRoot, "publicDetail", slug, imageHash] as const,
   shares: () => [...photoRoot, "shares"] as const,
   sharedBySlug: (slug: string) => [...photoRoot, "sharedBySlug", slug] as const,
+  /** The dates of a selection, by hash or selected-all (the date dialog's preview). */
+  dateSummary: (imageHashes: readonly string[], selectAll: SelectAllPhotos | undefined) =>
+    [...photoRoot, "dateSummary", imageHashes, selectAll] as const,
 };
 
 // The album lists and pickers. An album's photos are a grid: photoGridKeys.

@@ -1,7 +1,9 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  describeDuration,
   firstDayOfWeek,
+  formatPhotoDateTime,
   fromPickerValue,
   fromUnixSeconds,
   parseInstant,
@@ -10,6 +12,7 @@ import {
   photoTimestampToPickerDate,
   pickerDateToPhotoTimestamp,
   pickerValueDaysFromNow,
+  shiftPhotoTimestamp,
   toPickerValue,
 } from "./dateUtils";
 import { defined } from "./defined.test-utils";
@@ -229,5 +232,31 @@ describe("firstDayOfWeek", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("shifting and describing photo dates (#2278)", () => {
+  test("a shift keeps the wall clock, whatever the viewer's zone", () => {
+    Settings.defaultZone = "America/New_York";
+    expect(shiftPhotoTimestamp("2025-10-09T08:14:02Z", -3600)).toBe("2025-10-09T07:14:02.000Z");
+    expect(shiftPhotoTimestamp("2025-10-09T23:30:00Z", 3600)).toBe("2025-10-10T00:30:00.000Z");
+  });
+
+  test("an unreadable date shifts to null", () => {
+    expect(shiftPhotoTimestamp("not a date", 60)).toBeNull();
+  });
+
+  test("the wall clock is formatted to the second", () => {
+    Settings.defaultZone = "Asia/Tokyo";
+    Settings.defaultLocale = "en-US";
+    // ICU puts a narrow no-break space before "AM".
+    expect(formatPhotoDateTime("2025-10-09T08:14:02Z")).toMatch(/^Oct 9, 2025, 8:14:02\sAM$/);
+  });
+
+  test("a duration names only its non-zero units, and overflow carries", () => {
+    Settings.defaultLocale = "en-US";
+    expect(describeDuration(5400)).toBe("1 hour, 30 minutes");
+    expect(describeDuration(-93600)).toBe("1 day, 2 hours");
+    expect(describeDuration(61)).toBe("1 minute, 1 second");
   });
 });

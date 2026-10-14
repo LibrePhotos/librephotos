@@ -19,6 +19,7 @@ export * as endpoints from "./endpoints";
 export type {
   AlbumMediaFilter,
   DateAlbumFilter,
+  DateTimeChange,
   PhotoCategory,
   SelectAllPhotos,
   SyncPullParams,

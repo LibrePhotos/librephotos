@@ -1,4 +1,5 @@
-"""Background write-back of a user's edits: ratings, captions, locations and tags.
+"""Background write-back of a user's edits: ratings, capture dates, captions,
+locations and tags.
 
 An edit is written to the photo's XMP sidecar or media file when its owner
 has ``save_metadata_to_disk`` on. The edit service (``api.metadata.edits``)
@@ -48,7 +49,7 @@ def queue_rating_write(user: User, photo_ids: list[uuid.UUID]) -> None:
 
 
 def queue_field_write(user: User, photo_ids: list[uuid.UUID], field: str) -> None:
-    """Queue the write of ``field`` ("caption", "location") for these photos.
+    """Queue the write of ``field`` (a ``FIELD_WRITERS`` key) for these photos.
 
     Like ``queue_rating_write``, and queued once the edit commits: a
     rolled-back edit writes nothing, and the job never reads the value from

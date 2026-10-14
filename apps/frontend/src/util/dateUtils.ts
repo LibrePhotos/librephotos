@@ -1,4 +1,4 @@
-import { DateTime, Info } from "luxon";
+import { DateTime, Duration, Info } from "luxon";
 
 /**
  * The date helpers. Parse and format dates only through this module: the UI
@@ -130,4 +130,29 @@ export function firstDayOfWeek(): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
   // Luxon numbers the days 1 (Monday) to 7 (Sunday).
   const days = [0, 1, 2, 3, 4, 5, 6] as const;
   return days[Info.getStartOfWeek() % 7] ?? 1;
+}
+
+/** An `exif_timestamp` moved by `seconds` (negative: earlier), still wall clock tagged UTC. */
+export function shiftPhotoTimestamp(timestamp: string, seconds: number): string | null {
+  const parsed = parsePhotoTimestamp(timestamp);
+  return parsed.isValid ? parsed.plus({ seconds }).toISO() : null;
+}
+
+/** An `exif_timestamp` as its wall clock to the second, in the UI language ("Oct 9, 2025, 8:14:02 AM"). */
+export function formatPhotoDateTime(timestamp: string): string {
+  return parsePhotoTimestamp(timestamp).toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+}
+
+const DURATION_UNITS = ["days", "hours", "minutes", "seconds"] as const;
+
+/**
+ * A number of seconds spelled out in days, hours, minutes and seconds, in the UI language, leaving
+ * out the units that are zero ("1 hour, 30 minutes" for 5400). The sign is ignored.
+ */
+export function describeDuration(seconds: number): string {
+  const parts = Duration.fromObject({ seconds: Math.abs(seconds) })
+    .shiftTo(...DURATION_UNITS)
+    .toObject();
+  const nonZero = Object.fromEntries(DURATION_UNITS.flatMap(unit => (parts[unit] ? [[unit, parts[unit]]] : [])));
+  return Duration.fromObject(nonZero).toHuman();
 }
