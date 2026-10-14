@@ -810,7 +810,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                     "left": f.location_left,
                     "right": f.location_right,
                 },
-                "face_url": f.image.url,
+                # A face without a crop (legacy rows) has no URL to show.
+                "face_url": f.crop_url or "",
                 "face_id": f.id,
             }
             for f in obj.faces.all()
@@ -1173,7 +1174,7 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         return [
             {
                 "name": person.name,
-                "face_url": face.image.url if face.image else None,
+                "face_url": face.crop_url,
                 "face_id": face.id,
             }
             for face in obj.faces.all()

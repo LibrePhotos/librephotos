@@ -11128,18 +11128,25 @@
       },
       "DeleteFacesResponse": {
         "type": "object",
-        "description": "The answer of POST /api/deletefaces: the faces deleted, by image URL.",
+        "description": "The answer of POST /api/deletefaces: the faces deleted.",
         "properties": {
           "status": {
             "type": "boolean",
             "description": "Always true"
+          },
+          "deleted_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The ids of the deleted faces"
           },
           "deleted": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "The image URLs of the deleted faces"
+            "description": "The crop URLs of the deleted faces; a face without a crop is only in deleted_ids"
           },
           "results": {
             "type": "array",
@@ -11158,6 +11165,7 @@
         },
         "required": [
           "deleted",
+          "deleted_ids",
           "not_deleted",
           "results",
           "status"
@@ -12020,6 +12028,7 @@
           },
           "face_url": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "photo": {
@@ -14129,6 +14138,7 @@
           },
           "face_url": {
             "type": "string",
+            "nullable": true,
             "readOnly": true
           },
           "photo": {

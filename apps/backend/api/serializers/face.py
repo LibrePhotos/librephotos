@@ -30,8 +30,8 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
         else:
             return obj.classification_probability
 
-    def get_face_url(self, obj: Face) -> str:
-        return obj.image.url
+    def get_face_url(self, obj: Face) -> str | None:
+        return obj.crop_url
 
     def get_photo_image_hash(self, obj: Face) -> str | None:
         return obj.photo.image_hash if obj.photo else None
@@ -75,8 +75,8 @@ class FaceListSerializer(serializers.ModelSerializer):
     def get_person_label_probability(self, obj: Face) -> float:
         return obj.cluster_probability
 
-    def get_face_url(self, obj: Face) -> str:
-        return obj.image.url
+    def get_face_url(self, obj: Face) -> str | None:
+        return obj.crop_url
 
     def get_person_name(self, obj: Face) -> str:
         if obj.person:
@@ -121,12 +121,16 @@ class FaceIdsRequest(serializers.Serializer[None]):
 
 
 class DeleteFacesResponse(serializers.Serializer[None]):
-    """The answer of POST /api/deletefaces: the faces deleted, by image URL."""
+    """The answer of POST /api/deletefaces: the faces deleted."""
 
     status = serializers.BooleanField(help_text="Always true")
+    deleted_ids = serializers.ListField(
+        child=serializers.IntegerField(), help_text="The ids of the deleted faces"
+    )
     deleted = serializers.ListField(
         child=serializers.CharField(),
-        help_text="The image URLs of the deleted faces",
+        help_text="The crop URLs of the deleted faces; a face without a crop "
+        "is only in deleted_ids",
     )
     results = serializers.ListField(
         child=serializers.CharField(), help_text="The same as deleted"
