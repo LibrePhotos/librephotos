@@ -18,6 +18,7 @@ vi.mock("@tanstack/react-router", () => ({
 const album = (id: number): UserAlbumInfo => ({
   id,
   title: `Trip ${id}`,
+  collection_ids: [],
   cover_photo: null,
   photo_count: 3,
   owner: { id: 1, username: "owner", first_name: "", last_name: "" },

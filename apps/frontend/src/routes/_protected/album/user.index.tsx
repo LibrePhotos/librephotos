@@ -4,6 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
+import { AlbumCollectionFilter } from "../../../components/album/AlbumCollectionFilter";
+import { AlbumCollectionsModal } from "../../../components/album/AlbumCollectionsModal";
+import { validateCollectionSearch } from "../../../components/album/collectionFilter";
+import { ManageAlbumCollectionsModal } from "../../../components/album/ManageAlbumCollectionsModal";
+import { useAlbumCollectionFilter } from "../../../components/album/useAlbumCollectionFilter";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -16,6 +21,8 @@ import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/user/")({
   component: AlbumUser,
+  // The chosen collection (#1009) stays in the URL, so Back from an album returns to it
+  validateSearch: validateCollectionSearch,
 });
 
 function AlbumUser() {
@@ -25,13 +32,20 @@ function AlbumUser() {
   const [isDeleteDialogOpen, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
+  const [isCollectionsDialogOpen, collectionsDialog] = useDisclosure(false);
+  const [isManageDialogOpen, manageDialog] = useDisclosure(false);
   const { t } = useTranslation();
+  const navigate = Route.useNavigate();
   const albumsQuery = useFetchUserAlbumsQuery();
   const { data: albums, isFetching, isLoading } = albumsQuery;
   const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = (albums?.length ?? 0) > 0;
   const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
+  const { collections, filter, collection, shown, counts } = useAlbumCollectionFilter(
+    albums,
+    Route.useSearch().collection
+  );
 
   const openDeleteDialog = (id: string, title: string) => {
     showDeleteDialog();
@@ -53,16 +67,42 @@ function AlbumUser() {
     if (album) setAlbumOwner(album.owner.username);
   };
 
+  const openCollectionsDialog = (id: string, title: string) => {
+    collectionsDialog.open();
+    setAlbumID(id);
+    setAlbumTitle(title);
+  };
+
+  const subtitle = () => {
+    if (filter === undefined)
+      return t("useralbum.numberof", { count: albums?.length ?? 0, number: albums?.length ?? 0 });
+    if (collection) return t("albumcollections.numberin", { count: shown.length, name: collection.name });
+    return t("albumcollections.numbernotin", { count: shown.length });
+  };
+
   return (
     <div>
-      <PageHeader
-        icon={Bookmark}
-        title={t("myalbums")}
-        loading={isFetching}
-        subtitle={t("useralbum.numberof", {
-          count: albums?.length ?? 0,
-          number: albums?.length ?? 0,
-        })}
+      <PageHeader icon={Bookmark} title={t("myalbums")} loading={isFetching} subtitle={subtitle()} />
+      {hasAlbums && (
+        <AlbumCollectionFilter
+          collections={collections}
+          counts={counts}
+          value={filter}
+          onChange={next => void navigate({ search: next === undefined ? {} : { collection: next } })}
+          onManage={manageDialog.open}
+        />
+      )}
+      <AlbumCollectionsModal
+        opened={isCollectionsDialogOpen}
+        onClose={collectionsDialog.close}
+        albumId={albumID}
+        albumTitle={albumTitle}
+        collectionIds={albums?.find(album => `${album.id}` === albumID)?.collection_ids ?? []}
+      />
+      <ManageAlbumCollectionsModal
+        opened={isManageDialogOpen}
+        onClose={manageDialog.close}
+        counts={counts.byCollection}
       />
       <RenameUserAlbumModal
         opened={isRenameDialogOpen}
@@ -95,9 +135,15 @@ function AlbumUser() {
           secondaryActionLabel={t("sidemenu.sharedwithyou")}
           secondaryActionLink="/sharing/withme/albums"
         />
+      ) : hasAlbums && shown.length === 0 ? (
+        <EmptyState
+          icon={<Bookmark size={40} />}
+          title={t("albumcollections.emptytitle")}
+          description={t("albumcollections.emptydescription")}
+        />
       ) : (
         <TileGrid
-          items={albums ?? []}
+          items={shown}
           getKey={album => album.id}
           sizing={sizing}
           // The card draws its own caption, inside the padded cell
@@ -108,6 +154,7 @@ function AlbumUser() {
               showActions
               onRename={openRenameDialog}
               onShare={openShareDialog}
+              onCollections={openCollectionsDialog}
               onDelete={openDeleteDialog}
               onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
             />

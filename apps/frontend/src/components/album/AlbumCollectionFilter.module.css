@@ -1,0 +1,20 @@
+/* One row under the header; on a phone it scrolls sideways instead of wrapping. */
+.row {
+  padding: 0 10px 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.chips {
+  flex-wrap: nowrap;
+}
+
+.count {
+  margin-left: 6px;
+  opacity: 0.65;
+}
+
+.newCollection {
+  border-style: dashed;
+  flex-shrink: 0;
+}

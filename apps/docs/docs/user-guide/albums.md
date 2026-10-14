@@ -11,7 +11,7 @@ LibrePhotos supports several types of albums to help you organize your photo lib
 ## Album Types
 
 ### User Albums (My Albums)
-Albums you create manually to organize photos however you like. You can add any photos to these albums.
+Albums you create manually to organize photos however you like. You can add any photos to these albums. To keep many of them in order, group them into [collections](#grouping-albums-into-collections).
 
 ### People Albums
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
@@ -113,15 +113,50 @@ On the **Albums** page, every User Album card has a **three-dot menu** (⋮) in 
 
 - **Rename** — enter a new title and confirm. Titles must be unique; the dialog blocks a name that another one of your albums already uses.
 - **Sharing** — open the album sharing dialog (see the [Sharing guide](./sharing.md)).
+- **Collections…** — put the album into collections (see [Grouping albums into collections](#grouping-albums-into-collections)).
 - **Delete** — a confirmation dialog appears before the album is removed.
 
-The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Rename**, **Sharing**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
+The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
 
 *Not released yet: up to 1.3.0, an album could only be renamed, locked or deleted from its card.*
 
 :::caution
 Deleting an album is permanent and cannot be undone, but it only removes the album itself. The photos it contained stay in your library.
 :::
+
+---
+
+## Grouping albums into collections
+
+A collection is a label for albums, such as "Travel", "Family" or "2000s". An album can be in any number of collections, so a family trip from 2004 can be in "Travel", "Family" and "2000s" at once. Collections only group albums: an album stays an album, and deleting a collection never deletes its albums or photos.
+
+### Filtering My Albums
+
+Once you have a collection, **My Albums** shows a row of chips under its header: **All**, one chip per collection with the number of albums in it, and **Not in a collection**. Click a chip to show only those albums; the header then says how many albums are in it. The chosen collection stays in the page address, so going **Back** from an album returns to the same filtered list.
+
+### Putting an album into collections
+
+1. Open the album card's **⋮** menu on **My Albums**, or the **⋮** (**Album actions**) at the right of the album's own header.
+2. Choose **Collections…**.
+3. Tick the collections the album belongs in, and untick the ones it does not. Each tick is saved right away.
+4. To make a new collection, type its name in **New collection** and click **Add**: it is created and the album is put in it.
+5. Click **Done**.
+
+### Renaming and deleting collections
+
+Open the **⋮** at the end of the chip row and choose **Manage collections…** (while you have no collection yet, click **New collection** on **My Albums** instead). The dialog lists your collections with their album counts:
+
+- the pencil button renames a collection;
+- the bin button deletes it, after you confirm. Its albums stay in **My Albums**;
+- **New collection** at the bottom adds one.
+
+Collection names are unique per user, ignoring upper and lower case: you cannot have both "Travel" and "travel".
+
+:::note
+Collections are private. When you share an album, the people you share it with see the album but not your collections, and they cannot put your album into collections of their own.
+:::
+
+*Not released yet: up to 1.3.0, albums could not be grouped.*
 
 ---
 

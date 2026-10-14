@@ -17,6 +17,7 @@ import shutil
 import sys
 import tempfile
 import uuid
+from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
@@ -26,6 +27,7 @@ from faker import Faker
 
 from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
+from api.models.album_collection import AlbumCollection
 from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
@@ -207,6 +209,20 @@ def create_test_album_user(
     """A user album for ``owner``. Titles are unique per owner, so the default is random."""
     title = title or f"{fake.catch_phrase()} {uuid.uuid4().hex[:8]}"
     return AlbumUser.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_album_collection(
+    owner: User,
+    name: str | None = None,
+    albums: Iterable[AlbumUser] = (),
+    **kwargs: Any,
+) -> AlbumCollection:
+    """An album collection for ``owner`` holding ``albums``. Names are unique per
+    owner (in any letter case), so the default is random."""
+    name = name or f"{fake.word()}-{uuid.uuid4().hex[:8]}"
+    collection = AlbumCollection.objects.create(owner=owner, name=name, **kwargs)
+    collection.albums.add(*albums)
+    return collection
 
 
 def create_test_album_date(

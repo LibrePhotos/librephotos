@@ -166,7 +166,7 @@ class SetUserAlbumShared(APIView):
             )
 
         user_album_to_share.save()
-        return Response(album_user_card(user_album_to_share))
+        return Response(album_user_card(user_album_to_share, request))
 
 
 class LeaveSharedAlbum(APIView):

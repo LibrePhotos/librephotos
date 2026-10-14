@@ -13,6 +13,7 @@ from django.test import TestCase
 
 from api.models import (
     AlbumAuto,
+    AlbumCollection,
     AlbumDate,
     AlbumPlace,
     AlbumThing,
@@ -30,6 +31,7 @@ from api.models import (
 from api.models.scopes import OwnedQuerySet, SharedOwnedQuerySet
 from api.tests.utils import (
     create_test_album_auto,
+    create_test_album_collection,
     create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
@@ -65,6 +67,11 @@ class OwnedByTest(TestCase):
             model.objects.get_owned(AnonymousUser(), pk=alice_row.pk)
 
     def test_owner_column(self):
+        self.assertScoped(
+            AlbumCollection,
+            create_test_album_collection(owner=self.alice),
+            create_test_album_collection(owner=self.bob),
+        )
         self.assertScoped(
             Tag,
             create_test_tag(name="a", owner=self.alice),
@@ -126,6 +133,7 @@ class OwnedByTest(TestCase):
         expected = {
             Photo: "owner",
             AlbumAuto: "owner",
+            AlbumCollection: "owner",
             AlbumDate: "owner",
             AlbumPlace: "owner",
             AlbumThing: "owner",

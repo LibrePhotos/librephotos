@@ -140,6 +140,8 @@ const albumRoot = ["albums"] as const;
 export const albumKeys = {
   all: albumRoot,
   userAlbums: () => [...albumRoot, "user"] as const,
+  /** The user's album collections (#1009), which the My Albums filter row shows. */
+  albumCollections: () => [...albumRoot, "collections"] as const,
   autoAlbums: () => [...albumRoot, "auto"] as const,
   thingsAlbums: () => [...albumRoot, "things"] as const,
   placesAlbums: () => [...albumRoot, "places"] as const,

@@ -36,6 +36,7 @@ vi.mock("../../Tile", () => ({ Tile: () => null }));
 const album = (id: number, title: string, locked = false): UserAlbumInfo => ({
   id,
   title,
+  collection_ids: [],
   cover_photo: null,
   photo_count: 3,
   owner: { id: 1, username: "owner", first_name: "", last_name: "" },

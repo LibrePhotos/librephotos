@@ -16,6 +16,7 @@ vi.mock("../Tile", () => ({ Tile: () => <div /> }));
 const album = (locked: boolean): UserAlbumInfo => ({
   id: 867,
   title: "Trip",
+  collection_ids: [],
   cover_photo: null,
   photo_count: 3,
   owner: { id: 1, username: "owner", first_name: "", last_name: "" },

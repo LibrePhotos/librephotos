@@ -48,6 +48,7 @@ from api.accounts.throttling import SignInRateThrottle, TokenRefreshRateThrottle
 from api.models import User
 from api.views import (
     album_auto,
+    album_collections,
     album_folder,
     albums,
     dataviz,
@@ -231,6 +232,11 @@ router.register(r"api/albums/date", albums.AlbumDateViewSet, basename="album_dat
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
+router.register(
+    r"api/albums/collections",
+    album_collections.AlbumCollectionViewSet,
+    basename="album_collections",
+)
 
 router.register(r"api/persons", albums.PersonViewSet, basename="persons")
 

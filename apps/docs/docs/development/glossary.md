@@ -38,6 +38,7 @@ Backend paths are relative to `apps/backend`.
 | Face cluster | `Cluster` (`api/models/cluster.py`), unlabelled faces grouped by similarity | `api/clusterfaces/` | |
 | Place | `AlbumPlace` (`api/models/album_place.py`), photos grouped by geocoded location | `api/albums/place/` | |
 | My album | `AlbumUser` (`api/models/album_user.py`), an album the user made | `api/albums/user/` | user album |
+| Collection | `AlbumCollection` (`api/models/album_collection.py`), the user's own grouping of their albums ("Travel", "Family"); an album can be in several, and only its owner sees them. Not a Tag, which labels photos | `api/albums/collections/`, `PUT api/albums/user/<id>/collections/`, `collection_ids` on an album, `?collection=` on `api/albums/user/list/` | album tags, album folders (#1009, #871) |
 | Memory | Computed in `api/views/memories.py`, no model | `api/memories/` | |
 | Job | `LongRunningJob` (`api/models/long_running_job.py`) | `api/jobs/` | |
 | Image tag | The backend image's tag (`IMAGE_TAG`), not a Tag | `api/imagetag/` | |

@@ -34,6 +34,7 @@ from api.serializers.job import LongRunningJobSerializer
 from api.tests.infra.routes import ApiRoute, api_routes
 from api.tests.utils import (
     create_test_album_auto,
+    create_test_album_collection,
     create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
@@ -114,6 +115,11 @@ def _album_user(requester: User, index: int) -> None:
     album = create_test_album_user(owner=requester)
     album.photos.add(_visible_photo(requester))
     album.shared_to.add(create_test_user())
+    create_test_album_collection(owner=requester, albums=[album])
+
+
+def _album_collection(requester: User, index: int) -> None:
+    create_test_album_collection(owner=requester)
 
 
 def _album_shared_to_me(requester: User, index: int) -> None:
@@ -200,6 +206,7 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/albums/thing/list/": (ListFixture(_album_thing),),
     "api/albums/place/list/": (ListFixture(_album_place),),
     "api/albums/user/list/": (ListFixture(_album_user),),
+    "api/albums/collections/": (ListFixture(_album_collection),),
     "api/albums/user/shared/tome/": (ListFixture(_album_shared_to_me),),
     "api/albums/user/shared/fromme/": (ListFixture(_album_user),),
     "api/persons/": (ListFixture(_person),),

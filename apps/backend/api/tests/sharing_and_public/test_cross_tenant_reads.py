@@ -35,6 +35,7 @@ from api.directory_watcher.file_handlers import (
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     create_test_album_auto,
+    create_test_album_collection,
     create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
@@ -88,6 +89,9 @@ class CrossTenantReadTest(TestCase):
             title="VictimTripTitle", owner=self.victim
         )
         self.v_album.photos.add(*self.v_photos)
+        self.v_collection = create_test_album_collection(
+            name="VictimCollectionName", owner=self.victim, albums=[self.v_album]
+        )
         self.v_auto = create_test_album_auto(
             title="VictimEventTitle", owner=self.victim, timestamp=year_ago
         )
@@ -124,6 +128,7 @@ class CrossTenantReadTest(TestCase):
             "VictimCameraModel",
             "victim-tag-name",
             "VictimTripTitle",
+            "VictimCollectionName",
             "VictimEventTitle",
             "victimthingtitle",
             "VictimPlaceTitle",
@@ -145,6 +150,11 @@ class CrossTenantReadTest(TestCase):
         return [
             ("/api/albums/user/list/", "VictimTripTitle"),
             (f"/api/albums/user/{v.v_album.pk}/", "VictimTripTitle"),
+            ("/api/albums/collections/", "VictimCollectionName"),
+            (
+                f"/api/albums/user/list/?collection={v.v_collection.pk}",
+                "VictimTripTitle",
+            ),
             ("/api/albums/user/shared/fromme/", None),
             ("/api/albums/user/shared/tome/", None),
             ("/api/albums/auto/list/", "VictimEventTitle"),

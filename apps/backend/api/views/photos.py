@@ -681,7 +681,9 @@ class PhotoViewSet(
         albums = with_album_user_list_relations(
             user_albums.filter(photos=photo).distinct()
         )
-        serializer = AlbumUserListSerializer(albums, many=True)
+        serializer = AlbumUserListSerializer(
+            albums, many=True, context={"request": request}
+        )
         return Response({"results": serializer.data})
 
     def get_permissions(self) -> list[BasePermission]:

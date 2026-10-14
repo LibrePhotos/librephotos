@@ -105,7 +105,19 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/albums/date": {"GET retrieve"},
     "api/albums/thing": {"GET retrieve"},
     "api/albums/place": {"GET retrieve"},
-    "api/albums/user": {"GET retrieve", "PATCH partial_update", "DELETE destroy"},
+    # PUT collections sets which of the owner's collections hold it (#1009).
+    "api/albums/user": {
+        "GET retrieve",
+        "PATCH partial_update",
+        "DELETE destroy",
+        "PUT collections",
+    },
+    "api/albums/collections": {
+        "GET list",
+        "POST create",
+        "PATCH partial_update",
+        "DELETE destroy",
+    },
     # Retrieve loads the person page (#2207); merge joins two people (#2206).
     "api/persons": {
         "GET list",
