@@ -254,6 +254,16 @@ describe("firstDayOfWeek", () => {
         vi.unstubAllGlobals();
       }
     });
+
+    test("keeps the UI language when the browser lists no languages", () => {
+      Settings.defaultLocale = "en";
+      vi.stubGlobal("navigator", {});
+      try {
+        expect(firstDayOfWeek()).toBe(0);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
   });
 });
 
