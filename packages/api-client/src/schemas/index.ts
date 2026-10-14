@@ -19,6 +19,7 @@ export * from "./stats";
 export * from "./server";
 export * from "./folders";
 export * from "./geocode";
+export * from "./photoLocations";
 export * from "./diagnostics";
 export * from "./memories";
 export * from "./sync";

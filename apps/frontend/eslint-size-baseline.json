@@ -7,6 +7,6 @@
   "src/components/lightbox/LightboxControls.tsx": { "function": 348 },
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "function": 332 },
   "src/components/react-pig/index.tsx": { "function": 318 },
-  "src/components/photolist/SelectionActions.tsx": { "function": 258 },
+  "src/components/photolist/SelectionActions.tsx": { "function": 255 },
   "src/components/modals/ModalUserEdit.tsx": { "function": 251 }
 }

@@ -14,6 +14,7 @@ clamped rather than refused (the mobile sync asks for ``page_size=1000`` on
 purpose), and query flags read the lenient way every view always read them.
 """
 
+import math
 from collections.abc import Collection
 from typing import Any
 
@@ -214,5 +215,24 @@ class JsonFractionField(serializers.FloatField):
 
     def to_internal_value(self, data: float | int | str) -> float:
         if isinstance(data, bool) or not isinstance(data, (int, float)):
+            self.fail("invalid")
+        return super().to_internal_value(data)
+
+
+class JsonCoordinateField(serializers.FloatField):
+    """A finite JSON number from ``limit`` below zero to ``limit`` above.
+
+    ``serializers.FloatField`` takes numeric strings, reads ``true`` as 1 and
+    lets ``NaN`` through its range check. ``limit`` is 90 for a latitude and
+    180 for a longitude.
+    """
+
+    def __init__(self, *, limit: float, help_text: str | None = None) -> None:
+        super().__init__(min_value=-limit, max_value=limit, help_text=help_text)
+
+    def to_internal_value(self, data: float | int | str) -> float:
+        if isinstance(data, bool) or not isinstance(data, (int, float)):
+            self.fail("invalid")
+        if not math.isfinite(data):
             self.fail("invalid")
         return super().to_internal_value(data)

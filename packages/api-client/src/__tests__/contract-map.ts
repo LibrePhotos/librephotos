@@ -97,6 +97,11 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },
   // geocode
   GeocodeReverseResponse: { schema: S.GeocodeReverseResponse, components: ["GeocodeReverseResponse"] },
+  // photo locations (#2279)
+  SetPhotosLocationResponse: { schema: S.SetPhotosLocationResponse, components: ["SetPhotosLocationResponse"] },
+  PlaceCount: { schema: S.PlaceCount, components: ["PlaceCount"] },
+  LocationSummaryResponse: { schema: S.LocationSummaryResponse, components: ["LocationSummaryResponse"] },
+  LocatedPhoto: { schema: S.LocatedPhoto, components: ["LocatedPhoto"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },

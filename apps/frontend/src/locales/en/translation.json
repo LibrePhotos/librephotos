@@ -663,7 +663,8 @@
     "selectphotosfirst": "Select at least one photo first",
     "createstacktwophotos": "Select at least two photos to stack them",
     "stacksselectall": "Not available with Select all: select the photos one by one",
-    "nomanualstack": "None of the selected photos is in a manual stack"
+    "nomanualstack": "None of the selected photos is in a manual stack",
+    "setlocation": "Set location…"
   },
   "changedatetime": {
     "title_one": "Change date and time of {{count}} photo",
@@ -1945,7 +1946,16 @@
     "datechanged_one": "{{count}} photo got its new date.",
     "datechanged_other": "{{count}} photos got their new date.",
     "dateskipped_one": "{{count}} photo without a date was skipped.",
-    "dateskipped_other": "{{count}} photos without a date were skipped."
+    "dateskipped_other": "{{count}} photos without a date were skipped.",
+    "setlocationtitle": "Set location",
+    "setlocation_one": "Location set for {{count}} photo.",
+    "setlocation_other": "Location set for {{count}} photos.",
+    "setlocationwithoutplace_one": "Location set for {{count}} photo. The place name could not be looked up.",
+    "setlocationwithoutplace_other": "Location set for {{count}} photos. The place name could not be looked up.",
+    "setlocationkept_one": "{{count}} photo kept its own location.",
+    "setlocationkept_other": "{{count}} photos kept their own location.",
+    "setlocationnone": "Nothing changed: the photos already have a location.",
+    "setlocationfailed": "The location could not be set. Please try again."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -2317,7 +2327,33 @@
       "none": "The photo file is not changed.",
       "sidecar": "The location is also removed from the sidecar file. A location stored in the photo file itself stays there.",
       "file": "The location is also removed from the photo file."
-    }
+    },
+    "copy_from_nearby": "Copy from a photo taken nearby in time",
+    "copy_from_nearby_none": "None of your photos with a location was taken within a day of these.",
+    "copy_from_photo": "Use the location of your photo from {{date}}, {{place}}",
+    "nearby_before": "{{time}} before",
+    "nearby_after": "{{time}} after",
+    "nearby_during": "Same time",
+    "bulk_title_pending": "Set location",
+    "bulk_title_one": "Set location for {{count}} photo",
+    "bulk_title_other": "Set location for {{count}} photos",
+    "bulk_located_one": "{{count}} of the {{total}} photos already has a location.",
+    "bulk_located_other": "{{count}} of the {{total}} photos already have a location.",
+    "bulk_only_missing_one": "Only the {{count}} photo without a location",
+    "bulk_only_missing_other": "Only the {{count}} photos without a location",
+    "bulk_all_one": "All {{count}} photo, replacing its location",
+    "bulk_all_other": "All {{count}} photos, replacing their {{located}} locations",
+    "bulk_replaces_one": "Replaces the location of {{count}} photo.",
+    "bulk_replaces_other": "Replaces the location of {{count}} photos.",
+    "bulk_replaces_places_one": "Replaces the location of {{count}} photo ({{places}}).",
+    "bulk_replaces_places_other": "Replaces the location of {{count}} photos ({{places}}).",
+    "bulk_all_located_one": "The photo already has a location. Saving replaces it.",
+    "bulk_all_located_other": "All {{count}} photos already have a location. Saving replaces them.",
+    "bulk_all_located_places_one": "The photo already has a location ({{places}}). Saving replaces it.",
+    "bulk_all_located_places_other": "All {{count}} photos already have a location ({{places}}). Saving replaces them.",
+    "bulk_save_one": "Set location for {{count}} photo",
+    "bulk_save_other": "Set location for {{count}} photos",
+    "pick_first": "Pick a spot first: click the map, search for a place or copy a photo's location."
   },
   "map": {
     "display_disabled": "Map display is turned off in site settings.",

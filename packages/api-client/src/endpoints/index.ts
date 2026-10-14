@@ -1398,6 +1398,46 @@ export async function reverseGeocode(client: ApiClient, lat: number, lon: number
   return parseResponse(S.GeocodeReverseResponse, res, "reverse geocode");
 }
 
+/* ---- photo locations (#2279) -------------------------------------------- */
+
+/**
+ * Move the selected photos (by hash, or a selected-all set) to one spot, looked up once. With
+ * `overwrite` false the photos that already have a location keep it.
+ */
+export async function setPhotosLocation(
+  client: ApiClient,
+  imageHashes: string[],
+  location: { lat: number; lon: number; overwrite: boolean },
+  selectAll?: SelectAllPhotos
+): Promise<S.SetPhotosLocationResponse> {
+  const res = await client.post<unknown>("/photosedit/location/", {
+    ...photoSelection(imageHashes, selectAll),
+    ...location,
+  });
+  return parseResponse(S.SetPhotosLocationResponse, res, "set photos location");
+}
+
+/** How many of the selected photos have a location, and when the selection was taken. */
+export async function fetchLocationSummary(
+  client: ApiClient,
+  imageHashes: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.LocationSummaryResponse> {
+  const res = await client.post<unknown>("/photos/location-summary/", photoSelection(imageHashes, selectAll));
+  return parseResponse(S.LocationSummaryResponse, res, "location summary");
+}
+
+/** The user's geotagged photos taken from `from` to `to` (ISO date-times), nearest to the middle first. */
+export async function fetchLocatedNearbyInTime(
+  client: ApiClient,
+  from: string,
+  to: string
+): Promise<S.LocatedPhotosResponse> {
+  const params = new URLSearchParams({ from, to });
+  const res = await client.get<unknown>(`/photos/located-nearby-in-time/?${params.toString()}`);
+  return parseResponse(S.LocatedPhotosResponse, res, "photos located nearby in time");
+}
+
 /* ---- media -------------------------------------------------------------- */
 
 /** Admin: why the web server refused to serve this photo's original. */

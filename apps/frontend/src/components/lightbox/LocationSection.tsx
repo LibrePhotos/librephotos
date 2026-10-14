@@ -10,7 +10,7 @@ import { LocationPickerModal } from "../map/LocationPickerModal";
 type LocationSectionProps = {
   /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
   photoDetail: Pick<PhotoType, "image_hash" | "exif_gps_lat" | "exif_gps_lon"> &
-    Partial<Pick<PhotoType, "search_location">>;
+    Partial<Pick<PhotoType, "search_location" | "exif_timestamp">>;
   mapHeight?: number;
   isPublic?: boolean;
   /**
@@ -101,6 +101,7 @@ export function LocationSection({
             initialLat={lat ?? undefined}
             initialLon={lon ?? undefined}
             initialPlace={photoDetail.search_location || undefined}
+            takenAt={photoDetail.exif_timestamp}
             onNestedDialogChange={nestedOpen => (nestedOpen ? nested.open() : nested.close())}
           />
         </Modal>

@@ -111,7 +111,19 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 
 The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work.
 
-A photo without a location opens the dialog on a world map. The browser only asks for your position when you click the crosshair button (not released yet: up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission).
+A photo without a location opens the dialog where the nearest geotagged photo taken within a day of it was taken, or on a world map when there is none. The browser only asks for your position when you click the crosshair button (not released yet: up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission).
+
+Above the search box, **Copy from a photo taken nearby in time** shows up to 20 of your photos that have a location and were taken within a day of this one, nearest first, each with its place and how long before or after it was taken. Click one to put the marker on its location; its place name is shown at once. Handy for camera photos taken next to a phone that recorded GPS. (Not released yet.)
+
+### Setting the location of many photos
+
+Photos from a camera without GPS, scans and screenshots often need the same location. Select them on the timeline or any photo page (or use **Select all**), open the **⋮** photo actions menu and choose **Set location…**:
+
+1. The dialog says how many of the selected photos already have a location. By default only the photos **without a location** get the new one; choose **All N photos** to replace the others too. The dialog then names the places that would be replaced. When every selected photo has a location, saving replaces them all, and the dialog says so.
+2. Pick the spot as for a single photo: search, paste coordinates, click the map, use your current location, or click a photo under **Copy from a photo taken nearby in time** (your geotagged photos taken within a day of the selection).
+3. Click **Set location for N photos**.
+
+The place name is looked up once for all of them. Each photo gets the position, its place albums and location search, and its own entry in the edit history; the confirmation says how many photos got the location and how many kept their own. If the place name cannot be looked up, the coordinates are saved anyway and the confirmation says so. With [Write edits to files](./settings/index.md#metadata-options) on, the new location is written to the photo files or sidecars in one background job. To remove the location of photos, use **Remove location** on each photo. (Not released yet.)
 
 ### Removing a location
 

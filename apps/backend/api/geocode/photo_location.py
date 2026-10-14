@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import logging
 import math
+from collections import Counter
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Literal
+from datetime import datetime
+from typing import TYPE_CHECKING, Literal, TypedDict
 
-from django.db.models import F, Q, QuerySet
+from django.db.models import Count, F, Max, Min, Q, QuerySet
 
 import api.models
 from api.geocode import GEOCODE_VERSION
@@ -31,6 +33,16 @@ GEOCODED_COLUMNS = ["geolocation_json", "geocoded_lat", "geocoded_lon", "last_mo
 
 # How the place lookup for a photo's position went; see ``geocode_status``.
 GeocodeStatus = Literal["found", "no_place", "failed"]
+
+# A photo with a position (both coordinates).
+HAS_POSITION = Q(exif_gps_lat__isnull=False, exif_gps_lon__isnull=False)
+# Geotagged photos the location picker offers to copy from (#2279).
+NEARBY_IN_TIME_LIMIT = 20
+# Place names a selection's summary lists.
+SUMMARY_PLACES = 3
+# Located photos a selection's summary reads place names from; a larger
+# selection names the places of a sample, which is all the dialog needs.
+SUMMARY_PLACE_SAMPLE = 5000
 
 
 def _coordinate(value: object) -> float | None:
@@ -281,3 +293,96 @@ def add_location_to_album_dates(photo: Photo) -> None:
         album_date.location = {"places": [city_name]}
     # Safe geolocation_json
     album_date.save()
+
+
+class PlaceCount(TypedDict):
+    place: str
+    count: int
+
+
+class LocationSummary(TypedDict):
+    """Where a selection of photos stands before a bulk location edit."""
+
+    count: int
+    with_location: int
+    places: list[PlaceCount]
+    first_taken: datetime | None
+    last_taken: datetime | None
+
+
+def short_place_name(geolocation_json: object) -> str | None:
+    """The town or region of a reverse-geocoded place, as the day albums name
+    it (``add_location_to_album_dates``): the next to last of its ``places``,
+    or the only one. None without a place."""
+    if not isinstance(geolocation_json, dict):
+        return None
+    places = [str(place) for place in geolocation_json.get("places") or [] if place]
+    if not places:
+        return None
+    return places[-2] if len(places) > 1 else places[0]
+
+
+def location_summary(photos: QuerySet[Photo]) -> LocationSummary:
+    """How many of ``photos`` have a location, the most frequent place names
+    among those (``short_place_name``), and when the first and the last of
+    them were taken (#2279).
+
+    ``photos`` may be a distinct, joined queryset (``build_photo_queryset``),
+    so the counts run over its ids rather than over its rows.
+    """
+    selected = api.models.Photo.objects.filter(id__in=photos.values("id"))
+    totals = selected.aggregate(
+        count=Count("id"),
+        with_location=Count("id", filter=HAS_POSITION),
+        first_taken=Min("exif_timestamp"),
+        last_taken=Max("exif_timestamp"),
+    )
+    names = Counter(
+        name
+        for geolocation in selected.filter(HAS_POSITION).values_list(
+            "geolocation_json", flat=True
+        )[:SUMMARY_PLACE_SAMPLE]
+        if (name := short_place_name(geolocation))
+    )
+    places = sorted(names.items(), key=lambda item: (-item[1], item[0]))
+    return {
+        "count": totals["count"],
+        "with_location": totals["with_location"],
+        "places": [
+            {"place": name, "count": count} for name, count in places[:SUMMARY_PLACES]
+        ],
+        "first_taken": totals["first_taken"],
+        "last_taken": totals["last_taken"],
+    }
+
+
+def located_nearby_in_time(
+    photos: QuerySet[Photo], start: datetime, end: datetime
+) -> list[Photo]:
+    """The geotagged ``photos`` taken from ``start`` to ``end``, nearest to the
+    middle of that window first, at most ``NEARBY_IN_TIME_LIMIT`` (#2279).
+
+    Each one carries its place name as ``place`` (None without a search row).
+    The nearest rows on either side of the middle come from two indexed,
+    limited queries, so a busy window costs no more than a quiet one.
+    """
+    middle = start + (end - start) / 2
+    located = (
+        photos.filter(HAS_POSITION, exif_timestamp__range=(start, end))
+        .annotate(place=F("search_instance__search_location"))
+        .order_by()
+    )
+    before = located.filter(exif_timestamp__lte=middle).order_by("-exif_timestamp")
+    after = located.filter(exif_timestamp__gt=middle).order_by("exif_timestamp")
+    nearest: list[Photo] = [
+        *before[:NEARBY_IN_TIME_LIMIT],
+        *after[:NEARBY_IN_TIME_LIMIT],
+    ]
+    nearest.sort(key=lambda photo: abs(_taken(photo) - middle))
+    return nearest[:NEARBY_IN_TIME_LIMIT]
+
+
+def _taken(photo: Photo) -> datetime:
+    # located_nearby_in_time only reads photos taken inside its window.
+    assert photo.exif_timestamp is not None
+    return photo.exif_timestamp

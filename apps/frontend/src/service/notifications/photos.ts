@@ -1,3 +1,4 @@
+import type { SetPhotosLocationResponse } from "@librephotos/api-client";
 import i18n from "../../i18n";
 import { toast } from "./toast";
 
@@ -137,6 +138,22 @@ function locationSavedNoPlace() {
   toast.success(i18n.t("toasts.locationsavednoplace"), { title: i18n.t("toasts.editphototitle") });
 }
 
+/**
+ * The location of selected photos was set (#2279): how many got it and how many kept their own,
+ * or a warning when the place name could not be looked up (the coordinates are saved).
+ */
+function photosLocationSet({ count, skipped_with_location: skipped, geocoded }: SetPhotosLocationResponse) {
+  const title = i18n.t("toasts.setlocationtitle");
+  const kept = skipped > 0 ? ` ${i18n.t("toasts.setlocationkept", { count: skipped })}` : "";
+  if (count === 0) {
+    toast.warning(i18n.t("toasts.setlocationnone"), { title });
+  } else if (!geocoded) {
+    toast.warning(`${i18n.t("toasts.setlocationwithoutplace", { count })}${kept}`, { title });
+  } else {
+    toast.success(`${i18n.t("toasts.setlocation", { count })}${kept}`, { title });
+  }
+}
+
 /** A photo's location was removed: it left the map and Places (#2209). */
 function locationRemoved() {
   toast.success(i18n.t("toasts.locationremoved"), { title: i18n.t("toasts.locationremovedtitle") });
@@ -186,6 +203,7 @@ export const photos = {
   locationSavedWithoutPlace,
   photoRotated,
   photosDateChanged,
+  photosLocationSet,
   removePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,

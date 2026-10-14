@@ -347,6 +347,11 @@ class CrossTenantWriteTest(TestCase):
             "/api/photosedit/datetime/", mode="set", datetime="2025-10-11T10:18:00"
         )
         cases += self._bulk("/api/photos/date-summary/")
+        cases += self._bulk("/api/photosedit/location/", lat=41.1, lon=-8.6)
+        cases += self._bulk(
+            "/api/photosedit/location/", lat=41.1, lon=-8.6, overwrite=True
+        )
+        cases += self._bulk("/api/photos/location-summary/")
         cases += self._bulk(
             "/api/photosedit/share", val_shared=True, target_user_id=self.target.id
         )
