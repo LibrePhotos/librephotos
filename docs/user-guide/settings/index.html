@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.4b8a31ae.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.67ffb910.js" defer="defer"></script>
 <script src="/assets/js/main.d2979539.js" defer="defer"></script>
 </head>
 <body>
@@ -128,6 +128,9 @@
 </li>
 <li class="">
 <p><code>Missing photos limit</code> (not released yet) The largest share of one user&#x27;s photos that a scan may mark missing at once. Default <code>50%</code>. When more than this share of the photos, and more than 100 photos, would lose all their files, the scan changes nothing and its job fails with &quot;... photos would be marked missing. Nothing was changed. Is the library mounted?&quot;. This protects the library when a disk or share is not mounted (see <a class="" href="/docs/user-guide/missing-photos#when-a-scan-asks-is-the-library-mounted">Missing Photos</a>). If you really removed most of a library, set it to <code>100%</code> (off), scan, and set it back.</p>
+</li>
+<li class="">
+<p><code>Delete photos from the trash after</code> (not released yet) Days a photo stays in a user&#x27;s trash before a daily task deletes it for good, together with its original files on disk. Default <code>0</code>, which never deletes anything on its own. Turning it on or shortening it first asks, with the number of photos the next cleanup would delete. See <a class="" href="/docs/user-guide/trash#deleting-photos-from-the-trash-automatically">Trash</a>.</p>
 </li>
 <li class="">
 <p><code>Map Provider</code> Select which geocoding service converts GPS coordinates into place names. Options are Nominatim (free, no key required), Mapbox, MapTiler, OpenCage, and TomTom.</p>
