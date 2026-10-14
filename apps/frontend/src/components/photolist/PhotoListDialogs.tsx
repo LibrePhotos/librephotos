@@ -8,6 +8,7 @@ import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import type { PhotoListDialogState } from "./usePhotoListDialogs";
 import type { PhotoListLightbox } from "./usePhotoListLightbox";
+import type { PhotoListSlideshow } from "./usePhotoListSlideshow";
 
 // The lightbox gets the fields it needs, not the whole tile. type lets public and shared views, which
 // have no photo details, play videos; isTemp marks placeholders that have not loaded yet; date and
@@ -25,6 +26,7 @@ const toLightboxItems = (idx2hash: PigPhoto[]) =>
 type Props = Readonly<{
   dialogs: PhotoListDialogState;
   lightbox: PhotoListLightbox;
+  slideshow: PhotoListSlideshow;
   publicAlbumSlug?: string;
   isPublic: boolean;
   isUserAlbum: boolean;
@@ -42,6 +44,7 @@ type Props = Readonly<{
 export function PhotoListDialogs({
   dialogs,
   lightbox,
+  slideshow,
   publicAlbumSlug,
   isPublic,
   isUserAlbum,
@@ -53,6 +56,11 @@ export function PhotoListDialogs({
   updateSelectionState,
   onSelectCover,
 }: Props) {
+  const closeAndClearSelection = (close: () => void) => {
+    close();
+    updateSelectionState({ selectedItems: [], selectMode: false, selectAllMode: false, selectAllQuery: undefined });
+  };
+
   return (
     <>
       {lightbox.lightboxOpen && (
@@ -62,22 +70,15 @@ export function PhotoListDialogs({
           idx2hash={toLightboxItems(idx2hash)}
           selectedImage={lightbox.lightboxImageId}
           onChangedIndex={lightbox.handleLightboxIndexChange}
-          onCloseRequest={lightbox.closeLightbox}
+          onCloseRequest={slideshow.close}
           onImageChange={lightbox.handleLightboxImageChange}
+          startSlideshow={slideshow.active}
         />
       )}
       {!isPublic && (
         <AlbumEditModal
           isOpen={dialogs.addToAlbum.opened}
-          onRequestClose={() => {
-            dialogs.addToAlbum.close();
-            updateSelectionState({
-              selectedItems: [],
-              selectMode: false,
-              selectAllMode: false,
-              selectAllQuery: undefined,
-            });
-          }}
+          onRequestClose={() => closeAndClearSelection(dialogs.addToAlbum.close)}
           selectedImages={selectionState.selectedItems}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
@@ -87,15 +88,7 @@ export function PhotoListDialogs({
       {!isPublic && (
         <ModalTagEdit
           isOpen={dialogs.tag.opened}
-          onRequestClose={() => {
-            dialogs.tag.close();
-            updateSelectionState({
-              selectedItems: [],
-              selectMode: false,
-              selectAllMode: false,
-              selectAllQuery: undefined,
-            });
-          }}
+          onRequestClose={() => closeAndClearSelection(dialogs.tag.close)}
           selectedImages={selectionState.selectedItems}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
@@ -105,9 +98,7 @@ export function PhotoListDialogs({
       {!isPublic && (
         <ModalPhotosShare
           isOpen={dialogs.sharePhotos.opened}
-          onRequestClose={() => {
-            dialogs.sharePhotos.close();
-          }}
+          onRequestClose={dialogs.sharePhotos.close}
           selectedImageHashes={selectionState.selectedItems.map(i => i.image_hash)}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
@@ -116,9 +107,7 @@ export function PhotoListDialogs({
       {!isPublic && isUserAlbum && (
         <ModalAlbumShare
           isOpen={dialogs.albumShare.opened}
-          onRequestClose={() => {
-            dialogs.albumShare.close();
-          }}
+          onRequestClose={dialogs.albumShare.close}
           albumID={albumID ?? ""}
         />
       )}

@@ -13,6 +13,9 @@
  *
  * The items handed to the lightbox dropped date and location, so a non-owner's
  * details panel never showed when or where a photo was taken.
+ *
+ * A public album's slideshow link (#1457) opens the lightbox on the first photo, playing, once
+ * the photos are there; closing it hands back to the page, which drops the flag.
  */
 import { Media } from "@librephotos/api-client";
 import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
@@ -90,7 +93,7 @@ vi.mock("../scrollscrubber/ScrollScrubber", () => ({
 vi.mock("../lightbox/Lightbox", () => ({
   Lightbox: (props: LightboxProps) => {
     lightbox.props.push(props);
-    return null;
+    return <div data-testid="lightbox" />;
   },
 }));
 vi.mock("../modals/AlbumCoverPickerModal", () => ({ AlbumCoverPickerModal: () => null }));
@@ -403,6 +406,69 @@ describe("PhotoListView lightbox items", () => {
       location: "Berlin, Germany",
     });
     expect(idx2hash[1]).toMatchObject({ id: "0", isTemp: true });
+  });
+});
+
+describe("PhotoListView slideshow (#1457)", () => {
+  const isLightboxOpen = (el: HTMLElement) => el.querySelector('[data-testid="lightbox"]') !== null;
+  const lastLightbox = () => defined(lightbox.props.at(-1), "the lightbox");
+
+  it("opens the lightbox on the first photo, playing", async () => {
+    const el = await render({ isPublic: true, slideshow: true });
+
+    expect(isLightboxOpen(el)).toBe(true);
+    expect(lastLightbox()).toMatchObject({ selectedImage: "a", startSlideshow: true });
+  });
+
+  it("waits for the photos before it starts", async () => {
+    const el = await render({ isPublic: true, slideshow: true, loading: true, photoset: [], idx2hash: [] });
+    expect(isLightboxOpen(el)).toBe(false);
+
+    await render({ isPublic: true, slideshow: true });
+    expect(lastLightbox()).toMatchObject({ selectedImage: "a", startSlideshow: true });
+  });
+
+  it("does not start on a placeholder that has not loaded yet", async () => {
+    const list = [photo("0", { isTemp: true })];
+    const el = await render({ isPublic: true, slideshow: true, photoset: list, idx2hash: list });
+
+    expect(isLightboxOpen(el)).toBe(false);
+  });
+
+  it("hands the close back to the page once, and does not start again while the flag stays", async () => {
+    const onSlideshowClose = vi.fn<() => void>();
+    const el = await render({ isPublic: true, slideshow: true, onSlideshowClose });
+
+    await act(async () => lastLightbox().onCloseRequest());
+
+    expect(isLightboxOpen(el)).toBe(false);
+    expect(onSlideshowClose).toHaveBeenCalledTimes(1);
+    // The page has not dropped the flag yet: a re-render must not open it again.
+    await render({ isPublic: true, slideshow: true, onSlideshowClose, title: "Again" });
+    expect(isLightboxOpen(el)).toBe(false);
+  });
+
+  it("starts again when the page asks again (Play slideshow)", async () => {
+    const el = await render({ isPublic: true, slideshow: true });
+    await act(async () => lastLightbox().onCloseRequest());
+    await render({ isPublic: true, slideshow: false });
+
+    await render({ isPublic: true, slideshow: true });
+
+    expect(isLightboxOpen(el)).toBe(true);
+    expect(lastLightbox().startSlideshow).toBe(true);
+  });
+
+  it("leaves a photo opened from the grid alone: no slideshow, no close for the page", async () => {
+    const onSlideshowClose = vi.fn<() => void>();
+    await render({ isPublic: true, onSlideshowClose });
+
+    const event = click();
+    await act(async () => defined(lastPigProps().handleClick)(event, defined(items[1])));
+    expect(lastLightbox()).toMatchObject({ selectedImage: "b", startSlideshow: false });
+    await act(async () => lastLightbox().onCloseRequest());
+
+    expect(onSlideshowClose).not.toHaveBeenCalled();
   });
 });
 

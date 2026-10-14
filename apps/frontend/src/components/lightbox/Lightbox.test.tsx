@@ -8,7 +8,8 @@
  * has not loaded yet, which must not be stepped onto.
  */
 import type { Photo } from "@librephotos/api-client";
-import React, { act } from "react";
+import { MotionConfigContext } from "motion/react";
+import React, { act, useContext } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
@@ -16,12 +17,15 @@ import { Lightbox } from "./Lightbox";
 import type { ContentViewerProps, LightboxItem } from "./lightbox.types";
 
 const viewer = vi.fn<(props: ContentViewerProps) => void>();
+/** The motion setting the viewer's photo transitions run under. */
+const motionSetting: { reducedMotion: string | undefined } = { reducedMotion: undefined };
 /** What the stubbed details query answers: only the fields the media type is read from. */
 const details: { current: Pick<Photo, "video" | "embedded_media"> | undefined } = { current: undefined };
 
 vi.mock("./ContentViewer", () => ({
   ContentViewer: (props: ContentViewerProps) => {
     viewer(props);
+    motionSetting.reducedMotion = useContext(MotionConfigContext).reducedMotion;
     return null;
   },
 }));
@@ -133,5 +137,15 @@ describe("Lightbox grid item for the details panel", () => {
     const props = await open(items, "b");
 
     expect(props.gridItem).toBeUndefined();
+  });
+});
+
+describe("Lightbox motion", () => {
+  // A slideshow (#1457) changes photo every few seconds: with reduced motion the zoom between
+  // photos is left out and only the cross-fade stays.
+  it("follows the viewer's reduced-motion setting", async () => {
+    await open([{ id: "a", image_hash: "a" }], "a");
+
+    expect(motionSetting.reducedMotion).toBe("user");
   });
 });
