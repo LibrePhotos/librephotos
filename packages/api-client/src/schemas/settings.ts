@@ -44,6 +44,9 @@ export const SiteSettings = z.object({
   map_api_provider: z.string(),
   map_tile_provider: z.string(),
   captioning_model: z.string(),
+  // Whether captions can be generated: the image captioning switch is on and a model is picked.
+  // Sent to everyone (#2211); older backends lack it and have no caption job either.
+  captioning_available: z.boolean().optional(),
   // Gone with the LLM; the server still sends "None" for older clients.
   llm_model: z.string().optional(),
   // The captions_json key the tags live under: the one tagging model's name.

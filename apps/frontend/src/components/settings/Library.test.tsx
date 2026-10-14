@@ -41,6 +41,8 @@ const mocks = vi.hoisted(() => {
     regenerateEventTitles: vi.fn<() => void>(),
     user,
     auth: { access: { is_admin: true } },
+    // useGetSettingsQuery's answer.
+    settings: { nextcloud_enabled: true, ocr_model: "none" } as Record<string, unknown>,
     // useWorkerQuery's answer; undefined until the server answers.
     worker: { data: { queue_can_accept_job: true } } as { data?: Partial<WorkerAvailabilityResponse> },
   };
@@ -67,6 +69,7 @@ vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => ({ ...noopMutation, mutate: mocks.generateAutoAlbums }),
+  useGenerateCaptionsMutation: () => noopMutation,
   useGenerateOcrMutation: () => noopMutation,
   useRegenerateEventTitlesMutation: () => ({ ...noopMutation, mutate: mocks.regenerateEventTitles }),
   useRescanPhotosMutation: () => noopMutation,
@@ -76,7 +79,7 @@ vi.mock("../../api_client/jobs/hooks", () => ({
 }));
 vi.mock("../../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => noopMutation }));
 vi.mock("../../api_client/settings/hooks", () => ({
-  useGetSettingsQuery: () => ({ data: { nextcloud_enabled: true, ocr_model: "none" } }),
+  useGetSettingsQuery: () => ({ data: mocks.settings }),
 }));
 vi.mock("../../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => ({ data: undefined }) }));
 vi.mock("../../api_client/user/hooks", () => ({
@@ -140,6 +143,7 @@ beforeEach(async () => {
   mocks.updateUserError.mockReset();
   mocks.regenerateEventTitles.mockReset();
   mocks.worker = { data: { queue_can_accept_job: true } };
+  mocks.settings = { nextcloud_enabled: true, ocr_model: "none" };
   mocks.user = {
     id: 1,
     username: "admin",
@@ -392,5 +396,36 @@ describe("Library actions", () => {
     for (const label of ["Rescan", "Extract text again for all photos"]) {
       expect(container.querySelector(`button[aria-label="${label}"]`)?.getAttribute("aria-haspopup")).toBe("menu");
     }
+  });
+});
+
+describe("Library captions (#2211)", () => {
+  const rerender = async () => {
+    await act(async () => {
+      root.render(
+        <MantineProvider>
+          <Library />
+        </MantineProvider>
+      );
+    });
+  };
+
+  it("has no Captions section while the server cannot generate captions", () => {
+    expect(container.textContent).not.toContain("Generate captions");
+  });
+
+  it("shows the Captions section when captioning is available", async () => {
+    mocks.settings = { ...mocks.settings, captioning_available: true };
+    await rerender();
+
+    expect(container.textContent).toContain("Generate captions");
+    expect(chevronByLabel("Generate captions again for all photos")).toBeTruthy();
+  });
+
+  it("hides it again when captioning is turned off", async () => {
+    mocks.settings = { ...mocks.settings, captioning_available: false };
+    await rerender();
+
+    expect(container.textContent).not.toContain("Generate captions");
   });
 });

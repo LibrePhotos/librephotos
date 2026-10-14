@@ -131,6 +131,11 @@
     "ocrdisabled": "Choose a text recognition model in the admin area to enable this.",
     "ocrbutton": "Extract",
     "ocrfullbutton": "Extract text again for all photos",
+    "captions": "Captions",
+    "captionstitle": "Generate captions",
+    "captionsdescription": "Write a short caption for each photo that has none, so you can search for what is in it. Captions you wrote yourself are never changed.",
+    "captionsbutton": "Generate",
+    "captionsfullbutton": "Generate captions again for all photos",
     "scanoptions": "Scanning Options",
     "sceneconfidence": "Scene confidence",
     "confidencelevel": "Confidence level",
@@ -398,6 +403,7 @@
       "detect_stacks": "Detect Stacks",
       "strip_thumbnail_metadata": "Remove Photo Details from Thumbnails",
       "empty_trash": "Empty Trash",
+      "generate_captions": "Generate Captions",
       "unknown": "Other job ({{name}})"
     },
     "queuebusy": {
@@ -1357,6 +1363,11 @@
       "confirm": "Turn off sharing",
       "cancel": "Keep sharing"
     },
+    "captionsagain": {
+      "title": "Generate captions again for all photos?",
+      "message": "Every photo gets a new generated caption, which can take hours on a large library. Captions you wrote yourself stay.",
+      "confirm": "Generate again"
+    },
     "canceljob": {
       "title": "Cancel this job?",
       "running": "{{job}} has been running for {{duration}}. It stops now; the work it already finished is kept.",
@@ -1857,6 +1868,10 @@
     "ocrscan": "Text extraction started",
     "ocrscantitle": "Extract text",
     "fullocrscan": "Text extraction started for all photos",
+    "captionsjob": "Captions are generated in the background. Search finds them as they come in.",
+    "captionsjobfull": "Captions are generated again for all photos in the background.",
+    "captionsjobmodeldownload": "The captioning model is downloaded first. Captions start when it is on disk.",
+    "captionsjobtitle": "Generate captions",
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
     "updateusererror": "The user could not be updated. Please check the values you entered.",

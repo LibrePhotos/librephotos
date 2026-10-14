@@ -70,6 +70,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
   JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
   JobTriggerResponse: { schema: S.JobTriggerResponse, components: ["JobStartedResponse"] },
+  CaptionsJobStartedResponse: { schema: S.CaptionsJobStartedResponse, components: ["CaptionsJobStartedResponse"] },
   // photo edits
   RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
   BulkPhotoMutationResponse: { schema: S.BulkPhotoMutationResponse, components: ["BulkPhotoMutationResponse"] },

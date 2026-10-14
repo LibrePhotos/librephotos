@@ -15,8 +15,14 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import LongRunningJob, User
 from api.photos.retention import expired_trash_counts
-from api.runtime.features import FEATURES, feature_locked, site_setting_key
+from api.runtime.features import (
+    FEATURES,
+    Feature,
+    feature_locked,
+    site_setting_key,
+)
 from api.runtime.ml_models import (
+    captioning_model_selected,
     do_all_models_exist,
     feature_model_ready,
     latest_model_download,
@@ -88,6 +94,20 @@ def _features(config: dict[str, Any]) -> dict[str, dict[str, bool | None]]:
     }
 
 
+def _captioning_available(config: dict[str, Any]) -> bool:
+    """``captioning_available()`` from the values this request read.
+
+    Sent to everyone: the Library page shows its caption job only when
+    captions can be generated (#2211).
+    """
+    feature: Feature = "IMAGE_CAPTIONING"
+    return (
+        not feature_locked(feature)
+        and bool(config[site_setting_key(feature)])
+        and captioning_model_selected(config["CAPTIONING_MODEL"])
+    )
+
+
 def _job_status(job: LongRunningJob) -> str:
     if job.cancelled:
         return "cancelled"
@@ -135,6 +155,7 @@ class SiteSettingsView(APIView):
         out["map_api_key"] = config["MAP_API_KEY"] if request.user.is_staff else ""
         out["map_tile_provider"] = config["MAP_TILE_PROVIDER"]
         out["captioning_model"] = config["CAPTIONING_MODEL"]
+        out["captioning_available"] = _captioning_available(config)
         # There is no LLM any more; older mobile clients still expect the key.
         out["llm_model"] = "None"
         # One tagging model, not a setting: the web client reads it to find

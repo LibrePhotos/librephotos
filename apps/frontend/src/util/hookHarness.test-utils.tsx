@@ -57,3 +57,15 @@ export function settledMutation<T>(
     result => result.mutate()
   );
 }
+
+/** A mutation hook's result after one `mutate(variables)` has settled. */
+export function settledMutationWith<T, V>(
+  useHook: () => UseMutationResult<T, Error, V>,
+  variables: V
+): Promise<UseMutationResult<T, Error, V>> {
+  return renderUntil(
+    useHook,
+    result => result.isSuccess || result.isError,
+    result => result.mutate(variables)
+  );
+}

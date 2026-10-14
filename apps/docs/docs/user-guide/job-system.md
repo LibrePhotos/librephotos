@@ -80,6 +80,10 @@ Checks the videos that were added to your library before LibrePhotos recorded ea
 
 Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
 
+### Generate Captions
+
+_Not released yet._ Started with **Generate** (or **Generate captions again for all photos**) under **Captions** on the Library page. Writes a generated caption for each of your photos that has none, or for every photo again; a caption you wrote yourself is never changed. It never runs by itself after a scan. See [Captioning the whole library](./image-captioning.md#captioning-the-whole-library).
+
 ### Detect Stacks
 
 Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect Stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). Not released yet: up to 1.3.0, it was listed as **Scan Photos**.

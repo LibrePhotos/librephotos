@@ -3,13 +3,14 @@
 import os
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.albums.auto_albums import delete_missing_photos
+from api.classification.captioning import captioning_available
 from api.directory_watcher import scan_photos
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
@@ -17,8 +18,16 @@ from api.jobs.start import start_job
 from api.models import LongRunningJob
 from api.models.user import User
 from api.photos.retention import empty_trash_job
-from api.runtime.ml_models import missing_models_prerequisites
-from api.serializers.job import GenerateOcrRequest, JobStartedResponseSerializer
+from api.runtime.ml_models import (
+    captioning_model_prerequisites,
+    missing_models_prerequisites,
+)
+from api.serializers.job import (
+    CaptionsJobStartedResponseSerializer,
+    GenerateCaptionsRequest,
+    GenerateOcrRequest,
+    JobStartedResponseSerializer,
+)
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
 
 
@@ -152,6 +161,41 @@ class GenerateOcrView(APIView):
             full_scan=full_scan,
             description="text recognition",
         )
+
+
+class GenerateCaptionsView(APIView):
+    """Caption the requester's photos, as a job (#2211).
+
+    Refused (403) while captioning is off: the feature switch, or the
+    captioning model set to "None". When the model is not on disk yet its
+    download is chained in front and the answer says so (``downloads_model``).
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        request=GenerateCaptionsRequest,
+        responses=CaptionsJobStartedResponseSerializer,
+    )
+    def post(self, request: Request, format: str | None = None) -> Response:
+        from api.directory_watcher.processing_jobs import generate_captions
+
+        if not captioning_available():
+            raise PermissionDenied("Image captioning is disabled")
+        user = request_user(request)
+        full_scan = parse_body(request, GenerateCaptionsRequest)["full_scan"]
+        prerequisites = captioning_model_prerequisites(user)
+        response = start_job(
+            user,
+            LongRunningJob.JOB_GENERATE_CAPTIONS,
+            generate_captions,
+            user,
+            full_scan=full_scan,
+            description="caption generation",
+            prerequisites=prerequisites,
+        )
+        response.data["downloads_model"] = bool(prerequisites)
+        return response
 
 
 class StripThumbnailMetadataView(APIView):

@@ -77,3 +77,18 @@ class GenerateOcrRequest(serializers.Serializer[None]):
     full_scan = serializers.BooleanField(
         default=False, help_text="Read text again on photos that have it"
     )
+
+
+class GenerateCaptionsRequest(serializers.Serializer[None]):
+    full_scan = serializers.BooleanField(
+        default=False,
+        help_text="Caption again the photos that have a generated caption",
+    )
+
+
+class CaptionsJobStartedResponseSerializer(JobStartedResponseSerializer):
+    """``POST /api/generate-captions/``: the started job, and whether it waits for the model."""
+
+    downloads_model = serializers.BooleanField(
+        help_text="The captioning model is downloaded first: the job starts after it"
+    )

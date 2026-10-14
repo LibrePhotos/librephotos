@@ -89,6 +89,19 @@ class JobStartResponsesTest(DeclaredResponseTestCase):
         trained = self.start("/api/trainfaces/", "post")
         self.assertEqual(2, len(trained["job_ids"]))
 
+    def test_the_caption_job_says_whether_it_waits_for_the_model(self) -> None:
+        path = "/api/generate-captions/"
+        for missing in (False, True):
+            with (
+                self.subTest(model_missing=missing),
+                patch(
+                    "api.runtime.ml_models.captioning_model_exists",
+                    return_value=not missing,
+                ),
+            ):
+                body = self.start(path, "post")
+                self.assertEqual(missing, body["downloads_model"])
+
     @override_config(NEXTCLOUD_ENABLED=True)
     def test_the_nextcloud_scan(self) -> None:
         self.user.nextcloud_server_address = "https://cloud.example.com"

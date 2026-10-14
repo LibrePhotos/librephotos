@@ -82,6 +82,12 @@ export const JobStartedResponse = z.looseObject({
 });
 export type JobStartedResponse = z.infer<typeof JobStartedResponse>;
 
+/** `POST /generate-captions/`: the started job, and whether the captioning model is downloaded first (#2211). */
+export const CaptionsJobStartedResponse = JobStartedResponse.extend({
+  downloads_model: z.boolean(),
+});
+export type CaptionsJobStartedResponse = z.infer<typeof CaptionsJobStartedResponse>;
+
 /** What a job trigger answers when a job of its kind is already queued or running (a 409). */
 export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
 

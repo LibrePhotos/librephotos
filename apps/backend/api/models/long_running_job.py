@@ -140,6 +140,7 @@ class LongRunningJob(models.Model):
     JOB_DETECT_STACKS = 22
     JOB_STRIP_THUMBNAIL_METADATA = 23
     JOB_EMPTY_TRASH = 24
+    JOB_GENERATE_CAPTIONS = 25
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -164,6 +165,7 @@ class LongRunningJob(models.Model):
         (JOB_DETECT_STACKS, "Detect Stacks"),
         (JOB_STRIP_THUMBNAIL_METADATA, "Remove Photo Details from Thumbnails"),
         (JOB_EMPTY_TRASH, "Empty Trash"),
+        (JOB_GENERATE_CAPTIONS, "Generate Captions"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

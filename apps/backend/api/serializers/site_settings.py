@@ -145,6 +145,10 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     map_api_key = serializers.CharField(help_text="Blank unless the caller is staff.")
     map_tile_provider = serializers.CharField()
     captioning_model = serializers.CharField()
+    captioning_available = serializers.BooleanField(
+        help_text="Captions can be generated: the image captioning switch is on"
+        " and a captioning model is picked. Sent to everyone."
+    )
     llm_model = serializers.CharField()
     tagging_model = serializers.CharField()
     ocr_model = serializers.CharField()

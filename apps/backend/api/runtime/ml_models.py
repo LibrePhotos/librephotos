@@ -235,9 +235,15 @@ def _is_model_not_selected(value: object) -> bool:
     return not value or str(value).strip().lower() == "none"
 
 
-def captioning_model_selected() -> bool:
-    """Whether an admin picked a captioning model; "None" turns captioning off."""
-    return not _is_model_not_selected(site_config.CAPTIONING_MODEL)
+def captioning_model_selected(value: object | None = None) -> bool:
+    """Whether an admin picked a captioning model; "None" turns captioning off.
+
+    ``value`` is a ``CAPTIONING_MODEL`` the caller has read already; without
+    it the setting is read here.
+    """
+    if value is None:
+        value = site_config.CAPTIONING_MODEL
+    return not _is_model_not_selected(value)
 
 
 def _is_model_selected(model: MlModel) -> bool:
@@ -653,6 +659,17 @@ def latest_model_download() -> LongRunningJob | None:
 def missing_models_prerequisites(user: User) -> list[Task]:
     """The model download to chain in front of a job, when models are missing."""
     if do_all_models_exist():
+        return []
+    return [Task(download_models, (user,))]
+
+
+def captioning_model_prerequisites(user: User) -> list[Task]:
+    """The model download to chain in front of a caption job, when it is needed.
+
+    A fresh install, or captioning turned on again after #2218 skipped the
+    files, has no captioner on disk yet.
+    """
+    if captioning_model_exists():
         return []
     return [Task(download_models, (user,))]
 
