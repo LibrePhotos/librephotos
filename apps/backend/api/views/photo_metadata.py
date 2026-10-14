@@ -31,7 +31,9 @@ from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.serializers.photo_metadata import (
     BulkMetadataQuery,
+    BulkMetadataSummaries,
     BulkMetadataUpdateRequest,
+    BulkMetadataUpdateResponse,
     MetadataEditSerializer,
     MetadataRevertQuery,
     PhotoMetadataSerializer,
@@ -154,6 +156,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
             "changed again afterwards, unless ?force=1."
         ),
         parameters=[MetadataRevertQuery],
+        request=None,
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path=r"revert/(?P<edit_id>[^/.]+)")
@@ -199,6 +202,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
             "keywords, title, copyright, creator) from the file and its "
             "sidecar; a field the file says nothing about is emptied."
         ),
+        request=None,
         responses={200: PhotoMetadataSerializer},
     )
     @action(detail=True, methods=["post"], url_path="revert-all")
@@ -219,8 +223,12 @@ class BulkMetadataView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        description="Get metadata summary for multiple photos.",
+        description=(
+            "Get metadata summary for multiple photos, by photo id. Photos "
+            "that are not the caller's are left out."
+        ),
         parameters=[BulkMetadataQuery],
+        responses=BulkMetadataSummaries,
     )
     def get(self, request: Request) -> Response:
         """Get metadata summary for multiple photos."""
@@ -256,7 +264,7 @@ class BulkMetadataView(APIView):
             .select_related("metadata")
         )
 
-        results: dict[str, dict[str, object]] = {}
+        results: BulkMetadataSummaries = {}
         for photo in photos:
             try:
                 metadata: PhotoMetadata | None = photo.metadata
@@ -280,6 +288,7 @@ class BulkMetadataView(APIView):
             "PATCH, validated the same way."
         ),
         request=BulkMetadataUpdateRequest,
+        responses=BulkMetadataUpdateResponse,
     )
     def patch(self, request: Request) -> Response:
         """Bulk update metadata for multiple photos."""

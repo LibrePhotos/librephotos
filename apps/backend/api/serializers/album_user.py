@@ -390,21 +390,12 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
-    public_slug = serializers.CharField(read_only=True)
-    public_expires_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = AlbumUser
-        fields = (
-            "id",
-            "title",
-            "owner",
-            "date",
-            "location",
-            "grouped_photos",
-            "public_slug",
-            "public_expires_at",
-        )
+        # No link settings: an album has no public_slug or public_expires_at
+        # attribute, so the fields that used to be listed here were never sent.
+        fields = ("id", "title", "owner", "date", "location", "grouped_photos")
 
     def _filtered_photos(self, obj: AlbumUser) -> list[Photo]:
         # Public albums should not expose hidden or trash photos

@@ -34,15 +34,14 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.models import AlbumDate, Photo, User
 from api.photos.selection import build_photo_queryset
-from api.serializers.memories import MemoriesQuery
+from api.serializers.memories import (
+    TYPE_MONTH_YEARS_AGO,
+    TYPE_YEARS_AGO,
+    MemoriesQuery,
+    MemoriesSerializer,
+)
 from api.serializers.photos import PhotoSummarySerializer
 from api.views.albums import _with_photo_summary_relations
-
-# ``type`` values in the response. Only date-based memories exist so far; the
-# field is there so that place- or person-based ones can be added without the
-# frontend having to guess what a memory is about.
-TYPE_YEARS_AGO = "years_ago"
-TYPE_MONTH_YEARS_AGO = "month_years_ago"
 
 # (years_ago, anchor, start, end): one candidate window of days for a memory.
 Window = tuple[int, datetime.date, datetime.date, datetime.date]
@@ -170,6 +169,7 @@ class MemoriesView(APIView):
 
     @extend_schema(
         parameters=[MemoriesQuery],
+        responses=MemoriesSerializer,
         description=(
             "Memories for a given day: one entry per earlier year that has "
             "photos around the same date, nearest year first. Titles are left "

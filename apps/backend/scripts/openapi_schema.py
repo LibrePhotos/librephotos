@@ -14,11 +14,11 @@ BASE_DATA and BASE_LOGS default to throwaway values; the schema reads none of
 them.
 
 drf-spectacular reports what it cannot describe (an APIView without a
-serializer, an untyped path parameter). openapi-baseline.txt lists the reports
-that predate this script, one per line. It only shrinks: a new report fails the
-run (declare the response with a serializer or ``@extend_schema``), and a
-listed one that is gone fails it too until ``--update-baseline`` drops it.
-Issue #485 tracks the rest.
+serializer, an untyped path parameter). openapi-baseline.txt listed the reports
+that predated this script, one per line, and is empty since issue #485 declared
+the last of them. It only shrinks: a new report fails the run (declare the
+response with a serializer or ``@extend_schema``), and a listed one that is
+gone fails it too until ``--update-baseline`` drops it.
 
 Usage (from apps/backend):
   python scripts/openapi_schema.py                    regenerate openapi.json

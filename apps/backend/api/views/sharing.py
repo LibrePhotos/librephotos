@@ -114,7 +114,7 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
 class SetUserAlbumShared(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SetUserAlbumSharedRequest)
+    @extend_schema(request=SetUserAlbumSharedRequest, responses=AlbumUserListSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
         data = parse_body(request, SetUserAlbumSharedRequest)

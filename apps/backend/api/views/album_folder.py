@@ -21,7 +21,7 @@ from api.drf.request_user import request_user
 from api.models.photo import Photo
 from api.models.user import User
 from api.photos.paths import folder_path_q, is_valid_path
-from api.serializers.folders import FolderPathQuery
+from api.serializers.folders import FolderPathQuery, FolderSubfoldersPageSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,10 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(parameters=[FolderPathQuery, *PAGE_PARAMETERS])
+    @extend_schema(
+        parameters=[FolderPathQuery, *PAGE_PARAMETERS],
+        responses=FolderSubfoldersPageSerializer,
+    )
     @action(detail=False, methods=["get"])
     def subfolders(self, request: Request) -> Response:
         """Get subfolders for a given path with pagination."""

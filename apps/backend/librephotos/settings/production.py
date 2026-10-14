@@ -538,6 +538,10 @@ SPECTACULAR_SETTINGS = {
         "ListedStackTypeEnum": "api.serializers.stack.LISTED_STACK_TYPES",
         # A synced photo's kind (image, video, motion).
         "SyncMediaTypeEnum": "api.serializers.sync_responses.SYNC_MEDIA_TYPES",
+        # What a memory is about (years_ago, month_years_ago).
+        "MemoryTypeEnum": "api.serializers.memories.MEMORY_TYPES",
+        # What the serving diagnostics found.
+        "MediaDiagnosisCauseEnum": "api.serializers.media.DIAGNOSIS_CAUSES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

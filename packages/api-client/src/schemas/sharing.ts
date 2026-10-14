@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserAlbumInfo } from "./albums";
+import { PublicSharingSettings, UserAlbumInfo } from "./albums";
 import { PigPhoto, SimpleUser } from "./common";
 
 /** Photos shared WITH me — a bare PigPhoto list carrying the owner. */
@@ -33,16 +33,6 @@ export const SetUserAlbumPublicResponse = z.object({
   album: UserAlbumInfo,
 });
 export type SetUserAlbumPublicResponse = z.infer<typeof SetUserAlbumPublicResponse>;
-
-/** The metadata sharing settings in effect for a public album or a photo link (all five are sent). */
-export const PublicSharingSettings = z.object({
-  share_location: z.boolean(),
-  share_camera_info: z.boolean(),
-  share_timestamps: z.boolean(),
-  share_captions: z.boolean(),
-  share_faces: z.boolean(),
-});
-export type PublicSharingSettings = z.infer<typeof PublicSharingSettings>;
 
 /**
  * One photo of a public album, for a visitor: PublicPhotoDetailSerializer. What the album's
@@ -94,48 +84,58 @@ export const PhotoShare = z.object({
   enabled: z.boolean(),
   slug: z.string().nullable(),
   url: z.string().nullable(),
+  // Only while the link is enabled.
   created_at: z.string().optional(),
-  // Only in the list of links.
-  photo_id: z.string().optional(),
-  image_hash: z.string().optional(),
 });
 export type PhotoShare = z.infer<typeof PhotoShare>;
+
+/** One of the user's live photo links, with the photo it shares. */
+export const PhotoShareLink = PhotoShare.extend({
+  slug: z.string(),
+  url: z.string(),
+  created_at: z.string(),
+  photo_id: z.string(),
+  image_hash: z.string(),
+});
+export type PhotoShareLink = z.infer<typeof PhotoShareLink>;
 
 /** POST /photo/share: the link after the action. */
 export const PhotoShareResponse = z.object({ status: z.boolean(), share: PhotoShare });
 export type PhotoShareResponse = z.infer<typeof PhotoShareResponse>;
 
 /** GET /photo/share/list: the user's active photo links, newest first. */
-export const PhotoShareListResponse = z.object({ results: PhotoShare.array() });
+export const PhotoShareListResponse = z.object({ results: PhotoShareLink.array() });
 export type PhotoShareListResponse = z.infer<typeof PhotoShareListResponse>;
 
 /** What POST /photo/share does with a photo's link. */
 export type PhotoShareAction = "enable" | "rotate" | "disable";
 
 /**
- * What an anonymous visitor gets for /public/p/{slug}. Media come as slug-scoped URLs, so revoking
- * the link cuts them off too; there is no image hash.
+ * What an anonymous visitor gets for /public/p/{slug}: PublicPhotoDetail without the image hash and
+ * the hash-addressed thumbnail URLs. Media come as slug-scoped URLs, so revoking the link cuts them
+ * off too. People come by name only.
  */
-export const SharedPhoto = z.object({
-  video: z.boolean(),
+export const SharedPhoto = PublicPhotoDetail.omit({
+  image_hash: true,
+  square_thumbnail_url: true,
+  big_thumbnail_url: true,
+  small_square_thumbnail_url: true,
+}).extend({
   thumbnail_url: z.string(),
   video_url: z.string().nullable(),
   // The canPlayType() string for a probed video (e.g. `video/mp4;
   // codecs="hvc1..."`); null for stills and unprobed videos. The public page
   // never transcodes, so it shows the fallback up front when this cannot play.
   video_playback_type: z.string().nullish(),
-  exif_timestamp: z.string().nullable().optional(),
-  search_location: z.string().optional(),
-  camera: z.string().nullable().optional(),
-  lens: z.string().nullable().optional(),
-  search_captions: z.string().optional(),
-  captions_json: z.record(z.string(), z.unknown()).optional(),
   people: z.array(z.object({ name: z.string() })).optional(),
 });
 export type SharedPhoto = z.infer<typeof SharedPhoto>;
 
-/** GET /public/photo/{slug}/. */
-export const SharedPhotoResponse = z.object({ results: SharedPhoto });
+/** GET /public/photo/{slug}/: the photo and the owner's settings that filtered it. */
+export const SharedPhotoResponse = z.object({
+  results: SharedPhoto,
+  sharing_settings: PublicSharingSettings.optional(),
+});
 export type SharedPhotoResponse = z.infer<typeof SharedPhotoResponse>;
 
 export type UpdatePhotoSharingParams = {

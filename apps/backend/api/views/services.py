@@ -18,6 +18,11 @@ from api.runtime.supervisor import (
     start_service,
     stop_service,
 )
+from api.serializers.server import (
+    ServiceActionSerializer,
+    ServiceHealthSerializer,
+    ServicesSerializer,
+)
 
 # The router names the lookup "id"; it is a service's name (a key of SERVICES).
 SERVICE_NAME = OpenApiParameter(
@@ -33,11 +38,11 @@ class ServiceViewSet(viewsets.ViewSet):
 
     # A ViewSet without a serializer gives list and retrieve the same
     # operationId; spelled out so the schema does not number them.
-    @extend_schema(operation_id="api_services_list")
+    @extend_schema(operation_id="api_services_list", responses=ServicesSerializer)
     def list(self, request: Request) -> Response:
         return Response({"services": SERVICES})
 
-    @extend_schema(parameters=[SERVICE_NAME])
+    @extend_schema(parameters=[SERVICE_NAME], responses=ServiceHealthSerializer)
     def retrieve(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
 
@@ -63,7 +68,9 @@ class ServiceViewSet(viewsets.ViewSet):
             }
         )
 
-    @extend_schema(parameters=[SERVICE_NAME])
+    @extend_schema(
+        parameters=[SERVICE_NAME], request=None, responses=ServiceActionSerializer
+    )
     @action(detail=True, methods=["post"])
     def start(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk
@@ -93,7 +100,9 @@ class ServiceViewSet(viewsets.ViewSet):
             detail = f": {reason}" if reason else ""
             raise APIException(f"Failed to start service {service_name}{detail}")
 
-    @extend_schema(parameters=[SERVICE_NAME])
+    @extend_schema(
+        parameters=[SERVICE_NAME], request=None, responses=ServiceActionSerializer
+    )
     @action(detail=True, methods=["post"])
     def stop(self, request: Request, pk: str | None = None) -> Response:
         service_name = pk

@@ -10,6 +10,7 @@ from api.serializers.geocode import (
     GeocodeReverseQuery,
     GeocodeReverseResponseSerializer,
     GeocodeSearchQuery,
+    GeocodeSearchResultSerializer,
 )
 
 
@@ -18,7 +19,10 @@ class GeocodeSearchView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(parameters=[GeocodeSearchQuery])
+    @extend_schema(
+        parameters=[GeocodeSearchQuery],
+        responses=GeocodeSearchResultSerializer(many=True),
+    )
     def get(self, request: Request, format: str | None = None) -> Response:
         params = parse_query(request, GeocodeSearchQuery)
         if not params["q"]:

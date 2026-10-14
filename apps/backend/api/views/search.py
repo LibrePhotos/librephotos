@@ -21,7 +21,11 @@ from api.serializers.photos import (
     with_photo_summary_relations,
 )
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.serializers.search import MetadataValuesQuery, MetadataValuesSerializer
+from api.serializers.search import (
+    MetadataValuesQuery,
+    MetadataValuesSerializer,
+    SearchTermExamplesSerializer,
+)
 from api.views.custom_api_view import ListViewSet
 
 # The date of the undated group in search results. The other grouped lists send
@@ -108,6 +112,7 @@ SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2
 class SearchTermExamples(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(responses=SearchTermExamplesSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         # The examples are built from the caller's own photos, people and places,
         # so the cache is keyed on the user. cache_page + vary_on_cookie keyed

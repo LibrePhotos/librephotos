@@ -289,7 +289,7 @@ export async function setPhotoShareLink(
 }
 
 /** The user's active photo links, newest first. */
-export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShare[]> {
+export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShareLink[]> {
   const res = await client.get<unknown>("/photo/share/list");
   return parseResponse(S.PhotoShareListResponse, res, "photo shares").results;
 }
