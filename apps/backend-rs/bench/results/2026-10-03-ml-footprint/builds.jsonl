@@ -1,0 +1,6 @@
+{"variant": "smallest", "config": "opt-level=\"z\",lto=\"fat\",codegen-units=1,panic=\"abort\",strip=true", "rc": 0, "seconds": 546, "bytes": 21572608}
+{"variant": "opt_z", "config": "opt-level=\"z\"", "rc": 0, "seconds": 382, "bytes": 33479680}
+{"variant": "opt_s", "config": "opt-level=\"s\"", "rc": 0, "seconds": 389, "bytes": 36281856}
+{"variant": "lto_fat", "config": "lto=\"fat\"", "rc": 124, "seconds": 601, "bytes": -1}
+{"variant": "panic_abort", "config": "panic=\"abort\"", "rc": 0, "seconds": 501, "bytes": 34890240}
+{"variant": "strip", "config": "strip=true", "rc": 0, "seconds": 536, "bytes": 49295360}

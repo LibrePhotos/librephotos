@@ -1,0 +1,1217 @@
+{
+ "date": "2026-10-03",
+ "commit_code": "fc721c170 (release build; HEAD adds only bench files)",
+ "machine": "Ryzen 5 2600X, Windows 11; backend tree pinned to 4 CPUs (one per core), ONNX_INTRA_OP_THREADS=4; Postgres on 4 other CPUs",
+ "units": "MB (RSS: MiB; file sizes: 10^6 bytes)",
+ "binary": {
+  "as-is (lto thin, cgu 1)": {
+   "mb": 49.3,
+   "gzip_mb": 18.7
+  },
+  "as-is PDB (separate file, not shipped)": {
+   "mb": 8.6
+  },
+  "smallest": {
+   "config": "opt-level=\"z\",lto=\"fat\",codegen-units=1,panic=\"abort\",strip=true",
+   "build_s": 546,
+   "built": true,
+   "mb": 21.6,
+   "gzip_mb": 9.9
+  },
+  "opt_z": {
+   "config": "opt-level=\"z\"",
+   "build_s": 382,
+   "built": true,
+   "mb": 33.5,
+   "gzip_mb": 12.7
+  },
+  "opt_s": {
+   "config": "opt-level=\"s\"",
+   "build_s": 389,
+   "built": true,
+   "mb": 36.3,
+   "gzip_mb": 13.6
+  },
+  "lto_fat": {
+   "config": "lto=\"fat\"",
+   "build_s": 601,
+   "built": false,
+   "mb": null
+  },
+  "panic_abort": {
+   "config": "panic=\"abort\"",
+   "build_s": 501,
+   "built": true,
+   "mb": 34.9,
+   "gzip_mb": 15.1
+  },
+  "strip": {
+   "config": "strip=true",
+   "build_s": 536,
+   "built": true,
+   "mb": 49.3,
+   "gzip_mb": 18.7
+  }
+ },
+ "runtime_deps": {
+  "windows": {
+   "onnxruntime.dll": 17.3,
+   "libvips-42 dll (pyvips-binary, all deps static)": 18.6,
+   "exiftool_bin dir (exiftool.exe + perl)": 34.6,
+   "ffmpeg_bin dir": 188.7
+  },
+  "pypi_wheels": {
+   "onnxruntime": {
+    "aarch64": {
+     "wheel": "onnxruntime-1.27.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+     "wheel_mb": 16.4,
+     "unpacked_mb": 45.3,
+     "files": 352,
+     "big_files_mb": {
+      "onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-aarch64-linux-gnu.so": 21.0,
+      "onnxruntime/capi/libonnxruntime.so.1.27.0": 20.0
+     }
+    },
+    "x86_64": {
+     "wheel": "onnxruntime-1.27.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+     "wheel_mb": 18.7,
+     "unpacked_mb": 53.0,
+     "files": 352,
+     "big_files_mb": {
+      "onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-x86_64-linux-gnu.so": 25.3,
+      "onnxruntime/capi/libonnxruntime.so.1.27.0": 23.7
+     }
+    }
+   },
+   "pyvips-binary": {
+    "aarch64": {
+     "wheel": "pyvips_binary-8.18.6-cp37-abi3-manylinux_2_28_aarch64.whl",
+     "wheel_mb": 8.2,
+     "unpacked_mb": 18.9,
+     "files": 10,
+     "big_files_mb": {
+      "pyvips_binary.libs/libvips-2e7697c5.so.42": 18.2,
+      "_libvips.abi3.so": 0.7
+     }
+    },
+    "x86_64": {
+     "wheel": "pyvips_binary-8.18.6-cp37-abi3-manylinux_2_28_x86_64.whl",
+     "wheel_mb": 8.1,
+     "unpacked_mb": 19.0,
+     "files": 10,
+     "big_files_mb": {
+      "pyvips_binary.libs/libvips-66936813.so.42": 18.5
+     }
+    }
+   },
+   "exiftool-bin": {
+    "any": {
+     "wheel": "exiftool_bin-13.57-py3-none-any.whl",
+     "wheel_mb": 5.8,
+     "unpacked_mb": 20.9,
+     "files": 252,
+     "big_files_mb": {}
+    }
+   },
+   "ffmpeg-bin": {
+    "x86_64": {
+     "wheel": "ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_x86_64.whl",
+     "wheel_mb": 80.6,
+     "unpacked_mb": 200.7,
+     "files": 15,
+     "big_files_mb": {
+      "ffmpeg_bin/lib/libavcodec.so.63": 119.0,
+      "ffmpeg_bin/lib/libavfilter.so.12": 37.7,
+      "ffmpeg_bin/lib/libavformat.so.63": 26.2,
+      "ffmpeg_bin/lib/libavutil.so.61": 8.6,
+      "ffmpeg_bin/lib/libavdevice.so.63": 5.7,
+      "ffmpeg_bin/lib/libswscale.so.10": 2.3,
+      "ffmpeg_bin/lib/libswresample.so.7": 0.5
+     }
+    },
+    "aarch64": {
+     "wheel": "ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_aarch64.whl",
+     "wheel_mb": 71.5,
+     "unpacked_mb": 152.7,
+     "files": 15,
+     "big_files_mb": {
+      "ffmpeg_bin/lib/libavcodec.so.63": 86.8,
+      "ffmpeg_bin/lib/libavfilter.so.12": 30.1,
+      "ffmpeg_bin/lib/libavformat.so.63": 21.6,
+      "ffmpeg_bin/lib/libavutil.so.61": 6.2,
+      "ffmpeg_bin/lib/libavdevice.so.63": 5.3,
+      "ffmpeg_bin/lib/libswscale.so.10": 1.6
+     }
+    }
+   }
+  },
+  "github_releases": {
+   "onnxruntime v1.27.0": {
+    "onnxruntime-linux-aarch64-1.27.0.tgz": 7.8,
+    "onnxruntime-linux-x64-1.27.0.tgz": 8.8,
+    "onnxruntime-win-x64-1.27.0.zip": 77.1
+   },
+   "BtbN/FFmpeg-Builds latest (n8.1)": {
+    "ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz": 150.3,
+    "ffmpeg-n8.1-latest-linux64-gpl-shared-8.1.tar.xz": 71.8,
+    "ffmpeg-n8.1-latest-linux64-lgpl-8.1.tar.xz": 137.0,
+    "ffmpeg-n8.1-latest-linux64-lgpl-shared-8.1.tar.xz": 65.6,
+    "ffmpeg-n8.1-latest-linuxarm64-gpl-8.1.tar.xz": 126.5,
+    "ffmpeg-n8.1-latest-linuxarm64-gpl-shared-8.1.tar.xz": 60.5,
+    "ffmpeg-n8.1-latest-linuxarm64-lgpl-8.1.tar.xz": 116.0,
+    "ffmpeg-n8.1-latest-linuxarm64-lgpl-shared-8.1.tar.xz": 56.0
+   }
+  },
+  "debian_trixie_apt": {
+   "amd64": {
+    "libvips": {
+     "installed_mb": 126.1,
+     "debs_mb": 40.2,
+     "packages": 121
+    },
+    "exiftool+perl": {
+     "installed_mb": 76.1,
+     "debs_mb": 13.5,
+     "packages": 6
+    },
+    "ffmpeg": {
+     "installed_mb": 445.3,
+     "debs_mb": 133.3,
+     "packages": 207
+    },
+    "ca-certificates": {
+     "installed_mb": 2.8,
+     "debs_mb": 1.7,
+     "packages": 2
+    },
+    "vips+exiftool+ffmpeg+certs": {
+     "installed_mb": 585.8,
+     "debs_mb": 167.7,
+     "packages": 271
+    },
+    "vips+exiftool+certs": {
+     "installed_mb": 205.0,
+     "debs_mb": 55.3,
+     "packages": 129
+    }
+   },
+   "arm64": {
+    "libvips": {
+     "installed_mb": 130.7,
+     "debs_mb": 36.6,
+     "packages": 121
+    },
+    "exiftool+perl": {
+     "installed_mb": 77.9,
+     "debs_mb": 13.3,
+     "packages": 6
+    },
+    "ffmpeg": {
+     "installed_mb": 410.3,
+     "debs_mb": 121.2,
+     "packages": 204
+    },
+    "ca-certificates": {
+     "installed_mb": 2.9,
+     "debs_mb": 1.6,
+     "packages": 2
+    },
+    "vips+exiftool+ffmpeg+certs": {
+     "installed_mb": 558.6,
+     "debs_mb": 154.0,
+     "packages": 268
+    },
+    "vips+exiftool+certs": {
+     "installed_mb": 211.5,
+     "debs_mb": 51.5,
+     "packages": 129
+    }
+   }
+  }
+ },
+ "models_mb": {
+  "clip_vit_b32": 608.0,
+  "face_recognition/models/antelopev2": 427.6,
+  "face_recognition/models/buffalo_l": 341.3,
+  "face_recognition/models/buffalo_m": 327.6,
+  "face_recognition/models/buffalo_s": 166.1,
+  "face_recognition/models/buffalo_sc": 16.1,
+  "lfm2_vl_450m": 368.2,
+  "mobileclip_s2": 401.1,
+  "ocr/ppocrv6_medium": 138.7,
+  "ocr/ppocrv6_small": 31.1,
+  "ocr/ppocrv6_tiny": 6.3,
+  "siglip2": 1509.6
+ },
+ "docker_hub_compressed_mb": {
+  "librephotos": {
+   "pushed": "2026-09-29T13:13:45.764067Z",
+   "amd64": 572.0,
+   "arm64": 530.5
+  },
+  "librephotos-unified": {
+   "pushed": "2026-09-29T13:14:12.479753Z",
+   "amd64": 575.5,
+   "arm64": 533.9
+  },
+  "librephotos-base": {
+   "pushed": "2026-09-29T13:11:24.234052Z",
+   "amd64": 69.6,
+   "arm64": 68.6
+  },
+  "librephotos-frontend": {
+   "pushed": "2026-09-29T13:12:59.317049Z",
+   "amd64": 6.1,
+   "arm64": 5.9
+  },
+  "librephotos-proxy": {
+   "pushed": "2026-09-29T13:11:36.281722Z",
+   "amd64": 63.2,
+   "arm64": 61.5
+  },
+  "librephotos-gpu": {
+   "pushed": "2026-09-29T13:14:58.14498Z",
+   "amd64": 2960.8
+  },
+  "debian:trixie-slim": {
+   "amd64": 29.8,
+   "arm64": 30.2
+  },
+  "gcr.io/distroless/cc-debian12": {
+   "amd64": 9.2,
+   "arm64": 9.0
+  }
+ },
+ "docker_rust_estimate_compressed_mb": {
+  "amd64": {
+   "total": 193,
+   "no_ffmpeg": 113,
+   "no_ffmpeg_pyvips_binary": 81
+  },
+  "arm64": {
+   "total": 180,
+   "no_ffmpeg": 108,
+   "no_ffmpeg_pyvips_binary": 80
+  },
+  "note": "debs are xz, docker layers gzip: add 10-20% to apt rows; default models +1393 MB on disk (downloaded at runtime)"
+ },
+ "one_process_models": {
+  "arena_on": [
+   {
+    "label": "idle, no model loaded",
+    "rss_mb": 15.2,
+    "private_mb": 3.5,
+    "loaded": []
+   },
+   {
+    "label": "+ CLIP text (semantic search)",
+    "rss_mb": 641.8,
+    "private_mb": 622.2,
+    "loaded": [
+     "clip_embeddings"
+    ]
+   },
+   {
+    "label": "job scan.user started",
+    "rss_mb": 664.0,
+    "private_mb": 636.2,
+    "loaded": [
+     "clip_embeddings"
+    ]
+   },
+   {
+    "label": "+ job scan.user done",
+    "rss_mb": 847.5,
+    "private_mb": 813.3,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job repair.file_variants done",
+    "rss_mb": 864.3,
+    "private_mb": 829.8,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "job tags.generate started",
+    "rss_mb": 875.5,
+    "private_mb": 841.6,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job tags.generate done",
+    "rss_mb": 877.9,
+    "private_mb": 858.9,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "job clip.embed started",
+    "rss_mb": 877.9,
+    "private_mb": 858.9,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job clip.embed done",
+    "rss_mb": 917.7,
+    "private_mb": 885.6,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "tags"
+    ]
+   },
+   {
+    "label": "job faces.scan started",
+    "rss_mb": 931.8,
+    "private_mb": 899.5,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job faces.scan done",
+    "rss_mb": 964.7,
+    "private_mb": 938.5,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job faces.train done",
+    "rss_mb": 964.7,
+    "private_mb": 938.5,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ OCR (ppocrv6_small)",
+    "rss_mb": 1422.1,
+    "private_mb": 1643.2,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ caption (lfm2_vl_450m)",
+    "rss_mb": 1933.7,
+    "private_mb": 2216.2,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ face clustering + training",
+    "rss_mb": 1933.7,
+    "private_mb": 2216.2,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "all models loaded",
+    "rss_mb": 2127.8,
+    "private_mb": 2546.7,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "after 120 s idle unload",
+    "rss_mb": 143.8,
+    "private_mb": 92.7,
+    "loaded": []
+   }
+  ],
+  "arena_off": [
+   {
+    "label": "idle, no model loaded",
+    "rss_mb": 15.2,
+    "private_mb": 3.5,
+    "loaded": []
+   },
+   {
+    "label": "+ CLIP text (semantic search)",
+    "rss_mb": 641.2,
+    "private_mb": 620.7,
+    "loaded": [
+     "clip_embeddings"
+    ]
+   },
+   {
+    "label": "job scan.user started",
+    "rss_mb": 648.7,
+    "private_mb": 627.9,
+    "loaded": [
+     "clip_embeddings"
+    ]
+   },
+   {
+    "label": "+ job scan.user done",
+    "rss_mb": 725.7,
+    "private_mb": 690.8,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job repair.file_variants done",
+    "rss_mb": 763.2,
+    "private_mb": 728.9,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "job tags.generate started",
+    "rss_mb": 785.7,
+    "private_mb": 752.6,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job tags.generate done",
+    "rss_mb": 850.2,
+    "private_mb": 814.3,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "job clip.embed started",
+    "rss_mb": 853.7,
+    "private_mb": 817.8,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ job clip.embed done",
+    "rss_mb": 856.5,
+    "private_mb": 809.1,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "job faces.scan started",
+    "rss_mb": 861.4,
+    "private_mb": 814.0,
+    "loaded": [
+     "clip_embeddings",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ OCR (ppocrv6_small)",
+    "rss_mb": 938.7,
+    "private_mb": 889.6,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ caption (lfm2_vl_450m)",
+    "rss_mb": 1238.3,
+    "private_mb": 1128.3,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "+ face clustering + training",
+    "rss_mb": 1238.3,
+    "private_mb": 1128.4,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "all models loaded",
+    "rss_mb": 1238.8,
+    "private_mb": 1128.0,
+    "loaded": [
+     "clip_embeddings",
+     "face_recognition",
+     "image_captioning",
+     "ocr",
+     "tags"
+    ]
+   },
+   {
+    "label": "after 120 s idle unload",
+    "rss_mb": 144.9,
+    "private_mb": 96.0,
+    "loaded": []
+   }
+  ],
+  "peak_arena_on": {
+   "rss_mb": 2133.0,
+   "private_mb": 2553.2
+  },
+  "peak_arena_off": {
+   "rss_mb": 1439.9,
+   "private_mb": 1330.3
+  }
+ },
+ "per_model_isolated_rss_mb": {
+  "clip": {
+   "arena_on": {
+    "idle": 15.2,
+    "after_scan": 697.9,
+    "after_trigger": 699.2,
+    "peak": 705.7,
+    "trigger_s": 0.0
+   },
+   "arena_off": {
+    "idle": 15.3,
+    "after_scan": 688.9,
+    "after_trigger": 690.0,
+    "peak": 697.4,
+    "trigger_s": 0.1
+   }
+  },
+  "tags": {
+   "arena_on": {
+    "idle": 15.4,
+    "after_scan": 262.0,
+    "after_trigger": 261.9,
+    "peak": 332.8,
+    "trigger_s": 0.0
+   },
+   "arena_off": {
+    "idle": 15.3,
+    "after_scan": 241.2,
+    "after_trigger": 241.1,
+    "peak": 258.0,
+    "trigger_s": 0.0
+   }
+  },
+  "faces": {
+   "arena_on": {
+    "idle": 15.3,
+    "after_scan": 185.7,
+    "after_trigger": 185.6,
+    "peak": 190.9,
+    "trigger_s": 0.0
+   },
+   "arena_off": {
+    "idle": 15.2,
+    "after_scan": 151.0,
+    "after_trigger": 150.9,
+    "peak": 157.5,
+    "trigger_s": 0.0
+   }
+  },
+  "ocr": {
+   "arena_on": {
+    "idle": 15.2,
+    "after_scan": 65.8,
+    "after_trigger": 533.2,
+    "peak": 564.5,
+    "trigger_s": 5.7
+   },
+   "arena_off": {
+    "idle": 15.3,
+    "after_scan": 65.1,
+    "after_trigger": 128.0,
+    "peak": 286.0,
+    "trigger_s": 8.0
+   }
+  },
+  "caption": {
+   "arena_on": {
+    "idle": 15.3,
+    "after_scan": 66.4,
+    "after_trigger": 605.4,
+    "peak": 610.6,
+    "trigger_s": 5.8
+   },
+   "arena_off": {
+    "idle": 15.4,
+    "after_scan": 65.7,
+    "after_trigger": 392.6,
+    "peak": 435.0,
+    "trigger_s": 5.7
+   }
+  }
+ },
+ "scans": {
+  "scan_dj1.json": {
+   "side": "dj",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "django",
+   "photos": 290,
+   "scan_ml_stage_s": 267.9,
+   "files_per_s": 1.082,
+   "ocr_s": 161.4,
+   "captions_s": 32.1,
+   "idle_rss_mb": 1438.3,
+   "peak_rss_mb": 4282.6,
+   "peak_private_mb": 12439.5,
+   "peak_by_process_mb": {
+    "clip_embeddings": 791.6,
+    "exif": 134.9,
+    "face_recognition": 250.5,
+    "image_captioning": 835.2,
+    "image_similarity": 82.0,
+    "ocr": 799.4,
+    "qcluster": 837.0,
+    "tags": 270.4,
+    "thumbnail": 71.5,
+    "uvicorn": 210.1
+   },
+   "jobs_s": {
+    "scan": 107.3,
+    "scan missing": 0.9,
+    "repair variants": 0.0,
+    "tags": 151.8,
+    "clip embeddings": 25.9,
+    "scan faces": 42.3,
+    "cluster faces": 0.1,
+    "train faces": 0.3,
+    "ocr": 161.2
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 290,
+    "clip_embedded": 290,
+    "faces": 51,
+    "tagged": 290,
+    "captioned": 10,
+    "ocr_rows": 289,
+    "clustered_faces": 51
+   }
+  },
+  "scan_dj1_b.json": {
+   "side": "dj",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "django",
+   "photos": 290,
+   "scan_ml_stage_s": 310.0,
+   "files_per_s": 0.935,
+   "ocr_s": 173.3,
+   "captions_s": 4.6,
+   "idle_rss_mb": 1438.6,
+   "peak_rss_mb": 4057.5,
+   "peak_private_mb": 12099.3,
+   "peak_by_process_mb": {
+    "clip_embeddings": 791.1,
+    "exif": 134.9,
+    "face_recognition": 244.9,
+    "image_captioning": 615.0,
+    "image_similarity": 82.2,
+    "ocr": 799.5,
+    "qcluster": 837.8,
+    "tags": 270.6,
+    "thumbnail": 71.7,
+    "uvicorn": 209.8
+   },
+   "jobs_s": {
+    "scan": 111.1,
+    "scan missing": 1.5,
+    "repair variants": 0.0,
+    "tags": 188.7,
+    "clip embeddings": 33.4,
+    "scan faces": 54.4,
+    "cluster faces": 0.1,
+    "train faces": 0.3,
+    "ocr": 172.9
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 290,
+    "clip_embedded": 290,
+    "faces": 51,
+    "tagged": 290,
+    "captioned": 1,
+    "ocr_rows": 289,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs1.json": {
+   "side": "rs",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 202.4,
+   "files_per_s": 1.433,
+   "ocr_s": 229.6,
+   "captions_s": 44.5,
+   "idle_rss_mb": 15.3,
+   "peak_rss_mb": 1798.2,
+   "peak_private_mb": 1861.4,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1798.2
+   },
+   "jobs_s": {
+    "scan": 65.2,
+    "scan missing": 0.0,
+    "repair variants": 0.0,
+    "tags": 76.0,
+    "clip embeddings": 31.0,
+    "scan faces": 30.4,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 229.8
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs1_b.json": {
+   "side": "rs",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 144.2,
+   "files_per_s": 2.011,
+   "ocr_s": 147.8,
+   "captions_s": 30.9,
+   "idle_rss_mb": 15.3,
+   "peak_rss_mb": 1819.3,
+   "peak_private_mb": 1888.7,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1819.3
+   },
+   "jobs_s": {
+    "scan": 54.8,
+    "scan missing": 0.0,
+    "repair variants": 0.0,
+    "tags": 47.9,
+    "clip embeddings": 17.5,
+    "scan faces": 23.9,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 148.1
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs1_na.json": {
+   "side": "rs",
+   "workers": 1,
+   "no_arena": true,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 167.7,
+   "files_per_s": 1.729,
+   "ocr_s": 166.5,
+   "captions_s": 33.7,
+   "idle_rss_mb": 15.3,
+   "peak_rss_mb": 1322.7,
+   "peak_private_mb": 1273.9,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1322.7
+   },
+   "jobs_s": {
+    "scan": 53.2,
+    "scan missing": 0.0,
+    "repair variants": 0.0,
+    "tags": 63.7,
+    "clip embeddings": 24.8,
+    "scan faces": 26.3,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 166.3
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs1_smallest.json": {
+   "side": "rs",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "bin_smallest.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 189.4,
+   "files_per_s": 1.531,
+   "ocr_s": 199.1,
+   "captions_s": 31.2,
+   "idle_rss_mb": 13.4,
+   "peak_rss_mb": 1783.7,
+   "peak_private_mb": 1886.7,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1783.7
+   },
+   "jobs_s": {
+    "scan": 53.9,
+    "scan missing": 0.0,
+    "repair variants": 0.0,
+    "tags": 59.2,
+    "clip embeddings": 22.5,
+    "scan faces": 53.5,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 199.7
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs2.json": {
+   "side": "rs",
+   "workers": 2,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 188.5,
+   "files_per_s": 1.538,
+   "ocr_s": 202.9,
+   "captions_s": 39.4,
+   "idle_rss_mb": 15.4,
+   "peak_rss_mb": 1810.6,
+   "peak_private_mb": 1884.7,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1810.6
+   },
+   "jobs_s": {
+    "scan": 38.8,
+    "scan missing": 0.0,
+    "repair variants": 0.0,
+    "tags": 149.5,
+    "clip embeddings": 71.7,
+    "scan faces": 58.8,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 203.0
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "scan_rs4.json": {
+   "side": "rs",
+   "workers": 4,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 166.4,
+   "files_per_s": 1.743,
+   "ocr_s": 191.8,
+   "captions_s": 36.3,
+   "idle_rss_mb": 15.3,
+   "peak_rss_mb": 1870.3,
+   "peak_private_mb": 1881.0,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1870.3
+   },
+   "jobs_s": {
+    "scan": 24.8,
+    "scan missing": 0.1,
+    "repair variants": 0.0,
+    "tags": 141.2,
+    "clip embeddings": 68.6,
+    "scan faces": 56.9,
+    "cluster faces": 0.0,
+    "train faces": 0.0,
+    "ocr": 191.6
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "2026-09-30/scan_dj1.json": {
+   "side": "dj",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "django",
+   "photos": 290,
+   "scan_ml_stage_s": 290.0,
+   "files_per_s": 1.0,
+   "ocr_s": 185.3,
+   "captions_s": 34.9,
+   "idle_rss_mb": 1437.3,
+   "peak_rss_mb": 4284.2,
+   "peak_private_mb": 12442.5,
+   "peak_by_process_mb": {
+    "clip_embeddings": 792.1,
+    "exif": 134.4,
+    "face_recognition": 250.5,
+    "image_captioning": 837.7,
+    "image_similarity": 82.3,
+    "ocr": 800.4,
+    "qcluster": 836.3,
+    "tags": 269.1,
+    "thumbnail": 71.5,
+    "uvicorn": 209.9
+   },
+   "jobs_s": {
+    "1": 108.3,
+    "14": 1.1,
+    "16": 0.0,
+    "12": 171.8,
+    "6": 30.5,
+    "7": 45.7,
+    "8": 0.2,
+    "4": 0.3,
+    "18": 184.7
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 290,
+    "clip_embedded": 290,
+    "faces": 51,
+    "tagged": 290,
+    "captioned": 10,
+    "ocr_rows": 289,
+    "clustered_faces": 51
+   }
+  },
+  "2026-09-30/scan_rs1.json": {
+   "side": "rs",
+   "workers": 1,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 141.7,
+   "files_per_s": 2.047,
+   "ocr_s": 148.9,
+   "captions_s": 32.8,
+   "idle_rss_mb": 15.2,
+   "peak_rss_mb": 1839.6,
+   "peak_private_mb": 1890.1,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1839.6
+   },
+   "jobs_s": {
+    "1": 53.1,
+    "14": 0.0,
+    "16": 0.0,
+    "12": 44.6,
+    "6": 19.5,
+    "7": 24.9,
+    "8": 0.0,
+    "4": 0.0,
+    "18": 148.7
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 10,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "2026-09-30/scan_rs2.json": {
+   "side": "rs",
+   "workers": 2,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 141.4,
+   "files_per_s": 2.051,
+   "ocr_s": 161.5,
+   "captions_s": null,
+   "idle_rss_mb": 15.2,
+   "peak_rss_mb": 1857.5,
+   "peak_private_mb": 1923.7,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1857.5
+   },
+   "jobs_s": {
+    "1": 27.2,
+    "14": 0.0,
+    "16": 0.0,
+    "12": 114.4,
+    "6": 59.1,
+    "7": 40.9,
+    "8": 0.0,
+    "4": 0.0,
+    "18": 161.2
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 0,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  },
+  "2026-09-30/scan_rs4.json": {
+   "side": "rs",
+   "workers": 4,
+   "no_arena": false,
+   "bin": "asis.exe",
+   "photos": 290,
+   "scan_ml_stage_s": 142.7,
+   "files_per_s": 2.032,
+   "ocr_s": 159.5,
+   "captions_s": null,
+   "idle_rss_mb": 15.4,
+   "peak_rss_mb": 1957.6,
+   "peak_private_mb": 1977.3,
+   "peak_by_process_mb": {
+    "librephotos-rs": 1957.6
+   },
+   "jobs_s": {
+    "1": 18.8,
+    "14": 0.0,
+    "16": 0.0,
+    "12": 124.5,
+    "6": 57.6,
+    "7": 52.6,
+    "8": 0.0,
+    "4": 0.0,
+    "18": 160.0
+   },
+   "counts": {
+    "photos": 290,
+    "with_thumbnail": 289,
+    "clip_embedded": 289,
+    "faces": 51,
+    "tagged": 289,
+    "captioned": 0,
+    "ocr_rows": 288,
+    "clustered_faces": 51
+   }
+  }
+ },
+ "quick_smallest_vs_asis_rps": {
+  "date_page_1": {
+   "asis": [
+    1479.8,
+    1631.0
+   ],
+   "smallest": [
+    1485.5,
+    1695.0
+   ]
+  },
+  "photo_detail": {
+   "asis": [
+    3025.8,
+    2967.5
+   ],
+   "smallest": [
+    2202.8,
+    2597.5
+   ]
+  },
+  "sitesettings": {
+   "asis": [
+    4655.5,
+    4655.8
+   ],
+   "smallest": [
+    5720.8,
+    6697.0
+   ]
+  }
+ },
+ "medians": {
+  "rust_c1_scan_ml_s": 144.2,
+  "django_c1_scan_ml_s": 290.0,
+  "rust_c1_files_per_s": 2.01,
+  "django_c1_files_per_s": 1.0,
+  "rust_c1_ocr_s": 148.9,
+  "django_c1_ocr_s": 173.3
+ }
+}
