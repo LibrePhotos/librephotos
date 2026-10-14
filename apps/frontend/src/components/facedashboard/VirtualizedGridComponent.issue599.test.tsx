@@ -26,7 +26,10 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({ data: [] }),
   useRenamePersonAlbumMutation: () => noopMutation,
 }));
-vi.mock("../../api_client/faces/hooks", () => ({ useSetFacesPersonLabelMutation: () => noopMutation }));
+vi.mock("../../api_client/faces/hooks", () => ({
+  useSetFacesPersonLabelMutation: () => noopMutation,
+  useRestoreFacesMutation: () => noopMutation,
+}));
 // jsdom lays nothing out: hand the grid a size, and leave the scrubber's measuring out
 vi.mock("../virtual/AutoSizer", () => ({
   AutoSizer: ({ children }: { children: (size: { width: number; height: number }) => ReactNode }) =>
@@ -62,7 +65,13 @@ const LIST = [
 ];
 const ROWS: GridRows = calculateFaceGridCells(LIST, 4, new Set()).cellContents;
 
-const actions: FaceActionHandlers = { confirm: () => {}, rejectMatch: () => {}, labelAs: () => {}, remove: () => {} };
+const actions: FaceActionHandlers = {
+  confirm: () => {},
+  rejectMatch: () => {},
+  labelAs: () => {},
+  remove: () => {},
+  restore: () => {},
+};
 
 let root: Root;
 let container: HTMLDivElement;

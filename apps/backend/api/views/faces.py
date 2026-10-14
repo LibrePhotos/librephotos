@@ -30,8 +30,11 @@ from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.labels import (
+    RelabelResult,
     recreate_search_captions,
     relabel_faces,
+    restore_faces,
+    restore_labels,
     write_face_tags_of,
 )
 from api.faces.photo_faces import (
@@ -41,7 +44,7 @@ from api.faces.photo_faces import (
 )
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
-from api.models import Face, LongRunningJob, Photo
+from api.models import Face, LongRunningJob, Photo, User
 from api.models.person import Person, get_or_create_person
 from api.models.thumbnail import Thumbnail
 from api.runtime.features import feature_enabled
@@ -56,6 +59,8 @@ from api.serializers.face import (
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
     PersonFaceListSerializer,
+    RestoreFaceLabelsRequest,
+    RestoreFacesResponse,
     SetFacePersonLabelRequest,
     SetFacePersonLabelResponse,
 )
@@ -143,8 +148,11 @@ class FaceListView(ListViewSet):
         personid: int | None = params["person"] or None
         analysis_method: str | None = params["analysis_method"]
         min_confidence = params["min_confidence"]
+        # The Deleted tab lists each person's deleted faces (#127), whatever
+        # was suggested for them.
+        deleted: bool = params["deleted"]
 
-        if not params["inferred"] and personid:
+        if deleted or (not params["inferred"] and personid):
             analysis_method = None
         if analysis_method == "classification":
             conditional_filter = Q(person=None)
@@ -178,7 +186,7 @@ class FaceListView(ListViewSet):
             order_by = ["photo__exif_timestamp", *order_by]
         return (
             Face.objects.owned_by(self.request.user)
-            .filter(Q(deleted=False), conditional_filter)
+            .filter(Q(deleted=deleted), conditional_filter)
             .annotate(analysis_method=Value(analysis_method, output_field=CharField()))
             .prefetch_related("photo")
             .order_by(*order_by)
@@ -200,69 +208,15 @@ class FaceIncompleteListViewSet(ListViewSet):
             return Person.objects.none()
         user = request_user(self.request)
         params = parse_query(self.request, FaceIncompleteListQuery)
-        inferred = params["inferred"]
-        analysis_method = params["analysis_method"]
-        min_confidence = params["min_confidence"]
 
         queryset = Person.objects.owned_by(user)
-        # Every count below is scoped to the requester's own photos, because
-        # FaceListView scopes its rows the same way (`photo__owner`). Without
-        # it, a person shared with another user is counted across both
-        # libraries while the list returns only this user's faces, so the
-        # dashboard grid draws slots that can never be filled and the last page
-        # 404s with "Invalid page" (#2031). `cluster_owner` scopes the person,
-        # not its faces, so it does not cover this.
-        if inferred:
-            if analysis_method == "classification":
-                conditional_count = Count(
-                    Case(
-                        When(
-                            Q(classification_faces__deleted=False)
-                            & Q(classification_faces__person=None)
-                            & Q(
-                                classification_faces__classification_probability__gte=min_confidence
-                            )
-                            & Face.objects.owner_q(
-                                user, through="classification_faces__"
-                            ),
-                            then=1,
-                        ),
-                        output_field=IntegerField(),
-                    )
-                )
-            if analysis_method == "clustering":
-                conditional_count = Count(
-                    Case(
-                        When(
-                            Q(cluster_faces__deleted=False)
-                            & Q(cluster_faces__person=None)
-                            & Q(cluster_faces__cluster_probability__gte=min_confidence)
-                            & Face.objects.owner_q(user, through="cluster_faces__"),
-                            then=1,
-                        ),
-                        output_field=IntegerField(),
-                    )
-                )
-        else:
+        if not params["inferred"] and not params["deleted"]:
             queryset = queryset.filter(kind=Person.KIND_USER)
-            conditional_count = Count(
-                Case(
-                    When(
-                        Q(faces__deleted=False)
-                        & Face.objects.owner_q(user, through="faces__"),
-                        then=1,
-                    ),
-                    output_field=IntegerField(),
-                )
-            )
-
-        queryset = (
-            queryset.annotate(viewable_face_count=conditional_count)
+        return (
+            queryset.annotate(viewable_face_count=_viewable_face_count(user, params))
             .filter(viewable_face_count__gt=0)
             .order_by("name")
         )
-
-        return queryset
 
     @extend_schema(parameters=[FaceIncompleteListQuery])
     def list(self, *args: Any, **kwargs: Any) -> Response:
@@ -273,37 +227,9 @@ class FaceIncompleteListViewSet(ListViewSet):
         serializer = self.get_serializer(queryset, many=True)
         real_persons = serializer.data
 
-        min_confidence = params["min_confidence"]
-
-        if params["inferred"]:
-            if params["analysis_method"] == "classification":
-                unknown_faces_count = (
-                    Face.objects.owned_by(user)
-                    .filter(
-                        Q(deleted=False)
-                        & Q(person=None)
-                        & Q(classification_probability__lte=min_confidence),
-                    )
-                    .count()
-                )
-            else:
-                unknown_faces_count = (
-                    Face.objects.owned_by(user)
-                    .filter(
-                        (
-                            Q(cluster_person=None)
-                            | Q(cluster_probability__lte=min_confidence)
-                        )
-                        & Q(deleted=False)
-                        & Q(person=None),
-                    )
-                    .count()
-                )
-        else:
-            unknown_faces_count = (
-                Face.objects.owned_by(user).filter(person=None, deleted=False).count()
-            )
-
+        unknown_faces_count = (
+            Face.objects.owned_by(user).filter(_unknown_faces_filter(params)).count()
+        )
         if unknown_faces_count > 0:
             unknown_person = {
                 "id": 0,
@@ -314,6 +240,61 @@ class FaceIncompleteListViewSet(ListViewSet):
             real_persons.append(unknown_person)
 
         return Response(real_persons, status=status.HTTP_200_OK)
+
+
+def _viewable_face_count(user: User, params: dict[str, Any]) -> Count:
+    """Per person, the faces the dashboard's tab lists for them.
+
+    Every count is scoped to the requester's own photos, because FaceListView
+    scopes its rows the same way (`photo__owner`). Without it, a person shared
+    with another user is counted across both libraries while the list returns
+    only this user's faces, so the dashboard grid draws slots that can never
+    be filled and the last page 404s with "Invalid page" (#2031).
+    `cluster_owner` scopes the person, not its faces, so it does not cover this.
+    """
+    min_confidence = params["min_confidence"]
+    if params["deleted"]:
+        # Deleted faces keep their person (#127), suggested or not.
+        condition = Q(faces__deleted=True) & Face.objects.owner_q(
+            user, through="faces__"
+        )
+    elif not params["inferred"]:
+        condition = Q(faces__deleted=False) & Face.objects.owner_q(
+            user, through="faces__"
+        )
+    elif params["analysis_method"] == "classification":
+        condition = (
+            Q(classification_faces__deleted=False)
+            & Q(classification_faces__person=None)
+            & Q(classification_faces__classification_probability__gte=min_confidence)
+            & Face.objects.owner_q(user, through="classification_faces__")
+        )
+    else:
+        condition = (
+            Q(cluster_faces__deleted=False)
+            & Q(cluster_faces__person=None)
+            & Q(cluster_faces__cluster_probability__gte=min_confidence)
+            & Face.objects.owner_q(user, through="cluster_faces__")
+        )
+    return Count(Case(When(condition, then=1), output_field=IntegerField()))
+
+
+def _unknown_faces_filter(params: dict[str, Any]) -> Q:
+    """The faces of "Unknown - Other" on the dashboard's tab."""
+    min_confidence = params["min_confidence"]
+    if params["deleted"]:
+        return Q(person=None, deleted=True)
+    if not params["inferred"]:
+        return Q(person=None, deleted=False)
+    if params["analysis_method"] == "classification":
+        return Q(
+            deleted=False,
+            person=None,
+            classification_probability__lte=min_confidence,
+        )
+    return (Q(cluster_person=None) | Q(cluster_probability__lte=min_confidence)) & Q(
+        deleted=False, person=None
+    )
 
 
 class SetFacePersonLabel(APIView):
@@ -380,6 +361,8 @@ class SetFacePersonLabel(APIView):
                 # The labels are saved; their face tags did not reach these
                 # files (#2294).
                 "write_error": result.write_error,
+                # What an undo sends back to /api/restore-face-labels/ (#127).
+                "previous": result.previous,
             }
         )
 
@@ -640,3 +623,44 @@ class DeleteFaces(APIView):
                 "deleted_ids": list(faces),
             }
         )
+
+
+def _restored(result: RelabelResult) -> Response:
+    return Response(
+        {
+            "restored_ids": [face.pk for face in result.faces],
+            "write_error": result.write_error,
+        }
+    )
+
+
+class RestoreFaces(APIView):
+    """Bring deleted faces back to the person each one had (#127).
+
+    The Deleted tab's Restore and the Undo of a delete. Only the requester's
+    own deleted faces are touched; any other id is skipped.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=FaceIdsRequest, responses=RestoreFacesResponse)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        data = parse_body(request, FaceIdsRequest)
+        return _restored(restore_faces(user, data["face_ids"]))
+
+
+class RestoreFaceLabels(APIView):
+    """Undo a labelling: the faces get back the people in its ``previous`` (#127).
+
+    Only the requester's own faces and people are used: a person id that is
+    not theirs is restored as no one.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=RestoreFaceLabelsRequest, responses=RestoreFacesResponse)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        data = parse_body(request, RestoreFaceLabelsRequest)
+        return _restored(restore_labels(user, data["faces"]))

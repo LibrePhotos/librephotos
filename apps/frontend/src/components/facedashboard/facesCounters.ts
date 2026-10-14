@@ -14,6 +14,8 @@ export type FacesCounters = {
   /** Every group of the inferred request: the assumed people plus the unknown group. */
   clusters: GroupCount;
   unknown: GroupCount;
+  /** The deleted faces, by the person each one had (#127). */
+  deleted: GroupCount;
 };
 
 const count = (list: CompletePersonFaceList): GroupCount => ({
@@ -27,5 +29,6 @@ export function countFaces(lists: FacesTabLists): FacesCounters {
     inferred: count(lists.inferred),
     clusters: count([...lists.inferred, ...lists.unknown]),
     unknown: count(lists.unknown),
+    deleted: count(lists.deleted),
   };
 }

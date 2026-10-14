@@ -31,7 +31,10 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({ data: [] }),
   useRenamePersonAlbumMutation: () => noopMutation,
 }));
-vi.mock("../../api_client/faces/hooks", () => ({ useSetFacesPersonLabelMutation: () => noopMutation }));
+vi.mock("../../api_client/faces/hooks", () => ({
+  useSetFacesPersonLabelMutation: () => noopMutation,
+  useRestoreFacesMutation: () => noopMutation,
+}));
 vi.mock("../virtual/AutoSizer", () => ({
   AutoSizer: ({ children }: { children: (size: { width: number; height: number }) => ReactNode }) =>
     children({ width: 800, height: 2000 }),
@@ -65,6 +68,7 @@ const actions: FaceActionHandlers = {
   rejectMatch: () => {},
   labelAs: () => {},
   remove: face => stubs.remove(face),
+  restore: () => {},
 };
 
 let selection: FaceSelection[] = [];

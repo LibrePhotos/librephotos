@@ -251,6 +251,9 @@ class CrossTenantWriteTest(TestCase):
         )
         self.v_face = create_test_face(photo=self.v_pub, person=self.v_person)
         self.v_face2 = create_test_face(photo=self.v_priv, person=self.v_person)
+        self.v_face_deleted = create_test_face(
+            photo=self.v_priv, person=self.v_person, deleted=True
+        )
 
         self.v_tag = create_test_tag(name="victim-tag", owner=self.victim)
         self.v_tag.photos.add(self.v_pub, self.v_priv)
@@ -290,7 +293,7 @@ class CrossTenantWriteTest(TestCase):
         )
         self.a_stack.photos.add(self.a_photo, self.a_photo2)
         self.a_person = create_test_person(name="Mallory", cluster_owner=self.attacker)
-        create_test_face(photo=self.a_photo, person=self.a_person)
+        self.a_face = create_test_face(photo=self.a_photo, person=self.a_person)
 
         self.client = APIClient()
         self.client.raise_request_exception = False
@@ -310,6 +313,14 @@ class CrossTenantWriteTest(TestCase):
     # ------------------------------------------------------------ cases
     def _hashes(self):
         return [self.v_pub.image_hash, self.v_priv.image_hash]
+
+    def _face_labels(self, face, person):
+        return {
+            "id": face.pk,
+            "person": person.pk,
+            "cluster_person": person.pk,
+            "classification_person": person.pk,
+        }
 
     def _ids(self):
         return [str(self.v_pub.pk), str(self.v_priv.pk)]
@@ -560,6 +571,20 @@ class CrossTenantWriteTest(TestCase):
                 "post",
                 "/api/deletefaces",
                 {"face_ids": [self.v_face.pk, self.v_face2.pk]},
+            ),
+            ("post", "/api/restore-faces/", {"face_ids": [self.v_face_deleted.pk]}),
+            # Relabelling the victim's faces, and putting the attacker's face
+            # on the victim's person (which would change its count and cover).
+            (
+                "post",
+                "/api/restore-face-labels/",
+                {
+                    "faces": [
+                        self._face_labels(self.v_face, self.a_person),
+                        self._face_labels(self.v_face_deleted, self.a_person),
+                        self._face_labels(self.a_face, self.v_person),
+                    ]
+                },
             ),
             (
                 "post",

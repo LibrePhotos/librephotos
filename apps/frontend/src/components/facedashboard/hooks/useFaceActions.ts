@@ -1,7 +1,11 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { useDisclosure } from "@mantine/hooks";
 import { useCallback, useMemo, useState } from "react";
-import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../../api_client/faces";
+import {
+  useDeleteFacesMutation,
+  useRestoreFacesMutation,
+  useSetFacesPersonLabelMutation,
+} from "../../../api_client/faces";
 import type { FaceActionHandlers } from "../faceActionRules";
 import type { FaceCell } from "./useVirtualizedGrid";
 
@@ -13,8 +17,8 @@ function toggled(ids: ReadonlySet<number>, faceIds: readonly number[], pending: 
 }
 
 /**
- * The per-face actions of the faces dashboard (#599) and the state of the two dialogs they open:
- * Label faces for one face, and the delete confirmation.
+ * The per-face actions of the faces dashboard (#599), Restore on the Deleted tab (#127), and the
+ * state of the two dialogs they open: Label faces for one face, and the delete confirmation.
  *
  * A face an action was sent for is "pending": dimmed and without buttons until the refreshed list
  * drops it, so a quick second click cannot hit it again and the review loop gets instant feedback.
@@ -22,6 +26,7 @@ function toggled(ids: ReadonlySet<number>, faceIds: readonly number[], pending: 
 export function useFaceActions() {
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const { mutate: deleteFaces } = useDeleteFacesMutation();
+  const { mutate: restoreFaces } = useRestoreFacesMutation();
   const [pendingFaceIds, setPendingFaceIds] = useState<ReadonlySet<number>>(() => new Set());
   // The face a dialog is about stays set while the dialog animates closed
   const [targetFace, setTargetFace] = useState<FaceCell | null>(null);
@@ -53,8 +58,12 @@ export function useFaceActions() {
         setTargetFace(face);
         openDeleteDialog();
       },
+      restore: face => {
+        markPending([face.id], true);
+        restoreFaces({ faceIds: [face.id] }, { onError: () => markPending([face.id], false) });
+      },
     }),
-    [labelFace, openLabelDialog, openDeleteDialog]
+    [labelFace, markPending, restoreFaces, openLabelDialog, openDeleteDialog]
   );
 
   const labelTargetAs = (personName: string) => {

@@ -51,7 +51,7 @@ describe("useTabScrollPositions", () => {
   it("starts every tab at the top when nothing is stored", async () => {
     const view = await renderHook(useTabScrollPositions);
 
-    expect(view.current.tabPositions).toEqual({ labeled: 0, inferred: 0, unknown: 0 });
+    expect(view.current.tabPositions).toEqual({ labeled: 0, inferred: 0, unknown: 0, deleted: 0 });
 
     await view.cleanup();
   });
@@ -85,7 +85,7 @@ describe("useTabScrollPositions", () => {
     localStorage.setItem(STORAGE_KEYS.facesTabScrollPositions, "{not json");
     const view = await renderHook(useTabScrollPositions);
 
-    expect(view.current.tabPositions).toEqual({ labeled: 0, inferred: 0, unknown: 0 });
+    expect(view.current.tabPositions).toEqual({ labeled: 0, inferred: 0, unknown: 0, deleted: 0 });
     expect(consoleError).toHaveBeenCalled();
 
     await view.cleanup();
@@ -121,6 +121,7 @@ describe("useCollapsedPersons", () => {
       labeled: new Set([1, 3]),
       inferred: new Set(),
       unknown: new Set(),
+      deleted: new Set(),
     });
 
     await view.cleanup();
@@ -130,7 +131,12 @@ describe("useCollapsedPersons", () => {
     localStorage.setItem(STORAGE_KEYS.facesCollapsedPersons, stored);
     const view = await renderHook(useCollapsedPersons);
 
-    expect(view.current.collapsedPersons).toEqual({ labeled: new Set(), inferred: new Set(), unknown: new Set() });
+    expect(view.current.collapsedPersons).toEqual({
+      labeled: new Set(),
+      inferred: new Set(),
+      unknown: new Set(),
+      deleted: new Set(),
+    });
 
     await view.cleanup();
   });
@@ -140,8 +146,36 @@ describe("useCollapsedPersons", () => {
     localStorage.setItem(STORAGE_KEYS.facesCollapsedPersons, "{not json");
     const view = await renderHook(useCollapsedPersons);
 
-    expect(view.current.collapsedPersons).toEqual({ labeled: new Set(), inferred: new Set(), unknown: new Set() });
+    expect(view.current.collapsedPersons).toEqual({
+      labeled: new Set(),
+      inferred: new Set(),
+      unknown: new Set(),
+      deleted: new Set(),
+    });
     expect(consoleError).toHaveBeenCalled();
+
+    await view.cleanup();
+  });
+
+  it("keeps the folds stored before the Deleted tab, which starts with nothing folded (#127)", async () => {
+    localStorage.setItem(
+      STORAGE_KEYS.facesCollapsedPersons,
+      JSON.stringify({ labeled: [4], inferred: [], unknown: [] })
+    );
+    const view = await renderHook(useCollapsedPersons);
+
+    expect(view.current.collapsedPersons.labeled).toEqual(new Set([4]));
+    expect(view.current.collapsedPersons.deleted).toEqual(new Set());
+
+    await act(async () => {
+      view.current.toggleCollapsed(FacesTab.enum.deleted, 9);
+    });
+
+    expect(view.current.collapsedPersons.deleted).toEqual(new Set([9]));
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.facesCollapsedPersons) ?? "{}")).toMatchObject({
+      labeled: [4],
+      deleted: [9],
+    });
 
     await view.cleanup();
   });

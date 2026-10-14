@@ -6,3 +6,4 @@ export * from "./useFetchIncompleteFacesQuery";
 export * from "./useFetchFacesQuery";
 export * from "./useClusterFacesQuery";
 export * from "./useRescanFacesMutation";
+export * from "./useRestoreFacesMutation";

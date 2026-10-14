@@ -48,6 +48,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
 }));
 vi.mock("../../api_client/faces/hooks", () => ({
   useSetFacesPersonLabelMutation: () => stubs.noopMutation,
+  useRestoreFacesMutation: () => stubs.noopMutation,
 }));
 
 beforeAll(async () => {
@@ -90,11 +91,12 @@ const ITEMS_PER_ROW = 4;
 const GRID_WIDTH = 700;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
 const ALICE = defined(PEOPLE[0], "Alice");
-const LISTS = { labeled: PEOPLE, inferred: [], unknown: [] };
+const LISTS = { labeled: PEOPLE, inferred: [], unknown: [], deleted: [] };
 const NOTHING_COLLAPSED: Record<FacesTab, ReadonlySet<number>> = {
   labeled: new Set<number>(),
   inferred: new Set<number>(),
   unknown: new Set<number>(),
+  deleted: new Set<number>(),
 };
 
 type HeaderProps = React.ComponentProps<typeof HeaderComponent>;
@@ -386,6 +388,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
       labeled: [7, 9],
       inferred: [],
       unknown: [],
+      deleted: [],
     });
 
     await view.cleanup();

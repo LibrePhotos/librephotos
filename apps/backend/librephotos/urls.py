@@ -341,6 +341,8 @@ urlpatterns = [
     re_path(r"^api/labelfaces/?$", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/addface/?$", faces.AddFaceView.as_view()),
     re_path(r"^api/deletefaces/?$", faces.DeleteFaces.as_view()),
+    path("api/restore-faces/", faces.RestoreFaces.as_view()),
+    path("api/restore-face-labels/", faces.RestoreFaceLabels.as_view()),
     re_path(r"^api/savemetadata/?$", photos.SaveMetadataView.as_view()),
     re_path(r"^api/photosedit/delete/?$", photos.DeletePhotos.as_view()),
     path("api/photosedit/empty-trash/", scan_triggers.EmptyTrashView.as_view()),

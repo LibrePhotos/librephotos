@@ -70,7 +70,8 @@ export function FaceComponent({
             color={labelProbabilityColor}
             onMouseEnter={() => openTooltip()}
             onMouseLeave={() => closeTooltip()}
-            disabled={tab === "labeled"}
+            // A confidence only means something for a suggestion
+            disabled={tab === "labeled" || tab === "deleted"}
             size={15}
           >
             {/* A button, so a keyboard reaches and selects every face, not only its photo (#2228) */}

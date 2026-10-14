@@ -1,23 +1,34 @@
-import type { FaceAnalysisMethod } from "@librephotos/api-client";
+import type { FaceAnalysisMethod, IncompletePersonFaceListRequest } from "@librephotos/api-client";
 import { faceKeys } from "@librephotos/api-client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { queryClient } from "../../../api_client/api";
 import type { CompletePersonFaceList } from "../../../api_client/faces";
 import { fetchFaces, useFetchIncompleteFacesQuery } from "../../../api_client/faces";
-import { FacesTab, isUnknownGroup, type FacesPersonOrder, type FacesRouteOrder } from "../facesTab";
+import { isUnknownGroup, type FacesPersonOrder, type FacesRouteOrder, type FacesTab } from "../facesTab";
 import { orderPeople } from "../personOrder";
 
 /** Page size of the backend's face list endpoint (RegularResultsSetPagination). */
 export const PAGE_SIZE = 100;
 
+/** A page of a person's faces the grid shows: of the suggested, the labelled or the deleted faces. */
+export type FaceGroupPage = {
+  page: number;
+  person: number;
+  inferred: boolean;
+  method: FaceAnalysisMethod;
+  /** The Deleted tab's page (#127). */
+  deleted: boolean;
+};
+
+/** The people list behind each kind of tab: labelled, suggested and deleted faces. */
+type FacesListRequests = Readonly<Record<"labeled" | "inferred" | "deleted", IncompletePersonFaceListRequest>>;
+
+/** The order the backend sorts by: the dashboard's older "person" order sorts by date. */
+const serverOrder = (orderBy: FacesRouteOrder) => (orderBy === "person" ? "date" : orderBy);
+
 // Custom hook to manage face data fetching
 export function useFaceDataFetching(
-  groups: Array<{
-    page: number;
-    person: number;
-    inferred: boolean;
-    method: FaceAnalysisMethod;
-  }>,
+  groups: FaceGroupPage[],
   activeTab: FacesTab,
   analysisMethod: FaceAnalysisMethod,
   orderBy: FacesRouteOrder,
@@ -28,14 +39,16 @@ export function useFaceDataFetching(
   // page loader below reads and writes, and a fresh object on every render would
   // restart that loader on every render.
   const params = useMemo(
-    () => ({
-      labeled: { inferred: false, orderBy: orderBy === "person" ? "date" : orderBy },
+    (): FacesListRequests => ({
+      labeled: { inferred: false, orderBy: serverOrder(orderBy) },
       inferred: {
         inferred: true,
         method: analysisMethod,
-        orderBy: orderBy === "person" ? "date" : orderBy,
+        orderBy: serverOrder(orderBy),
         minConfidence,
       },
+      // Every deleted face, by the person it had (#127)
+      deleted: { inferred: false, orderBy: serverOrder(orderBy), deleted: true },
     }),
     [orderBy, analysisMethod, minConfidence]
   );
@@ -48,13 +61,17 @@ export function useFaceDataFetching(
   const { data: inferredFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } =
     useFetchIncompleteFacesQuery(params.inferred);
 
+  const { data: deletedFacesListUnfiltered = [], isFetching: fetchingDeletedFacesList } = useFetchIncompleteFacesQuery(
+    params.deleted
+  );
+
   // A tagging mutation invalidates the incomplete lists, and the refetch replaces
   // every face with a placeholder again. Nothing else tells the grid to reload the
   // pages it is showing, so the cells it already asked for would stay blank until
   // the user scrolls. Count the refetches and reload the visible pages on each one.
   const [listRefreshCount, setListRefreshCount] = useState(0);
   const wasFetchingLists = useRef(false);
-  const isFetchingLists = fetchingLabeledFacesList || fetchingInferredFacesList;
+  const isFetchingLists = fetchingLabeledFacesList || fetchingInferredFacesList || fetchingDeletedFacesList;
   useEffect(() => {
     if (wasFetchingLists.current && !isFetchingLists) {
       setListRefreshCount(count => count + 1);
@@ -75,18 +92,24 @@ export function useFaceDataFetching(
         labeledFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
         personOrder
       ),
+      // The deleted faces of no one stay last, as the server sends them
+      deleted: [
+        ...orderPeople(
+          deletedFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
+          personOrder
+        ),
+        ...deletedFacesListUnfiltered.filter(isUnknownGroup),
+      ],
     }),
-    [inferredFacesListUnfiltered, labeledFacesListUnfiltered, personOrder]
+    [inferredFacesListUnfiltered, labeledFacesListUnfiltered, deletedFacesListUnfiltered, personOrder]
   );
 
   // Create hash mapping based on active tab - MEMOIZED
   const idx2hash = useMemo(() => {
-    const tabName =
-      activeTab === FacesTab.enum.labeled ? "labeled" : activeTab === FacesTab.enum.inferred ? "inferred" : "unknown";
     // face.photo is the UUID (Photo's primary key after migration 0099)
     // face.photo_image_hash is the actual image hash needed for media URLs
     return (
-      lists[tabName]
+      lists[activeTab]
         .flatMap(person => person.faces)
         // Placeholders keep their place with "" (the server never sends a face without its photo).
         .map(face => ({ id: face.photo ?? "", image_hash: face.photo_image_hash || (face.photo ?? "") }))
@@ -104,7 +127,7 @@ export function useFaceDataFetching(
       for (const element of groups) {
         if (cancelled) return;
 
-        const incompleteParams = element.inferred ? params.inferred : params.labeled;
+        const incompleteParams = incompleteParamsOf(element, params);
         const incompleteKey = faceKeys.incompleteList(incompleteParams);
         const person = queryClient
           .getQueryData<CompletePersonFaceList>(incompleteKey)
@@ -124,9 +147,10 @@ export function useFaceDataFetching(
             person: element.person || 0,
             page: element.page,
             inferred: element.inferred,
-            orderBy: orderBy === "person" ? "date" : orderBy,
+            orderBy: serverOrder(orderBy),
             minConfidence: element.inferred ? minConfidence : undefined,
             method: element.inferred ? element.method : undefined,
+            deleted: element.deleted || undefined,
           };
 
           // Fetch face data
@@ -174,7 +198,14 @@ export function useFaceDataFetching(
     lists,
     fetchingLabeledFacesList,
     fetchingInferredFacesList,
+    fetchingDeletedFacesList,
     idx2hash,
     params,
   };
+}
+
+/** The people list a page belongs to: the deleted, the suggested or the labelled faces. */
+function incompleteParamsOf(page: FaceGroupPage, params: FacesListRequests): IncompletePersonFaceListRequest {
+  if (page.deleted) return params.deleted;
+  return page.inferred ? params.inferred : params.labeled;
 }

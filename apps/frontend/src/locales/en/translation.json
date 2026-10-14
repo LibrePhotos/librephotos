@@ -1344,6 +1344,7 @@
   "confirmdialog": {
     "cannotbeundone": "This action cannot be undone.",
     "deleteface": {
+      "restorable": "You can restore it from the Deleted tab of the Faces page.",
       "title": "Delete this face?",
       "message": "The face of {{name}} disappears from this photo and its person, and face recognition no longer uses it. The photo itself stays in your library.",
       "messageunnamed": "This face disappears from this photo, and face recognition no longer uses it. The photo itself stays in your library.",
@@ -1355,7 +1356,9 @@
       "message_one": "The selected face disappears from its photo and person, and face recognition no longer uses it. The photo itself stays in your library.",
       "message_other": "The selected faces disappear from their photos and people, and face recognition no longer uses them. The photos themselves stay in your library.",
       "confirm_one": "Delete face",
-      "confirm_other": "Delete faces"
+      "confirm_other": "Delete faces",
+      "restorable_one": "You can restore it from the Deleted tab of the Faces page.",
+      "restorable_other": "You can restore them from the Deleted tab of the Faces page."
     },
     "unstack": {
       "title": "Unstack these photos?",
@@ -1724,7 +1727,16 @@
     "numberoffaces_one": "{{count}} Face",
     "numberoffaces_other": "{{count}} Faces",
     "selectfacesfirst": "Select at least one face first",
-    "nogroups": "There are no groups on this tab"
+    "nogroups": "There are no groups on this tab",
+    "deletedtab": "Deleted",
+    "deletedfacescounter_one": "{{count}} deleted face",
+    "deletedfacescounter_other": "{{count}} deleted faces",
+    "restore": "Restore",
+    "restoreselected_one": "Restore {{count}} face",
+    "restoreselected_other": "Restore {{count}} faces",
+    "restoreexplanation": "Give the selected faces back to the person each one had",
+    "restoreall": "Restore every face of {{name}}",
+    "restoreface": "Restore face"
   },
   "scan": "Scan",
   "socialgraph": "Social Graph",
@@ -1832,6 +1844,13 @@
     "addfacestopersontitle": "Add faces to person",
     "deletefaces": "{{numberOfFaces}} face(s) were deleted",
     "deletefacestitle": "Delete faces",
+    "undo": "Undo",
+    "restorefaces_one": "{{count}} face was restored",
+    "restorefaces_other": "{{count}} faces were restored",
+    "restorefacestitle": "Restore faces",
+    "restorefacelabels_one": "{{count}} face is back as it was",
+    "restorefacelabels_other": "{{count}} faces are back as they were",
+    "restorefacelabelstitle": "Undone",
     "trainingstarted": "Analysis started",
     "trainingstartedtitle": "Facial recognition",
     "trainingfailed": "Could not start the analysis. Face grouping may be turned off on this server.",
@@ -2215,10 +2234,15 @@
         "title": "No labeled faces yet",
         "description": "Label faces in the Inferred or Unknown tab to organize your photos by person."
       },
+      "deleted": {
+        "title": "No deleted faces",
+        "description": "Faces you delete show up here, so you can restore them."
+      },
       "show": {
         "labeled": "Show labeled faces",
         "inferred": "Show inferred faces",
-        "unknown": "Show unknown faces"
+        "unknown": "Show unknown faces",
+        "deleted": "Show deleted faces"
       }
     },
     "search": {

@@ -9,6 +9,7 @@ import {
   IconFilter as Filter,
   IconWand,
   IconPlus as Plus,
+  IconRestore as Restore,
   IconSortDescending as SortDescending,
   IconTrash as Trash,
   IconUserOff as UserOff,
@@ -30,6 +31,8 @@ type Props = Readonly<{
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
+  /** The Deleted tab's action on the selection (#127). */
+  restoreFaces: () => void;
   allCollapsed: boolean;
   toggleAllCollapsed: () => void;
   canCollapse: boolean;
@@ -44,6 +47,7 @@ export function HeaderButtons({
   addFaces,
   deleteFaces,
   notThisPerson,
+  restoreFaces,
   allCollapsed,
   toggleAllCollapsed,
   canCollapse,
@@ -153,36 +157,49 @@ export function HeaderButtons({
             </ActionIcon>
           </DisabledReason>
           <Divider orientation="vertical" />
-          <DisabledReason label={t("facesdashboard.explanationadding")} reason={noSelection}>
-            <ActionIcon
-              variant="light"
-              color="green"
-              aria-label={t("facesdashboard.explanationadding")}
-              onClick={addFaces}
-            >
-              <Plus />
-            </ActionIcon>
-          </DisabledReason>
-          <DisabledReason label={t("facesdashboard.notthisperson")} reason={noSelection}>
-            <ActionIcon
-              variant="light"
-              color="orange"
-              aria-label={t("facesdashboard.notthisperson")}
-              onClick={() => notThisPerson()}
-            >
-              <UserOff />
-            </ActionIcon>
-          </DisabledReason>
-          <DisabledReason label={t("facesdashboard.explanationdeleting")} reason={noSelection}>
-            <ActionIcon
-              variant="light"
-              color="red"
-              aria-label={t("facesdashboard.explanationdeleting")}
-              onClick={() => openDeleteDialog()}
-            >
-              <Trash />
-            </ActionIcon>
-          </DisabledReason>
+          {activeTab === "deleted" ? (
+            // Labelled, not an icon: the one thing to do with a deleted face is to bring it back
+            <DisabledReason label={t("facesdashboard.restoreexplanation")} reason={noSelection}>
+              <Button variant="light" color="green" leftSection={<Restore size={18} />} onClick={restoreFaces}>
+                {selectedFaces.length > 0
+                  ? t("facesdashboard.restoreselected", { count: selectedFaces.length })
+                  : t("facesdashboard.restore")}
+              </Button>
+            </DisabledReason>
+          ) : (
+            <>
+              <DisabledReason label={t("facesdashboard.explanationadding")} reason={noSelection}>
+                <ActionIcon
+                  variant="light"
+                  color="green"
+                  aria-label={t("facesdashboard.explanationadding")}
+                  onClick={addFaces}
+                >
+                  <Plus />
+                </ActionIcon>
+              </DisabledReason>
+              <DisabledReason label={t("facesdashboard.notthisperson")} reason={noSelection}>
+                <ActionIcon
+                  variant="light"
+                  color="orange"
+                  aria-label={t("facesdashboard.notthisperson")}
+                  onClick={() => notThisPerson()}
+                >
+                  <UserOff />
+                </ActionIcon>
+              </DisabledReason>
+              <DisabledReason label={t("facesdashboard.explanationdeleting")} reason={noSelection}>
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  aria-label={t("facesdashboard.explanationdeleting")}
+                  onClick={() => openDeleteDialog()}
+                >
+                  <Trash />
+                </ActionIcon>
+              </DisabledReason>
+            </>
+          )}
           <Tooltip label={t("facesdashboard.explanationtraining")}>
             <ActionIcon
               loading={trainFacesMutation.isPending}
@@ -203,9 +220,12 @@ export function HeaderButtons({
           deleteFaces();
           closeDeleteDialog();
         }}
-        irreversible
         title={t("confirmdialog.deletefaces.title", { count: selectedFaces.length })}
-        message={t("confirmdialog.deletefaces.message", { count: selectedFaces.length })}
+        // Deleted faces can be restored from the Deleted tab (#127)
+        message={`${t("confirmdialog.deletefaces.message", { count: selectedFaces.length })} ${t(
+          "confirmdialog.deletefaces.restorable",
+          { count: selectedFaces.length }
+        )}`}
         confirmLabel={t("confirmdialog.deletefaces.confirm", { count: selectedFaces.length })}
       />
     </>

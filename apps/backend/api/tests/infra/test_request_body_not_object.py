@@ -32,6 +32,8 @@ USER_ENDPOINTS = [
     # faces.py
     ("post", "/api/labelfaces"),
     ("post", "/api/deletefaces"),
+    ("post", "/api/restore-faces/"),
+    ("post", "/api/restore-face-labels/"),
     ("post", "/api/addface"),
     # scan_triggers.py
     ("post", "/api/generateocr"),

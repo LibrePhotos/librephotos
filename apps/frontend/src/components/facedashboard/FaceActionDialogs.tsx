@@ -19,6 +19,8 @@ export function FaceActionDialogs({ state }: Props) {
     face?.person && face.person_name
       ? t("confirmdialog.deleteface.message", { name: face.person_name })
       : t("confirmdialog.deleteface.messageunnamed");
+  // A deleted face can be restored from the Deleted tab (#127)
+  const restorable = t("confirmdialog.deleteface.restorable");
 
   return (
     <>
@@ -32,9 +34,8 @@ export function FaceActionDialogs({ state }: Props) {
         opened={state.deleteDialogOpened}
         onClose={state.closeDeleteDialog}
         onConfirm={state.deleteTarget}
-        irreversible
         title={t("confirmdialog.deleteface.title")}
-        message={deleteMessage}
+        message={`${deleteMessage} ${restorable}`}
         confirmLabel={t("confirmdialog.deleteface.confirm")}
       />
     </>

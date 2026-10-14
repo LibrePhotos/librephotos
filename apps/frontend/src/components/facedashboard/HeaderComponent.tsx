@@ -4,6 +4,7 @@ import {
   IconChevronDown as ChevronDown,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
+  IconRestore as Restore,
   IconTrash as Trash,
   IconUserCheck as UserCheck,
 } from "@tabler/icons-react";
@@ -16,10 +17,10 @@ import {
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/hooks";
-import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
+import { useRestoreFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { PersonRenameModal } from "../album/PersonRenameModal";
-import { canConfirmFace, isNamedPerson } from "./faceActionRules";
+import { canConfirmFace, canRestoreAll, hasPersonMenu } from "./faceActionRules";
 import classes from "./HeaderComponent.module.css";
 import { useFocusOnMount } from "./hooks/useFocusOnMount";
 import { isLoadedFace, selectionOf } from "./hooks/useVirtualizedGrid";
@@ -59,6 +60,7 @@ export function HeaderComponent({
   const { mutate: renamePerson } = useRenamePersonAlbumMutation();
   const { mutate: deletePerson } = useDeletePersonAlbumMutation();
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+  const { mutate: restoreFaces } = useRestoreFacesMutation();
   const { data: albums } = useFetchPeopleAlbumsQuery();
   const [personID, setPersonID] = useState("");
   const [personName, setPersonName] = useState("");
@@ -102,6 +104,13 @@ export function HeaderComponent({
       setSelectedFaces(remainingFaces);
     }
     setChecked(!checked);
+  };
+
+  // The Deleted tab (#127): the person's faces leave the tab, so they leave the selection too
+  const restoreAll = () => {
+    const faceIds = loadedFaces.map(face => face.id);
+    restoreFaces({ faceIds });
+    setSelectedFaces(selectedFaces.filter(selected => !faceIds.includes(selected.face_id)));
   };
 
   const confirmFacesAssociation = () => {
@@ -157,7 +166,19 @@ export function HeaderComponent({
             </ActionIcon>
           </Tooltip>
         )}
-        {isNamedPerson(cell) && (
+        {canRestoreAll(activeTab, cell) && (
+          <Tooltip label={t("facesdashboard.restoreall", { name: cell.name })}>
+            <ActionIcon
+              variant="light"
+              color="green"
+              aria-label={t("facesdashboard.restoreall", { name: cell.name })}
+              onClick={restoreAll}
+            >
+              <Restore />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {hasPersonMenu(activeTab, cell) && (
           // Its items open dialogs: handing focus back to the trigger took it from the dialog's input
           <Menu position="bottom-end" returnFocus={false}>
             <Menu.Target>

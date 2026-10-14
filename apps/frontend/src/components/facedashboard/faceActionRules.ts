@@ -13,6 +13,8 @@ export type FaceActionHandlers = Readonly<{
   labelAs: (face: FaceCell) => void;
   /** Asks, then deletes the face. */
   remove: (face: FaceCell) => void;
+  /** Brings a deleted face back to its person (the Deleted tab, #127). */
+  restore: (face: FaceCell) => void;
 }>;
 
 /**
@@ -37,6 +39,19 @@ export function isNamedPerson(group: CompletePersonFace): boolean {
  */
 export function canConfirmFace(tab: FacesTab, group: CompletePersonFace): boolean {
   return tab === "inferred" && isNamedPerson(group);
+}
+
+/**
+ * "Restore all" on a group of the Deleted tab (#127) gives a person their faces back. The deleted
+ * faces of no one have no person to go back to: they are restored one by one or selected.
+ */
+export function canRestoreAll(tab: FacesTab, group: CompletePersonFace): boolean {
+  return tab === "deleted" && isNamedPerson(group);
+}
+
+/** The group header's ⋮ menu (rename, delete the person) is for the people of the live tabs. */
+export function hasPersonMenu(tab: FacesTab, group: CompletePersonFace): boolean {
+  return tab !== "deleted" && isNamedPerson(group);
 }
 
 export function wrongMatchFor(group: CompletePersonFace): WrongMatch {

@@ -198,6 +198,8 @@ export type PersonFaceListRequest = {
   orderBy: FaceOrderBy;
   method?: FaceAnalysisMethod;
   minConfidence?: number;
+  /** The person's deleted faces (#127). */
+  deleted?: boolean;
 };
 
 /** The face dashboard's request for every person with their face count. */
@@ -206,6 +208,8 @@ export type IncompletePersonFaceListRequest = {
   method?: FaceAnalysisMethod;
   orderBy: FaceOrderBy;
   minConfidence?: number;
+  /** Count each person's deleted faces (#127). */
+  deleted?: boolean;
 };
 
 const faceRoot = ["faces"] as const;

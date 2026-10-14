@@ -8,6 +8,7 @@ import type { CompletePersonFaceList, PersonFaceList } from "../../../api_client
 import { defined } from "../../../util/defined.test-utils";
 import { FacesTab, type FacesPersonOrder } from "../facesTab";
 import { useFaceDataFetching } from "./useFaceDataFetching";
+import type { FaceGroupPage } from "./useFaceDataFetching";
 
 // The part of useFetchIncompleteFacesQuery's result the hook reads
 type IncompleteFacesResult = { data: CompletePersonFaceList | undefined; isFetching: boolean };
@@ -35,9 +36,15 @@ const INFERRED_PARAMS: IncompletePersonFaceListRequest = {
 };
 const INFERRED_KEY = faceKeys.incompleteList(INFERRED_PARAMS);
 
-type Group = { page: number; person: number; inferred: boolean; method: "clustering" };
+type Group = FaceGroupPage;
 
-const page = (n: number): Group => ({ page: n, person: PERSON_ID, inferred: true, method: "clustering" });
+const page = (n: number): Group => ({
+  page: n,
+  person: PERSON_ID,
+  inferred: true,
+  method: "clustering",
+  deleted: false,
+});
 
 const placeholders = (count: number): PersonFaceList =>
   Array.from({ length: count }, (_, id) => ({

@@ -1,5 +1,7 @@
 import { hideNotification, showNotification, updateNotification } from "@mantine/notifications";
+import { createElement } from "react";
 import type { ReactNode } from "react";
+import { ToastWithUndo } from "./ToastWithUndo";
 
 /** The optional parts of a toast. A second toast with the same `id` is ignored while the first one is up. */
 export type ToastOptions = {
@@ -18,8 +20,23 @@ function show(color: string, message: ReactNode, { title, id, autoClose }: Toast
   showNotification({ message, color, title, id, autoClose });
 }
 
-/** The counted toasts on screen, by id, with the total each one shows. */
-const countedToasts = new Map<string, number>();
+/** What a counted toast on screen shows, by id: the total, and how to undo what it reports. */
+type CountedToast = { total: number; undos: ReadonlyArray<() => Promise<unknown>> };
+
+/** The counted toasts on screen, by id. */
+const countedToasts = new Map<string, CountedToast>();
+
+/** How long a toast with an Undo button stays: long enough to notice the slip and reach it. */
+const UNDO_TOAST_MS = 8000;
+
+/** The options of a counted toast. */
+type CountedToastOptions = Omit<ToastOptions, "id"> & {
+  /**
+   * Puts back what this toast reports (#127). With one, the toast gets an Undo button and stays
+   * 8 s. A repeat adds its own undo, and Undo runs them all, the latest first.
+   */
+  undo?: () => Promise<unknown>;
+};
 
 /**
  * A success toast that adds up: while one with this id is on screen, a repeat raises the number it
@@ -29,16 +46,39 @@ function successCounted(
   id: string,
   count: number,
   message: (total: number) => ReactNode,
-  { title, autoClose }: Omit<ToastOptions, "id"> = {}
+  { title, autoClose, undo }: CountedToastOptions = {}
 ): void {
   const shown = countedToasts.get(id);
-  const total = (shown ?? 0) + count;
-  countedToasts.set(id, total);
+  const undos = [...(shown?.undos ?? []), ...(undo ? [undo] : [])];
+  const total = (shown?.total ?? 0) + count;
+  countedToasts.set(id, { total, undos });
+  const body =
+    undos.length > 0
+      ? createElement(ToastWithUndo, { message: message(total), onUndo: () => undoCounted(id) })
+      : message(total);
+  const closesAfter = undos.length > 0 ? (autoClose ?? UNDO_TOAST_MS) : autoClose;
   if (shown === undefined) {
     const onClose = () => countedToasts.delete(id);
-    showNotification({ id, color: "teal", title, autoClose, message: message(total), onClose });
+    showNotification({ id, color: "teal", title, autoClose: closesAfter, message: body, onClose });
   } else {
-    updateNotification({ id, color: "teal", title, autoClose, message: message(total) });
+    updateNotification({ id, color: "teal", title, autoClose: closesAfter, message: body });
+  }
+}
+
+/** The Undo of a counted toast: closes it, then undoes what it reported, the latest first. */
+function undoCounted(id: string): void {
+  const undos = countedToasts.get(id)?.undos ?? [];
+  countedToasts.delete(id);
+  hideNotification(id);
+  void undoInTurn([...undos].reverse());
+}
+
+async function undoInTurn(undos: ReadonlyArray<() => Promise<unknown>>): Promise<void> {
+  try {
+    // One after the other: two undos of the same face must land in order
+    for (const undo of undos) await undo();
+  } catch {
+    // The QueryClient reports the failed request; the undos after it are not sent
   }
 }
 

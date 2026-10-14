@@ -43,7 +43,10 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({ data: [{ id: "1", name: "Anna", face_url: "/media/faces/anna.jpg" }] }),
   useRenamePersonAlbumMutation: () => noopMutation,
 }));
-vi.mock("../../api_client/faces/hooks", () => ({ useSetFacesPersonLabelMutation: () => noopMutation }));
+vi.mock("../../api_client/faces/hooks", () => ({
+  useSetFacesPersonLabelMutation: () => noopMutation,
+  useRestoreFacesMutation: () => noopMutation,
+}));
 // jsdom lays nothing out: hand the grid a size, and leave the scrubber's measuring out
 vi.mock("../virtual/AutoSizer", () => ({
   AutoSizer: ({ children }: { children: (size: { width: number; height: number }) => ReactNode }) =>
@@ -129,7 +132,7 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
     function Host() {
       grid = useVirtualizedGrid(
         FacesTab.enum.inferred,
-        { labeled: [], inferred: PEOPLE, unknown: [] },
+        { labeled: [], inferred: PEOPLE, unknown: [], deleted: [] },
         () => {},
         () => {},
         onSectionChange,
@@ -141,7 +144,7 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
         FaceAnalysisMethod.enum.clustering,
         // Four people per row at this width (calculateFaceGridCellSize)
         700,
-        { labeled: new Set(), inferred: ALL, unknown: new Set() }
+        { labeled: new Set(), inferred: ALL, unknown: new Set(), deleted: new Set() }
       );
       return null;
     }
@@ -158,14 +161,20 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
     });
 
     expect(onSectionChange).toHaveBeenLastCalledWith([
-      { page: 1, person: CLUSTER.id, inferred: true, method: FaceAnalysisMethod.enum.clustering },
+      { page: 1, person: CLUSTER.id, inferred: true, method: FaceAnalysisMethod.enum.clustering, deleted: false },
     ]);
     await act(async () => root.unmount());
   });
 });
 
 describe("issue #860 - person cells", () => {
-  const actions: FaceActionHandlers = { confirm: () => {}, rejectMatch: () => {}, labelAs: () => {}, remove: () => {} };
+  const actions: FaceActionHandlers = {
+    confirm: () => {},
+    rejectMatch: () => {},
+    labelAs: () => {},
+    remove: () => {},
+    restore: () => {},
+  };
   let root: Root;
   let container: HTMLDivElement;
   const onToggleCollapse = vi.fn<(personId: number) => void>();

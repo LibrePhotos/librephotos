@@ -3,17 +3,19 @@ import { z } from "zod";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 import { FacesTab } from "../facesTab";
 
-const NOTHING_FOLDED: Record<FacesTab, number[]> = { labeled: [], inferred: [], unknown: [] };
+const NOTHING_FOLDED: Record<FacesTab, number[]> = { labeled: [], inferred: [], unknown: [], deleted: [] };
 
 // The stored value ends up in `new Set(...)`, so a tab that is not an id array has to be
 // dropped here rather than throwing out of a render. Ids that are not numbers are left out.
+// A tab the value lacks folds nothing: values stored before the Deleted tab (#127) have no
+// `deleted`, and still keep the folds of the other tabs.
 const StoredIds = z
   .array(z.unknown())
   .transform(ids => ids.filter((id): id is number => typeof id === "number"))
   .catch(() => []);
 const StoredCollapsed = z
-  .object({ labeled: StoredIds, inferred: StoredIds, unknown: StoredIds })
-  .catch(() => ({ labeled: [], inferred: [], unknown: [] }));
+  .object({ labeled: StoredIds, inferred: StoredIds, unknown: StoredIds, deleted: StoredIds })
+  .catch(() => NOTHING_FOLDED);
 
 // Custom hook to manage which person groups are folded, per tab, in localStorage
 export function useCollapsedPersons() {
@@ -29,6 +31,7 @@ export function useCollapsedPersons() {
       [FacesTab.enum.labeled]: new Set(collapsedIds[FacesTab.enum.labeled]),
       [FacesTab.enum.inferred]: new Set(collapsedIds[FacesTab.enum.inferred]),
       [FacesTab.enum.unknown]: new Set(collapsedIds[FacesTab.enum.unknown]),
+      [FacesTab.enum.deleted]: new Set(collapsedIds[FacesTab.enum.deleted]),
     }),
     [collapsedIds]
   );

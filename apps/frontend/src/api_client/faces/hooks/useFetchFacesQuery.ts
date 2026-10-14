@@ -13,6 +13,7 @@ export const fetchFaces = async (params: PersonFaceListRequest): Promise<PersonF
     analysisMethod: params.method,
     // 0 is the server's default: left out, as it always was.
     minConfidence: params.minConfidence || undefined,
+    deleted: params.deleted,
   });
   return page.results;
 };

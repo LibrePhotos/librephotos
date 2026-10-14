@@ -210,3 +210,46 @@ describe("face writes", () => {
     expect(started).toEqual({ status: true, job_id: "f5235721-681d-4675-9a18-8761fb6aba37", already_running: true });
   });
 });
+
+describe("undoing face edits (#127)", () => {
+  const labels = { id: 3, person: null, cluster_person: 5, classification_person: null };
+
+  it("lists the deleted faces without the method and threshold", async () => {
+    const people = fakeServer(incomplete);
+    await endpoints.fetchIncompleteFaces(people.client, { inferred: false, orderBy: "date", deleted: true });
+    expect(defined(people.requests[0]).url).toBe(`${API}/faces/incomplete/?inferred=false&order_by=date&deleted=true`);
+
+    const page = fakeServer(facePage);
+    await endpoints.fetchFaces(page.client, { person: 1, page: 1, inferred: false, orderBy: "date", deleted: true });
+    expect(defined(page.requests[0]).url).toBe(
+      `${API}/faces/?person=1&page=1&inferred=false&order_by=date&deleted=true`
+    );
+  });
+
+  it("keeps a labelling's previous people for its undo", async () => {
+    const { client } = fakeServer({ status: true, results: [], updated: [], not_updated: [], previous: [labels] });
+    expect((await endpoints.labelFaces(client, [3], "Dave")).previous).toEqual([labels]);
+  });
+
+  it("restores deleted faces", async () => {
+    const { client, requests } = fakeServer({ restored_ids: [3, 4], write_error: null });
+    const restored = await endpoints.restoreFaces(client, [3, 4]);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/restore-faces/`,
+      method: "POST",
+      body: { face_ids: [3, 4] },
+    });
+    expect(restored.restored_ids).toEqual([3, 4]);
+  });
+
+  it("sends a labelling's previous people back", async () => {
+    const { client, requests } = fakeServer({ restored_ids: [3], write_error: "read-only" });
+    const restored = await endpoints.restoreFaceLabels(client, [labels]);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/restore-face-labels/`,
+      method: "POST",
+      body: { faces: [labels] },
+    });
+    expect(restored.write_error).toBe("read-only");
+  });
+});
