@@ -13,11 +13,20 @@ import { TrashRetentionSetting } from "./TrashRetentionSetting";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
-type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate";
+type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate" | "offline";
 
 type ModelOption = { value: string; label: string; hint?: OptionHint };
 
-const MAP_API_PROVIDERS = [
+type MapApiProvider = ModelOption & { data: { use_api_key: boolean; url: string } };
+
+const MAP_API_PROVIDERS: MapApiProvider[] = [
+  // ExifTool's own Geolocation database (#2302): no network, no API key.
+  {
+    value: "exiftool",
+    label: "ExifTool",
+    hint: "offline",
+    data: { use_api_key: false, url: "https://exiftool.org/geolocation.html" },
+  },
   {
     value: "nominatim",
     label: "Nominatim (OpenStreetMap)",
@@ -236,7 +245,7 @@ function SiteSettingsForm() {
               <Select
                 searchable
                 allowDeselect={false}
-                data={MAP_API_PROVIDERS}
+                data={translateOptions(MAP_API_PROVIDERS, t, "")}
                 value={mapApiProvider}
                 onChange={provider => {
                   if (!provider) return;

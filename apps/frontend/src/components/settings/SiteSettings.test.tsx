@@ -86,7 +86,24 @@ afterEach(async () => {
     root.unmount();
   });
   container.remove();
+  mocks.settingsQuery.data.map_api_provider = "nominatim";
 });
+
+/** Renders the card again as if the server stored ``provider`` as the Map Provider. */
+async function renderWithMapProvider(provider: string) {
+  mocks.settingsQuery.data.map_api_provider = provider;
+  await act(async () => {
+    root.render(
+      <MantineProvider>
+        <SiteSettings key={provider} />
+      </MantineProvider>
+    );
+  });
+}
+
+function inputShowing(value: string): HTMLInputElement | undefined {
+  return [...container.querySelectorAll<HTMLInputElement>("input")].find(input => input.value === value);
+}
 
 function switchLabelled(label: string): HTMLInputElement {
   const input = [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
@@ -104,6 +121,18 @@ describe("SiteSettings", () => {
   it("saves a switch as soon as it is flipped", async () => {
     await act(async () => switchLabelled("sitesettings.headerupload").click());
     expect(mocks.save).toHaveBeenCalledWith({ allow_upload: false });
+  });
+
+  it("offers the offline ExifTool provider without an API key field", async () => {
+    await renderWithMapProvider("exiftool");
+    expect(inputShowing("sitesettings.option_offline")).toBeDefined();
+    expect(container.textContent).not.toContain("sitesettings.map_api_key_header");
+  });
+
+  it("asks for an API key for a commercial provider", async () => {
+    await renderWithMapProvider("mapbox");
+    expect(inputShowing("Mapbox")).toBeDefined();
+    expect(container.textContent).toContain("sitesettings.map_api_key_header");
   });
 
   it("renders the model settings without saving anything", () => {

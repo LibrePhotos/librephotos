@@ -1590,6 +1590,7 @@
     "option_lightweight_default": "{{name}} (lightweight, default)",
     "option_fastest": "{{name}} (fastest)",
     "option_most_accurate": "{{name}} (most accurate)",
+    "option_offline": "{{name}} (offline, built in)",
     "maptile_none": "None (hide map)",
     "model_none": "None",
     "features_header": "Features",

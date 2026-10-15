@@ -16,6 +16,12 @@ from service._common import (
     serve_forever,
 )
 from service.exif.all_tags import FileNotReadableError, read_all_tags
+from service.exif.geolocate import (
+    InvalidPointsError,
+    geolocate,
+    parse_max_distance,
+    parse_points,
+)
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
 # Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
@@ -294,6 +300,31 @@ def all_tags() -> ResponseReturnValue:
         log.debug("error reading all tags of %s", path)
         return {"error": str(exc)}, 500
     return {"groups": groups}, 200
+
+
+@app.route("/geolocate", methods=["POST"])
+def geolocate_points() -> ResponseReturnValue:
+    """The nearest town to each point, from ExifTool's Geolocation database (#2302).
+
+    Takes ``{"points": [{"lat": <number>, "lon": <number>}, ...]}`` and an
+    optional ``max_distance_km``; answers ``{"places": [...]}`` with one object
+    of Geolocation tags per point, in order, or null where no town is within
+    the cap. Runs on the process ``/get-tags`` uses: the server handles one
+    request at a time, and the lookup's options do not outlast its command.
+    """
+    points, max_distance = json_fields("points", max_distance_km=None)
+    try:
+        parsed = parse_points(points)
+        cap = parse_max_distance(max_distance)
+    except InvalidPointsError as exc:
+        return {"error": str(exc)}, 400
+    et = running_exiftool(struct=False)
+    try:
+        places = [geolocate(et, point, cap) for point in parsed]
+    except Exception as exc:
+        log.error("error looking up places: %s", exc)
+        return {"error": str(exc)}, 500
+    return {"places": places}, 200
 
 
 def serve() -> None:

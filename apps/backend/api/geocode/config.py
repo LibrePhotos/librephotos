@@ -4,6 +4,8 @@ from typing import TypedDict
 from constance import config as settings
 from geopy.location import Location
 
+from api.geocode import EXIFTOOL_PROVIDER
+
 from .parsers.mapbox import parse as parse_mapbox
 from .parsers.nominatim import parse as parse_nominatim
 from .parsers.opencage import parse as parse_opencage
@@ -13,6 +15,14 @@ GEOCODE_TIMEOUT_SECONDS = 10
 """HTTP timeout passed to each geopy geocoder. The library default is 1 second,
 which is too aggressive against public nominatim under any load and turns
 every reverse_geocode call into a near-guaranteed ReadTimeoutError."""
+
+
+# Every value the Map Provider setting may hold: the geopy services of
+# ``_get_config`` and the offline lookup. The admin form's choices
+# (CONSTANCE_ADDITIONAL_FIELDS in settings) list the same.
+MAP_API_PROVIDERS = frozenset(
+    {"mapbox", "maptiler", "tomtom", "nominatim", "opencage", EXIFTOOL_PROVIDER}
+)
 
 
 class _ProviderConfig(TypedDict):

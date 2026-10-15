@@ -5,7 +5,8 @@ The body used to be checked with ``jsonschema`` against a dict in
 form and the mobile app send these payloads, so the accepted values are
 pinned here: booleans are JSON booleans, strings are JSON strings kept as
 sent (blank and surrounding whitespace included), unknown keys are ignored,
-and at least one known key is required.
+and at least one known key is required. The map provider is one of the
+providers reverse geocoding knows (#2302).
 """
 
 from unittest.mock import patch
@@ -15,6 +16,7 @@ from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.geocode.config import MAP_API_PROVIDERS
 from api.tests.utils import create_test_user
 
 BOOLEAN_FIELDS = {
@@ -25,7 +27,6 @@ BOOLEAN_FIELDS = {
 }
 STRING_FIELDS = {
     "skip_patterns": "SKIP_PATTERNS",
-    "map_api_provider": "MAP_API_PROVIDER",
     "map_api_key": "MAP_API_KEY",
     "map_tile_provider": "MAP_TILE_PROVIDER",
     "captioning_model": "CAPTIONING_MODEL",
@@ -90,6 +91,21 @@ class SiteSettingsRequestTest(TestCase):
                 self.assert_rejected(
                     {"allow_registration": value}, "allow_registration"
                 )
+
+    def test_each_map_provider_is_stored(self, _models):
+        for provider in sorted(MAP_API_PROVIDERS):
+            with self.subTest(provider=provider):
+                response = self.post({"map_api_provider": provider})
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(config.MAP_API_PROVIDER, provider)
+
+    @override_config(MAP_API_PROVIDER="nominatim")
+    def test_an_unknown_map_provider_is_refused(self, _models):
+        # reverse_geocode could not ask it: every photo would get no place.
+        for value in ("photon", "", " nominatim", "ExifTool", 5):
+            with self.subTest(value=value):
+                self.assert_rejected({"map_api_provider": value}, "map_api_provider")
+        self.assertEqual(config.MAP_API_PROVIDER, "nominatim")
 
     def test_strings_must_be_json_strings(self, _models):
         for value in (5, True, None, ["a"], {"a": 1}):

@@ -10,6 +10,7 @@ from api.drf.params import (
     JsonIntegerField,
     JsonStringField,
 )
+from api.geocode.config import MAP_API_PROVIDERS
 from api.runtime.features import (
     FEATURES,
     Feature,
@@ -73,6 +74,16 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     reverse_geocoding_enabled = JsonBooleanField(required=False)
     scene_classification_enabled = JsonBooleanField(required=False)
     video_previews_enabled = JsonBooleanField(required=False)
+
+    def validate_map_api_provider(self, value: str) -> str:
+        # reverse_geocode cannot ask a provider it does not know: every photo
+        # would be left without a place, and only a warning in the log says why.
+        if value not in MAP_API_PROVIDERS:
+            raise serializers.ValidationError(
+                f"Choose one of: {', '.join(sorted(MAP_API_PROVIDERS))}.",
+                code="unknown_map_api_provider",
+            )
+        return value
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
         if not attrs:
