@@ -82,6 +82,36 @@ describe("site settings", () => {
     expect(settings.features?.video_previews).toBeUndefined();
   });
 
+  it("parses the staff-only automatic scan schedule and its status", async () => {
+    const staff = {
+      ...siteSettings,
+      auto_scan: "custom",
+      auto_scan_time: "22:30",
+      auto_scan_days: [0, 4],
+      auto_scan_status: {
+        last_run_at: "2026-10-14T22:30:00Z",
+        scanned: ["anna"],
+        running: [],
+        skipped: ["bob"],
+        failed: [],
+        next_run_at: null,
+        time_zone: "UTC",
+      },
+    };
+    const settings = await endpoints.fetchSiteSettings(fakeServer(staff).client);
+    expect(settings.auto_scan_days).toEqual([0, 4]);
+    expect(settings.auto_scan_status?.skipped).toEqual(["bob"]);
+    // Anonymous answers, and older backends, have none of it.
+    const anonymous = await endpoints.fetchSiteSettings(fakeServer(siteSettings).client);
+    expect(anonymous.auto_scan).toBeUndefined();
+  });
+
+  it("posts the automatic scan's days as a list", async () => {
+    const { client, requests } = fakeServer(siteSettings);
+    await endpoints.updateSiteSettings(client, { auto_scan: "custom", auto_scan_days: [5, 6] });
+    expect(defined(requests[0]).body).toEqual({ auto_scan: "custom", auto_scan_days: [5, 6] });
+  });
+
   it("posts a feature switch as a flat <feature>_enabled boolean", async () => {
     const { client, requests } = fakeServer(siteSettings);
     await endpoints.updateSiteSettings(client, { face_detection_enabled: false });

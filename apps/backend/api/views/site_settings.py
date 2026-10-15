@@ -11,6 +11,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.mail import email_is_configured
+from api.directory_watcher.scan_schedule import (
+    LAST_RUN_KEY,
+    SCHEDULE_KEYS,
+    parse_days,
+    scan_schedule_status,
+    sync_scan_schedule,
+)
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.models import LongRunningJob, User
@@ -54,6 +61,8 @@ SETTING_KEYS = (
     "AUTO_CREATE_USER_DIRECTORY",
     "SCAN_MISSING_MAX_FRACTION",
     "TRASH_RETENTION_DAYS",
+    *SCHEDULE_KEYS,
+    LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
 )
 
@@ -106,6 +115,16 @@ def _captioning_available(config: dict[str, Any]) -> bool:
         and bool(config[site_setting_key(feature)])
         and captioning_model_selected(config["CAPTIONING_MODEL"])
     )
+
+
+def _auto_scan(config: dict[str, Any]) -> dict[str, object]:
+    """The automatic library scan's setting and status line (#235)."""
+    return {
+        "auto_scan": config["AUTO_SCAN"],
+        "auto_scan_time": config["AUTO_SCAN_TIME"],
+        "auto_scan_days": sorted(parse_days(str(config["AUTO_SCAN_DAYS"]))),
+        "auto_scan_status": scan_schedule_status(config),
+    }
 
 
 def _job_status(job: LongRunningJob) -> str:
@@ -173,6 +192,7 @@ class SiteSettingsView(APIView):
             # The Features card's state: admin-only, like the settings it shows.
             out["features"] = _features(config)
             out["model_download"] = _model_download()
+            out.update(_auto_scan(config))
         return Response(out)
 
     @extend_schema(request=SiteSettingsRequest, responses=SiteSettingsSerializer)
@@ -181,6 +201,8 @@ class SiteSettingsView(APIView):
         # Each request field is the lower-case name of its constance key.
         for key, value in data.items():
             setattr(site_config, key.upper(), value)
+        if any(key.upper() in SCHEDULE_KEYS for key in data):
+            sync_scan_schedule()
         admin = User.objects.get(id=request_user(request).id)
         if not do_all_models_exist():
             # Not a new job per save: the settings form saves on every
