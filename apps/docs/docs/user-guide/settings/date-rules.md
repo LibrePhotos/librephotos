@@ -49,7 +49,7 @@ should be one of the following:
 - "server_local" - the local timezone of the machine running LibrePhotos (in Docker this is normally UTC unless you set a `TZ` for the container)
 - "name:&lt;timezone_name&gt;" - the timezone with the name &lt;timezone_name&gt;, e.g. "name:Europe/Berlin"
 
-The settings UI only offers "gps_timezonefinder" and "user_default" for "report_tz"; the other values are accepted by the backend when a rule is edited directly.
+The predefined rules use "utc" for "source_tz" and "gps_timezonefinder" or "user_default" for "report_tz". The settings page shows a rule's settings but cannot change them: it only adds the predefined rules. The other values work in a rule list saved through the API (the `datetime_rules` of your user).
 
 If either "source_tz" or "report_tz" could not be obtained, the rule is considered to be not applicable.
 
@@ -78,11 +78,14 @@ Under the hood the local time is tagged as UTC before it is saved. That is an in
 Currently, supported rule types:
 
 - "exif" - local time is taken using exif tag params["exif_tag"] as obtained with exiftool.
-  An XMP sidecar next to the photo wins over the file. For `EXIF:DateTimeOriginal` and
+  An XMP sidecar next to the photo wins over the file (see
+  [Which sidecars are read](../exif-data.md#which-sidecars-are-read)). For `EXIF:DateTimeOriginal` and
   `Composite:GPSDateTime` the sidecar is also read under its XMP name (`exif:DateTimeOriginal`,
   `exif:GPSTimeStamp`); any other EXIF tag in a rule is not looked up in the sidecar, so to use
   a property that only a sidecar holds, name its XMP tag directly (for example `XMP:<tag>`).
-  _Not released yet._
+  `XMP:DateCreated`, where LibrePhotos writes the dates you set when
+  [Write edits to files](./index.md#metadata-options) is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
+  they add it with **Add Rule** or **Reset To Defaults**.
 - "path" - time is taken from the filename using a regular expression matching
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without

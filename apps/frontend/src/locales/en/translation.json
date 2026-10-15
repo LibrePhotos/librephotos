@@ -197,7 +197,7 @@
     "writeedits": {
       "off": "Edits stay in LibrePhotos. Your files are never changed.",
       "sidecar": "Writes {{fields}} to an .xmp file next to the photo. The photo itself is not changed.",
-      "mediafile": "Writes {{fields}} into the photo file itself. This changes your originals, so keep a backup. HEIC, AVIF and RAW files keep their rotation in LibrePhotos.",
+      "mediafile": "Writes {{fields}} into the photo file itself. This changes your originals, so keep a backup. Rotations are only written into JPEG, PNG, TIFF and WebP files; other formats, such as HEIC, AVIF and RAW, keep their rotation in LibrePhotos.",
       "fields": {
         "rating": "ratings",
         "date": "dates",

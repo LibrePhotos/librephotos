@@ -83,7 +83,7 @@ means you can open the app in airplane mode and still:
 Changes you make offline are saved immediately and **queued**. The next time the
 app is online it sends them to the server automatically. A star rating is
 written to the photo's file or XMP sidecar when
-[Synchronize metadata to disk](../exif-data.md) is on, the same as a favorite
+[Write edits to files](../exif-data.md#what-librephotos-writes) is on, the same as a favorite
 set on the web.
 
 :::note Star ratings (since 1.3.0)
