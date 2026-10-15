@@ -18,8 +18,11 @@ import "./events.index";
 import "./persons.index";
 import "./tags.index";
 
-/** The route stub: createFileRoute(path)(options) and its chained calls hand back the same function. */
-type RouteStub = (options?: { component?: React.ComponentType }) => RouteStub;
+/** The route stub: createFileRoute(path)(options) hands back the route, which People reads its search from. */
+type RouteStub = ((options?: { component?: React.ComponentType }) => RouteStub) & {
+  useSearch?: () => Record<string, never>;
+  useNavigate?: () => () => Promise<void>;
+};
 
 const stubs = vi.hoisted(() => ({
   pages: new Map<string, React.ComponentType>(),
@@ -44,8 +47,8 @@ const stubs = vi.hoisted(() => ({
     },
   ] as unknown[],
   people: [
-    { id: "1", name: "Anna", video: false, face_count: 3, face_photo_url: "p1", face_url: "" },
-    { id: "2", name: "Ben", video: false, face_count: 50, face_photo_url: "p2", face_url: "" },
+    { id: "1", name: "Anna", video: false, face_count: 3, face_photo_url: "p1", face_url: "", group_ids: [] },
+    { id: "2", name: "Ben", video: false, face_count: 50, face_photo_url: "p2", face_url: "", group_ids: [] },
   ] as unknown[],
   tags: [
     { id: 1, name: "beach", photo_count: 2, cover_photos: [{ image_hash: "t1", video: false }] },
@@ -59,6 +62,8 @@ vi.mock("@tanstack/react-router", () => ({
       if (options?.component) stubs.pages.set(path, options.component);
       return route;
     };
+    route.useSearch = () => ({});
+    route.useNavigate = () => () => Promise.resolve();
     return route;
   },
   useNavigate: () => () => {},
@@ -73,6 +78,11 @@ vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({ data: stubs.people, isFetching: false }),
   useRenamePersonAlbumMutation: () => ({ mutate: () => {} }),
   useDeletePersonAlbumMutation: () => ({ mutate: () => {} }),
+  useFetchPersonGroupsQuery: () => ({ data: [], isLoading: false }),
+  useSetPersonGroupsMutation: () => ({ mutate: () => {} }),
+  useCreatePersonGroupMutation: () => ({ mutateAsync: () => Promise.resolve(), isPending: false }),
+  useRenamePersonGroupMutation: () => ({ mutateAsync: () => Promise.resolve(), isPending: false }),
+  useDeletePersonGroupMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
 vi.mock("../../../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => ({ mutate: () => {} }),
