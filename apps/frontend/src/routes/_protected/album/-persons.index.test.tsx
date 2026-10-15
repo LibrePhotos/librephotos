@@ -1,7 +1,8 @@
 /**
  * The People page's groups (#1126): the group menu button narrows the people to one group (kept in
  * `?group=`), the subtitle counts the people shown, an empty group says so, and a person's ⋮ opens
- * the "Groups…" checklist.
+ * the "Groups…" checklist. Each person is a round crop of their cover face (#2241), with the whole
+ * photo or the placeholder when there is none.
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
@@ -43,10 +44,8 @@ vi.mock("@tanstack/react-router", () => ({
     stubs.component = options.component;
     return { useSearch: () => stubs.search, useNavigate: () => stubs.navigate };
   },
-  Link: ({ children, ...props }: { children: React.ReactNode; "aria-label"?: string }) => (
-    <a href="#person" aria-label={props["aria-label"]}>
-      {children}
-    </a>
+  Link: ({ children, params }: { children: React.ReactNode; params: { id: string } }) => (
+    <a href={`#person-${params.id}`}>{children}</a>
   ),
   useNavigate: () => stubs.navigate,
 }));
@@ -66,7 +65,9 @@ vi.mock("../../../api_client/albums/hooks", () => ({
   useRenamePersonGroupMutation: () => ({ mutateAsync: () => Promise.resolve(), isPending: false }),
   useDeletePersonGroupMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
-vi.mock("../../../components/Tile", () => ({ Tile: () => null }));
+vi.mock("../../../components/Tile", () => ({
+  Tile: ({ image_hash, alt }: { image_hash: string; alt?: string }) => <img data-tile={image_hash} alt={alt} />,
+}));
 // The grid's virtualisation needs a layout jsdom lacks: every person in a plain list.
 vi.mock("../../../components/virtual/TileGrid", () => ({
   TileGrid: ({
@@ -199,5 +200,66 @@ describe("the People page's groups", () => {
     expect(document.body.textContent).toContain("Groups for Anna");
     const family = defined(document.body.querySelector<HTMLInputElement>('input[type="checkbox"]'));
     expect(family.checked).toBe(true);
+  });
+});
+
+/** The cell of the person called `name`, by the caption under their picture. */
+function cellOf(name: string): HTMLElement {
+  const cells = Array.from(document.body.querySelectorAll<HTMLElement>('[data-testid="person"]'));
+  return defined(
+    cells.find(cell => cell.querySelector("[title]")?.getAttribute("title") === name),
+    `the cell of ${name}`
+  );
+}
+
+/** A link's accessible name when it holds only pictures: their alt texts. */
+function linkName(link: HTMLAnchorElement): string {
+  return (
+    link.getAttribute("aria-label") ??
+    Array.from(link.querySelectorAll("img"))
+      .map(img => img.alt)
+      .join(" ")
+  );
+}
+
+describe("the People page's pictures (#2241)", () => {
+  it("shows the cover face crop when there is one", async () => {
+    stubs.people = [{ ...person("1", "Anna", []), face_url: "/media/faces/anna_0_x.jpg" }];
+    await render();
+
+    const img = defined(cellOf("Anna").querySelector("img"), "Anna's picture");
+    expect(img.getAttribute("src")).toMatch(/\/media\/faces\/anna_0_x\.jpg$/);
+    expect(img.hasAttribute("data-tile")).toBe(false);
+  });
+
+  it("falls back to the whole cover photo without a face crop", async () => {
+    stubs.people = [person("1", "Anna", [])];
+    await render();
+
+    const img = defined(cellOf("Anna").querySelector("img"), "Anna's picture");
+    expect(img.getAttribute("data-tile")).toBe("hash");
+  });
+
+  it("shows the placeholder without either, for someone with no faces and for the legacy unknown", async () => {
+    stubs.people = [
+      { ...person("1", "Anna", []), face_photo_url: "" },
+      { ...person("2", "Ben", []), face_count: 0, face_url: "/media/faces/ben.jpg" },
+      { ...person("3", "unknown", []), face_url: "/media/faces/someone.jpg" },
+    ];
+    await render();
+
+    expect(cellOf("Anna").querySelector("img")?.getAttribute("src")).toBe("/unknown_user.jpg");
+    expect(cellOf("Ben").querySelector("img")?.getAttribute("src")).toBe("/unknown_user.jpg");
+    expect(cellOf("unknown").querySelector("a img")?.getAttribute("src")).toBe("/unknown_user.jpg");
+    // Nobody to open: Ben's picture is not a link
+    expect(cellOf("Ben").querySelector("a")).toBeNull();
+  });
+
+  it("names each person's link after the person", async () => {
+    stubs.people = [{ ...person("1", "Anna", []), face_url: "/media/faces/anna.jpg" }, person("2", "Ben", [])];
+    await render();
+
+    const links = Array.from(document.body.querySelectorAll<HTMLAnchorElement>('[data-testid="person"] a'));
+    expect(links.map(linkName)).toEqual(["Anna", "Ben"]);
   });
 });

@@ -1,0 +1,17 @@
+/* The Sharing overview (routes/_protected/sharing/index.tsx) */
+
+/* A public album's 140px card with its share button over the cover's corner */
+.albumWithButton {
+  position: relative;
+  flex-shrink: 0;
+  width: 140px;
+  scroll-snap-align: start;
+}
+
+/* A user's placeholder while the public users load: an avatar over a name */
+.avatarSkeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 70px;
+}

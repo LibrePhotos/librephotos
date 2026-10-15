@@ -1,6 +1,5 @@
 {
   "src/components/charts/LocationLink.tsx": { "lines": 520, "function": 371 },
-  "src/routes/_protected/sharing/index.tsx": { "lines": 459, "function": 428 },
   "src/components/lightbox/ContentViewer.tsx": { "lines": 455, "function": 400 },
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 448, "function": 395 },
   "src/components/lightbox/VideoPlayer.tsx": { "lines": 415, "function": 365 },

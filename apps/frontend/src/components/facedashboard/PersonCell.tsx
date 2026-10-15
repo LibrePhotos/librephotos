@@ -17,6 +17,9 @@ type Props = Readonly<{
   onFocused: () => void;
 }>;
 
+// The name and face count under the face
+const CAPTION_HEIGHT = 38;
+
 /**
  * A collapsed person: one grid cell with their cover face, name and face count, so a fully
  * collapsed dashboard is a grid of people (#860). Clicking it expands the person in place.
@@ -27,6 +30,8 @@ export function PersonCell({ person, coverUrl, style, entrySquareSize, onExpand,
   const countId = useId();
   // The same inset as a face, so people and faces line up
   const size = entrySquareSize - 10;
+  // A round face like on the People page (#2241), with the name and count under it
+  const faceSize = Math.max(size - CAPTION_HEIGHT, 0);
 
   return (
     <div style={style} className={classes.cell}>
@@ -41,7 +46,7 @@ export function PersonCell({ person, coverUrl, style, entrySquareSize, onExpand,
         aria-describedby={countId}
         title={person.name}
       >
-        <Avatar src={coverUrl} alt="" radius="md" size={size} />
+        <Avatar src={coverUrl} alt="" size={faceSize} className={classes.face} />
         <span className={classes.caption}>
           <Text component="span" size="sm" fw={600} truncate className={classes.name}>
             {person.name}

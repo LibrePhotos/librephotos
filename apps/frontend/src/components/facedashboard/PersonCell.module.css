@@ -4,38 +4,45 @@
   place-items: center;
 }
 
+/* A round face with the name and count centred under it, as on the People page (#2241) */
 .button {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   border-radius: var(--mantine-radius-md);
-  overflow: hidden;
 
   &:focus-visible {
     outline: 3px solid var(--mantine-primary-color-filled);
     outline-offset: 2px;
   }
 
-  &:hover .caption {
-    background: linear-gradient(to top, var(--app-scrim-black-90), transparent);
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
   }
 }
 
-/* Name and count over the bottom of the face, white on a dark scrim in both colour schemes */
+.face {
+  flex-shrink: 0;
+  border: 1px solid var(--mantine-color-default-border);
+}
+
 .caption {
-  position: absolute;
-  inset: auto 0 0;
   display: flex;
   flex-direction: column;
-  padding: 18px 8px 6px;
-  text-align: left;
-  background: linear-gradient(to top, var(--app-scrim-black-75), transparent);
-  color: var(--mantine-color-white);
+  align-items: center;
+  max-width: 100%;
+  padding: 0 4px;
+  text-align: center;
 }
 
 .name {
+  max-width: 100%;
   line-height: 1.2;
 }
 
 .count {
   line-height: 1.2;
-  opacity: 0.85;
+  color: var(--mantine-color-dimmed);
 }
