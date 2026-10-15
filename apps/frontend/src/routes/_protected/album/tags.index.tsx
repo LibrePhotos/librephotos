@@ -44,11 +44,12 @@ export const Route = createFileRoute("/_protected/album/tags/")({
 function AlbumTag() {
   const { t } = useTranslation();
   const tagsQuery = useFetchTagsQuery();
-  const { data: tags, isFetching } = tagsQuery;
+  const { data, isFetching } = tagsQuery;
+  const tags = data ?? NO_TAGS;
   const listFailure = useListFailure(tagsQuery);
   const sizing = useAlbumListGridConfig();
-  const hasTags = tags && tags.length > 0;
-  const tagSort = useAlbumSort(TAG_SORT, tags ?? NO_TAGS);
+  const hasTags = tags.length > 0;
+  const tagSort = useAlbumSort(TAG_SORT, tags);
 
   const renameTag = useRenameTagMutation();
   const deleteTag = useDeleteTagMutation();
@@ -132,7 +133,7 @@ function AlbumTag() {
         icon={Tag}
         title={t("tags")}
         loading={isFetching}
-        subtitle={t("tagalbum.showingtags", { count: tags?.length ?? 0, number: tags?.length ?? 0 })}
+        subtitle={t("tagalbum.showingtags", { count: tags.length, number: tags.length })}
         actions={hasTags ? <AlbumSortMenu {...tagSort.menu} /> : null}
       />
       {listFailure ? (
@@ -161,7 +162,7 @@ function AlbumTag() {
         opened={isRenameOpen}
         onClose={closeRename}
         tagName={selectedTag?.name}
-        existingNames={(tags ?? []).map(tag => tag.name)}
+        existingNames={tags.map(tag => tag.name)}
         onSubmit={newName => {
           if (selectedTag) {
             renameTag.mutate({ id: selectedTag.id, name: selectedTag.name, newName });
@@ -173,7 +174,7 @@ function AlbumTag() {
         opened={isMergeOpen}
         onClose={closeMerge}
         target={selectedTag}
-        tags={tags ?? []}
+        tags={tags}
         onSubmit={source => {
           if (selectedTag) {
             mergeTags.mutate({

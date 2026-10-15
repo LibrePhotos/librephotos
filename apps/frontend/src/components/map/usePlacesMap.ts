@@ -1,17 +1,13 @@
 import type { LocationClusters } from "@librephotos/api-client";
 import { useViewportSize } from "@mantine/hooks";
-import type { GeoJSONSource, Source as MapSource } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 import type { PlaceAlbumList } from "../../api_client/albums/hooks";
+import { zoomIntoCluster } from "./clusterZoom";
 import { clusterFeatureCollection, clusterPoints, initialViewForClusters } from "./locationClusters";
 import { ignoreMissingStyleImages } from "./mapImages";
 import { clusterLayers } from "./placesLayers";
 import { useMapLayerColors } from "./useMapLayerColors";
-
-// MapLibre refuses to register another source type under a built-in name, so
-// "geojson" is always its own GeoJSONSource
-const isGeoJSONSource = (source: MapSource | undefined): source is GeoJSONSource => source?.type === "geojson";
 
 // The padding keeps edge points strictly inside the bounds the grid filters by
 const FIT_PLACES = { padding: 40, maxZoom: 10 };
@@ -76,37 +72,9 @@ export function usePlacesMap(
     updateVisibleAlbums(mapRef.current);
   }, [updateVisibleAlbums]);
 
-  // Handle click on clusters to zoom in
-  const onClick = useCallback(async (event: MapLayerMouseEvent) => {
-    if (!mapRef.current) return;
-
-    const features = mapRef.current.queryRenderedFeatures(event.point, {
-      layers: ["clusters"],
-    });
-
-    const feature = features[0];
-    if (feature !== undefined) {
-      const clusterId: unknown = feature.properties?.cluster_id;
-      // The clustered GeoJSON source declared below
-      const mapboxSource = mapRef.current.getSource("locations");
-
-      if (isGeoJSONSource(mapboxSource) && typeof clusterId === "number") {
-        try {
-          const zoom = await mapboxSource.getClusterExpansionZoom(clusterId);
-          const { geometry } = feature;
-
-          // A cluster is always a point
-          if (geometry.type === "Point") {
-            const [lng, lat] = geometry.coordinates;
-            if (lng !== undefined && lat !== undefined) {
-              mapRef.current.easeTo({ center: [lng, lat], zoom });
-            }
-          }
-        } catch (err) {
-          console.error("Error getting cluster expansion zoom:", err);
-        }
-      }
-    }
+  // A click on a cluster zooms in until it splits
+  const onClick = useCallback((event: MapLayerMouseEvent) => {
+    if (mapRef.current) void zoomIntoCluster(mapRef.current, [event.point.x, event.point.y]);
   }, []);
 
   useEffect(() => {

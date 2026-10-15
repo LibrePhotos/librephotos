@@ -558,11 +558,6 @@
       "count": 1
     }
   },
-  "src/routes/_protected/album/places.index.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 1
-    }
-  },
   "src/routes/_protected/organizing.$tab.tsx": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
