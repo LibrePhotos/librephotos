@@ -75,3 +75,9 @@ Click on your avatar in the top right, and go to `Library`. Under **Scan Library
 If you have a Nextcloud instance, you can also input login details for it on the `Library` page (click on your avatar in the top right, and go to `Library`).
 The Nextcloud section is hidden until an admin enables it in `Admin Area` > `Site Settings` > `Enable Nextcloud integration` (see [Library Management](./library.md#enabling-the-integration)).
 Fill out the server address, username and app password for the Nextcloud section. Once the connection succeeds, the **Status** badge at the top of the Nextcloud section turns green and reads *Connected*. You can then click **Browse** next to **Nextcloud Scan Directory** to pick a top level directory in your Nextcloud account. Once this has been configured, you can click the blue **Scan** button at the bottom of the Nextcloud section (the one with the Nextcloud icon). This will copy the contents of the specified Nextcloud directory — images, videos, RAW files and XMP sidecars — to the local filesystem, and then index them the same way a regular file system scan does.
+
+### How to Change Your Avatar
+
+Click on your avatar in the top right, and go to `Profile`. Under **Public Avatar**, click **Choose image** to pick a file from your computer, or **Choose from a face** to start from the cover face of one of your people. A face you pick shows in the editor like a file would, so you can still move and zoom it. Click **Upload** to save it.
+
+*Not released yet: up to 1.3.0, an avatar could only come from a file on your computer.*
