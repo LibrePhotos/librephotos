@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.2">
-<title data-rh="true">🪟 Windows standalone (no Docker) | LibrePhotos</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" name="twitter:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" property="og:url" content="https://docs.librephotos.com/docs/installation/windows-standalone"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="🪟 Windows standalone (no Docker) | LibrePhotos"><meta data-rh="true" name="description" content="One folder with librephotos.exe: the server, the frontend and the machine learning models, without Docker or Python."><meta data-rh="true" property="og:description" content="One folder with librephotos.exe: the server, the frontend and the machine learning models, without Docker or Python."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.librephotos.com/docs/installation/windows-standalone"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/installation/windows-standalone" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/installation/windows-standalone" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Installation","item":"https://docs.librephotos.com/docs/installation/"},{"@type":"ListItem","position":2,"name":"🪟 Windows standalone (no Docker)","item":"https://docs.librephotos.com/docs/installation/windows-standalone"}]}</script><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="LibrePhotos RSS Feed">
+<title data-rh="true">🪟 Windows standalone (no Docker) | LibrePhotos</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" name="twitter:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" property="og:url" content="https://docs.librephotos.com/docs/installation/windows-standalone"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="🪟 Windows standalone (no Docker) | LibrePhotos"><meta data-rh="true" name="description" content="One folder with librephotos.exe: the server, the frontend and the machine learning models, without Docker or Python. Installing, updating, backing up, restoring and uninstalling, step by step."><meta data-rh="true" property="og:description" content="One folder with librephotos.exe: the server, the frontend and the machine learning models, without Docker or Python. Installing, updating, backing up, restoring and uninstalling, step by step."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.librephotos.com/docs/installation/windows-standalone"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/installation/windows-standalone" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/installation/windows-standalone" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Installation","item":"https://docs.librephotos.com/docs/installation/"},{"@type":"ListItem","position":2,"name":"🪟 Windows standalone (no Docker)","item":"https://docs.librephotos.com/docs/installation/windows-standalone"}]}</script><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="LibrePhotos RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="LibrePhotos Atom Feed">
 
 
@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.11a6db3d.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.9011f81d.js" defer="defer"></script>
 <script src="/assets/js/main.6b2e9296.js" defer="defer"></script>
 </head>
 <body>
@@ -30,54 +30,93 @@ installed. The database is SQLite, the same setup as the <a class="" href="/docs
 with its internal database.</p>
 <p>It is meant for one person&#x27;s library on their own PC. For a shared server, or for PostgreSQL, use one
 of the Docker deployments.</p>
+<p>LibrePhotos keeps two things apart:</p>
+<ul>
+<li class="">The <strong>program folder</strong>: the <code>librephotos</code> folder from the zip, with <code>librephotos.exe</code>. An update
+replaces it.</li>
+<li class="">The <strong>data folder</strong>, <code>%LOCALAPPDATA%\LibrePhotos</code>: the database (users, albums, people, settings),
+thumbnails, the machine learning models and the logs. An update keeps it, and every copy of the
+program uses the same one.</li>
+</ul>
+<p>Your photos stay in your own folders. LibrePhotos reads them there and never moves them into
+either folder.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="running-it">Running it<a href="#running-it" class="hash-link" aria-label="Direct link to Running it" title="Direct link to Running it" translate="no">​</a></h2>
 <ol>
-<li class="">Download <code>librephotos-windows-x64.zip</code> (see above) and unzip it anywhere, for example <code>C:\Program Files\LibrePhotos</code> or a
-folder in your home directory.</li>
-<li class="">Double-click <code>librephotos.exe</code>. No window opens: LibrePhotos runs in the background with an icon
-in the notification area (the tray, bottom right), and after the first migrations your browser
-opens <code>http://localhost:8000/</code>. Windows 11 may put a new icon behind the <strong>^</strong> arrow next to the
-clock; drag it onto the taskbar to keep it in view.</li>
+<li class="">Download <code>librephotos-windows-x64.zip</code> (see above). It is about 450 MB.</li>
+<li class="">Open your <strong>Downloads</strong> folder, right-click <code>librephotos-windows-x64.zip</code> and choose <strong>Extract
+All...</strong>.</li>
+<li class="">In the box under <strong>Files will be extracted to this folder</strong>, replace the suggested path with a
+folder in your user folder, for example <code>C:\Users\&lt;you&gt;\LibrePhotos-app</code> (with your Windows user
+name instead of <code>&lt;you&gt;</code>), and click <strong>Extract</strong>. <a href="#choosing-a-folder" class="">Choosing a folder</a> says why.
+Windows creates the folder and puts a <code>librephotos</code> folder in it.</li>
+<li class="">Open <code>C:\Users\&lt;you&gt;\LibrePhotos-app\librephotos</code> and double-click <code>librephotos.exe</code>. Windows
+may show <strong>Windows protected your PC</strong>, because the program is not signed: click <strong>More info</strong>,
+then <strong>Run anyway</strong>.</li>
+<li class="">No window opens: LibrePhotos runs in the background with an icon in the notification area (the
+tray, bottom right), and after the first migrations your browser opens <code>http://localhost:8000/</code>.
+Windows 11 may put a new icon behind the <strong>^</strong> arrow (<strong>Show hidden icons</strong>) next to the clock;
+drag it from there onto the taskbar to keep it in view.</li>
 <li class="">Create the admin account on the first-time setup screen, then set the scan directory of your user
 (Admin area → Users) to the folder with your photos and start a scan.</li>
 </ol>
 <p>The models for face recognition, tagging, captions and semantic search are downloaded on the first
-scan, into the data directory below; that needs an internet connection once.</p>
+scan, into the data folder; that needs an internet connection once.</p>
+<p>To start LibrePhotos from the desktop next time, right-click <code>librephotos.exe</code> and choose <strong>Show
+more options</strong> → <strong>Send to</strong> → <strong>Desktop (create shortcut)</strong> (on Windows 10: <strong>Send to</strong> directly).</p>
 <p>Right-click the tray icon for <strong>Open LibrePhotos</strong> (also a plain click), <strong>Open data folder</strong>,
 <strong>Open logs</strong> and <strong>Quit LibrePhotos</strong>. Quitting stops everything: the workers and the machine
 learning processes are children of <code>librephotos.exe</code> and go down with it, also when it is ended
-from Task Manager. If it cannot start, a message box says why: for example that another program
-already uses port 8000 (see <a href="#using-another-port" class="">Using another port</a>).</p>
+from Task Manager. If it cannot start, a message box usually says why: for example that another
+program already uses port 8000 (see <a href="#using-another-port" class="">Using another port</a>).</p>
 <p>Not released yet: the icon appears right after the double-click. While LibrePhotos starts, the
 first, greyed line of its menu and its tooltip say what it is doing: <strong>Starting...</strong>, <strong>Updating
 the database (3 of 7)</strong> after an update with database changes, <strong>Starting services...</strong>, and
 finally <strong>Running at <a href="http://127.0.0.1:8000/" target="_blank" rel="noopener noreferrer" class="">http://127.0.0.1:8000/</a></strong>. The first start after such an update also shows a
 notification, because updating the database can take a few minutes. <strong>Quit LibrePhotos</strong> works
 during the start too.</p>
-<p>Only one LibrePhotos runs per data folder. Starting it a second time, also while the first one is
-still starting, shows the notification &quot;LibrePhotos is already starting&quot; and then opens the browser
-on the running one; nothing else happens. Up to 1.3.0 a second start during the first one&#x27;s database
-update started a second copy, which could show an error and stop the first copy&#x27;s background
-services.</p>
+<p>Only one LibrePhotos runs per data folder. Starting it again while it runs just opens the browser
+on the running one. Not released yet: a start while the first one is still starting shows the
+notification &quot;LibrePhotos is already starting&quot;, waits for it and then opens the browser; nothing
+else happens. Up to 1.3.0 a second start during the first one&#x27;s database update started a second
+copy, which could show an error and stop the first copy&#x27;s background services.</p>
 <p>Started from a terminal instead, it prints its log there and Ctrl-C stops it; <code>--no-tray</code> leaves the
 icon out. Without a terminal that output goes to <code>console.log</code> in the logs folder; the log of the
 start before is kept as <code>console.previous.log</code> next to it (not released yet), so a failed start can
-still be explained after you tried again. Because
-<code>librephotos.exe</code> is a Windows GUI program, <code>cmd</code> and PowerShell do not wait for it: for commands
-whose output you want to read in order, use <code>start /wait librephotos.exe manage ...</code> in <code>cmd</code>, or pipe
-it (<code>librephotos.exe manage ... | more</code>).</p>
+still be explained after you tried again. For commands, see <a href="#running-a-command" class="">Running a command</a>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="choosing-a-folder">Choosing a folder<a href="#choosing-a-folder" class="hash-link" aria-label="Direct link to Choosing a folder" title="Direct link to Choosing a folder" translate="no">​</a></h3>
+<p>Put the program folder in your own user folder, for example <code>C:\Users\&lt;you&gt;\LibrePhotos-app</code>.
+Windows lets you change files there without administrator rights, so an update is just unzipping,
+and LibrePhotos can create the extra process names it needs next to <code>librephotos.exe</code> (see <a href="#what-the-processes-are" class="">What
+the processes are</a>).</p>
+<p>Avoid these places:</p>
+<ul>
+<li class=""><code>C:\Program Files</code>: unzipping there, and every update after it, needs administrator rights, and
+every process shows up as <code>librephotos.exe</code>.</li>
+<li class="">The Desktop, Documents, or another folder OneDrive backs up: the program files then sync to the
+cloud.</li>
+<li class="">The folder <strong>Extract All...</strong> suggests, <code>Downloads\librephotos-windows-x64</code>: it works, but it is
+easily deleted when you tidy up Downloads, and you then end up with the program in
+<code>Downloads\librephotos-windows-x64\librephotos\</code>.</li>
+</ul>
+<p>Whichever folder you choose, the library is the same: the data folder does not depend on where the
+program is.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-the-processes-are">What the processes are<a href="#what-the-processes-are" class="hash-link" aria-label="Direct link to What the processes are" title="Direct link to What the processes are" translate="no">​</a></h3>
 <p>LibrePhotos runs as a handful of processes, each under its own name in Task Manager&#x27;s <strong>Details</strong>
 tab, <code>tasklist</code> and Resource Monitor, so you can see which part is busy:</p>
-<table><thead><tr><th>Process</th><th>What it does</th></tr></thead><tbody><tr><td><code>librephotos.exe</code></td><td>The one you started: web server and API. Closing it stops all the others.</td></tr><tr><td><code>librephotos-jobs.exe</code></td><td>Runs the background job queue (scans, thumbnails, machine learning jobs).</td></tr><tr><td><code>librephotos-worker.exe</code></td><td>The job queue&#x27;s workers and helpers; two workers by default.</td></tr><tr><td><code>librephotos-thumbnails.exe</code></td><td>Thumbnails for RAW photos.</td></tr><tr><td><code>librephotos-metadata.exe</code></td><td>Reads and writes EXIF/XMP metadata (ExifTool).</td></tr><tr><td><code>librephotos-faces.exe</code></td><td>Face detection and recognition.</td></tr><tr><td><code>librephotos-search.exe</code></td><td>Image and text embeddings for semantic search.</td></tr><tr><td><code>librephotos-similarity.exe</code></td><td>The similar-photos index.</td></tr><tr><td><code>librephotos-tags.exe</code></td><td>Automatic tags.</td></tr><tr><td><code>librephotos-captions.exe</code></td><td>Image captions.</td></tr><tr><td><code>librephotos-ocr.exe</code></td><td>Text recognition, once an OCR model is selected.</td></tr></tbody></table>
+<table><thead><tr><th>Process</th><th>What it does</th></tr></thead><tbody><tr><td><code>librephotos.exe</code></td><td>The one you started: web server and API. Closing it stops all the others.</td></tr><tr><td><code>librephotos-jobs.exe</code></td><td>Runs the background job queue (scans, thumbnails, machine learning jobs).</td></tr><tr><td><code>librephotos-worker.exe</code></td><td>The job queue&#x27;s workers and helpers; two workers by default.</td></tr><tr><td><code>librephotos-thumbnails.exe</code></td><td>Thumbnails for RAW photos.</td></tr><tr><td><code>librephotos-metadata.exe</code></td><td>Reads and writes EXIF/XMP metadata (ExifTool).</td></tr><tr><td><code>librephotos-faces.exe</code></td><td>Face detection and recognition.</td></tr><tr><td><code>librephotos-similarity.exe</code></td><td>The similar-photos index.</td></tr><tr><td><code>librephotos-tags.exe</code></td><td>Automatic tags, and the image and text embeddings for semantic search.</td></tr><tr><td><code>librephotos-captions.exe</code></td><td>Image captions.</td></tr><tr><td><code>librephotos-ocr.exe</code></td><td>Text recognition, once an OCR model is selected.</td></tr></tbody></table>
 <p>The extra names are hard links to <code>librephotos.exe</code> that are created next to it on the first start;
 they take no additional disk space. If the folder is read-only they cannot be created, and every
 process simply shows up as <code>librephotos.exe</code>. The machine learning processes only listen on
 <code>127.0.0.1</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="where-things-go">Where things go<a href="#where-things-go" class="hash-link" aria-label="Direct link to Where things go" title="Direct link to Where things go" translate="no">​</a></h3>
-<table><thead><tr><th>What</th><th>Where</th></tr></thead><tbody><tr><td>Database, thumbnails, models, logs</td><td><code>%LOCALAPPDATA%\LibrePhotos</code> (<code>--data-dir</code> to move it)</td></tr><tr><td>Database backups made before an update</td><td><code>%LOCALAPPDATA%\LibrePhotos\db\backups</code> (not released yet; see <a class="" href="/docs/installation/upgrading#sqlite-backups">Upgrading</a>)</td></tr><tr><td>Photos</td><td>Stay where they are; scan directories may be anywhere under your home directory (<code>--photos</code> to allow another top directory, e.g. <code>--photos D:\</code>)</td></tr></tbody></table>
+<table><thead><tr><th>What</th><th>Where</th></tr></thead><tbody><tr><td>Database</td><td><code>db</code> in the data folder, <code>%LOCALAPPDATA%\LibrePhotos\db</code> (<code>--data-dir</code> to move the whole data folder)</td></tr><tr><td>Database backups made before an update</td><td><code>%LOCALAPPDATA%\LibrePhotos\db\backups</code> (not released yet; see <a class="" href="/docs/installation/upgrading#sqlite-backups">Upgrading</a>)</td></tr><tr><td>Secret key</td><td><code>%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key</code> (1.3.0 and older: <code>logs\secret.key</code>, see below)</td></tr><tr><td>Thumbnails, profile pictures, machine learning models</td><td><code>%LOCALAPPDATA%\LibrePhotos\protected_media</code></td></tr><tr><td>Logs</td><td><code>%LOCALAPPDATA%\LibrePhotos\logs</code> (tray: <strong>Open logs</strong>)</td></tr><tr><td>Photos</td><td>Stay where they are; scan directories may be anywhere under your home directory (<code>--photos</code> to allow another top directory, e.g. <code>--photos D:\</code>)</td></tr></tbody></table>
+<p>To open the data folder, choose <strong>Open data folder</strong> in the tray menu, or type
+<code>%LOCALAPPDATA%\LibrePhotos</code> into the address bar of File Explorer and press Enter.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="options">Options<a href="#options" class="hash-link" aria-label="Direct link to Options" title="Direct link to Options" translate="no">​</a></h3>
-<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe --help</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe run --port 8080 --no-browser</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe --data-dir D:\LibrePhotos --photos D:\Pictures</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe manage createadmin -u admin admin@example.com</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe manage &lt;any manage.py command&gt;</span><br></div></code></pre></div></div>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe --help</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe run --port 8080 --no-browser</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe --data-dir D:\LibrePhotos --photos D:\Pictures</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe --data-dir D:\LibrePhotos run --port 8080</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe manage createadmin -u admin admin@example.com</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">librephotos.exe manage &lt;any manage.py command&gt;</span><br></div></code></pre></div></div>
+<p><code>--data-dir</code> and <code>--photos</code> belong to <code>librephotos.exe</code> itself, so they come before <code>run</code> or
+<code>manage</code>: <code>librephotos.exe run --data-dir D:\LibrePhotos</code> is refused, and after <code>manage</code> they are
+handed to the command, which does not know them.</p>
 <p>Two background workers run the scan, thumbnail and machine learning jobs. That suits a single-user PC;
 set <code>WORKER_CONCURRENCY</code> before starting <code>librephotos.exe</code> to use more (each worker is a full copy of
 the backend, a few hundred MB of RAM).</p>
@@ -86,6 +125,30 @@ console before starting <code>librephotos.exe</code>; the data directory options
 <code>BASE_LOGS</code> and <code>PHOTOS</code> when they are not set. A default <code>SECRET_KEY</code> is generated and kept in
 <code>protected_media\secret.key</code> in the data directory (releases after 1.3.0; 1.3.0 and older kept it in
 the logs directory, and a newer release moves it on its first start).</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="running-a-command">Running a command<a href="#running-a-command" class="hash-link" aria-label="Direct link to Running a command" title="Direct link to Running a command" translate="no">​</a></h3>
+<p>Some release notes ask you to run a command once after an update. <code>librephotos.exe</code> is a Windows
+program without a window of its own, so <code>cmd</code> and PowerShell do not wait for it; <code>start /wait</code> makes
+<code>cmd</code> wait and keeps the output in order:</p>
+<ol>
+<li class="">
+<p>Start the new release once, as usual, so that it updates the database. It may keep running
+while the command runs.</p>
+</li>
+<li class="">
+<p>Press <strong>Windows key + R</strong>, type <code>cmd</code> and press Enter.</p>
+</li>
+<li class="">
+<p>Go to the program folder (the quotes matter if the path has spaces):</p>
+<div class="language-bat codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bat codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">cd /d &quot;C:\Users\&lt;you&gt;\LibrePhotos-app\librephotos&quot;</span><br></div></code></pre></div></div>
+</li>
+<li class="">
+<p>Run the command, for example the thumbnail cleanup from <a class="" href="/docs/installation/upgrading#strip-thumbnail-metadata">Upgrading</a>:</p>
+<div class="language-bat codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bat codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">start /wait librephotos.exe manage strip_thumbnail_metadata</span><br></div></code></pre></div></div>
+<p>With another data folder, put <code>--data-dir</code> before <code>manage</code>:</p>
+<div class="language-bat codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bat codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">start /wait librephotos.exe --data-dir D:\LibrePhotos manage strip_thumbnail_metadata</span><br></div></code></pre></div></div>
+</li>
+</ol>
+<p>Piping works as well: <code>librephotos.exe manage strip_thumbnail_metadata | more</code>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="using-another-port">Using another port<a href="#using-another-port" class="hash-link" aria-label="Direct link to Using another port" title="Direct link to Using another port" translate="no">​</a></h3>
 <p>LibrePhotos shows its pages on port 8000. If another program already uses that port (a development
 server, another self-hosted tool), LibrePhotos does not start, and a message box names that program
@@ -100,7 +163,7 @@ start LibrePhotos on another port:</p>
 <li class="">
 <p>Right-click the new shortcut, choose <strong>Properties</strong>, and add <code> run --port 8080</code> to the end of
 <strong>Target</strong>, after the closing quote:</p>
-<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">&quot;C:\Program Files\LibrePhotos\librephotos.exe&quot; run --port 8080</span><br></div></code></pre></div></div>
+<div class="language-text codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">&quot;C:\Users\&lt;you&gt;\LibrePhotos-app\librephotos\librephotos.exe&quot; run --port 8080</span><br></div></code></pre></div></div>
 </li>
 <li class="">
 <p>Start LibrePhotos with that shortcut from now on. The browser and the tray icon&#x27;s <strong>Open LibrePhotos</strong>
@@ -119,8 +182,64 @@ instead, for example <code>LibrePhotos.cmd</code>:</p>
 <div class="language-bat codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-bat codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">@echo off</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">set SIDECAR_PORT_EXIF=18010</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">start &quot;&quot; &quot;%~dp0librephotos.exe&quot;</span><br></div></code></pre></div></div>
 <p>Not released yet: up to 1.3.0, LibrePhotos started anyway, and the service failed for every photo
 of the next scan with the reason only in <code>console.log</code>.</p>
-<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="updating">Updating<a href="#updating" class="hash-link" aria-label="Direct link to Updating" title="Direct link to Updating" translate="no">​</a></h3>
-<p>Quit LibrePhotos, unzip the new release over the old folder (or into a new one) and start <code>librephotos.exe</code> again. Not released yet: when the new release brings database migrations, it first copies the database into <code>db\backups</code> in the data folder, then migrates, so the first start after an update can take a few minutes. If the update goes wrong, <a class="" href="/docs/installation/upgrading#restore">restore that backup</a> and start the release named in its file name. An older release refuses to start on a database a newer one has migrated, see <a class="" href="/docs/installation/upgrading#downgrade">Going back to an older release</a>.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="updating">Updating<a href="#updating" class="hash-link" aria-label="Direct link to Updating" title="Direct link to Updating" translate="no">​</a></h2>
+<p>An update replaces the program folder and keeps the data folder: your photos, albums, people, users
+and settings are all still there afterwards. The steps assume the program is in
+<code>C:\Users\&lt;you&gt;\LibrePhotos-app\librephotos</code>; use your own folder if it is somewhere else.</p>
+<ol>
+<li class="">
+<p><a href="#backing-up" class="">Back up</a> the database. The new release also makes a copy of the database itself
+before it changes it (not released yet, see below), but a copy on another drive is the safe way
+back.</p>
+</li>
+<li class="">
+<p>Quit LibrePhotos: right-click its icon in the tray (behind the <strong>^</strong> arrow if you do not see it)
+and choose <strong>Quit LibrePhotos</strong>. Wait until the icon disappears, which takes a few seconds.</p>
+</li>
+<li class="">
+<p>Download the new <code>librephotos-windows-x64.zip</code> from the <a href="https://github.com/LibrePhotos/librephotos/releases" target="_blank" rel="noopener noreferrer" class="">releases
+page</a>, and read that release&#x27;s notes: some
+ask you to do something once after the update.</p>
+</li>
+<li class="">
+<p>In File Explorer, open <code>C:\Users\&lt;you&gt;\LibrePhotos-app</code>, right-click the <code>librephotos</code> folder,
+choose <strong>Rename</strong> and call it <code>librephotos-old</code>. If Windows says the folder is in use,
+LibrePhotos is still running: wait a moment and try again, or end <code>librephotos.exe</code> in Task
+Manager.</p>
+<p>Do not unzip the new release over the old folder instead. Files that are still in use cannot be
+replaced, and files the new release no longer has stay behind, so the folder can end up with a
+mix of both releases. The old folder is also your way back.</p>
+</li>
+<li class="">
+<p>Right-click the new zip, choose <strong>Extract All...</strong>, and extract it into
+<code>C:\Users\&lt;you&gt;\LibrePhotos-app</code> again. You now have a new <code>librephotos</code> folder next to
+<code>librephotos-old</code>. Shortcuts to <code>librephotos\librephotos.exe</code> keep working.</p>
+</li>
+<li class="">
+<p>Double-click <code>librephotos.exe</code> in the new <code>librephotos</code> folder, once. If the release brings
+database changes, the first start updates the database before the browser opens. That can take
+a few minutes with a large library: wait, and do not start it again meanwhile.</p>
+</li>
+<li class="">
+<p>Check that LibrePhotos works: log in and open a few photos and albums. Then delete the
+<code>librephotos-old</code> folder. Keep it for a while if you might want to <a href="#going-back" class="">go back</a>.</p>
+</li>
+</ol>
+<p>What the first start after an update does, not released yet (up to 1.3.0 it only updates the
+database, and nothing shows until the browser opens):</p>
+<ul>
+<li class="">It copies the database into <code>db\backups</code> in the data folder before it changes anything. The copy
+is named after the new release and the time, and holds the database as the old release left it.
+The three newest copies are kept. If there is not
+enough free disk space for the copy, LibrePhotos does not start, and a message box says how much
+space to free. See <a class="" href="/docs/installation/upgrading#sqlite-backups">Automatic backups</a>.</li>
+<li class="">The tray icon says <strong>Updating the database (3 of 7)</strong> while it works, and a notification says
+that the database is being updated.</li>
+<li class="">After an update from 1.3.0 or older, it moves the secret key from <code>logs\secret.key</code> to
+<code>protected_media\secret.key</code>.</li>
+</ul>
+<p>If the new release does not start, the message box says why, and <code>console.log</code> in the logs folder
+(tray: <strong>Open logs</strong>) has the details. You can always <a href="#going-back" class="">go back</a> to the old release.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="upgrading-from-130-or-older">Upgrading from 1.3.0 or older<a href="#upgrading-from-130-or-older" class="hash-link" aria-label="Direct link to Upgrading from 1.3.0 or older" title="Direct link to Upgrading from 1.3.0 or older" translate="no">​</a></h3>
 <p>Not released yet: up to 1.3.0, LibrePhotos on Windows took the time on your PC&#x27;s clock for UTC when it
 recorded when a photo was added and when it checked whether a file had changed since the last scan.
@@ -130,11 +249,83 @@ earlier run were not looked up. Run a full rescan once after the upgrade: on the
 the <strong>Scan Library</strong> section, click the arrow next to <strong>Scan</strong> and choose <strong>Rescan</strong> (or <strong>Rescan All
 Photos</strong> in the Ctrl+K command palette). East of Greenwich nothing was missed. Either way, the times
 in <strong>Recently added</strong> stay shifted by your UTC offset for photos added before the upgrade.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="backing-up">Backing up and restoring<a href="#backing-up" class="hash-link" aria-label="Direct link to Backing up and restoring" title="Direct link to Backing up and restoring" translate="no">​</a></h2>
+<p>The most complete backup is a copy of the whole data folder, <code>%LOCALAPPDATA%\LibrePhotos</code>. It can
+be many GB, mostly thumbnails and machine learning models, which LibrePhotos makes again by a
+rescan or downloads again. If that is too much, back up at least these two, which nothing can make
+again:</p>
+<table><thead><tr><th>What</th><th>Why</th></tr></thead><tbody><tr><td>The <code>db</code> folder</td><td>The database: users, albums, people and face names, favourites, ratings, captions, settings.</td></tr><tr><td><code>protected_media\secret.key</code> (1.3.0 and older: <code>logs\secret.key</code>)</td><td>Encrypts the saved email server password and Nextcloud app passwords, and signs every login. Without it, everyone has to log in again and those passwords have to be entered again.</td></tr></tbody></table>
+<p>Two small folders in <code>protected_media</code> are worth copying too: <code>faces</code> (the face pictures shown
+under People) and <code>avatars</code> (profile pictures).</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="making-a-backup">Making a backup<a href="#making-a-backup" class="hash-link" aria-label="Direct link to Making a backup" title="Direct link to Making a backup" translate="no">​</a></h3>
+<ol>
+<li class="">Right-click the LibrePhotos icon in the tray and choose <strong>Open data folder</strong>. (Without the icon:
+type <code>%LOCALAPPDATA%\LibrePhotos</code> into the address bar of File Explorer and press Enter.)</li>
+<li class="">Right-click the icon again and choose <strong>Quit LibrePhotos</strong>. Wait until it disappears: a copy of
+the database made while LibrePhotos runs can be incomplete.</li>
+<li class="">Copy the <code>db</code> folder, with everything in it, to a safe place, for example an external drive:
+right-click <code>db</code>, choose <strong>Copy</strong>, open the target folder and press Ctrl+V. If there are files
+named <code>librephotos.sqlite3-wal</code> or <code>librephotos.sqlite3-shm</code> in it, they belong to the database
+and have to be copied too.</li>
+<li class="">Open <code>protected_media</code> and copy <code>secret.key</code> to the same safe place, and the <code>faces</code> and
+<code>avatars</code> folders if you want them. With 1.3.0 or older, <code>secret.key</code> is in <code>logs</code> instead.</li>
+<li class="">Start LibrePhotos again.</li>
+</ol>
+<p>For the complete backup, copy the whole <code>LibrePhotos</code> folder in step 3 instead, and skip step 4.</p>
+<p>The automatic copies in <code>db\backups</code> (not released yet) are made on the same drive as the database,
+so they help after a failed update, but not when the drive fails. See <a class="" href="/docs/installation/upgrading#sqlite-backups">Automatic
+backups</a>.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="restoring">Restoring a backup<a href="#restoring" class="hash-link" aria-label="Direct link to Restoring a backup" title="Direct link to Restoring a backup" translate="no">​</a></h3>
+<ol>
+<li class="">Quit LibrePhotos (tray: <strong>Quit LibrePhotos</strong>).</li>
+<li class="">Open the data folder (<code>%LOCALAPPDATA%\LibrePhotos</code>) and rename the <code>db</code> folder to <code>db-broken</code>.</li>
+<li class="">Copy the <code>db</code> folder from your backup into the data folder.</li>
+<li class="">Copy <code>secret.key</code> from your backup into <code>protected_media</code>, replacing the one there, and the
+<code>faces</code> and <code>avatars</code> folders if you backed them up. When you go back to 1.3.0 or older, copy
+<code>secret.key</code> into <code>logs</code> instead, as <code>logs\secret.key</code>: those releases look for it there.</li>
+<li class="">Start the release you made the backup with (or a newer one, which updates the database again).
+Releases after 1.3.0 refuse to start on a database a newer release has updated, see <a class="" href="/docs/installation/upgrading#downgrade">Going back
+to an older release</a>.</li>
+<li class="">When everything works, delete <code>db-broken</code>.</li>
+</ol>
+<p>To restore a complete backup, quit LibrePhotos, rename the <code>LibrePhotos</code> data folder to
+<code>LibrePhotos-broken</code>, and copy your backup in its place.</p>
+<p>To restore one of the automatic copies from <code>db\backups</code> instead, see <a class="" href="/docs/installation/upgrading#restore">Restoring a
+backup</a> on the Upgrading page.</p>
+<h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="going-back">Going back to the previous release<a href="#going-back" class="hash-link" aria-label="Direct link to Going back to the previous release" title="Direct link to Going back to the previous release" translate="no">​</a></h3>
+<ol>
+<li class="">Quit LibrePhotos.</li>
+<li class="">In <code>C:\Users\&lt;you&gt;\LibrePhotos-app</code>, rename the new <code>librephotos</code> folder to <code>librephotos-new</code>,
+and <code>librephotos-old</code> back to <code>librephotos</code>.</li>
+<li class="">If the new release updated the database, put the database from before the update back:
+<a href="#restoring" class="">your own backup</a>, or the newest automatic copy in <code>db\backups</code>, the one named after
+the new release (<a class="" href="/docs/installation/upgrading#restore">Restoring a backup</a>). An older release cannot run on the database a
+newer one has updated: releases after 1.3.0 refuse to start and say so, 1.3.0 and older start
+but fail later.</li>
+<li class="">When you go back to 1.3.0 or older and the new release moved the secret key, copy
+<code>protected_media\secret.key</code> to <code>logs\secret.key</code>.</li>
+<li class="">Start <code>librephotos.exe</code> in the <code>librephotos</code> folder.</li>
+</ol>
+<p>Changes made with the newer release (faces named, albums edited) are not in the old database. The
+next scan finds photos added since.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="uninstalling">Uninstalling<a href="#uninstalling" class="hash-link" aria-label="Direct link to Uninstalling" title="Direct link to Uninstalling" translate="no">​</a></h2>
+<p>The zip installs nothing outside its folder: no Start menu entry, no service and no registry
+settings. To remove LibrePhotos:</p>
+<ol>
+<li class="">Quit LibrePhotos (tray: <strong>Quit LibrePhotos</strong>).</li>
+<li class="">Delete the program folder, for example <code>C:\Users\&lt;you&gt;\LibrePhotos-app</code> (with <code>librephotos</code>
+and any <code>librephotos-old</code> in it), and the shortcuts you made to it.</li>
+<li class="">Only if you do not want to keep your library: delete the data folder, <code>%LOCALAPPDATA%\LibrePhotos</code>
+(or the folder you gave with <code>--data-dir</code>). It holds the database, thumbnails, models and logs
+and can be many GB. <a href="#backing-up" class="">Back it up</a> first if you might want your albums, people and
+settings back: if you keep it, a later install picks up the library where you left it.</li>
+</ol>
+<p>Your photos in your own folders are not touched by any of this.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="building-it-yourself">Building it yourself<a href="#building-it-yourself" class="hash-link" aria-label="Direct link to Building it yourself" title="Direct link to Building it yourself" translate="no">​</a></h2>
 <div class="language-powershell codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-powershell codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token plain">cd apps\backend</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain">py </span><span class="token operator" style="color:#393A34">-</span><span class="token plain">3</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">11 </span><span class="token operator" style="color:#393A34">-</span><span class="token plain">m venv </span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">venv</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">\</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">venv\Scripts\pip install </span><span class="token operator" style="color:#393A34">-</span><span class="token plain">r requirements</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">txt </span><span class="token operator" style="color:#393A34">-</span><span class="token plain">r requirements</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">standalone</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">txt</span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">\</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">venv\Scripts\python scripts\build_standalone</span><span class="token punctuation" style="color:#393A34">.</span><span class="token plain">py </span><span class="token operator" style="color:#393A34">--</span><span class="token plain">zip</span><br></div></code></pre></div></div>
 <p>This builds the frontend (Node 24 and Yarn on PATH; <code>--skip-frontend</code> reuses <code>apps/frontend/dist</code>),
 collects the static files and compiles the backend; Nuitka needs Visual Studio&#x27;s C++ build tools and
 downloads the rest itself. Expect the first build to take well over an hour, later ones are much
-faster thanks to Nuitka&#x27;s cache. The result lands in <code>apps\backend\build\standalone\librephotos\</code>.</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/docs/installation/windows-standalone.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/installation/environment-variables"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">📖 Advanced docker-compose usage</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/installation/upgrading"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">⬆️ Upgrading</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#what-it-is" class="table-of-contents__link toc-highlight">What it is</a></li><li><a href="#running-it" class="table-of-contents__link toc-highlight">Running it</a><ul><li><a href="#what-the-processes-are" class="table-of-contents__link toc-highlight">What the processes are</a></li><li><a href="#where-things-go" class="table-of-contents__link toc-highlight">Where things go</a></li><li><a href="#options" class="table-of-contents__link toc-highlight">Options</a></li><li><a href="#using-another-port" class="table-of-contents__link toc-highlight">Using another port</a></li><li><a href="#updating" class="table-of-contents__link toc-highlight">Updating</a></li><li><a href="#upgrading-from-130-or-older" class="table-of-contents__link toc-highlight">Upgrading from 1.3.0 or older</a></li></ul></li><li><a href="#building-it-yourself" class="table-of-contents__link toc-highlight">Building it yourself</a></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/docs/intro">Docs</a></li><li class="footer__item"><a class="footer__link-item" href="/docs/development/dev-install">Development</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://discord.com/invite/xwRvtSDGWb" target="_blank" rel="noopener noreferrer" class="footer__link-item">Discord<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="footer__link-item">Sponsor on GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="footer__link-item">Donate via PayPal<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="footer__link-item">Development videos<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/blog">Blog</a></li><li class="footer__item"><a href="https://demo2.librephotos.com/" target="_blank" rel="noopener noreferrer" class="footer__link-item">Demo<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2026 LibrePhotos. Built with Docusaurus.</div></div></div></footer></div>
+faster thanks to Nuitka&#x27;s cache. The result lands in <code>apps\backend\build\standalone\librephotos\</code>.</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/docs/installation/windows-standalone.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/docs/installation/environment-variables"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">📖 Advanced docker-compose usage</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/docs/installation/upgrading"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">⬆️ Upgrading</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#what-it-is" class="table-of-contents__link toc-highlight">What it is</a></li><li><a href="#running-it" class="table-of-contents__link toc-highlight">Running it</a><ul><li><a href="#choosing-a-folder" class="table-of-contents__link toc-highlight">Choosing a folder</a></li><li><a href="#what-the-processes-are" class="table-of-contents__link toc-highlight">What the processes are</a></li><li><a href="#where-things-go" class="table-of-contents__link toc-highlight">Where things go</a></li><li><a href="#options" class="table-of-contents__link toc-highlight">Options</a></li><li><a href="#running-a-command" class="table-of-contents__link toc-highlight">Running a command</a></li><li><a href="#using-another-port" class="table-of-contents__link toc-highlight">Using another port</a></li></ul></li><li><a href="#updating" class="table-of-contents__link toc-highlight">Updating</a><ul><li><a href="#upgrading-from-130-or-older" class="table-of-contents__link toc-highlight">Upgrading from 1.3.0 or older</a></li></ul></li><li><a href="#backing-up" class="table-of-contents__link toc-highlight">Backing up and restoring</a><ul><li><a href="#making-a-backup" class="table-of-contents__link toc-highlight">Making a backup</a></li><li><a href="#restoring" class="table-of-contents__link toc-highlight">Restoring a backup</a></li><li><a href="#going-back" class="table-of-contents__link toc-highlight">Going back to the previous release</a></li></ul></li><li><a href="#uninstalling" class="table-of-contents__link toc-highlight">Uninstalling</a></li><li><a href="#building-it-yourself" class="table-of-contents__link toc-highlight">Building it yourself</a></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/docs/intro">Docs</a></li><li class="footer__item"><a class="footer__link-item" href="/docs/development/dev-install">Development</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://discord.com/invite/xwRvtSDGWb" target="_blank" rel="noopener noreferrer" class="footer__link-item">Discord<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="footer__link-item">Sponsor on GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="footer__link-item">Donate via PayPal<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="footer__link-item">Development videos<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/blog">Blog</a></li><li class="footer__item"><a href="https://demo2.librephotos.com/" target="_blank" rel="noopener noreferrer" class="footer__link-item">Demo<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2026 LibrePhotos. Built with Docusaurus.</div></div></div></footer></div>
 </body>
 </html>
