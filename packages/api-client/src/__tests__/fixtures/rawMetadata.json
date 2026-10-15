@@ -1,0 +1,54 @@
+{
+  "files": [
+    {
+      "path_label": "2024/algarve/DSCF4127.JPG",
+      "kind": "media",
+      "groups": [
+        {
+          "name": "File",
+          "family": "File",
+          "tags": { "FileType": "JPEG", "MIMEType": "image/jpeg" }
+        },
+        {
+          "name": "IFD0",
+          "family": "EXIF",
+          "tags": { "Make": "FUJIFILM", "Model": "X-T5" }
+        },
+        {
+          "name": "ExifIFD",
+          "family": "EXIF",
+          "tags": { "ExposureTime": "1/250", "ExifVersion": "0232" }
+        },
+        {
+          "name": "IFD1",
+          "family": "EXIF",
+          "tags": {
+            "ThumbnailImage": "(Binary data 9214 bytes, use -b option to extract)"
+          }
+        },
+        {
+          "name": "FujiFilm",
+          "family": "MakerNotes",
+          "tags": { "FilmMode": "Classic Chrome" }
+        },
+        {
+          "name": "XMP-mwg-rs",
+          "family": "XMP",
+          "tags": {
+            "RegionInfo": { "RegionList": [{ "Name": "Anna", "Type": "Face" }] }
+          }
+        },
+        {
+          "name": "XMP-dc",
+          "family": "XMP",
+          "tags": { "Subject": ["Algarve", "Portugal"] }
+        }
+      ]
+    },
+    {
+      "path_label": "2024/algarve/DSCF4127.xmp",
+      "kind": "sidecar",
+      "groups": [{ "name": "XMP-xmp", "family": "XMP", "tags": { "Rating": "5" } }]
+    }
+  ]
+}

@@ -86,7 +86,8 @@ export const importBans = [
     // The virtualization primitives themselves: TileGrid on VirtualGrid on @tanstack/react-virtual.
     id: "react-virtual",
     group: ["@tanstack/react-virtual", "@tanstack/react-virtual/*"],
-    message: "Virtualize through components/virtual: TileGrid for tiles, PhotoListView for photos.",
+    message:
+      "Virtualize through components/virtual: TileGrid for tiles, VirtualList for rows, PhotoListView for photos.",
     allowIn: ["src/components/virtual/**/*.{ts,tsx}"],
   },
   {

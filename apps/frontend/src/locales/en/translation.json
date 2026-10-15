@@ -2797,5 +2797,33 @@
       "title": "Search filter not applied",
       "description": "{{message}}. Remove or change the filter to see results."
     }
+  },
+  "allmetadata": {
+    "button": "All metadata",
+    "title": "All metadata",
+    "subtitle_one": "{{name}} · {{count}} sidecar",
+    "subtitle_other": "{{name}} · {{count}} sidecars",
+    "loading": "Reading the file with ExifTool...",
+    "media": "Media",
+    "sidecar": "Sidecar",
+    "tagcount_one": "{{count}} tag",
+    "tagcount_other": "{{count}} tags",
+    "groupmatches": "{{shown}} of {{count}}",
+    "filter": "Filter tags and values",
+    "clearfilter": "Clear the filter",
+    "matches_one": "{{shown}} of {{count}} tag matches",
+    "matches_other": "{{shown}} of {{count}} tags match",
+    "collapseall": "Collapse all",
+    "expandall": "Expand all",
+    "copy": "Copy as JSON",
+    "copied": "Copied",
+    "copyfailed": "The tags could not be copied to the clipboard.",
+    "nomatch": "No tag or value contains “{{query}}” in {{name}}.",
+    "notags": "ExifTool found no tags in this file.",
+    "tableof": "Tags of {{name}}",
+    "footer": "Read from the files just now with ExifTool. Nothing is stored. Only you see this.",
+    "filemissingtitle": "The file could not be read",
+    "readfailedtitle": "ExifTool could not read the file",
+    "retry": "Try again"
   }
 }

@@ -447,6 +447,10 @@ urlpatterns = [
     ),
     re_path(r"^api/duplicates/?$", duplicates.DuplicateListView.as_view()),
     # Photo Metadata - Structured metadata with edit history
+    path(
+        "api/photos/<uuid:photo_id>/metadata/raw/",
+        photo_metadata.RawMetadataView.as_view(),
+    ),
     re_path(
         rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/history/?$",
         photo_metadata.PhotoMetadataViewSet.as_view({"get": "history"}),

@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from api.drf.params import JsonStringField, QueryFlagField
 from api.metadata.edits import MAX_RATING
+from api.metadata.raw import RawMetadata
 from api.models import User
 from api.models.photo import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
@@ -382,3 +383,39 @@ class BulkMetadataUpdateResponse(serializers.Serializer[None]):
         help_text="The photos changed (the caller's, among photo_ids)"
     )
     message = serializers.CharField(help_text="The count, in English")
+
+
+# What a file of ``GET /api/photos/<photo_id>/metadata/raw/`` is to the photo.
+RAW_METADATA_FILE_KINDS = (("media", "media"), ("sidecar", "sidecar"))
+
+
+class RawMetadataGroupSerializer(serializers.Serializer[None]):
+    """One ExifTool group of a file: ``IFD0`` (family ``EXIF``), ``XMP-dc``, ..."""
+
+    name = serializers.CharField(help_text="ExifTool's family 1 group (IFD0, XMP-dc)")
+    family = serializers.CharField(
+        help_text="ExifTool's family 0 group (EXIF, XMP, MakerNotes)"
+    )
+    tags = serializers.DictField(
+        child=serializers.JSONField(),
+        help_text=(
+            "Tag name to value as ExifTool prints it: text, a list, or an "
+            "object for an XMP structure"
+        ),
+    )
+
+
+class RawMetadataFileSerializer(serializers.Serializer[None]):
+    """One file of a photo with every tag ExifTool reads in it."""
+
+    path_label = serializers.CharField(
+        help_text="The path below the owner's library folder (the file name outside it)"
+    )
+    kind = serializers.ChoiceField(choices=RAW_METADATA_FILE_KINDS)
+    groups = RawMetadataGroupSerializer(many=True)
+
+
+class RawMetadataSerializer(serializers.Serializer[RawMetadata]):
+    """``GET /api/photos/<photo_id>/metadata/raw/``: the main file, then its sidecars."""
+
+    files = RawMetadataFileSerializer(many=True)

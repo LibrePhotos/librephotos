@@ -6,6 +6,7 @@ Provides endpoints for:
 - Editing metadata with history tracking
 - Reverting metadata changes
 - Viewing edit history
+- Reading every tag of a photo's files (the owner's "All metadata" view)
 """
 
 import uuid
@@ -14,7 +15,7 @@ from django.db.models import Q
 from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -22,11 +23,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from api.drf.exceptions import EditSuperseded
+from api.drf.exceptions import EditSuperseded, UpstreamError
 from api.drf.pagination import PAGE_PARAMETERS, PaginatedViewMixin
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.metadata import edits
+from api.metadata.raw import MainFileMissingError, raw_metadata
+from api.metadata.reader import MetadataReadError
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.serializers.photo_metadata import (
@@ -38,6 +41,7 @@ from api.serializers.photo_metadata import (
     MetadataRevertQuery,
     PhotoMetadataSerializer,
     PhotoMetadataUpdateSerializer,
+    RawMetadataSerializer,
 )
 
 
@@ -213,6 +217,44 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
             raise ValidationError({"photo": "The photo has no file to restore from."})
         edits.revert_all(photo, request_user(request))
         return self._response(photo)
+
+
+class RawMetadataView(APIView):
+    """Every tag ExifTool reads in a photo's file and sidecars, for its owner.
+
+    Read on request and never stored. Owner only: staff and the people a
+    photo is shared with get a 404 like for an unknown photo, and no public or
+    shared view links here.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        description=(
+            "Every tag of the photo's main file and of each XMP sidecar, grouped "
+            "by ExifTool group, read now with ExifTool (print conversion on). "
+            "Owner only (404 otherwise). 404 file_missing when the file is not "
+            "on disk, 502 when ExifTool cannot read it."
+        ),
+        responses={200: RawMetadataSerializer},
+    )
+    def get(self, request: Request, photo_id: uuid.UUID) -> Response:
+        photos = Photo.objects.owned_by(request_user(request)).select_related(
+            "main_file", "owner"
+        )
+        photo = get_object_or_404(photos, pk=photo_id)
+        try:
+            answer = raw_metadata(photo)
+        except MainFileMissingError as error:
+            raise NotFound(
+                "The photo's file is not on disk. Rescan its folder or restore the file.",
+                code="file_missing",
+            ) from error
+        except MetadataReadError as error:
+            raise UpstreamError(
+                f"ExifTool could not read the file: {error}", code="exiftool_failed"
+            ) from error
+        return Response(RawMetadataSerializer(answer).data)
 
 
 class BulkMetadataView(APIView):

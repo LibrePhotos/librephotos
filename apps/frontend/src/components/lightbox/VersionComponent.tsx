@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { AllMetadataButton } from "../allmetadata/AllMetadataButton";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { fileNameOf, folderOf } from "../photopage/photoPageText";
 import { CameraInfoSection } from "./CameraInfoSection";
@@ -35,10 +36,12 @@ export function getVariantBadgeProps(variant: FileVariant): { color: string; lab
  */
 function PhotoInfoSection({
   photoDetail,
+  isPublic,
   category,
   t,
 }: {
   photoDetail: PhotoType;
+  isPublic: boolean;
   category: React.ReactNode;
   t: TFunction;
 }) {
@@ -78,6 +81,8 @@ function PhotoInfoSection({
                   {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
                 </Anchor>
               )}
+              {/* The owner's only, as the editors are (#2277). */}
+              {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
             </Group>
           </div>
         </Group>
@@ -191,7 +196,7 @@ export function VersionComponent(
   return (
     <div>
       <Stack align="flex-start">
-        <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
+        <PhotoInfoSection photoDetail={photoDetail} isPublic={isPublic} category={category} t={t} />
         <CameraInfoSection photoDetail={photoDetail} />
         {hasMore && (
           <>

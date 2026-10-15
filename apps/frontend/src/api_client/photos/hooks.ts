@@ -28,6 +28,7 @@ export * from "./hooks/useSavePhotoCaptionMutation";
 export * from "./hooks/useDeleteMissingPhotosMutation";
 // Photo Metadata hooks
 export * from "./hooks/useFetchPhotoMetadataQuery";
+export * from "./hooks/useRawPhotoMetadataQuery";
 export * from "./hooks/usePhotoMetadataMutations";
 // Public photo hooks
 export * from "./hooks/useFetchPublicPhotoDetailQuery";

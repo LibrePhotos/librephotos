@@ -22,6 +22,10 @@ class MetadataReadError(RuntimeError):
     """The exif service could not read a file's metadata."""
 
 
+class MetadataFileMissingError(MetadataReadError):
+    """The file to read is not on disk (any more)."""
+
+
 def get_sidecar_files_in_priority_order(media_file: str) -> list[str]:
     """Every name an XMP sidecar of *media_file* may have, best first.
 
@@ -201,3 +205,27 @@ def get_metadata(
     if len(values) < len(tags):
         values = list(values) + [None] * (len(tags) - len(values))
     return values
+
+
+def all_tags(path: str) -> list[dict[str, object]]:
+    """Every tag of the file at *path*, grouped by ExifTool group (#2277).
+
+    Each group is ``{"name": "IFD0", "family": "EXIF", "tags": {"Make": ...}}``
+    (groups in ExifTool's order, tags by name), read now and never stored. Raises
+    ``MetadataFileMissingError`` when the file is gone and ``MetadataReadError``
+    when the exif service cannot read it.
+    """
+    from api.runtime.http_timeouts import EXIF
+
+    try:
+        response = sidecars.post("exif", "/all-tags", json={"path": path}, timeout=EXIF)
+        groups = response.json()["groups"]
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 404:
+            raise MetadataFileMissingError("the file is not on disk") from error
+        raise MetadataReadError(sidecars.error_detail(error)) from error
+    except (requests.RequestException, ValueError, KeyError, TypeError) as error:
+        raise MetadataReadError(sidecars.error_detail(error)) from error
+    if not isinstance(groups, list) or not all(isinstance(g, dict) for g in groups):
+        raise MetadataReadError("the exif service answered without a list of groups")
+    return groups

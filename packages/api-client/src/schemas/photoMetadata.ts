@@ -121,3 +121,39 @@ export const BulkMetadataUpdateResponse = z.looseObject({
   message: z.string(),
 });
 export type BulkMetadataUpdateResponse = z.infer<typeof BulkMetadataUpdateResponse>;
+
+/**
+ * A tag's value as ExifTool prints it (print conversion on, numbers kept as text): text, a list,
+ * or an object for an XMP structure (a region list, a contact block).
+ */
+export type RawTagValue = string | number | boolean | null | RawTagValue[] | { [key: string]: RawTagValue };
+export const RawTagValue: z.ZodType<RawTagValue> = z.lazy(() =>
+  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(RawTagValue), z.record(z.string(), RawTagValue)])
+);
+
+/** One ExifTool group of a file: `IFD0` (family `EXIF`), `XMP-dc` (family `XMP`), maker notes, ... */
+export const RawMetadataGroup = z.object({
+  /** ExifTool's family 1 group (IFD0, ExifIFD, XMP-dc, FujiFilm). */
+  name: z.string(),
+  /** ExifTool's family 0 group (EXIF, XMP, MakerNotes, File, Composite). */
+  family: z.string(),
+  tags: z.record(z.string(), RawTagValue),
+});
+export type RawMetadataGroup = z.infer<typeof RawMetadataGroup>;
+
+export const RawMetadataFileKind = z.enum(["media", "sidecar"]);
+export type RawMetadataFileKind = z.infer<typeof RawMetadataFileKind>;
+
+/** One file of a photo: its path below the library folder and every tag ExifTool reads in it. */
+export const RawMetadataFile = z.object({
+  path_label: z.string(),
+  kind: RawMetadataFileKind,
+  groups: RawMetadataGroup.array(),
+});
+export type RawMetadataFile = z.infer<typeof RawMetadataFile>;
+
+/** GET /photos/{photo_id}/metadata/raw/: the main file, then each sidecar (highest priority first). */
+export const RawMetadata = z.object({
+  files: RawMetadataFile.array(),
+});
+export type RawMetadata = z.infer<typeof RawMetadata>;

@@ -222,6 +222,9 @@ class CrossTenantReadTest(TestCase):
             # The victim's photos are all in their album, so the owner sees none.
             ("/api/photos/no-album/", None),
             (f"/api/photos/{v.v_photo.pk}/albums/", "VictimTripTitle"),
+            # The file is not on disk here, so the owner's read is a 404 too;
+            # api/tests/metadata/test_raw_metadata.py reads real files.
+            (f"/api/photos/{v.v_photo.pk}/metadata/raw/", None),
             ("/api/tags/", "victim-tag-name"),
             (f"/api/tags/{v.v_tag.pk}/", "victim-tag-name"),
             ("/api/stacks/", str(v.v_stack.pk)),
