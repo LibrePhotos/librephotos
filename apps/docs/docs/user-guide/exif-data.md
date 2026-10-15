@@ -269,7 +269,17 @@ does the same for your own photos.
 ## How a rescan treats your edits
 
 A **Rescan** reads every file again, and a scan reads a file again when it or its sidecar changed.
-What it does to a value you edited in LibrePhotos:
+
+<Since version="1.4.0" /> A write LibrePhotos makes itself is not such a change. A scan remembers the
+modification time of every file it reads and of its sidecars, and a write that ExifTool reports as
+done updates what was remembered, so rating or re-dating a thousand photos does not make the next
+scan read them all again. In media file mode the write still moves the file's modification time,
+so backup and sync tools see that the file changed. A change another app makes is still picked up:
+a file it edited, a sidecar it added or one that was deleted, before or after LibrePhotos' write.
+A photo indexed by an earlier version gets its times remembered on the first scan that reads it or
+finds it unchanged; until then, a write makes the next scan read the photo once more, as before.
+
+What a scan does to a value you edited in LibrePhotos:
 
 | Field | On a rescan |
 | --- | --- |

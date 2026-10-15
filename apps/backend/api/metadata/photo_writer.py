@@ -34,6 +34,7 @@ from api.metadata.writer import (
     remove_from,
     write_metadata,
 )
+from api.models.file import File
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
     DESCRIPTION_SOURCES,
@@ -44,6 +45,7 @@ from api.models.photo_metadata import (
 )
 from api.models.tag import Tag
 from api.models.user import User
+from api.photos import indexed_mtimes
 from api.photos.paths import is_nextcloud_copy
 
 if TYPE_CHECKING:
@@ -152,7 +154,9 @@ def write_photo_metadata(
 
     if tags_to_write and _keeps_edits(photo):
         assert photo.main_file is not None
+        indexed = _indexed_files(photo)
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
+        indexed_mtimes.record_own_write(indexed)
 
 
 # ---------------------------------------------------------- caption, location
@@ -321,6 +325,23 @@ def write_location(photo: Photo, use_sidecar: bool) -> None:
     )
 
 
+def _indexed_files(photo: Photo) -> list[str]:
+    """The photo's media files that are as the scan last read them (#2296).
+
+    Asked right before a write: a write that lands is recorded for these
+    (``indexed_mtimes.record_own_write``), so the next scan does not read the
+    photo again for it, while a change another app made before it is still
+    picked up. Every media file of the photo, not only the main one: a RAW
+    and its JPEG may share one sidecar (``IMG.xmp``).
+    """
+    assert photo.main_file is not None
+    paths = {
+        photo.main_file.path,
+        *photo.files.exclude(type=File.METADATA_FILE).values_list("path", flat=True),
+    }
+    return indexed_mtimes.as_indexed(paths)
+
+
 def _write_edit(
     photo: Photo,
     tags: dict[str, TagValue],
@@ -339,7 +360,9 @@ def _write_edit(
     removes_only = all(value == "" for value in tags.values())
     if use_sidecar and removes_only and not existing_sidecars(path):
         return False
+    indexed = _indexed_files(photo)
     write_metadata(path, tags, use_sidecar=use_sidecar, options=options)
+    indexed_mtimes.record_own_write(indexed)
     return True
 
 
@@ -673,7 +696,9 @@ def _write_sidecar_orientation(photo: Photo) -> None:
     shown = exif_orientation_showing(
         _orientation_on_disk(path), photo.local_orientation
     )
+    indexed = _indexed_files(photo)
     write_metadata(path, {Tags.ORIENTATION_XMP: shown}, use_sidecar=True)
+    indexed_mtimes.record_own_write(indexed)
 
 
 def _fold_rotation_into_file(photo: Photo) -> None:
@@ -720,6 +745,7 @@ def _fold_rotation_into_file(photo: Photo) -> None:
     combined = exif_orientation_showing(
         _orientation_on_disk(path), photo.local_orientation
     )
+    indexed = _indexed_files(photo)
     write_metadata(path, {Tags.ORIENTATION: combined}, use_sidecar=False)
 
     written = read_orientation(path)
@@ -733,6 +759,7 @@ def _fold_rotation_into_file(photo: Photo) -> None:
         )
         return
 
+    indexed_mtimes.record_own_write(indexed)
     _adopt_written_orientation(photo, combined)
 
 

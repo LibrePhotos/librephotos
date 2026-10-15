@@ -14,7 +14,7 @@ sudo docker exec --user root backend python3 manage.py scan
 
 `backend` is the default container name set by `container_name:` in `docker-compose.yml`; substitute your own if you changed it (see [Changing the container names](../installation/environment-variables.md#changing-the-container-names)).
 
-The plain `scan` command is incremental — it only picks up files that are new or that were modified since the last finished scan. Use `scan -f` to force a full re-process of every file, or `scan -s /path/a.jpg /path/b.jpg` to scan specific files. See [Management Commands](./library.md#management-commands) for the full list.
+The plain `scan` command is incremental — it only picks up files that are new or that changed since a scan last read them; a write-back LibrePhotos made itself does not count (see [How a rescan treats your edits](./exif-data.md#how-a-rescan-treats-your-edits)). Use `scan -f` to force a full re-process of every file, or `scan -s /path/a.jpg /path/b.jpg` to scan specific files. See [Management Commands](./library.md#management-commands) for the full list.
 
 :::note Nextcloud users
 `manage.py scan` only scans the local scan directory. To scan a connected [Nextcloud library](./library.md#nextcloud-integration) from the command line, run `manage.py scan -n` — cron it separately.

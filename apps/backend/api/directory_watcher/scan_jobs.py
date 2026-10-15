@@ -10,8 +10,8 @@ import logging
 import os
 import uuid
 from collections import defaultdict
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import Any, NamedTuple
 from uuid import UUID
 
 from django import db
@@ -51,6 +51,7 @@ from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_tas
 from api.metadata.reader import existing_sidecars
 from api.mime import VIDEO_EXTENSIONS, extension
 from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
+from api.photos import indexed_mtimes
 from api.photos.files import detach_missing_files, missing_files
 from api.photos.media_files import is_metadata
 from api.runtime.features import feature_enabled
@@ -73,56 +74,158 @@ _PATH_PREFETCH_BATCH = 10000
 _FileGroup = tuple[tuple[str, str], list[str]]
 
 
+class KnownFile(NamedTuple):
+    """A path the scan has read before, as ``_known_paths`` finds it.
+
+    ``hash`` is its own ``File`` row's (None for an exact copy, which shares
+    the row of the file it copies), ``indexed`` what the scan saw of it when
+    it read it (``api.photos.indexed_mtimes``; None when nothing is recorded).
+    """
+
+    hash: str | None = None
+    indexed: indexed_mtimes.Observed | None = None
+
+
+# The known paths among a batch of scanned paths.
+KnownPaths = Mapping[str, KnownFile]
+
+# What the scan sees of a media file that has no record yet.
+_Unrecorded = tuple[str, indexed_mtimes.Observed]
+
+
+def _modified_after(mtime: float, time: datetime.datetime | None) -> bool:
+    """Whether the modification time ``mtime`` (seconds) is later than ``time``."""
+    # Callers pass the started_at of the baseline scan. A None would have made
+    # the comparison below raise TypeError, so it is an invariant violation.
+    assert time is not None
+    # An aware UTC moment: without ``tz``, fromtimestamp gives the host's local
+    # wall-clock time, which is not UTC on Windows (#2193).
+    return datetime.datetime.fromtimestamp(mtime, tz=datetime.timezone.utc) > time
+
+
 def _file_was_modified_after(filepath: str, time: datetime.datetime | None) -> bool:
     """Check if a file was modified after a given time."""
     try:
         modified = os.path.getmtime(filepath)
     except OSError:
         return False
-    # Callers pass the started_at of the baseline scan. A None would have made
-    # the comparison below raise TypeError, so it is an invariant violation.
-    assert time is not None
-    # An aware UTC moment: without ``tz``, fromtimestamp gives the host's local
-    # wall-clock time, which is not UTC on Windows (#2193).
-    return datetime.datetime.fromtimestamp(modified, tz=datetime.timezone.utc) > time
+    return _modified_after(modified, time)
+
+
+def _changed_since_read(path: str, known: KnownFile, last_scan: LongRunningJob) -> bool:
+    """Whether the known file ``path`` or one of its sidecars changed since it was read.
+
+    With a record (#2296), what is on disk now is compared with it: another
+    modification time, a new sidecar or a removed one is a change, a write
+    LibrePhotos recorded is not. A file gone since the walk is no change.
+    Without one, a file or sidecar modified after the baseline scan started
+    is a change: that scan read each file some time after its walk, so a
+    file edited while it ran may have been read before the edit (#2192).
+    """
+    if known.indexed is not None:
+        seen = indexed_mtimes.observe(path)
+        return seen.mtime_ns is not None and seen != known.indexed
+    files_to_check = [path, *existing_sidecars(path)]
+    return any(
+        _file_was_modified_after(p, last_scan.started_at) for p in files_to_check
+    )
+
+
+def _recorded_sidecars(paths: list[str], known: KnownPaths) -> set[str]:
+    """The ``sidecar_key`` of every sidecar the records of the group's files name.
+
+    Such a sidecar is compared through its media file's record, also when
+    the scan never attached it (LibrePhotos wrote it after the last scan).
+    """
+    names: set[str] = set()
+    for path in paths:
+        entry = known.get(path)
+        if entry is not None and entry.indexed is not None:
+            names.update(entry.indexed.sidecars)
+    return names
 
 
 def _group_needs_processing(
     paths: list[str],
-    existing_paths: set[str],
+    known: KnownPaths,
     full_scan: bool,
     last_scan: LongRunningJob | None,
 ) -> bool:
     """Return True if any file in a (directory, basename) group must be processed.
 
-    This mirrors the original per-file decision exactly, but takes a set of
-    already-known file paths (resolved one batch at a time by the caller) so the
-    "do we have this file?" test is an in-memory lookup instead of one
-    ``Photo.objects.filter(files__path=path).exists()`` query per file (a
-    round-trip per file — 100k+ on a large library, the dominant cost of scan
-    start-up). ``existing_paths`` only needs to cover this group's paths.
+    Takes the already-known file paths (resolved one batch at a time by the
+    caller) so the "do we have this file?" test is an in-memory lookup
+    instead of one ``Photo.objects.filter(files__path=path).exists()`` query
+    per file (a round-trip per file — 100k+ on a large library, the dominant
+    cost of scan start-up). ``known`` only needs to cover this group's paths.
 
-    The modified-time check (and the sidecar paths it stats) is only reached for
-    a file we already have, on an incremental scan with a baseline — i.e. the
-    only case where "did it change since last scan?" is the deciding question.
-    It compares with the time the baseline scan started: that scan read each
-    file some time after its walk, so a file edited while it ran may have been
-    read before the edit (#2192).
+    The change check (and the sidecar paths it stats) is only reached for a
+    file we already have, on an incremental scan with a baseline — i.e. the
+    only case where "did it change since it was read?" is the deciding
+    question (``_changed_since_read``). A sidecar named in the record of one
+    of the group's media files is checked with that file.
     """
+    if full_scan or not last_scan:
+        return bool(paths)
+    recorded_sidecars = _recorded_sidecars(paths, known)
     for path in paths:
-        if path not in existing_paths or full_scan or not last_scan:
+        if is_metadata(path) and indexed_mtimes.sidecar_key(path) in recorded_sidecars:
+            continue
+        if path not in known:
             return True
-        files_to_check = [path, *existing_sidecars(path)]
-        if any(
-            _file_was_modified_after(p, last_scan.started_at) for p in files_to_check
-        ):
+        if _changed_since_read(path, known[path], last_scan):
             return True
     return False
 
 
+def _unrecorded_and_unchanged(
+    paths: list[str], known: KnownPaths, last_scan: LongRunningJob
+) -> list[_Unrecorded]:
+    """What is on disk for the group's media files that have no record yet.
+
+    For a group the scan leaves alone, and only what was not modified after
+    the baseline scan started, judged by this observation itself: the record
+    it becomes then says what that scan read (#2296). A library indexed
+    before the record existed gets it on its first incremental scan, so
+    LibrePhotos' writes after that do not make the next scan read the photos
+    again.
+    """
+    found: list[_Unrecorded] = []
+    for path in paths:
+        entry = known.get(path)
+        if entry is None or entry.hash is None or entry.indexed is not None:
+            continue
+        if is_metadata(path):
+            continue
+        seen = indexed_mtimes.observe(path)
+        if seen.mtime_ns is None:
+            continue
+        times = [seen.mtime_ns, *seen.sidecars.values()]
+        if not any(_modified_after(ns / 1e9, last_scan.started_at) for ns in times):
+            found.append((path, seen))
+    return found
+
+
+def _record_unchanged(found: list[_Unrecorded]) -> None:
+    """Store the records ``_unrecorded_and_unchanged`` found, in a few queries."""
+    if not found:
+        return
+    rows = File.objects.in_bulk([path for path, _ in found], field_name="path")
+    updated: list[File] = []
+    for path, seen in found:
+        row = rows.get(path)
+        if row is not None:
+            row.indexed_mtime_ns = seen.mtime_ns
+            row.indexed_sidecar_mtimes = dict(seen.sidecars)
+            updated.append(row)
+    File.objects.bulk_update(
+        updated, ["indexed_mtime_ns", "indexed_sidecar_mtimes"], batch_size=500
+    )
+
+
 def _select_groups_to_process(
     group_items: list[_FileGroup],
-    known_paths_for: Callable[[list[str]], set[str]],
+    known_paths_for: Callable[[list[str]], KnownPaths],
     full_scan: bool,
     last_scan: LongRunningJob | None,
     batch_size: int = _PATH_PREFETCH_BATCH,
@@ -137,7 +240,8 @@ def _select_groups_to_process(
     constrained-RAM environments — while still replacing the old per-file
     ``Photo...exists()`` round-trip with one query per ``batch_size`` groups.
     Whole groups are always kept within a batch, so the per-batch known set
-    covers every path each group needs to check.
+    covers every path each group needs to check. The groups left alone that
+    have no record yet get one (``_unrecorded_and_unchanged``).
     """
     if full_scan or last_scan is None:
         # Every group is processed regardless of what's already known, so the
@@ -149,9 +253,13 @@ def _select_groups_to_process(
         batch = group_items[start : start + batch_size]
         batch_paths = [path for _, paths in batch for path in paths]
         known_paths = known_paths_for(batch_paths)
+        unrecorded: list[_Unrecorded] = []
         for group_key, paths in batch:
             if _group_needs_processing(paths, known_paths, full_scan, last_scan):
                 groups_to_process.append((group_key, paths))
+            else:
+                unrecorded += _unrecorded_and_unchanged(paths, known_paths, last_scan)
+        _record_unchanged(unrecorded)
     return groups_to_process
 
 
@@ -276,8 +384,10 @@ def _partition_scan_paths(
     return file_groups, metadata_paths
 
 
-def _known_paths(batch_paths: list[str]) -> set[str]:
+def _known_paths(batch_paths: list[str]) -> dict[str, KnownFile]:
     """The paths among *batch_paths* that belong to a photo whose metadata was read.
+
+    Each with its ``File`` row's hash and what the scan recorded of it.
 
     A photo whose metadata read failed (``metadata_read_at`` is None) counts as
     unknown, so an incremental scan reads it again (#2271); its thumbnails are
@@ -287,11 +397,17 @@ def _known_paths(batch_paths: list[str]) -> set[str]:
     ``FileCopy`` (#2417), while the file it copies is still on disk: when that
     one is gone, the scan reads the copy again and it takes the file over.
     """
-    known = set(
-        Photo.objects.filter(
+    known = {
+        path: KnownFile(file_hash, indexed_mtimes.recorded(mtime_ns, sidecars))
+        for path, file_hash, mtime_ns, sidecars in Photo.objects.filter(
             files__path__in=batch_paths, metadata_read_at__isnull=False
-        ).values_list("files__path", flat=True)
-    )
+        ).values_list(
+            "files__path",
+            "files__hash",
+            "files__indexed_mtime_ns",
+            "files__indexed_sidecar_mtimes",
+        )
+    }
     copies = (
         FileCopy.objects.filter(
             path__in=batch_paths,
@@ -301,7 +417,9 @@ def _known_paths(batch_paths: list[str]) -> set[str]:
         .values_list("path", "file__path")
         .distinct()
     )
-    known.update(path for path, original in copies if os.path.exists(original))
+    for path, original in copies:
+        if path not in known and os.path.exists(original):
+            known[path] = KnownFile()
     return known
 
 

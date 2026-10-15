@@ -2,6 +2,8 @@
 
 - ``media_files``: what a file on disk is (type, content hash, loadable) and
   its ``File`` row
+- ``indexed_mtimes``: the modification times the scan saw of a media file and
+  its sidecars when it last read them, which LibrePhotos' own writes update
 - ``files``: detaching a photo's missing files, removing a photo with the
   files only it uses
 - ``paths``: whether a path lies inside a root, and the prefixes that select

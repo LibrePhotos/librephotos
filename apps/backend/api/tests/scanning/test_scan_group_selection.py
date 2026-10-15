@@ -12,10 +12,12 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from api.directory_watcher.scan_jobs import (
+    KnownFile,
     _group_needs_processing,
     _select_groups_to_process,
     _videos_first,
 )
+from api.photos.indexed_mtimes import Observed, sidecar_key
 
 
 class _FakeScan:
@@ -25,34 +27,34 @@ class _FakeScan:
 
 
 MOD = "api.directory_watcher.scan_jobs._file_was_modified_after"
+OBSERVE = "api.directory_watcher.scan_jobs.indexed_mtimes.observe"
+
+# /p/a.jpg is known, with nothing recorded of it.
+KNOWN_A = {"/p/a.jpg": KnownFile()}
 
 
 class GroupNeedsProcessingTest(SimpleTestCase):
     def test_new_file_not_in_existing_paths_is_processed(self):
-        self.assertTrue(
-            _group_needs_processing(["/p/a.jpg"], set(), False, _FakeScan())
-        )
+        self.assertTrue(_group_needs_processing(["/p/a.jpg"], {}, False, _FakeScan()))
 
     def test_full_scan_always_processes(self):
         self.assertTrue(
-            _group_needs_processing(["/p/a.jpg"], {"/p/a.jpg"}, True, _FakeScan())
+            _group_needs_processing(["/p/a.jpg"], KNOWN_A, True, _FakeScan())
         )
 
     def test_no_baseline_always_processes(self):
-        self.assertTrue(
-            _group_needs_processing(["/p/a.jpg"], {"/p/a.jpg"}, False, None)
-        )
+        self.assertTrue(_group_needs_processing(["/p/a.jpg"], KNOWN_A, False, None))
 
     @patch(MOD, return_value=False)
     def test_known_unchanged_file_is_skipped(self, _mod):
         self.assertFalse(
-            _group_needs_processing(["/p/a.jpg"], {"/p/a.jpg"}, False, _FakeScan())
+            _group_needs_processing(["/p/a.jpg"], KNOWN_A, False, _FakeScan())
         )
 
     @patch(MOD, return_value=True)
     def test_known_but_modified_file_is_processed(self, _mod):
         self.assertTrue(
-            _group_needs_processing(["/p/a.jpg"], {"/p/a.jpg"}, False, _FakeScan())
+            _group_needs_processing(["/p/a.jpg"], KNOWN_A, False, _FakeScan())
         )
 
     @patch(MOD, return_value=False)
@@ -60,7 +62,7 @@ class GroupNeedsProcessingTest(SimpleTestCase):
         # RAW+JPEG group where the JPEG is known but the RAW is new.
         self.assertTrue(
             _group_needs_processing(
-                ["/p/a.jpg", "/p/a.cr2"], {"/p/a.jpg"}, False, _FakeScan()
+                ["/p/a.jpg", "/p/a.cr2"], KNOWN_A, False, _FakeScan()
             )
         )
 
@@ -68,8 +70,63 @@ class GroupNeedsProcessingTest(SimpleTestCase):
     def test_modified_check_not_called_for_unknown_file(self, mod):
         # An unknown path short-circuits before the (expensive) mtime/sidecar
         # stats — they must not run.
-        _group_needs_processing(["/p/new.jpg"], set(), False, _FakeScan())
+        _group_needs_processing(["/p/new.jpg"], {}, False, _FakeScan())
         mod.assert_not_called()
+
+
+class RecordedGroupTest(SimpleTestCase):
+    """A known file with a record is compared with it, not with the baseline (#2296)."""
+
+    RECORD = Observed(5, {sidecar_key("/p/a.jpg.xmp"): 7})
+
+    def known(self, record=RECORD):
+        return {"/p/a.jpg": KnownFile("hash", record)}
+
+    def needs_processing(self, paths):
+        return _group_needs_processing(paths, self.known(), False, _FakeScan())
+
+    @patch(MOD, return_value=True)
+    @patch(OBSERVE, return_value=RECORD)
+    def test_a_file_as_recorded_is_skipped_whatever_the_baseline_says(self, _o, mod):
+        self.assertFalse(self.needs_processing(["/p/a.jpg"]))
+        mod.assert_not_called()
+
+    @patch(OBSERVE, return_value=Observed(6, RECORD.sidecars))
+    def test_another_modification_time_is_a_change(self, _observe):
+        self.assertTrue(self.needs_processing(["/p/a.jpg"]))
+
+    @patch(OBSERVE, return_value=Observed(5, {sidecar_key("/p/a.jpg.xmp"): 8}))
+    def test_a_changed_sidecar_is_a_change(self, _observe):
+        self.assertTrue(self.needs_processing(["/p/a.jpg", "/p/a.jpg.xmp"]))
+
+    @patch(OBSERVE, return_value=Observed(5, {}))
+    def test_a_removed_sidecar_is_a_change(self, _observe):
+        self.assertTrue(self.needs_processing(["/p/a.jpg"]))
+
+    @patch(OBSERVE, return_value=RECORD)
+    def test_a_recorded_sidecar_the_scan_never_attached_is_skipped(self, _observe):
+        # LibrePhotos wrote the sidecar after the last scan: no File row has
+        # its path, the record of its media file names it.
+        self.assertFalse(self.needs_processing(["/p/a.jpg", "/p/a.jpg.xmp"]))
+
+    @patch(OBSERVE, return_value=RECORD)
+    def test_a_new_sidecar_is_processed(self, _observe):
+        self.assertTrue(self.needs_processing(["/p/a.jpg", "/p/a.xmp"]))
+
+    @patch(OBSERVE, return_value=Observed(None, {}))
+    def test_a_file_gone_since_the_walk_is_skipped(self, _observe):
+        self.assertFalse(self.needs_processing(["/p/a.jpg"]))
+
+    @patch(MOD, return_value=False)
+    def test_without_a_record_the_baseline_decides(self, mod):
+        known = self.known(record=None)
+        self.assertFalse(
+            _group_needs_processing(["/p/a.jpg"], known, False, _FakeScan())
+        )
+        mod.assert_called()
+
+    def test_an_empty_group_on_a_full_scan_is_not_processed(self):
+        self.assertFalse(_group_needs_processing([], {}, True, _FakeScan()))
 
 
 class SelectGroupsToProcessTest(SimpleTestCase):
@@ -85,7 +142,7 @@ class SelectGroupsToProcessTest(SimpleTestCase):
             (("d", "b"), ["/d/b.jpg"]),  # unknown -> process
         ]
         result = _select_groups_to_process(
-            groups, lambda paths: {"/d/a.jpg"}, False, _FakeScan()
+            groups, lambda paths: {"/d/a.jpg": KnownFile()}, False, _FakeScan()
         )
         self.assertEqual(result, [(("d", "b"), ["/d/b.jpg"])])
 
@@ -100,7 +157,7 @@ class SelectGroupsToProcessTest(SimpleTestCase):
 
         def lookup(batch_paths):
             calls.append(len(batch_paths))
-            return known & set(batch_paths)
+            return {path: KnownFile() for path in known & set(batch_paths)}
 
         result = _select_groups_to_process(
             groups, lookup, False, _FakeScan(), batch_size=2
@@ -118,7 +175,7 @@ class SelectGroupsToProcessTest(SimpleTestCase):
     def test_empty_input_makes_no_queries(self, _mod):
         calls = []
         result = _select_groups_to_process(
-            [], lambda paths: calls.append(1) or set(), False, _FakeScan()
+            [], lambda paths: calls.append(1) or {}, False, _FakeScan()
         )
         self.assertEqual(result, [])
         self.assertEqual(calls, [])
@@ -128,7 +185,7 @@ class SelectGroupsToProcessTest(SimpleTestCase):
         groups = [(("d", "a"), ["/d/a.jpg"]), (("d", "b"), ["/d/b.jpg"])]
         calls = []
         result = _select_groups_to_process(
-            groups, lambda paths: calls.append(1) or set(), True, _FakeScan()
+            groups, lambda paths: calls.append(1) or {}, True, _FakeScan()
         )
         self.assertEqual(result, groups)
         self.assertEqual(calls, [])
@@ -137,7 +194,7 @@ class SelectGroupsToProcessTest(SimpleTestCase):
         groups = [(("d", "a"), ["/d/a.jpg"])]
         calls = []
         result = _select_groups_to_process(
-            groups, lambda paths: calls.append(1) or set(), False, None
+            groups, lambda paths: calls.append(1) or {}, False, None
         )
         self.assertEqual(result, groups)
         self.assertEqual(calls, [])

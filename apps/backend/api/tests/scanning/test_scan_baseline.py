@@ -16,7 +16,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from api.directory_watcher.scan_jobs import _group_needs_processing
+from api.directory_watcher.scan_jobs import KnownFile, _group_needs_processing
 from api.directory_watcher.utils import update_scan_counter
 from api.models import LongRunningJob
 from api.stacks.detection import batch_detect_stacks
@@ -179,12 +179,16 @@ class ChangedDuringTheBaselineScanTest(TestCase):
         self.set_mtime(timezone.now() - datetime.timedelta(hours=20))
 
         self.assertTrue(
-            _group_needs_processing([self.path], {self.path}, False, self.baseline)
+            _group_needs_processing(
+                [self.path], {self.path: KnownFile()}, False, self.baseline
+            )
         )
 
     def test_a_file_unchanged_since_before_the_baseline_scan_is_skipped(self):
         self.set_mtime(timezone.now() - datetime.timedelta(hours=60))
 
         self.assertFalse(
-            _group_needs_processing([self.path], {self.path}, False, self.baseline)
+            _group_needs_processing(
+                [self.path], {self.path: KnownFile()}, False, self.baseline
+            )
         )
