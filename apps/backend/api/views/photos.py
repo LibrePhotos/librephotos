@@ -12,7 +12,7 @@ from drf_spectacular.utils import (
     OpenApiTypes,
     extend_schema,
 )
-from rest_framework import filters, mixins, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
     APIException,
@@ -36,20 +36,24 @@ from api.drf.pagination import (
 )
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user, scope_user
+from api.jobs.queue import JobStep
+from api.jobs.start import enqueue_for_request
 from api.metadata import edits
-from api.metadata.photo_writer import (
-    rotate_photo,
-    write_photo_metadata,
-    write_target,
+from api.metadata.library_write import (
+    FACE_TAGS,
+    WRITE_TYPES,
+    count_photos_to_write,
+    photos_to_write,
+    types_written_for,
+    write_library_metadata,
 )
-from api.metadata.writer import MetadataWriteError, one_exiftool_process
+from api.metadata.photo_writer import rotate_photo, write_target
 from api.mime import mime_type
-from api.models import AlbumUser, Face, Photo, User
+from api.models import AlbumUser, Face, LongRunningJob, Photo, User
 from api.models.album_thing import (
     album_thing_ids_for_photos,
     refresh_album_thing_photo_counts,
 )
-from api.models.person import Person
 from api.models.photo import restore_photos, trash_photos
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
@@ -80,7 +84,6 @@ from api.serializers.photos import (
     RotatePhotoRequest,
     RotatePhotoResponse,
     SaveMetadataRequest,
-    SaveMetadataResponse,
     SavePhotoCaptionRequest,
     SetMainFileRequest,
     SetMainFileResponse,
@@ -93,6 +96,8 @@ from api.serializers.photos import (
     SetPhotosRatingRequest,
     SetPhotosSharedRequest,
     StatusResponse,
+    WriteMetadataPreviewSerializer,
+    WriteMetadataStartedSerializer,
     with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
@@ -1169,58 +1174,80 @@ class SetMainFileView(APIView):
 
 
 class SaveMetadataView(APIView):
+    """ "Write metadata to files" (#2287): the edits already in the library, as a job.
+
+    "Write edits to files" writes the edits made after it was turned on; this
+    writes what the requester's photos already carry (``library_write``).
+    Both verbs follow the requester's saved setting; POST is a 400 while it is
+    Off, and a 409 while the job runs.
+    """
+
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(request=SaveMetadataRequest, responses=SaveMetadataResponse)
-    def post(self, request: Request, format: str | None = None) -> Response:
-        """Bulk-write metadata to image files for the authenticated user's photos.
-
-        Accepts {"types": ["ratings", "face_tags"]} to control what gets written.
-        Defaults to ["ratings"] if not specified. Writes to the sidecar or the
-        media file as the user's "Write edits to files" setting says, and is a
-        400 while that is Off (#2293).
-        """
+    @extend_schema(responses=WriteMetadataPreviewSerializer)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        """What the job would write now: per type and in total."""
         user = request_user(request)
-        metadata_types = parse_body(request, SaveMetadataRequest)["types"]
+        types = types_written_for(user)
         use_sidecar = write_target(user)
-        if use_sidecar is None:
+        target = None if use_sidecar is None else WRITE_TARGET_NAMES[use_sidecar]
+        counts = count_photos_to_write(user, types)
+        return Response(
+            {
+                "target": target,
+                "counts": [
+                    {"type": name, "photos": photos} for name, photos in counts.items()
+                ],
+                "total": photos_to_write(user, types).count() if types else 0,
+            }
+        )
+
+    @extend_schema(
+        request=SaveMetadataRequest, responses={202: WriteMetadataStartedSerializer}
+    )
+    def post(self, request: Request, format: str | None = None) -> Response:
+        """Queue the job that writes ``types`` of the requester's photos."""
+        user = request_user(request)
+        requested = parse_body(request, SaveMetadataRequest).get("types")
+        allowed = types_written_for(user)
+        if not allowed:
             raise ValidationError(
                 "Write edits to files is Off: choose 'Save to sidecar' "
-                "or 'Save to media file' in the settings first."
+                "or 'Save to media file' in the settings first.",
+                code="write_edits_off",
             )
+        types = allowed if requested is None else _ordered_types(requested)
+        if FACE_TAGS in types and FACE_TAGS not in allowed:
+            raise ValidationError(
+                {
+                    "types": "Face tags are only written with 'Write face tags "
+                    "to image files' on."
+                },
+                code="face_tags_off",
+            )
+        [job] = enqueue_for_request(
+            user,
+            [
+                JobStep(
+                    LongRunningJob.JOB_WRITE_METADATA,
+                    write_library_metadata,
+                    (user, types),
+                )
+            ],
+            "writing metadata to files",
+        )
+        return Response(
+            {"job_id": job.job_id, "types": types}, status=status.HTTP_202_ACCEPTED
+        )
 
-        photos = Photo.objects.owned_by(user)
 
-        # When writing face tags, only include photos that have labeled faces
-        if "face_tags" in metadata_types and metadata_types == ["face_tags"]:
-            photos = photos.filter(
-                faces__person__kind=Person.KIND_USER,
-                faces__deleted=False,
-            ).distinct()
+#: ``use_sidecar`` as the preview names it.
+WRITE_TARGET_NAMES = {True: "sidecar", False: "media_file"}
 
-        written = 0
-        errors = 0
-        with one_exiftool_process():
-            for photo in photos.iterator():
-                try:
-                    write_photo_metadata(
-                        photo, use_sidecar=use_sidecar, metadata_types=metadata_types
-                    )
-                    written += 1
-                except MetadataWriteError as error:
-                    errors += 1
-                    logger.warning(
-                        "The metadata of photo %s was not written: %s",
-                        photo.image_hash,
-                        error,
-                    )
-                except Exception:
-                    errors += 1
-                    logger.exception(
-                        "Failed to save metadata for photo %s", photo.image_hash
-                    )
 
-        return Response({"status": True, "written": written, "errors": errors})
+def _ordered_types(requested: list[str]) -> list[str]:
+    """``requested``, once each, in the order the job writes them."""
+    return [name for name in WRITE_TYPES if name in requested]
 
 
 def _get_rotatable_photo(image_hash: str, user: User) -> Photo:

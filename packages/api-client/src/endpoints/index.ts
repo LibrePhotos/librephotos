@@ -935,6 +935,32 @@ export async function reapplyDateRules(client: ApiClient): Promise<S.JobStartedR
   return triggerJob(client, "/photos/reapply-date-rules/", S.JobStartedResponse, "apply date rules");
 }
 
+/**
+ * What "Write metadata to files" (#2287) would write for the signed-in user now: where (the saved
+ * "Write edits to files"), and how many photos each type writes.
+ */
+export async function fetchWriteMetadataPreview(client: ApiClient): Promise<S.WriteMetadataPreview> {
+  const res = await client.get<unknown>("/savemetadata/");
+  return parseResponse(S.WriteMetadataPreview, res, "write metadata preview");
+}
+
+/**
+ * Write the edits already in LibrePhotos to the signed-in user's files, as a job (#2287): `types`, or
+ * everything their settings write. Returns the queued (or already running) job.
+ */
+export async function writeMetadataToFiles(
+  client: ApiClient,
+  types?: readonly string[]
+): Promise<S.WriteMetadataStarted | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    "/savemetadata/",
+    S.WriteMetadataStarted,
+    "write metadata to files",
+    types ? { types } : {}
+  );
+}
+
 /** Make event albums from the photos added or changed since the last run, and title them. */
 export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");

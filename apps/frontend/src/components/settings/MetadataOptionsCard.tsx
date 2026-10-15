@@ -1,4 +1,4 @@
-import { RatingMode } from "@librephotos/api-client";
+import { RatingMode, type User } from "@librephotos/api-client";
 import { Card, Flex, Group, Input, Radio, SegmentedControl, Select, Stack, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { useFetchTimezonesQuery } from "../../api_client/settings";
 import { listFields, WRITTEN_FIELDS, type WriteMode } from "./metadataWrite";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
+import { WriteExistingEditsRow } from "./WriteExistingEditsRow";
 
 /** "Write edits to files": each option says which edits it writes, from WRITTEN_FIELDS (#2281). */
 function WriteEditsChoice({ user, onChange }: UserSettingsCardProps) {
@@ -37,7 +38,12 @@ function WriteEditsChoice({ user, onChange }: UserSettingsCardProps) {
   );
 }
 
-export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
+type MetadataOptionsCardProps = UserSettingsCardProps & {
+  /** The user as saved, which "Write existing edits to files" writes with (#2287). */
+  saved: User;
+};
+
+export function MetadataOptionsCard({ user, saved, onChange }: MetadataOptionsCardProps) {
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
 
@@ -48,7 +54,10 @@ export function MetadataOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <SectionLink />
       </Title>
       <Flex align="flex-start" direction="column" gap="md">
-        <WriteEditsChoice user={user} onChange={onChange} />
+        <Stack gap="sm" w="100%">
+          <WriteEditsChoice user={user} onChange={onChange} />
+          <WriteExistingEditsRow saved={saved} edited={user} />
+        </Stack>
         <Input.Wrapper
           label={t("settings.ratingstyle")}
           description={t(`settings.ratingstyledescription.${user.rating_mode}`)}

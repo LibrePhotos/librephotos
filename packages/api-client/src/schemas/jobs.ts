@@ -93,6 +93,32 @@ export const CaptionsJobStartedResponse = JobStartedResponse.extend({
 });
 export type CaptionsJobStartedResponse = z.infer<typeof CaptionsJobStartedResponse>;
 
+/** `POST /savemetadata/` (202): the queued "Write metadata to files" job and what it writes (#2287). */
+export const WriteMetadataStarted = z.looseObject({
+  job_id: z.string(),
+  types: z.string().array(),
+});
+export type WriteMetadataStarted = z.infer<typeof WriteMetadataStarted>;
+
+/** Where "Write metadata to files" writes: the saved "Write edits to files"; null while that is Off. */
+export const WriteMetadataTarget = z.enum(["sidecar", "media_file"]);
+export type WriteMetadataTarget = z.infer<typeof WriteMetadataTarget>;
+
+/** One type of "Write metadata to files" and how many photos have a value of it. */
+export const WriteTypeCount = z.object({
+  type: z.string(),
+  photos: z.number().int(),
+});
+export type WriteTypeCount = z.infer<typeof WriteTypeCount>;
+
+/** `GET /savemetadata/`: what "Write metadata to files" would write for the signed-in user now. */
+export const WriteMetadataPreview = z.object({
+  target: WriteMetadataTarget.nullable(),
+  counts: WriteTypeCount.array(),
+  total: z.number().int(),
+});
+export type WriteMetadataPreview = z.infer<typeof WriteMetadataPreview>;
+
 /** What a job trigger answers when a job of its kind is already queued or running (a 409). */
 export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
 

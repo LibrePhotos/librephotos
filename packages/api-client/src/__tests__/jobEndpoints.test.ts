@@ -124,10 +124,37 @@ describe("job triggers", () => {
       (client: Parameters<typeof endpoints.generateCaptions>[0]) => endpoints.generateCaptions(client, false),
       endpoints.detectStacks,
       endpoints.detectDuplicates,
+      endpoints.writeMetadataToFiles,
     ]) {
       const { client } = fakeServer(alreadyRunning, 409);
       await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "j0", already_running: true });
     }
+  });
+
+  it("writes the existing edits to files: everything the settings write, or the given types", async () => {
+    const queued = { job_id: "j3", types: ["ratings", "dates"] };
+    const { client, requests } = fakeServer(queued, 202);
+    expect(await endpoints.writeMetadataToFiles(client)).toEqual(queued);
+    await endpoints.writeMetadataToFiles(client, ["ratings"]);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/savemetadata/`, method: "POST", body: {} });
+    expect(defined(requests[1]).body).toEqual({ types: ["ratings"] });
+  });
+
+  it("reads what writing the existing edits would write", async () => {
+    const preview = {
+      target: "sidecar",
+      counts: [
+        { type: "ratings", photos: 1284 },
+        { type: "dates", photos: 12 },
+      ],
+      total: 1290,
+    };
+    const { client, requests } = fakeServer(preview);
+    expect(await endpoints.fetchWriteMetadataPreview(client)).toEqual(preview);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/savemetadata/`, method: "GET" });
+
+    const off = fakeServer({ target: null, counts: [], total: 0 });
+    expect((await endpoints.fetchWriteMetadataPreview(off.client)).target).toBeNull();
   });
 
   it("starts stack and duplicate detection with their options", async () => {

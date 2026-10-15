@@ -1,0 +1,6 @@
+/* Under the write choice and part of it (#2287): a dashed rule, not a new section. */
+.row {
+  border-top: 1px dashed var(--mantine-color-default-border);
+  padding-top: var(--mantine-spacing-sm);
+  width: 100%;
+}

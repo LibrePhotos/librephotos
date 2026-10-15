@@ -71,7 +71,7 @@ def write_target(user: User) -> bool | None:
     return None
 
 
-def _keeps_edits(photo: Photo) -> bool:
+def keeps_edits(photo: Photo) -> bool:
     """Whether an edit written into ``photo``'s file would stay there.
 
     Not for a local copy of a Nextcloud file (#2258): the next scan that finds
@@ -153,7 +153,7 @@ def write_photo_metadata(
 
         tags_to_write.update(get_face_region_tags(photo, use_sidecar))
 
-    if tags_to_write and _keeps_edits(photo):
+    if tags_to_write and keeps_edits(photo):
         assert photo.main_file is not None
         indexed = _indexed_files(photo)
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
@@ -360,7 +360,7 @@ def _write_edit(
     Returns whether ExifTool wrote; a removal from a sidecar that does not
     exist has nothing to do.
     """
-    if not _keeps_edits(photo):
+    if not keeps_edits(photo):
         return False
     assert photo.main_file is not None
     path = photo.main_file.path
@@ -402,7 +402,7 @@ def write_keywords(photo: Photo, use_sidecar: bool, names: Collection[str]) -> N
 
     Raises ``MetadataWriteError`` when ExifTool did not write them.
     """
-    if not names or not _keeps_edits(photo):
+    if not names or not keeps_edits(photo):
         return
     wanted, unwanted = _split_by_tags(photo, names)
     if unwanted:
@@ -648,13 +648,10 @@ def write_orientation_to_disk(photo: Photo) -> str | None:
     either way.
     """
     use_sidecar = write_target(photo.owner)
-    if use_sidecar is None or not _keeps_edits(photo):
+    if use_sidecar is None:
         return None
     try:
-        if use_sidecar:
-            _write_sidecar_orientation(photo)
-        else:
-            _fold_rotation_into_file(photo)
+        write_rotation(photo, use_sidecar)
     except MetadataWriteError as error:
         logger.warning(
             "The rotation of photo %s was not written to disk: %s",
@@ -663,6 +660,20 @@ def write_orientation_to_disk(photo: Photo) -> str | None:
         )
         return str(error)
     return None
+
+
+def write_rotation(photo: Photo, use_sidecar: bool) -> None:
+    """Write the photo's rotation as it is now to its sidecar or media file.
+
+    Raises ``MetadataWriteError`` when ExifTool did not write it; see
+    ``write_orientation_to_disk`` for what each target gets.
+    """
+    if not keeps_edits(photo):
+        return
+    if use_sidecar:
+        _write_sidecar_orientation(photo)
+    else:
+        _fold_rotation_into_file(photo)
 
 
 def _orientation_on_disk(path: str) -> int:

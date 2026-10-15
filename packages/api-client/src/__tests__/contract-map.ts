@@ -80,6 +80,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
   JobTriggerResponse: { schema: S.JobTriggerResponse, components: ["JobStartedResponse"] },
   CaptionsJobStartedResponse: { schema: S.CaptionsJobStartedResponse, components: ["CaptionsJobStartedResponse"] },
+  WriteMetadataStarted: { schema: S.WriteMetadataStarted, components: ["WriteMetadataStarted"] },
+  WriteMetadataPreview: { schema: S.WriteMetadataPreview, components: ["WriteMetadataPreview"] },
+  WriteTypeCount: { schema: S.WriteTypeCount, components: ["WriteTypeCount"] },
   // photo edits
   RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
   BulkPhotoMutationResponse: { schema: S.BulkPhotoMutationResponse, components: ["BulkPhotoMutationResponse"] },

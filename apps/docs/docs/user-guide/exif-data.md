@@ -259,12 +259,39 @@ never changed.
 
 ### Writing the edits of a whole library
 
-`python manage.py save_metadata` writes the ratings (`--types ratings`, the default) or the face
-regions (`--types face_tags`) of every photo again, for example after turning write-back on for an
-existing library. Each photo is written where its owner's **Write edits to files** says, and photos
-of users who have it `Off` are skipped. `--sidecar` or `--media-file` overrides the setting for the
-one user named with `--user`; `--dry-run` only shows what would be written. `POST /api/savemetadata/`
-does the same for your own photos.
+<Since version="1.4.0" /> `Write edits to files` writes an edit when you make it. The edits you made
+before turning it on are only in LibrePhotos; **Write now** under the setting (Settings → Metadata
+Options, see [Settings](./settings/index.md#metadata-options)) writes them as a **Write Metadata to
+Files** job, with the same writes a live edit makes. Only a value that says something is written:
+
+| Kind (`types`) | Photos it writes |
+| --- | --- |
+| `ratings` | Rated 1 to 5 stars; a rating of 0 is not written. |
+| `dates` | A date you set by hand. |
+| `rotations` | Turned in LibrePhotos. |
+| `captions` | A caption you wrote; a generated caption is never written. |
+| `locations` | A position you set; a position read from the file is already there. |
+| `keywords` | With tags: each tag is added to the keywords. |
+| `face_tags` | With faces that are not deleted, named or not. Only with **Write face tags to image files** on. |
+
+A photo with none of them is not touched, so an unrated library does not get a sidecar per photo. The
+job writes in batches of 200 photos, each through one ExifTool process; it shows its progress in the job
+list, can be cancelled there, and ends with how many photos it wrote (`written`), left alone (`skipped`:
+a local copy of a Nextcloud photo, or the setting changed while it ran) and could not write (`errors`,
+the first 100 listed with the file and ExifTool's reason). A write it makes is LibrePhotos' own, so
+the next scan does not read those photos again for it (see
+[How a rescan treats your edits](#how-a-rescan-treats-your-edits)).
+
+`GET /api/savemetadata/` says what it would write now (the target and a count per kind), and
+`POST /api/savemetadata/` starts the job: `{"types": [...]}` picks kinds, and leaving it out writes
+everything your settings write. It answers 202 with the `job_id`, 400 while `Write edits to files` is
+`Off` or for a kind it does not know, and 409 while the job runs. Up to 1.3.0 it wrote the ratings of
+every photo, 0 included, inside the request.
+
+`python manage.py save_metadata` makes the same writes for every user whose `Write edits to files` is
+on (photos of users who have it `Off` are skipped), with the kinds each user's settings write.
+`--types` limits the kinds, `--user` limits it to one user, `--sidecar` or `--media-file` overrides
+the setting for that one user, and `--dry-run` only counts.
 
 ## How a rescan treats your edits
 
@@ -319,8 +346,8 @@ A write ExifTool cannot make, for example into a read-only library, a damaged fi
 that cannot hold the tag, never undoes your edit: the rating, date, caption, location, tags, face
 label or rotation stays in LibrePhotos. The backend log names the photo and ExifTool's reason.
 Labelling a face, drawing one and rotating a photo also return the reason as `write_error` in the
-API response, and `POST /api/savemetadata/` and `manage.py save_metadata` count the photos they
-could not write as errors.
+API response, and the **Write Metadata to Files** job and `manage.py save_metadata` list the photos
+they could not write.
 
 In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
 orange **Not written to the file** notice next to the usual confirmation: "Saved in LibrePhotos,

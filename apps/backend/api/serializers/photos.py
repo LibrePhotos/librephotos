@@ -19,6 +19,7 @@ from api.drf.params import (
 from api.drf.request_user import request_user
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
+from api.metadata.library_write import WRITE_TYPES
 from api.models import AlbumDate, File, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
@@ -28,7 +29,6 @@ from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
 from api.search.similarity import search_similar_image
 from api.serializers.fields import (
-    declare_fields,
     loaded_count,
     prefetched,
     shared_serializer,
@@ -1334,11 +1334,23 @@ class SetMainFileRequest(serializers.Serializer[None]):
     file_hash = required_string("file_hash is required")
 
 
+#: The ``types`` of "Write metadata to files" (``api.metadata.library_write``).
+METADATA_WRITE_TYPES = list(WRITE_TYPES)
+#: Where it writes: "Write edits to files" as the preview names it.
+METADATA_WRITE_TARGETS = ["sidecar", "media_file"]
+
+
 class SaveMetadataRequest(serializers.Serializer[None]):
+    """``POST /api/savemetadata/``: what the "Write metadata to files" job writes."""
+
     types = serializers.ListField(
-        child=serializers.CharField(),
-        default=lambda: ["ratings"],
-        help_text='What to write: "ratings" and/or "face_tags"',
+        child=serializers.ChoiceField(choices=METADATA_WRITE_TYPES),
+        required=False,
+        allow_empty=False,
+        help_text=(
+            "What to write; by default everything the requester's settings write "
+            '("face_tags" only with "Write face tags to image files" on)'
+        ),
     )
 
 
@@ -1461,18 +1473,33 @@ class SetMainFileResponse(serializers.Serializer[None]):
     main_file_hash = serializers.CharField()
 
 
-class SaveMetadataResponse(serializers.Serializer[None]):
-    """The answer of POST /api/savemetadata/: how many photos were written."""
+class WriteMetadataStartedSerializer(serializers.Serializer[None]):
+    """``POST /api/savemetadata/`` (202): the "Write metadata to files" job was queued."""
 
-    status = serializers.BooleanField(help_text="Always true")
-    written = serializers.IntegerField()
+    job_id = serializers.CharField()
+    types = serializers.ListField(
+        child=serializers.ChoiceField(choices=METADATA_WRITE_TYPES),
+        help_text="What the job writes",
+    )
 
 
-# ``errors`` shadows Serializer.errors, so the class body cannot declare it.
-declare_fields(
-    SaveMetadataResponse,
-    errors=serializers.IntegerField(help_text="Photos that could not be written"),
-)
+class WriteTypeCountSerializer(serializers.Serializer[None]):
+    type = serializers.ChoiceField(choices=METADATA_WRITE_TYPES)
+    photos = serializers.IntegerField(help_text="Photos with a value of this type")
+
+
+class WriteMetadataPreviewSerializer(serializers.Serializer[None]):
+    """``GET /api/savemetadata/``: what the job would write for the requester now."""
+
+    target = serializers.ChoiceField(
+        choices=METADATA_WRITE_TARGETS,
+        allow_null=True,
+        help_text='Where it writes, from "Write edits to files"; null while that is Off',
+    )
+    counts = WriteTypeCountSerializer(
+        many=True, help_text="Each type the requester's settings write"
+    )
+    total = serializers.IntegerField(help_text="Photos the job would write")
 
 
 SHARE_ACTIONS = ("enable", "rotate", "disable")

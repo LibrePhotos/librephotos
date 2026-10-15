@@ -24,8 +24,7 @@ from constance.test import override_config
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from api.metadata.writer import MetadataWriteError
-from api.models import LongRunningJob, Photo
+from api.models import LongRunningJob, Photo, User
 from api.tests.infra.test_declared_responses import DeclaredResponseTestCase
 from api.tests.openapi_responses import SCHEMA_FILE
 from api.tests.utils import (
@@ -218,20 +217,24 @@ class PhotoEditResponsesTest(DeclaredResponseTestCase):
         download = paths["/api/photos/{image_hash}/file/{file_hash}/"]["get"]
         self.assertEqual(["*/*"], list(download["responses"]["200"]["content"]))
 
-    def test_save_metadata_with_a_failure(self) -> None:
-        def write(photo: Photo, **kwargs: object) -> None:
-            if photo.pk == self.other.pk:
-                raise MetadataWriteError("read-only")
+    def test_write_metadata_preview_and_start(self) -> None:
+        User.objects.filter(pk=self.user.pk).update(
+            save_metadata_to_disk=User.SaveMetadata.SIDECAR_FILE
+        )
+        self.user.refresh_from_db()
+        Photo.objects.filter(pk=self.photo.pk).update(rating=4)
 
-        with (
-            patch("api.views.photos.write_target", return_value=True),
-            patch("api.views.photos.write_photo_metadata", side_effect=write),
-            patch("api.views.photos.one_exiftool_process"),
-        ):
-            body = self.assert_declared(
-                "/api/savemetadata/", "/api/savemetadata/", method="post", data={}
+        preview = self.assert_declared("/api/savemetadata/", "/api/savemetadata/")
+        with queue_stub():
+            started = self.assert_declared(
+                "/api/savemetadata/",
+                "/api/savemetadata/",
+                status=202,
+                method="post",
+                data={"types": ["ratings"]},
             )
-        self.assertEqual((1, 1), (body["written"], body["errors"]))
+        self.assertEqual(1, preview["total"])
+        self.assertEqual(["ratings"], started["types"])
 
 
 class FaceDeleteResponseTest(DeclaredResponseTestCase):

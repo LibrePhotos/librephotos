@@ -555,6 +555,9 @@ SPECTACULAR_SETTINGS = {
         "KindEnum": "api.serializers.face.PERSON_KINDS",
         # A file of the All metadata view: the media file or a sidecar.
         "RawMetadataFileKindEnum": "api.serializers.photo_metadata.RAW_METADATA_FILE_KINDS",
+        # What "Write metadata to files" writes, and where (#2287).
+        "MetadataWriteTypeEnum": "api.serializers.photos.METADATA_WRITE_TYPES",
+        "MetadataWriteTargetEnum": "api.serializers.photos.METADATA_WRITE_TARGETS",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

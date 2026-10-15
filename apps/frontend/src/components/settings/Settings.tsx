@@ -88,7 +88,7 @@ export function Settings() {
             <ScanOptionsCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.metadata}>
-            <MetadataOptionsCard {...cardProps} />
+            <MetadataOptionsCard {...cardProps} saved={userSelfDetails} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.faces}>
             <FaceOptionsCard {...cardProps} />

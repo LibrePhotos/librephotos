@@ -32,15 +32,17 @@ from api.metadata.jobs import (
     write_photo_keywords,
     write_photo_ratings,
 )
+from api.metadata.library_write import types_written_for, write_library_metadata
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import extract_exif_data, read_file_values
 from api.metadata.photo_writer import rotate_photo, write_photo_metadata
-from api.metadata.reader import get_metadata
+from api.metadata.reader import existing_sidecars, get_metadata
 from api.metadata.tags import Tags
 from api.metadata.writer import MetadataWriteError, write_metadata
+from api.models import LongRunningJob
 from api.models.face import Face
 from api.models.person import Person
-from api.models.photo import Photo
+from api.models.photo import LocationSource, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import description_of
 from api.models.tag import Tag
@@ -54,6 +56,7 @@ from api.tests.metadata.exiftool_harness import (
 )
 from api.tests.utils import (
     create_test_face,
+    create_test_job,
     create_test_person,
     create_test_tag,
     create_test_user,
@@ -72,6 +75,15 @@ TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.ut
 def run_now(func, *args):
     """Stand-in for ``enqueue_task`` that runs the job right away."""
     func(*args)
+
+
+def run_write_metadata_job(user, types):
+    """The "Write metadata to files" job (#2287), its batches run at once."""
+    job = create_test_job(user, LongRunningJob.JOB_WRITE_METADATA)
+    with patch("api.metadata.library_write.enqueue_task", side_effect=run_now):
+        write_library_metadata(user, types, job_id=job.job_id)
+    job.refresh_from_db()
+    return job
 
 
 class RatingRoundTripTest(RealExifToolTestCase):
@@ -1539,31 +1551,27 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
         with self.assertUntouched(path):
             self._draw_face(photo)
 
-    def _save_metadata_request(self, photo):
-        client = APIClient()
-        client.force_authenticate(user=photo.owner)
-        return client.post(
-            "/api/savemetadata", {"types": ["ratings", "face_tags"]}, format="json"
-        )
-
-    def test_save_metadata_endpoint_writes_the_sidecar(self):
+    def test_the_write_metadata_job_writes_the_sidecar(self):
         path = self.make_image(".jpg")
         photo = self._face_photo(path, SIDECAR, FACE_LANDSCAPE)
 
         with self._original_untouched(path):
-            response = self._save_metadata_request(photo)
+            run_write_metadata_job(photo.owner, ["ratings", "face_tags"])
 
-        self.assertEqual(200, response.status_code, response.content)
         self.assertWritesLanded(expected=1)
         self.assertEqual(self.sidecar_of(path), self.exiftool.writes[0].target)
         self.assertEqual(["Alice"], [face[4] for face in self._faces_read_back(photo)])
 
-    def test_save_metadata_endpoint_refuses_when_off(self):
+    def test_the_write_metadata_endpoint_refuses_when_off(self):
         path = self.make_image(".jpg")
         photo = self._face_photo(path, OFF, FACE_LANDSCAPE)
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
 
         with self.assertUntouched(path):
-            response = self._save_metadata_request(photo)
+            response = client.post(
+                "/api/savemetadata", {"types": ["ratings", "face_tags"]}, format="json"
+            )
 
         self.assertEqual(400, response.status_code, response.content)
         # The setting under its name in the UI (#2609, #2670).
@@ -2037,6 +2045,109 @@ class RotationRoundTripTest(RealExifToolTestCase):
 # Every function that calls write_metadata, and the tests above that run it
 # against real ExifTool. A new write path fails the guard until it has a
 # round-trip test here.
+class LibraryWriteRoundTripTest(RealExifToolTestCase):
+    """The "Write metadata to files" job (#2287) writes what the library holds.
+
+    Only a photo with a value of a type gets a write, through the writers the
+    live edits use.
+    """
+
+    def _labelled_face(self, photo):
+        person = create_test_person(
+            name="Alice", kind=Person.KIND_USER, cluster_owner=photo.owner
+        )
+        top, right, bottom, left = FACE_LANDSCAPE
+        create_test_face(
+            photo=photo,
+            person=person,
+            location_top=top,
+            location_right=right,
+            location_bottom=bottom,
+            location_left=left,
+        )
+
+    def _image(self, name):
+        """An image of its own: the same pixels would make one File of them all."""
+        path = self.make_image(".jpg", name)
+        self.tag(path, f"-Comment={name}")
+        return path
+
+    def test_only_photos_with_a_value_get_a_sidecar(self):
+        user = create_test_user(
+            save_metadata_to_disk=SIDECAR, save_face_tags_to_disk=True
+        )
+        unrated = self._image("unrated")
+        self.photo_for(unrated, user, rating=0)
+        three = self._image("three")
+        self.photo_for(three, user, rating=3)
+        five = self._image("five")
+        self.photo_for(five, user, rating=5)
+        faced = self._image("faced")
+        self._labelled_face(self.photo_for(faced, user, thumbnails=True, rating=0))
+
+        job = run_write_metadata_job(user, types_written_for(user))
+
+        self.assertWritesLanded(expected=3)
+        self.assertEqual([], existing_sidecars(unrated))
+        for path, rating in ((three, 3), (five, 5)):
+            self.assertEqual([self.sidecar_of(path)], existing_sidecars(path))
+            self.assertEqual(
+                [rating], get_metadata(path, tags=[Tags.RATING], try_sidecar=True)
+            )
+        self.assertEqual([self.sidecar_of(faced)], existing_sidecars(faced))
+        faced_photo = Photo.objects.get(main_file__path=faced)
+        names = [
+            face[4]
+            for face in extract_from_exif(
+                faced, faced_photo.thumbnail.thumbnail_big.path
+            )
+        ]
+        self.assertEqual(["Alice"], names)
+        self.assertEqual((3, 3), (job.progress_current, job.progress_target))
+        self.assertEqual(3, job.result["written"])
+        self.assertNotIn("error_count", job.result)
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+
+    def test_every_type_reaches_the_target(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                user = create_test_user(
+                    save_metadata_to_disk=mode, save_face_tags_to_disk=True
+                )
+                path = self.make_image(".jpg", f"every-{mode}")
+                photo = self.photo_for(
+                    path,
+                    user,
+                    thumbnails=True,
+                    rating=4,
+                    timestamp=TIMESTAMP,
+                    captions_json={"user_caption": "At the lake"},
+                    exif_gps_lat=48.5,
+                    exif_gps_lon=-3.25,
+                    location_source=LocationSource.USER,
+                    local_orientation=6,
+                )
+                create_test_tag(user, "lake").photos.add(photo)
+                self._labelled_face(photo)
+
+                job = run_write_metadata_job(user, types_written_for(user))
+
+                self.assertWritesLanded(expected=7)
+                self.assertEqual(1, job.result["written"])
+                values = read_file_values(photo)
+                self.assertEqual(4, values["rating"])
+                self.assertIn("lake", values["xmp_subject"])
+                self.assertEqual("At the lake", description_of(values))
+                self.assertAlmostEqual(48.5, values["gps_latitude"], places=5)
+                self.assertAlmostEqual(-3.25, values["gps_longitude"], places=5)
+                (date_created,) = get_metadata(
+                    path, tags=[Tags.DATE_CREATED], try_sidecar=True
+                )
+                self.assertTrue(str(date_created).startswith("2019:08:15 07:45:00"))
+
+
 EXERCISED_WRITERS = {
     "api.metadata.photo_writer.write_photo_metadata": (
         "RatingRoundTripTest, DateRoundTripTest, BulkDateRoundTripTest, "
