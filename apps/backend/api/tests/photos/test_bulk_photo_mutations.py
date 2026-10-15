@@ -296,6 +296,79 @@ class NoTimestampSelectAllTest(TestCase):
                 self.assertEqual(selected.count(), 7)
 
 
+class NoLocationSelectAllTest(TestCase):
+    """Select all on "Photos without Location" acts on every photo without GPS (#530).
+
+    The page loads 100 photos at a time, so its select-all has to name the set
+    with a query, and that query must match exactly what the list shows on all
+    of its pages: photos with no coordinates, stacked ones included.
+    """
+
+    QUERY = {"no_location": True, "show_all_stack_photos": True}
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user(favorite_min_rating=1)
+        self.client.force_authenticate(user=self.user)
+        self.no_location = create_test_photos(
+            number_of_photos=5, owner=self.user, rating=0
+        )
+        self.located = create_test_photos(
+            number_of_photos=2, owner=self.user, gps_lat=1.0, gps_lon=2.0, rating=0
+        )
+        # A stack of two photos without GPS: the list shows both, not only the primary.
+        stack = create_test_stack(self.user, primary_photo=self.no_location[0])
+        stack.photos.add(self.no_location[0], self.no_location[1])
+
+    def _listed_ids(self, filters=""):
+        ids = []
+        url = f"/api/photos/nolocation/?page_size=2{filters}"
+        while url:
+            page = self.client.get(url).json()
+            ids += [row["id"] for row in page["results"]]
+            url = page["next"]
+        return ids
+
+    def test_query_matches_every_page_of_the_list(self):
+        listed = self._listed_ids()
+        self.assertEqual(len(listed), 5)
+
+        selected = build_photo_queryset(self.user, self.QUERY)
+        self.assertCountEqual([str(p.id) for p in selected], listed)
+
+    def test_query_with_the_media_filter_matches_the_filtered_list(self):
+        videos = create_test_photos(number_of_photos=2, owner=self.user, video=True)
+        listed = self._listed_ids("&video=true")
+        self.assertCountEqual(listed, [str(p.id) for p in videos])
+
+        selected = build_photo_queryset(self.user, {**self.QUERY, "video": True})
+        self.assertCountEqual([str(p.id) for p in selected], listed)
+
+    def test_select_all_favorites_every_photo_without_gps_and_no_located_one(self):
+        with patch("api.metadata.jobs.enqueue_task"):
+            response = self.client.post(
+                "/api/photosedit/favorite/",
+                {"select_all": True, "query": self.QUERY, "favorite": True},
+                format="json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 5)
+        for photo in self.no_location:
+            photo.refresh_from_db()
+            self.assertEqual(photo.rating, 1)
+        for photo in self.located:
+            photo.refresh_from_db()
+            self.assertEqual(photo.rating, 0)
+
+    def test_a_false_flag_does_not_narrow(self):
+        for value in (False, "false", "0"):
+            with self.subTest(value=value):
+                selected = build_photo_queryset(
+                    self.user, {"no_location": value, "show_all_stack_photos": True}
+                )
+                self.assertEqual(selected.count(), 7)
+
+
 class TrashedAtTest(TestCase):
     """Every path that sets ``in_trashcan`` sets ``trashed_at`` with it (#2203)."""
 

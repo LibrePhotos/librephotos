@@ -15,7 +15,11 @@ from api.albums.timeline_filter import parse_tristate, timeline_filter_q
 from api.models import AlbumUser, Photo
 from api.models.user import User
 from api.photos.paths import folder_path_q
-from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
+from api.search.metadata_filter import (
+    metadata_filter_q,
+    no_location_q,
+    parse_metadata_filter,
+)
 
 
 def not_in_own_album_q(user: User | AnonymousUser | None) -> Q:
@@ -68,6 +72,9 @@ def build_photo_queryset(
               stacked photos too, so its select-all also sends
               ``show_all_stack_photos``.
             - no_album: bool - Only photos in none of the user's own albums
+            - no_location: bool - Only photos with no GPS coordinates (the
+              "Photos without Location" page), resolved by the same
+              ``no_location_q`` the list view uses so the set matches
             - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
 
     Returns:
@@ -114,6 +121,10 @@ def build_photo_queryset(
 
     if parse_tristate(params.get("no_album")):
         filters.append(not_in_own_album_q(user))
+
+    # Photos without GPS ("Photos without Location"), matching NoLocationPhotoViewSet.
+    if parse_tristate(params.get("no_location")):
+        filters.append(no_location_q())
 
     # Stack filtering: Show photos that are either:
     # 1. Not in any stack, OR

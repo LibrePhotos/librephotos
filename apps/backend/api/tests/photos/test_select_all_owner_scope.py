@@ -214,3 +214,39 @@ class NoTimestampSelectAllOwnerScopeTest(TestCase):
         for photo in own_undated:
             photo.refresh_from_db()
             self.assertTrue(photo.hidden)
+
+
+class NoLocationSelectAllOwnerScopeTest(TestCase):
+    """The ``no_location`` query (#530) stays inside the requester's photos."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.attacker = create_test_user()
+        self.victim = create_test_user()
+        self.client.force_authenticate(user=self.attacker)
+
+    def test_no_location_query_cannot_touch_other_users_photos(self):
+        victim_photos = create_test_photos(number_of_photos=3, owner=self.victim)
+        own_no_location = create_test_photos(number_of_photos=2, owner=self.attacker)
+        own_located = create_test_photos(
+            number_of_photos=1, owner=self.attacker, gps_lat=1.0, gps_lon=2.0
+        )
+
+        response = self.client.post(
+            "/api/photosedit/hide/",
+            {
+                "select_all": True,
+                "query": {"no_location": True, "show_all_stack_photos": True},
+                "hidden": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 2)
+        for photo in victim_photos + own_located:
+            photo.refresh_from_db()
+            self.assertFalse(photo.hidden)
+        for photo in own_no_location:
+            photo.refresh_from_db()
+            self.assertTrue(photo.hidden)

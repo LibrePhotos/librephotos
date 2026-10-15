@@ -212,6 +212,8 @@ export const BulkPhotoQuery = z.object({
   no_timestamp: z.boolean().optional(),
   // Only photos in none of my own albums: the "Photos not in an album" page.
   no_album: z.boolean().optional(),
+  // Only photos without GPS coordinates: the "Photos without Location" page.
+  no_location: z.boolean().optional(),
   // Stacked photos too, not only each stack's primary photo (for pages that list them all).
   show_all_stack_photos: z.boolean().optional(),
   // The structured search filters (endpoints.SearchFilters), so a select-all after a filtered search
