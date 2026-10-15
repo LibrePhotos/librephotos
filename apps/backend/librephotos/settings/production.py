@@ -273,6 +273,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
+                ("exiftool", "ExifTool (offline, built in)"),
                 ("mapbox", "Mapbox"),
                 ("maptiler", "MapTiler"),
                 ("nominatim", "Nominatim (OpenStreetMap)"),

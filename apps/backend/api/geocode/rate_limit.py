@@ -27,7 +27,9 @@ from django.conf import settings
 # public terms of use call for >=1 req/sec; commercial providers tolerate
 # much higher rates, but a small floor here protects against accidentally
 # hammering them while still letting the geolocation job make progress.
+# ExifTool's lookup runs on this server (#2302): nothing to protect, no wait.
 _MIN_DELAY_PER_PROVIDER = {
+    "exiftool": 0,
     "nominatim": 1.1,
     "mapbox": 0.05,
     "maptiler": 0.05,

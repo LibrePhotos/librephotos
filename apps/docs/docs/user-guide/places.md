@@ -27,6 +27,7 @@ You can configure your preferred geocoding provider in **Admin Area → Site Set
 
 | Provider | API Key Required | Notes |
 |----------|-----------------|-------|
+| **ExifTool** (offline, built in) | No | Works offline; names the nearest town, not streets (see [Offline place names](#offline-place-names-with-exiftool)) |
 | **Nominatim** (OpenStreetMap) | No | Free and open source, default option |
 | **Mapbox** | Yes | Commercial service with free tier |
 | **MapTiler** | Yes | Commercial service with free tier |
@@ -38,6 +39,24 @@ You can configure your preferred geocoding provider in **Admin Area → Site Set
 
 To respect Nominatim's public terms of use, LibrePhotos limits itself to about one lookup per second for this provider, and that limit is shared across all background workers — adding more workers won't speed it up. The first scan of a large geotagged library will therefore take a while, and places keep filling in after the scan reports done. If you have tens of thousands of geotagged photos, a commercial provider with an API key geocodes far faster.
 :::
+
+#### Offline place names with ExifTool
+
+<Since version="1.4.0" />
+
+Choose **ExifTool (offline, built in)** as the **Map Provider** to look place names up on your own server. ExifTool, which LibrePhotos already uses to read metadata, comes with a database of the world's towns, so the lookup needs no Internet connection and no API key, has no rate limit (about 9 ms per photo instead of more than a second with Nominatim), and your photos' coordinates never leave the server.
+
+What to expect:
+
+- **Town level.** A photo gets its nearest town or neighbourhood (towns of 2,000 people or more), the district, the region and the country, for example *Zermatt, Visp District, Valais, Switzerland*. There are no street, park or point-of-interest names; choose Nominatim or a commercial provider if you want those. A name that repeats on several levels is kept once, so Lisbon is *Lisbon, Portugal*.
+- **Names in English or Latin script.** The names come from GeoNames and are the same for every user (*Germany*, *Tokyo*), not in the language of each country.
+- **Nothing within 50 km means no place.** A photo farther than 50 km from any town (open sea, a large national park, the Antarctic) keeps its position and stays on the map, but gets no place name and joins no Places album, rather than the name of a town far away.
+- **Borders.** The database knows towns, not borders: a photo taken close to a border can get the name of a town across it (on Kilimanjaro, the nearest town is in Kenya).
+- **Place search in the location picker** still uses Nominatim, because ExifTool cannot search addresses. Only the text you type is sent, never a photo's position. On a server without Internet access the search fails, but clicking the map and pasting coordinates still work.
+
+Switching the provider does not rename photos that already have a place: new photos, and photos whose position changes, get names from the new provider, so for a while your Places albums mix the names of both.
+
+Place names from ExifTool come from [GeoNames](https://www.geonames.org/) and are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ### 3. Map Display
 

@@ -3,10 +3,11 @@ import logging
 import geopy
 from constance import config as site_config
 
-from api.geocode import GEOCODE_VERSION
+from api.geocode import EXIFTOOL_PROVIDER, GEOCODE_VERSION
 from api.models.photo_search import place_label
 from api.runtime.features import feature_enabled
 
+from . import exiftool_provider
 from .config import get_provider_config, get_provider_parser
 from .rate_limit import wait as wait_for_provider
 
@@ -82,6 +83,8 @@ def reverse_geocode(lat: float, lon: float) -> dict:
     provider = site_config.MAP_API_PROVIDER
     wait_for_provider(provider)
     try:
+        if provider == EXIFTOOL_PROVIDER:
+            return exiftool_provider.reverse(lat, lon)
         return Geocode(provider).reverse(lat, lon)
     except Exception as e:
         logger.warning("Error while reverse geocoding: %s", e)
@@ -100,9 +103,20 @@ def reverse_geocode_label(lat: float, lon: float) -> str | None:
     return place_label(reverse_geocode(lat, lon))
 
 
+def search_provider(provider: str) -> str:
+    """The provider that searches places by name for the Map Provider *provider*.
+
+    ExifTool's database knows town names only, not addresses, so with it the
+    location picker's search asks Nominatim, at Nominatim's rate limit. Only
+    the typed text goes out, never a photo's position.
+    """
+    return "nominatim" if provider == EXIFTOOL_PROVIDER else provider
+
+
 def search_location(query: str, limit: int = 5) -> list[dict]:
-    """Search for locations by name/address using the configured map provider."""
-    provider = site_config.MAP_API_PROVIDER
+    """Search for locations by name/address using the configured map provider
+    (Nominatim for the offline one, ``search_provider``)."""
+    provider = search_provider(site_config.MAP_API_PROVIDER)
     wait_for_provider(provider)
     try:
         return Geocode(provider).search(query, limit)
