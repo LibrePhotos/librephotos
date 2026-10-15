@@ -32,6 +32,23 @@
       "enabled": false
     },
     {
+      "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = backend-gpu's Python 3.10, ceiling = newest Python CI runs), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
+      "matchDepTypes": ["requires-python"],
+      "enabled": false
+    },
+    {
+      "description": "Freeze the python_version < \"3.11\" fallback lines in apps/backend/requirements.dev.txt: they pin the last release that supports Python 3.10 (backend-gpu image, DEBUG=1), so a newer version can never install there. The >= \"3.11\" line of the same package keeps updating. Update matchCurrentValue if a fallback pin is ever changed by hand.",
+      "matchPackageNames": ["pre-commit"],
+      "matchCurrentValue": "==4.6.2",
+      "enabled": false
+    },
+    {
+      "description": "See the pre-commit rule above: IPython 8.39.0 is the last release supporting Python 3.10.",
+      "matchPackageNames": ["ipython"],
+      "matchCurrentValue": "==8.39.0",
+      "enabled": false
+    },
+    {
       "matchFileNames": ["apps/backend/**"],
       "groupName": "backend dependencies",
       "addLabels": ["backend"]
