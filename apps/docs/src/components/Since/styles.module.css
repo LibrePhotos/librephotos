@@ -1,0 +1,32 @@
+.since {
+  display: inline-block;
+  padding: 0 0.5em;
+  border: 1px solid var(--ifm-color-emphasis-400);
+  border-radius: 999px;
+  color: var(--ifm-color-emphasis-800);
+  font-size: 0.8em;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.since[data-released="true"] {
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary-darker);
+}
+
+[data-theme="dark"] .since[data-released="true"] {
+  color: var(--ifm-color-primary-lightest);
+}
+
+a.since:hover {
+  text-decoration: none;
+  background: var(--ifm-color-emphasis-100);
+}
+
+/* `<Since version="..." />` on a line of its own sits between paragraphs, so give it their spacing. */
+:global(.markdown) > .since {
+  display: table;
+  margin-bottom: var(--ifm-paragraph-margin-bottom);
+}

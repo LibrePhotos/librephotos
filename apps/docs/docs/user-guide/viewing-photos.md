@@ -14,9 +14,7 @@ The default view showing all your photos grouped by date, from newest to oldest.
 
 #### Filtering the timeline
 
-:::note
-The timeline filter is not in a release yet; it ships with the first release after 1.2.1.
-:::
+<Since version="1.3.0" />
 
 The **Filter** button next to the display options narrows what the timeline shows:
 
@@ -93,13 +91,13 @@ Shows only video files, filtering out all still photos.
 **Screenshots** lists the photos detected or marked as screenshots. **Documents** lists the photos of receipts, letters, forms and other paper (see [Documents](./text-recognition.md#documents)). Both are in the Photos view switcher in the page header and in the command palette (`Ctrl+K`). When a photo is in the wrong one, change its [Category](#category).
 
 :::note
-The Documents page is not in a release yet; it ships with the first release after 1.3.0.
+<Since version="1.4.0" /> This applies to the Documents page.
 :::
 
 ### Filtering a list by media type {#media-filter}
 
 :::note
-The labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp, Without Location and folder pages are not in a release yet; they ship with the first release after 1.3.0.
+<Since version="1.4.0" /> This applies to the labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp, Without Location and folder pages.
 :::
 
 Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, Not in an Album, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
@@ -116,9 +114,7 @@ To give them a date, select them and choose **Change date and time…** from the
 
 ### Without Location
 
-:::note
-This view is not in a release yet; it ships with the first release after 1.3.0.
-:::
+<Since version="1.4.0" />
 
 Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
 
@@ -126,9 +122,7 @@ To give many of them one place, select them and choose **Set location…** from 
 
 ### Not in an Album {#not-in-an-album}
 
-:::note
-This page is not in a release yet; it ships with the first release after 1.3.0.
-:::
+<Since version="1.4.0" />
 
 Your photos that are in none of your own albums, newest first, so you can see what is left to sort. An album another user shares with you does not count: a photo of yours that is only in their album still shows up here. Hidden and trashed photos are left out.
 
@@ -249,9 +243,7 @@ For more details on how file variants and stacks work, see [Stacks & File Varian
 
 ### Category
 
-:::note
-The Category control is not in a release yet; it ships with the first release after 1.2.1.
-:::
+<Since version="1.3.0" />
 
 LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify Media Categories** job (listed on the Jobs page) re-runs both over the library. The category is the badge at the end of the filename row in [File & Camera Info](#file--camera-info). When it is wrong, click the badge and pick **Photo**, **Screenshot** or **Document**. The menu also says whether the category was **Detected automatically** or **Set by you**, and where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change; undoing a correction of a detected category hands the item back to the detectors. Videos get the badge only when they were wrongly flagged, and can only be set back to **Photo**.
 
@@ -319,7 +311,7 @@ Click on any similar photo to view it directly.
 Every photo also has a page of its own at `/photo/<id>`. You get there from a link to the photo, by `Ctrl` + clicking (`⌘` + click on macOS) a photo in a grid, and from a similar photo in the details.
 
 :::note
-The page described here is not in a release yet; it ships with the first release after 1.3.0. Up to 1.3.0 the page was titled with the file name and its full folder path and had no actions.
+<Since version="1.4.0" /> Up to 1.3.0 the page was titled with the file name and its full folder path and had no actions.
 :::
 
 The photo or video is shown as large as the window allows on a neutral background, with **Back** above it (to where you came from, or to the timeline when you opened a link) and **Open in viewer** below it. Open in viewer shows the photo in the [lightbox](#photo-viewer-lightbox), for zoom, fullscreen, the slideshow and the keyboard shortcuts. When [text recognition](./text-recognition.md) found text in one of your photos, a **Select text in photo** button lays it over the photo there too.
@@ -392,7 +384,7 @@ LibrePhotos asks your browser, for each video, whether it can play it. If it can
 This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are always served the original.
 
 :::note
-Since 1.3.0. On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.
+<Since version="1.3.0" /> On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.
 :::
 
 ### HDR Videos

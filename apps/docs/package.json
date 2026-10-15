@@ -12,7 +12,11 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
+    "release:check": "node scripts/check-release-posts.mjs",
+    "release:json": "node scripts/build-releases.mjs",
+    "release:body": "node scripts/release-body.mjs"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",
@@ -27,7 +31,9 @@
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "typescript": "~6.0.0"
+    "js-yaml": "^4.1.0",
+    "typescript": "~6.0.0",
+    "zod": "4.6.7"
   },
   "browserslist": {
     "production": [

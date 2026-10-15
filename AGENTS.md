@@ -15,9 +15,14 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 ## Rules
 
 - A user-facing feature, setting or env var ships with its docs in `apps/docs` in the same PR.
-  Docs deploy from `dev` before a release, so say when something is not released yet.
+  Docs deploy from `dev` before a release, so say when something is not released yet: write
+  `<Since version="<next release>" />` on the line under a heading or at the start of a note
+  (`<Since version="1.4.0" /> Up to 1.3.0, ...`). It turns into "New in 1.4.0" when that release post
+  is merged (`apps/docs/src/data/releases.json`), and the docs build fails on a version that is neither
+  released nor newer than the latest.
 - Release notes follow `.github/release-notes-template.md`: plain "What's new for you" and "After you update"
-  blocks above the technical part, UI labels from `locales/en`, no em dashes.
+  blocks above the technical part, UI labels from `locales/en`, no em dashes. They are written as a post in
+  `apps/docs/blog/` and the GitHub release body is generated from it (`scripts/check-release-posts.mjs` in CI).
 - Name new code, UI strings and docs after the terms in `apps/docs/docs/development/glossary.md`
   (Event, Thing, Tag, Keyword, Person, Face, ...). Its legacy names stay only where clients depend on them.
 - Edit only English strings (`apps/frontend/src/locales/en`). Weblate owns the other languages.

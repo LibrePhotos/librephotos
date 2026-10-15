@@ -5,7 +5,10 @@ have to do anything, and how do I do it in the app. Readers include people who r
 their own PC and have never opened a terminal, so the part above `**Upstream:**` is written for them.
 Everything from `**Upstream:**` down is the house format used since 2026w25 and stays as it is.
 
-Copy the skeleton, fill it in, then go through the checklist.
+The text lives in one place: a post per release in `apps/docs/blog/`. The GitHub release body is
+generated from it (`apps/docs/scripts/release-body.mjs`), and its front matter feeds the "New in" block
+on the docs landing page, the `<Since>` markers in the docs and the in-app "What's new" card. Copy the
+skeleton into a new post, fill it in, go through the checklist, then follow the release steps at the end.
 
 ## Skeleton
 
@@ -79,8 +82,57 @@ For "Who should update", "What's new for you", "Before you update" and "After yo
 - [ ] Security: say who is affected and that they should update. Give no detail beyond the published advisory.
 - [ ] Patch releases: one line under "Who should update" and the bullet list. Add "What's new for you" and
       "After you update" only when there is something new or something to do.
-- [ ] Docs for new behaviour are on docs.librephotos.com, and their "not released yet" notes are removed or
-      updated for this release.
+- [ ] Docs for new behaviour are on docs.librephotos.com. Markers written as `<Since version="<tag>" />` flip
+      to "New in <tag>" by themselves once the post is merged; plain-text "not released yet" notes are
+      removed or updated by hand.
+
+## The post
+
+`apps/docs/blog/YYYY-MM-DD-<tag>.md`, dated on the release day. Its body is the skeleton above. A patch
+release that only fixes things can leave out `highlights`.
+
+```markdown
+---
+slug: "1-4-0"            # the tag with dashes: /blog/1.4.0 is a 404 on the dev server and `docusaurus serve`
+title: "1.4.0: <what the release is about, in user words>"
+authors: [niaz]
+tags: [release]
+date: 2026-11-15T10:00:00Z
+release: "1.4.0"
+summary: "<One sentence for the in-app card.>"
+highlights:              # 3 to 5, in the order of "What's new for you"
+  - id: timeline-filter  # kebab-case, unique in the post
+    audience: all        # or admin
+    title: "Filter the timeline"
+    body: "Hide screenshots and documents, or show only videos or favorites."
+    shot: timeline-filter               # optional, a screenshot id in apps/docs/static/img/shots
+    learn_more: /docs/user-guide/viewing-photos#filtering-the-timeline
+    open_in_app: /                      # optional, a path in the web app
+---
+```
+
+`node scripts/check-release-posts.mjs` (from `apps/docs`, also run by the docs workflow) validates the
+front matter, rejects em dashes, and from 1.3.0 on requires "Who should update", "**Upstream:**" and,
+for a release that is not a patch release, "What's new for you" and `highlights`. Every `shot` must
+exist, and after the build every `learn_more` page and anchor must exist too.
+
+## Release steps
+
+Do them in this order, so the docs and their pictures are live before the release points at them.
+
+1. Screenshots: if the release changes what the app looks like, update the shots in
+   `apps/docs/static/img/shots/` and merge that PR first (#2307 automates this with a workflow).
+2. Write the post and its front matter as above, in a PR against `dev`.
+3. In `apps/docs`, run `node scripts/build-releases.mjs` and commit `src/data/releases.json`. This is
+   what flips the `<Since version="<tag>" />` markers and the "New in" block. If the app's "What's new"
+   card (#2305) has its own generated file, regenerate and commit it in the same PR.
+4. Run `node scripts/check-release-posts.mjs`, `yarn build` and `node scripts/check-release-posts.mjs --build build`.
+5. Merge the PR. The docs deploy from that push to `dev`.
+6. Generate the body and check how GitHub renders it, without creating anything:
+   `node scripts/release-body.mjs <tag> > body.md`, then `gh api markdown -f mode=gfm -F text=@body.md > body.html`.
+7. Create the release from the merge commit of step 5:
+   `gh release create <tag> --target <merge sha> --title "<tag> - <Month Year>" --notes-file body.md`.
+   Once #2318 has shipped, add `--latest=false`; the Windows build then marks the release latest when its zip is attached.
 
 ## Worked example: 1.3.0
 

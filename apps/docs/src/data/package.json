@@ -1,0 +1,4 @@
+{
+  "//": "releases.ts is ESM; this tells Node (which runs it from scripts/) so, without a warning.",
+  "type": "module"
+}
