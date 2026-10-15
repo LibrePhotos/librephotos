@@ -1,3 +1,4 @@
+import os
 import shutil
 from collections import Counter
 from typing import Any
@@ -14,6 +15,7 @@ from service._common import (
     logger,
     serve_forever,
 )
+from service.exif.all_tags import FileNotReadableError, read_all_tags
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
 # Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
@@ -252,6 +254,40 @@ def get_tags() -> ResponseReturnValue:
     safe_value_iter = iter(safe_values)
     values = [next(safe_value_iter) if ok else None for ok in safe]
     return {"values": values}, 200
+
+
+def _all_tags_path() -> str | None:
+    """The one absolute path an /all-tags request names, or None if it is unusable.
+
+    Absolute, so it cannot start with "-" and be read as an option; no line
+    break, which would inject arguments (see tag_validation).
+    """
+    try:
+        (path,) = json_fields("path")
+    except MalformedRequest:
+        return None
+    if not is_safe_media_path(path) or not os.path.isabs(path):
+        return None
+    return str(path)
+
+
+@app.route("/all-tags", methods=["POST"])
+def all_tags() -> ResponseReturnValue:
+    """Every tag of one file, grouped by ExifTool group (#2277); nothing is stored."""
+    path = _all_tags_path()
+    if path is None:
+        return {"error": "the request needs one absolute path"}, 400
+    if not os.path.isfile(path):
+        return {"error": "file not found"}, 404
+    try:
+        groups = read_all_tags(running_exiftool(struct=True), path)
+    except FileNotReadableError as exc:
+        return {"error": str(exc)}, 404
+    except Exception as exc:
+        log.error("error reading all tags: %s", exc)
+        log.debug("error reading all tags of %s", path)
+        return {"error": str(exc)}, 500
+    return {"groups": groups}, 200
 
 
 def serve() -> None:

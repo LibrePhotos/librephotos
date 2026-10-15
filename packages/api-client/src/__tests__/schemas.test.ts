@@ -179,7 +179,6 @@ describe("fields shared with the web frontend", () => {
       big_thumbnail_url: "",
       small_square_thumbnail_url: "",
       geolocation_json: null,
-      exif_json: null,
       people: [],
       image_hash: "h1",
       image_path: ["/data/a.jpg"],

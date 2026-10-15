@@ -12,6 +12,7 @@ import {
   PhotoOcrData,
   PhotosWithoutLocationResponse,
   PigPhoto,
+  RawMetadata,
   RecentlyAddedPhotosResponse,
   SharedPhoto,
 } from "../schemas";
@@ -20,6 +21,7 @@ import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
 import photoDetail from "./fixtures/photoDetail.json";
 import photoMetadata from "./fixtures/photoMetadata.json";
+import rawMetadata from "./fixtures/rawMetadata.json";
 import userAlbumCards from "./fixtures/userAlbumCards.json";
 import { fakeServer } from "./harness";
 
@@ -161,6 +163,41 @@ describe("photo metadata", () => {
       body: { photo_ids: ["h1", "h2"], updates: { keywords: ["a"] } },
     });
     expect(answer.updated_count).toBe(2);
+  });
+});
+
+/** GET /photos/{photo_id}/metadata/raw/ (#2277): every tag of the file and its sidecars. */
+describe("raw photo metadata", () => {
+  const photoId = "4f1c2d3e-0000-4000-8000-000000000001";
+
+  it("reads every tag of the media file and each sidecar, grouped", async () => {
+    const { client, requests } = fakeServer(rawMetadata);
+    const answer = await endpoints.fetchRawPhotoMetadata(client, photoId);
+    expect(defined(requests[0])).toEqual({
+      url: `${API}/photos/${photoId}/metadata/raw/`,
+      method: "GET",
+      body: undefined,
+    });
+    const [media, sidecar] = answer.files;
+    expect(defined(media).kind).toBe("media");
+    expect(defined(defined(media).groups[1]).tags).toEqual({ Make: "FUJIFILM", Model: "X-T5" });
+    expect(defined(sidecar).path_label).toBe("2024/algarve/DSCF4127.xmp");
+  });
+
+  it("keeps XMP structures and lists as they come", () => {
+    const groups = defined(RawMetadata.parse(rawMetadata).files[0]).groups;
+    const region = groups.find(group => group.name === "XMP-mwg-rs");
+    expect(defined(region).tags.RegionInfo).toEqual({ RegionList: [{ Name: "Anna", Type: "Face" }] });
+  });
+
+  it("rejects a file of an unknown kind", () => {
+    const file = { path_label: "a.jpg", kind: "raw", groups: [] };
+    expect(RawMetadata.safeParse({ files: [file] }).success).toBe(false);
+  });
+
+  it("answers the server's 404 for someone else's photo as an ApiError", async () => {
+    const { client } = fakeServer({ errors: [{ field: null, message: "Not found.", code: "not_found" }] }, 404);
+    await expect(endpoints.fetchRawPhotoMetadata(client, photoId)).rejects.toBeInstanceOf(ApiError);
   });
 });
 

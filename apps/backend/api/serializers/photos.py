@@ -545,7 +545,6 @@ class PhotoSerializer(serializers.ModelSerializer):
             "square_thumbnail_url",
             "small_square_thumbnail_url",
             "geolocation_json",
-            "exif_json",
             "people",
             "image_hash",
             "image_path",

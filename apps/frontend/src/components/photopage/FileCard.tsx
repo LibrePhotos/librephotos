@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { AllMetadataButton } from "../allmetadata/AllMetadataButton";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { CategoryBadge } from "../lightbox/CategoryBadge";
 import { fileFacts } from "../lightbox/photoDetails";
@@ -66,7 +67,7 @@ function OtherFormats({ photo }: Readonly<{ photo: Photo }>) {
 
 /**
  * The file behind the photo: its name (opens the original), size, category,
- * other formats, the folder below the library root, copies and stacks.
+ * other formats, the folder below the library root, copies, stacks and All metadata.
  */
 export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
   const { t } = useTranslation();
@@ -125,6 +126,7 @@ export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
           </Stack>
         )}
         <StackSection photoDetail={photo} onPhotoSelect={openStackPhoto} />
+        <AllMetadataButton photo={photo} variant="button" />
       </Stack>
     </PhotoCard>
   );

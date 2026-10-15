@@ -122,6 +122,8 @@ export const photoKeys = {
   detail: (imageHash: string) => [...photoKeys.details(), imageHash] as const,
   albums: (imageHash: string) => [...photoRoot, "albums", imageHash] as const,
   metadata: (imageHash: string | undefined) => [...photoRoot, "metadata", imageHash] as const,
+  /** Every tag of a photo's files, read by ExifTool on request (the All metadata view). */
+  rawMetadata: (photoId: string) => [...photoRoot, "rawMetadata", photoId] as const,
   publicDetail: (slug: string, imageHash: string) => [...photoRoot, "publicDetail", slug, imageHash] as const,
   shares: () => [...photoRoot, "shares"] as const,
   sharedBySlug: (slug: string) => [...photoRoot, "sharedBySlug", slug] as const,

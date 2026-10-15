@@ -5035,6 +5035,46 @@
         }
       }
     },
+    "/api/photos/{photo_id}/metadata/raw/": {
+      "get": {
+        "operationId": "api_photos_metadata_raw_retrieve",
+        "description": "Every tag of the photo's main file and of each XMP sidecar, grouped by ExifTool group, read now with ExifTool (print conversion on). Owner only (404 otherwise). 404 file_missing when the file is not on disk, 502 when ExifTool cannot read it.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawMetadata"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/{photo_id}/metadata/revert-all/": {
       "post": {
         "operationId": "api_photos_metadata_revert_all_create",
@@ -16105,9 +16145,6 @@
           "geolocation_json": {
             "nullable": true
           },
-          "exif_json": {
-            "nullable": true
-          },
           "image_hash": {
             "type": "string",
             "minLength": 1,
@@ -16614,9 +16651,6 @@
           "geolocation_json": {
             "nullable": true
           },
-          "exif_json": {
-            "nullable": true
-          },
           "people": {
             "type": "array",
             "items": {},
@@ -16856,7 +16890,6 @@
           "embedded_media",
           "exif_gps_lat",
           "exif_gps_lon",
-          "exif_json",
           "exif_timestamp",
           "exposure_compensation",
           "file_variants",
@@ -17647,9 +17680,6 @@
             "nullable": true
           },
           "geolocation_json": {
-            "nullable": true
-          },
-          "exif_json": {
             "nullable": true
           },
           "image_hash": {
@@ -18663,6 +18693,77 @@
         ],
         "type": "string",
         "description": "* `favorite` - Favorite\n* `stars` - Stars"
+      },
+      "RawMetadata": {
+        "type": "object",
+        "description": "``GET /api/photos/<photo_id>/metadata/raw/``: the main file, then its sidecars.",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RawMetadataFile"
+            }
+          }
+        },
+        "required": [
+          "files"
+        ]
+      },
+      "RawMetadataFile": {
+        "type": "object",
+        "description": "One file of a photo with every tag ExifTool reads in it.",
+        "properties": {
+          "path_label": {
+            "type": "string",
+            "description": "The path below the owner's library folder (the file name outside it)"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RawMetadataFileKindEnum"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RawMetadataGroup"
+            }
+          }
+        },
+        "required": [
+          "groups",
+          "kind",
+          "path_label"
+        ]
+      },
+      "RawMetadataFileKindEnum": {
+        "enum": [
+          "media",
+          "sidecar"
+        ],
+        "type": "string",
+        "description": "* `media` - media\n* `sidecar` - sidecar"
+      },
+      "RawMetadataGroup": {
+        "type": "object",
+        "description": "One ExifTool group of a file: ``IFD0`` (family ``EXIF``), ``XMP-dc``, ...",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "ExifTool's family 1 group (IFD0, XMP-dc)"
+          },
+          "family": {
+            "type": "string",
+            "description": "ExifTool's family 0 group (EXIF, XMP, MakerNotes)"
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Tag name to value as ExifTool prints it: text, a list, or an object for an XMP structure"
+          }
+        },
+        "required": [
+          "family",
+          "name",
+          "tags"
+        ]
       },
       "RecentlyAddedPhotos": {
         "type": "object",

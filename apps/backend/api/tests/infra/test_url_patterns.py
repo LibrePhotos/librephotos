@@ -222,6 +222,7 @@ CLIENT_PATHS = {
     "/api/photos/download": "api.views.zip_downloads.ZipListPhotosView_V2",
     "/api/photos/edit/1/": "api.views.photos.PhotoEditViewSet delete=destroy,get=retrieve,patch=partial_update,put=update",
     "/api/photos/metadata/bulk": "api.views.photo_metadata.BulkMetadataView",
+    "/api/photos/4f1c2d3e-0000-4000-8000-000000000001/metadata/raw/": "api.views.photo_metadata.RawMetadataView",
     "/api/photos/located-nearby-in-time/": "api.views.photo_locations.LocatedNearbyInTimeView",
     "/api/photos/location-summary/": "api.views.photo_locations.LocationSummaryView",
     "/api/photos/no-album/": "api.views.photos.NoAlbumPhotoViewSet get=list",

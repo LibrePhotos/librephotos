@@ -126,6 +126,34 @@ not written: the edit goes to the sidecar of the photo's main file, the JPEG.
 A photo that up to 1.3.0 got an `IMG_2.xmp` next to an existing `IMG_2.jpg.xmp` keeps both:
 LibrePhotos reads and writes `IMG_2.xmp`, and the other app keeps its own file.
 
+## All metadata
+
+_Not released yet._ To see every tag a photo's file carries, not just the fields above, open
+**All metadata**: in the lightbox's info panel it is the link in the file row (next to the size),
+on the photo page the button at the end of the **File** card. Only the photo's owner sees it.
+
+The dialog asks ExifTool for every tag of the media file and of each XMP sidecar the scan reads
+(see [Which sidecars are read](#which-sidecars-are-read)), one tab per file: the media file, then
+the sidecars, highest priority first. Tags are grouped as ExifTool groups them (`IFD0`, `ExifIFD`,
+`GPS`, the camera's maker notes, `XMP-dc`, `QuickTime`, ...), sorted by name within a group, and
+their values read as in ExifTool's own output (`1/250`, `Horizontal (normal)`); embedded images and
+other binary data show as `(Binary data N bytes)`. The maker notes start collapsed, since they can
+be hundreds of tags.
+
+- **Filter tags and values** narrows the list to the tags whose group, name or value contain the
+  text, and says how many match.
+- **Copy as JSON** copies the open tab's tags in the shape of `exiftool -json -G1`, ready to paste
+  into an issue or a forum post.
+
+The tags are read from the files when the dialog opens and are never stored; the file system
+details (the server's folder, file permissions) are left out, and the file is named by its path
+below your library folder. If the file is no longer on disk, the dialog says so: rescan its folder
+or put the file back. This is the quickest way to find out why a date rule picked a tag, why a
+sidecar value was or was not used, or which tag a camera writes a setting to.
+
+For API clients: the photo detail response no longer carries the `exif_json` field, which was
+always empty. The tags come from `GET /api/photos/{photo_id}/metadata/raw/` instead.
+
 ## What LibrePhotos writes
 
 With `Off`, the default, LibrePhotos never writes to your files. A scan never writes either: it

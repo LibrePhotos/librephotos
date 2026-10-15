@@ -37,6 +37,11 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
         return obj.photo.image_hash if obj.photo else None
 
 
+# A person's kind: KindEnum in the schema (ENUM_NAME_OVERRIDES), so the name stays
+# when another "kind" choice appears.
+PERSON_KINDS = Person.KIND_CHOICES
+
+
 class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
     face_count = serializers.SerializerMethodField()
 

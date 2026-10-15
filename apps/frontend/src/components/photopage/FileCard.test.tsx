@@ -1,7 +1,7 @@
 /**
  * The File card: the file name opens the original, the other formats each
  * download, the folder is shown below the library root, copies are listed,
- * and a stack's photo opens on its own page.
+ * a stack's photo opens on its own page, and All metadata is offered.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -30,6 +30,9 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { scan_directory: "C:\\Photos" } }),
+}));
+vi.mock("../allmetadata/AllMetadataButton", () => ({
+  AllMetadataButton: ({ variant }: { variant: string }) => <button type="button">all metadata {variant}</button>,
 }));
 vi.mock("../lightbox/CategoryBadge", () => ({ CategoryBadge: () => <span>category</span> }));
 vi.mock("../lightbox/StackSection", () => ({
@@ -125,6 +128,11 @@ describe("file card", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/photo/$id", params: { id: "h2" } });
     await act(async () => defined(onPhotoSelect)("unknown"));
     expect(stubs.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends with the All metadata button", async () => {
+    const container = await renderCard(photo);
+    expect(container.textContent).toContain("all metadata button");
   });
 
   it("says when the file name is unknown and lists nothing it does not have", async () => {

@@ -550,6 +550,10 @@ SPECTACULAR_SETTINGS = {
         "MemoryTypeEnum": "api.serializers.memories.MEMORY_TYPES",
         # What the serving diagnostics found.
         "MediaDiagnosisCauseEnum": "api.serializers.media.DIAGNOSIS_CAUSES",
+        # A person's kind keeps its name now that another "kind" choice exists.
+        "KindEnum": "api.serializers.face.PERSON_KINDS",
+        # A file of the All metadata view: the media file or a sidecar.
+        "RawMetadataFileKindEnum": "api.serializers.photo_metadata.RAW_METADATA_FILE_KINDS",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

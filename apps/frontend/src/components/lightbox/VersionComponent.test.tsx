@@ -17,6 +17,10 @@ import { VersionComponent } from "./VersionComponent";
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 // Its folder links are router links, which need a router this test has not got.
 vi.mock("../common/BreadcrumbPath", () => ({ BreadcrumbPath: () => null }));
+// Its own test covers the dialog.
+vi.mock("../allmetadata/AllMetadataButton", () => ({
+  AllMetadataButton: ({ variant }: { variant: string }) => <button type="button">all metadata {variant}</button>,
+}));
 
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
@@ -44,7 +48,7 @@ const variant = (hash: string): FileVariant => ({
   filename: null,
 });
 
-async function render(overrides: Partial<Photo>) {
+async function render(overrides: Partial<Photo>, isPublic = false) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -60,7 +64,7 @@ async function render(overrides: Partial<Photo>) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <VersionComponent photoDetail={photoDetail} isPublic={false} />
+        <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
       </MantineProvider>
     );
   });
@@ -78,14 +82,19 @@ async function render(overrides: Partial<Photo>) {
   };
 }
 
-async function renderText(overrides: Partial<Photo>) {
-  const panel = await render(overrides);
+async function renderText(overrides: Partial<Photo>, isPublic = false) {
+  const panel = await render(overrides, isPublic);
   const text = panel.lines();
   await panel.unmount();
   return text;
 }
 
 describe("VersionComponent", () => {
+  it("offers All metadata as a link in the file row, to the owner only", async () => {
+    expect(await renderText({})).toContain("all metadata link");
+    expect(await renderText({}, true)).not.toContain("all metadata");
+  });
+
   it("shows width × height, megapixels and the size", async () => {
     expect(await renderText({})).toContain("4000 × 3000 · 12 MP · 2 MB");
   });

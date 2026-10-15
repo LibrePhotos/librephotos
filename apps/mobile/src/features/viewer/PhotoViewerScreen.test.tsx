@@ -45,7 +45,6 @@ const PHOTO_DETAIL = {
   big_thumbnail_url: "",
   small_square_thumbnail_url: "",
   geolocation_json: null,
-  exif_json: null,
   people: [
     {
       name: "Ada",

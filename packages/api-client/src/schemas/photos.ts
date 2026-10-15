@@ -118,7 +118,6 @@ export const Photo = z.object({
   small_square_thumbnail_url: z.string(),
   // The reverse geocoder's answer (features, places, ...), stored as it came.
   geolocation_json: z.unknown(),
-  exif_json: z.unknown(),
   people: PhotoPerson.array(),
   image_hash: z.string(),
   image_path: z.string().array(),

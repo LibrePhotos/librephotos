@@ -291,7 +291,13 @@ def _exif_service_post(
         raise AssertionError(f"unexpected sidecar call to {service}{path}")
     response = app.test_client().post(path, json=json)
     if response.status_code >= 400:
-        raise requests.HTTPError(f"exif service answered {response.status_code}")
+        # With the status and body, as requests' raise_for_status gives them.
+        answer = requests.Response()
+        answer.status_code = response.status_code
+        answer._content = response.data
+        raise requests.HTTPError(
+            f"exif service answered {response.status_code}", response=answer
+        )
     return _ServiceAnswer(response.get_json())
 
 

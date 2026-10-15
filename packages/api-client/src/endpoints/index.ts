@@ -212,6 +212,15 @@ export async function fetchPhotoMetadata(client: ApiClient, photoId: string): Pr
   return parseResponse(S.PhotoMetadata, res, "photo metadata");
 }
 
+/**
+ * Every tag ExifTool reads in a photo's file and its sidecars, read now and never stored (#2277).
+ * Owner only: 404 for anyone else, and 404 `file_missing` when the file is gone from disk.
+ */
+export async function fetchRawPhotoMetadata(client: ApiClient, photoId: string): Promise<S.RawMetadata> {
+  const res = await client.get<unknown>(`/photos/${photoId}/metadata/raw/`);
+  return parseResponse(S.RawMetadata, res, "raw photo metadata");
+}
+
 /** Change a photo's metadata (each change is recorded in its history); answers the new metadata. */
 export async function updatePhotoMetadata(
   client: ApiClient,

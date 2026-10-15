@@ -1,0 +1,73 @@
+.table {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--mantine-color-default-hover);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.groupHeader:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.tagRow {
+  display: grid;
+  grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+  gap: var(--mantine-spacing-sm);
+  padding: 4px 8px 4px 28px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.tagName {
+  overflow-wrap: anywhere;
+}
+
+.tagValue {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.alignStart {
+  align-self: flex-start;
+}
+
+/* One row of tabs that scrolls sideways when the file names do not fit (a phone). */
+.tabList {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: 0 0 auto;
+}
+
+.tabLabel {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* A phone stacks the name over its value, so long values get the whole width. */
+@media (max-width: 36em) {
+  .tagRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-left: 8px;
+  }
+}

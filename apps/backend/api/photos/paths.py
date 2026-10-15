@@ -61,6 +61,23 @@ def _is_within(path: str, root_path: str, pathmod: ModuleType) -> bool:
     return abs_path.startswith(root_prefix)
 
 
+def path_label(path: str, root_path: str | None) -> str:
+    """*path* as the owner sees it: below their library folder, else the file name.
+
+    Shown in place of an absolute server path (the All metadata view, #2277):
+    ``2024/summer/IMG_1.jpg`` with forward slashes for a file inside
+    *root_path*, ``IMG_1.jpg`` for one outside it or without a root.
+    """
+    if (
+        root_path
+        and is_valid_path(path, root_path)
+        and not is_valid_path(root_path, path)
+    ):
+        relative = os.path.relpath(os.path.abspath(path), os.path.abspath(root_path))
+        return relative.replace(os.sep, "/")
+    return os.path.basename(path)
+
+
 #: A drive-letter path (``C:\x``, ``C:/x``, ``C:``) or a UNC path (``\\host\share``).
 _WINDOWS_PATH = re.compile(r"^(?:[A-Za-z]:(?:[\\/]|$)|\\\\)")
 

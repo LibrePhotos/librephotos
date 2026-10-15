@@ -1,0 +1,17 @@
+.viewport {
+  position: relative;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+}
+
+.row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
