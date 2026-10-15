@@ -1566,6 +1566,8 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
             response = self._save_metadata_request(photo)
 
         self.assertEqual(400, response.status_code, response.content)
+        # The setting under its name in the UI (#2609, #2670).
+        self.assertIn("Write edits to files is Off", response.content.decode())
 
 
 # A second face in the 96 x 64 thumbnail, clear of FACE_LANDSCAPE.

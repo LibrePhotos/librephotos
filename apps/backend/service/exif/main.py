@@ -5,7 +5,7 @@ from typing import Any
 import exiftool
 from flask.typing import ResponseReturnValue
 
-from api.metadata.tags import SIDECAR_EQUIVALENTS
+from api.metadata.tags import SIDECAR_EQUIVALENTS, describes_the_file
 from api.mime import METADATA_EXTENSIONS, extension
 from service._common import (
     MalformedRequest,
@@ -62,10 +62,16 @@ def _names_in(file: str, tag: str) -> list[str]:
     """The names *tag* is read under in *file*, first found wins.
 
     A sidecar holds an EXIF property under its XMP name (``SIDECAR_EQUIVALENTS``);
-    a media file is read by the requested name only.
+    a media file is read by the requested name only. A sidecar is not asked
+    for a tag that describes the file itself (``describes_the_file``): its
+    file size is the sidecar's, not the photo's (#2670).
     """
+    if extension(file) not in METADATA_EXTENSIONS:
+        return [tag]
+    if describes_the_file(tag):
+        return []
     equivalent = SIDECAR_EQUIVALENTS.get(tag)
-    if equivalent is not None and extension(file) in METADATA_EXTENSIONS:
+    if equivalent is not None:
         return [equivalent, tag]
     return [tag]
 

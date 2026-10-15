@@ -1,6 +1,6 @@
 """Tests for the ``save_metadata`` management command.
 
-Each photo is written to its owner's target ("Synchronize metadata to disk":
+Each photo is written to its owner's target ("Write edits to files":
 sidecar or media file); photos of owners who have it Off are skipped (#2293).
 ``--sidecar`` / ``--media-file`` override the owner's setting and need
 ``--user``.
@@ -103,10 +103,17 @@ class SaveMetadataCommandTest(TestCase):
 
         out, err, save_mock = run_command()
 
-        self.assertIn("Skipping 2 photos of users with", out)
+        self.assertIn("Skipping 2 photos of users with 'Write edits to files' Off", out)
         self.assertIn("Found 1 photos to process", out)
         self.assertEqual(save_mock.call_count, 1)
         self.assertEqual(err, "")
+
+    def test_help_names_the_setting_as_the_ui_does(self):
+        from api.management.commands.save_metadata import Command
+
+        # Renamed in the UI (#2609); the old name is gone (#2670).
+        self.assertIn("'Write edits to files'", Command.help)
+        self.assertNotIn("Synchronize", Command.help)
 
     def test_user_with_sync_off_is_skipped_without_an_override(self):
         off_user = create_test_user(save_metadata_to_disk=User.SaveMetadata.OFF)

@@ -15,7 +15,7 @@ SYNCING_MODES = (User.SaveMetadata.SIDECAR_FILE, User.SaveMetadata.MEDIA_FILE)
 class Command(BaseCommand):
     help = (
         "Save metadata to XMP sidecar files or image files, as each photo's "
-        "owner has chosen under 'Synchronize metadata to disk'. Photos of "
+        "owner has chosen under 'Write edits to files'. Photos of "
         "users who have it Off are skipped."
     )
 
@@ -139,7 +139,7 @@ class Command(BaseCommand):
             if skipped_count:
                 self.stdout.write(
                     f"Skipping {skipped_count} photos of users with "
-                    "'Synchronize metadata to disk' Off"
+                    "'Write edits to files' Off"
                 )
             photos = photos.filter(owner__save_metadata_to_disk__in=SYNCING_MODES)
 
