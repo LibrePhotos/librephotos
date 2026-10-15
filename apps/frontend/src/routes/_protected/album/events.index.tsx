@@ -123,6 +123,7 @@ function AlbumAuto() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-events"
           items={albums ?? []}
           getKey={album => album.id}
           sizing={sizing}

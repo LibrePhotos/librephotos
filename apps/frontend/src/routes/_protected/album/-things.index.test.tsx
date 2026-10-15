@@ -43,6 +43,8 @@ vi.mock("@tanstack/react-router", () => ({
   },
   // The href the real Link builds from `to` and `params`
   Link: ({ children, to, params }: LinkStubProps) => <a href={to.replace("$id", params?.id ?? "")}>{children}</a>,
+  // No saved scroll position: the grid starts at the top
+  useElementScrollRestoration: () => undefined,
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({

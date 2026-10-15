@@ -95,6 +95,7 @@ export function AlbumsSharedByMe() {
       {groups.length > 0 && (
         <div>
           <TileGrid
+            scrollRestorationId="sharing-albums-by-me"
             groups={groups}
             headerHeight={DAY_HEADER_HEIGHT}
             getKey={album => album.id}

@@ -143,6 +143,7 @@ function AlbumUser() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-user"
           items={shown}
           getKey={album => album.id}
           sizing={sizing}

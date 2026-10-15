@@ -150,6 +150,40 @@ describe("VirtualGrid", () => {
     expect(scroller().scrollTop).toBe(2500);
   });
 
+  describe("restoring a saved position (#377)", () => {
+    it("names the scroll element for the router's scroll restoration", async () => {
+      await renderGrid({ scrollRestorationId: "album-user" });
+      expect(scroller().dataset.scrollRestorationId).toBe("album-user");
+    });
+
+    it("starts at the initial position, with the rows there rendered from the first render", async () => {
+      await renderGrid({ initialScrollTop: 5000 });
+
+      expect(scroller().scrollTop).toBe(5000);
+      expect(renderedRows()).toEqual([48, 49, 50, 51, 52, 53, 54]);
+    });
+
+    it("scrolls there once the rows arrive when the list was still loading", async () => {
+      await renderGrid({ initialScrollTop: 5000, rowCount: 0 });
+      // A browser clamps the position to the empty canvas (jsdom does not)
+      scroller().scrollTop = 0;
+
+      await renderGrid({ initialScrollTop: 5000, rowCount: 1000 });
+
+      expect(scroller().scrollTop).toBe(5000);
+      expect(renderedRows()).toEqual([48, 49, 50, 51, 52, 53, 54]);
+    });
+
+    it("restores only once: a later change in rows keeps where the user scrolled to", async () => {
+      await renderGrid({ initialScrollTop: 5000 });
+      await scrollTo(1000);
+
+      await renderGrid({ initialScrollTop: 5000, rowCount: 900 });
+
+      expect(scroller().scrollTop).toBe(1000);
+    });
+  });
+
   it("re-lays out the rows when the row height changes", async () => {
     await renderGrid();
     await renderGrid({ rowHeight: 50 });

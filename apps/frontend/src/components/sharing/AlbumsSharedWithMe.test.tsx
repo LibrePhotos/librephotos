@@ -26,6 +26,8 @@ vi.mock("@tanstack/react-router", async () => {
     Link: forwardRef<HTMLAnchorElement, { to: string; params: { id: string }; children?: React.ReactNode }>(
       ({ to, params, ...rest }, ref) => createElement("a", { ref, href: to.replace("$id", params.id), ...rest })
     ),
+    // No saved scroll position: the grid starts at the top
+    useElementScrollRestoration: () => undefined,
   };
 });
 vi.mock("@mantine/hooks", async importOriginal => ({

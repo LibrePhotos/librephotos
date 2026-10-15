@@ -13,6 +13,8 @@ import { PublicAlbumsGrid } from "./PublicAlbumsGrid";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a>,
+  // No saved scroll position: the grid starts at the top
+  useElementScrollRestoration: () => undefined,
 }));
 
 const album = (id: number): UserAlbumInfo => ({

@@ -48,6 +48,7 @@ function AlbumThing() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-things"
           items={albums ?? []}
           getKey={album => album.id}
           sizing={sizing}

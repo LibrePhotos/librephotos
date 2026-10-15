@@ -225,6 +225,7 @@ function AlbumPlace({ height = 0 }: Props) {
           {/* Only the places inside the map bounds; laid out like the other album grids:
               square cover, then a one-line title */}
           <TileGrid
+            scrollRestorationId="album-places"
             items={shownAlbums}
             getKey={place => place.id}
             sizing={sizing}

@@ -36,7 +36,7 @@ export type VirtualGridHandle = Readonly<{
   scrollToPosition: (position: { scrollTop: number }) => void;
 }>;
 
-type VirtualGridProps = Readonly<{
+export type VirtualGridProps = Readonly<{
   cellRenderer: (props: GridCellProps) => ReactNode;
   columnCount: number;
   columnWidth: number;
@@ -62,6 +62,16 @@ type VirtualGridProps = Readonly<{
    * `data-focus-key`) once the cell shows new content. See useGridFocus.
    */
   keepFocusedRowMounted?: boolean;
+  /**
+   * Names the scroll element for the router's scroll restoration (`data-scroll-restoration-id`),
+   * which saves its position when the page is left; ScrollRestoredVirtualGrid reads it back.
+   */
+  scrollRestorationId?: string;
+  /**
+   * Where the grid starts, read on mount: the rows there render first, and the element scrolls
+   * there as soon as it has rows (a list still loading has nothing to scroll yet).
+   */
+  initialScrollTop?: number;
 }>;
 
 /**
@@ -97,10 +107,13 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     className,
     style,
     keepFocusedRowMounted = false,
+    scrollRestorationId,
+    initialScrollTop,
   },
   ref
 ) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingScrollTop = useRef(initialScrollTop);
   const { pinnedRow, handleFocus } = useGridFocus(keepFocusedRowMounted, scrollRef);
   const rangeExtractor = useCallback(
     (range: Range) => withPinnedRow(defaultRangeExtractor(range), pinnedRow, range.count),
@@ -138,6 +151,8 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     rangeExtractor,
     initialRect: viewport.current,
     observeElementRect,
+    // Virtualized lists restore by starting the virtualizer there (#377)
+    initialOffset: initialScrollTop ?? 0,
   });
 
   useImperativeHandle(
@@ -155,6 +170,15 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
       scrollRef.current.scrollTop = scrollTop;
     }
   }, [scrollTop]);
+
+  // Scroll to the initial position once, when there are rows to scroll: before that the browser
+  // clamps the position to the empty canvas.
+  useLayoutEffect(() => {
+    const target = pendingScrollTop.current;
+    if (target === undefined || rowCount === 0 || !scrollRef.current) return;
+    pendingScrollTop.current = undefined;
+    scrollRef.current.scrollTop = target;
+  }, [rowCount]);
 
   // The album pages derive their column count by division, so it can land a hair off an integer;
   // react-virtualized rendered every column index below it, and so does this.
@@ -194,6 +218,7 @@ export const VirtualGrid = forwardRef<VirtualGridHandle, VirtualGridProps>(funct
     <div
       ref={scrollRef}
       className={className}
+      data-scroll-restoration-id={scrollRestorationId}
       // Focusable so the arrow and page keys scroll it, as react-virtualized's Grid was.
       tabIndex={0}
       onScroll={handleScroll}
