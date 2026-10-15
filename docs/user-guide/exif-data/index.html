@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.809927c2.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.b3a6076c.js" defer="defer"></script>
 <script src="/assets/js/main.5c53ed32.js" defer="defer"></script>
 </head>
 <body>
@@ -191,12 +191,27 @@ hidden. A photo that has no faces in LibrePhotos at all (not scanned for faces y
 regions of its file. <code>XMP-MP:RegionInfoMP</code> (Windows Photo Gallery) and <code>XMP-digiKam:TagsList</code> are
 never changed.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="writing-the-edits-of-a-whole-library">Writing the edits of a whole library<a href="#writing-the-edits-of-a-whole-library" class="hash-link" aria-label="Direct link to Writing the edits of a whole library" title="Direct link to Writing the edits of a whole library" translate="no">​</a></h3>
-<p><code>python manage.py save_metadata</code> writes the ratings (<code>--types ratings</code>, the default) or the face
-regions (<code>--types face_tags</code>) of every photo again, for example after turning write-back on for an
-existing library. Each photo is written where its owner&#x27;s <strong>Write edits to files</strong> says, and photos
-of users who have it <code>Off</code> are skipped. <code>--sidecar</code> or <code>--media-file</code> overrides the setting for the
-one user named with <code>--user</code>; <code>--dry-run</code> only shows what would be written. <code>POST /api/savemetadata/</code>
-does the same for your own photos.</p>
+<p><span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span> <code>Write edits to files</code> writes an edit when you make it. The edits you made
+before turning it on are only in LibrePhotos; <strong>Write now</strong> under the setting (Settings → Metadata
+Options, see <a class="" href="/docs/user-guide/settings/#metadata-options">Settings</a>) writes them as a <strong>Write Metadata to
+Files</strong> job, with the same writes a live edit makes. Only a value that says something is written:</p>
+<table><thead><tr><th>Kind (<code>types</code>)</th><th>Photos it writes</th></tr></thead><tbody><tr><td><code>ratings</code></td><td>Rated 1 to 5 stars; a rating of 0 is not written.</td></tr><tr><td><code>dates</code></td><td>A date you set by hand.</td></tr><tr><td><code>rotations</code></td><td>Turned in LibrePhotos.</td></tr><tr><td><code>captions</code></td><td>A caption you wrote; a generated caption is never written.</td></tr><tr><td><code>locations</code></td><td>A position you set; a position read from the file is already there.</td></tr><tr><td><code>keywords</code></td><td>With tags: each tag is added to the keywords.</td></tr><tr><td><code>face_tags</code></td><td>With faces that are not deleted, named or not. Only with <strong>Write face tags to image files</strong> on.</td></tr></tbody></table>
+<p>A photo with none of them is not touched, so an unrated library does not get a sidecar per photo. The
+job writes in batches of 200 photos, each through one ExifTool process; it shows its progress in the job
+list, can be cancelled there, and ends with how many photos it wrote (<code>written</code>), left alone (<code>skipped</code>:
+a local copy of a Nextcloud photo, or the setting changed while it ran) and could not write (<code>errors</code>,
+the first 100 listed with the file and ExifTool&#x27;s reason). A write it makes is LibrePhotos&#x27; own, so
+the next scan does not read those photos again for it (see
+<a href="#how-a-rescan-treats-your-edits" class="">How a rescan treats your edits</a>).</p>
+<p><code>GET /api/savemetadata/</code> says what it would write now (the target and a count per kind), and
+<code>POST /api/savemetadata/</code> starts the job: <code>{&quot;types&quot;: [...]}</code> picks kinds, and leaving it out writes
+everything your settings write. It answers 202 with the <code>job_id</code>, 400 while <code>Write edits to files</code> is
+<code>Off</code> or for a kind it does not know, and 409 while the job runs. Up to 1.3.0 it wrote the ratings of
+every photo, 0 included, inside the request.</p>
+<p><code>python manage.py save_metadata</code> makes the same writes for every user whose <code>Write edits to files</code> is
+on (photos of users who have it <code>Off</code> are skipped), with the kinds each user&#x27;s settings write.
+<code>--types</code> limits the kinds, <code>--user</code> limits it to one user, <code>--sidecar</code> or <code>--media-file</code> overrides
+the setting for that one user, and <code>--dry-run</code> only counts.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="how-a-rescan-treats-your-edits">How a rescan treats your edits<a href="#how-a-rescan-treats-your-edits" class="hash-link" aria-label="Direct link to How a rescan treats your edits" title="Direct link to How a rescan treats your edits" translate="no">​</a></h2>
 <p>A <strong>Rescan</strong> reads every file again, and a scan reads a file again when it or its sidecar changed.</p>
 <p><span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span> A write LibrePhotos makes itself is not such a change. A scan remembers the
@@ -230,8 +245,8 @@ the table under <a href="#what-librephotos-writes" class="">What LibrePhotos wri
 that cannot hold the tag, never undoes your edit: the rating, date, caption, location, tags, face
 label or rotation stays in LibrePhotos. The backend log names the photo and ExifTool&#x27;s reason.
 Labelling a face, drawing one and rotating a photo also return the reason as <code>write_error</code> in the
-API response, and <code>POST /api/savemetadata/</code> and <code>manage.py save_metadata</code> count the photos they
-could not write as errors.</p>
+API response, and the <strong>Write Metadata to Files</strong> job and <code>manage.py save_metadata</code> list the photos
+they could not write.</p>
 <p>In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
 orange <strong>Not written to the file</strong> notice next to the usual confirmation: &quot;Saved in LibrePhotos,
 but not written to the file&quot;, followed by the reason. It stays until you close it. Changing a
