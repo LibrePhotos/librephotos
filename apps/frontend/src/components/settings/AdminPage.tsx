@@ -42,6 +42,7 @@ import classes from "./AdminPage.module.css";
 import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
 import { FinishUpgradeCard } from "./FinishUpgradeCard";
+import { LookUpPlacesTool } from "./LookUpPlacesTool";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
@@ -253,6 +254,7 @@ function AdminTools() {
           </Button>
         </Flex>
         <StripThumbnailMetadataTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
+        <LookUpPlacesTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
       </Stack>
       <Modal
         opened={confirmOpen}

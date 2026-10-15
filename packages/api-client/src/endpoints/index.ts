@@ -952,6 +952,14 @@ export async function dismissUpgradeTask(client: ApiClient, key: string): Promis
 }
 
 /**
+ * Look the place names of every photo up again with the current Map Provider, over the whole
+ * instance (admins only, #2302). Returns the queued (or already running) job.
+ */
+export async function lookUpPlaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/look-up-places/", S.JobStartedResponse, "look up place names");
+}
+
+/**
  * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
  * Returns the queued (or already running) job.
  */

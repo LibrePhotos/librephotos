@@ -117,7 +117,7 @@ export function SiteSettings() {
 
 function SiteSettingsForm() {
   const [mapApiKey, setMapApiKey] = useState("");
-  const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
+  const [mapApiProvider, setMapApiProvider] = useState<string>("exiftool");
   const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);

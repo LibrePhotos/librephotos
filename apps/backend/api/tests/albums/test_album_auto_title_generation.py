@@ -104,14 +104,15 @@ class GenerateTitleTestCase(TestCase):
     # ------------------------------------------------------------------
 
     def test_places_add_location_suffix(self):
+        """The photo's town (``short_place_name``), not every name it has (#2302)."""
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(
             album,
             exif_timestamp=utc(2022, 1, 3, 8, 0),
-            geolocation_json={"places": ["Berlin", "Berlin", "Germany"]},
+            geolocation_json={"places": ["Mitte", "Berlin", "Germany"]},
         )
         album._generate_title()
-        self.assertEqual(album.title, "Monday Morning in Berlin and Germany")
+        self.assertEqual(album.title, "Monday Morning in Berlin")
 
     def test_no_double_space_when_places_but_no_people(self):
         """The empty people slot used to leave a double space in the title."""
@@ -125,39 +126,45 @@ class GenerateTitleTestCase(TestCase):
         self.assertNotIn("  ", album.title)
         self.assertEqual(album.title, "Monday Morning in Berlin")
 
-    def test_only_two_most_common_places_are_used(self):
+    def test_only_the_two_most_frequent_towns_are_used(self):
+        album = self.make_album(utc(2022, 1, 3, 8, 0))
+        for minute, town in enumerate(["A", "B", "A", "C", "B", "A"]):
+            self.add_photo(
+                album,
+                exif_timestamp=utc(2022, 1, 3, 8, minute),
+                geolocation_json={"places": [town, "Country"]},
+            )
+        album._generate_title()
+        self.assertEqual(album.title, "Monday Morning in A and B")
+
+    def test_every_photo_counts(self):
+        """The town of every photo counts; the last photo's names used to win."""
+        album = self.make_album(utc(2022, 1, 3, 8, 0))
+        for hour, town in ((8, "First"), (9, "First"), (10, "Second")):
+            self.add_photo(
+                album,
+                exif_timestamp=utc(2022, 1, 3, hour, 0),
+                geolocation_json={"places": [town, "Country"]},
+            )
+        album._generate_title()
+        self.assertEqual(album.title, "Monday Morning in First and Second")
+
+    def test_typed_places_name_the_town(self):
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(
             album,
             exif_timestamp=utc(2022, 1, 3, 8, 0),
-            geolocation_json={"places": ["A", "A", "B", "B", "C"]},
+            geolocation_json={
+                "features": [
+                    {"text": "Zermatt", "place_type": "city"},
+                    {"text": "Visp District", "place_type": "subregion"},
+                    {"text": "Valais", "place_type": "region"},
+                    {"text": "Switzerland", "place_type": "country"},
+                ]
+            },
         )
         album._generate_title()
-        self.assertEqual(album.title, "Monday Morning in A and B")
-
-    def test_places_from_last_photo_win(self):
-        """QUIRK: ``places`` is overwritten (``=``) per photo, not accumulated.
-
-        The last photo in the iteration order that has non-empty places
-        determines the location entirely.
-        """
-        album = self.make_album(utc(2022, 1, 3, 8, 0))
-        p1 = self.add_photo(
-            album,
-            exif_timestamp=utc(2022, 1, 3, 8, 0),
-            geolocation_json={"places": ["First"]},
-        )
-        p2 = self.add_photo(
-            album,
-            exif_timestamp=utc(2022, 1, 3, 9, 0),
-            geolocation_json={"places": ["Second"]},
-        )
-        ordered = list(album.photos.all())
-        last_with_places = ordered[-1]
-        album._generate_title()
-        expected = "First" if last_with_places.pk == p1.pk else "Second"
-        self.assertEqual(album.title, f"Monday Morning in {expected}")
-        self.assertIn(last_with_places.pk, {p1.pk, p2.pk})
+        self.assertEqual(album.title, "Monday Morning in Zermatt")
 
     def test_empty_places_list_is_ignored(self):
         album = self.make_album(utc(2022, 1, 3, 8, 0))
@@ -167,12 +174,12 @@ class GenerateTitleTestCase(TestCase):
         album._generate_title()
         self.assertEqual(album.title, "Monday Morning")
 
-    def test_geolocation_json_without_places_key_is_ignored(self):
+    def test_geolocation_json_without_names_is_ignored(self):
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(
             album,
             exif_timestamp=utc(2022, 1, 3, 8, 0),
-            geolocation_json={"features": [{"text": "x"}]},
+            geolocation_json={"city": "Berlin", "_v": "1"},
         )
         album._generate_title()
         self.assertEqual(album.title, "Monday Morning")

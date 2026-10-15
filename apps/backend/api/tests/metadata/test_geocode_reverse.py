@@ -2,6 +2,7 @@
 
 from unittest.mock import patch
 
+from constance.test import override_config
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -70,6 +71,7 @@ class GeocodeReverseViewTest(TestCase):
 
 
 class ReverseGeocodeLabelTest(TestCase):
+    @override_config(MAP_API_PROVIDER="nominatim")
     @patch("api.geocode.geocode.wait_for_provider")
     @patch("api.geocode.geocode.Geocode")
     def test_the_provider_is_rate_limited_like_the_geolocation_job(self, geocode, wait):

@@ -179,7 +179,7 @@ Number variables (worker counts, the `TRANSCODE_*` limits, `REFRESH_TOKEN_DAYS` 
 | `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded, and (not released yet) the model is not downloaded. |
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
 | `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started, and (not released yet) the captioning model is not downloaded. |
-| `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
+| `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no lookups run, offline or at an online map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
 | `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tags service keeps running: the same model makes the semantic-search embeddings. |
 | `FEATURE_VIDEO_PREVIEWS` | `featureVideoPreviews` | _Not released yet._ Videos get no animated preview in the photo grid. A scan makes two WebP stills from the video's first frame instead of encoding two short mp4 clips, which is the slowest step of importing a video and takes most of its thumbnail space. Videos still play in full in the photo viewer. Previews made before stay until the video is rescanned. |
 | `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
@@ -555,9 +555,12 @@ These are now site settings: setting them here only supplies the default used on
 skipPatterns=
 # Allow uploading files
 allowUpload=true
+# Where place names come from: exiftool (offline, the default), nominatim,
+# mapbox, maptiler, tomtom or opencage.
+mapApiProvider=exiftool
 # API key for the geocoding map provider. Only needed if you switch the provider
-# to Mapbox, MapTiler, TomTom or OpenCage; the default, Nominatim (OpenStreetMap),
-# needs no key.
+# to Mapbox, MapTiler, TomTom or OpenCage; ExifTool and Nominatim
+# (OpenStreetMap) need no key.
 mapApiKey=
 ```
 
@@ -568,7 +571,7 @@ The same settings have environment variables, which set the first-run default in
 | `SKIP_PATTERNS` | `skipPatterns` | _(empty)_ | The patterns of files and folders to ignore, as in the example above. |
 | `ALLOW_UPLOAD` | `allowUpload` | `true` | Whether uploads are allowed. An empty value leaves them allowed. |
 | `MAPBOX_API_KEY` | `mapApiKey` | _(empty)_ | The key for the geocoding provider, as in the example above. |
-| `MAP_API_PROVIDER` | _(none)_ | `nominatim` | The geocoding provider: `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. |
+| `MAP_API_PROVIDER` | `mapApiProvider` | `exiftool` | The geocoding provider: `exiftool` (offline, no key needed), `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. It applies only until the setting is first stored, which happens with the first place lookup or a save in Site Settings, so changing it on an install that has already geocoded photos does nothing: change **Map Provider** in Site Settings instead. <Since version="1.4.0" /> The default was `nominatim` up to 1.3.0, and the compose files did not pass it on. |
 | `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site Settings, without a restart. |
 
 ### Removed variables

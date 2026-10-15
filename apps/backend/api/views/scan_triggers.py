@@ -19,6 +19,7 @@ from api.metadata.date_rules_job import reapply_date_rules_job
 from api.models import LongRunningJob
 from api.models.user import User
 from api.photos.retention import empty_trash_job
+from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
     captioning_model_prerequisites,
     missing_models_prerequisites,
@@ -261,4 +262,34 @@ class ReapplyDateRulesView(APIView):
             reapply_date_rules_job,
             user,
             description="applying the date rules",
+        )
+
+
+class LookUpPlacesView(APIView):
+    """Look the place names of every photo up again with the current Map
+    Provider (#2302).
+
+    Switching the provider renames nothing by itself; this asks it again for
+    every user's photos, so only an admin may start it. A 400 while reverse
+    geocoding is turned off, a 409 while one runs.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        from api.directory_watcher.processing_jobs import look_up_places
+
+        if not feature_enabled("REVERSE_GEOCODING"):
+            raise ValidationError(
+                "Reverse geocoding is turned off (FEATURE_REVERSE_GEOCODING).",
+                code="reverse_geocoding_disabled",
+            )
+        user = request_user(request)
+        return start_job(
+            user,
+            LongRunningJob.JOB_LOOK_UP_PLACES,
+            look_up_places,
+            user,
+            description="looking up place names",
         )

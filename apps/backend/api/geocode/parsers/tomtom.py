@@ -1,44 +1,28 @@
-from collections.abc import Iterable
-from functools import reduce
-
 from geopy.location import Location
 
-from api.geocode import GEOCODE_VERSION
+from api.geocode.parsers.levels import typed_place
+from api.models.place_names import PlaceType
 
-
-def _dedup(iterable: Iterable[str]) -> list[str]:
-    unique_items: set[str] = set()
-
-    def reducer(acc: list[str], item: str) -> list[str]:
-        if item not in unique_items:
-            unique_items.add(item)
-            acc.append(item)
-        return acc
-
-    return reduce(reducer, iterable, [])
+# TomTom's address parts the place is named from, in the order they are
+# listed, and the level each one is (#2302).
+PROPS: tuple[tuple[str, PlaceType], ...] = (
+    ("street", "street"),
+    ("streetName", "street"),
+    ("municipalitySubdivision", "locality"),
+    ("countrySubdivision", "region"),
+    ("countrySecondarySubdivision", "subregion"),
+    ("municipality", "city"),
+    ("municipalitySubdivision", "locality"),
+    ("country", "country"),
+)
 
 
 def parse(location: Location) -> dict[str, object]:
     data = location.raw["address"]
-    address = location.address
     center = list(map(lambda x: float(x), location.raw["position"].split(",")))
-    props = [
-        "street",
-        "streetName",
-        "municipalitySubdivision",
-        "countrySubdivision",
-        "countrySecondarySubdivision",
-        "municipality",
-        "municipalitySubdivision",
-        "country",
+    named = [
+        (data[prop], place_type)
+        for prop, place_type in PROPS
+        if prop in data and len(data[prop]) > 2
     ]
-    places = _dedup(
-        [data[prop] for prop in props if prop in data and len(data[prop]) > 2]
-    )
-    return {
-        "features": [{"text": place, "center": center} for place in places],
-        "places": places,
-        "address": address,
-        "center": center,
-        "_v": GEOCODE_VERSION,
-    }
+    return typed_place("tomtom", named, location.address, center)

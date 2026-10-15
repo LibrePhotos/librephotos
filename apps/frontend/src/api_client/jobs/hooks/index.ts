@@ -7,6 +7,7 @@ export * from "./useGenerateCaptionsMutation";
 export * from "./useGenerateOcrMutation";
 export * from "./useJobQuery";
 export * from "./useJobsQuery";
+export * from "./useLookUpPlacesMutation";
 export * from "./useRegenerateEventTitlesMutation";
 export * from "./useRescanPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";

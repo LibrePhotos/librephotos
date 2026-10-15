@@ -21,6 +21,7 @@ from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.metadata.photo_datetime import find_album_date
 from api.models.photo import LocationSource
+from api.models.place_names import short_place_name, town_name
 
 if TYPE_CHECKING:
     from api.models.album_place import AlbumPlace
@@ -135,14 +136,16 @@ def find_album_places(photo: Photo) -> QuerySet[AlbumPlace]:
     return api.models.album_place.AlbumPlace.objects.filter(Q(photos__in=[photo])).all()
 
 
-def geolocate_photo(photo: Photo, commit: bool = True) -> None:
+def geolocate_photo(photo: Photo, commit: bool = True, force: bool = False) -> None:
     """Reverse geocode the photo's stored position and file the photo under
     the matching Places albums.
 
     The position comes from the row, not the file: the scan keeps it in line
     with the file (``apply_file_position``), and reading the file here again
     would bring back a position the user moved or cleared. Nothing happens
-    when the place is current for that position already.
+    when the place is current for that position already, unless ``force``:
+    Look Up Place Names asks the current provider again for every photo
+    (#2302), since switching the provider renames nothing by itself.
 
     The save writes only the columns set here. The geolocation job runs from a
     row loaded before the geocoder's network call, alongside other jobs on the
@@ -154,7 +157,8 @@ def geolocate_photo(photo: Photo, commit: bool = True) -> None:
         return
     old_album_places = find_album_places(photo)
     if (
-        (photo.geocoded_lat, photo.geocoded_lon) == position
+        not force
+        and (photo.geocoded_lat, photo.geocoded_lon) == position
         and _has_current_geolocation(photo)
         # A place puts the photo in its Places albums; a position with no
         # place (``no_place``) has none to check (#2567).
@@ -272,16 +276,15 @@ def _move_to_album_places(photo: Photo, old_album_places: QuerySet[AlbumPlace]) 
 
 
 def add_location_to_album_dates(photo: Photo) -> None:
-    """Add the photo's city to the location of the day album it is in."""
-    places = (photo.geolocation_json or {}).get("places") or []
-    if len(places) < 2:
+    """Add the photo's town (``town_name``) to the location of its day album."""
+    city_name = town_name(photo.geolocation_json)
+    if city_name is None:
         return
 
     album_date = find_album_date(photo)
     # find_album_date returns None when the photo is in no day album. That
     # crashed here before the typing too (AttributeError), so it still does.
     assert album_date is not None
-    city_name = places[-2]
     if album_date.location and len(album_date.location) > 0:
         prev_value = album_date.location
         new_value = prev_value
@@ -308,18 +311,6 @@ class LocationSummary(TypedDict):
     places: list[PlaceCount]
     first_taken: datetime | None
     last_taken: datetime | None
-
-
-def short_place_name(geolocation_json: object) -> str | None:
-    """The town or region of a reverse-geocoded place, as the day albums name
-    it (``add_location_to_album_dates``): the next to last of its ``places``,
-    or the only one. None without a place."""
-    if not isinstance(geolocation_json, dict):
-        return None
-    places = [str(place) for place in geolocation_json.get("places") or [] if place]
-    if not places:
-        return None
-    return places[-2] if len(places) > 1 else places[0]
 
 
 def location_summary(photos: QuerySet[Photo]) -> LocationSummary:

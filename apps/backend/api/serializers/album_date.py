@@ -4,6 +4,7 @@ from rest_framework import ISO_8601, serializers
 
 from api.drf.params import TristateFlagField
 from api.models import AlbumDate, Photo
+from api.models.place_names import town_name
 from api.serializers.photos import PhotoSummarySerializer
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
@@ -34,16 +35,16 @@ def _public_place(obj: AlbumDate) -> str:
     """The day's place as its public photos tell it.
 
     ``AlbumDate.location`` collects the city of every photo of the day,
-    private ones included, so the public view must not show it. The city is
+    private ones included, so the public view must not show it. The town is
     picked the way the geocoder picks it (``add_location_to_album_dates``).
     """
     photos = getattr(obj, PUBLIC_PHOTOS_ATTR, None)
     if photos is None:
         photos = _public_photos().filter(albumdate=obj)
     for photo in photos:
-        places = (photo.geolocation_json or {}).get("places") or []
-        if len(places) >= 2:
-            return places[-2]
+        name = town_name(photo.geolocation_json)
+        if name:
+            return name
     return ""
 
 
