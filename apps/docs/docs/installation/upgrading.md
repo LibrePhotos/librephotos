@@ -11,6 +11,7 @@ Every LibrePhotos release brings its own database migrations. The backend applie
 - [Standard Docker setup](standard-install.md#updating)
 - [Single container deployment](unified-deployment.md): pull `reallibrephotos/librephotos-unified` again and recreate the container.
 - [unRAID](unraid.md)
+- [Windows standalone](windows-standalone.md#updating): quit LibrePhotos from the tray, rename the old program folder, unzip the new release next to it and start it.
 - [Kubernetes](https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s#upgrading): the image tags in `kustomization.yaml` are pinned, so check out the new release's tag, whose manifests name its images. Since 1.3.0 the manifests run PostgreSQL 16 instead of 13, so an older install moves its database with a dump and restore first.
 
 Back up your database before any upgrade. It is the only way back if a migration fails halfway, and it is cheap:
@@ -22,7 +23,7 @@ docker compose exec -T db pg_dump -U docker librephotos > librephotos-backup.sql
 
 Replace `docker` and `librephotos` with the `dbUser` and `dbName` from your `.env` if you changed them.
 
-The [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with SQLite make this backup themselves, see below.
+The [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with SQLite make this backup themselves, see below. On Windows, also keep your own copy of the `db` folder and of `protected_media\secret.key` on another drive, as [Backing up and restoring](windows-standalone.md#backing-up) shows step by step.
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 
@@ -37,7 +38,7 @@ The copies go into a `backups` folder next to the database:
 | Windows standalone | `%LOCALAPPDATA%\LibrePhotos\db\backups` (or `db\backups` in your `--data-dir`) |
 | Single container with SQLite | `backups` in the folder you mount at `/db` |
 
-Each backup is named after the release that made it and the time in UTC, for example `librephotos-1.3.0-20261013T083000Z.sqlite3`: that is the release to go back to with it. A `.json` file with the same name says which migrations were about to run. The newest three are kept; set `DB_BACKUP_KEEP` to keep more or fewer (see [Environment variables](environment-variables.md#single-container-image)). Each one is about as large as the database.
+Each backup is named after the release that made it, which is the release you updated to, and the time in UTC, for example `librephotos-<release>-20261013T083000Z.sqlite3`. It holds the database as the release you ran before left it, so it is what you need to go back to that release. A `.json` file with the same name says which migrations were about to run. The newest three are kept; set `DB_BACKUP_KEEP` to keep more or fewer (see [Environment variables](environment-variables.md#single-container-image)). Each one is about as large as the database.
 
 A backup needs twice the size of the database in free disk space. If there is less, LibrePhotos does not start and says how much space to free (on Windows in a message box, in Docker in `command_backup_database.log` in the logs folder).
 
@@ -50,9 +51,9 @@ PostgreSQL databases are not backed up automatically: use `pg_dump` as shown abo
 1. Quit LibrePhotos (on Windows: **Quit LibrePhotos** in the tray menu; in Docker: `docker stop librephotos`).
 2. In the `db` folder, rename `librephotos.sqlite3` (for example to `librephotos.sqlite3.broken`). If `librephotos.sqlite3-wal` and `librephotos.sqlite3-shm` are there, rename them the same way.
 3. Copy the backup from `db/backups` into the `db` folder and name it `librephotos.sqlite3`.
-4. Start the release named in the backup's file name. For Windows, unzip that release's `librephotos-windows-x64.zip` from the [releases page](https://github.com/LibrePhotos/librephotos/releases); for Docker, use that release's image tag.
+4. Start the release you ran before the update. On Windows, put its program folder back ([Going back to the previous release](windows-standalone.md#going-back)) or unzip its `librephotos-windows-x64.zip` from the [releases page](https://github.com/LibrePhotos/librephotos/releases); for Docker, use that release's image tag.
 
-Starting a newer release on the restored database migrates it again, after making a new backup.
+Starting the release named in the backup's file name, or any newer one, on the restored database runs the update again, after making a new backup.
 
 ## Going back to an older release {#downgrade}
 
@@ -67,10 +68,12 @@ A release cannot run on a database that a newer release has migrated: the newer 
 
 Nothing has been changed at that point. Either start the newer release again, or go back with the database as it was before the upgrade:
 
-- SQLite (Windows standalone, single container with SQLite): [restore the automatic backup](#restore) made before the upgrade. Its file name names the release it belongs to.
+- SQLite (Windows standalone, single container with SQLite): [restore the automatic backup](#restore) made before the upgrade. Its file name names the release you upgraded to, and it holds the database as the release before left it.
 - PostgreSQL: restore the `pg_dump` you made before upgrading into an empty database, then start the older release.
 
 Changes made since the upgrade (faces named, albums edited, photos added) are not in the backup. The next scan finds photos that were added since.
+
+Releases after 1.3.0 keep the secret key in `protected_media/secret.key` and move it there from the logs folder on their first start. 1.3.0 and older look for it in the logs folder (`logs\secret.key` on Windows, `/logs/secret.key` in Docker): when you go back to one of them, copy the key there first. Without it, that release makes a new key, everyone has to log in again, and the saved email server and Nextcloud passwords have to be entered again.
 
 ## After upgrading from 1.2.1 or older {#strip-thumbnail-metadata}
 
@@ -90,7 +93,15 @@ docker compose exec backend python manage.py strip_thumbnail_metadata
 docker exec librephotos python manage.py strip_thumbnail_metadata
 ```
 
-On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage strip_thumbnail_metadata` in `cmd`.
+On the [Windows standalone](windows-standalone.md) build, open `cmd`, go to the program folder and run the command with `start /wait`, as [Running a command](windows-standalone.md#running-a-command) shows step by step:
+
+```bat
+cd /d "C:\Users\<you>\LibrePhotos-app\librephotos"
+start /wait librephotos.exe manage strip_thumbnail_metadata
+
+rem With another data folder, --data-dir comes before manage:
+start /wait librephotos.exe --data-dir D:\LibrePhotos manage strip_thumbnail_metadata
+```
 
 Both only rewrite thumbnails that still carry metadata, and keep their pixels and colour profile, so running them again is safe. Add `--dry-run` to the command to only count them. See [Management Commands](../user-guide/library.md#management-commands).
 
@@ -106,7 +117,7 @@ docker compose exec backend python manage.py refresh_exposure_time
 docker exec librephotos python manage.py refresh_exposure_time
 ```
 
-On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage refresh_exposure_time` in `cmd`.
+On the [Windows standalone](windows-standalone.md) build, run `start /wait librephotos.exe manage refresh_exposure_time` in `cmd`, from the program folder (see [Running a command](windows-standalone.md#running-a-command); with another data folder, `--data-dir` comes before `manage`).
 
 It reads only the exposure time and writes only the shutter speed, so running it again is safe. Add `--dry-run` to only count the photos. A Rescan from the Library page fixes them too.
 
