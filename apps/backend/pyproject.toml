@@ -9,7 +9,7 @@
 [project]
 name = "librephotos-backend"
 version = "0"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.15,<3.16"
 
 [tool.ruff]
 # Pin the linter: ruff's findings shift between releases, so an unpinned local

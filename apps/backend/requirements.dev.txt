@@ -6,7 +6,7 @@ ipython==9.16.1; python_version >= "3.11"
 ipython==8.39.0; python_version < "3.11"
 Pygments==2.21.0
 prompt-toolkit==3.0.53
-pre-commit==4.6.2
+pre-commit==4.7.0
 coverage==7.16.2
 Faker==40.43.0
 setuptools==84.0.0
