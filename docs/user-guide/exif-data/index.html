@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.09c4982e.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.e49b19a3.js" defer="defer"></script>
 <script src="/assets/js/main.6b2e9296.js" defer="defer"></script>
 </head>
 <body>
@@ -46,7 +46,7 @@ user named with <code>--user</code>.</p>
 <p>With <strong>Settings → Metadata Options → Write edits to files</strong> set to <code>Save to sidecar</code> or <code>Save to media file</code>, these edits are also written to the photo&#x27;s <code>.xmp</code> sidecar or into the photo file
 itself. With <code>Off</code>, the default, nothing is written. <em>Not released yet: up to 1.3.0, the setting
 was called &quot;Synchronize metadata to disk&quot;.</em></p>
-<table><thead><tr><th>Edit</th><th>Written</th><th>Tag</th></tr></thead><tbody><tr><td>Rating and favorite</td><td>yes</td><td><code>Rating</code></td></tr><tr><td>Date and time</td><td>yes</td><td><code>XMP:DateCreated</code></td></tr><tr><td>Rotation</td><td>yes, except into HEIC, AVIF and RAW originals</td><td><code>XMP-tiff:Orientation</code> in the sidecar, <code>EXIF:Orientation</code> in the file</td></tr><tr><td>Caption</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-dc:Description</code> in the sidecar; in the file <code>XMP-dc:Description</code> and <code>EXIF:ImageDescription</code>, and <code>IPTC:Caption-Abstract</code> if the file already has IPTC data</td></tr><tr><td>Location</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-exif:GPSLatitude</code>/<code>GPSLongitude</code> in the sidecar; in an image file <code>GPS:GPSLatitude</code>/<code>GPSLongitude</code> with their <code>N</code>/<code>S</code> and <code>E</code>/<code>W</code> references; in an MP4 or MOV <code>Keys:GPSCoordinates</code></td></tr><tr><td>Face names and areas</td><td>only with &quot;Write face tags to image files&quot;</td><td><code>XMP-mwg-rs:RegionInfo</code>, names added to <code>XMP:Subject</code></td></tr><tr><td>Tags</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-dc:Subject</code> in the sidecar; in the file <code>XMP-dc:Subject</code>, and <code>IPTC:Keywords</code> if the file already has IPTC data</td></tr></tbody></table>
+<table><thead><tr><th>Edit</th><th>Written</th><th>Tag</th></tr></thead><tbody><tr><td>Rating and favorite</td><td>yes</td><td><code>Rating</code></td></tr><tr><td>Date and time</td><td>yes</td><td><code>XMP:DateCreated</code></td></tr><tr><td>Rotation</td><td>yes, except into HEIC, AVIF and RAW originals</td><td><code>XMP-tiff:Orientation</code> in the sidecar, <code>EXIF:Orientation</code> in the file</td></tr><tr><td>Caption</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-dc:Description</code> in the sidecar; in the file <code>XMP-dc:Description</code> and <code>EXIF:ImageDescription</code>, and <code>IPTC:Caption-Abstract</code> if the file already has IPTC data</td></tr><tr><td>Location</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-exif:GPSLatitude</code>/<code>GPSLongitude</code> in the sidecar; in an image file <code>GPS:GPSLatitude</code>/<code>GPSLongitude</code> with their <code>N</code>/<code>S</code> and <code>E</code>/<code>W</code> references; in an MP4 or MOV <code>Keys:GPSCoordinates</code></td></tr><tr><td>Face names and areas</td><td>only with &quot;Write face tags to image files&quot;</td><td><code>XMP-mwg-rs:RegionInfo</code>, names added to <code>XMP:Subject</code>; deleting a photo&#x27;s last face removes <code>RegionInfo</code> (an empty one in the sidecar)</td></tr><tr><td>Tags</td><td>yes (<em>not released yet</em>)</td><td><code>XMP-dc:Subject</code> in the sidecar; in the file <code>XMP-dc:Subject</code>, and <code>IPTC:Keywords</code> if the file already has IPTC data</td></tr></tbody></table>
 <p>A caption keeps its line breaks. Clearing the caption removes the description, and removing a
 location removes the position tags. Setting a location in a photo file also removes the file&#x27;s old
 altitude, which belonged to the old position. The place name (city, country) is never written: it
@@ -59,6 +59,14 @@ you remove a tag of the same name, and <code>XMP-iptcExt:PersonInImage</code> an
 <code>XMP-lr:HierarchicalSubject</code> are never changed. A tag that came from one of those is not written
 as a keyword unless you add it yourself. A new sidecar starts from the photo&#x27;s own keywords, so
 it does not hide them.</p>
+<p>Face regions always follow the faces a photo has in LibrePhotos: labelling, adding, deleting or
+restoring a face writes the photo&#x27;s regions again, and the names of the people no longer on it
+leave the keywords, unless the photo has a tag of that name. Deleting the last face removes
+<code>XMP-mwg-rs:RegionInfo</code> from the photo file; in the sidecar mode the sidecar gets an empty
+<code>RegionInfo</code> instead, so the regions another app wrote into the original stay hidden. A photo that
+has no faces in LibrePhotos at all (not scanned for faces yet) keeps the regions of its file.
+<code>XMP-MP:RegionInfo</code> and <code>XMP-digiKam:TagsList</code> are never changed. <em>Not released yet: up to 1.3.0,
+deleting a face left its region in the file.</em></p>
 <p>With tags written to files, a rescan only turns keywords into tags that the file did not have
 before, such as one another app added. A tag you removed stays removed, even where the file still
 carries the keyword (a people name or keyword path, or an <code>IPTC:Keywords</code> entry the sidecar cannot
