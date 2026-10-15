@@ -13,6 +13,7 @@ import { PageLoader } from "../../../components/common/PageLoader";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { validatePhotoSearch, type PhotoSearch } from "../../../components/photolist/photoSearch";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
@@ -23,7 +24,7 @@ type PublicLinksTab = z.infer<typeof PublicLinksTab>;
 
 type PublicLinksSearch = {
   tab?: PublicLinksTab;
-};
+} & PhotoSearch;
 
 export const Route = createFileRoute("/_protected/sharing/links")({
   component: PublicLinksPage,
@@ -31,13 +32,14 @@ export const Route = createFileRoute("/_protected/sharing/links")({
   // Photos tab and a return from an album lands on the tab it left.
   validateSearch: (search: Record<string, unknown>): PublicLinksSearch => ({
     tab: PublicLinksTab.safeParse(search.tab).data,
+    ...validatePhotoSearch(search),
   }),
 });
 
 function PublicLinksPage() {
   const { t } = useTranslation();
   const navigate = Route.useNavigate();
-  const activeTab: PublicLinksTab = Route.useSearch().tab ?? "albums";
+  const activeTab: PublicLinksTab = Route.useSearch({ select: search => search.tab }) ?? "albums";
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);

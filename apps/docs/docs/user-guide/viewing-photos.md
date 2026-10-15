@@ -154,6 +154,16 @@ When you click on any photo in LibrePhotos, it opens in the photo viewer (also k
 - **Thumbnail bar** at the bottom shows nearby photos for quick navigation
 - **Close button** (X) or press **Escape** to return to the gallery
 
+### Linking to a photo {#photo-link}
+
+The open photo is part of the page's address, as `?photo=<id>` (for example `/favorites?photo=<id>` or `/album/user/12?photo=<id>`). (Not released yet: up to 1.3.0, opening a photo left the address as it was.) That gives you:
+
+- **Back** in the browser, or the back gesture on a phone, closes the photo and leaves the grid where it was, scrolled to the photo you looked at last. Stepping to the next or previous photo does not add a step to the history, so one Back always closes the viewer.
+- **Reload** reopens the same photo.
+- **A link to this photo in this view**: copy the address while the photo is open. Whoever opens it sees the same page with that photo open, and can step through the rest of the list from there. A photo the list does not hold (on a page of the timeline that has not loaded yet, or hidden by a filter) opens on its own, without previous and next. A photo the person may not see, or that no longer exists, leaves the grid as it is.
+
+On a [public album](./sharing.md#the-public-album-experience) the same works for visitors, as long as the photo is in the album. The [photo page](#photo-page) at `/photo/<id>` is a separate page for one photo, without the list around it.
+
 ### Toolbar
 
 The toolbar at the top provides quick actions. From left to right:

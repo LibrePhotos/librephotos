@@ -73,6 +73,7 @@ const lightbox: PhotoListLightbox = {
   currentImageIndexRef: { current: 0 },
   lightboxOpen: true,
   lightboxImageId: "a",
+  lightboxAloneItem: undefined,
   showLightbox: () => {},
   closeLightbox: () => {},
   handleLightboxIndexChange: () => {},
@@ -84,7 +85,7 @@ const cleared = { selectedItems: [], selectMode: false, selectAllMode: false, se
 
 let unmount: (() => void) | undefined;
 
-function render({ isPublic = false, dialogs = makeDialogs() } = {}) {
+function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lightbox } = {}) {
   const updateSelectionState = vi.fn<(state: Partial<SelectionState>) => void>();
   const closeSlideshow = vi.fn<() => void>();
   const root = createRoot(document.createElement("div"));
@@ -92,7 +93,7 @@ function render({ isPublic = false, dialogs = makeDialogs() } = {}) {
     root.render(
       <PhotoListDialogs
         dialogs={dialogs}
-        lightbox={lightbox}
+        lightbox={lightboxState}
         slideshow={{ active: true, close: closeSlideshow }}
         isPublic={isPublic}
         isUserAlbum
@@ -130,6 +131,14 @@ describe("PhotoListDialogs", () => {
     expect(props).toMatchObject({ selectedImage: "a", startSlideshow: true, isPublic: true });
     props.onCloseRequest();
     expect(closeSlideshow).toHaveBeenCalledTimes(1);
+  });
+
+  // An address naming a photo the list does not hold (#2231) shows that photo on its own.
+  it("hands the lightbox just the photo shown alone", () => {
+    const alone = { id: "z", image_hash: "hz", type: "image" };
+    render({ lightboxState: { ...lightbox, lightboxImageId: "z", lightboxAloneItem: alone } });
+
+    expect(defined(rendered.lightbox, "the lightbox")).toMatchObject({ selectedImage: "z", idx2hash: [alone] });
   });
 
   it("mounts none of the owner's modals on a public list", () => {

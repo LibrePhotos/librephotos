@@ -2,7 +2,8 @@
  * A public album's slideshow link (#1457): `?slideshow=1` opens the album with the lightbox on the
  * first photo, playing. Closing it drops the flag in place (Back leaves the album, a reload shows
  * the grid), and a visitor with the plain link starts the same slideshow with Play slideshow.
- * What the page fetches does not change: the same public album by its slug.
+ * What the page fetches does not change: the same public album by its slug. The open photo is
+ * `?photo=` (#2231), next to the flag, so a link can point at one photo of the album.
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route (its
  * `routeFileIgnorePrefix`).
@@ -11,7 +12,7 @@ import { Media, UserAlbum } from "@librephotos/api-client";
 import type { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { NavigateOptions } from "@tanstack/react-router";
+import { RouterProvider, type RouteComponent } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,38 +20,41 @@ import type { Lightbox } from "../../components/lightbox/Lightbox";
 import type { PublicAlbumSearch } from "../../components/sharing/publicAlbum";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { createTestRouter, searchOf, settle, type TestRouter } from "../../util/memoryRouter.test-utils";
 // Registers the route through the mocked createFileRoute. A static import: collecting the page's
 // module tree takes longer than a hook may on a busy machine.
 import "./s.$slug";
 
 type LightboxProps = React.ComponentProps<typeof Lightbox>;
 type RouteOptions = {
-  component?: React.ComponentType;
+  component?: RouteComponent;
   validateSearch?: (search: Record<string, unknown>) => PublicAlbumSearch;
 };
 
 const stubs = vi.hoisted(() => ({
   options: undefined as RouteOptions | undefined,
-  search: {} as PublicAlbumSearch,
   album: undefined as UserAlbum | undefined,
   slugsFetched: [] as string[],
-  navigate: vi.fn<(options: NavigateOptions) => Promise<void>>(),
   lightbox: [] as LightboxProps[],
 }));
 
-vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (options: RouteOptions) => {
-    stubs.options = options;
-    return {
-      useParams: () => ({ slug: "porto" }),
-      useSearch: () => stubs.search,
-      useNavigate: () => stubs.navigate,
-    };
-  },
-  Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
-  useLocation: () => ({ pathname: "/public/s/porto" }),
-  useNavigate: () => stubs.navigate,
-}));
+// The page runs in a real (in-memory) router; only its file route is stood in for, with the
+// router's own hooks behind it.
+vi.mock("@tanstack/react-router", async importOriginal => {
+  const router = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...router,
+    createFileRoute: () => (options: RouteOptions) => {
+      stubs.options = options;
+      return {
+        useParams: () => ({ slug: "porto" }),
+        useSearch: ({ select }: { select: (search: PublicAlbumSearch) => unknown }) =>
+          router.useSearch({ strict: false, select }),
+        useNavigate: () => router.useNavigate(),
+      };
+    },
+  };
+});
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
   usePublicAlbumQuery: (slug: string) => {
@@ -118,27 +122,35 @@ const albumWith = (items: PigPhoto[]) =>
 const mounted: Array<() => Promise<void>> = [];
 const queryClient = new QueryClient();
 
-async function renderPage() {
-  const Page = defined(stubs.options?.component, "the route component");
+async function renderPage(url = "/public/s/porto") {
+  const options = defined(stubs.options, "the route options");
+  const router = createTestRouter(
+    [{ path: "/public/s/$slug", component: defined(options.component), validateSearch: options.validateSearch }],
+    url
+  );
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  const render = async () =>
-    act(async () => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <MantineProvider>
-            <Page />
-          </MantineProvider>
-        </QueryClientProvider>
-      );
-    });
-  await render();
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider>
+          <RouterProvider router={router} />
+        </MantineProvider>
+      </QueryClientProvider>
+    );
+  });
+  await settle(router);
   mounted.push(async () => {
     await act(async () => root.unmount());
     container.remove();
   });
-  return { container, rerender: render };
+  return { container, router };
+}
+
+async function step(router: TestRouter, run: () => void) {
+  await act(async () => run());
+  await settle(router);
 }
 
 const lightboxOpen = (container: HTMLElement) => container.querySelector('[data-testid="lightbox"]') !== null;
@@ -159,12 +171,9 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  stubs.search = {};
   stubs.album = albumWith([photo(FIRST), photo(SECOND)]);
   stubs.slugsFetched = [];
   stubs.lightbox = [];
-  stubs.navigate.mockReset();
-  stubs.navigate.mockResolvedValue(undefined);
 });
 
 afterEach(async () => {
@@ -172,17 +181,17 @@ afterEach(async () => {
 });
 
 describe("public album route search", () => {
-  it("reads the slideshow flag and nothing else", () => {
+  it("reads the slideshow flag and the open photo, nothing else", () => {
     const validateSearch = defined(stubs.options?.validateSearch, "validateSearch");
     expect(validateSearch({ slideshow: 1 })).toEqual({ slideshow: 1 });
     expect(validateSearch({ slideshow: "nope", other: 2 })).toEqual({});
+    expect(validateSearch({ slideshow: 1, photo: SECOND })).toEqual({ slideshow: 1, photo: SECOND });
   });
 });
 
 describe("public album slideshow link (#1457)", () => {
   it("opens the lightbox on the first photo in slideshow mode with ?slideshow=1", async () => {
-    stubs.search = { slideshow: 1 };
-    const { container } = await renderPage();
+    const { container } = await renderPage("/public/s/porto?slideshow=1");
 
     expect(lightboxOpen(container)).toBe(true);
     expect(defined(stubs.lightbox.at(-1))).toMatchObject({
@@ -203,26 +212,39 @@ describe("public album slideshow link (#1457)", () => {
   });
 
   it("drops the flag in place when the slideshow is closed", async () => {
-    stubs.search = { slideshow: 1 };
-    await renderPage();
+    const { router, container } = await renderPage("/public/s/porto?slideshow=1");
 
-    await act(async () => defined(stubs.lightbox.at(-1)).onCloseRequest());
+    await step(router, () => defined(stubs.lightbox.at(-1)).onCloseRequest());
 
-    expect(stubs.navigate).toHaveBeenCalledWith({ search: {}, replace: true });
+    expect(router.state.location.searchStr).toBe("");
+    expect(router.history.length).toBe(1);
+    expect(lightboxOpen(container)).toBe(false);
+  });
+
+  it("opens the photo a shared link names, and closes it in place", async () => {
+    const { router, container } = await renderPage(`/public/s/porto?photo=${SECOND}`);
+    expect(defined(stubs.lightbox.at(-1))).toMatchObject({ selectedImage: SECOND, startSlideshow: false });
+
+    await step(router, () => defined(stubs.lightbox.at(-1)).onCloseRequest());
+    expect(lightboxOpen(container)).toBe(false);
+    expect(searchOf(router).get("photo")).toBeNull();
   });
 
   it("starts the slideshow from Play slideshow, labelled or as the phone's icon", async () => {
-    const { container } = await renderPage();
     const label = i18n.t("publicalbum.playSlideshow");
-    const buttons = [...container.querySelectorAll("button")].filter(
-      button => button.textContent === label || button.getAttribute("aria-label") === label
-    );
-    expect(buttons).toHaveLength(2);
+    const playButtons = (container: HTMLElement) =>
+      [...container.querySelectorAll("button")].filter(
+        button => button.textContent === label || button.getAttribute("aria-label") === label
+      );
+    expect(playButtons((await renderPage()).container)).toHaveLength(2);
 
-    for (const button of buttons) {
-      stubs.navigate.mockClear();
-      await act(async () => button.click());
-      expect(stubs.navigate).toHaveBeenCalledWith({ search: { slideshow: 1 }, replace: true });
+    for (const index of [0, 1]) {
+      const { container, router } = await renderPage();
+      const button = defined(playButtons(container)[index]);
+      await step(router, () => button.click());
+      // In place: Back leaves the album, as before.
+      expect(searchOf(router).get("slideshow")).toBe("1");
+      expect(router.history.length).toBe(1);
     }
   });
 

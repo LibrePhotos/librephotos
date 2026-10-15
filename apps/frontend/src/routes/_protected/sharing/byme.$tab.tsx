@@ -7,12 +7,14 @@ import { useFetchSharedAlbumsByMeQuery } from "../../../api_client/albums/hooks"
 import { useFetchSharedPhotosByMeQuery } from "../../../api_client/photos/hooks";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
+import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
 import { AlbumsSharedByMe } from "../../../components/sharing/AlbumsSharedByMe";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PhotosSharedByMe } from "../../../components/sharing/PhotosSharedByMe";
 
 export const Route = createFileRoute("/_protected/sharing/byme/$tab")({
   component: SharedByMe,
+  validateSearch: validatePhotoSearch,
 });
 
 function SharedByMe() {

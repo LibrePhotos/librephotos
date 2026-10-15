@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import notificationClasses from "./App.module.css";
 import { NotFoundPage, RouteErrorPage } from "./components/common/RouteFallbacks";
 import { modalTitleStyles } from "./components/modals/modalTitleStyles";
+import { photoListScrollRestorationKey } from "./components/photolist/photoSearch";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
 import { TOP_MENU_HEIGHT } from "./uiConstants";
@@ -20,6 +21,8 @@ const router = createRouter({
   defaultPreload: "intent",
   defaultStaleTime: 5000,
   scrollRestoration: true,
+  // A photo list's lightbox entry shares the grid entry's scroll position (#2231).
+  getScrollRestorationKey: photoListScrollRestorationKey,
   // Router-wide defaults rather than root-route options: every route then gets
   // its own boundary, so a page that crashes (or throws notFound()) is replaced
   // inside its layout and keeps the header and menu. A root notFoundComponent

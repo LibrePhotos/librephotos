@@ -194,7 +194,7 @@ function PhotoListViewComponent({
   const preferences = usePhotoListPreferences(userSelfDetails);
   const { localImageScale, localTextAlignment, localHeaderSize } = preferences;
 
-  const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef);
+  const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef, { ready: !isLoading, isPublic });
   const slideshowState = usePhotoListSlideshow(idx2hash, lightbox, { slideshow, ready: !isLoading, onSlideshowClose });
 
   const isDateView = photoset !== idx2hash;

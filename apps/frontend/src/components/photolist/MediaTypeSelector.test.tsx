@@ -24,7 +24,8 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  useSearch: () => ({ media: stubs.media }),
+  // As the router does: the hook reads its one param through `select`.
+  useSearch: ({ select }: { select: (search: Search) => unknown }) => select({ media: stubs.media }),
   useNavigate: () => stubs.navigate,
 }));
 

@@ -38,7 +38,8 @@ export function usePhotoListSlideshow(
     startedRef.current = true;
     currentImageIndexRef.current = 0;
     setActive(true);
-    showLightbox(firstId, true);
+    // In place: the page's own address started it, so Back leaves the page as before.
+    showLightbox(firstId, true, { replace: true });
   }, [slideshow, ready, firstId, showLightbox, currentImageIndexRef]);
 
   const close = useCallback(() => {

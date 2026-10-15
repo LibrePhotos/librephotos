@@ -109,7 +109,7 @@ Visitors to a public album link see:
 
 - A photo grid with the album's photos
 - A **Play slideshow** button above the grid (a play icon on a phone), which starts the same slideshow as the [slideshow link](#slideshow-link)
-- A lightbox viewer for browsing individual photos
+- A lightbox viewer for browsing individual photos; the open photo is in the address, so a visitor can [link to one photo of the album](./viewing-photos.md#photo-link)
 - Photo details (subject to the album's Photo Details settings)
 - No login required
 

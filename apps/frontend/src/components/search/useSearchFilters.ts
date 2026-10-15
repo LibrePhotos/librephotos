@@ -1,6 +1,6 @@
 import type { SearchFilters } from "@librephotos/api-client";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ratesWithStars } from "../../util/rating";
 import { CLEARED_SEARCH_FILTERS, validateSearchFilters } from "./searchFilter";
@@ -11,9 +11,9 @@ import { CLEARED_SEARCH_FILTERS, validateSearchFilters } from "./searchFilter";
  */
 export function useSearchFilters() {
   const navigate = useNavigate();
-  const rawSearch = useSearch({ strict: false });
-  // The router keeps the search object's identity until it changes, so `filters` is stable too.
-  const filters = useMemo(() => validateSearchFilters(rawSearch), [rawSearch]);
+  // Structural sharing keeps `filters` the same object until a filter changes: the lightbox's
+  // `?photo=` neither re-renders the page nor gives the filters a new identity.
+  const filters = useSearch({ strict: false, select: validateSearchFilters, structuralSharing: true });
 
   const setFilters = useCallback(
     (patch: SearchFilters) => {

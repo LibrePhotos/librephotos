@@ -18,7 +18,7 @@ export const Route = createFileRoute("/public/s/$slug")({
 function PublicAlbumBySlug() {
   const { t } = useTranslation();
   const { slug } = Route.useParams();
-  const { slideshow } = Route.useSearch();
+  const slideshow = Route.useSearch({ select: search => search.slideshow });
   const navigate = Route.useNavigate();
   // The flag starts the slideshow; Play sets it and closing drops it, both in place, so Back
   // leaves the album and a reload shows what the visitor last saw.

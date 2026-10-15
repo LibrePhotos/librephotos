@@ -16,13 +16,17 @@
  *
  * A public album's slideshow link (#1457) opens the lightbox on the first photo, playing, once
  * the photos are there; closing it hands back to the page, which drops the flag.
+ *
+ * The lightbox lived in component state, so Back left the page instead of closing it, a reload
+ * dropped it, and no link could point at a photo in a list (#2231): the open photo is now the
+ * list's `?photo=` search param.
  */
 import { Media } from "@librephotos/api-client";
-import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
+import type { DatePhotosGroup, Photo, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { UseNavigateResult } from "@tanstack/react-router";
+import { RouterProvider } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
@@ -30,8 +34,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { createTestRouter, searchOf, settle, type TestRouter } from "../../util/memoryRouter.test-utils";
 import type { Lightbox } from "../lightbox/Lightbox";
+import { makePhoto } from "../lightbox/photoFixture.test-utils";
 import type { GroupedImageItem, PigHandle, PigProps } from "../react-pig";
+import { validateMediaSearch } from "./mediaTypeFilter";
 import { PhotoListView } from "./PhotoListView";
 import type { SelectionBar } from "./SelectionBar";
 
@@ -45,17 +52,16 @@ type UpdateUser = ReturnType<typeof useUpdateUserMutation>["mutate"];
 const pig = vi.hoisted(() => ({ props: [] as PigProps<PigPhoto>[] }));
 const lightbox = vi.hoisted(() => ({ props: [] as LightboxProps[] }));
 const selectionBar = vi.hoisted(() => ({ props: undefined as SelectionBarProps | undefined }));
-// TanStack Router's useNavigate returns a stable function.
-const navigate = vi.hoisted(() => vi.fn<UseNavigateResult<string>>());
+// The photo details a photo the list does not hold is checked against.
+const details = vi.hoisted(() => ({
+  result: { data: undefined as Photo | undefined, isError: false },
+  asked: [] as string[],
+}));
 const userHooks = vi.hoisted(() => ({
   self: { id: 1, image_scale: 1 } as Record<string, unknown>,
   mutate: vi.fn<UpdateUser>(),
 }));
 
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => navigate,
-  useLocation: () => ({ pathname: "/photos" }),
-}));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
@@ -63,6 +69,13 @@ vi.mock("../../api_client/albums/hooks", () => ({
 }));
 vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: undefined }),
+}));
+vi.mock("../../api_client/photos/hooks", () => ({
+  useFetchPhotoDetailsQuery: (hash: string, skip = false) => {
+    if (skip) return { data: undefined, isError: false };
+    details.asked.push(hash);
+    return details.result;
+  },
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: userHooks.self, isLoading: false }),
@@ -169,31 +182,55 @@ const photoset: DatePhotosGroup[] = [{ date: "2024-01-01", location: null, items
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+let router: TestRouter | null = null;
 const queryClient = new QueryClient();
 
-async function render(props: Partial<PhotoListViewProps>) {
+// The list is the page of a real (in-memory) router, so the lightbox's `?photo=` really moves
+// through history; each render hands the page its props through context.
+const ListProps = React.createContext<Partial<PhotoListViewProps>>({});
+function ListPage() {
+  const props = React.useContext(ListProps);
+  return (
+    <PhotoListView
+      title="Photos"
+      loading={false}
+      icon={IconPhoto}
+      photoset={photoset}
+      idx2hash={items}
+      selectable
+      {...props}
+    />
+  );
+}
+
+const theRouter = () => defined(router, "the router");
+
+async function render(props: Partial<PhotoListViewProps>, url = "/photos") {
   if (!container) {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    router = createTestRouter(
+      [
+        { path: "/photos", component: ListPage, validateSearch: validateMediaSearch },
+        { path: "/photo/$id", component: () => null },
+      ],
+      url
+    );
   }
+  const current = theRouter();
   await act(async () => {
     defined(root).render(
       <QueryClientProvider client={queryClient}>
         <MantineProvider>
-          <PhotoListView
-            title="Photos"
-            loading={false}
-            icon={IconPhoto}
-            photoset={photoset}
-            idx2hash={items}
-            selectable
-            {...props}
-          />
+          <ListProps.Provider value={props}>
+            <RouterProvider router={current} />
+          </ListProps.Provider>
         </MantineProvider>
       </QueryClientProvider>
     );
   });
+  await settle(current);
   return container;
 }
 
@@ -218,17 +255,30 @@ beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-afterEach(async () => {
+// The first render of the page in a router pays for setting up Mantine, the router and the
+// list's modules: seconds on a busy machine. Paid here, under the hook's longer timeout, rather
+// than by whichever test happens to run first.
+beforeAll(async () => {
+  await render({});
+  await cleanUp();
+}, 30_000);
+
+async function cleanUp() {
   await act(async () => root?.unmount());
   container?.remove();
   root = null;
   container = null;
+  router = null;
   pig.props = [];
   lightbox.props = [];
+  details.result = { data: undefined, isError: false };
+  details.asked = [];
   userHooks.self = { id: 1, image_scale: 1 };
   userHooks.mutate.mockReset();
   vi.useRealTimers();
-});
+}
+
+afterEach(cleanUp);
 
 describe("PhotoListView memoisation", () => {
   it("re-renders when only the title changes", async () => {
@@ -474,13 +524,13 @@ describe("PhotoListView slideshow (#1457)", () => {
 
 describe("PhotoListView photo page", () => {
   it("opens the photo page on Ctrl/Cmd-click", async () => {
-    navigate.mockClear();
     await render({});
 
     const event = click({ ctrlKey: true });
     await act(async () => defined(lastPigProps().handleClick)(event, defined(items[0])));
+    await settle(theRouter());
 
-    expect(navigate).toHaveBeenCalledWith({ to: "/photo/$id", params: { id: "a" } });
+    expect(theRouter().state.location.pathname).toBe("/photo/a");
   });
 });
 
@@ -617,5 +667,153 @@ describe("a failed photo list (#2221)", () => {
 
     expect(view.querySelector("[data-testid=pig]")).not.toBeNull();
     expect(view.textContent).not.toContain(i18n.t("errorstate.title"));
+  });
+});
+
+describe("PhotoListView lightbox in the address (#2231)", () => {
+  const isLightboxOpen = () => container?.querySelector('[data-testid="lightbox"]') !== null;
+  const lastLightbox = () => defined(lightbox.props.at(-1), "the lightbox");
+  const photoParam = () => searchOf(theRouter()).get("photo");
+  const historyLength = () => theRouter().history.length;
+
+  async function openFromGrid(item: PigPhoto) {
+    const event = click();
+    await act(async () => defined(lastPigProps().handleClick)(event, item));
+    await settle(theRouter());
+  }
+  async function step(run: () => void) {
+    await act(async () => run());
+    await settle(theRouter());
+  }
+
+  it("opens a photo as a new history entry on the same page", async () => {
+    await render({});
+    await openFromGrid(defined(items[1]));
+
+    expect(theRouter().state.location.pathname).toBe("/photos");
+    expect(photoParam()).toBe("b");
+    expect(historyLength()).toBe(2);
+    expect(lastLightbox()).toMatchObject({ selectedImage: "b" });
+  });
+
+  it("closes on Back and stays on the grid", async () => {
+    await render({});
+    await openFromGrid(defined(items[1]));
+
+    await step(() => theRouter().history.back());
+
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(theRouter().state.location.pathname).toBe("/photos");
+  });
+
+  it("closes by going back to the grid's entry, leaving no entry behind", async () => {
+    await render({});
+    await openFromGrid(defined(items[1]));
+
+    await step(() => lastLightbox().onCloseRequest());
+
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(theRouter().history.canGoBack()).toBe(false);
+  });
+
+  it("steps to another photo in place, so Back still closes the lightbox", async () => {
+    await render({});
+    await openFromGrid(defined(items[1]));
+
+    await step(() => defined(lastLightbox().onImageChange)("a"));
+
+    expect(photoParam()).toBe("a");
+    expect(historyLength()).toBe(2);
+    expect(lastLightbox()).toMatchObject({ selectedImage: "a" });
+
+    await step(() => theRouter().history.back());
+    expect(isLightboxOpen()).toBe(false);
+  });
+
+  it("keeps the page's other params, and leaves them when it closes", async () => {
+    await render({}, "/photos?media=videos");
+    await openFromGrid(defined(items[0]));
+    expect(searchOf(theRouter()).get("media")).toBe("videos");
+
+    await step(() => lastLightbox().onCloseRequest());
+
+    expect(searchOf(theRouter()).get("media")).toBe("videos");
+    expect(photoParam()).toBeNull();
+  });
+
+  it("opens the photo a link names once the list has loaded, and closes it in place", async () => {
+    await render({ loading: true, photoset: [], idx2hash: [] }, "/photos?photo=b");
+    expect(isLightboxOpen()).toBe(false);
+
+    await render({});
+    expect(lastLightbox()).toMatchObject({ selectedImage: "b" });
+    expect(details.asked).toEqual([]);
+
+    // Nothing behind a linked photo to go back to: the param goes, the entry stays the page's.
+    await step(() => lastLightbox().onCloseRequest());
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(historyLength()).toBe(1);
+  });
+
+  it("shows a linked photo the list does not hold on its own, once its details confirm it", async () => {
+    details.result = { data: makePhoto({ image_hash: "hz", video: true }), isError: false };
+    await render({}, "/photos?photo=z");
+
+    expect(details.asked).toContain("z");
+    expect(lastLightbox()).toMatchObject({
+      selectedImage: "z",
+      idx2hash: [{ id: "z", image_hash: "hz", type: "video" }],
+    });
+  });
+
+  it("shows the grid for a linked photo that cannot be shown", async () => {
+    details.result = { data: undefined, isError: true };
+    await render({}, "/photos?photo=gone");
+
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(container?.querySelector('[data-testid="pig"]')).not.toBeNull();
+  });
+
+  it("opens a public page's link to a photo of the list", async () => {
+    await render({ isPublic: true }, "/photos?photo=a");
+
+    expect(lastLightbox()).toMatchObject({ selectedImage: "a", isPublic: true });
+  });
+
+  it("drops a public page's link to a photo the list does not hold: there are no details to check", async () => {
+    await render({ isPublic: true }, "/photos?photo=z");
+
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(details.asked).toEqual([]);
+  });
+
+  it("keeps the grid and the selection as they are: the open photo is not part of the list", async () => {
+    await render({});
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+    const before = lastPigProps();
+
+    // As Forward onto an entry the lightbox pushed would.
+    await step(() => void theRouter().navigate({ to: "/photos", search: { photo: "b" } }));
+
+    expect(lastLightbox()).toMatchObject({ selectedImage: "b" });
+    expect(lastPigProps().imageData).toBe(before.imageData);
+    expect((lastPigProps().selectedItems ?? []).map(item => item.id)).toEqual(["a"]);
+  });
+
+  it("starts a slideshow in place, and its close drops the photo too", async () => {
+    const onSlideshowClose = vi.fn<() => void>();
+    await render({ isPublic: true, slideshow: true, onSlideshowClose });
+    expect(photoParam()).toBe("a");
+    expect(historyLength()).toBe(1);
+
+    await step(() => lastLightbox().onCloseRequest());
+
+    expect(photoParam()).toBeNull();
+    expect(onSlideshowClose).toHaveBeenCalledTimes(1);
   });
 });
