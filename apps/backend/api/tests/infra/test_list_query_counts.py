@@ -231,6 +231,10 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     ),
     # A photo in no album of the requester's (#530).
     "api/photos/no-album/": (ListFixture(lambda user, index: _tile_photo(user)),),
+    # The requester's own public photos (#2686).
+    "api/photos/public/": (
+        ListFixture(lambda user, index: _tile_photo(user, public=True)),
+    ),
     "api/photos/edit/": (ListFixture(lambda user, index: _visible_photo(user)),),
     "api/photos/recentlyadded/": (ListFixture(lambda user, index: _tile_photo(user)),),
     "api/photos/searchlist/": (

@@ -346,6 +346,15 @@ export async function fetchPhotosNotInAlbum(
   return parseResponse(S.PhotosNotInAlbumResponse, res, "photos not in an album");
 }
 
+/**
+ * The first `pageSize` of my own public photos, newest first, and how many there are (`count`).
+ * Other users' public photos are not in it.
+ */
+export async function fetchMyPublicPhotos(client: ApiClient, pageSize: number): Promise<S.MyPublicPhotosResponse> {
+  const res = await client.get<unknown>(`/photos/public/${buildQuery({ page_size: pageSize })}`);
+  return parseResponse(S.MyPublicPhotosResponse, res, "my public photos");
+}
+
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
 /**

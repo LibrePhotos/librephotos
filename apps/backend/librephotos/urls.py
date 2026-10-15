@@ -304,11 +304,16 @@ urlpatterns = [
         name="media",
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
-    # "date-summary", "reapply-date-rules" and the two location routes below them.
+    # "public", "date-summary", "reapply-date-rules" and the two location routes below them.
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
         name="photos_no_album",
+    ),
+    path(
+        "api/photos/public/",
+        photos.PublicPhotoListViewSet.as_view({"get": "list"}),
+        name="photos_public",
     ),
     path(
         "api/photos/date-summary/",

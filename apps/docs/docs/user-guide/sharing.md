@@ -180,6 +180,10 @@ Only you leave: the owner keeps the album, it stays shared with everyone else, a
 
 Open **Sharing** and click the **Public Links** tile to see everything you've made publicly accessible. It has two tabs: **Albums** (albums with a public link) and **Photos** (individual photos you've marked public).
 
+The **Public Links** row on the Sharing page shows your latest public photos and counts all of them.
+
+*Not released yet: up to 1.3.0, public photos rarely showed or counted on the Sharing page or the Photos tab, and the Photos tab also listed other users' public photos.*
+
 ## Public User Profiles
 
 Users can make their profile publicly accessible by enabling **Public Sharing** in their profile settings. Other users on the instance can then find them in the **Public photos** section of the **Sharing** page, which lists every user with public sharing enabled along with their public photo count. A user's public photos are browsable at `https://your-instance/public/<username>`.

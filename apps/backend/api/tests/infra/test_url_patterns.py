@@ -226,6 +226,7 @@ CLIENT_PATHS = {
     "/api/photos/located-nearby-in-time/": "api.views.photo_locations.LocatedNearbyInTimeView",
     "/api/photos/location-summary/": "api.views.photo_locations.LocationSummaryView",
     "/api/photos/no-album/": "api.views.photos.NoAlbumPhotoViewSet get=list",
+    "/api/photos/public/": "api.views.photos.PublicPhotoListViewSet get=list",
     "/api/photos/recentlyadded/": "api.views.photos.RecentlyAddedPhotoListViewSet get=list",
     "/api/photos/searchlist/": "api.views.search.SearchListViewSet get=list",
     "/api/photos/shared/fromme/": "api.views.sharing.SharedFromMePhotoSuperSimpleListViewSet get=list",

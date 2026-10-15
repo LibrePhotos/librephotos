@@ -203,6 +203,10 @@ export type PhotosWithoutLocationResponse = z.infer<typeof PhotosWithoutLocation
 export const PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
 export type PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
 
+/** GET /api/photos/public/: a page of my own public photos, newest first. */
+export const MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
+export type MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
+
 /** Body describing a photoset for server-side "select all" bulk operations. */
 export const BulkPhotoQuery = z.object({
   favorite: z.boolean().optional(),

@@ -115,6 +115,13 @@ describe("photo list media filters", () => {
     expect(defined(calls[1]).url).toBe("https://demo.example.com/api/photos/no-album/?page=3&is_screenshot=true");
   });
 
+  it("asks for the first page of my public photos with a page size", async () => {
+    const { client, calls } = harness({ count: 9, next: null, previous: null, results: [] });
+    const page = await endpoints.fetchMyPublicPhotos(client, 6);
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/photos/public/?page_size=6");
+    expect(page.count).toBe(9);
+  });
+
   it("asks a date-album list for documents only", async () => {
     const { client, calls } = harness({ results: [] });
     await endpoints.fetchDateAlbumsList(client, { in_trashcan: true, is_document: true });

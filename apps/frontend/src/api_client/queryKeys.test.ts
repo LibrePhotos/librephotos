@@ -289,6 +289,11 @@ const domains: Record<string, Domain> = {
         before: ["photoGrid", "notInAlbum", 2, "all"],
         after: photoGridKeys.notInAlbum(2, "all"),
       },
+      // New in #2686: the Sharing overview's first public photos.
+      useFetchMyPublicPhotosQuery: {
+        before: ["photoGrid", "myPublicPhotos", 6],
+        after: photoGridKeys.myPublicPhotos(6),
+      },
       useFetchSharedPhotosByMeQuery: { before: ["photoGrid", "sharedByMe"], after: photoGridKeys.sharedByMe() },
       useFetchSharedPhotosWithMeQuery: { before: ["photoGrid", "sharedWithMe"], after: photoGridKeys.sharedWithMe() },
     },
@@ -315,6 +320,7 @@ const domains: Record<string, Domain> = {
           "useFetchPhotosWithoutTimestampQuery",
           "useFetchPhotosWithoutLocationQuery",
           "useFetchPhotosNotInAlbumQuery",
+          "useFetchMyPublicPhotosQuery",
           "useFetchSharedPhotosByMeQuery",
           "useFetchSharedPhotosWithMeQuery",
         ],
@@ -554,7 +560,7 @@ describe("photoGridKeys.all", () => {
       .filter(([, { before }]) => before[0] === "photoGrid")
       .map(([name]) => name);
     // One query per grid kind.
-    expect(grids).toHaveLength(15);
+    expect(grids).toHaveLength(16);
     expect(matched(photoGridKeys.all)).toEqual([...grids, ...raw.map(queryKey => hashKey(queryKey))].sort());
   });
 });

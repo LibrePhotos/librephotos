@@ -7,21 +7,29 @@
  * The real PhotoListView, DefaultHeader and PageHeader render; only the grid,
  * the dialogs and the data are stubbed.
  *
+ * The Photos tab lists only my public photos, and shows them while their days
+ * are still placeholders (#2686): it used to count loaded photos only, so with
+ * no day page loaded it said there were none and never loaded one.
+ *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
 import { Media } from "@librephotos/api-client";
-import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
+import type { IncompleteDatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../../i18n";
+
+type DayListOptions = { photosetType: string; username?: string };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   search: { tab: "photos" } as { tab?: string },
+  days: [] as IncompleteDatePhotosGroup[],
+  dayListOptions: [] as DayListOptions[],
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -42,7 +50,7 @@ vi.mock("../../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: { access: { user_id: 1, is_admin: true, name: "admin" } } }),
 }));
 vi.mock("../../../api_client/user/hooks", () => {
-  const self = { data: { id: 1, scan_directory: "/data", image_scale: 1 }, isLoading: false };
+  const self = { data: { id: 1, username: "anna", scan_directory: "/data", image_scale: 1 }, isLoading: false };
   return {
     useCurrentUserSelfDetailsQuery: () => self,
     useFetchUserSelfDetailsQuery: () => self,
@@ -51,22 +59,15 @@ vi.mock("../../../api_client/user/hooks", () => {
   };
 });
 vi.mock("../../../api_client/albums/hooks", () => {
-  const photo = (id: string): PigPhoto => ({
-    id,
-    image_hash: id,
-    aspectRatio: 1,
-    type: Media.IMAGE,
-    is_hdr: false,
-    rating: 0,
-    shared_to: [],
-    isTemp: false,
-    has_raw_variant: false,
-  });
-  const groups: DatePhotosGroup[] = [{ date: "2024-01-01", location: "", items: [photo("a"), photo("b")] }];
-  const dateAlbums = { data: groups, isLoading: false };
   const userAlbums = { data: [], isLoading: false };
+  const noPage = { data: undefined, isLoading: false };
   return {
-    useFetchDateAlbumsQuery: () => dateAlbums,
+    DATE_ALBUM_PAGE_SIZE: 100,
+    useFetchDateAlbumsQuery: (options: DayListOptions) => {
+      stubs.dayListOptions.push(options);
+      return { data: stubs.days, isLoading: false };
+    },
+    useFetchDateAlbumQuery: () => noPage,
     useFetchUserAlbumsQuery: () => userAlbums,
     useRemovePhotoFromUserAlbumMutation: () => ({ mutate: () => {} }),
     useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
@@ -89,6 +90,27 @@ vi.mock("../../../components/sharing/ModalAlbumShare", () => ({ ModalAlbumShare:
 vi.mock("../../../components/sharing/PhotoSharesSection", () => ({ PhotoSharesSection: () => null }));
 vi.mock("../../../components/sharing/PublicAlbumsGrid", () => ({ PublicAlbumsGrid: () => null }));
 
+const photo = (id: string, isTemp = false): PigPhoto => ({
+  id,
+  image_hash: isTemp ? "" : id,
+  aspectRatio: 1,
+  type: Media.IMAGE,
+  is_hdr: false,
+  rating: 0,
+  shared_to: [],
+  isTemp,
+  has_raw_variant: false,
+});
+
+const day = (id: number, items: PigPhoto[]): IncompleteDatePhotosGroup => ({
+  id,
+  date: "2024-01-01",
+  location: "",
+  incomplete: true,
+  numberOfItems: items.length,
+  items,
+});
+
 let root: Root | undefined;
 let container: HTMLDivElement;
 
@@ -108,6 +130,11 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
   await import("./links");
 }, 30_000);
+
+beforeEach(() => {
+  stubs.days = [day(1, [photo("a"), photo("b")])];
+  stubs.dayListOptions = [];
+});
 
 afterEach(async () => {
   await act(async () => root?.unmount());
@@ -157,5 +184,30 @@ describe("public links page headings", () => {
     await renderTab("albums");
 
     expect(headings("h1")).toEqual([i18n.t("sharing.publicLinks")]);
+  });
+});
+
+describe("public links page Photos tab (#2686)", () => {
+  it("lists and counts public photos whose days have not loaded yet", async () => {
+    // Two days of placeholders only, as the day list answers before any day page loads
+    stubs.days = [day(1, [photo("0", true), photo("1", true)]), day(2, [photo("0", true)])];
+    await renderTab("photos");
+
+    expect(container.querySelector('[data-testid="pig"]')).not.toBeNull();
+    expect(container.textContent).toContain(`${i18n.t("photos.photos")} (3)`);
+    expect(container.textContent).not.toContain(i18n.t("sharing.noPublicPhotos"));
+  });
+
+  it("asks only for my public photos", async () => {
+    await renderTab("photos");
+
+    expect(stubs.dayListOptions).toContainEqual({ photosetType: "public", username: "anna" });
+  });
+
+  it("says there are none when no day holds a public photo", async () => {
+    stubs.days = [];
+    await renderTab("photos");
+
+    expect(container.textContent).toContain(i18n.t("sharing.noPublicPhotos"));
   });
 });

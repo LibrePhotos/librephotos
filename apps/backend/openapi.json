@@ -6344,6 +6344,55 @@
         }
       }
     },
+    "/api/photos/public/": {
+      "get": {
+        "operationId": "api_photos_public_list",
+        "description": "The requester's own public photos, newest first, a page at a time (#2686).\n\nThe Sharing overview previews the first few (``?page_size=``) and shows\nthe page's ``count``, instead of reading the public day list, whose days\nare placeholders until their page loads. Only the requester's photos:\nanother user's public photos are on that user's public page.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/reapply-date-rules/": {
       "post": {
         "operationId": "api_photos_reapply_date_rules_create",
