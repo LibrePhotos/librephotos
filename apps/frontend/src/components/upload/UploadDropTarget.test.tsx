@@ -5,6 +5,7 @@ import Dropzone from "react-dropzone";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import type { DropAlbum } from "./UploadContext";
 import { UploadDropTarget } from "./UploadDropTarget";
 import type { UploadAvailability } from "./useCanUpload";
 import type { UploadQueue } from "./useUploadQueue";
@@ -12,13 +13,15 @@ import type { UploadQueue } from "./useUploadQueue";
 const stubs = vi.hoisted(() => ({
   availability: "ready" as UploadAvailability,
   isUploading: false,
-  start: vi.fn<(files: File[]) => void>(),
+  start: vi.fn<UploadQueue["start"]>(),
+  dropAlbum: null as DropAlbum | null,
   avatarDrop: vi.fn<(files: File[]) => void>(),
 }));
 
 vi.mock("./useCanUpload", () => ({ useCanUpload: () => stubs.availability }));
 vi.mock("./UploadContext", () => ({
   useUpload: (): Pick<UploadQueue, "start" | "isUploading"> => ({ start: stubs.start, isUploading: stubs.isUploading }),
+  useDropAlbum: () => stubs.dropAlbum,
 }));
 
 let root: Root;
@@ -76,6 +79,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   stubs.availability = "ready";
   stubs.isUploading = false;
+  stubs.dropAlbum = null;
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -89,13 +93,48 @@ afterEach(async () => {
 });
 
 describe("UploadDropTarget", () => {
+  describe("on an album page (#612)", () => {
+    const porto = { id: 12, title: "Porto 2025" };
+
+    it("files the drop into the album and names it in the overlay", async () => {
+      stubs.dropAlbum = { album: porto, locked: false };
+      await render();
+      const files = [image("a.jpg")];
+
+      await fire("dragenter", page(), files);
+      expect(defined(overlay()).textContent).toContain("Drop to add to Porto 2025");
+      await fire("drop", page(), files);
+
+      expect(stubs.start).toHaveBeenCalledWith(files, porto);
+    });
+
+    it("sends a drop on a locked album to the library and says so", async () => {
+      stubs.dropAlbum = { album: porto, locked: true };
+      await render();
+      const files = [image("a.jpg")];
+
+      await fire("dragenter", page(), files);
+      expect(defined(overlay()).textContent).toContain("Porto 2025 is locked, so the files go to your library only.");
+      await fire("drop", page(), files);
+
+      expect(stubs.start).toHaveBeenCalledWith(files, undefined);
+    });
+
+    it("still warns about files that are not photos or videos", async () => {
+      stubs.dropAlbum = { album: porto, locked: false };
+      await render();
+      await fire("dragenter", page(), [image("notes.pdf", "application/pdf")]);
+      expect(defined(overlay()).textContent).toContain("Only photos and videos can be uploaded");
+    });
+  });
+
   it("uploads every photo dropped anywhere on the shell", async () => {
     await render();
     const files = [image("a.jpg"), image("b.png", "image/png")];
 
     const drop = await fire("drop", page(), files);
 
-    expect(stubs.start).toHaveBeenCalledWith(files);
+    expect(stubs.start).toHaveBeenCalledWith(files, undefined);
     expect(drop.defaultPrevented).toBe(true);
   });
 
@@ -106,7 +145,7 @@ describe("UploadDropTarget", () => {
 
     await fire("drop", page(), [heic, raw, image("notes.pdf", "application/pdf")]);
 
-    expect(stubs.start).toHaveBeenCalledWith([heic, raw]);
+    expect(stubs.start).toHaveBeenCalledWith([heic, raw], undefined);
   });
 
   it("shows the overlay while files are dragged over the window and hides it on leave and drop", async () => {

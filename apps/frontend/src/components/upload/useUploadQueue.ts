@@ -1,15 +1,28 @@
 import { useRef, useState } from "react";
 import {
   invalidateUploadQueries,
+  isUploadAlbumRefusal,
   uploadExists,
+  useRefreshUploadAlbums,
   useUploadFinishedMutation,
   useUploadMutation,
 } from "../../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import i18n from "../../i18n";
+import { fileExistingIntoAlbums, type ExistingInAlbum } from "./albumFiling";
 import { calculateChunks, calculateMD5, UploadCancelledError } from "./chunkedUpload";
 
 export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error" | "cancelled";
+
+/** One of the user's own albums an upload files into (#612). */
+export type UploadAlbumTarget = { id: number; title: string };
+
+/**
+ * How filing into the album came out, where it differs from "uploaded into it": a file the library
+ * already had was added to it, or the album refused the file (locked or deleted meanwhile), which
+ * went to the library only.
+ */
+export type AlbumOutcome = "added_existing" | "library_only";
 
 export type UploadItem = {
   id: string;
@@ -18,6 +31,9 @@ export type UploadItem = {
   /** 0..100, bytes of this file sent so far */
   progress: number;
   error?: string;
+  /** The album the file goes into; none for the library alone. */
+  album?: UploadAlbumTarget;
+  albumOutcome?: AlbumOutcome;
 };
 
 export type UploadQueue = {
@@ -25,8 +41,8 @@ export type UploadQueue = {
   isUploading: boolean;
   /** Between cancel() and the end of the file in flight (its current chunk or hash slice). */
   isCancelling: boolean;
-  /** Append files to the queue and start uploading if idle. */
-  start: (files: File[]) => void;
+  /** Append files to the queue, filed into `album` when given, and start uploading if idle. */
+  start: (files: File[], album?: UploadAlbumTarget) => void;
   /** Re-queue the given items; anything not failed or cancelled is ignored. */
   retry: (targets: UploadItem[]) => void;
   /**
@@ -37,6 +53,9 @@ export type UploadQueue = {
   /** Clear the list. Ignored while an upload is running. */
   reset: () => void;
 };
+
+/** What one file's run ends in: whether a new file landed, and the album it was filed into. */
+type Processed = { uploaded: boolean; filedInto?: number };
 
 /** A queued item and the cancel generation it was queued in; cancel() bumps the generation. */
 type QueuedUpload = { item: UploadItem; generation: number };
@@ -67,7 +86,9 @@ const errorMessage = (err: unknown): string => {
 export function useUploadQueue(): UploadQueue {
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
   const uploadMutation = useUploadMutation();
-  const uploadFinishedMutation = useUploadFinishedMutation();
+  // The card reports a failed file, and an album refusal is retried without the album.
+  const uploadFinishedMutation = useUploadFinishedMutation({ reportsErrors: true });
+  const refreshAlbums = useRefreshUploadAlbums();
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -77,12 +98,20 @@ export function useUploadQueue(): UploadQueue {
   const pendingRef = useRef<QueuedUpload[]>([]);
   const drainingRef = useRef(false);
   const generationRef = useRef(0);
+  /** Files the library already had, to add to their album once the queue drains. */
+  const existingRef = useRef<ExistingInAlbum[]>([]);
 
   const patchItem = (id: string, patch: Partial<UploadItem>) => {
     setItems(prev => prev.map(it => (it.id === id ? { ...it, ...patch } : it)));
   };
 
-  const uploadFile = async (item: UploadItem, user: User, md5: string, isCancelled: () => boolean): Promise<void> => {
+  /** Sends the file in chunks and completes it; resolves to how filing into its album came out. */
+  const uploadFile = async (
+    item: UploadItem,
+    user: User,
+    md5: string,
+    isCancelled: () => boolean
+  ): Promise<AlbumOutcome | undefined> => {
     const throwIfCancelled = () => {
       if (isCancelled()) throw new UploadCancelledError();
     };
@@ -106,16 +135,44 @@ export function useUploadQueue(): UploadQueue {
     });
 
     throwIfCancelled();
-    const formData = new FormData();
-    formData.append("upload_id", uploadId);
-    formData.append("md5", md5);
-    formData.append("user", user.id.toString());
-    formData.append("filename", file.name);
-    await uploadFinishedMutation.mutateAsync({ formData, shouldInvalidate: false });
+    return completeUpload(item, { upload_id: uploadId, md5, user: user.id.toString(), filename: file.name });
   };
 
-  /** Resolves to true when a new file landed on the server. */
-  const processOne = async ({ item, generation }: QueuedUpload): Promise<boolean> => {
+  const complete = (fields: Record<string, string>, albumId?: number) => {
+    const formData = new FormData();
+    Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
+    if (albumId !== undefined) formData.append("album_id", albumId.toString());
+    return uploadFinishedMutation.mutateAsync({ formData, shouldInvalidate: false });
+  };
+
+  /**
+   * Completes the upload into its album. An album the server refuses (locked or deleted since)
+   * leaves the staged file in place, so it is completed again into the library alone.
+   */
+  const completeUpload = async (
+    item: UploadItem,
+    fields: Record<string, string>
+  ): Promise<AlbumOutcome | undefined> => {
+    if (!item.album) {
+      await complete(fields);
+      return undefined;
+    }
+    try {
+      await complete(fields, item.album.id);
+      return undefined;
+    } catch (err) {
+      if (!isUploadAlbumRefusal(err)) throw err;
+      await complete(fields);
+      return "library_only";
+    }
+  };
+
+  /** A file the library already has: filed into its album later, when the server told its id. */
+  const noteExisting = (item: UploadItem, photoId: string | null | undefined) => {
+    if (item.album && photoId) existingRef.current.push({ itemId: item.id, albumId: item.album.id, photoId });
+  };
+
+  const processOne = async ({ item, generation }: QueuedUpload): Promise<Processed> => {
     const isCancelled = () => generation !== generationRef.current;
     try {
       const user = userRef.current;
@@ -127,23 +184,32 @@ export function useUploadQueue(): UploadQueue {
 
       patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
       const md5 = await calculateMD5(item.file, isCancelled);
-      if (await uploadExists(md5, user.id)) {
+      const known = await uploadExists(md5, user.id);
+      if (known.exists) {
         patchItem(item.id, { status: "duplicate", progress: 100 });
-        return false;
+        noteExisting(item, known.photo_id);
+        return { uploaded: false };
       }
 
       patchItem(item.id, { status: "uploading", progress: 0 });
-      await uploadFile(item, user, md5, isCancelled);
-      patchItem(item.id, { status: "done", progress: 100 });
-      return true;
+      const albumOutcome = await uploadFile(item, user, md5, isCancelled);
+      patchItem(item.id, { status: "done", progress: 100, albumOutcome });
+      return { uploaded: true, filedInto: albumOutcome ? undefined : item.album?.id };
     } catch (err) {
       // A request that fails after cancel() is part of the cancel, not an error.
       patchItem(
         item.id,
         isCancelled() ? { status: "cancelled", progress: 0 } : { status: "error", error: errorMessage(err) }
       );
-      return false;
+      return { uploaded: false };
     }
+  };
+
+  /** Adds the files the library already had to their albums; resolves to the albums filled. */
+  const fileExisting = async (): Promise<number[]> => {
+    const outcomes = await fileExistingIntoAlbums(existingRef.current.splice(0));
+    outcomes.forEach(({ itemId, outcome }) => patchItem(itemId, { albumOutcome: outcome }));
+    return outcomes.filter(o => o.outcome === "added_existing").map(o => o.albumId);
   };
 
   const drain = async () => {
@@ -151,20 +217,25 @@ export function useUploadQueue(): UploadQueue {
     drainingRef.current = true;
     setIsUploading(true);
     let uploadedAny = false;
+    const filled = new Set<number>();
     const next = async (): Promise<void> => {
       const queued = pendingRef.current.shift();
       if (!queued) return;
-      uploadedAny = (await processOne(queued)) || uploadedAny;
+      const { uploaded, filedInto } = await processOne(queued);
+      uploadedAny = uploaded || uploadedAny;
+      if (filedInto !== undefined) filled.add(filedInto);
       setIsCancelling(false);
       await next();
     };
     try {
       await next();
+      (await fileExisting()).forEach(id => filled.add(id));
     } finally {
       drainingRef.current = false;
       setIsUploading(false);
       setIsCancelling(false);
       if (uploadedAny) invalidateUploadQueries();
+      refreshAlbums([...filled]);
     }
   };
 
@@ -175,8 +246,8 @@ export function useUploadQueue(): UploadQueue {
     void drain();
   };
 
-  const start = (files: File[]) => {
-    const queued = files.map(file => ({ id: newId(), file, status: "pending" as const, progress: 0 }));
+  const start = (files: File[], album?: UploadAlbumTarget) => {
+    const queued = files.map(file => ({ id: newId(), file, status: "pending" as const, progress: 0, album }));
     setItems(prev => [...prev, ...queued]);
     enqueue(queued);
   };

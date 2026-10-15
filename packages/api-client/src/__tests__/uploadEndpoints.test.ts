@@ -70,9 +70,30 @@ describe("chunked upload", () => {
     expect(defined(requests[0])).toMatchObject({ url: `${API}/upload/complete/`, method: "POST", body: form });
   });
 
-  it("asks whether the user already has a file by its MD5 and user id", async () => {
-    const { client, requests } = fakeServer({ exists: true });
-    await expect(endpoints.uploadExists(client, "d41d8cd98f00b204e9800998ecf8427e", 7)).resolves.toBe(true);
+  it("asks whether the user already has a file by its MD5 and user id, and answers its photo", async () => {
+    const photoId = "0f6c3c1e-5b8a-4d2e-9a51-6f0b8f1d2c3a";
+    const { client, requests } = fakeServer({ exists: true, photo_id: photoId });
+    await expect(endpoints.uploadExists(client, "d41d8cd98f00b204e9800998ecf8427e", 7)).resolves.toEqual({
+      exists: true,
+      photo_id: photoId,
+    });
     expect(defined(requests[0]).url).toBe(`${API}/exists/d41d8cd98f00b204e9800998ecf8427e7`);
+  });
+
+  it("reads an exists answer from a server before #612, which sends no photo id", async () => {
+    const { client } = fakeServer({ exists: false });
+    await expect(endpoints.uploadExists(client, "d41d8cd98f00b204e9800998ecf8427e", 7)).resolves.toEqual({
+      exists: false,
+    });
+  });
+
+  it("files photos into an album by id, without a title that would undo a rename", async () => {
+    const { client, requests } = fakeServer({ id: 12, title: "Porto 2025" });
+    await expect(endpoints.addPhotosToUserAlbumById(client, 12, ["p1"])).resolves.toMatchObject({ id: 12 });
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/albums/user/edit/12/`,
+      method: "PATCH",
+      body: { photos: ["p1"] },
+    });
   });
 });

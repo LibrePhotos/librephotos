@@ -496,12 +496,10 @@ class AlbumUserListViewSet(ListViewSet):
                     pk=collection
                 )
             )
-        return (
-            with_album_user_list_relations(albums)
-            # A Q: the type checker does not see the helper's annotation.
-            .filter(Q(photo_count__gt=0))
-            .order_by("title")
-        )
+        # Empty albums are listed too: an album can be made before it has
+        # photos and filled by an upload (#612), and one whose last photo was
+        # removed must not vanish from its owner's list.
+        return with_album_user_list_relations(albums).order_by("title")
 
 
 def public_view_permissions(request: Request) -> list[BasePermission]:

@@ -73,6 +73,8 @@ export type EmptyStateConfig = {
     current: number;
     target: number;
   };
+  /** Framed as a place to drop files on (an empty album, #612). */
+  dropZone?: boolean;
 };
 
 type Props = Readonly<{

@@ -10,24 +10,31 @@
  * server refused (a 400, or a 502 while the backend is down) just looked like nothing
  * happened (#2222). They now stay open until the server answered, and say why it failed.
  */
+import type { CreateUserAlbumResponse } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { useDeleteUserAlbumMutation, useRenameUserAlbumMutation } from "../../api_client/albums/hooks";
+import type {
+  useCreateUserAlbumMutation,
+  useDeleteUserAlbumMutation,
+  useRenameUserAlbumMutation,
+} from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/apiError";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
+import { CreateUserAlbumModal, DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
 
 type RenameRequest = Parameters<ReturnType<typeof useRenameUserAlbumMutation>["mutate"]>[0];
 type DeleteRequest = Parameters<ReturnType<typeof useDeleteUserAlbumMutation>["mutate"]>[0];
+type CreateRequest = Parameters<ReturnType<typeof useCreateUserAlbumMutation>["mutate"]>[0];
 
 // The requests the dialogs send; the server's answer is what each test makes these resolve or reject.
 const stubs = vi.hoisted(() => ({
   rename: vi.fn<(request: RenameRequest) => Promise<void>>(),
   remove: vi.fn<(request: DeleteRequest) => Promise<void>>(),
+  create: vi.fn<(request: CreateRequest) => Promise<CreateUserAlbumResponse>>(),
 }));
 
 // Real mutations around stubbed requests, so pending and error states behave as in the app.
@@ -36,6 +43,7 @@ vi.mock("../../api_client/albums/hooks", async () => {
   return {
     useRenameUserAlbumMutation: () => useMutation({ mutationFn: (request: RenameRequest) => stubs.rename(request) }),
     useDeleteUserAlbumMutation: () => useMutation({ mutationFn: (request: DeleteRequest) => stubs.remove(request) }),
+    useCreateUserAlbumMutation: () => useMutation({ mutationFn: (request: CreateRequest) => stubs.create(request) }),
   };
 });
 
@@ -66,6 +74,9 @@ beforeEach(() => {
   // The server accepts the change unless a test says otherwise.
   stubs.rename.mockResolvedValue(undefined);
   stubs.remove.mockResolvedValue(undefined);
+  stubs.create.mockReset();
+  stubs.create.mockResolvedValue({ id: 12, title: "Iceland 2026" });
+  onCreated.mockReset();
   onClose.mockReset();
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -78,6 +89,19 @@ afterEach(async () => {
 });
 
 const onClose = vi.fn<() => void>();
+const onCreated = vi.fn<(album: CreateUserAlbumResponse) => void>();
+
+async function renderCreate(existingTitles: string[]) {
+  await act(async () => {
+    root.render(
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider env="test">
+          <CreateUserAlbumModal opened onClose={onClose} existingTitles={existingTitles} onCreated={onCreated} />
+        </MantineProvider>
+      </QueryClientProvider>
+    );
+  });
+}
 
 async function renderRename(opened: boolean, existingTitles: string[]) {
   await act(async () => {
@@ -120,6 +144,41 @@ async function type(value: string) {
     input().dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
+
+describe("the New album dialog (#612)", () => {
+  it("makes an empty album with the trimmed title and hands it on", async () => {
+    await renderCreate(["Porto"]);
+    expect(button("Create album").disabled).toBe(true);
+
+    await type(" Iceland 2026 ");
+    await act(async () => button("Create album").click());
+    await settle();
+
+    expect(stubs.create).toHaveBeenCalledWith({ title: "Iceland 2026", photos: [] });
+    expect(onClose).toHaveBeenCalled();
+    expect(onCreated).toHaveBeenCalledWith({ id: 12, title: "Iceland 2026" });
+  });
+
+  it("refuses a title one of your albums has", async () => {
+    await renderCreate(["Porto"]);
+    await type("porto");
+
+    expect(container.textContent).toContain("Album porto already exists.");
+    expect(button("Create album").disabled).toBe(true);
+  });
+
+  it("stays open and says why when the server refused", async () => {
+    stubs.create.mockRejectedValue(new ApiError("API error: 502 Bad Gateway", 502, null, "/albums/user/edit/"));
+    await renderCreate([]);
+    await type("Iceland");
+    await act(async () => button("Create album").click());
+    await settle();
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(container.querySelector("[role=alert]")?.textContent).toContain(i18n.t("useralbum.createfailed"));
+  });
+});
 
 describe("the rename dialog", () => {
   it("says a title is taken instead of crashing", async () => {

@@ -25,6 +25,11 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
 from api.accounts.authentication import JWTCookieAuthentication
+from api.albums.user_albums import (
+    AlbumRefusedError,
+    add_photo_to_user_album,
+    upload_target_album,
+)
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
 from api.drf.request_user import request_user
@@ -32,11 +37,12 @@ from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import Task, enqueue_task_chain
 from api.models import Photo
+from api.models.album_user import AlbumUser
 from api.models.photo_caption import PhotoCaption
 from api.models.user import User
 from api.photos.media_files import calculate_hash
 from api.search import semantic
-from api.serializers.upload import UploadExistsSerializer
+from api.serializers.upload import UploadCompleteRequest, UploadExistsSerializer
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
@@ -133,6 +139,34 @@ def _bad_request(detail: str) -> ChunkedUploadError:
     )
 
 
+def _album_error(message: str, code: str) -> ChunkedUploadError:
+    """A 400 about ``album_id``, in the API's error envelope so clients can
+    branch on ``code`` (``album_not_found``, ``album_locked``, ``invalid``)."""
+    return ChunkedUploadError(
+        status=http_status.HTTP_400_BAD_REQUEST,
+        errors=[{"field": "album_id", "message": message, "code": code}],
+    )
+
+
+def resolve_upload_album(user: User, form: object) -> AlbumUser | None:
+    """The album an upload completion names in ``album_id``, if any.
+
+    Resolved through the owner scope before anything is written, so a refused
+    album leaves the staged upload in place: the client can complete it again
+    without ``album_id`` and the file still lands in the library.
+    """
+    request = UploadCompleteRequest(data=form)
+    if not request.is_valid():
+        raise _album_error("album_id must be an album id.", "invalid")
+    album_id = request.validated_data.get("album_id")
+    if album_id is None:
+        return None
+    try:
+        return upload_target_album(user, album_id)
+    except AlbumRefusedError as refused:
+        raise _album_error(refused.message, refused.code)
+
+
 def authenticate_upload_request(request: HttpRequest) -> User:
     """Resolve the uploading user for the chunked-upload views.
 
@@ -208,10 +242,14 @@ class UploadPhotoExists(viewsets.ViewSet):
     def retrieve(self, request: Request, pk: str) -> Response:
         # Only the requester's own library counts: answering for other users'
         # hashes would tell anyone which files someone else has uploaded.
-        exists = (
-            Photo.objects.owned_by(request_user(request)).filter(image_hash=pk).exists()
+        photo_id = (
+            Photo.objects.owned_by(request_user(request))
+            .filter(image_hash=pk)
+            .values_list("id", flat=True)
+            .first()
         )
-        return Response({"exists": exists})
+        # The id lets a client file a file it already has into an album (#612).
+        return Response({"exists": photo_id is not None, "photo_id": photo_id})
 
 
 class UploaderScopedMixin:
@@ -306,11 +344,16 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         photo_path: str,
         image_hash: str,
         device_created_at: datetime.datetime | None = None,
+        album: AlbumUser | None = None,
     ) -> None:
         photo = create_new_image(user, photo_path)
+        # Filed right after the import, so the photo shows in the album while
+        # captions, places and faces are still being worked out.
+        filing = [Task(add_photo_to_user_album, (photo, album.id))] if album else []
         enqueue_task_chain(
             [
                 Task(handle_new_image, (user, photo_path, image_hash, photo)),
+                *filing,
                 Task(
                     apply_device_timestamp_fallback,
                     (photo, device_created_at),
@@ -327,6 +370,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
     ) -> HttpResponse | None:
         user = authenticate_upload_request(request)
         validate_scan_directory(user)
+        album = self.target_album(user, request, uploaded_file)
 
         if not is_valid_media(_staged_path(uploaded_file), user):
             self.delete_chunked_upload(request, uploaded_file)
@@ -353,6 +397,8 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self.delete_chunked_upload(request, uploaded_file)
 
         if not photo_path:
+            if album:
+                self.file_existing_photo(user, image_hash, album)
             return Response(
                 {"detail": "Photo duplicated. No new import performed."},
                 status=http_status.HTTP_200_OK,
@@ -372,5 +418,30 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
             photo_path,
             image_hash,
             device_created_at=device_time,
+            album=album,
         )
         return None
+
+    def target_album(
+        self, user: User, request: HttpRequest, uploaded_file: UploadedFile
+    ) -> AlbumUser | None:
+        """The album the upload goes into (#612), or the refusal.
+
+        A refused album keeps the staged upload for a completion without
+        it, so our handle on the staged file is released first: an open
+        handle would make that completion's delete fail on Windows.
+        """
+        try:
+            return resolve_upload_album(user, request.POST)
+        except ChunkedUploadError:
+            uploaded_file.close()
+            raise
+
+    def file_existing_photo(
+        self, user: User, image_hash: str, album: AlbumUser
+    ) -> None:
+        """A file the library already holds still goes into the album it was
+        uploaded to: the existing photo is added (#612)."""
+        photo = Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
+        if photo is not None:
+            add_photo_to_user_album(photo, album.id)

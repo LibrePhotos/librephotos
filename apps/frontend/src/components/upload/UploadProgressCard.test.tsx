@@ -24,6 +24,12 @@ const stubs = vi.hoisted(() => {
 vi.mock("./UploadContext", () => ({
   useUpload: () => stubs.queue,
 }));
+// The album strip's "Open album" link, without a router
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ to, params, ...props }: { to: string; params: { id: string } } & React.ComponentProps<"a">) => (
+    <a {...props} href={to.replace("$id", params.id)} />
+  ),
+}));
 
 const item = (name: string, status: UploadItem["status"], progress = 0, error?: string): UploadItem => ({
   id: name,
@@ -168,5 +174,54 @@ describe("UploadProgressCard", () => {
     expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(0);
     expect(defined(byTestId("upload-progress-card")).textContent).toContain("2/2 processed");
     expect(defined(byTestId("upload-progress-card")).textContent).toContain("1 duplicate");
+  });
+
+  describe("into an album (#612)", () => {
+    const porto = { id: 12, title: "Porto 2025" };
+    const inPorto = (it: UploadItem, albumOutcome?: UploadItem["albumOutcome"]): UploadItem => ({
+      ...it,
+      album: porto,
+      albumOutcome,
+    });
+    const strip = () => byTestId("upload-album-strip");
+
+    it("names the album while uploading", async () => {
+      await render([inPorto(item("a.jpg", "uploading", 50)), inPorto(item("b.jpg", "pending"))], true);
+      expect(defined(strip()).textContent).toBe("Adding to Porto 2025");
+    });
+
+    it("counts the files that landed in the album and links to it", async () => {
+      await render(
+        [
+          inPorto(item("a.jpg", "done", 100)),
+          inPorto(item("b.jpg", "duplicate", 100), "added_existing"),
+          inPorto(item("c.jpg", "done", 100), "library_only"),
+          inPorto(item("d.jpg", "error", 0, "Boom")),
+        ],
+        false
+      );
+
+      expect(defined(strip()).textContent).toContain("2 files added to Porto 2025");
+      expect(defined(strip()).querySelector("a")?.getAttribute("href")).toBe("/album/user/12");
+      const card = defined(byTestId("upload-progress-card"));
+      expect(card.textContent).toContain("Already in your library: added to the album");
+      expect(card.textContent).toContain("Added to your library only: the album is locked or was deleted");
+    });
+
+    it("offers no link when nothing reached the album", async () => {
+      await render([inPorto(item("a.jpg", "error", 0, "Boom"))], false);
+      expect(defined(strip()).querySelector("a")).toBeNull();
+    });
+
+    it("has no album line for an upload into the library, or into several albums", async () => {
+      await render([item("a.jpg", "done", 100)], false);
+      expect(strip()).toBeNull();
+
+      await render(
+        [inPorto(item("a.jpg", "done", 100)), { ...item("b.jpg", "done", 100), album: { id: 13, title: "Lisbon" } }],
+        false
+      );
+      expect(strip()).toBeNull();
+    });
   });
 });

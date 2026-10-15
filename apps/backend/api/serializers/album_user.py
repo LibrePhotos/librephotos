@@ -363,8 +363,8 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "collection_ids",
         )
 
-    @extend_schema_field(PhotoSuperSimpleSerializer)
-    def get_cover_photo(self, obj: AlbumUser) -> dict[str, Any]:
+    @extend_schema_field(PhotoSuperSimpleSerializer(allow_null=True))
+    def get_cover_photo(self, obj: AlbumUser) -> dict[str, Any] | None:
         if obj.cover_photo:
             return shared_serializer(
                 self, PhotoSuperSimpleSerializer
@@ -372,7 +372,8 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
         # The prefetched fallback cover (``with_album_user_list_relations``).
         first_photos = loaded_list(obj, "first_photos", Photo)
         if not first_photos:
-            return PhotoSuperSimpleSerializer(None).data
+            # An empty album (#612) has no cover, rather than one with blank fields.
+            return None
         return shared_serializer(self, PhotoSuperSimpleSerializer).to_representation(
             first_photos[0]
         )

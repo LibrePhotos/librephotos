@@ -9,6 +9,18 @@ In the top right corner of the web interface, there is an upload button. Clickin
 
 You can also drag photos and videos from your computer onto any page of the app (not released yet; up to 1.3.0 only the upload button took dropped files). While you drag, the whole window shows where the files will go: *Drop photos and videos to upload*, or *Add to the running upload* when an upload is already in progress, in which case the new files join the end of the queue. On the profile page, dropping an image on your avatar still sets your avatar instead.
 
+### Uploading into an album
+
+_Not released yet._ You can upload straight into one of your own albums, so new photos land in the album without being added to it afterwards:
+
+- On the album's page, open the **⋮** at the right of its header and choose **Upload to this album…**, then pick the files.
+- Or drag files onto the album's page. The overlay then says *Drop to add to* and the album's name.
+- An empty album shows a drop zone with an **Upload photos** button. Use **New album** on **My Albums** to make an empty album to upload into (see [Albums](./albums.md#creating-user-albums)).
+
+The files go to your upload folder and your library as usual, and are added to the album as soon as each one is imported. The upload card names the album (*Adding to Porto 2025*) and, when it is done, says how many files were added, with an **Open album** link. A file that is already in your library is not uploaded again but is added to the album; its row says *Already in your library: added to the album*.
+
+A locked album takes no uploads: its menu item says why, and files dropped on its page go to your library only. If an album is locked or deleted while its upload runs, the remaining files go to your library only and their rows say so. Only your own albums take uploads, not albums others share with you.
+
 ### What kinds of files are supported?
 
 We accept all files that have a mime type of image or video, plus HEIC, HEIF, JPEG XL, AVIF and camera RAW files (`.arw`, `.cr3`, `.dng`, `.nef`, ...), which some browsers hand over without a mime type. If you drag other files along (a PDF, for example), the overlay says *Only photos and videos can be uploaded*, and only the photos and videos are uploaded.
@@ -29,10 +41,11 @@ _Not released yet:_
 The upload process works in the following way:
 
 - Check if file is on the server by comparing the hash `md5 + user_id`
-- If it is, don't upload it
+- If it is, don't upload it (when uploading into an album, the photo you already have is added to the album instead)
 - If it isn't, upload it
 - We upload files in 1MB chunks
-- When each file finishes uploading, the backend registers that one photo and queues a background job chain for it (metadata and thumbnails, caption, geolocation, album dates, face extraction). No directory scan is triggered.
+- When each file finishes uploading, the backend registers that one photo and queues a background job chain for it (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.
+- An upload into an album sends the album's id with the last request (`album_id` on `/api/upload/complete/`). The server checks that the album is yours and not locked before it saves the file; otherwise it answers 400 with the code `album_not_found` or `album_locked`, and the web app completes the same upload again without the album.
 
 ### Where are the files saved?
 

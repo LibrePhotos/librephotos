@@ -1,7 +1,7 @@
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { UPLOAD_ACCEPT } from "./uploadAccept";
-import { useUpload } from "./UploadContext";
+import { useDropAlbum, useUpload, type DropAlbum } from "./UploadContext";
 import { UploadDropOverlay, type DropVerdict } from "./UploadDropOverlay";
 import { useCanUpload, type UploadAvailability } from "./useCanUpload";
 import { useInPageDragRef } from "./useInPageDragRef";
@@ -11,6 +11,8 @@ function dropVerdict(availability: UploadAvailability, isDragReject: boolean, is
   if (isDragReject) return "reject";
   return isUploading ? "add" : "accept";
 }
+
+const albumTarget = (dropAlbum: DropAlbum | null) => (dropAlbum && !dropAlbum.locked ? dropAlbum.album : undefined);
 
 /**
  * Makes the whole protected shell a drop target for uploads, with a
@@ -22,6 +24,8 @@ function dropVerdict(availability: UploadAvailability, isDragReject: boolean, is
 export function UploadDropTarget({ children }: { children: React.ReactNode }) {
   const availability = useCanUpload();
   const { start, isUploading } = useUpload();
+  // On an album page, a drop files into its album; a locked album takes nothing (#612).
+  const dropAlbum = useDropAlbum();
   const inPageDragRef = useInPageDragRef();
 
   const { getRootProps, isDragActive, isDragReject } = useDropzone({
@@ -30,7 +34,7 @@ export function UploadDropTarget({ children }: { children: React.ReactNode }) {
     noKeyboard: true,
     disabled: availability === "off",
     onDrop: files => {
-      if (availability === "ready" && files.length > 0) start(files);
+      if (availability === "ready" && files.length > 0) start(files, albumTarget(dropAlbum));
     },
   });
 
@@ -50,7 +54,9 @@ export function UploadDropTarget({ children }: { children: React.ReactNode }) {
       })}
     >
       {children}
-      {isDragActive && <UploadDropOverlay verdict={dropVerdict(availability, isDragReject, isUploading)} />}
+      {isDragActive && (
+        <UploadDropOverlay verdict={dropVerdict(availability, isDragReject, isUploading)} album={dropAlbum} />
+      )}
     </div>
   );
 }

@@ -1,10 +1,15 @@
+import type { CreateUserAlbumResponse } from "@librephotos/api-client";
 import { Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useDeleteUserAlbumMutation, useRenameUserAlbumMutation } from "../../api_client/albums/hooks";
+import {
+  useCreateUserAlbumMutation,
+  useDeleteUserAlbumMutation,
+  useRenameUserAlbumMutation,
+} from "../../api_client/albums/hooks";
 import { MutationErrorAlert } from "../common/MutationErrorAlert";
-import { makeAlbumRenameSchema } from "./UserAlbumModals.schema";
+import { makeAlbumTitleSchema } from "./UserAlbumModals.schema";
 
 type AlbumModalProps = Readonly<{
   opened: boolean;
@@ -27,7 +32,7 @@ function RenameForm({ onClose, albumId, albumTitle, existingTitles }: Omit<Renam
   // opening starts empty instead of carrying over the previous rename.
   const form = useForm({
     initialValues: { title: "" },
-    validate: schemaResolver(makeAlbumRenameSchema(t, existingTitles), { sync: true }),
+    validate: schemaResolver(makeAlbumTitleSchema(t, existingTitles), { sync: true }),
     validateInputOnChange: ["title"],
     transformValues: ({ title }) => ({ title: title.trim() }),
   });
@@ -67,6 +72,75 @@ export function RenameUserAlbumModal({ opened, ...props }: RenameProps) {
   return (
     <Modal size="sm" opened={opened} onClose={props.onClose} title={t("useralbum.renamealbum")}>
       <RenameForm {...props} />
+    </Modal>
+  );
+}
+
+type CreateProps = Readonly<{
+  opened: boolean;
+  onClose: () => void;
+  /** Titles already taken; a new album cannot take one of them. */
+  existingTitles: string[];
+  /** The album is there: My Albums opens it. */
+  onCreated: (album: CreateUserAlbumResponse) => void;
+  /** The collection the album will go into, said in the dialog. */
+  collectionName?: string;
+}>;
+
+function CreateForm({ onClose, existingTitles, onCreated, collectionName }: Omit<CreateProps, "opened">) {
+  const { t } = useTranslation();
+  // The dialog shows a failure itself and stays open for another try
+  const createUserAlbum = useCreateUserAlbumMutation({ reportsErrors: true });
+  const form = useForm({
+    initialValues: { title: "" },
+    validate: schemaResolver(makeAlbumTitleSchema(t, existingTitles), { sync: true }),
+    validateInputOnChange: ["title"],
+    transformValues: ({ title }) => ({ title: title.trim() }),
+  });
+
+  return (
+    <form
+      onSubmit={form.onSubmit(({ title }) => {
+        createUserAlbum.mutate(
+          { title, photos: [] },
+          {
+            onSuccess: album => {
+              onClose();
+              onCreated(album);
+            },
+          }
+        );
+      })}
+    >
+      <Stack>
+        <TextInput
+          data-autofocus
+          label={t("useralbum.albumplaceholder")}
+          description={collectionName ? t("useralbum.newalbumincollection", { name: collectionName }) : undefined}
+          {...form.getInputProps("title")}
+        />
+        {createUserAlbum.isError && (
+          <MutationErrorAlert title={t("useralbum.createfailed")} error={createUserAlbum.error} />
+        )}
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" disabled={!form.isValid()} loading={createUserAlbum.isPending}>
+            {t("useralbum.create")}
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+}
+
+/** My Albums' New album dialog (#612): an empty album, opened once it is made, to upload into. */
+export function CreateUserAlbumModal({ opened, ...props }: CreateProps) {
+  const { t } = useTranslation();
+  return (
+    <Modal size="sm" opened={opened} onClose={props.onClose} title={t("useralbum.newalbumtitle")}>
+      <CreateForm {...props} />
     </Modal>
   );
 }

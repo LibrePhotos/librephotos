@@ -3,6 +3,7 @@ import { IconPhoto } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import classes from "./EmptyState.module.css";
 
 export type EmptyStateProps = Readonly<{
   icon?: React.ReactNode;
@@ -22,6 +23,8 @@ export type EmptyStateProps = Readonly<{
     current: number;
     target: number;
   };
+  /** Framed as a place to drop files on (an empty album, #612). */
+  dropZone?: boolean;
 }>;
 
 export function EmptyState({
@@ -37,6 +40,7 @@ export function EmptyState({
   actionLoading = false,
   onSecondaryAction,
   progress,
+  dropZone = false,
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -60,7 +64,7 @@ export function EmptyState({
   const progressPercent = progress && progress.target > 0 ? (progress.current / progress.target) * 100 : undefined;
 
   return (
-    <Center py={80}>
+    <Center py={80} className={dropZone ? classes.dropZone : undefined} data-drop-zone={dropZone || undefined}>
       <Stack align="center" gap="md" maw={400} w="100%">
         <ThemeIcon size={80} radius="xl" variant="light" color={iconColor ?? (progress ? "blue" : "gray")}>
           {icon || <IconPhoto size={40} />}

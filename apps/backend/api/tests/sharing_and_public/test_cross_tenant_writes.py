@@ -52,6 +52,7 @@ from api.tests.infra.routes import (
     function_routes,
     normalise,
 )
+from api.tests.uploads.test_upload_into_album import UploadIntoAlbumTestBase
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_collection,
@@ -92,7 +93,7 @@ NOT_PHOTO_SCOPED = {
     "api/email-config/": "admin-only mail config",
     "api/email-config/test/": "admin-only mail config",
     "api/upload/": "chunked upload into the requester's library",
-    "api/upload/complete/": "completes only the requester's own upload",
+    "api/upload/complete/": "completes only the requester's own upload; its album_id is owner-scoped (UploadIntoAlbumCrossTenantTest)",
     "api/savemetadata/": "writes the requester's own photos' metadata to disk",
     "api/trainfaces/": "queues a job on the requester's own faces",
     "api/clusterfaces/": "queues a job on the requester's own faces",
@@ -122,6 +123,35 @@ NOT_PHOTO_SCOPED = {
     "api/delete/zip/(?P<fname>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/": "only the requester's own <uuid><user id>.zip (test_zip_and_photo_scope)",
     "api/static/(?P<path>.*)": "Django's serve() for STATIC_URL; GET only",
 }
+
+
+class UploadIntoAlbumCrossTenantTest(UploadIntoAlbumTestBase):
+    """An upload names an album by id (#612): someone else's album is refused
+    like a missing one, and its photos and title stay as they were."""
+
+    def test_another_users_album_is_refused_and_untouched(self):
+        victim = create_test_user()
+        album = create_test_album_user(owner=victim, title="Victim Trip")
+        album.photos.add(create_test_photo(owner=victim))
+        before = snapshot_owned_rows(victim)
+        upload_id = self.stage()
+
+        response = self.complete(upload_id, album_id=str(album.id))
+
+        self.assert_refused(response, "album_not_found", upload_id)
+        self.assertNotIn("Victim Trip", response.content.decode())
+        self.assertEqual(snapshot_owned_rows(victim), before)
+
+    def test_a_shared_album_is_not_the_recipients_to_fill(self):
+        owner = create_test_user()
+        album = create_test_album_user(owner=owner, title="Shared Trip")
+        album.shared_to.add(self.user)
+        upload_id = self.stage()
+
+        response = self.complete(upload_id, album_id=str(album.id))
+
+        self.assert_refused(response, "album_not_found", upload_id)
+        self.assertEqual(album.photos.count(), 0)
 
 
 # Routed only with DEBUG (django.conf.urls.static adds it then), so absent

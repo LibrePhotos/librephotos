@@ -1,24 +1,39 @@
 import type { UserAlbum } from "@librephotos/api-client";
 import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit, IconFolders, IconLock, IconLockOpen, IconShare, IconTrash } from "@tabler/icons-react";
+import {
+  IconCloudUpload,
+  IconEdit,
+  IconFolders,
+  IconLock,
+  IconLockOpen,
+  IconShare,
+  IconTrash,
+} from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../api_client/albums/hooks";
 import { ICON_SIZE } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
 import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
+import type { AlbumUpload } from "../upload/useAlbumUpload";
 import { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModals";
 
-type Props = Readonly<{ album: Pick<UserAlbum, "id" | "title" | "locked" | "owner" | "collection_ids"> }>;
+type Props = Readonly<{
+  album: Pick<UserAlbum, "id" | "title" | "locked" | "owner" | "collection_ids">;
+  /** Upload into this album (#612); absent when uploads are off. */
+  upload?: AlbumUpload | null;
+}>;
 
 /**
- * The owner's "⋮" on an album page (#2208): the My Albums card's Rename, Sharing, Collections
- * (#1009), Lock / Unlock and Delete, where deleting goes back to My Albums.
+ * The owner's "⋮" on an album page (#2208): Upload to this album (#612), then the My Albums
+ * card's Rename, Sharing, Collections (#1009), Lock / Unlock and Delete, where deleting goes back
+ * to My Albums.
  */
-export function UserAlbumHeaderMenu({ album }: Props) {
+export function UserAlbumHeaderMenu({ album, upload }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -39,6 +54,16 @@ export function UserAlbumHeaderMenu({ album }: Props) {
   return (
     <>
       <HeaderActionsMenu label={t("useralbum.albumActions")} triggerRef={trigger}>
+        {upload && (
+          <>
+            <DisabledReason reason={upload.reason} position="left">
+              <Menu.Item leftSection={<IconCloudUpload size={ICON_SIZE.menu} />} onClick={upload.open}>
+                {t("upload.album.menu")}
+              </Menu.Item>
+            </DisabledReason>
+            <Menu.Divider />
+          </>
+        )}
         <Menu.Item leftSection={<IconEdit size={ICON_SIZE.menu} />} onClick={rename.open}>
           {t("rename")}
         </Menu.Item>

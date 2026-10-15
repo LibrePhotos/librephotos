@@ -28,8 +28,12 @@ export type UploadResponse = z.infer<typeof UploadResponse>;
 export const UploadCompleteResponse = z.looseObject({});
 export type UploadCompleteResponse = z.infer<typeof UploadCompleteResponse>;
 
-/** `GET /exists/{md5}{user id}/`: whether the user already has a photo with this hash. */
+/**
+ * `GET /exists/{md5}{user id}/`: whether the user already has a photo with this hash, and its id
+ * (to file it into an album, #612; servers before it send no id).
+ */
 export const UploadExistsResponse = z.object({
   exists: z.boolean(),
+  photo_id: z.string().nullable().optional(),
 });
 export type UploadExistsResponse = z.infer<typeof UploadExistsResponse>;

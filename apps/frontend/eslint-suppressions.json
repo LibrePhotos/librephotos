@@ -364,9 +364,6 @@
     }
   },
   "src/api_client/upload/hooks/useUploadFinishedMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 6
-    },
     "ban/query-client-singleton": {
       "count": 1
     }

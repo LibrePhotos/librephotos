@@ -3,6 +3,9 @@
  * delete) and a "Locked" badge on a locked album; someone it is shared with gets the menu with
  * "Leave album" instead, although their view is otherwise read-only (`isPublic`).
  *
+ * Uploading into the album (#612): only the owner's album gets an upload (its menu item, the
+ * page's drop target and the empty album's drop zone); an empty album says how to fill it.
+ *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
 import type { UserAlbum } from "@librephotos/api-client";
@@ -10,6 +13,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PhotoListView } from "../../../components/photolist/PhotoListView";
+import type { AlbumUpload, UploadableAlbum } from "../../../components/upload/useAlbumUpload";
 import i18n from "../../../i18n";
 
 type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
@@ -20,6 +24,8 @@ const stubs = vi.hoisted(() => ({
   isError: false,
   currentUser: undefined as { id: number } | undefined,
   listProps: undefined as PhotoListViewProps | undefined,
+  uploadFor: [] as (UploadableAlbum | null)[],
+  upload: null as AlbumUpload | null,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -56,7 +62,18 @@ vi.mock("../../../components/photolist/PhotoListView", () => ({
   },
 }));
 vi.mock("../../../components/photolist/useMediaTypeFilter", () => ({ useMediaTypeFilter: () => "all" }));
-vi.mock("../../../components/photolist/mediaTypeFilter", () => ({ validateMediaSearch: () => ({}) }));
+vi.mock("../../../components/photolist/mediaTypeFilter", () => ({
+  DEFAULT_MEDIA_TYPE: "all",
+  validateMediaSearch: () => ({}),
+}));
+vi.mock("../../../components/upload/useAlbumUpload", () => ({
+  useAlbumUpload: (album: UploadableAlbum | null) => {
+    stubs.uploadFor.push(album);
+    return album ? stubs.upload : null;
+  },
+}));
+
+const openPicker = vi.fn<() => void>();
 
 const owner = { id: 1, username: "maria", first_name: "Maria", last_name: "Santos" };
 
@@ -83,6 +100,8 @@ beforeEach(() => {
   stubs.isError = false;
   stubs.currentUser = { id: 1 };
   stubs.listProps = undefined;
+  stubs.uploadFor = [];
+  stubs.upload = { open: openPicker, reason: null, inputProps: {} };
 });
 
 async function render(): Promise<PhotoListViewProps> {
@@ -98,17 +117,20 @@ async function render(): Promise<PhotoListViewProps> {
 
 function menuOf(props: PhotoListViewProps) {
   const menu = props.headerActions;
-  if (!React.isValidElement<{ album: UserAlbum }>(menu) || typeof menu.type !== "function") {
+  if (
+    !React.isValidElement<{ album: UserAlbum; upload?: AlbumUpload | null }>(menu) ||
+    typeof menu.type !== "function"
+  ) {
     throw new Error("no album menu");
   }
-  return { name: menu.type.name, album: menu.props.album };
+  return { name: menu.type.name, album: menu.props.album, upload: menu.props.upload };
 }
 
 describe("the user album page", () => {
   it("gives the owner the album's menu, and no Locked badge on an open album", async () => {
     const props = await render();
 
-    expect(menuOf(props)).toEqual({ name: "UserAlbumHeaderMenu", album: lisbon });
+    expect(menuOf(props)).toEqual({ name: "UserAlbumHeaderMenu", album: lisbon, upload: stubs.upload });
     expect(props.isPublic).toBe(false);
     expect(props.titleBadge).toBeUndefined();
   });
@@ -128,7 +150,7 @@ describe("the user album page", () => {
 
     const props = await render();
 
-    expect(menuOf(props)).toEqual({ name: "SharedAlbumHeaderMenu", album: stubs.album });
+    expect(menuOf(props)).toEqual({ name: "SharedAlbumHeaderMenu", album: stubs.album, upload: undefined });
     expect(props.isPublic).toBe(true);
     expect(props.titleBadge).toBeUndefined();
   });
@@ -149,5 +171,47 @@ describe("the user album page", () => {
 
     expect(props.headerActions).toBeUndefined();
     expect(props.emptyStateConfig?.actionLink).toBe("/album/user");
+  });
+
+  describe("uploading into the album (#612)", () => {
+    it("lets the owner upload into their album, and makes the empty album a drop zone", async () => {
+      const props = await render();
+
+      expect(stubs.uploadFor.at(-1)).toEqual({ id: 7, title: "Lisbon 2026", locked: false });
+      expect(props.emptyStateConfig).toMatchObject({ title: "This album is empty", dropZone: true });
+      expect(props.emptyStateConfig?.actionLabel).toBe("Upload photos");
+      props.emptyStateConfig?.onAction?.();
+      expect(openPicker).toHaveBeenCalledTimes(1);
+    });
+
+    it("says why a locked empty album takes no uploads", async () => {
+      stubs.album = { ...lisbon, locked: true };
+      stubs.upload = { open: openPicker, reason: "Lisbon 2026 is locked. Unlock it to add photos.", inputProps: {} };
+
+      const props = await render();
+
+      expect(stubs.uploadFor.at(-1)).toEqual({ id: 7, title: "Lisbon 2026", locked: true });
+      expect(props.emptyStateConfig?.description).toBe("Lisbon 2026 is locked. Unlock it to add photos.");
+      expect(props.emptyStateConfig?.actionLabel).toBeUndefined();
+      expect(props.emptyStateConfig?.dropZone).toBeUndefined();
+    });
+
+    it("tells how to fill the album from the library when uploads are off", async () => {
+      stubs.upload = null;
+
+      const props = await render();
+
+      expect(props.emptyStateConfig?.description).toMatch(/open the \+ menu and choose Album/);
+      expect(props.emptyStateConfig?.actionLabel).toBeUndefined();
+    });
+
+    it("gives an album shared with you no upload and no empty-album state", async () => {
+      stubs.currentUser = { id: 2 };
+
+      const props = await render();
+
+      expect(stubs.uploadFor.every(album => album === null)).toBe(true);
+      expect(props.emptyStateConfig).toBeUndefined();
+    });
   });
 });

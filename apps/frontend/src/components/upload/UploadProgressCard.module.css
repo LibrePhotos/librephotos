@@ -21,3 +21,8 @@
 .rows {
   overflow-y: auto;
 }
+
+/* The album the upload goes into (#612), between the header and the progress bar. */
+.albumStrip {
+  background-color: var(--mantine-color-default-hover);
+}

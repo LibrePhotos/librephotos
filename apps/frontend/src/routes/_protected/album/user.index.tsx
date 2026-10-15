@@ -8,6 +8,7 @@ import { AlbumCollectionFilter } from "../../../components/album/AlbumCollection
 import { AlbumCollectionsModal } from "../../../components/album/AlbumCollectionsModal";
 import { validateCollectionSearch } from "../../../components/album/collectionFilter";
 import { ManageAlbumCollectionsModal } from "../../../components/album/ManageAlbumCollectionsModal";
+import { NewAlbumButton } from "../../../components/album/NewAlbumButton";
 import { useAlbumCollectionFilter } from "../../../components/album/useAlbumCollectionFilter";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
@@ -37,10 +38,12 @@ function AlbumUser() {
   const { t } = useTranslation();
   const navigate = Route.useNavigate();
   const albumsQuery = useFetchUserAlbumsQuery();
-  const { data: albums, isFetching, isLoading } = albumsQuery;
+  const { data, isFetching, isLoading } = albumsQuery;
+  const albums = data ?? [];
+  const titles = albums.map(album => album.title);
   const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
-  const hasAlbums = (albums?.length ?? 0) > 0;
+  const hasAlbums = albums.length > 0;
   const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
   const { collections, filter, collection, shown, counts } = useAlbumCollectionFilter(
     albums,
@@ -63,7 +66,7 @@ function AlbumUser() {
     showShareDialog();
     setAlbumID(id);
     setAlbumTitle(title);
-    const album = albums?.find(a => `${a.id}` === id);
+    const album = albums.find(a => `${a.id}` === id);
     if (album) setAlbumOwner(album.owner.username);
   };
 
@@ -74,15 +77,21 @@ function AlbumUser() {
   };
 
   const subtitle = () => {
-    if (filter === undefined)
-      return t("useralbum.numberof", { count: albums?.length ?? 0, number: albums?.length ?? 0 });
+    if (filter === undefined) return t("useralbum.numberof", { count: albums.length, number: albums.length });
     if (collection) return t("albumcollections.numberin", { count: shown.length, name: collection.name });
     return t("albumcollections.numbernotin", { count: shown.length });
   };
 
   return (
     <div>
-      <PageHeader icon={Bookmark} title={t("myalbums")} loading={isFetching} subtitle={subtitle()} />
+      <PageHeader
+        icon={Bookmark}
+        title={t("myalbums")}
+        loading={isFetching}
+        subtitle={subtitle()}
+        // With a collection chosen, the new album goes into it (#612)
+        actions={<NewAlbumButton existingTitles={titles} collection={collection} />}
+      />
       {hasAlbums && (
         <AlbumCollectionFilter
           collections={collections}
@@ -97,7 +106,7 @@ function AlbumUser() {
         onClose={collectionsDialog.close}
         albumId={albumID}
         albumTitle={albumTitle}
-        collectionIds={albums?.find(album => `${album.id}` === albumID)?.collection_ids ?? []}
+        collectionIds={albums.find(album => `${album.id}` === albumID)?.collection_ids ?? []}
       />
       <ManageAlbumCollectionsModal
         opened={isManageDialogOpen}
@@ -109,7 +118,7 @@ function AlbumUser() {
         onClose={hideRenameDialog}
         albumId={albumID}
         albumTitle={albumTitle}
-        existingTitles={albums?.map(album => album.title) ?? []}
+        existingTitles={titles}
       />
       <ModalAlbumShare
         isOpen={isShareDialogOpen}
