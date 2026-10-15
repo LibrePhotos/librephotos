@@ -63,6 +63,7 @@ from api.tests.utils import (
     create_test_duplicate,
     create_test_face,
     create_test_person,
+    create_test_person_group,
     create_test_photo,
     create_test_stack,
     create_test_tag,
@@ -331,6 +332,7 @@ class CrossTenantWriteTest(TestCase):
         self.a_stack.photos.add(self.a_photo, self.a_photo2)
         self.a_person = create_test_person(name="Mallory", cluster_owner=self.attacker)
         self.a_face = create_test_face(photo=self.a_photo, person=self.a_person)
+        self._person_groups()
 
         self.client = APIClient()
         self.client.raise_request_exception = False
@@ -379,6 +381,13 @@ class CrossTenantWriteTest(TestCase):
                 },
             ),
         ]
+
+    def _person_groups(self):
+        """A group of each user's (#1126): the victim's holds their person."""
+        self.v_group = create_test_person_group(
+            name="Victim Family", owner=self.victim, persons=[self.v_person]
+        )
+        self.a_group = create_test_person_group(name="Loot Group", owner=self.attacker)
 
     def cases(self):
         public_query = {"public": True, "username": self.victim.username}
@@ -621,6 +630,25 @@ class CrossTenantWriteTest(TestCase):
                 f"/api/persons/{self.v_person.pk}/merge/",
                 {"person": self.a_person.pk},
             ),
+            # person groups (#1126)
+            ("post", "/api/person-groups/", {"name": "Victim Family"}),
+            (
+                "patch",
+                f"/api/person-groups/{self.v_group.pk}/",
+                {"name": "pwned"},
+            ),
+            ("delete", f"/api/person-groups/{self.v_group.pk}/", None),
+            (
+                "put",
+                f"/api/persons/{self.v_person.pk}/groups/",
+                {"group_ids": [self.a_group.pk]},
+            ),
+            ("put", f"/api/persons/{self.v_person.pk}/groups/", {"group_ids": []}),
+            (
+                "put",
+                f"/api/persons/{self.a_person.pk}/groups/",
+                {"group_ids": [self.v_group.pk]},
+            ),
             (
                 "post",
                 "/api/labelfaces",
@@ -819,6 +847,7 @@ class CrossTenantWriteTest(TestCase):
         }
         for label in (
             "api.Person",
+            "api.PersonGroup",
             "api.Tag",
             "api.AlbumUser",
             "api.AlbumCollection",

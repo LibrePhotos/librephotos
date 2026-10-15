@@ -55,6 +55,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PlaceAlbumInfo: { schema: S.PlaceAlbumInfo, components: ["AlbumPlaceList"] },
   // people, faces, tags
   Person: { schema: S.Person, components: ["Person"] },
+  PersonGroup: { schema: S.PersonGroup, components: ["PersonGroup"] },
+  PersonGroupsResponse: { schema: S.PersonGroupsResponse, components: ["PersonGroups"] },
   PersonFace: { schema: S.PersonFace, components: ["PersonFaceList"] },
   PersonFaceListResponse: { schema: S.PersonFaceListResponse, components: ["PaginatedPersonFaceListList"] },
   IncompletePersonFace: { schema: S.IncompletePersonFace, components: ["IncompletePersonFaceList"] },
@@ -257,6 +259,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   FetchPlaceAlbumResponse: "the {results} envelope of PlaceAlbum (see there)",
   FetchPeopleAlbumsResponse:
     "a {results} envelope around rows compared on their own (Person); the view's wrapper is not a component",
+  PersonGroupList:
+    "a {results} envelope around rows compared on their own (PersonGroup), read whole with fetchAllPages; the page envelope is not compared",
   PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",
   PublicAlbumSlugOwner:
     "the answer FetchPublicAlbumResponse compares (PublicAlbumResponse), read only for its id: comparing it would report every other field as dropped",

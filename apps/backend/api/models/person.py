@@ -1,15 +1,34 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.core.validators import MinLengthValidator
 from django.db import models
 
+from api.models.person_group import PersonGroup
 from api.models.photo import Photo
 from api.models.scopes import OwnedQuerySet
 from api.models.user import User
+
+if TYPE_CHECKING:
+    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
+    from typing import Self
 
 
 class PersonQuerySet(OwnedQuerySet["Person"]):
     """A person belongs to the user whose faces it groups."""
 
     owner_lookup = "cluster_owner"
+
+    def in_group(self, user: User, group_id: int) -> Self:
+        """The people in ``user``'s group ``group_id`` (#1126).
+
+        Through the requester's own groups: another user's group id, or one
+        that does not exist, matches nobody.
+        """
+        return self.filter(
+            groups__in=PersonGroup.objects.owned_by(user).filter(pk=group_id)
+        )
 
 
 class Person(models.Model):
@@ -44,6 +63,8 @@ class Person(models.Model):
         default=None,
         null=True,
     )
+    # The owner's groups this person is in (#1126); a deleted group keeps them.
+    groups = models.ManyToManyField(PersonGroup, related_name="persons", blank=True)
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 

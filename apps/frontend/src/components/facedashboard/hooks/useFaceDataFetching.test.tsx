@@ -79,7 +79,15 @@ let container: HTMLDivElement;
 let lists: ReturnType<typeof useFaceDataFetching>["lists"] | undefined;
 
 function Harness({ groups, personOrder }: { groups: Group[]; personOrder: FacesPersonOrder }) {
-  lists = useFaceDataFetching(groups, FacesTab.enum.inferred, "clustering", "confidence", 0, personOrder).lists;
+  lists = useFaceDataFetching(
+    groups,
+    FacesTab.enum.inferred,
+    "clustering",
+    "confidence",
+    0,
+    personOrder,
+    undefined
+  ).lists;
   return null;
 }
 

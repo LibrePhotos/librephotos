@@ -61,6 +61,7 @@ from api.views import (
     media,
     memories,
     password_reset,
+    person_groups,
     photo_dates,
     photo_locations,
     photo_metadata,
@@ -239,6 +240,9 @@ router.register(
 )
 
 router.register(r"api/persons", albums.PersonViewSet, basename="persons")
+router.register(
+    r"api/person-groups", person_groups.PersonGroupViewSet, basename="person_groups"
+)
 
 router.register(r"api/tags", tags.TagViewSet, basename="tags")
 

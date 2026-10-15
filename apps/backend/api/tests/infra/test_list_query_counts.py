@@ -44,6 +44,7 @@ from api.tests.utils import (
     create_test_file,
     create_test_job,
     create_test_person,
+    create_test_person_group,
     create_test_photo,
     create_test_stack,
     create_test_tag,
@@ -155,6 +156,14 @@ def _album_place(requester: User, index: int) -> None:
 def _person(requester: User, index: int) -> None:
     person = create_test_person(cluster_owner=requester)
     create_test_face(photo=_visible_photo(requester), person=person)
+    # Each person in a group of their own: the group ids are prefetched (#1126).
+    create_test_person_group(owner=requester, persons=[person])
+
+
+def _person_group(requester: User, index: int) -> None:
+    create_test_person_group(
+        owner=requester, persons=[create_test_person(cluster_owner=requester)]
+    )
 
 
 def _tag(requester: User, index: int) -> None:
@@ -210,6 +219,7 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/albums/user/shared/tome/": (ListFixture(_album_shared_to_me),),
     "api/albums/user/shared/fromme/": (ListFixture(_album_user),),
     "api/persons/": (ListFixture(_person),),
+    "api/person-groups/": (ListFixture(_person_group),),
     "api/tags/": (ListFixture(_tag),),
     "api/photos/shared/tome/": (ListFixture(_photo_shared_to_me),),
     "api/photos/shared/fromme/": (ListFixture(_photo_shared_from_me),),

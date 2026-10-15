@@ -24,6 +24,7 @@ from api.models import (
     Face,
     LongRunningJob,
     Person,
+    PersonGroup,
     Photo,
     PhotoStack,
     Tag,
@@ -41,6 +42,7 @@ from api.tests.utils import (
     create_test_face,
     create_test_job,
     create_test_person,
+    create_test_person_group,
     create_test_photo,
     create_test_stack,
     create_test_tag,
@@ -71,6 +73,11 @@ class OwnedByTest(TestCase):
             AlbumCollection,
             create_test_album_collection(owner=self.alice),
             create_test_album_collection(owner=self.bob),
+        )
+        self.assertScoped(
+            PersonGroup,
+            create_test_person_group(owner=self.alice),
+            create_test_person_group(owner=self.bob),
         )
         self.assertScoped(
             Tag,
@@ -143,6 +150,7 @@ class OwnedByTest(TestCase):
             Duplicate: "owner",
             PhotoStack: "owner",
             Tag: "owner",
+            PersonGroup: "owner",
             Person: "cluster_owner",
             LongRunningJob: "started_by",
             Face: "photo__owner",

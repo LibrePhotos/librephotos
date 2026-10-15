@@ -36,6 +36,7 @@ const person = (id: string, name: string, face_url: string): Person => ({
   face_count: 3,
   face_photo_url: "",
   face_url,
+  group_ids: [],
 });
 
 let container: HTMLDivElement;

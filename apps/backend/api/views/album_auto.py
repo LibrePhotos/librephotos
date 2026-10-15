@@ -15,6 +15,7 @@ from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.serializers.job import JobStartedResponseSerializer
+from api.serializers.person import person_groups_prefetch
 from api.views.custom_api_view import ListViewSet
 
 
@@ -60,6 +61,8 @@ class AlbumAutoViewSet(
                         viewable_face_count=Count("faces"),
                     ),
                 ),
+                # The people's group ids (#1126), one query for the album.
+                person_groups_prefetch("photos__faces__person__"),
             )
             .annotate(photo_count=Count(("photos"), distinct=True))
             .filter(Q(photo_count__gt=0))

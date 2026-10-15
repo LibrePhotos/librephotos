@@ -1,38 +1,44 @@
-import { ActionIcon, Button, Flex, Group, Image, Menu, Text } from "@mantine/core";
+import { ActionIcon, Flex, Group, Image, Menu, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
-  IconFaceId as FaceId,
   IconTrash as Trash,
   IconUsers as Users,
+  IconUsersGroup as UsersGroup,
 } from "@tabler/icons-react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
+import { PeopleHeader } from "../../../components/album/PeopleHeader";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
+import { PersonGroupParam } from "../../../components/album/personGroupSearch";
+import { PersonGroupsModal } from "../../../components/album/PersonGroupsModal";
 import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
+import { usePeopleInGroup } from "../../../components/album/usePersonGroupFilter";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
-import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { ICON_SIZE } from "../../../uiConstants";
 
 export const Route = createFileRoute("/_protected/album/persons/")({
   component: AlbumPeople,
+  // The chosen group (#1126) stays in the URL, so Back from a person returns to it
+  validateSearch: z.object({ group: PersonGroupParam }),
 });
 
 function AlbumPeople() {
-  const navigate = useNavigate();
+  const navigate = Route.useNavigate();
+  const [groupsDialogVisible, groupsDialog] = useDisclosure(false);
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [selectedAlbum, setSelectedAlbum] = useState<Person>({
@@ -42,6 +48,7 @@ function AlbumPeople() {
     face_count: 0,
     face_photo_url: "",
     face_url: "",
+    group_ids: [],
   });
   // The ⋮ button the dialogs were opened from. Their menu items are gone when they close,
   // so the Modal's own focus return dropped focus on the page body: it goes back here instead
@@ -54,6 +61,8 @@ function AlbumPeople() {
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
   const hasAlbums = albums && albums.length > 0;
+  const { groups, group, shown } = usePeopleInGroup(albums, Route.useSearch().group);
+  const showGroup = (next: number | undefined) => void navigate({ search: next === undefined ? {} : { group: next } });
 
   function openDeleteDialog(album: Person) {
     setSelectedAlbum(album);
@@ -63,6 +72,16 @@ function AlbumPeople() {
   function openRenameDialog(album: Person) {
     setSelectedAlbum(album);
     showRenameDialog();
+  }
+
+  function openGroupsDialog(album: Person) {
+    setSelectedAlbum(album);
+    groupsDialog.open();
+  }
+
+  function closeGroupsDialog() {
+    groupsDialog.close();
+    menuTrigger.current?.focus();
   }
 
   function closeRenameDialog() {
@@ -121,6 +140,9 @@ function AlbumPeople() {
               <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(album)}>
                 {t("rename")}
               </Menu.Item>
+              <Menu.Item leftSection={<UsersGroup size={14} />} onClick={() => openGroupsDialog(album)}>
+                {t("persongroups.menu")}
+              </Menu.Item>
               <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(album)}>
                 {t("delete")}
               </Menu.Item>
@@ -149,24 +171,13 @@ function AlbumPeople() {
 
   return (
     <>
-      <PageHeader
-        icon={Users}
-        title={t("people")}
+      <PeopleHeader
         loading={isFetching}
-        subtitle={t("personalbum.numberofpeople", {
-          count: albums?.length ?? 0,
-          peoplelength: albums?.length ?? 0,
-        })}
-        actions={
-          <Button
-            leftSection={<FaceId size={ICON_SIZE.toolbar} />}
-            variant="light"
-            color="orange"
-            onClick={() => navigate({ to: "/faces" })}
-          >
-            {t("personalbum.managefaces")}
-          </Button>
-        }
+        total={albums?.length ?? 0}
+        shown={shown.length}
+        groups={groups}
+        group={group}
+        onGroupChange={showGroup}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
@@ -178,10 +189,18 @@ function AlbumPeople() {
           actionLabel={t("emptystate.goToFaces")}
           actionLink="/faces"
         />
+      ) : hasAlbums && shown.length === 0 ? (
+        <EmptyState
+          icon={<UsersGroup size={40} />}
+          title={t("persongroups.emptytitle")}
+          description={t("persongroups.emptydescription")}
+          actionLabel={t("persongroups.all")}
+          onAction={() => showGroup(undefined)}
+        />
       ) : (
         <TileGrid
           scrollRestorationId="album-persons"
-          items={albums ?? []}
+          items={shown}
           getKey={album => album.id}
           sizing={sizing}
           renderItem={renderPerson}
@@ -202,6 +221,7 @@ function AlbumPeople() {
           });
         }}
       />
+      <PersonGroupsModal opened={groupsDialogVisible} onClose={closeGroupsDialog} person={selectedAlbum} />
       <PersonDeleteModal
         opened={deleteDialogVisible}
         onClose={closeDeleteDialog}

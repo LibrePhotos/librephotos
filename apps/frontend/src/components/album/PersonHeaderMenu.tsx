@@ -1,6 +1,6 @@
 import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowMerge, IconEdit, IconFaceId, IconTrash } from "@tabler/icons-react";
+import { IconArrowMerge, IconEdit, IconFaceId, IconTrash, IconUsersGroup } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ import {
 import { ICON_SIZE } from "../../uiConstants";
 import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { PersonDeleteModal } from "./PersonDeleteModal";
+import { PersonGroupsModal } from "./PersonGroupsModal";
 import { PersonMergeModal, type MergePerson } from "./PersonMergeModal";
 import { PersonMergePickerModal } from "./PersonMergePickerModal";
 import { PersonRenameModal } from "./PersonRenameModal";
@@ -20,7 +21,7 @@ import { PersonRenameModal } from "./PersonRenameModal";
 type Props = Readonly<{ person: Person }>;
 
 /**
- * The person page's "⋮": rename, merge into another person, manage faces, delete. A merge goes
+ * The person page's "⋮": rename, groups, merge into another person, manage faces, delete. A merge goes
  * on to the person merged into, a delete back to People.
  */
 export function PersonHeaderMenu({ person }: Props) {
@@ -28,6 +29,7 @@ export function PersonHeaderMenu({ person }: Props) {
   const navigate = useNavigate();
   const trigger = useRef<HTMLButtonElement>(null);
   const [renameOpened, rename] = useDisclosure(false);
+  const [groupsOpened, groups] = useDisclosure(false);
   const [pickOpened, pick] = useDisclosure(false);
   const [mergeOpened, merge] = useDisclosure(false);
   const [mergeTarget, setMergeTarget] = useState<MergePerson | null>(null);
@@ -51,6 +53,9 @@ export function PersonHeaderMenu({ person }: Props) {
         <Menu.Item leftSection={<IconEdit size={ICON_SIZE.menu} />} onClick={rename.open}>
           {t("rename")}
         </Menu.Item>
+        <Menu.Item leftSection={<IconUsersGroup size={ICON_SIZE.menu} />} onClick={groups.open}>
+          {t("persongroups.menu")}
+        </Menu.Item>
         <Menu.Item leftSection={<IconArrowMerge size={ICON_SIZE.menu} />} onClick={pick.open}>
           {t("personalbum.mergeintomenu")}
         </Menu.Item>
@@ -71,6 +76,7 @@ export function PersonHeaderMenu({ person }: Props) {
         onSubmit={newPersonName => renamePerson.mutate({ id: person.id, personName: person.name, newPersonName })}
         onMerged={showTarget}
       />
+      <PersonGroupsModal opened={groupsOpened} onClose={closeAndFocus(groups.close)} person={person} />
       <PersonMergePickerModal
         opened={pickOpened}
         onClose={closeAndFocus(pick.close)}

@@ -70,6 +70,7 @@ const anna: Person = {
   face_count: 3,
   face_photo_url: "hash",
   face_url: "/media/faces/1.jpg",
+  group_ids: [],
 };
 
 beforeAll(async () => {

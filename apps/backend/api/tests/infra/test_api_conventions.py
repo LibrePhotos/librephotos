@@ -126,6 +126,14 @@ ROUTER_VERBS: dict[str, set[str]] = {
         "DELETE destroy",
         "POST remove_photos",
         "POST merge",
+        # PUT groups sets which of the owner's groups the person is in (#1126).
+        "PUT groups",
+    },
+    "api/person-groups": {
+        "GET list",
+        "POST create",
+        "PATCH partial_update",
+        "DELETE destroy",
     },
     "api/tags": {
         "GET list",

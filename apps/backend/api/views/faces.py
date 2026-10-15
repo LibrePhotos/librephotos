@@ -210,6 +210,8 @@ class FaceIncompleteListViewSet(ListViewSet):
         params = parse_query(self.request, FaceIncompleteListQuery)
 
         queryset = Person.objects.owned_by(user)
+        if params.get("group") is not None:
+            queryset = queryset.in_group(user, params["group"])
         if not params["inferred"] and not params["deleted"]:
             queryset = queryset.filter(kind=Person.KIND_USER)
         return (

@@ -33,24 +33,27 @@ export function useFaceDataFetching(
   analysisMethod: FaceAnalysisMethod,
   orderBy: FacesRouteOrder,
   minConfidence: number,
-  personOrder: FacesPersonOrder
+  personOrder: FacesPersonOrder,
+  /** Only the people of this group (#1126); the Unknown tab is not narrowed. */
+  group: number | undefined
 ) {
   // Create params objects for API calls. Memoized: they key the cache entries the
   // page loader below reads and writes, and a fresh object on every render would
   // restart that loader on every render.
   const params = useMemo(
     (): FacesListRequests => ({
-      labeled: { inferred: false, orderBy: serverOrder(orderBy) },
+      labeled: { inferred: false, orderBy: serverOrder(orderBy), group },
       inferred: {
         inferred: true,
         method: analysisMethod,
         orderBy: serverOrder(orderBy),
         minConfidence,
+        group,
       },
       // Every deleted face, by the person it had (#127)
-      deleted: { inferred: false, orderBy: serverOrder(orderBy), deleted: true },
+      deleted: { inferred: false, orderBy: serverOrder(orderBy), deleted: true, group },
     }),
-    [orderBy, analysisMethod, minConfidence]
+    [orderBy, analysisMethod, minConfidence, group]
   );
 
   // Fetch data for both labeled and inferred categories
