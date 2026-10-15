@@ -52,6 +52,15 @@ class File(models.Model):
     )
     missing = models.BooleanField(default=False)
     embedded_media = models.ManyToManyField("self", symmetrical=False)
+    # What the scan saw of this media file when it last read it (#2296):
+    # the file's ``st_mtime_ns`` and the ``st_mtime_ns`` of each of its XMP
+    # sidecars, by normalised file name (``api.photos.indexed_mtimes``).
+    # LibrePhotos' own write-back updates them after a write that landed, so
+    # an incremental scan does not read the photo again for it. None: not
+    # recorded yet (a row from before #2296, a sidecar or a copy's row), the
+    # scan compares with the last scan's start instead.
+    indexed_mtime_ns = models.BigIntegerField(null=True, blank=True)
+    indexed_sidecar_mtimes = models.JSONField(null=True, blank=True)
 
     def __str__(self) -> str:
         return self.path
@@ -145,7 +154,17 @@ class File(models.Model):
         """
         self.path = path
         self.missing = False
-        self.save(update_fields=["path", "missing"])
+        # What the scan saw describes the old path.
+        self.indexed_mtime_ns = None
+        self.indexed_sidecar_mtimes = None
+        self.save(
+            update_fields=[
+                "path",
+                "missing",
+                "indexed_mtime_ns",
+                "indexed_sidecar_mtimes",
+            ]
+        )
         FileCopy.objects.filter(path=path).delete()
 
 

@@ -36,6 +36,7 @@ from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
 from api.models.file import content_hash, hash_for_owner, hash_owner_part
 from api.models.photo import PhotoQuerySet
 from api.models.photo_search import PhotoSearch
+from api.photos import indexed_mtimes
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import (
     calculate_hash,
@@ -728,6 +729,23 @@ def apply_device_timestamp_fallback(
     return photo
 
 
+def _observe_media(paths: list[str]) -> dict[str, indexed_mtimes.Observed]:
+    """What is on disk now for the media files among ``paths``, before they are read.
+
+    Taken before the read, so an edit made while the photo is processed
+    leaves a record older than the file and the next scan reads it again.
+    """
+    return {
+        path: indexed_mtimes.observe(path) for path in paths if not is_metadata(path)
+    }
+
+
+def _record_read(observed: dict[str, indexed_mtimes.Observed]) -> None:
+    """Record ``observed`` as what the scan read of these files (#2296)."""
+    for path, seen in observed.items():
+        indexed_mtimes.record(path, seen)
+
+
 def handle_new_image(
     user: User, path: str, job_id: UUID | str, photo: Photo | None = None
 ) -> None:
@@ -749,12 +767,14 @@ def handle_new_image(
             logger.info("job %s was cancelled, skipping %s", job_id, path)
             return
         start = datetime.datetime.now()
+        observed = _observe_media([path])
         if photo is None:
             photo = create_new_image(user, path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             logger.info("job %s: save image: %s, elapsed: %s", job_id, path, elapsed)
         if photo:
             _process_photo(photo, path, job_id, start)
+            _record_read(observed)
 
     except Exception as e:
         error = _describe_failure(path, e)
@@ -829,6 +849,7 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
             logger.info("job %s was cancelled, skipping a file group", job_id)
             return
         start = datetime.datetime.now()
+        observed = _observe_media(file_paths)
 
         files = _collect_file_records(user, file_paths)
         if not files:
@@ -869,6 +890,7 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
         # Process the photo (thumbnails, EXIF, etc.) using main_file
         if photo.main_file:
             _process_photo(photo, photo.main_file.path, job_id, start)
+            _record_read(observed)
 
     except Exception as e:
         _log_file_group_failure(job_id, file_paths, e)
