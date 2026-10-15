@@ -252,12 +252,14 @@ CAMERA_PLACEHOLDER_DESCRIPTIONS = frozenset(
 
 # The file's caption candidates, best first: the XMP x-default entry, any XMP
 # language entry, the IPTC caption, the EXIF one.
-DESCRIPTION_SOURCES = (
+FILE_DESCRIPTION_SOURCES = (
     "xmp_description",
     "xmp_description_any_language",
     "iptc_caption",
     "image_description",
 )
+# Then the description in a Google Takeout JSON next to the file (#2270).
+DESCRIPTION_SOURCES = (*FILE_DESCRIPTION_SOURCES, "takeout_description")
 
 # The value names (``api.metadata.photo_reader.EXIF_FIELDS``) each free-text
 # PhotoMetadata column is read from, best first.

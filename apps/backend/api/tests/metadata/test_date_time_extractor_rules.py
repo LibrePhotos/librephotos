@@ -192,7 +192,7 @@ class DefaultVideoRulesTest(TestCase):
 
     def test_the_default_rule_order(self):
         self.assertEqual(
-            [16, 1, 15, 17, 2, 18, 11, 3, 4, 19, 5],
+            [16, 1, 15, 17, 2, 18, 11, 20, 21, 3, 4, 19, 5],
             [rule["id"] for rule in DEFAULT_RULES_PARAMS],
         )
 

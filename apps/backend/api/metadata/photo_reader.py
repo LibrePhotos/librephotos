@@ -12,10 +12,11 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q, QuerySet
 
-from api.geocode.photo_location import apply_file_position
+from api.geocode.photo_location import apply_file_position, usable_coordinates
 from api.metadata.photo_writer import write_target
 from api.metadata.reader import MetadataReadError, get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
+from api.metadata.takeout import TakeoutMetadata, takeout_metadata_of
 from api.models.photo_metadata import PhotoMetadata, format_exposure_time
 
 if TYPE_CHECKING:
@@ -114,7 +115,8 @@ def _tags_are_written(photo: Photo) -> bool:
 
 
 def read_file_values(photo: Photo) -> dict[str, object]:
-    """The values of ``EXIF_TAGS`` in the photo's file or sidecar, by name."""
+    """The values of ``EXIF_TAGS`` in the photo's file or sidecar, by name,
+    with what its Google Takeout JSON adds (``with_takeout_values``)."""
     assert photo.main_file is not None
     # Every name gets a key even if get_metadata comes back short, so the
     # appliers can index values[...] without a KeyError.
@@ -129,6 +131,24 @@ def read_file_values(photo: Photo) -> dict[str, object]:
             ),
         )
     )
+    return with_takeout_values(values, takeout_metadata_of(photo))
+
+
+def with_takeout_values(
+    values: dict[str, object], takeout: TakeoutMetadata | None
+) -> dict[str, object]:
+    """``values`` with the Takeout JSON's description as
+    ``takeout_description`` (the last caption fallback, ``description_of``)
+    and its position when the file has none (#2270)."""
+    values["takeout_description"] = takeout.description if takeout else None
+    position = takeout.position if takeout else None
+    if position is None or usable_coordinates(
+        values["gps_latitude"], values["gps_longitude"]
+    ):
+        return values
+    assert takeout is not None
+    values["gps_latitude"], values["gps_longitude"] = position
+    values["gps_altitude"] = takeout.altitude
     return values
 
 

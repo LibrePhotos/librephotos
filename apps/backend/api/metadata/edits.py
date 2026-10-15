@@ -59,6 +59,7 @@ from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.tags import Tags
+from api.metadata.takeout import takeout_metadata_of
 from api.models.album_place import AlbumPlace, get_album_place
 from api.models.photo import LocationSource, Photo
 from api.models.photo_caption import PhotoCaption
@@ -757,6 +758,13 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     return metadata
 
 
+def _takeout_position(photo: Photo) -> tuple[float, float] | None:
+    """The position in the photo's Google Takeout JSON, which the scan uses
+    when the file has none (``photo_reader.with_takeout_values``)."""
+    takeout = takeout_metadata_of(photo)
+    return takeout.position if takeout else None
+
+
 def _restore_location_from_file(photo: Photo) -> None:
     assert photo.main_file is not None
     latitude, longitude = get_metadata(
@@ -764,7 +772,7 @@ def _restore_location_from_file(photo: Photo) -> None:
         tags=[Tags.LATITUDE, Tags.LONGITUDE],
         sidecar_files=sidecar_files_for_photo(photo),
     )
-    position = usable_coordinates(latitude, longitude)
+    position = usable_coordinates(latitude, longitude) or _takeout_position(photo)
     if position is None:
         if photo.exif_gps_lat is not None or photo.exif_gps_lon is not None:
             _clear_location(photo, LocationSource.FILE)

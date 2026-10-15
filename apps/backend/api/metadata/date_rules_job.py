@@ -17,6 +17,7 @@ from django.db.models import QuerySet
 
 from api.directory_watcher.utils import is_job_cancelled, update_batch_counter
 from api.jobs.queue import enqueue_task
+from api.metadata import takeout
 from api.metadata.photo_datetime import reapply_date_rules
 from api.models import LongRunningJob, Photo, User
 
@@ -85,9 +86,15 @@ def reapply_date_rules_batch(photo_ids: list[uuid.UUID], job_id: str) -> None:
 
     A batch still queued when the job was cancelled does nothing. A photo
     whose date cannot be read is a failed item of the job; the others go on.
+    A directory is listed at most once a batch for Google Takeout JSON.
     """
     if is_job_cancelled(job_id):
         return
+    with takeout.directory_listings():
+        _reapply_batch(photo_ids, job_id)
+
+
+def _reapply_batch(photo_ids: list[uuid.UUID], job_id: str) -> None:
     moved = unchanged = 0
     errors: list[str] = []
     photos = Photo.objects.filter(pk__in=photo_ids).select_related("owner", "main_file")

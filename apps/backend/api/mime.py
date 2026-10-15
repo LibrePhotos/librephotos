@@ -102,6 +102,10 @@ RAW_EXTENSIONS = frozenset(
 # Sidecars that describe a media file instead of being one.
 XMP_EXTENSION = ".xmp"
 METADATA_EXTENSIONS = frozenset({XMP_EXTENSION})
+# A Google Takeout export's sidecar (``IMG_1.jpg.json``, api.metadata.takeout).
+# Not a METADATA_EXTENSIONS member: the JSON is read during the scan of the
+# media file it describes and never becomes a File of its own.
+TAKEOUT_JSON_EXTENSION = ".json"
 
 # Subset of IMAGE_EXTENSIONS: the processed images a RAW file or an Apple Live
 # Photo video attaches to as a variant (file_grouping). Every everyday camera

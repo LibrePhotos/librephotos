@@ -14,6 +14,8 @@ migration_0168 = importlib.import_module("api.migrations.0168_video_date_rules")
 
 # The default list before #2268 added rules 17-19 (after 0167 dropped rule 14).
 OLD_DEFAULT_IDS = [16, 1, 15, 2, 11, 3, 4, 5]
+# The default list 0168 left: 0183 added the Takeout rules 20 and 21 later (#2270).
+DEFAULT_IDS_AFTER = [16, 1, 15, 17, 2, 18, 11, 3, 4, 19, 5]
 
 
 def old_default_rules():
@@ -45,7 +47,7 @@ class VideoDateRulesMigrationTest(TestCase):
         stored = self._rules_after(user)
 
         self.assertIsInstance(stored, str)
-        self.assertEqual([rule["id"] for rule in DEFAULT_RULES_PARAMS], ids_of(stored))
+        self.assertEqual(DEFAULT_IDS_AFTER, ids_of(stored))
 
     def test_the_added_rules_are_the_ones_a_new_account_gets(self):
         user = self._user_with(json.dumps(old_default_rules()))
@@ -66,7 +68,7 @@ class VideoDateRulesMigrationTest(TestCase):
         stored = self._rules_after(user)
 
         self.assertIsInstance(stored, list)
-        self.assertEqual([rule["id"] for rule in DEFAULT_RULES_PARAMS], ids_of(stored))
+        self.assertEqual(DEFAULT_IDS_AFTER, ids_of(stored))
 
     def test_a_reordered_list_gets_the_rules_next_to_rules_2_and_4(self):
         user = self._user_with(json.dumps(old_default_rules()[::-1]))

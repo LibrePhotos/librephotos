@@ -18,14 +18,23 @@ from api.metadata.tags import Tags
 logger = logging.getLogger(__name__)
 
 
+def _no_takeout_time() -> datetime | None:
+    return None
+
+
 @dataclass(frozen=True)
 class RuleContext:
-    """What a rule may use besides the file: the photo's GPS position and the
-    owner's default timezone."""
+    """What a rule may use besides the file: the photo's GPS position, the
+    owner's default timezone and the capture time of its Google Takeout JSON.
+
+    ``takeout_taken_at`` is called only when a ``takeout_json`` rule is
+    reached, so a photo the EXIF rules date never has its JSON looked up.
+    """
 
     gps_lat: float | None
     gps_lon: float | None
     user_default_tz: str
+    takeout_taken_at: Callable[[], datetime | None] = _no_takeout_time
 
 
 def _regexp_group_range(a: int, b: int) -> str:
@@ -167,6 +176,8 @@ class RuleTypes:
     # overrides every rule (``photo_datetime.extract_date_time``, #2254), so
     # the rule matches nothing; a list saved by an older client still loads.
     USER_DEFINED = "user_defined"
+    # The capture time (UTC) in a Google Takeout JSON next to the file (#2270).
+    TAKEOUT_JSON = "takeout_json"
 
 
 class TimeExtractionRule:
@@ -192,6 +203,9 @@ class TimeExtractionRule:
         - params["file_property"] must be specified and equal to one of the following:
           - "mtime" - for file modifided time
           - "ctime" - for file created time
+      - "takeout_json" - the UTC capture time (``photoTakenTime``) in the Google Takeout JSON
+        next to the file (``api.metadata.takeout``). Like "fs" it is a timestamp, so it is
+        reported in UTC unless the rule transforms it.
     If a rule can't fetch the time (e.g. the exif tag value is not present or path doesn't match
     a regexp) then that rule is considered to be not applicable.
 
@@ -360,6 +374,8 @@ class TimeExtractionRule:
             return self._apply_path(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.FILESYSTEM:
             return self._apply_filesystem(path, gps_lat, gps_lon, user_default_tz)
+        elif self.rule_type == RuleTypes.TAKEOUT_JSON:
+            return self._apply_takeout_json(context)
         elif self.rule_type == RuleTypes.USER_DEFINED:
             return None
         else:
@@ -468,6 +484,19 @@ class TimeExtractionRule:
             raise ValueError(f"Unknown file_property {file_property}")
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
+    def _apply_takeout_json(self, context: RuleContext) -> datetime | None:
+        taken_at = context.takeout_taken_at()
+        if taken_at is None:
+            return None
+        # _transform_tz reads a naive time in source_tz; this one is UTC.
+        utc = datetime.fromtimestamp(taken_at.timestamp(), pytz.utc)
+        return self._transform_tz(
+            utc.replace(tzinfo=None),
+            context.gps_lat,
+            context.gps_lon,
+            context.user_default_tz,
+        )
+
 
 def _get_gps_tz(lat: float | None, lon: float | None) -> tuple[bool, tzinfo | None]:
     if lat is None or lon is None or not _check_gps_ok(lat, lon):
@@ -546,6 +575,24 @@ DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
         "transform_tz": 1,
         "source_tz": "utc",
         "report_tz": "gps_timezonefinder",
+    },
+    # Before the file name, which a Takeout export keeps from the phone or
+    # replaces, after every tag of the file itself (#2270).
+    {
+        "id": 20,
+        "name": "Google Takeout JSON capture time in UTC + figure out timezone using GPS coordinates",
+        "rule_type": RuleTypes.TAKEOUT_JSON,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "gps_timezonefinder",
+    },
+    {
+        "id": 21,
+        "name": "Google Takeout JSON capture time in user default timezone (can't find out actual timezone)",
+        "rule_type": RuleTypes.TAKEOUT_JSON,
+        "transform_tz": 1,
+        "source_tz": "utc",
+        "report_tz": "user_default",
     },
     {
         "id": 3,

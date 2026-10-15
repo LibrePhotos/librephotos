@@ -30,7 +30,7 @@ from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
-from api.metadata import photo_reader
+from api.metadata import photo_reader, takeout
 from api.metadata.photo_datetime import extract_date_time
 from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
 from api.models.file import content_hash, hash_for_owner, hash_owner_part
@@ -835,11 +835,30 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
     This is called after Phase 1 has created File records for all paths.
     Files are grouped by (directory, basename) so RAW+JPEG pairs are processed together.
 
+    A Google Takeout JSON among ``file_paths`` (Phase 1 matched it against the
+    whole directory, #2270) is read for the photo and is not one of its files.
+    No other one is looked for, so the directory is not listed again.
+
     Args:
         user: The owner of the files
         file_paths: List of file paths that share the same (directory, basename)
         job_id: Job ID for logging and progress tracking
     """
+    takeout_names = [
+        os.path.basename(path)
+        for path in file_paths
+        if takeout.is_takeout_candidate(path)
+    ]
+    media_paths = [
+        path for path in file_paths if not takeout.is_takeout_candidate(path)
+    ]
+    known = {os.path.dirname(path): takeout_names for path in media_paths}
+    with takeout.directory_listings(known):
+        _handle_media_group(user, media_paths, job_id)
+
+
+def _handle_media_group(user: User, file_paths: list[str], job_id: UUID | str) -> None:
+    """``handle_file_group`` for the group's media files and XMP sidecars."""
     error = None
     try:
         # Cancelling a scan does not take the groups the cluster has already
@@ -854,8 +873,8 @@ def handle_file_group(user: User, file_paths: list[str], job_id: UUID | str) -> 
         files = _collect_file_records(user, file_paths)
         if not files:
             if not any(looks_like_media(path) for path in file_paths):
-                # A RawTherapee .pp3, an Apple .aae, a Takeout .json: nothing
-                # here is a photo, so there is nothing to report as failed.
+                # A RawTherapee .pp3, an Apple .aae: nothing here is a
+                # photo, so there is nothing to report as failed.
                 logger.info("job %s: ignoring non-media files: %s", job_id, file_paths)
                 return
             error = f"No valid files in group: {file_paths}"

@@ -26,6 +26,7 @@ from api.metadata.reader import (
     sidecar_for_write,
 )
 from api.metadata.tags import Tags
+from api.metadata.takeout import takeout_metadata_of
 from api.metadata.writer import (
     MetadataWriteError,
     TagValue,
@@ -37,7 +38,7 @@ from api.metadata.writer import (
 from api.models.file import File
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
-    DESCRIPTION_SOURCES,
+    FILE_DESCRIPTION_SOURCES,
     IMPORTED_DESCRIPTION_KEY,
     PhotoMetadata,
     description_of,
@@ -207,7 +208,7 @@ def _remember_file_description(photo: Photo) -> None:
     from api.metadata.photo_reader import EXIF_FIELDS
 
     assert photo.main_file is not None
-    names = (*DESCRIPTION_SOURCES, "camera")
+    names = (*FILE_DESCRIPTION_SOURCES, "camera")
     tag_of = dict(EXIF_FIELDS)
     try:
         values = get_metadata(
@@ -222,7 +223,13 @@ def _remember_file_description(photo: Photo) -> None:
             error,
         )
         return
-    description = description_of(dict(zip(names, values)))
+    takeout = takeout_metadata_of(photo)
+    description = description_of(
+        {
+            **dict(zip(names, values)),
+            "takeout_description": takeout.description if takeout else None,
+        }
+    )
     with transaction.atomic():
         caption = PhotoCaption.objects.select_for_update().filter(photo=photo).first()
         if caption is None:

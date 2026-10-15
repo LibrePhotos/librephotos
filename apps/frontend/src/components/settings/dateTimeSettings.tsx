@@ -7,6 +7,7 @@ const RULE_TYPE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
   path: "rules.rule_type_names.path",
   filesystem: "rules.rule_type_names.filesystem",
   user_defined: "rules.rule_type_names.user_defined",
+  takeout_json: "rules.rule_type_names.takeout_json",
 };
 
 /** "exif", "path", ... as words; an unknown type shows as it is. */

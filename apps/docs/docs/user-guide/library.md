@@ -30,7 +30,7 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 7. Performs reverse geocoding
 8. Calculates the search embeddings the thing detection could not
 
-The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`), a Google Takeout `.json` or `Thumbs.db`, is skipped and does not count as an error. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
+The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`) or `Thumbs.db`, is skipped and does not count as an error. The `.json` files of a Google Takeout export are read for the date, location and description of their photo and are not photos themselves (see [Importing a Google Takeout export](./google-takeout.md)). <Since version="1.4.0" /> Up to 1.3.0 they were skipped too. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
 
 A **Scan** processes new and changed files, and also every photo whose metadata could not be read last time (for example because the exif service was restarting or timed out): such a photo is listed in the job's errors, and the next scan reads it again, even though the file has not changed. _Not released yet:_ before this, only a **Rescan** read those photos again; after the update, the first **Scan** also reads the photos earlier scans left without metadata.
 
