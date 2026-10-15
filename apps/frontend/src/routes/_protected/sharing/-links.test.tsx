@@ -1,8 +1,8 @@
 /**
  * The Photos tab of "Public links" rendered two h1s: the page's own and the
  * title of the photo list under it. The list keeps its sticky header there,
- * because its selection bar is how photos are picked, but its title is a
- * section heading under the page's h1.
+ * because its Select button and selection bar are how photos are picked, but
+ * its title is a section heading under the page's h1.
  *
  * The real PhotoListView, DefaultHeader and PageHeader render; only the grid,
  * the dialogs and the data are stubbed.
@@ -145,11 +145,12 @@ describe("public links page headings", () => {
     expect(headings("h1")).toEqual([i18n.t("sharing.publicLinks")]);
   });
 
-  it("keeps the photo list's title, as a section heading, and its selection bar", async () => {
+  it("keeps the photo list's title, as a section heading, and its Select button", async () => {
     await renderTab("photos");
 
     expect(headings("h2")).toEqual([i18n.t("sharing.publicPhotos")]);
-    expect(container.textContent).toContain(`0 ${i18n.t("selectionbar.selected")}`);
+    // The selection bar comes up from it (#2240)
+    expect(container.textContent).toContain(i18n.t("selectionbar.selectmode"));
   });
 
   it("has one h1 on the Albums tab", async () => {

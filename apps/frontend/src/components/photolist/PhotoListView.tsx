@@ -1,5 +1,5 @@
 import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PigPhoto, User } from "@librephotos/api-client";
-import { Box, Group, RemoveScroll, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { Box, Flex, RemoveScroll } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import type { TablerIcon } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
@@ -21,6 +21,7 @@ import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListFallback } from "./PhotoListFallback";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
+import classes from "./PhotoListView.module.css";
 import { StackOverlay } from "./StackOverlay";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
@@ -30,6 +31,7 @@ import { usePhotoListLightbox } from "./usePhotoListLightbox";
 import { usePhotoListPreferences } from "./usePhotoListPreferences";
 import { usePhotoListScrollScrubber } from "./usePhotoListScrollScrubber";
 import { usePhotoListSelection } from "./usePhotoListSelection";
+import { usePhotoListSelectMode } from "./usePhotoListSelectMode";
 import { usePhotoListSlideshow } from "./usePhotoListSlideshow";
 import { usePhotoListThrottledUpdates } from "./usePhotoListThrottledUpdates";
 import { VideoOverlay } from "./VideoOverlay";
@@ -205,8 +207,6 @@ function PhotoListViewComponent({
     [isDateView, photoset]
   );
 
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme("light");
   const idx2hashRef = useRef(idx2hash);
 
   useEffect(() => {
@@ -224,7 +224,8 @@ function PhotoListViewComponent({
     pigSelectedItems,
   } = usePhotoListSelection(idx2hash, mediaType, photosetQuery);
   const dialogs = usePhotoListDialogs(isPublic, selectionStateRef);
-  const { setAlbumCover, onSelectCover } = usePhotoListAlbumCover(albumID, selectionState.selectedItems, dialogs);
+  const setAlbumCover = usePhotoListAlbumCover(albumID, selectionState.selectedItems);
+  const selectMode = usePhotoListSelectMode(selectionState, updateSelectionState, !lightbox.lightboxOpen);
   const totalCount = selectionState.totalCount || numberOfItems || idx2hash.length;
 
   const handleClick = usePhotoListClick({
@@ -244,24 +245,14 @@ function PhotoListViewComponent({
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
       {header !== null && (
-        <Box
-          style={{
-            boxSizing: "border-box",
-            cursor: "pointer",
-            padding: 6,
-            position: "sticky",
-            top: TOP_MENU_HEIGHT,
-            width: "100%",
-            zIndex: 10,
-            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          }}
-        >
+        <Box className={classes.header}>
           {header || (
             // The actions sit beside the title in the normal flow (they used to be
-            // absolutely positioned over it). The 260px basis wraps a wide action
-            // group onto its own row on phones instead of squeezing the title.
-            <Group justify="space-between" align="flex-start" gap="xs" style={{ rowGap: 4 }}>
-              <Box style={{ flex: "1 1 260px", minWidth: 0 }}>
+            // absolutely positioned over it). The 220px basis wraps a wide action
+            // group onto its own row on phones instead of squeezing the title, and
+            // keeps the timeline's three icons (Filter, Select, display) beside it.
+            <Flex justify="space-between" align="flex-start" columnGap="xs" rowGap={4} wrap="wrap">
+              <Box flex="1 1 220px" miw={0}>
                 <DefaultHeader
                   loading={isLoading}
                   numPhotosetItems={photos.length || 0}
@@ -288,12 +279,21 @@ function PhotoListViewComponent({
                   publicLink={isAlbumPubliclyShared && isUserAlbum}
                   onOpenSharing={() => dialogs.albumShare.open()}
                   preferences={preferences}
+                  selectMode={
+                    selectable
+                      ? {
+                          selecting: selectMode.selecting,
+                          onToggle: selectMode.toggle,
+                          ref: selectMode.selectButtonRef,
+                        }
+                      : undefined
+                  }
                 />
               )}
-            </Group>
+            </Flex>
           )}
           {header === undefined && filterBar}
-          {!isLoading && !isPublic && getNumPhotos() > 0 && (
+          {!isLoading && !isPublic && getNumPhotos() > 0 && selectMode.selecting && (
             <PhotoListSelectionBar
               selectionState={selectionState}
               idx2hash={idx2hash}
@@ -306,6 +306,8 @@ function PhotoListViewComponent({
               title={title}
               setAlbumCover={setAlbumCover}
               dialogs={dialogs}
+              onClose={selectMode.exit}
+              closeRef={selectMode.closeButtonRef}
             />
           )}
         </Box>
@@ -368,12 +370,10 @@ function PhotoListViewComponent({
         isPublic={isPublic}
         isUserAlbum={isUserAlbum}
         albumID={albumID}
-        title={title}
         idx2hash={idx2hash}
         totalCount={totalCount}
         selectionState={selectionState}
         updateSelectionState={updateSelectionState}
-        onSelectCover={onSelectCover}
       />
     </RemoveScroll>
   );

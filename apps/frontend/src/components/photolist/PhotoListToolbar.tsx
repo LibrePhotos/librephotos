@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
+import { SelectModeButton } from "./SelectModeButton";
 import type { usePhotoListPreferences } from "./usePhotoListPreferences";
 
 type Props = Readonly<{
@@ -23,11 +24,13 @@ type Props = Readonly<{
   publicLink: boolean;
   onOpenSharing: () => void;
   preferences: ReturnType<typeof usePhotoListPreferences>;
+  /** The Select button (#2240), on a list whose photos can be selected. */
+  selectMode?: React.ComponentProps<typeof SelectModeButton>;
 }>;
 
 /**
  * The right-hand toolbar of a photo list's header: the media-type filter, the page's actions, a
- * public album's link button and the display settings.
+ * public album's link button, the Select button and the display settings.
  *
  * headerActions stay mounted while the view reloads: changing the timeline filter refetches, and
  * an open filter popover must not close under the pointer. The other controls wait for the
@@ -42,6 +45,7 @@ export function PhotoListToolbar({
   publicLink,
   onOpenSharing,
   preferences,
+  selectMode,
 }: Props) {
   const { t } = useTranslation();
   const [displayMenuOpened, { open: openDisplayMenu, close: closeDisplayMenu }] = useDisclosure(false);
@@ -68,6 +72,7 @@ export function PhotoListToolbar({
             </ActionIcon>
           </Tooltip>
         )}
+        {withPhotos && selectMode && <SelectModeButton {...selectMode} />}
         {withPhotos && (
           <PhotoListDisplayMenu
             displayMenuOpened={displayMenuOpened}

@@ -1,7 +1,6 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import type { SelectionState } from "../../api_client/photos/types";
 import { Lightbox } from "../lightbox/Lightbox";
-import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { ModalTagEdit } from "../modals/ModalTagEdit";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
@@ -31,16 +30,14 @@ type Props = Readonly<{
   isPublic: boolean;
   isUserAlbum: boolean;
   albumID?: string;
-  title: string;
   idx2hash: PigPhoto[];
   totalCount: number;
   selectionState: SelectionState;
   updateSelectionState: (state: Partial<SelectionState>) => void;
-  onSelectCover: (photoId: string) => void;
 }>;
 
 // The lightbox and the modals a photo list opens. The add-to-album, tag and share modals clear the
-// selection when they close; the cover picker sets the album cover.
+// selection when they close.
 export function PhotoListDialogs({
   dialogs,
   lightbox,
@@ -49,12 +46,10 @@ export function PhotoListDialogs({
   isPublic,
   isUserAlbum,
   albumID,
-  title,
   idx2hash,
   totalCount,
   selectionState,
   updateSelectionState,
-  onSelectCover,
 }: Props) {
   const closeAndClearSelection = (close: () => void) => {
     close();
@@ -109,18 +104,6 @@ export function PhotoListDialogs({
           isOpen={dialogs.albumShare.opened}
           onRequestClose={dialogs.albumShare.close}
           albumID={albumID ?? ""}
-        />
-      )}
-      {!isPublic && dialogs.coverPickerAlbumType && (
-        <AlbumCoverPickerModal
-          isOpen={dialogs.coverPicker.opened}
-          onRequestClose={() => {
-            dialogs.coverPicker.close();
-            dialogs.setCoverPickerAlbumType(null);
-          }}
-          photos={idx2hash}
-          albumTitle={title}
-          onSelectCover={onSelectCover}
         />
       )}
     </>

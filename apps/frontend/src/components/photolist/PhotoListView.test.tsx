@@ -20,6 +20,9 @@
  * The lightbox lived in component state, so Back left the page instead of closing it, a reload
  * dropped it, and no link could point at a photo in a list (#2231): the open photo is now the
  * list's `?photo=` search param.
+ *
+ * The selection bar ("0 selected", two mostly disabled menus) took a row on every list while
+ * browsing; it shows only while selecting, and the header's Select button brings it up (#2240).
  */
 import { Media } from "@librephotos/api-client";
 import type { DatePhotosGroup, Photo, PigPhoto } from "@librephotos/api-client";
@@ -624,11 +627,104 @@ describe("PhotoListView header actions", () => {
   });
 });
 
+const selectionToolbar = () =>
+  document.body.querySelector(`[role="toolbar"][aria-label="${i18n.t("selectionbar.toolbar")}"]`);
+
+function selectButton(): HTMLButtonElement {
+  const found = Array.from(document.body.querySelectorAll("button")).find(
+    el => el.textContent?.trim() === i18n.t("selectionbar.selectmode")
+  );
+  return defined(found, "the Select button");
+}
+
+function doneButton(): HTMLButtonElement {
+  return defined(
+    document.body.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("selectionbar.done")}"]`),
+    "the ✕"
+  );
+}
+
+const pressEscape = (target: Element = document.body) =>
+  act(async () => {
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  });
+
+describe("PhotoListView selection bar on demand (#2240)", () => {
+  it("shows no selection bar while browsing, only the Select button", async () => {
+    await render({});
+
+    expect(selectionToolbar()).toBeNull();
+    expect(selectButton().getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("brings the bar up from Select, with focus on its ✕, and puts it away from the ✕", async () => {
+    await render({});
+
+    await act(async () => selectButton().click());
+    expect(selectionToolbar()).not.toBeNull();
+    expect(selectionBar.props?.selectMode).toBe(true);
+    expect(document.activeElement).toBe(doneButton());
+
+    await act(async () => doneButton().click());
+    expect(selectionToolbar()).toBeNull();
+    // Focus does not drop to the top of the page with the bar
+    expect(document.activeElement).toBe(selectButton());
+  });
+
+  it("puts the bar away on Select again and on Escape", async () => {
+    await render({});
+    await act(async () => selectButton().click());
+    await act(async () => selectButton().click());
+    expect(selectionToolbar()).toBeNull();
+
+    await act(async () => selectButton().click());
+    await pressEscape();
+    expect(selectionToolbar()).toBeNull();
+  });
+
+  it("leaves Escape to an open menu or dialog", async () => {
+    await render({});
+    await act(async () => selectButton().click());
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.appendChild(dialog);
+
+    await pressEscape(dialog);
+
+    expect(selectionToolbar()).not.toBeNull();
+    dialog.remove();
+  });
+
+  it("shows the bar when a tile is ticked and clears it with the selection", async () => {
+    await render({});
+
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+    expect(selectionToolbar()).not.toBeNull();
+    expect(selectionBar.props?.selectedItems.map(item => item.id)).toEqual(["a"]);
+
+    await act(async () => doneButton().click());
+    expect(selectionToolbar()).toBeNull();
+    expect(lastPigProps().selectedItems).toEqual([]);
+
+    // Unticking the last photo also ends selecting
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+    expect(selectionToolbar()).toBeNull();
+  });
+
+  it("offers no Select button on a list that cannot be selected from", async () => {
+    const view = await render({ selectable: false });
+
+    expect(view.textContent).not.toContain(i18n.t("selectionbar.selectmode"));
+  });
+});
+
 describe("PhotoListView selection", () => {
   // Select all, change the timeline filter, then delete: the carried-over
   // select-all query would act on the old filter (issue #2130).
   it("clears a select-all when the photoset query changes", async () => {
     await render({ photosetQuery: { hide_screenshots: true } });
+    await act(async () => selectButton().click());
     await act(async () => {
       defined(selectionBar.props).updateSelectionState({
         selectMode: true,
@@ -643,8 +739,9 @@ describe("PhotoListView selection", () => {
     expect(selectionBar.props?.selectAllMode).toBe(true);
 
     await render({ photosetQuery: {} });
-    expect(selectionBar.props?.selectAllMode).toBe(false);
-    expect(selectionBar.props?.selectMode).toBe(false);
+    // Nothing is selected any more, so the bar is gone with the select all
+    expect(selectionToolbar()).toBeNull();
+    expect(lastPigProps().selectedItems).toEqual([]);
   });
 });
 

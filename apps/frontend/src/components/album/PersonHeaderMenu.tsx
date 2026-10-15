@@ -1,6 +1,7 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowMerge, IconEdit, IconFaceId, IconTrash, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowMerge, IconEdit, IconFaceId, IconPhoto, IconTrash, IconUsersGroup } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,9 +9,11 @@ import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
+  useSetPersonAlbumCoverMutation,
   type Person,
 } from "../../api_client/albums/hooks";
 import { ICON_SIZE } from "../../uiConstants";
+import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { PersonDeleteModal } from "./PersonDeleteModal";
 import { PersonGroupsModal } from "./PersonGroupsModal";
@@ -18,18 +21,24 @@ import { PersonMergeModal, type MergePerson } from "./PersonMergeModal";
 import { PersonMergePickerModal } from "./PersonMergePickerModal";
 import { PersonRenameModal } from "./PersonRenameModal";
 
-type Props = Readonly<{ person: Person }>;
+type Props = Readonly<{
+  person: Person;
+  /** The person's photos, to pick the cover from. */
+  photos: PigPhoto[];
+}>;
 
 /**
- * The person page's "⋮": rename, groups, merge into another person, manage faces, delete. A merge goes
+ * The person page's "⋮": rename, set the cover (any photo, no selection needed, #2240), groups,
+ * merge into another person, manage faces, delete. A merge goes
  * on to the person merged into, a delete back to People.
  */
-export function PersonHeaderMenu({ person }: Props) {
+export function PersonHeaderMenu({ person, photos }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const trigger = useRef<HTMLButtonElement>(null);
   const [renameOpened, rename] = useDisclosure(false);
   const [groupsOpened, groups] = useDisclosure(false);
+  const [coverOpened, cover] = useDisclosure(false);
   const [pickOpened, pick] = useDisclosure(false);
   const [mergeOpened, merge] = useDisclosure(false);
   const [mergeTarget, setMergeTarget] = useState<MergePerson | null>(null);
@@ -39,6 +48,7 @@ export function PersonHeaderMenu({ person }: Props) {
   const { data: people } = useFetchPeopleAlbumsQuery();
   const renamePerson = useRenamePersonAlbumMutation();
   const deletePerson = useDeletePersonAlbumMutation();
+  const setCover = useSetPersonAlbumCoverMutation();
 
   const closeAndFocus = (close: () => void) => () => {
     close();
@@ -52,6 +62,9 @@ export function PersonHeaderMenu({ person }: Props) {
       <HeaderActionsMenu label={t("personalbum.personactions")} triggerRef={trigger}>
         <Menu.Item leftSection={<IconEdit size={ICON_SIZE.menu} />} onClick={rename.open}>
           {t("rename")}
+        </Menu.Item>
+        <Menu.Item leftSection={<IconPhoto size={ICON_SIZE.menu} />} onClick={cover.open}>
+          {t("modalalbumcover.menuitem")}
         </Menu.Item>
         <Menu.Item leftSection={<IconUsersGroup size={ICON_SIZE.menu} />} onClick={groups.open}>
           {t("persongroups.menu")}
@@ -77,6 +90,14 @@ export function PersonHeaderMenu({ person }: Props) {
         onMerged={showTarget}
       />
       <PersonGroupsModal opened={groupsOpened} onClose={closeAndFocus(groups.close)} person={person} />
+      <AlbumCoverPickerModal
+        isOpen={coverOpened}
+        onRequestClose={closeAndFocus(cover.close)}
+        // Placeholders of days that have not loaded have no picture to pick
+        photos={photos.filter(photo => !photo.isTemp)}
+        albumTitle={person.name}
+        onSelectCover={photo => setCover.mutate({ id: String(person.id), cover_photo: photo })}
+      />
       <PersonMergePickerModal
         opened={pickOpened}
         onClose={closeAndFocus(pick.close)}

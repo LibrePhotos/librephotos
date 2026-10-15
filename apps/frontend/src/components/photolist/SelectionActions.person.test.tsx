@@ -2,6 +2,9 @@
  * "Remove from this person" in the selection menu (#2207): only on a person page, only for an
  * explicit selection (the person page's "Select all" is a server-side query the endpoint does not
  * take), and only after a confirmation. It sends the photos' ids, never their hashes.
+ *
+ * "Set album cover" there makes the one selected photo the cover; picking any photo without a
+ * selection is the page's "⋮" (#2240), and the disabled item says so.
  */
 import { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -12,6 +15,7 @@ import type { useRemovePhotosFromPersonMutation } from "../../api_client/albums/
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { addTempElementsToFlatList } from "../../util/util";
+import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { SelectionActions } from "./SelectionActions";
 
 type Props = React.ComponentProps<typeof SelectionActions>;
@@ -151,6 +155,43 @@ describe("Remove from this person", () => {
       photoIds: [photo(1).id, photo(2).id],
     });
     expect(updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    await act(async () => root.unmount());
+  });
+});
+
+describe("Set album cover in the selection menu (#2240)", () => {
+  function coverItem() {
+    return defined(
+      Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
+        item => item.textContent?.trim() === i18n.t("selectionactions.albumcover")
+      ),
+      "the cover item"
+    );
+  }
+
+  it("sets the one selected photo and clears the selection", async () => {
+    updateSelectionState.mockReset();
+    const setAlbumCover = vi.fn<Props["setAlbumCover"]>();
+    const root = await openMenu({ selectedItems: [photo(1)], setAlbumCover });
+
+    await act(async () => coverItem().click());
+
+    expect(setAlbumCover).toHaveBeenCalledWith("person");
+    expect(updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    await act(async () => root.unmount());
+  });
+
+  it.each([
+    ["nothing", [], "selectionactions.albumcoverpickinmenu"],
+    ["two photos", [photo(1), photo(2)], "selectionactions.albumcovermultiselect"],
+  ] as const)("is off with %s selected and says why", async (_label, selectedItems, reason) => {
+    const setAlbumCover = vi.fn<Props["setAlbumCover"]>();
+    const root = await openMenu({ selectedItems: [...selectedItems], setAlbumCover });
+
+    const item = coverItem();
+    expectDisabledWithReason(item, i18n.t(reason));
+    await act(async () => item.click());
+    expect(setAlbumCover).not.toHaveBeenCalled();
     await act(async () => root.unmount());
   });
 });

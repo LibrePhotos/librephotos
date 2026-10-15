@@ -1,0 +1,6 @@
+/* The selection bar, inside the photo list's sticky header: it shows only while selecting (#2240). */
+.bar {
+  padding: 4px;
+  border-radius: 10px;
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
+}

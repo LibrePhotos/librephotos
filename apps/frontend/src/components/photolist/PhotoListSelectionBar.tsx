@@ -1,7 +1,12 @@
 import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
-import { Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Box, Group, Tooltip } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
+import React from "react";
+import { useTranslation } from "react-i18next";
 import type { SelectionState } from "../../api_client/photos/types";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import classes from "./PhotoListSelectionBar.module.css";
 import { SelectionActions } from "./SelectionActions";
 import type { AlbumCoverType } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
@@ -18,12 +23,16 @@ type Props = Readonly<{
   ownerUsername?: string;
   albumLocked: boolean;
   title: string;
-  setAlbumCover: (actionType: AlbumCoverType, photoId?: string) => void;
+  setAlbumCover: (actionType: AlbumCoverType) => void;
   dialogs: PhotoListDialogState;
+  /** Leaves select mode, clearing the selection: the ✕. */
+  onClose: () => void;
+  /** The ✕, which takes focus when the Select button opens the bar. */
+  closeRef: React.Ref<HTMLButtonElement>;
 }>;
 
-// The selection bar under a photo list's toolbar: the selection count, the actions
-// on the selected photos and the trashcan actions.
+// The selection bar under a photo list's toolbar, while selecting (#2240): leave select mode
+// (✕), the selection count, the actions on the selected photos and the trashcan actions.
 export function PhotoListSelectionBar({
   selectionState,
   idx2hash,
@@ -36,35 +45,37 @@ export function PhotoListSelectionBar({
   title,
   setAlbumCover,
   dialogs,
+  onClose,
+  closeRef,
 }: Props) {
   const location = useLocation();
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme("light");
+  const { t } = useTranslation();
   return (
-    <Box
-      style={{
-        padding: 4,
-        backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
-        textAlign: "center",
-        cursor: "pointer",
-        borderRadius: 10,
-      }}
-    >
-      <Group
-        style={{
-          paddingLeft: 10,
-        }}
-        justify="space-between"
-      >
-        <SelectionBar
-          selectMode={selectionState.selectMode}
-          selectAllMode={selectionState.selectAllMode}
-          selectedItems={selectionState.selectedItems}
-          idx2hash={idx2hash}
-          updateSelectionState={updateSelectionState}
-          photosetQuery={photosetQuery}
-          totalCount={totalCount}
-        />
+    <Box className={classes.bar} role="toolbar" aria-label={t("selectionbar.toolbar")}>
+      <Group justify="space-between" gap="xs">
+        <Group gap="xs">
+          <Tooltip label={t("selectionbar.done")} position="bottom">
+            <ActionIcon
+              ref={closeRef}
+              variant="subtle"
+              color="gray"
+              size={TOOLBAR_ACTION_SIZE}
+              aria-label={t("selectionbar.done")}
+              onClick={onClose}
+            >
+              <IconX size={ICON_SIZE.toolbar} />
+            </ActionIcon>
+          </Tooltip>
+          <SelectionBar
+            selectMode={selectionState.selectMode}
+            selectAllMode={selectionState.selectAllMode}
+            selectedItems={selectionState.selectedItems}
+            idx2hash={idx2hash}
+            updateSelectionState={updateSelectionState}
+            photosetQuery={photosetQuery}
+            totalCount={totalCount}
+          />
+        </Group>
         <Group justify="flex-end">
           {!location.pathname.startsWith("/deleted") && (
             <SelectionActions

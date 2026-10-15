@@ -2,8 +2,11 @@
  * The person page's "⋮" (#2207): Rename and Delete open the People page's dialogs, Delete goes
  * back to People once the person is gone, Manage faces opens the face dashboard, and "Merge
  * into…" picks another person, asks, and goes on to that person once merged (#2206). "Groups…"
- * opens a checklist of the user's groups that saves on every tick (#1126).
+ * opens a checklist of the user's groups that saves on every tick (#1126). "Set as cover…" picks
+ * the cover from the person's loaded photos without selecting anything (#2240).
  */
+import { Media } from "@librephotos/api-client";
+import type { PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient } from "@tanstack/react-query";
 import type { UseNavigateResult } from "@tanstack/react-router";
@@ -16,16 +19,20 @@ import type {
   useDeletePersonAlbumMutation,
   useMergePersonMutation,
   useRenamePersonAlbumMutation,
+  useSetPersonAlbumCoverMutation,
   useSetPersonGroupsMutation,
 } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import type { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { PersonHeaderMenu } from "./PersonHeaderMenu";
 
 type Rename = ReturnType<typeof useRenamePersonAlbumMutation>["mutate"];
 type Delete = ReturnType<typeof useDeletePersonAlbumMutation>["mutate"];
 type Merge = ReturnType<typeof useMergePersonMutation>["mutate"];
 type SetGroups = ReturnType<typeof useSetPersonGroupsMutation>["mutate"];
+type SetCover = ReturnType<typeof useSetPersonAlbumCoverMutation>["mutate"];
+type CoverProps = React.ComponentProps<typeof AlbumCoverPickerModal>;
 
 const stubs = vi.hoisted(() => ({
   navigate: vi.fn<UseNavigateResult<string>>(),
@@ -33,6 +40,8 @@ const stubs = vi.hoisted(() => ({
   remove: vi.fn<Delete>(),
   merge: vi.fn<Merge>(),
   setGroups: vi.fn<SetGroups>(),
+  setCover: vi.fn<SetCover>(),
+  cover: undefined as CoverProps | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -56,6 +65,13 @@ vi.mock("../../api_client/albums/hooks", () => ({
   }),
   useSetPersonGroupsMutation: () => ({ mutate: stubs.setGroups }),
   useCreatePersonGroupMutation: () => ({ mutateAsync: vi.fn<(name: string) => Promise<void>>(), isPending: false }),
+  useSetPersonAlbumCoverMutation: () => ({ mutate: stubs.setCover }),
+}));
+vi.mock("../modals/AlbumCoverPickerModal", () => ({
+  AlbumCoverPickerModal: (props: CoverProps) => {
+    stubs.cover = props;
+    return null;
+  },
 }));
 
 const anna: Person = {
@@ -67,6 +83,18 @@ const anna: Person = {
   face_url: "",
   group_ids: [3],
 };
+
+const tile = (id: string, isTemp = false): PigPhoto => ({
+  id,
+  image_hash: id,
+  aspectRatio: 1,
+  type: Media.IMAGE,
+  is_hdr: false,
+  rating: 0,
+  shared_to: [],
+  isTemp,
+  has_raw_variant: false,
+});
 
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
@@ -101,13 +129,16 @@ beforeEach(async () => {
   stubs.remove.mockReset();
   stubs.merge.mockReset();
   stubs.setGroups.mockReset();
+  stubs.setCover.mockReset();
+  stubs.cover = undefined;
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () =>
     defined(root).render(
       <MantineProvider env="test">
-        <PersonHeaderMenu person={anna} />
+        {/* A loaded photo and the placeholder of a day that has not loaded */}
+        <PersonHeaderMenu person={anna} photos={[tile("h1"), tile("0", true)]} />
       </MantineProvider>
     )
   );
@@ -131,11 +162,11 @@ async function pick(key: ParseKeys) {
 }
 
 describe("PersonHeaderMenu", () => {
-  it("offers rename, manage faces and delete", async () => {
+  it("offers rename, set as cover, groups, merge, manage faces and delete", async () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Groups…", "Merge into…", "Manage Faces", "Delete Person"]);
+    expect(items).toEqual(["Rename", "Set as cover…", "Groups…", "Merge into…", "Manage Faces", "Delete Person"]);
   });
 
   it("puts the person in a group on a tick, keeping the groups they are in", async () => {
@@ -155,6 +186,18 @@ describe("PersonHeaderMenu", () => {
 
     expect(stubs.setGroups).toHaveBeenCalledWith({ personId: "5", groupIds: [3, 4] }, expect.anything());
     expect(box("Work").checked).toBe(true);
+  });
+
+  it("picks the cover from the loaded photos, with nothing selected (#2240)", async () => {
+    expect(stubs.cover?.isOpen).toBe(false);
+
+    await pick("modalalbumcover.menuitem");
+
+    const cover = defined(stubs.cover);
+    expect(cover).toMatchObject({ isOpen: true, albumTitle: "Anna Becker" });
+    expect(cover.photos.map(photo => photo.id)).toEqual(["h1"]);
+    act(() => cover.onSelectCover("h1"));
+    expect(stubs.setCover).toHaveBeenCalledWith({ id: "5", cover_photo: "h1" });
   });
 
   it("opens the face dashboard", async () => {

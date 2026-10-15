@@ -331,6 +331,7 @@
   },
   "modalalbumcover": {
     "title": "Choose Album Cover",
+    "menuitem": "Set as cover…",
     "selectphoto": "Select a photo to use as the cover for {{album}}",
     "nophotos": "No photos available in this album",
     "tip": "Tip: You can also select a single photo in the album and click \"Set album cover\" from the menu.",
@@ -629,6 +630,10 @@
     "select": "Select all",
     "selectloaded": "Select the loaded photos",
     "selectedoftotal": "{{selected}} of {{total}} selected",
+    "selectmode": "Select",
+    "selectphotos": "Select photos",
+    "done": "Done selecting",
+    "toolbar": "Selection",
     "all": "All",
     "excluded": "excluded"
   },
@@ -672,6 +677,7 @@
     "albumcover": "Set album cover",
     "albumcoverdescription": "Set the album cover for the current album",
     "albumcovermultiselect": "Select only one photo to set as cover",
+    "albumcoverpickinmenu": "Select one photo, or pick one with Set as cover… in the page's ⋮ menu",
     "albumsharingdescription": "Open sharing panel for the current album",
     "removephotos": "Remove Photos",
     "removephotosdescription": "Remove the selected photos from the current album",

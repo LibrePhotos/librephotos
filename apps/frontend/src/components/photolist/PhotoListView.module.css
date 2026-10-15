@@ -1,0 +1,13 @@
+/*
+ * The photo list's header (title, toolbar, filter bar, selection bar). The window scrolls and the
+ * AppShell header is fixed, so it sticks under that header, not at the top of the window.
+ */
+.header {
+  box-sizing: border-box;
+  position: sticky;
+  top: var(--app-shell-header-height, 55px);
+  z-index: 10;
+  width: 100%;
+  padding: 6px;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}

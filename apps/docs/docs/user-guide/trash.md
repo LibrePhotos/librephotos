@@ -8,7 +8,7 @@ sidebar_position: 17
 
 1. Mark file as "deleted". Select the image you want to delete, go to the action button and click on "Move to Trash"
 2. Navigate to Trash.
-3. Select the images you want to delete forever.
+3. Select the images you want to delete forever (click **Select** at the right of the header, or tick a photo's checkbox; the selection bar appears under the header).
 4. Click the red trash icon in the selection bar (tooltip *Delete permanently*, or *Delete N photos permanently* when more than one is selected), then confirm in the **Delete N photos permanently?** dialog by clicking its red button. This cannot be undone.
 
 You can also restore a photo instead of deleting it: select it in Trash and click the blue undo-arrow icon (tooltip *Restore photo*) to remove the "deleted" status.

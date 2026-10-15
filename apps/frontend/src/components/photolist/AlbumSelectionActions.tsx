@@ -28,7 +28,7 @@ type Props = Readonly<{
 }>;
 
 /**
- * The "Album Actions" section of the selection menu: the cover, and for a user album its
+ * The "Album Actions" section of the selection menu: the selected photo as cover, and for a user album its
  * sharing and "Remove photos", for a person "Remove from this person". Removing works on an
  * explicit selection only; "Select all" is a server-side query these endpoints do not take.
  */
@@ -40,6 +40,10 @@ export function AlbumSelectionActions(props: Props) {
   let removeFromPersonReason: string | undefined;
   if (selectAllMode) removeFromPersonReason = t("selectionactions.removefrompersonselectall");
   else if (selectedCount === 0) removeFromPersonReason = t("selectionactions.selectphotosfirst");
+  // The selected photo becomes the cover; the picker for any photo is in the page's "⋮" (#2240).
+  let coverReason: string | undefined;
+  if (selectedCount > 1 || selectAllMode) coverReason = t("selectionactions.albumcovermultiselect");
+  else if (selectedCount === 0) coverReason = t("selectionactions.albumcoverpickinmenu");
 
   return (
     <>
@@ -47,10 +51,7 @@ export function AlbumSelectionActions(props: Props) {
 
       <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
 
-      <DisabledReason
-        reason={(selectedCount > 1 || selectAllMode) && t("selectionactions.albumcovermultiselect")}
-        position="left"
-      >
+      <DisabledReason reason={coverReason} position="left">
         <Menu.Item leftSection={<IconPhoto size={ICON_SIZE.menu} />} onClick={props.onSetCover}>
           {t("selectionactions.albumcover")}
         </Menu.Item>
