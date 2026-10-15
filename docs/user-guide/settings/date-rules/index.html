@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.26e5c0b9.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.8a6f3517.js" defer="defer"></script>
 <script src="/assets/js/main.6b2e9296.js" defer="defer"></script>
 </head>
 <body>
@@ -53,7 +53,7 @@ should be one of the following:</p>
 <li class="">&quot;server_local&quot; - the local timezone of the machine running LibrePhotos (in Docker this is normally UTC unless you set a <code>TZ</code> for the container)</li>
 <li class="">&quot;name:&lt;timezone_name&gt;&quot; - the timezone with the name &lt;timezone_name&gt;, e.g. &quot;name<!-- -->:Europe<!-- -->/Berlin&quot;</li>
 </ul>
-<p>The settings UI only offers &quot;gps_timezonefinder&quot; and &quot;user_default&quot; for &quot;report_tz&quot;; the other values are accepted by the backend when a rule is edited directly.</p>
+<p>The predefined rules use &quot;utc&quot; for &quot;source_tz&quot; and &quot;gps_timezonefinder&quot; or &quot;user_default&quot; for &quot;report_tz&quot;. The settings page shows a rule&#x27;s settings but cannot change them: it only adds the predefined rules. The other values work in a rule list saved through the API (the <code>datetime_rules</code> of your user).</p>
 <p>If either &quot;source_tz&quot; or &quot;report_tz&quot; could not be obtained, the rule is considered to be not applicable.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="videos">Videos<a href="#videos" class="hash-link" aria-label="Direct link to Videos" title="Direct link to Videos" translate="no">​</a></h3>
 <p>Videos keep their date in other tags than photos, and the default rules read three of them:</p>
@@ -71,11 +71,14 @@ should be one of the following:</p>
 <p>Currently, supported rule types:</p>
 <ul>
 <li class="">&quot;exif&quot; - local time is taken using exif tag params[&quot;exif_tag&quot;] as obtained with exiftool.
-An XMP sidecar next to the photo wins over the file. For <code>EXIF:DateTimeOriginal</code> and
+An XMP sidecar next to the photo wins over the file (see
+<a class="" href="/docs/user-guide/exif-data#which-sidecars-are-read">Which sidecars are read</a>). For <code>EXIF:DateTimeOriginal</code> and
 <code>Composite:GPSDateTime</code> the sidecar is also read under its XMP name (<code>exif:DateTimeOriginal</code>,
 <code>exif:GPSTimeStamp</code>); any other EXIF tag in a rule is not looked up in the sidecar, so to use
 a property that only a sidecar holds, name its XMP tag directly (for example <code>XMP:&lt;tag&gt;</code>).
-<em>Not released yet.</em></li>
+<code>XMP:DateCreated</code>, where LibrePhotos writes the dates you set when
+<a class="" href="/docs/user-guide/settings/#metadata-options">Write edits to files</a> is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
+they add it with <strong>Add Rule</strong> or <strong>Reset To Defaults</strong>.</li>
 <li class="">&quot;path&quot; - time is taken from the filename using a regular expression matching</li>
 <li class="">&quot;filesystem&quot; - time is taken from a file property. params[&quot;file_property&quot;] must be &quot;mtime&quot;
 (file modified time) or &quot;ctime&quot; (file created time). Since these are UNIX timestamps without
