@@ -56,7 +56,7 @@ async function render(overrides: Partial<Photo>, isPublic = false) {
     image_hash: "abc",
     width: 4000,
     height: 3000,
-    size: 2 * 1024 * 1024,
+    size: 2_000_000,
     image_path: ["/lib/photos/IMG_0001.jpg"],
     file_variants: [],
     ...overrides,
@@ -151,7 +151,8 @@ describe("CameraInfoSection", () => {
       const text = await renderText({ ...fuji, size: 59_535 });
       expect(text).toContain("ƒ/5,6");
       expect(text).toContain("+0,7 EV");
-      expect(text).toContain("58,14 KB");
+      // Decimal units with the unit name Intl gives German (#2201)
+      expect(text.replace(/\s/g, " ")).toContain("59,5 kB");
     } finally {
       await i18n.changeLanguage("en");
     }

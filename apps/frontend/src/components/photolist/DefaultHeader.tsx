@@ -1,12 +1,15 @@
 import { Group, Loader, Text } from "@mantine/core";
 import type { TablerIcon } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parseInstant } from "../../util/dateUtils";
+import { formatUnitList } from "../../util/formatCount";
 import { PageHeader } from "../PageHeader";
 import { isPhotosView, PhotosViewSwitcher } from "./PhotosViewSwitcher";
 import { ScanDirectoryWelcome } from "./ScanDirectoryWelcome";
@@ -47,6 +50,21 @@ type PhotoCounterProps = Readonly<
   >
 >;
 
+// "12 days, 340 photos", or only "340 photos" when every item is its own group.
+function photoCountLine(
+  t: TFunction,
+  locale: string,
+  {
+    numPhotosetItems,
+    numPhotos,
+    countsVideos,
+  }: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos">
+): string {
+  const items = t(countsVideos ? "defaultheader.videoscount" : "defaultheader.photoscount", { count: numPhotos });
+  if (numPhotosetItems === numPhotos) return items;
+  return formatUnitList([t("defaultheader.dayscount", { count: numPhotosetItems }), items], locale);
+}
+
 // The subtitle: loading, "No images found", or the day and photo counts, with
 // the media filter's hint and the page's own sub-header.
 function PhotoCounter({
@@ -59,6 +77,7 @@ function PhotoCounter({
   additionalSubHeader,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
+  const locale = useFormatLocale();
   if (loading) {
     return (
       <Group gap={6} wrap="nowrap">
@@ -88,10 +107,7 @@ function PhotoCounter({
   return (
     <div>
       <Text ta="left" c="dimmed">
-        {numPhotosetItems !== numPhotos
-          ? `${numPhotosetItems} ${t("defaultheader.days", { count: numPhotosetItems })}, `
-          : ""}
-        {numPhotos} {t(countsVideos ? "defaultheader.videos" : "defaultheader.photos", { count: numPhotos })}
+        {photoCountLine(t, locale, { numPhotosetItems, numPhotos, countsVideos })}
       </Text>
       {filterHint}
       {additionalSubHeader}

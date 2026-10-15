@@ -97,6 +97,18 @@ describe("DefaultHeader counter", () => {
       "2 days, 4 videos"
     );
   });
+
+  it("leaves out the days when every item is its own group", async () => {
+    const text = (await render({ numPhotosetItems: 5, numPhotos: 5 })).textContent;
+    expect(text).toContain("5 photos");
+    expect(text).not.toContain("day");
+  });
+
+  it("groups the digits of large counts", async () => {
+    expect((await render({ numPhotosetItems: 1200, numPhotos: 25123 })).textContent).toContain(
+      "1,200 days, 25,123 photos"
+    );
+  });
 });
 
 describe("DefaultHeader view switcher", () => {

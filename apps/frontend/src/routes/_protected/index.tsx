@@ -102,7 +102,7 @@ function TimestampPhotos() {
     if (isScanRunning && workerRunningJob) {
       return {
         icon: <Photo size={40} />,
-        title: `${t("emptystate.scanning.title")} — ${jobTypeLabel(workerRunningJob, t)}`,
+        title: t("emptystate.scanning.titlewithjob", { job: jobTypeLabel(workerRunningJob, t) }),
         description: t("emptystate.scanning.refresh"),
         actionLabel: t("emptystate.scanning.refreshButton"),
         onAction: () => refetch(),

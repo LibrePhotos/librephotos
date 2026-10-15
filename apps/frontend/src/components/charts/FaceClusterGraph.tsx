@@ -386,9 +386,7 @@ export function FaceClusterGraph({ height }: Props) {
                   label={
                     <Group gap="xs">
                       <Avatar src={serverAddress + stat.face_url} radius="xl" size="sm" />
-                      <Text size="sm">
-                        {name} - {stat.count} {t("faces")}
-                      </Text>
+                      <Text size="sm">{t("statistics.facecount", { name, count: stat.count })}</Text>
                     </Group>
                   }
                   withArrow

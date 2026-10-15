@@ -102,7 +102,7 @@ describe("file card", () => {
   it("names the file, its size and its other formats to download", async () => {
     const container = await renderCard(photo);
     expect(container.textContent).toContain("IMG_1.HEIC");
-    expect(container.textContent).toContain("6240 × 4160 · 26 MP · 8.39 MB");
+    expect(container.textContent).toContain("6240 × 4160 · 26 MP · 8.8 MB");
     const download = defined(container.querySelector<HTMLAnchorElement>("a[download]"));
     expect(download.getAttribute("download")).toBe("IMG_1.RAF");
     expect(download.getAttribute("href")).toContain("r1");

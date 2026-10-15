@@ -3,8 +3,9 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { Settings } from "luxon";
 import { initReactI18next } from "react-i18next";
 import translationEn from "./locales/en/translation.json";
+import { formatCount, intlLocale } from "./util/formatCount";
 
-export const i18nResolvedLanguage = () => (i18n.resolvedLanguage ? i18n.resolvedLanguage.replace("_", "-") : "en");
+export const i18nResolvedLanguage = () => intlLocale(i18n.resolvedLanguage);
 
 // English ships in the main bundle: it is the fallback language and the one
 // most people use. Every other directory under ./locales is its own chunk,
@@ -120,5 +121,12 @@ export const i18nReady = i18n
       escapeValue: false,
     },
   });
+
+// `{{count, number}}` in a translation groups the digits the UI language's way ("25.123" in
+// German). i18next's own number format hands Intl the language code as it is, and Intl rejects
+// the underscore ones (pt_BR, zh_Hans), which would print the bare number.
+i18n.services.formatter?.add("number", (value: unknown, lng: string | undefined) =>
+  formatCount(Number(value), intlLocale(lng))
+);
 
 export default i18n;

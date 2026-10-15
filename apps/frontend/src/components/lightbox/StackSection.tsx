@@ -25,7 +25,9 @@ import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { buttonRoleProps } from "../../util/a11y";
+import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
@@ -50,14 +52,6 @@ const stackTypeColors: Record<StackTypeEnum, string> = {
   manual: "gray",
 };
 
-function formatBytes(bytes: number | null | undefined): string {
-  if (!bytes) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
-}
-
 type StackPhotoThumbnailProps = {
   stackPhoto: StackPhotoDetail;
   /** Its accessible name, e.g. "Photo 2 of 3". */
@@ -73,6 +67,7 @@ type StackPhotoThumbnailProps = {
  */
 function StackPhotoThumbnail({ stackPhoto, label, isCurrent, onPhotoSelect }: StackPhotoThumbnailProps) {
   const { t } = useTranslation();
+  const locale = useFormatLocale();
   const selectable = onPhotoSelect !== undefined && !isCurrent;
   const interaction = selectable
     ? buttonRoleProps(() => onPhotoSelect(stackPhoto.id))
@@ -85,7 +80,7 @@ function StackPhotoThumbnail({ stackPhoto, label, isCurrent, onPhotoSelect }: St
           <Text size="xs">
             {stackPhoto.width} × {stackPhoto.height}
           </Text>
-          <Text size="xs">{formatBytes(stackPhoto.size)}</Text>
+          <Text size="xs">{formatFileSize(stackPhoto.size ?? 0, locale)}</Text>
           {stackPhoto.is_primary && (
             <Text size="xs" fw={700}>
               {t("lightbox.sidebar.primary")}

@@ -13,7 +13,7 @@ const photo: DuplicatePhoto = {
   thumbnail_big_url: null,
   width: 4032,
   height: 3024,
-  size: 2.5 * 1024 * 1024,
+  size: 2_500_000,
   exif_timestamp: null,
   camera: null,
   file_path: null,

@@ -3,6 +3,7 @@ import { ActionIcon, Badge, Card, Checkbox, Group, Image, Menu, Tooltip } from "
 import { IconDots, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { buttonRoleProps } from "../../util/a11y";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
@@ -23,6 +24,7 @@ export function DuplicateCard({
   onToggleSelect?: () => void;
 }) {
   const { t } = useTranslation();
+  const locale = useFormatLocale();
   const isResolved = duplicate.review_status === "resolved";
   const isDismissed = duplicate.review_status === "dismissed";
   const isPending = duplicate.review_status === "pending";
@@ -71,7 +73,7 @@ export function DuplicateCard({
         {duplicate.potential_savings > 1024 * 1024 && (
           <Tooltip label={t("duplicates.potentialSavings")}>
             <Badge size="sm" variant="outline" color="red">
-              {formatFileSize(duplicate.potential_savings)}
+              {formatFileSize(duplicate.potential_savings, locale)}
             </Badge>
           </Tooltip>
         )}

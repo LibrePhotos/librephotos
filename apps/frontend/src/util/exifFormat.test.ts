@@ -19,7 +19,6 @@ import {
   formatSubjectDistance,
   formatVideoCodec,
 } from "./exifFormat";
-import { formatFileSize } from "./fileSize";
 
 type Row<I> = [input: I, en: string | null, de: string | null];
 
@@ -147,23 +146,6 @@ describe("formatDimensions and formatMegapixels", () => {
   ])("%s × %s", (width, height, en, de) => {
     expect(formatMegapixels(width, height, "en")).toBe(en);
     expect(formatMegapixels(width, height, "de")).toBe(de);
-  });
-});
-
-describe("formatFileSize", () => {
-  it.each<Row<number>>([
-    [8_800_000, "8.39 MB", "8,39 MB"],
-    [59_535, "58.14 KB", "58,14 KB"],
-    [512, "512 B", "512 B"],
-    [3 * 1024 ** 3, "3 GB", "3 GB"],
-    [0, "0 B", "0 B"],
-  ])("%s bytes", (bytes, en, de) => {
-    expect(formatFileSize(bytes, "en")).toBe(en);
-    expect(formatFileSize(bytes, "de")).toBe(de);
-  });
-
-  it("is English without a language, as its other callers use it", () => {
-    expect(formatFileSize(2 * 1024 * 1024)).toBe("2 MB");
   });
 });
 

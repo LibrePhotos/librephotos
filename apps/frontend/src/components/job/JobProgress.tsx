@@ -1,7 +1,9 @@
 import { Box, Center, Progress, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { JOB_OUTCOME_COLOR, jobOutcome } from "./jobStatus";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { formatPercent } from "../../util/formatCount";
+import { JOB_OUTCOME_COLOR, jobOutcome, type JobOutcome } from "./jobStatus";
 
 type IJobProgress = Readonly<{
   target?: number;
@@ -14,95 +16,124 @@ type IJobProgress = Readonly<{
   progressStep?: string | null;
 }>;
 
-export function JobProgress({
+type Progression = Readonly<{ current: number; target: number; step: string | null }>;
+
+// The direct props, or the job's result where they are missing or 0.
+function progression({
   target = 0,
   current = 0,
-  finished,
-  failed = false,
-  cancelled = false,
-  error,
   result,
   progressStep,
-}: IJobProgress) {
-  const { t } = useTranslation();
-
-  // Extract error message from result if available
-  const errorMessage = result?.error ? String(result.error) : error ? String(error) : null;
-
-  // Extract progress from result if direct props are not available
+}: Pick<IJobProgress, "target" | "current" | "result" | "progressStep">): Progression {
   const resultCurrent = result?.current != null ? Number(result.current) : null;
   const resultTotal = result?.total != null ? Number(result.total) : null;
   const resultStage = result?.stage ? String(result.stage) : null;
+  const useProps = Boolean(target && current);
+  return {
+    current: useProps ? current : (resultCurrent ?? current),
+    target: useProps ? target : (resultTotal ?? target),
+    step: progressStep || resultStage,
+  };
+}
 
-  // Use result values as fallback if direct props are not available or are 0
-  const effectiveCurrent = target && current && target !== 0 ? current : (resultCurrent ?? current);
-  const effectiveTarget = target && current && target !== 0 ? target : (resultTotal ?? target);
-  const effectiveProgressStep = progressStep || resultStage;
+// "Asset(s) added" was wrong for most job types (geolocation, OCR, model
+// downloads add nothing), so counts read as items processed.
+function RunningProgress({ current, target, step }: Progression) {
+  const { t } = useTranslation();
+  const locale = useFormatLocale();
+  const fraction = current / target;
+  return (
+    <div>
+      <Progress size={10} value={fraction * 100} />
+      <Center>
+        <Text size="sm" ta="center">
+          {step || t("joblist.itemsprocessedpercent", { count: current, percent: formatPercent(fraction, locale) })}
+        </Text>
+      </Center>
+    </div>
+  );
+}
 
-  // "Asset(s) added" was wrong for most job types (geolocation, OCR, model
-  // downloads add nothing), so counts read as items processed.
-  if (effectiveTarget && effectiveCurrent != null && effectiveTarget !== 0 && !finished) {
-    return (
-      <div>
-        <Progress size={10} value={(+effectiveCurrent.toFixed(2) / effectiveTarget) * 100} />
-        <Center>
-          <Text size="sm" ta="center">
-            {effectiveProgressStep ||
-              `${t("joblist.itemsprocessed", { count: effectiveCurrent })} (${((+effectiveCurrent.toFixed(2) / effectiveTarget) * 100).toFixed(2)} %)`}
-          </Text>
-        </Center>
-      </div>
-    );
-  }
-  if (finished) {
-    const outcome = jobOutcome({ finished, failed, cancelled, result });
-    const errorCount = result?.error_count != null ? Number(result.error_count) : 0;
-    const finalCurrent = effectiveCurrent ?? current;
-    // A cancelled job shows how far it got instead of a full bar.
-    const value =
-      outcome === "cancelled" && effectiveTarget ? Math.min(100, (finalCurrent / effectiveTarget) * 100) : 100;
+type FinishedProps = Readonly<{
+  outcome: JobOutcome;
+  current: number;
+  target: number;
+  errorCount: number;
+  errorMessage: string | null;
+}>;
 
-    let label: React.ReactNode;
-    if (outcome === "failed") {
-      label = (
+function FinishedLabel({ outcome, current, target, errorCount }: Omit<FinishedProps, "errorMessage">) {
+  const { t } = useTranslation();
+  switch (outcome) {
+    case "failed":
+      return (
         <Text size="sm" c="red">
           {t("joblist.failed")}
         </Text>
       );
-    } else if (outcome === "partial_failure") {
-      label = (
+    case "partial_failure":
+      return (
         <Text size="sm" c="orange" ta="center">
-          {t("joblist.partialfailure", { errorCount, total: effectiveTarget || finalCurrent })}
+          {t("joblist.partialfailure", { errorCount, total: target || current })}
         </Text>
       );
-    } else if (outcome === "cancelled") {
-      label = (
+    case "cancelled":
+      return (
         <Text size="sm" c="dimmed">
           {t("joblist.cancelled")}
         </Text>
       );
-    } else {
-      label = (
+    case "queued":
+    case "running":
+    case "completed":
+      return (
         <Text size="sm" ta="center">
-          {t("joblist.itemsprocessed", { count: finalCurrent })}
+          {t("joblist.itemsprocessed", { count: current })}
         </Text>
       );
-    }
-    const withErrorTooltip = !!errorMessage && (outcome === "failed" || outcome === "partial_failure");
+  }
+}
 
+function FinishedProgress(props: FinishedProps) {
+  const { outcome, current, target, errorMessage } = props;
+  // A cancelled job shows how far it got instead of a full bar.
+  const value = outcome === "cancelled" && target ? Math.min(100, (current / target) * 100) : 100;
+  const label = <FinishedLabel {...props} />;
+  const withErrorTooltip = !!errorMessage && (outcome === "failed" || outcome === "partial_failure");
+  return (
+    <div>
+      <Progress size={10} color={JOB_OUTCOME_COLOR[outcome]} value={value} />
+      <Center>
+        {withErrorTooltip ? (
+          <Tooltip label={errorMessage} multiline w={300}>
+            <Box style={{ cursor: "help" }}>{label}</Box>
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </Center>
+    </div>
+  );
+}
+
+export function JobProgress({ finished, failed = false, cancelled = false, error, result, ...props }: IJobProgress) {
+  const { t } = useTranslation();
+  const { current, target, step } = progression({ ...props, result });
+
+  if (target && !finished) {
+    return <RunningProgress current={current} target={target} step={step} />;
+  }
+  if (finished) {
+    // Extract error message from result if available
+    const errorMessage = result?.error ? String(result.error) : error ? String(error) : null;
     return (
-      <div>
-        <Progress size={10} color={JOB_OUTCOME_COLOR[outcome]} value={value} />
-        <Center>
-          {withErrorTooltip ? (
-            <Tooltip label={errorMessage} multiline w={300}>
-              <Box style={{ cursor: "help" }}>{label}</Box>
-            </Tooltip>
-          ) : (
-            label
-          )}
-        </Center>
-      </div>
+      <FinishedProgress
+        outcome={jobOutcome({ finished, failed, cancelled, result })}
+        current={current}
+        target={target}
+        errorCount={result?.error_count != null ? Number(result.error_count) : 0}
+        errorMessage={errorMessage}
+      />
     );
   }
   return (

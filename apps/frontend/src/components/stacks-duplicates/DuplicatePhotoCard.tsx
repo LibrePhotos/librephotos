@@ -4,6 +4,7 @@ import { IconCheck, IconMaximize } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
@@ -28,6 +29,7 @@ export function DuplicatePhotoCard({
   showSelectButton?: boolean;
 }) {
   const { t } = useTranslation();
+  const locale = useFormatLocale();
   const thumbnailUrl = photo.thumbnail_big_url
     ? `${serverAddress}${photo.thumbnail_big_url}`
     : photo.thumbnail_url
@@ -84,7 +86,7 @@ export function DuplicatePhotoCard({
             {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
           </Text>
           <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
-            {formatFileSize(photo.size)}
+            {formatFileSize(photo.size, locale)}
           </Badge>
         </Group>
 

@@ -61,9 +61,7 @@ export function EventCountMonthGraph() {
         }}
       >
         <div style={{ fontWeight: 500, marginBottom: 4 }}>{data.month}</div>
-        <div style={{ color: "var(--mantine-color-blue-6)" }}>
-          {data.Photos} {t("photos.photos")}
-        </div>
+        <div style={{ color: "var(--mantine-color-blue-6)" }}>{t("statistics.photocount", { count: data.Photos })}</div>
       </div>
     );
   }

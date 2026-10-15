@@ -36,6 +36,7 @@ import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import { SelectionEditItems } from "./SelectionEditItems";
+import { selectionLabel } from "./selectionLabel";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { SelectionVisibilityItems } from "./SelectionVisibilityItems";
 import { StackSelectionActions } from "./StackSelectionActions";
@@ -109,6 +110,15 @@ export function SelectionActions(props: Readonly<Props>) {
       ? { select_all: true, query: selectAllQuery ?? {}, excluded_hashes: getExcludedHashes() }
       : { image_hashes: getImageHashes() };
 
+  // The menus' headings say what they act on, in the selection bar's words
+  const selection = selectionLabel(t, {
+    selectAllMode,
+    total: totalCount ?? 0,
+    // In select-all mode the list holds the exclusions
+    excluded: selectedItems.length,
+    selected: selectedItems.length,
+  });
+
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
   // Why the photo actions are off (#2608): they say so, and stay in the menu's arrow-key order.
@@ -181,12 +191,7 @@ export function SelectionActions(props: Readonly<Props>) {
           onRemoved={resetSelection}
         />
       )}
-      <AddToMenu
-        reason={noSelection}
-        selectedCount={selectAllMode ? t("selectionbar.all") : selectedItems.length}
-        onAddToAlbum={onAddToAlbum}
-        onAddTags={onAddTags}
-      />
+      <AddToMenu reason={noSelection} selection={selection} onAddToAlbum={onAddToAlbum} onAddTags={onAddTags} />
 
       {/* Wide enough for the one-line notes under Hide and Archive. */}
       <Menu width={260}>
@@ -203,8 +208,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
         <Menu.Dropdown>
           <Menu.Label>
-            {t("selectionactions.photoactions")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
-            {t("selectionactions.selected")})
+            {t("selectionactions.labelwithselection", { label: t("selectionactions.photoactions"), selection })}
           </Menu.Label>
 
           <Menu.Divider />

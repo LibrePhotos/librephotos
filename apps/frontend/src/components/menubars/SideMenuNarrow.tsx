@@ -23,22 +23,12 @@ import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../uiConstants";
+import { formatFileSize } from "../../util/fileSize";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 import classes from "./SideMenuNarrow.module.css";
-
-function formatBytes(bytes: number, decimals = 2) {
-  if (!+bytes) return "0 Bytes";
-
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
-
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
-}
 
 export function SideMenuNarrow(): React.JSX.Element {
   const { isAuthenticated } = useAuth();
@@ -55,6 +45,7 @@ export function SideMenuNarrow(): React.JSX.Element {
   const location = useLocation();
 
   const { t } = useTranslation();
+  const locale = useFormatLocale();
   const matches = useIsDesktopLayout();
 
   // Update active state when location changes
@@ -187,7 +178,9 @@ export function SideMenuNarrow(): React.JSX.Element {
             </Text>
             {duplicateStats && duplicateStats.potential_savings_bytes > 0 && (
               <Text size="xs">
-                {t("sidemenu.cleanup.savings", { size: formatBytes(duplicateStats.potential_savings_bytes, 1) })}
+                {t("sidemenu.cleanup.savings", {
+                  size: formatFileSize(duplicateStats.potential_savings_bytes, locale),
+                })}
               </Text>
             )}
           </a>
@@ -208,8 +201,8 @@ export function SideMenuNarrow(): React.JSX.Element {
         {!isLoading && storageStats && (
           <Tooltip
             label={t("storagetooltip", {
-              usedstorage: formatBytes(storageStats.used_storage),
-              totalstorage: formatBytes(storageStats.total_storage),
+              usedstorage: formatFileSize(storageStats.used_storage, locale),
+              totalstorage: formatFileSize(storageStats.total_storage, locale),
             })}
           >
             <Progress

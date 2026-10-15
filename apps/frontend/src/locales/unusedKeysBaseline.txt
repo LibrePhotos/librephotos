@@ -6,7 +6,6 @@ clear
 dataviz
 emptystate.dataviz.description
 emptystate.dataviz.title
-emptystate.scanning.processed
 exif.deleteduplicate
 exif.deleteduplicatetitle
 facesdashboard.clusteredfacescounter

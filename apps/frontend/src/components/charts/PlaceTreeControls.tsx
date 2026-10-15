@@ -15,6 +15,8 @@ import type { ParseKeys } from "i18next";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { formatPercent } from "../../util/formatCount";
 import styles from "./LocationLink.module.css";
 
 export type TreeLayout = "cartesian" | "polar";
@@ -136,10 +138,11 @@ type ZoomProps = Readonly<{ zoom: number; onZoomIn: () => void; onZoomOut: () =>
 
 /** Zoom in, the zoom level, zoom out and reset, in the place tree's corner. */
 export function PlaceTreeZoomControls({ zoom, onZoomIn, onZoomOut, onReset }: ZoomProps) {
+  const locale = useFormatLocale();
   return (
     <div className={styles.zoomControls}>
       <ZoomButton label="placetree.zoomIn" icon={<IconPlus size={18} />} onClick={onZoomIn} />
-      <div className={styles.zoomLevel}>{Math.round(zoom * 100)}%</div>
+      <div className={styles.zoomLevel}>{formatPercent(zoom, locale, 0)}</div>
       <ZoomButton label="placetree.zoomOut" icon={<IconMinus size={18} />} onClick={onZoomOut} />
       <div className={styles.zoomDivider} />
       <ZoomButton label="placetree.reset" icon={<IconFocus size={18} />} onClick={onReset} />

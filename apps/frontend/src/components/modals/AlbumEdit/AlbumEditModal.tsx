@@ -11,6 +11,7 @@ import {
 import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
 import { fuzzyMatch } from "../../../util/util";
 import { AlbumListItem } from "../../album/AlbumListItem";
+import { selectionLabel } from "../../photolist/selectionLabel";
 import { Tile } from "../../Tile";
 import { modalTitleStyles } from "../modalTitleStyles";
 import classes from "./AlbumEditModal.module.css";
@@ -74,8 +75,12 @@ export function AlbumEditModal(props: Props) {
         <Text c="dimmed">{t("modalalbum.selectedimages", { count: effectiveCount })}</Text>
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">
-            {t("selectionbar.all")} {effectiveCount} {t("selectionbar.selected")}
-            {excludedHashes.length > 0 && ` (${excludedHashes.length} ${t("selectionbar.excluded")})`}
+            {selectionLabel(t, {
+              selectAllMode,
+              total: totalCount ?? 0,
+              excluded: excludedHashes.length,
+              selected: selectedImages.length,
+            })}
           </Badge>
         ) : (
           <Group>
