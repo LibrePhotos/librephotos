@@ -130,7 +130,14 @@ class ExtractDateTimeTest(TestCase):
 
         args = extract.call_args.args
         self.assertEqual(args[0], photo.main_file.path)
-        self.assertEqual(args[3], RuleContext(52.5, 13.4, self.user.default_timezone))
+        context = args[3]
+        self.assertIsInstance(context, RuleContext)
+        self.assertEqual(
+            (52.5, 13.4, self.user.default_timezone),
+            (context.gps_lat, context.gps_lon, context.user_default_tz),
+        )
+        # The photo has no Google Takeout JSON next to it (#2270).
+        self.assertIsNone(context.takeout_taken_at())
 
     def test_a_date_set_by_hand_skips_the_rules(self):
         photo = create_test_photo(owner=self.user, timestamp=JUNE_1)
