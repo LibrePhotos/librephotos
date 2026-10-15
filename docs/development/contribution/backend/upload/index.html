@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.db834ee0.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.09c4982e.js" defer="defer"></script>
 <script src="/assets/js/main.6b2e9296.js" defer="defer"></script>
 </head>
 <body>
@@ -23,6 +23,7 @@
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="get-apiexistshash"><code>GET /api/exists/&lt;hash&gt;</code><a href="#get-apiexistshash" class="hash-link" aria-label="Direct link to get-apiexistshash" title="Direct link to get-apiexistshash" translate="no">​</a></h3>
 <p>Checks if a file exists on the server.
 The hash is calculated by <code>md5 + user_id</code></p>
+<p>Answers <code>{&quot;exists&quot;: true, &quot;photo_id&quot;: &quot;&lt;uuid&gt;&quot;}</code> for a file you already have, and <code>{&quot;exists&quot;: false, &quot;photo_id&quot;: null}</code> otherwise; only your own photos count. The <code>photo_id</code> lets a client add a file it already has to the album it is uploading into (<em>not released yet</em>; older servers send only <code>exists</code>).</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="headers">Headers:<a href="#headers" class="hash-link" aria-label="Direct link to Headers:" title="Direct link to Headers:" translate="no">​</a></h4>
 <ul>
 <li class=""><code>Authorization</code> - <code>Bearer &lt;token&gt;</code></li>
@@ -53,6 +54,7 @@ On the first chunk leave <code>upload_id</code> empty, you will get a response w
 <li class=""><code>filename</code> - The original filename</li>
 <li class=""><code>device_created_at</code> (optional) - When the device says the photo was taken, used as its date only when the file carries none (screenshots, images saved from messengers). Epoch milliseconds (an integer of at least 11 digits) or ISO 8601. An ISO value keeps its wall-clock time: <code>2025-10-11T21:30:00-07:00</code> is stored as 21:30 on 11 October, like a camera&#x27;s local <code>DateTimeOriginal</code>.</li>
 <li class=""><code>device_modified_at</code> (optional) - The same, used when <code>device_created_at</code> is missing or unusable.</li>
+<li class=""><code>album_id</code> (optional, <em>not released yet</em>) - One of your own albums to add the photo to. It is checked before the file is saved: an id that is not one of your albums (someone else&#x27;s, or deleted) answers <code>400</code> with code <code>album_not_found</code>, a locked album <code>400</code> with code <code>album_locked</code>, and a value that is not an id <code>400</code> with code <code>invalid</code>, in the API&#x27;s <a class="" href="/docs/user-guide/api-authentication#error-responses">error format</a> (<code>field</code> is <code>album_id</code>). The staged upload is kept after such a refusal, so the same <code>upload_id</code> can be completed again without <code>album_id</code> to put the file in the library only.</li>
 <li class=""><code>device_tz_offset</code> (optional) - The device&#x27;s UTC offset in minutes east of UTC at that moment (<code>-420</code> for UTC-7; the opposite sign of JavaScript&#x27;s <code>getTimezoneOffset()</code>). Epoch milliseconds carry no time zone: they are shown at this offset, or in the owner&#x27;s default time zone when it is not sent.</li>
 </ul>
 <p>A shorter number or a value that does not parse is ignored. <em>Not released yet:</em> before this, epoch milliseconds were stored as UTC time and ISO values as their UTC instant, so these photos could land on the wrong day.</p>
@@ -65,8 +67,8 @@ On the first chunk leave <code>upload_id</code> empty, you will get a response w
 <p>On success the server:</p>
 <ul>
 <li class="">Writes the assembled file to <code>&lt;upload root&gt;/web/&lt;sanitized filename&gt;</code>. The upload root is the user&#x27;s upload folder when an admin set one, otherwise <code>&lt;scan_directory&gt;/uploads</code> (<code>User.upload_root()</code>). The <code>web/</code> subfolder is created if missing; <code>web</code> is currently hardcoded as the origin device, so mobile backups land there too.</li>
-<li class="">Queues a background task chain (django-q) that imports the photo — <code>create_new_image</code> + <code>handle_new_image</code>, caption generation, geolocation, album-date location and face extraction. Because of this, <strong>clients do not need to call <code>/api/scanuploadedphotos/</code> afterwards</strong>; the upload is already imported.</li>
-<li class="">Deduplicates by hash: if a <code>Photo</code> with the same hash already exists, or a same-named file in the upload folder has the same hash, the file is not copied and no new import is performed (the endpoint still returns <code>200</code>). If a same-named file exists with a <em>different</em> hash, the image hash is appended to the basename.</li>
+<li class="">Queues a background task chain (django-q) that imports the photo — <code>create_new_image</code> + <code>handle_new_image</code>, then <code>add_photo_to_user_album</code> when <code>album_id</code> was sent (it checks again that the album is still yours and unlocked, and skips it otherwise), caption generation, geolocation, album-date location and face extraction. Because of this, <strong>clients do not need to call <code>/api/scanuploadedphotos/</code> afterwards</strong>; the upload is already imported.</li>
+<li class="">Deduplicates by hash: if a <code>Photo</code> with the same hash already exists, or a same-named file in the upload folder has the same hash, the file is not copied and no new import is performed (the endpoint still returns <code>200</code>); with <code>album_id</code>, the photo you already have is added to that album. If a same-named file exists with a <em>different</em> hash, the image hash is appended to the basename.</li>
 </ul>
 <p>Error responses:</p>
 <ul>
