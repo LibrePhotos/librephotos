@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0178_reapply_date_rules_job_type"),
+        ("api", "0179_album_collections"),
     ]
 
     operations = [
