@@ -5,6 +5,7 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 import { useColorMode } from "@docusaurus/theme-common";
 import Layout from "@theme/Layout";
 import Tour from "@site/src/components/landing/Tour";
+import WhatsNew from "@site/src/components/landing/WhatsNew";
 import landing from "@site/src/components/landing/landing.module.css";
 
 import styles from "./index.module.css";
@@ -110,6 +111,16 @@ function Hero() {
         <HeroShot />
       </div>
     </header>
+  );
+}
+
+function WhatsNewSection() {
+  return (
+    <section id="new" className={styles.section}>
+      <div className="container">
+        <WhatsNew />
+      </div>
+    </section>
   );
 }
 
@@ -264,7 +275,7 @@ const TOOLS: { name: string; role: string; href: string }[] = [
 const COMMUNITY: { title: string; body: string; href: string }[] = [
   { title: "GitHub", body: "Source code, issues and pull requests.", href: "https://github.com/LibrePhotos/librephotos" },
   { title: "Discord", body: "Ask questions and talk to other users.", href: "https://discord.com/invite/xwRvtSDGWb" },
-  { title: "Release notes", body: "What changed, week by week.", href: "/blog" },
+  { title: "Release notes", body: "What changed in each release.", href: "/blog" },
   { title: "Weblate", body: "Translate the interface into your language.", href: "https://hosted.weblate.org/engage/librephotos/" },
 ];
 
@@ -308,6 +319,7 @@ export default function Home(): ReactNode {
     <Layout title="Self-hosted photo management" description={DESCRIPTION}>
       <Hero />
       <main>
+        <WhatsNewSection />
         <TourSection />
         <StartHere />
         <Sponsor />

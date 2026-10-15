@@ -15,9 +15,8 @@ You can also restore a photo instead of deleting it: select it in Trash and clic
 
 Deleting the images from the file system only works, if LibrePhotos has the access to the images. If it is read only, files will not be deleted.
 
-:::info Not released yet
-
-The trashed-on date, the **Empty trash** button and the automatic deletion described below come with the next release.
+:::info
+<Since version="1.4.0" /> This applies to the trashed-on date, the **Empty trash** button and the automatic deletion described below.
 
 :::
 

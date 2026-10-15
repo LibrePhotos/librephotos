@@ -90,8 +90,8 @@ Results are displayed grouped by date, similar to the main timeline view.
 
 ## Search Filters
 
-:::note Not released yet
-The filters arrive in the release after 1.3.0, in the web app and in the API.
+:::note
+<Since version="1.4.0" /> The filters come to the web app and to the API in the same release.
 :::
 
 Besides the words you type, a search can be narrowed by the people in the photo, the camera, the exposure, the rating, the day, the location and the file. On the search results page, click **Filters** next to the media button (on a phone, the filter icon) to open the panel:

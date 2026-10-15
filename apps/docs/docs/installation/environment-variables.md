@@ -214,7 +214,7 @@ services:
 #### The machine learning services follow the switches
 
 :::note
-Since 1.2.0. On 1.1.0 the switches stop the processing, but the services still start.
+<Since version="1.2.0" /> On 1.1.0 the switches stop the processing, but the services still start.
 :::
 
 The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.

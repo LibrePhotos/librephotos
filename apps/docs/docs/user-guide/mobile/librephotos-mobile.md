@@ -86,7 +86,7 @@ written to the photo's file or XMP sidecar when
 [Write edits to files](../exif-data.md#what-librephotos-writes) is on, the same as a favorite
 set on the web.
 
-:::note Star ratings (since 1.3.0)
+:::note[Star ratings <Since version="1.3.0" />]
 Until this fix, a star rating set in the app showed on the phone but never
 reached the server. Saving ratings needs a build of the app that includes the
 fix and a server newer than 1.2.1 (1.3.0 or later); an older server rejects the

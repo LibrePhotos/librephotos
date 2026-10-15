@@ -39,8 +39,16 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+      - name: Test the release post scripts
+        run: node --test "scripts/**/*.test.mjs"
+      # Front matter (zod), em dashes, required blocks, shot ids, releases.json in sync.
+      - name: Check release posts
+        run: node scripts/check-release-posts.mjs
       - name: Build website
         run: yarn build
+      # learn_more links and their anchors, and every <Since> badge against releases.json.
+      - name: Check release posts against the build
+        run: node scripts/check-release-posts.mjs --build build
 
   deploy:
     name: Deploy to GitHub Pages
@@ -64,6 +72,8 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+      - name: Check release posts
+        run: node scripts/check-release-posts.mjs
       - name: Build website
         run: yarn build
 

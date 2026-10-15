@@ -17,8 +17,8 @@ namespace, a family 1 group such as `XMP-dc:` one of them. To see what a file ho
 `EXIF:ISO` (not `ISOSpeedRatings`), the 35 mm focal length `EXIF:FocalLengthIn35mmFormat` (not
 `FocalLengthIn35mmFilm`) and the EXIF `DateTime` tag `EXIF:ModifyDate`.
 
-:::info Not released yet
-Much of this page describes the next release. Up to 1.3.0:
+:::info
+<Since version="1.4.0" /> Much of this page is new. Up to 1.3.0:
 
 - the setting was called **Synchronize metadata to disk**. It wrote ratings, dates, face regions
   and rotations, but never captions, locations or tags, and rotations never reached a sidecar.
