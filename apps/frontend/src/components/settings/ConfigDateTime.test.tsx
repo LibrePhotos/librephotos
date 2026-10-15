@@ -162,6 +162,25 @@ describe("ConfigDateTime", () => {
     expect(container.textContent).toContain(i18n.t("rules.rule_type", { rule: i18n.t("rules.rule_type_names.exif") }));
   });
 
+  // #2270
+  it("lists a Google Takeout rule as a rule, with the name of its type", async () => {
+    const takeoutRule = {
+      id: 21,
+      name: "Takeout capture time",
+      rule_type: "takeout_json",
+      transform_tz: 1,
+      source_tz: "utc",
+      report_tz: "user_default",
+      is_default: true,
+    };
+    await renderList(JSON.stringify([takeoutRule]));
+
+    expect(container.querySelectorAll("tr[data-sortable-id]")).toHaveLength(1);
+    expect(container.textContent).toContain(
+      i18n.t("rules.rule_type", { rule: i18n.t("rules.rule_type_names.takeout_json") })
+    );
+  });
+
   it("saves the other rules unchanged when one is deleted", async () => {
     const onChange = vi.fn<(rules: string) => void>();
     await renderList(JSON.stringify([legacyRule, ruleWithExtraKey]), onChange);

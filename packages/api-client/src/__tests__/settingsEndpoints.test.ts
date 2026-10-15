@@ -131,7 +131,7 @@ describe("time zones", () => {
 describe("predefined rules", () => {
   it("parse every date-time and burst rule without losing a key", async () => {
     const dateTime = await endpoints.fetchPredefinedRules(fakeServer(JSON.stringify(predefinedRules)).client);
-    expect(dateTime).toStrictEqual({ items: predefinedRules, skipped: [], total: 16 });
+    expect(dateTime).toStrictEqual({ items: predefinedRules, skipped: [], total: 18 });
     const burst = await endpoints.fetchPredefinedBurstRules(fakeServer(JSON.stringify(predefinedBurstRules)).client);
     expect(burst).toStrictEqual({ items: predefinedBurstRules, skipped: [], total: 8 });
     expect(PredefinedRules.parse(predefinedRules)).toStrictEqual(predefinedRules);

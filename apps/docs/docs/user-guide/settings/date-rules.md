@@ -90,6 +90,12 @@ Currently, supported rule types:
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without
   timezones they are always translated to local time using UTC.
+- "takeout_json" - the capture time in the Google Takeout JSON next to the file
+  (`photoTakenTime`). It is a UTC timestamp, so the predefined rules convert it to the time zone of
+  the photo's position (ID 20) or to your default time zone (ID 21). They sit right before the file
+  name rule. See [Importing a Google Takeout export](../google-takeout.md). <Since version="1.4.0" />
+  After the update, an account whose rule list is still a default list (default rules only, in the
+  default order) gets both rules before the file name rule; a list you changed is left as it is.
 - "user_defined" - the old *Timestamp set by user* rule. It no longer matches anything, since a
   date you set by hand always wins (see above), and the settings page no longer offers it.
 

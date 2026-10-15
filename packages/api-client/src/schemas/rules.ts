@@ -52,11 +52,17 @@ const UserDefinedDateTimeProps = BaseDateTimeProps.extend({
   rule_type: z.literal("user_defined"),
 });
 
+// The UTC capture time in the Google Takeout JSON next to the file (api/metadata/takeout.py).
+const TakeoutJsonDateTimeProps = BaseDateTimeProps.extend({
+  rule_type: z.literal("takeout_json"),
+});
+
 export const DateTimeRule = z.discriminatedUnion("rule_type", [
   ExifDateTimeProps,
   PathDateTimeProps,
   FilesystemDateTimeProps,
   UserDefinedDateTimeProps,
+  TakeoutJsonDateTimeProps,
 ]);
 export type DateTimeRule = z.infer<typeof DateTimeRule>;
 

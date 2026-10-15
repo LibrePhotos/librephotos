@@ -2209,7 +2209,8 @@
       "exif": "Exif tag",
       "path": "File path",
       "filesystem": "File property",
-      "user_defined": "Set by user"
+      "user_defined": "Set by user",
+      "takeout_json": "Google Takeout JSON"
     },
     "tz_names": {
       "gps_timezonefinder": "the timezone at the GPS location",

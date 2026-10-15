@@ -48,8 +48,9 @@ from api.directory_watcher.utils import (
     walk_files,
 )
 from api.jobs.queue import JobStep, enqueue_chain, enqueue_followup, enqueue_task
+from api.metadata import takeout
 from api.metadata.reader import existing_sidecars
-from api.mime import VIDEO_EXTENSIONS, extension
+from api.mime import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, extension
 from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
 from api.photos import indexed_mtimes
 from api.photos.files import detach_missing_files, missing_files
@@ -164,18 +165,28 @@ def _group_needs_processing(
     only case where "did it change since it was read?" is the deciding
     question (``_changed_since_read``). A sidecar named in the record of one
     of the group's media files is checked with that file.
+
+    A Google Takeout JSON in the group (``_attach_takeout_json``) is never a
+    known file. LibrePhotos never writes it, so it counts by its modified time
+    against the start of the baseline scan: editing it, or adding it after the
+    photo was scanned, reads the photo again (#2270).
     """
     if full_scan or not last_scan:
         return bool(paths)
     recorded_sidecars = _recorded_sidecars(paths, known)
+    takeout_json = [path for path in paths if takeout.is_takeout_candidate(path)]
     for path in paths:
+        if path in takeout_json:
+            continue
         if is_metadata(path) and indexed_mtimes.sidecar_key(path) in recorded_sidecars:
             continue
         if path not in known:
             return True
         if _changed_since_read(path, known[path], last_scan):
             return True
-    return False
+    return any(
+        _file_was_modified_after(path, last_scan.started_at) for path in takeout_json
+    )
 
 
 def _unrecorded_and_unchanged(
@@ -354,7 +365,7 @@ def _discover_scan_paths(
 
 
 def _partition_scan_paths(
-    photo_list: list[str],
+    photo_list: list[str], walked: bool = True
 ) -> tuple[dict[tuple[str, str], list[str]], list[str]]:
     """Split discovered paths into (directory, basename) file groups and metadata.
 
@@ -363,12 +374,21 @@ def _partition_scan_paths(
     is attached in the same task that creates that Photo instead of racing it.
     Only sidecars whose media file is not part of this scan are returned as
     ``metadata_paths``: their Photo, if any, already exists.
+
+    A Google Takeout JSON joins the group of its media file too
+    (``_attach_takeout_json``); one that describes no file here (an album's
+    ``metadata.json``) is dropped. ``walked``: ``photo_list`` holds every
+    file of its directories, so no directory needs listing again.
     """
     file_groups: dict[tuple[str, str], list[str]] = defaultdict(list)
     sidecar_paths: list[str] = []
+    takeout_names: dict[str, list[str]] = defaultdict(list)
     for path in photo_list:
         if is_metadata(path):
             sidecar_paths.append(path)
+        elif takeout.is_takeout_candidate(path):
+            directory, name = os.path.split(path)
+            takeout_names[directory].append(name)
         else:
             file_groups[get_file_grouping_key(path)].append(path)
 
@@ -381,7 +401,44 @@ def _partition_scan_paths(
             metadata_paths.append(path)
         else:
             file_groups[group_key].append(path)
+    _attach_takeout_json(file_groups, takeout_names if walked else None)
     return file_groups, metadata_paths
+
+
+def _takeout_lookup_order(paths: list[str]) -> list[str]:
+    """The group's media files in the order the main file is picked
+    (``select_main_file``): images, then videos, then the rest, by path."""
+
+    def rank(path: str) -> tuple[int, str]:
+        ext = extension(path)
+        kind = 0 if ext in IMAGE_EXTENSIONS else 1 if ext in VIDEO_EXTENSIONS else 2
+        return kind, path
+
+    return sorted((path for path in paths if not is_metadata(path)), key=rank)
+
+
+def _attach_takeout_json(
+    file_groups: dict[tuple[str, str], list[str]],
+    walked_names: dict[str, list[str]] | None,
+) -> None:
+    """Add the Google Takeout JSON of each file group to its paths (#2270).
+
+    ``walked_names`` holds the JSON names of every walked directory, so none
+    is listed again; without it (a scan of chosen files) each directory of the
+    groups is listed once.
+    """
+    known = (
+        None
+        if walked_names is None
+        else {
+            directory: walked_names.get(directory, []) for directory, _ in file_groups
+        }
+    )
+    with takeout.directory_listings(known):
+        for paths in file_groups.values():
+            found = takeout.takeout_json_path(_takeout_lookup_order(paths))
+            if found is not None:
+                paths.append(found)
 
 
 def _known_paths(batch_paths: list[str]) -> dict[str, KnownFile]:
@@ -676,7 +733,9 @@ def scan_photos(
 
         # === PHASE 1: Group files by (directory, basename) ===
         # This ensures RAW+JPEG pairs are processed together, eliminating race conditions
-        file_groups, metadata_paths = _partition_scan_paths(photo_list)
+        file_groups, metadata_paths = _partition_scan_paths(
+            photo_list, walked=not scan_files
+        )
 
         # Determine which groups need processing.
         #

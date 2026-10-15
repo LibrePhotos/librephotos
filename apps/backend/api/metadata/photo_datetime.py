@@ -16,6 +16,7 @@ from django.utils import timezone
 import api.models
 from api.metadata import datetime_rules
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
+from api.metadata.takeout import takeout_metadata_for
 
 if TYPE_CHECKING:
     from api.models.album_date import AlbumDate
@@ -154,6 +155,10 @@ def _date_time_from_file(photo: Photo) -> datetime | None:
     def exif_getter(tags: list[str]) -> list[Any]:
         return get_metadata(main_file_path, tags=tags, sidecar_files=sidecar_files)
 
+    def takeout_taken_at() -> datetime | None:
+        takeout = takeout_metadata_for(main_file_path)
+        return takeout.taken_at if takeout else None
+
     # Stored as the JSON string the settings page sends (and the default is),
     # but PATCH /api/user/ also accepts the list itself.
     datetime_config = photo.owner.datetime_rules
@@ -167,5 +172,6 @@ def _date_time_from_file(photo: Photo) -> datetime | None:
             gps_lat=photo.exif_gps_lat,
             gps_lon=photo.exif_gps_lon,
             user_default_tz=photo.owner.default_timezone,
+            takeout_taken_at=takeout_taken_at,
         ),
     )
