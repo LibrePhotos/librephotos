@@ -28,6 +28,7 @@ const lists = (labeled: number, inferred: number, unknown: number): FacesTabList
   labeled: Array.from({ length: labeled }, (_, i) => person(i + 1)),
   inferred: Array.from({ length: inferred }, (_, i) => person(i + 10)),
   unknown: Array.from({ length: unknown }, (_, i) => person(i + 20)),
+  deleted: [],
 });
 
 let root: Root | undefined;

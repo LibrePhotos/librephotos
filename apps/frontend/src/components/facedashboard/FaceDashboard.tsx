@@ -19,7 +19,7 @@ import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
 import { FacesEmptyState } from "./FacesEmptyState";
-import { FacesTab } from "./facesTab";
+import type { FacesTab } from "./facesTab";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceActions } from "./hooks/useFaceActions";

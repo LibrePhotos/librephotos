@@ -45,6 +45,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useRenamePersonAlbumMutation: () => ({ mutate: () => {} }),
   useDeletePersonAlbumMutation: () => ({ mutate: () => {} }),
   useFetchPeopleAlbumsQuery: () => ({ data: [] }),
+  useDeletePersonGroupMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
 vi.mock("../../api_client/faces/hooks", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }),
@@ -229,6 +230,8 @@ describe("the toolbar on the Deleted tab", () => {
         allCollapsed={false}
         toggleAllCollapsed={() => {}}
         canCollapse
+        personGroups={[]}
+        groupId={undefined}
       />
     );
   }
