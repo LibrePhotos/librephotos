@@ -1789,6 +1789,26 @@
     "emptytitle": "No albums here",
     "emptydescription": "Put an album in a collection from its ⋮ menu, Collections…"
   },
+  "albumsort": {
+    "button": "Sort: {{key}}",
+    "current": "Sort: {{key}}, {{direction}}",
+    "sortby": "Sort by",
+    "order": "Order",
+    "reset": "Reset to default",
+    "name": "Name",
+    "photos": "Number of photos",
+    "faces": "Number of faces",
+    "datetaken": "Date taken",
+    "placesize": "Size of place",
+    "atoz": "A to Z",
+    "ztoa": "Z to A",
+    "mostfirst": "Most first",
+    "fewestfirst": "Fewest first",
+    "newestfirst": "Newest first",
+    "oldestfirst": "Oldest first",
+    "largestfirst": "Largest first",
+    "smallestfirst": "Smallest first"
+  },
   "personedit": {
     "labelfaces": "Label faces",
     "numberselected": "Label selected {{number}} face(s) as…",

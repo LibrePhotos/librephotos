@@ -146,7 +146,8 @@ describe("My Albums by collection", () => {
   it("shows every album, and the chip counts, without a collection in the URL", async () => {
     await render();
 
-    expect(shownTitles()).toEqual(["Porto", "Tuscany", "Garden"]);
+    // By name, the page's default order (#620)
+    expect(shownTitles()).toEqual(["Garden", "Porto", "Tuscany"]);
     expect(stubs.header?.subtitle).toBe("3 albums");
     const filter = defined(stubs.filter);
     expect(filter.value).toBeUndefined();

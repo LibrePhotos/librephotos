@@ -1,9 +1,11 @@
 import { useElementScrollRestoration } from "@tanstack/react-router";
 import React from "react";
+import type { Ref } from "react";
 import { VirtualGrid } from "./VirtualGrid";
-import type { VirtualGridProps } from "./VirtualGrid";
+import type { VirtualGridHandle, VirtualGridProps } from "./VirtualGrid";
 
-type ScrollRestoredVirtualGridProps = VirtualGridProps & Readonly<{ scrollRestorationId: string }>;
+type ScrollRestoredVirtualGridProps = VirtualGridProps &
+  Readonly<{ scrollRestorationId: string; ref?: Ref<VirtualGridHandle> }>;
 
 /**
  * A VirtualGrid that comes back where it was (#377). The grid scrolls its own element, not the

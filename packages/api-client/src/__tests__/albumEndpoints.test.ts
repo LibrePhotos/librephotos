@@ -59,6 +59,14 @@ describe("user album cards", () => {
     expect(defined(album).cover_photo).toEqual({ image_hash: "h", video: true });
     expect(defined(album).locked).toBe(false);
   });
+
+  it("reads the date of an album's oldest photo, null without one and absent from an older server (#620)", async () => {
+    const cards = [{ ...card, first_photo_date: "2015-06-01T12:00:00Z" }, { ...card, first_photo_date: null }, card];
+    const [dated, undated, older] = await endpoints.fetchUserAlbumsList(fakeServer(page(cards)).client);
+    expect(defined(dated).first_photo_date).toBe("2015-06-01T12:00:00Z");
+    expect(defined(undated).first_photo_date).toBeNull();
+    expect(defined(older).first_photo_date).toBeUndefined();
+  });
 });
 
 describe("user album sharing", () => {

@@ -7,6 +7,14 @@ import type { z } from "zod";
  * the previous key is moved across once (LEGACY_KEYS), so a user's saved state survives the rename.
  */
 export const STORAGE_KEYS = {
+  // The order the user picked on each album list (#620)
+  albumSortEvents: "lp:albumSort.events.v1",
+  albumSortFolders: "lp:albumSort.folders.v1",
+  albumSortPeople: "lp:albumSort.people.v1",
+  albumSortPlaces: "lp:albumSort.places.v1",
+  albumSortTags: "lp:albumSort.tags.v1",
+  albumSortThings: "lp:albumSort.things.v1",
+  albumSortUserAlbums: "lp:albumSort.userAlbums.v1",
   facesCollapsedPersons: "lp:faces.collapsedPersons.v1",
   facesTabScrollPositions: "lp:faces.tabScrollPositions.v1",
   recentlyTaggedPeople: "lp:people.recentlyTagged.v1",

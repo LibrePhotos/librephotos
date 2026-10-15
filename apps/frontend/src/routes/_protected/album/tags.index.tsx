@@ -18,9 +18,12 @@ import {
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { TAG_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";
 import { TagRenameModal } from "../../../components/album/TagRenameModal";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -31,6 +34,9 @@ import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 type TagListEntry = TagList[number];
 
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_TAGS: TagList = [];
+
 export const Route = createFileRoute("/_protected/album/tags/")({
   component: AlbumTag,
 });
@@ -38,10 +44,12 @@ export const Route = createFileRoute("/_protected/album/tags/")({
 function AlbumTag() {
   const { t } = useTranslation();
   const tagsQuery = useFetchTagsQuery();
-  const { data: tags, isFetching } = tagsQuery;
+  const { data, isFetching } = tagsQuery;
+  const tags = data ?? NO_TAGS;
   const listFailure = useListFailure(tagsQuery);
   const sizing = useAlbumListGridConfig();
-  const hasTags = tags && tags.length > 0;
+  const hasTags = tags.length > 0;
+  const tagSort = useAlbumSort(TAG_SORT, tags);
 
   const renameTag = useRenameTagMutation();
   const deleteTag = useDeleteTagMutation();
@@ -125,7 +133,8 @@ function AlbumTag() {
         icon={Tag}
         title={t("tags")}
         loading={isFetching}
-        subtitle={t("tagalbum.showingtags", { count: tags?.length ?? 0, number: tags?.length ?? 0 })}
+        subtitle={t("tagalbum.showingtags", { count: tags.length, number: tags.length })}
+        actions={hasTags ? <AlbumSortMenu {...tagSort.menu} /> : null}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
@@ -140,7 +149,8 @@ function AlbumTag() {
       ) : (
         <TileGrid
           scrollRestorationId="album-tags"
-          items={tags ?? []}
+          items={tagSort.sorted}
+          orderKey={tagSort.orderKey}
           getKey={tag => tag.id}
           sizing={sizing}
           renderItem={renderCover}
@@ -152,7 +162,7 @@ function AlbumTag() {
         opened={isRenameOpen}
         onClose={closeRename}
         tagName={selectedTag?.name}
-        existingNames={(tags ?? []).map(tag => tag.name)}
+        existingNames={tags.map(tag => tag.name)}
         onSubmit={newName => {
           if (selectedTag) {
             renameTag.mutate({ id: selectedTag.id, name: selectedTag.name, newName });
@@ -164,7 +174,7 @@ function AlbumTag() {
         opened={isMergeOpen}
         onClose={closeMerge}
         target={selectedTag}
-        tags={tags ?? []}
+        tags={tags}
         onSubmit={source => {
           if (selectedTag) {
             mergeTags.mutate({

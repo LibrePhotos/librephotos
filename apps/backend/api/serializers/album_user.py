@@ -2,7 +2,15 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from django.db.models import Count, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models import (
+    Count,
+    DateTimeField,
+    Min,
+    OuterRef,
+    Prefetch,
+    QuerySet,
+    Subquery,
+)
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -17,6 +25,7 @@ from api.photos.selection import build_photo_queryset
 from api.serializers.album_date import PublicViewQuery
 from api.serializers.fields import (
     OwnedPhotoField,
+    loaded,
     loaded_count,
     loaded_list,
     shared_serializer,
@@ -33,6 +42,9 @@ from api.serializers.PhotosGroupedByDate import (
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
 
 logger = logging.getLogger(__name__)
+
+# Renders a datetime the way every other date in a response is rendered
+_DATE_FIELD = serializers.DateTimeField()
 
 
 def _album_photos(
@@ -304,8 +316,21 @@ def with_album_user_list_relations(
         .annotate(total=Count("pk"))
         .values("total")
     )
+    # When the album's oldest visible photo was taken, for sorting My Albums by
+    # date (#620). Over the same photos as the count, so a trashed or hidden
+    # photo does not move the album; null when none has a date.
+    first_photo_date = (
+        Photo.visible.filter(albumuser=OuterRef("pk"))
+        .order_by()
+        .values("albumuser")
+        .annotate(first=Min("exif_timestamp"))
+        .values("first")
+    )
     return (
-        queryset.annotate(photo_count=Coalesce(Subquery(visible_photo_count), 0))
+        queryset.annotate(
+            photo_count=Coalesce(Subquery(visible_photo_count), 0),
+            first_photo_date=Subquery(first_photo_date, output_field=DateTimeField()),
+        )
         .select_related("owner", "cover_photo", "share")
         # The cover renders six photo columns; the embedding and EXIF blobs
         # of every album's cover were read for nothing.
@@ -336,6 +361,7 @@ def with_album_user_list_relations(
 class AlbumUserListSerializer(serializers.ModelSerializer):
     cover_photo = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
+    first_photo_date = serializers.SerializerMethodField()
     shared_to = SimpleUserSerializer(many=True, read_only=True)
     owner = SimpleUserSerializer(many=False, read_only=True)
     public = serializers.SerializerMethodField()
@@ -356,6 +382,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "shared_to",
             "owner",
             "photo_count",
+            "first_photo_date",
             "public",
             "public_slug",
             "public_expires_at",
@@ -380,6 +407,17 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
 
     def get_photo_count(self, obj: AlbumUser) -> int:
         return loaded_count(obj, "photo_count")
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_first_photo_date(self, obj: AlbumUser) -> str | None:
+        """When the album's oldest visible photo was taken (#620), null for an
+        empty album or one whose photos have no date."""
+        value = loaded(obj, "first_photo_date")
+        if value is None:
+            return None
+        if not isinstance(value, datetime):
+            raise TypeError(f"AlbumUser.first_photo_date is not a date: {value!r}")
+        return _DATE_FIELD.to_representation(value)
 
     def get_public(self, obj: AlbumUser) -> bool:
         return bool(getattr(obj, "share", None) and obj.share.enabled)

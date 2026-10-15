@@ -1,3 +1,4 @@
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { useDisclosure } from "@mantine/hooks";
 import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -6,10 +7,13 @@ import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
 import { AlbumCollectionFilter } from "../../../components/album/AlbumCollectionFilter";
 import { AlbumCollectionsModal } from "../../../components/album/AlbumCollectionsModal";
+import { USER_ALBUM_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { validateCollectionSearch } from "../../../components/album/collectionFilter";
 import { ManageAlbumCollectionsModal } from "../../../components/album/ManageAlbumCollectionsModal";
 import { NewAlbumButton } from "../../../components/album/NewAlbumButton";
 import { useAlbumCollectionFilter } from "../../../components/album/useAlbumCollectionFilter";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -26,6 +30,9 @@ export const Route = createFileRoute("/_protected/album/user/")({
   validateSearch: validateCollectionSearch,
 });
 
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_ALBUMS: UserAlbumInfo[] = [];
+
 function AlbumUser() {
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
@@ -39,14 +46,16 @@ function AlbumUser() {
   const navigate = Route.useNavigate();
   const albumsQuery = useFetchUserAlbumsQuery();
   const { data, isFetching, isLoading } = albumsQuery;
-  const albums = data ?? [];
+  const albums = data ?? NO_ALBUMS;
   const titles = albums.map(album => album.title);
   const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = albums.length > 0;
   const toggleUserAlbumLocked = useToggleUserAlbumLockedMutation();
+  // Sorted before the collection filter, which keeps the order (#620)
+  const albumSort = useAlbumSort(USER_ALBUM_SORT, albums);
   const { collections, filter, collection, shown, counts } = useAlbumCollectionFilter(
-    albums,
+    albumSort.sorted,
     Route.useSearch().collection
   );
 
@@ -90,7 +99,12 @@ function AlbumUser() {
         loading={isFetching}
         subtitle={subtitle()}
         // With a collection chosen, the new album goes into it (#612)
-        actions={<NewAlbumButton existingTitles={titles} collection={collection} />}
+        actions={
+          <>
+            {hasAlbums ? <AlbumSortMenu {...albumSort.menu} /> : null}
+            <NewAlbumButton existingTitles={titles} collection={collection} />
+          </>
+        }
       />
       {hasAlbums && (
         <AlbumCollectionFilter
@@ -154,6 +168,7 @@ function AlbumUser() {
         <TileGrid
           scrollRestorationId="album-user"
           items={shown}
+          orderKey={albumSort.orderKey}
           getKey={album => album.id}
           sizing={sizing}
           // The card draws its own caption, inside the padded cell

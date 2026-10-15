@@ -8,13 +8,16 @@ import {
 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { eventSortConfig } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { AutoAlbumDeleteModal } from "../../../components/album/AutoAlbumDeleteModal";
 import { eventStartDate } from "../../../components/album/eventDate";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -27,6 +30,9 @@ import { useEventTitle } from "../../../hooks/useEventTitle";
 export const Route = createFileRoute("/_protected/album/events/")({
   component: AlbumAuto,
 });
+
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_EVENTS: AutoAlbumInfo[] = [];
 
 function AlbumAuto() {
   const [autoAlbumID, setAutoAlbumID] = useState("");
@@ -41,6 +47,8 @@ function AlbumAuto() {
   const { t } = useTranslation();
   const eventTitle = useEventTitle();
   const hasAlbums = albums && albums.length > 0;
+  const sortConfig = useMemo(() => eventSortConfig(eventTitle), [eventTitle]);
+  const eventSort = useAlbumSort(sortConfig, albums ?? NO_EVENTS);
 
   function deleteAlbum(album: AutoAlbumInfo) {
     setAutoAlbumID(String(album.id));
@@ -109,6 +117,7 @@ function AlbumAuto() {
           count: albums?.length ?? 0,
           autoalbumlength: albums?.length ?? 0,
         })}
+        actions={hasAlbums ? <AlbumSortMenu {...eventSort.menu} /> : null}
       />
 
       {listFailure ? (
@@ -124,7 +133,8 @@ function AlbumAuto() {
       ) : (
         <TileGrid
           scrollRestorationId="album-events"
-          items={albums ?? []}
+          items={eventSort.sorted}
+          orderKey={eventSort.orderKey}
           getKey={album => album.id}
           sizing={sizing}
           renderItem={renderCover}
