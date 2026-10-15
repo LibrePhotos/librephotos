@@ -36,7 +36,8 @@ Much of this page describes the next release. Up to 1.3.0:
   and lens maker, the serial number and the other exposure fields, the altitude, and the date and
   camera of MKV, WebM and phone videos;
 - shutter speeds faster than about 1/2000 s were stored as `0`, and photos and videos turned a
-  quarter by their orientation were stored at their unturned size (the update fixes the size).
+  quarter by their orientation were stored at their unturned size (the update fixes the size);
+- a photo with a sidecar was stored with the file size of the sidecar, shown in Info.
 
 After the update, a **Rescan** from the Library page reads the new fields of the photos already in
 your library. `python manage.py save_metadata --types face_tags` rewrites the face regions of
@@ -69,7 +70,7 @@ Where a field lists several tags, the first one the photo has is used.
 | More exposure details | `EXIF:ExposureCompensation`, `EXIF:Flash`, `EXIF:MeteringMode`, `EXIF:WhiteBalance`, `EXIF:SubjectDistance`, `EXIF:DigitalZoomRatio` | Stored in the photo's metadata; metering mode and white balance under the names ExifTool prints (Multi-segment, Auto, ...). Subject distance and digital zoom are shown under **Show more** in Info; 0, which EXIF uses for "unknown" and "not used", is left empty. |
 | Camera serial number | `EXIF:SerialNumber` | Stored in the photo's metadata, not shown in Info. |
 | Colour space, bit depth | `EXIF:ColorSpace`, `File:BitsPerSample` | Stored in the photo's metadata. The bit depth is read from JPEG files only. |
-| File size | `File:FileSize` | Shown in Info. |
+| File size | `File:FileSize` | Shown in Info. Read from the photo file, never from a sidecar. |
 | Bursts | `EXIF:SubSecTimeOriginal`, `EXIF:ImageNumber`; `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive`, `MakerNotes:SequenceNumber` | Used by [stack detection](./stacks-and-file-variants.md) to find burst sequences. The `MakerNotes` tags are only read while the matching burst detection rule is on in your settings. |
 
 ## XMP sidecars
@@ -111,7 +112,10 @@ The right column is how the properties are named inside the `.xmp` file; ExifToo
 description, title, creator, copyright, `XMP:DateCreated`, face regions) are read from a sidecar
 under their own names. A sidecar's modify date and orientation are never read: they describe the
 last edit, not the photo, and a sidecar orientation must not turn LibrePhotos' thumbnails. Its
-flash, colour space and serial number are not read either.
+flash, colour space and serial number are not read either. Nor are the tags that describe a file
+rather than the photo: the file size and bit depth (`File:` tags), and the width and height. Those
+always come from the photo file, even when a RAW editor's sidecar holds the size of the RAW
+(`tiff:ImageWidth`, `tiff:ImageLength`).
 
 ### Which sidecar is written
 

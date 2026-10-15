@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 def write_target(user: User) -> bool | None:
     """Where ``user``'s edits are written back: None when they are not.
 
-    None for "Synchronize metadata to disk: Off" (the default, which keeps
+    None for "Write edits to files: Off" (the default, which keeps
     LibrePhotos away from the user's files), else ``use_sidecar``: True for
     the XMP sidecar, False for the media file. Every write path asks this
     instead of reading ``save_metadata_to_disk`` itself (#2293).
@@ -85,7 +85,7 @@ def write_photo_metadata_on_commit(
 ) -> None:
     """Write ``modified_fields`` of a user's edit once the edit commits.
 
-    Follows the owner's "Synchronize metadata to disk" (``write_target``).
+    Follows the owner's "Write edits to files" (``write_target``).
     The write waits for the commit (#2298): a failed or rolled-back save
     never touches the file, and a failed write is logged without undoing
     the saved edit.

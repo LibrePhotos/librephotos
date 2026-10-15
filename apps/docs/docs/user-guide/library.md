@@ -124,7 +124,7 @@ A repeat scan keeps the local copies in step with the server (not released yet):
 
 A downloaded copy keeps the file's modification time on the server, so the "File modified time" [date rules](./settings/date-rules.md) date it by the server's time, not by the day of the download. Copies downloaded by an older version get that time on the next scan, which processes them once more to read their date again.
 
-"Synchronize metadata to disk" does not write into Nextcloud photos; see [Settings](./settings/index.md).
+"Write edits to files" does not write into Nextcloud photos; see [Settings](./settings/index.md).
 
 :::note
 Nextcloud scanning indexes the same media as a local scan: images, videos, RAW files and XMP sidecars.

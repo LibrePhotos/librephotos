@@ -1177,7 +1177,7 @@ class SaveMetadataView(APIView):
 
         Accepts {"types": ["ratings", "face_tags"]} to control what gets written.
         Defaults to ["ratings"] if not specified. Writes to the sidecar or the
-        media file as the user's "Synchronize metadata to disk" says, and is a
+        media file as the user's "Write edits to files" setting says, and is a
         400 while that is Off (#2293).
         """
         user = request_user(request)
@@ -1185,7 +1185,7 @@ class SaveMetadataView(APIView):
         use_sidecar = write_target(user)
         if use_sidecar is None:
             raise ValidationError(
-                "Synchronize metadata to disk is Off: choose 'Save to sidecar' "
+                "Write edits to files is Off: choose 'Save to sidecar' "
                 "or 'Save to media file' in the settings first."
             )
 

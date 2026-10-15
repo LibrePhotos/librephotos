@@ -123,6 +123,23 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             capture_output=True,
         )
 
+        # A sidecar as a RAW editor writes it, with the pixel size of the RAW
+        # (tiff:ImageWidth, read as XMP:ImageWidth), next to the JPEG (#2670).
+        cls.raw_editor = os.path.join(cls.directory, "raw-editor.xmp")
+        subprocess.run(
+            [
+                EXIFTOOL,
+                "-XMP-tiff:ImageWidth=6000",
+                "-XMP-tiff:ImageHeight=4000",
+                "-XMP-tiff:BitsPerSample=14",
+                "-XMP-dc:Description=from the sidecar",
+                "-XMP:Rating=4",
+                cls.raw_editor,
+            ],
+            check=True,
+            capture_output=True,
+        )
+
         # A description with language entries only, no x-default one.
         cls.languages = os.path.join(cls.directory, "languages.jpg")
         PIL.Image.new("RGB", (16, 12), (10, 20, 30)).save(cls.languages)
@@ -182,6 +199,8 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             [self.camera],
             [self.camera, self.sidecar],
             [self.camera, self.geotagged],
+            [self.camera, self.raw_editor],
+            [self.camera, self.geotagged, self.raw_editor],
             [self.geotagged],
             [os.path.join(FIXTURES, "niaz.jpg"), os.path.join(FIXTURES, "niaz.xmp")],
             [os.path.join(FIXTURES, "iptc_test.jpg")],
@@ -276,8 +295,62 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         )
         self.assertEqual(values[Tags.CAMERA], "Test Cam")
 
+    def test_the_file_size_and_dimensions_come_from_the_media_file(self):
+        # ExifTool answers these for the sidecar too; it must not be asked.
+        sidecar_answer = self.plain.get_tags_batch(ALL_TAGS, [self.raw_editor])[0]
+        self.assertEqual(
+            os.path.getsize(self.raw_editor), sidecar_answer["File:FileSize"]
+        )
+        self.assertEqual(6000, sidecar_answer["XMP:ImageWidth"])
+        for et in (self.plain, self.struct):
+            with self.subTest(struct=et is self.struct):
+                values = dict(
+                    zip(
+                        ALL_TAGS,
+                        highest_priority_values(
+                            et, ALL_TAGS, [self.camera, self.raw_editor]
+                        ),
+                    )
+                )
+                # -struct reads without -n: "4.1 kB" rather than a number.
+                for tag in (
+                    Tags.FILE_SIZE,
+                    Tags.IMAGE_WIDTH,
+                    Tags.IMAGE_HEIGHT,
+                    Tags.BITS_PER_SAMPLE,
+                ):
+                    self.assertEqual(et.get_tag(tag, self.camera), values[tag], tag)
+                # What only the sidecar says still wins.
+                self.assertEqual(4, values[Tags.RATING])
+                self.assertEqual("from the sidecar", values[Tags.DESCRIPTION])
+                self.assertEqual("Test Cam", values[Tags.CAMERA])
+        values = dict(
+            zip(
+                ALL_TAGS,
+                highest_priority_values(
+                    self.plain, ALL_TAGS, [self.camera, self.raw_editor]
+                ),
+            )
+        )
+        self.assertEqual(os.path.getsize(self.camera), values[Tags.FILE_SIZE])
+        self.assertEqual(
+            (64, 48), (values[Tags.IMAGE_WIDTH], values[Tags.IMAGE_HEIGHT])
+        )
+        self.assertEqual(8, values[Tags.BITS_PER_SAMPLE])
+
+    def test_a_sidecar_alone_has_no_file_size(self):
+        values = dict(
+            zip(
+                ALL_TAGS,
+                highest_priority_values(self.plain, ALL_TAGS, [self.raw_editor]),
+            )
+        )
+        self.assertIsNone(values[Tags.FILE_SIZE])
+        self.assertIsNone(values[Tags.IMAGE_WIDTH])
+        self.assertEqual(4, values[Tags.RATING])
+
     def test_one_exiftool_command_per_request(self):
-        files = [self.camera, self.geotagged]
+        files = [self.camera, self.geotagged, self.raw_editor]
         with mock.patch.object(
             self.plain, "execute_json", wraps=self.plain.execute_json
         ) as execute_json:

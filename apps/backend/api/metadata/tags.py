@@ -181,3 +181,17 @@ SIDECAR_EQUIVALENTS: dict[str, str] = {
     # are ungrouped, so XMP:SerialNumber would also answer for
     # MakerNotes:SerialNumber.
 }
+
+
+# Tags that describe the file ExifTool reads rather than the photo (#2670). An
+# XMP sidecar answers File:FileSize with its own size, and a RAW editor's
+# sidecar can hold the pixel dimensions of the RAW (tiff:ImageWidth, read as
+# XMP:ImageWidth). The exif service reads these from the media file only.
+MEDIA_FILE_ONLY_GROUPS = ("file", "system")
+MEDIA_FILE_ONLY_TAGS = frozenset({Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT})
+
+
+def describes_the_file(tag: str) -> bool:
+    """Whether *tag* is a property of the file read, never taken from a sidecar."""
+    group, _, _ = tag.rpartition(":")
+    return tag in MEDIA_FILE_ONLY_TAGS or group.lower() in MEDIA_FILE_ONLY_GROUPS
