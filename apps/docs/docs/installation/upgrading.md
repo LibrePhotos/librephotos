@@ -25,6 +25,23 @@ Replace `docker` and `librephotos` with the `dbUser` and `dbName` from your `.en
 
 The [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with SQLite make this backup themselves, see below. On Windows, also keep your own copy of the `db` folder and of `protected_media\secret.key` on another drive, as [Backing up and restoring](windows-standalone.md#backing-up) shows step by step.
 
+## "LibrePhotos is updating" {#updating-screen}
+
+_Not released yet._ Up to 1.3.0, the web app showed empty pages or the login toast "No connection to backend server, try again in a few minutes." while the backend was not answering.
+
+While the backend updates the database or starts up, the web app shows a page that says so instead of the login or your photos. It checks every 5 seconds and goes back to where you were by itself when LibrePhotos answers again; **Check now** asks at once.
+
+- **LibrePhotos is updating**: the database update is running. A few minutes is normal; a large library can take longer. Do not stop the containers or quit the Windows app in the meantime. After 15 minutes the page adds a hint; if nothing changes for an hour, look at `command_migrate.log` in the logs folder.
+- **LibrePhotos is starting**: the update is done and the backend is starting its services.
+- **LibrePhotos is not answering**: the browser gets no answer from the backend at all, for example while its container restarts. If this lasts, check that the backend container (`docker compose ps`) or the Windows app is running.
+- **The update could not finish**: the database update stopped with an error, and LibrePhotos did not start. Your photos are unchanged. The reason is in the logs folder, in `command_migrate.log` (Docker) or `console.log` (Windows app).
+- **This LibrePhotos is too old to update in one step** (reason code E001): see [Upgrading from a release older than 2026w10](#old-releases).
+- **This database belongs to a newer LibrePhotos** (reason code E002): see [Going back to an older release](#downgrade).
+
+On a failure page, **For the person who runs this server** shows the reason code, and **Copy details** (on HTTPS and `localhost`) copies the state, reason code, version and time for a support question.
+
+For now, the backend does not answer at all while it updates the database, so the web app says **LibrePhotos is not answering** during an update as well, and a failed update looks the same; the reason is in `command_migrate.log`. The texts that name the update and its failures need a backend that reports its startup phase, which follows in a later release.
+
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 
 Not released yet: up to 1.3.0, nothing was backed up automatically.

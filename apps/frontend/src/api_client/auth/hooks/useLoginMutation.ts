@@ -1,9 +1,9 @@
 import { authKeys, endpoints, type LoginPost } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { notification } from "../../../service/notifications";
-import { apiClient, ApiError } from "../../api";
+import { apiClient } from "../../api";
 import { setAuthCookie } from "../../authCookies";
+import { mutationErrorMeta } from "../../mutationErrors";
 
 const login = async (credentials: LoginPost) => {
   const data = await endpoints.login(apiClient, credentials);
@@ -37,18 +37,6 @@ function isSameOriginPath(value: string): boolean {
   }
 }
 
-/**
- * True for a backend that is down or still starting: the request never got an
- * answer (fetch rejects with a TypeError), or the proxy answered for it. Wrong
- * credentials (401) and a 500 are already reported in api.ts.
- */
-export function isBackendUnreachable(error: unknown): boolean {
-  if (error instanceof TypeError) {
-    return true;
-  }
-  return error instanceof ApiError && error.status >= 502 && error.status <= 504;
-}
-
 export const useLoginMutation = (options?: UseLoginOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -70,11 +58,9 @@ export const useLoginMutation = (options?: UseLoginOptions) => {
         navigate({ to: "/" });
       }
     },
-    // Without this a login against a stopped backend did nothing visible.
-    onError: error => {
-      if (isBackendUnreachable(error)) {
-        notification.backendUnreachable();
-      }
-    },
+    // No "could not save" toast: wrong credentials are reported by api.ts (401), and a backend that is
+    // down or still starting gets BackendStatusGate's screen (#2310), which replaced the old
+    // "try again in a few minutes" toast.
+    meta: mutationErrorMeta({ reportsErrors: true }),
   });
 };

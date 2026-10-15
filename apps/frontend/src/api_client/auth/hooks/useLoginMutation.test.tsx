@@ -1,28 +1,27 @@
 /**
- * A login against a backend that is down or still starting (no answer at all,
- * or the proxy's 502-504) said nothing: only a 401 and a 500 were reported.
+ * Signing in. A login against a backend that is down or still starting (no
+ * answer at all, or the proxy's 502-504) used to toast "try again in a few
+ * minutes"; BackendStatusGate's screen took that over (#2310).
  */
 import { authKeys } from "@librephotos/api-client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api";
-import { isBackendUnreachable, useLoginMutation } from "./useLoginMutation";
+import { reportMutationError } from "../../mutationErrors";
+import { useLoginMutation } from "./useLoginMutation";
 
 const stubs = vi.hoisted(() => ({
   post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
-  backendUnreachable: vi.fn<() => void>(),
+  saveFailed: vi.fn<(message: string | null) => void>(),
   navigate: vi.fn<(options: { to?: string; href?: string }) => void>(),
   setAuthCookie: vi.fn<(name: "access" | "refresh", value: string) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
 vi.mock("../../../service/notifications", () => ({
-  notification: new Proxy(
-    {},
-    { get: (_target, name) => (name === "backendUnreachable" ? stubs.backendUnreachable : () => {}) }
-  ),
+  notification: new Proxy({}, { get: (_target, name) => (name === "saveFailed" ? stubs.saveFailed : () => {}) }),
 }));
 vi.mock("../../authCookies", async importOriginal => ({
   ...(await importOriginal<typeof import("../../authCookies")>()),
@@ -39,7 +38,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   stubs.post.mockReset();
-  stubs.backendUnreachable.mockReset();
+  stubs.saveFailed.mockReset();
   stubs.navigate.mockReset();
   stubs.setAuthCookie.mockReset();
 });
@@ -69,27 +68,19 @@ async function logIn(
   return client;
 }
 
-describe("isBackendUnreachable", () => {
-  it("is true without an answer and for the proxy's gateway errors", () => {
-    expect(isBackendUnreachable(new TypeError("Failed to fetch"))).toBe(true);
-    expect(isBackendUnreachable(new ApiError("Bad Gateway", 502))).toBe(true);
-    expect(isBackendUnreachable(new ApiError("Gateway Timeout", 504))).toBe(true);
-  });
-
-  it("is false for answers that are reported elsewhere", () => {
-    expect(isBackendUnreachable(new ApiError("Unauthorized", 401))).toBe(false);
-    expect(isBackendUnreachable(new ApiError("Internal Server Error", 500))).toBe(false);
-    expect(isBackendUnreachable(new Error("parse"))).toBe(false);
-  });
-});
-
 describe("useLoginMutation", () => {
-  it("says the server cannot be reached when the request gets no answer", async () => {
+  // The gate shows the "not answering" screen; a "could not save" toast on top said nothing more.
+  it("leaves an unreachable backend to BackendStatusGate", async () => {
     stubs.post.mockRejectedValue(new TypeError("Failed to fetch"));
+    const client = new QueryClient({
+      mutationCache: new MutationCache({ onError: (error, _v, _r, mutation) => reportMutationError(error, mutation) }),
+      defaultOptions: { mutations: { retry: false } },
+    });
 
-    await logIn();
+    await logIn(client);
 
-    expect(stubs.backendUnreachable).toHaveBeenCalledTimes(1);
+    expect(stubs.saveFailed).not.toHaveBeenCalled();
+    expect(stubs.navigate).not.toHaveBeenCalled();
   });
 
   // A "logged out" answer cached earlier in the tab (sign-up never observes the
@@ -105,7 +96,6 @@ describe("useLoginMutation", () => {
     expect(stubs.setAuthCookie).toHaveBeenCalledWith("refresh", "refresh-token");
     expect(client.getQueryData(authKeys.isAuthenticated())).toBe(true);
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/" });
-    expect(stubs.backendUnreachable).not.toHaveBeenCalled();
   });
 
   // The protected shell sends /login?redirect=<path+query>; the visitor came
@@ -131,9 +121,13 @@ describe("useLoginMutation", () => {
 
   it("leaves wrong credentials to the 401 handler", async () => {
     stubs.post.mockRejectedValue(new ApiError("Authentication failed", 401));
+    const client = new QueryClient({
+      mutationCache: new MutationCache({ onError: (error, _v, _r, mutation) => reportMutationError(error, mutation) }),
+      defaultOptions: { mutations: { retry: false } },
+    });
 
-    await logIn();
+    await logIn(client);
 
-    expect(stubs.backendUnreachable).not.toHaveBeenCalled();
+    expect(stubs.saveFailed).not.toHaveBeenCalled();
   });
 });

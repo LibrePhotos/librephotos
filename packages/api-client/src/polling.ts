@@ -10,6 +10,8 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 export const POLL_ACTIVE_MS = 2000;
 /** A long archive build. Checked less often than a progress bar: each check is a request. */
 export const POLL_ARCHIVE_MS = 3000;
+/** The server is down or still starting (#2310): ask whether it serves again. */
+export const POLL_BACKEND_STATUS_MS = 5000;
 /** Nothing is running: only notice that something started (another tab, a scheduled job). */
 export const POLL_IDLE_MS = 15000;
 /** Delay before invalidating after a write, so the writes that follow the response land first. */

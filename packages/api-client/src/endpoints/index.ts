@@ -1,7 +1,7 @@
 import { z } from "zod";
 import * as S from "../schemas";
 import { Photoset } from "../schemas";
-import { runningJobId } from "../transport/client";
+import { ApiError, runningJobId } from "../transport/client";
 import { fetchAllPages, fetchAllPagesWithFirst } from "../transport/pages";
 import type { ApiClient } from "../transport/types";
 import { buildQuery, parseEachResponse, parseResponse, type ParsedEntries } from "../util/parse";
@@ -1412,6 +1412,48 @@ export async function fetchServerLogs(client: ApiClient, lines: number): Promise
 /** Admin: the whole server log file, to save. */
 export async function fetchServerLogFile(client: ApiClient): Promise<Blob> {
   return client.getBlob("/serverlogs");
+}
+
+/* ---- health ------------------------------------------------------------- */
+
+const READY: S.BackendReadiness = { state: "ready" };
+const UNREACHABLE: S.BackendNotReady = { state: "unreachable", reasonCode: null, version: null };
+
+/** A proxy's answer for a server that does not answer (Bad Gateway, Gateway Timeout). */
+const GATEWAY_ERRORS = new Set([502, 504]);
+
+/**
+ * The startup placeholder's 503 names its phase; any other 503 (the running server's own when a
+ * dependency is down, or a proxy's) does not.
+ */
+function startupReadiness(body: unknown): S.BackendReadiness {
+  const startup = S.StartupStatus.safeParse(body);
+  if (!startup.success) return UNREACHABLE;
+  const { status, reason_code: reasonCode, version } = startup.data;
+  return { state: status, reasonCode: reasonCode ?? null, version: version ?? null };
+}
+
+/** What a readiness probe that did not answer 200 says about the server. */
+function readinessFromError(error: unknown): S.BackendReadiness {
+  // No answer at all (fetch rejected: server down, network gone), or the proxy answered for it.
+  if (!(error instanceof ApiError) || GATEWAY_ERRORS.has(error.status)) return UNREACHABLE;
+  // Any other answer comes from the server, so it serves requests again: the app's own error
+  // handling takes over from here, rather than a status screen that could never go away.
+  return error.status === 503 ? startupReadiness(error.body) : READY;
+}
+
+/**
+ * Whether the server serves requests yet (`/healthz/ready/`). Never rejects: a 200 is `ready`
+ * (its `HealthReady` body is not needed), a 503 from the startup placeholder names its phase
+ * (`StartupStatus`), and no answer, a proxy's 502-504 or another 503 is `unreachable`.
+ */
+export async function fetchBackendReadiness(client: ApiClient): Promise<S.BackendReadiness> {
+  try {
+    await client.get<unknown>("/healthz/ready/");
+    return READY;
+  } catch (error) {
+    return readinessFromError(error);
+  }
 }
 
 /* ---- services (sidecars) ------------------------------------------------ */

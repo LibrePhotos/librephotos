@@ -23,13 +23,7 @@ function invalidToken() {
   toast.error(i18n.t("login.error.token_not_valid"), { title: i18n.t("login.error.token") });
 }
 
-/** The server could not be reached at all, or the proxy answered for it (502-504). */
-function backendUnreachable() {
-  toast.error(i18n.t("login.errorbackend"), { title: i18n.t("login.errortitle") });
-}
-
 export const auth = {
   authError,
-  backendUnreachable,
   invalidToken,
 };

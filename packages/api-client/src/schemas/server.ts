@@ -145,3 +145,30 @@ export const ServiceActionResponse = z.object({
   message: z.string(),
 });
 export type ServiceActionResponse = z.infer<typeof ServiceActionResponse>;
+
+/**
+ * The 503 body of `GET /healthz/ready/` (and of every other `/api/` path) while LibrePhotos is not
+ * serving yet (#2310): the startup placeholder that answers on the backend port during the database
+ * update says what it is doing. `reason_code` names why an update failed (`E001`: the database is
+ * too old for this release, `E002`: a newer release has written it, `unknown`: anything else, the
+ * reason is in the log); `version` is the release that is starting. Fixed codes only: the answer
+ * is anonymous, so it never carries exception text or paths. Not in openapi.json: the placeholder
+ * is not a Django view. The running server answers this path itself, with `HealthReady`.
+ */
+export const StartupStatus = z.object({
+  status: z.enum(["starting", "updating", "failed"]),
+  reason_code: z.string().optional(),
+  version: z.string().optional(),
+});
+export type StartupStatus = z.infer<typeof StartupStatus>;
+
+/** Why the server is not serving yet; `unreachable` when nothing answered for it. */
+export type BackendNotReady = {
+  state: StartupStatus["status"] | "unreachable";
+  /** Why an update `failed`: the server's reason code, `null` when it sent none. */
+  reasonCode: string | null;
+  version: string | null;
+};
+
+/** What `fetchBackendReadiness` makes of the readiness probe. */
+export type BackendReadiness = { state: "ready" } | BackendNotReady;
