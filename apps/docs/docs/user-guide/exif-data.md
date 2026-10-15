@@ -375,7 +375,7 @@ was called "Synchronize metadata to disk"._
 | Rotation | yes, except into HEIC, AVIF and RAW originals | `XMP-tiff:Orientation` in the sidecar, `EXIF:Orientation` in the file |
 | Caption | yes (_not released yet_) | `XMP-dc:Description` in the sidecar; in the file `XMP-dc:Description` and `EXIF:ImageDescription`, and `IPTC:Caption-Abstract` if the file already has IPTC data |
 | Location | yes (_not released yet_) | `XMP-exif:GPSLatitude`/`GPSLongitude` in the sidecar; in an image file `GPS:GPSLatitude`/`GPSLongitude` with their `N`/`S` and `E`/`W` references; in an MP4 or MOV `Keys:GPSCoordinates` |
-| Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject` |
+| Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject`; deleting a photo's last face removes `RegionInfo` (an empty one in the sidecar) |
 | Tags | yes (_not released yet_) | `XMP-dc:Subject` in the sidecar; in the file `XMP-dc:Subject`, and `IPTC:Keywords` if the file already has IPTC data |
 
 A caption keeps its line breaks. Clearing the caption removes the description, and removing a
@@ -391,6 +391,15 @@ you remove a tag of the same name, and `XMP-iptcExt:PersonInImage` and
 `XMP-lr:HierarchicalSubject` are never changed. A tag that came from one of those is not written
 as a keyword unless you add it yourself. A new sidecar starts from the photo's own keywords, so
 it does not hide them.
+
+Face regions always follow the faces a photo has in LibrePhotos: labelling, adding, deleting or
+restoring a face writes the photo's regions again, and the names of the people no longer on it
+leave the keywords, unless the photo has a tag of that name. Deleting the last face removes
+`XMP-mwg-rs:RegionInfo` from the photo file; in the sidecar mode the sidecar gets an empty
+`RegionInfo` instead, so the regions another app wrote into the original stay hidden. A photo that
+has no faces in LibrePhotos at all (not scanned for faces yet) keeps the regions of its file.
+`XMP-MP:RegionInfo` and `XMP-digiKam:TagsList` are never changed. _Not released yet: up to 1.3.0,
+deleting a face left its region in the file._
 
 With tags written to files, a rescan only turns keywords into tags that the file did not have
 before, such as one another app added. A tag you removed stays removed, even where the file still

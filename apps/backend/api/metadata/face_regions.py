@@ -23,6 +23,7 @@ from api.metadata.writer import TagValue, add_to, remove_from
 from api.models.face import Face
 from api.models.person import Person
 from api.models.photo_metadata import merged_keywords_of
+from api.models.tag import Tag
 from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
@@ -158,20 +159,44 @@ def _person_keyword_tags(
     return tags
 
 
-def region_names(region_info: object) -> list[str]:
-    """The names of the face regions in a struct read of XMP:RegionInfo."""
+def _face_regions(region_info: object) -> list[dict[str, object]]:
+    """The face regions in a struct read of XMP:RegionInfo."""
     if not isinstance(region_info, dict):
         return []
     regions = region_info.get("RegionList")
     if not isinstance(regions, list):
         return []
     return [
-        _single_line(str(region["Name"]))
+        region
         for region in regions
-        if isinstance(region, dict)
-        and region.get("Type") == "Face"
-        and region.get("Name") not in (None, "")
+        if isinstance(region, dict) and region.get("Type") == "Face"
     ]
+
+
+def region_names(region_info: object) -> list[str]:
+    """The names of the face regions in a struct read of XMP:RegionInfo."""
+    return [
+        _single_line(str(region["Name"]))
+        for region in _face_regions(region_info)
+        if region.get("Name") not in (None, "")
+    ]
+
+
+def _names_to_unlist(photo: Photo, region_info: object) -> list[str]:
+    """The names of the file's face regions a write may take out of the keywords.
+
+    Not a name the photo has as a tag: the keyword write-back (#2634) put
+    that keyword there for the tag, and it stays while the tag does.
+    """
+    names = region_names(region_info)
+    if not names:
+        return []
+    tagged = set(
+        Tag.objects.owned_by(photo.owner)
+        .filter(photos=photo, name__in=names)
+        .values_list("name", flat=True)
+    )
+    return [name for name in names if name not in tagged]
 
 
 def _keywords_to_start_from(photo: Photo, use_sidecar: bool) -> list[str] | None:
@@ -200,11 +225,20 @@ def _keywords_to_start_from(photo: Photo, use_sidecar: bool) -> list[str] | None
     return merged_keywords_of({"xmp_subject": subject, "iptc_keywords": iptc_keywords})
 
 
+#: What a sidecar says for "no face regions" (#1531): an empty
+#: ``mwg-rs:Regions``. ExifTool reads it back as "", which the scan takes
+#: over the original's regions; removing the tag from the sidecar instead
+#: would let the regions of the original show through again.
+NO_REGIONS = "{}"
+
+
 def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]:
-    """Build face region exiftool tags dict for a photo.
+    """The tags that make the target's face regions the photo's live faces.
 
     Returns a dict of tags suitable for merging into write_photo_metadata()'s
-    tags_to_write, or an empty dict if no faces exist.
+    tags_to_write, or an empty dict when there is nothing to write. A photo
+    whose faces were all deleted gets its regions cleared
+    (``_cleared_region_tags``); one that never had a face is left alone.
 
     Args:
         photo: Photo model instance
@@ -213,24 +247,14 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     Returns:
         dict: e.g. {"XMP-mwg-rs:RegionInfo": "{RegionList=[...]}"}  or {}
     """
-    faces = Face.objects.filter(
-        photo=photo,
-        deleted=False,
-    ).select_related("person")
+    faces = list(
+        Face.objects.filter(photo=photo, deleted=False).select_related("person")
+    )
+    if not faces:
+        return _cleared_region_tags(photo, use_sidecar)
 
-    if not faces.exists():
-        return {}
-
-    # Get thumbnail dimensions
-    try:
-        thumb_path = photo.thumbnail.thumbnail_big.path
-        thumb_image = PIL.Image.open(thumb_path)
-        thumb_width, thumb_height = thumb_image.size
-        thumb_image.close()
-    except Exception:
-        logger.error(
-            "Cannot open thumbnail for photo %s, skipping face tags", photo.image_hash
-        )
+    thumbnail_size = _thumbnail_size(photo)
+    if thumbnail_size is None:
         return {}
 
     # Get EXIF orientation and original image dimensions. The face boxes are
@@ -242,13 +266,7 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         tags=[Tags.IMAGE_WIDTH, Tags.IMAGE_HEIGHT, *SHOWN_ORIENTATION_TAGS],
         sidecar_files=sidecar_files,
     )
-    # The face regions as the scan reads them, for the names they had.
-    (region_info,) = get_metadata(
-        photo.main_file.path,
-        tags=[Tags.REGION_INFO],
-        struct=True,
-        sidecar_files=sidecar_files,
-    )
+    region_info = _region_info(photo, sidecar_files)
     # The thumbnail shows the file under its own orientation (#2615) with the
     # user's LibrePhotos rotation on top (#2606).
     orientation = exif_orientation_showing(
@@ -256,37 +274,79 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         photo.local_orientation,
     )
 
-    # Convert each face's coordinates
-    face_regions: list[_FaceRegion] = []
-    for face in faces:
-        x, y, w, h = thumbnail_coords_to_normalized(
-            face.location_top,
-            face.location_right,
-            face.location_bottom,
-            face.location_left,
-            thumb_width,
-            thumb_height,
-        )
-        x, y, w, h = region_to_stored((x, y, w, h), orientation)
-        # Only write person name for user-labeled faces
-        if face.person and face.person.kind == Person.KIND_USER:
-            name = face.person.name
-        else:
-            name = ""
-        face_regions.append(
-            {
-                "name": name,
-                "x": x,
-                "y": y,
-                "w": w,
-                "h": h,
-            }
-        )
-
     return build_face_region_exiftool_args(
-        face_regions,
+        [_face_region(face, thumbnail_size, orientation) for face in faces],
         image_width,
         image_height,
-        previous_names=region_names(region_info),
+        previous_names=_names_to_unlist(photo, region_info),
         keywords=_keywords_to_start_from(photo, use_sidecar),
     )
+
+
+def _cleared_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]:
+    """The tags that take every face region out of the target (#1531), or none.
+
+    Only for a photo whose faces were all deleted in LibrePhotos while its
+    files still give face regions: a photo without any face (not scanned for
+    faces yet) keeps the regions another app wrote. The media file loses
+    ``RegionInfo``; a sidecar gets ``NO_REGIONS``. The names of the regions
+    go from the keywords too, as on a relabel (``_person_keyword_tags``).
+    """
+    if not Face.objects.filter(photo=photo, deleted=True).exists():
+        return {}
+    region_info = _region_info(photo, sidecar_files_for_photo(photo))
+    if not _face_regions(region_info):
+        return {}
+    tags: dict[str, TagValue] = {
+        Tags.REGION_INFO_WRITE: NO_REGIONS if use_sidecar else ""
+    }
+    names = _names_to_unlist(photo, region_info)
+    if names:
+        tags.update(
+            _person_keyword_tags([], names, _keywords_to_start_from(photo, use_sidecar))
+        )
+    return tags
+
+
+def _region_info(photo: Photo, sidecar_files: list[str]) -> object:
+    """The face regions as the scan reads them (a struct), for the names they had."""
+    assert photo.main_file is not None
+    (region_info,) = get_metadata(
+        photo.main_file.path,
+        tags=[Tags.REGION_INFO],
+        struct=True,
+        sidecar_files=sidecar_files,
+    )
+    return region_info
+
+
+def _thumbnail_size(photo: Photo) -> tuple[int, int] | None:
+    """The width and height of the big thumbnail the face boxes are in, or None."""
+    try:
+        thumb_path = photo.thumbnail.thumbnail_big.path
+        thumb_image = PIL.Image.open(thumb_path)
+        width, height = thumb_image.size
+        thumb_image.close()
+    except Exception:
+        logger.error(
+            "Cannot open thumbnail for photo %s, skipping face tags", photo.image_hash
+        )
+        return None
+    return width, height
+
+
+def _face_region(
+    face: Face, thumbnail_size: tuple[int, int], orientation: int
+) -> _FaceRegion:
+    """``face`` as a region of the stored image; only a user's label names it."""
+    x, y, w, h = thumbnail_coords_to_normalized(
+        face.location_top,
+        face.location_right,
+        face.location_bottom,
+        face.location_left,
+        *thumbnail_size,
+    )
+    x, y, w, h = region_to_stored((x, y, w, h), orientation)
+    person = face.person
+    name = person.name if person and person.kind == Person.KIND_USER else ""
+    return {"name": name, "x": x, "y": y, "w": w, "h": h}

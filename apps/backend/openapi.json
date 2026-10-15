@@ -2034,6 +2034,7 @@
     "/api/deletefaces/": {
       "post": {
         "operationId": "api_deletefaces_create",
+        "description": "Delete faces; only the requester's own faces are touched (#127, #1531).\n\n``delete_faces`` updates the people and the search captions, and queues\nthe write that takes the faces' regions out of the files.",
         "tags": [
           "api"
         ],

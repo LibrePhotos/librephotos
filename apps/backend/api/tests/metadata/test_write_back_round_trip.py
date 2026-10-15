@@ -22,7 +22,9 @@ from django.db import transaction
 from rest_framework.test import APIClient
 
 from api.directory_watcher.file_handlers import _process_photo
+from api.faces import extractor as face_extractor
 from api.faces.extractor import extract_from_exif
+from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import geolocate_photo
 from api.metadata import edits
 from api.metadata.jobs import (
@@ -36,6 +38,7 @@ from api.metadata.photo_writer import rotate_photo, write_photo_metadata
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.metadata.writer import MetadataWriteError, write_metadata
+from api.models.face import Face
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
@@ -49,7 +52,12 @@ from api.tests.metadata.exiftool_harness import (
     load,
     shown_layout,
 )
-from api.tests.utils import create_test_face, create_test_person, create_test_user
+from api.tests.utils import (
+    create_test_face,
+    create_test_person,
+    create_test_tag,
+    create_test_user,
+)
 
 SIDECAR = User.SaveMetadata.SIDECAR_FILE
 MEDIA_FILE = User.SaveMetadata.MEDIA_FILE
@@ -1558,6 +1566,260 @@ class FaceTagRoundTripTest(RealExifToolTestCase):
             response = self._save_metadata_request(photo)
 
         self.assertEqual(400, response.status_code, response.content)
+
+
+# A second face in the 96 x 64 thumbnail, clear of FACE_LANDSCAPE.
+FACE_SECOND = (34, 90, 58, 60)
+
+
+class FaceDeleteRoundTripTest(RealExifToolTestCase):
+    """Deleting faces takes their regions out of the file or sidecar (#1531).
+
+    The write is queued once per request and reads the faces as they are
+    when it runs; ``enqueue_task`` runs it right away here. The next face
+    scan reads the file back (``extract_faces``, face service off).
+    """
+
+    def _photo(self, path, mode, *faces):
+        user = create_test_user(save_metadata_to_disk=mode, save_face_tags_to_disk=True)
+        photo = self.photo_for(path, user, thumbnails=True)
+        for name, (top, right, bottom, left) in faces:
+            person = create_test_person(
+                name=name, kind=Person.KIND_USER, cluster_owner=user
+            )
+            create_test_face(
+                photo=photo,
+                person=person,
+                location_top=top,
+                location_right=right,
+                location_bottom=bottom,
+                location_left=left,
+            )
+        return photo
+
+    def _written(self, path, mode, *faces):
+        """A photo with ``faces`` whose regions are already on disk."""
+        photo = self._photo(path, mode, *faces)
+        write_photo_metadata(
+            photo, use_sidecar=mode == SIDECAR, metadata_types=["face_tags"]
+        )
+        self.exiftool.writes.clear()
+        return photo
+
+    def _alice_and_bob(self, path, mode):
+        return self._written(
+            path, mode, ("Alice", FACE_LANDSCAPE), ("Bob", FACE_SECOND)
+        )
+
+    def _post(self, photo, url, names):
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
+        ids = list(
+            Face.objects.filter(photo=photo, person__name__in=names).values_list(
+                "pk", flat=True
+            )
+        )
+        with (
+            patch("api.faces.labels.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.post(url, {"face_ids": ids}, format="json")
+        self.assertEqual(200, response.status_code, response.content)
+
+    def _delete(self, photo, *names):
+        self._post(photo, "/api/deletefaces/", names)
+
+    def _restore(self, photo, *names):
+        self._post(photo, "/api/restore-faces/", names)
+
+    def _names_read_back(self, photo):
+        faces = extract_from_exif(
+            photo.main_file.path, photo.thumbnail.thumbnail_big.path
+        )
+        return sorted(face[4] for face in faces or [])
+
+    def _target(self, path, mode):
+        return self.sidecar_of(path) if mode == SIDECAR else path
+
+    def _file_keywords(self, path):
+        (subject,) = self.read_tags(path, "XMP-dc:Subject").values()
+        if subject is None:
+            return []
+        return subject if isinstance(subject, list) else [subject]
+
+    def _rescan(self, photo):
+        with (
+            patch("api.faces.photo_faces.feature_enabled", return_value=True),
+            patch.object(face_extractor, "extract_from_face_service", return_value=[]),
+        ):
+            extract_faces(Photo.objects.get(pk=photo.pk))
+
+    def _live_names(self, photo):
+        return sorted(
+            Face.objects.filter(photo=photo, deleted=False).values_list(
+                "person__name", flat=True
+            )
+        )
+
+    @contextmanager
+    def _original_untouched(self, path, mode):
+        if mode != SIDECAR:
+            yield
+            return
+        with open(path, "rb") as handle:
+            before = handle.read()
+        yield
+        with open(path, "rb") as handle:
+            self.assertEqual(before, handle.read(), f"{path} was rewritten")
+
+    def _delete_one_of_two(self, extension):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(extension, f"two-{mode}")
+                photo = self._alice_and_bob(path, mode)
+
+                with self._original_untouched(path, mode):
+                    self._delete(photo, "Alice")
+
+                self.assertWritesLanded(expected=1)
+                self.assertEqual(["Bob"], self._names_read_back(photo))
+                self.assertEqual(["Bob"], self._file_keywords(self._target(path, mode)))
+                self._rescan(photo)
+                self.assertEqual(["Bob"], self._live_names(photo))
+                self.assertEqual(2, Face.objects.filter(photo=photo).count())
+
+    def test_deleting_one_of_two_faces_in_a_jpeg(self):
+        self._delete_one_of_two(".jpg")
+
+    def test_deleting_one_of_two_faces_in_a_heic(self):
+        self._delete_one_of_two(".heic")
+
+    def _delete_the_last_face(self, extension):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(extension, f"last-{mode}")
+                photo = self._written(path, mode, ("Alice", FACE_LANDSCAPE))
+                target = self._target(path, mode)
+
+                with self._original_untouched(path, mode):
+                    self._delete(photo, "Alice")
+
+                self.assertWritesLanded(expected=1)
+                region = self.read_tags(target, Tags.REGION_INFO)[Tags.REGION_INFO]
+                # Gone from the media file; an empty Regions in the sidecar.
+                self.assertEqual(None if mode == MEDIA_FILE else "", region)
+                self.assertEqual([], self._names_read_back(photo))
+                self.assertEqual([], self._file_keywords(target))
+                self._rescan(photo)
+                self.assertEqual([], self._live_names(photo))
+
+    def test_deleting_the_last_face_of_a_jpeg_clears_its_regions(self):
+        self._delete_the_last_face(".jpg")
+
+    def test_deleting_the_last_face_of_a_heic_clears_its_regions(self):
+        self._delete_the_last_face(".heic")
+
+    def test_regions_another_app_wrote_into_the_original(self):
+        """digiKam wrote the regions into the JPEG; the scan imported them."""
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"digikam-{mode}")
+                self.tag(
+                    path,
+                    "-XMP-mwg-rs:RegionInfo={AppliedToDimensions={W=96,H=64,"
+                    "Unit=pixel},RegionList=[{Area={X=0.291667,Y=0.3125,"
+                    "W=0.25,H=0.3125,Unit=normalized},Name=Alice,Type=Face}]}",
+                    "-XMP-dc:Subject=Alice",
+                    "-XMP-dc:Subject=Holiday",
+                )
+                user = create_test_user(
+                    save_metadata_to_disk=mode, save_face_tags_to_disk=True
+                )
+                photo = self.photo_for(path, user, thumbnails=True)
+                self._rescan(photo)
+                self.assertEqual(["Alice"], self._live_names(photo))
+
+                with self._original_untouched(path, mode):
+                    self._delete(photo, "Alice")
+
+                self.assertWritesLanded(expected=1)
+                self.assertEqual([], self._names_read_back(photo))
+                self._rescan(photo)
+                self.assertEqual([], self._live_names(photo))
+                keywords = self._file_keywords(self._target(path, mode))
+                self.assertEqual(["Holiday"], keywords)
+
+    def test_deleting_then_restoring_writes_the_regions_back(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"restore-{mode}")
+                photo = self._alice_and_bob(path, mode)
+                target = self._target(path, mode)
+
+                self._delete(photo, "Alice")
+                self._restore(photo, "Alice")
+                self.assertEqual(["Alice", "Bob"], self._names_read_back(photo))
+
+                self._delete(photo, "Alice", "Bob")
+                self.assertEqual([], self._names_read_back(photo))
+                self._restore(photo, "Alice", "Bob")
+
+                self.assertWritesLanded(expected=4)
+                self.assertEqual(["Alice", "Bob"], self._names_read_back(photo))
+                self.assertCountEqual(["Alice", "Bob"], self._file_keywords(target))
+                self._rescan(photo)
+                self.assertEqual(["Alice", "Bob"], self._live_names(photo))
+                self.assertEqual(2, Face.objects.filter(photo=photo).count())
+
+    def test_a_keyword_the_user_added_as_a_tag_stays(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                path = self.make_image(".jpg", f"tagged-{mode}")
+                photo = self._alice_and_bob(path, mode)
+                create_test_tag(photo.owner, "Alice").photos.add(photo)
+
+                self._delete(photo, "Alice", "Bob")
+
+                self.assertEqual([], self._names_read_back(photo))
+                target = self._target(path, mode)
+                self.assertEqual(["Alice"], self._file_keywords(target))
+
+    def test_a_photo_without_faces_keeps_the_regions_of_its_file(self):
+        path = self.make_image(".jpg")
+        self.tag(
+            path,
+            "-XMP-mwg-rs:RegionInfo={RegionList=[{Area={X=0.3,Y=0.3,W=0.2,"
+            "H=0.2,Unit=normalized},Name=Alice,Type=Face}]}",
+        )
+        photo = self._photo(path, MEDIA_FILE)
+
+        with self.assertUntouched(path):
+            write_photo_metadata(photo, use_sidecar=False, metadata_types=["face_tags"])
+
+    def test_a_cleared_photo_is_not_written_again(self):
+        path = self.make_image(".jpg")
+        photo = self._written(path, SIDECAR, ("Alice", FACE_LANDSCAPE))
+        self._delete(photo, "Alice")
+
+        write_photo_metadata(photo, use_sidecar=True, metadata_types=["face_tags"])
+
+        self.assertWritesLanded(expected=1)
+
+    def test_nothing_is_written_when_off(self):
+        for mode, face_tags in ((OFF, True), (MEDIA_FILE, False)):
+            with self.subTest(mode=mode, face_tags=face_tags):
+                path = self.make_image(".jpg", f"off-{mode}-{face_tags}")
+                photo = self._photo(path, mode, ("Alice", FACE_LANDSCAPE))
+                User.objects.filter(pk=photo.owner.pk).update(
+                    save_face_tags_to_disk=face_tags
+                )
+                photo.owner.refresh_from_db()
+
+                with self.assertUntouched(path):
+                    self._delete(photo, "Alice")
 
 
 class ScanReadsOnlyTest(RealExifToolTestCase):

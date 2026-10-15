@@ -2,19 +2,25 @@ import datetime
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
+from rest_framework.test import APIClient
 
+from api.faces.labels import write_face_tags_later
 from api.metadata.face_regions import (
+    NO_REGIONS,
     build_face_region_exiftool_args,
     get_face_region_tags,
     thumbnail_coords_to_normalized,
 )
 from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.tags import Tags
+from api.metadata.writer import add_to, remove_from
 from api.models.person import Person
+from api.models.user import User
 from api.tests.utils import (
     create_test_face,
     create_test_person,
     create_test_photo,
+    create_test_tag,
     create_test_user,
 )
 
@@ -591,3 +597,166 @@ class TestSaveMetadataIntegration(TestCase):
 
         tags = mock_write_metadata.call_args[0][1]
         self.assertEqual("", tags[Tags.DATE_CREATED])
+
+
+# A face region as a struct read of XMP:RegionInfo gives it.
+ALICE_REGION = {
+    "RegionList": [
+        {
+            "Area": {"X": 0.5, "Y": 0.5, "W": 0.2, "H": 0.2, "Unit": "normalized"},
+            "Name": "Alice",
+            "Type": "Face",
+        }
+    ]
+}
+
+
+class TestClearedFaceRegionTags(TestCase):
+    """A photo whose faces were all deleted has its regions cleared (#1531)."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photo = create_test_photo(
+            owner=self.user, thumbnail_big="thumbnails_big/test.jpg"
+        )
+        person = create_test_person(
+            name="Alice", kind=Person.KIND_USER, cluster_owner=self.user
+        )
+        create_test_face(photo=self.photo, person=person, deleted=True)
+
+    def _tags(self, region_info, use_sidecar=False, photo=None, **on_disk):
+        found = {**FILE_METADATA, Tags.REGION_INFO: region_info, **on_disk}
+
+        def get_metadata(media_file, tags, **kwargs):
+            return [found.get(tag) for tag in tags]
+
+        with patch("api.metadata.face_regions.get_metadata", side_effect=get_metadata):
+            return get_face_region_tags(photo or self.photo, use_sidecar=use_sidecar)
+
+    def test_the_media_file_loses_its_regions_and_their_names(self):
+        tags = self._tags(ALICE_REGION)
+
+        self.assertEqual(
+            {Tags.REGION_INFO_WRITE: "", remove_from(Tags.SUBJECT): ["Alice"]}, tags
+        )
+
+    def test_a_new_sidecar_says_there_are_none(self):
+        tags = self._tags(
+            ALICE_REGION, use_sidecar=True, **{Tags.SUBJECT: ["Alice", "Holiday"]}
+        )
+
+        self.assertEqual(
+            {Tags.REGION_INFO_WRITE: NO_REGIONS, Tags.SUBJECT: ["Holiday"]}, tags
+        )
+
+    def test_a_file_without_face_regions_is_left_alone(self):
+        not_a_face = {"RegionList": [{"Name": "Rex", "Type": "Pet"}]}
+        for region_info in (None, "", {"AppliedToDimensions": {}}, not_a_face):
+            with self.subTest(region_info=region_info):
+                self.assertEqual({}, self._tags(region_info))
+
+    def test_a_photo_without_faces_keeps_the_regions_of_its_file(self):
+        photo = create_test_photo(owner=self.user)
+
+        self.assertEqual({}, self._tags(ALICE_REGION, photo=photo))
+
+    def test_a_name_the_photo_has_as_a_tag_stays_a_keyword(self):
+        create_test_tag(self.user, "Alice").photos.add(self.photo)
+
+        self.assertEqual({Tags.REGION_INFO_WRITE: ""}, self._tags(ALICE_REGION))
+
+    def test_unnamed_regions_change_no_keywords(self):
+        unnamed = {"RegionList": [{"Type": "Face", "Name": ""}]}
+
+        self.assertEqual({Tags.REGION_INFO_WRITE: ""}, self._tags(unnamed))
+
+    def test_a_relabel_keeps_a_name_the_photo_has_as_a_tag(self):
+        create_test_tag(self.user, "Alice").photos.add(self.photo)
+        bob = create_test_person(
+            name="Bob", kind=Person.KIND_USER, cluster_owner=self.user
+        )
+        create_test_face(
+            photo=self.photo,
+            person=bob,
+            location_top=100,
+            location_right=300,
+            location_bottom=300,
+            location_left=100,
+        )
+        mock_img = MagicMock()
+        mock_img.size = (1000, 800)
+
+        with patch("api.metadata.face_regions.PIL.Image.open", return_value=mock_img):
+            tags = self._tags(ALICE_REGION)
+
+        self.assertEqual(["Bob"], tags[remove_from(Tags.SUBJECT)])
+        self.assertEqual(["Bob"], tags[add_to(Tags.SUBJECT)])
+
+
+class DeleteFacesWriteBackTest(TestCase):
+    """Deleting faces queues one write of the regions of every photo (#1531)."""
+
+    def setUp(self):
+        self.user = create_test_user(
+            save_metadata_to_disk=User.SaveMetadata.MEDIA_FILE,
+            save_face_tags_to_disk=True,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        person = create_test_person(cluster_owner=self.user)
+        self.photos = [create_test_photo(owner=self.user) for _ in range(2)]
+        # A labelled face on one photo, an unknown one on the other.
+        self.faces = [
+            create_test_face(photo=self.photos[0], person=person),
+            create_test_face(photo=self.photos[1]),
+        ]
+
+    def _delete(self):
+        with (
+            patch("api.faces.labels.enqueue_task") as enqueue,
+            patch("api.faces.labels.write_photo_metadata") as write,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(
+                "/api/deletefaces/",
+                {"face_ids": [face.pk for face in self.faces]},
+                format="json",
+            )
+        self.assertEqual(200, response.status_code, response.content)
+        write.assert_not_called()  # not in the request
+        return enqueue
+
+    def test_one_job_writes_every_photo(self):
+        enqueue = self._delete()
+
+        enqueue.assert_called_once()
+        func, user_id, photo_ids = enqueue.call_args.args
+        self.assertEqual((write_face_tags_later, self.user.pk), (func, user_id))
+        self.assertCountEqual([photo.pk for photo in self.photos], photo_ids)
+
+    def test_nothing_is_queued_when_off(self):
+        for mode, face_tags in (
+            (User.SaveMetadata.OFF, True),
+            (User.SaveMetadata.MEDIA_FILE, False),
+        ):
+            with self.subTest(mode=mode, face_tags=face_tags):
+                User.objects.filter(pk=self.user.pk).update(
+                    save_metadata_to_disk=mode, save_face_tags_to_disk=face_tags
+                )
+                self.user.refresh_from_db()
+
+                self._delete().assert_not_called()
+
+    def test_the_job_writes_each_photo_once(self):
+        self._delete()
+
+        with patch("api.faces.labels.write_photo_metadata") as write:
+            error = write_face_tags_later(
+                self.user.pk, [photo.pk for photo in self.photos]
+            )
+
+        self.assertIsNone(error)
+        self.assertCountEqual(
+            [photo.pk for photo in self.photos],
+            [call.args[0].pk for call in write.call_args_list],
+        )

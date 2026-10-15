@@ -91,6 +91,8 @@ A face whose thumbnail is missing (faces from old versions, or a thumbnail that 
 
 Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan, and so the face can be [restored](#restore-deleted-faces).
 
+If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. _Not released yet: up to 1.3.0, deleting a face left its region and name in the file._
+
 ## Undo a face action
 
 _Not released yet: Undo and the Deleted tab come with the release after 1.3._
@@ -105,7 +107,7 @@ The **Deleted** tab lists every face you deleted, grouped by the person each fac
 - click the green restore button next to a person's name to restore all of that person's faces, or
 - choose **Restore face** in a face's ⋮ menu.
 
-A restored face goes back to its person (or to the unknown faces), counts for that person again and is found by search under their name. If **Write face tags to image files** is on, the face's region is written to the photo again.
+A restored face goes back to its person (or to the unknown faces), counts for that person again and is found by search under their name. If **Write face tags to image files** is on, the face's region and the person's name are written to the photo again.
 
 ## Re-scan faces
 
