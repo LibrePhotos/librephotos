@@ -1,0 +1,37 @@
+/* A round face crop, like the album hub's people (#2241). The thin border keeps a pale face's
+   edge on a white page. */
+.face {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--mantine-color-default-border);
+}
+
+/* The whole photo when a person has no face crop: square, with the cover radius */
+.photo {
+  display: block;
+  border-radius: var(--mantine-radius-md);
+  object-fit: cover;
+}
+
+/* The ring goes round the picture, so it is a circle around a circle */
+.link {
+  display: block;
+  border-radius: 50%;
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible > * {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+/* The ⋮ chip on the corner of the circle's box, clear of the face */
+.menu {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}

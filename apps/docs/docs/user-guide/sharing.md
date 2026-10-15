@@ -13,7 +13,7 @@ The **Sharing** page (accessible from the navigation) is your central hub for al
 - **Public photos** — Other users on your instance who have made their profile public
 - **Shared with you** — Photos and albums that others have shared with you
 - **You shared** — Photos and albums you have shared with others
-- **Public Links** — Albums and photos you've shared publicly via link
+- **Public Links** — Albums and photos you've shared publicly via link. An album card shows the album's title and number of photos; a photo card says **Share link** and when you made the link, or **Public photo** and the day the photo was taken. (Not released yet: up to 1.3.0, photo cards had no caption.)
 
 ## Sharing Albums with Users
 

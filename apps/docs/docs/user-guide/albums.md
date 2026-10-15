@@ -16,6 +16,8 @@ Albums you create manually to organize photos however you like. You can add any 
 ### People Albums
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
 
+The People page shows each person as a round picture of their cover face, the same face the Albums page shows; their name and number of faces sit under it. Choosing **Set as cover…** on a person's page also makes that person's face in the photo their cover face. A person whose face has no picture yet shows the whole cover photo instead, and a person without faces shows a placeholder. (Not released yet: up to 1.3.0, the People page showed the whole cover photo for everyone.)
+
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
 - **Rename** renames the person. A name another person already has offers **Merge into** that person instead (see below).
