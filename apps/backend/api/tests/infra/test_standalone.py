@@ -6,11 +6,15 @@ Everything here runs from source: the compiled binary is recognised through
 relies on is covered without a Nuitka build.
 """
 
+import importlib.util
+import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 from io import StringIO
+from pathlib import Path
 from types import SimpleNamespace
 from unittest import skipUnless
 from unittest.mock import MagicMock, patch
@@ -18,6 +22,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from api.runtime import supervisor
+from api.tests.infra.deploy_files import BACKEND_ROOT, REPO_ROOT
 from api.tests.ml_services.sidecar_starts import fake_sidecar_starts
 from librephotos import standalone
 
@@ -29,6 +34,130 @@ FAKE_COMPILED = SimpleNamespace(
 def as_compiled():
     """Make librephotos.standalone look compiled by Nuitka in standalone mode."""
     return patch.object(standalone, "__compiled__", FAKE_COMPILED, create=True)
+
+
+def load_build_script():
+    """scripts/build_standalone.py, which is a script rather than a package module."""
+    path = BACKEND_ROOT / "scripts" / "build_standalone.py"
+    spec = importlib.util.spec_from_file_location("build_standalone_probe", path)
+    assert spec is not None and spec.loader is not None
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    return build
+
+
+WINDOWS_PAGE = (
+    REPO_ROOT / "apps" / "docs" / "docs" / "installation" / "windows-standalone.md"
+)
+
+
+class StartHereTextTest(SimpleTestCase):
+    """START_HERE.txt in the zip says what the Windows docs page says (#2320)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.build = load_build_script()
+        cls.text = cls.build.START_HERE_TEXT
+
+    def test_the_admin_is_created_on_the_setup_screen_not_by_the_first_start(self):
+        self.assertNotIn("creates the admin", self.text)
+        self.assertIn("create the admin account on the setup screen", self.text)
+
+    def test_it_names_the_data_folder_and_the_tray_menu_items_that_exist(self):
+        self.assertIn(r"%LOCALAPPDATA%\LibrePhotos", self.text)
+        tray_source = (BACKEND_ROOT / "librephotos" / "tray.py").read_text(
+            encoding="utf-8"
+        )
+        for item in ("Open data folder", "Quit LibrePhotos"):
+            with self.subTest(item=item):
+                self.assertIn(item, self.text)
+                self.assertIn(f'"{item}"', tray_source)
+
+    def test_it_links_updating_backing_up_and_uninstalling(self):
+        anchors = set(
+            re.findall(
+                re.escape(self.build.WINDOWS_DOCS_URL) + r"#([a-z0-9-]+)", self.text
+            )
+        )
+        self.assertLessEqual({"updating", "backing-up", "uninstalling"}, anchors)
+
+    @skipUnless(WINDOWS_PAGE.is_file(), "needs the repository checkout (apps/docs)")
+    def test_every_linked_section_exists_on_the_windows_page(self):
+        # Docusaurus checks links but not anchors, so a renamed heading would
+        # leave the zip pointing at the top of the page.
+        page = WINDOWS_PAGE.read_text(encoding="utf-8")
+        anchors = re.findall(
+            re.escape(self.build.WINDOWS_DOCS_URL) + r"#([a-z0-9-]+)", self.text
+        )
+        self.assertTrue(anchors)
+        for anchor in anchors:
+            with self.subTest(anchor=anchor):
+                self.assertIn(f"{{#{anchor}}}", page)
+
+
+class StageRuntimeFilesTest(SimpleTestCase):
+    """What build_standalone.py puts next to the binary, START_HERE.txt included."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.build = load_build_script()
+
+    def stage(self, root, with_binaries=True):
+        site = root / "site-packages"
+        if with_binaries:
+            for target in self.build.BUNDLED_BINARY_DIRS.values():
+                (site / target).mkdir(parents=True)
+                (site / target / "tool.exe").write_text("tool", encoding="utf-8")
+        for directory in self.build.SOURCE_FILES_ON_DISK:
+            (site / directory).mkdir(parents=True)
+            (site / directory / "0001_initial.py").write_text("", encoding="utf-8")
+        for name in ("frontend", "static"):
+            (root / name).mkdir()
+            (root / name / "index.html").write_text(name, encoding="utf-8")
+        dist = root / "librephotos"
+        dist.mkdir()
+        with (
+            patch.object(
+                self.build.sysconfig, "get_paths", return_value={"purelib": str(site)}
+            ),
+            patch.object(
+                self.build,
+                "build_info",
+                return_value={"version": "9.9.9", "git_hash": "abc1234"},
+            ),
+        ):
+            self.build.stage_runtime_files(
+                dist, root / "frontend", root / "static", "9.9.9"
+            )
+        return dist
+
+    def test_start_here_and_the_runtime_files_land_next_to_the_binary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = self.stage(Path(tmp))
+
+            self.assertEqual(
+                self.build.START_HERE_TEXT,
+                (dist / "START_HERE.txt").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                {"version": "9.9.9", "git_hash": "abc1234"},
+                json.loads((dist / "build_info.json").read_text(encoding="utf-8")),
+            )
+            for target in self.build.BUNDLED_BINARY_DIRS.values():
+                self.assertTrue((dist / target / "tool.exe").is_file())
+            for directory in self.build.SOURCE_FILES_ON_DISK:
+                self.assertTrue((dist / directory / "0001_initial.py").is_file())
+            for name in ("frontend_build", "static", "LICENSE", "README.md"):
+                self.assertTrue((dist / name).exists(), name)
+
+    def test_a_missing_bundled_binary_stops_the_build(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit) as stopped:
+                self.stage(Path(tmp), with_binaries=False)
+
+        self.assertIn("is missing", str(stopped.exception))
 
 
 class StandaloneExecutableTest(SimpleTestCase):

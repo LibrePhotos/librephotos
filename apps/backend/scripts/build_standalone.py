@@ -280,6 +280,42 @@ def build_info(version):
     }
 
 
+# The Windows page of the docs. START_HERE.txt links its sections, and
+# api/tests/infra/test_standalone.py checks that each anchor exists there.
+WINDOWS_DOCS_URL = "https://docs.librephotos.com/docs/installation/windows-standalone"
+
+# For people who open the zip and look for what to do (#2320). It follows
+# apps/docs/docs/installation/windows-standalone.md.
+START_HERE_TEXT = f"""\
+LibrePhotos for Windows
+
+Starting
+  Double-click librephotos.exe. No window opens: LibrePhotos runs in the
+  background with an icon in the notification area (bottom right, maybe
+  behind the ^ arrow) and opens http://localhost:8000/ in your browser.
+  On the first start, create the admin account on the setup screen, then
+  set the scan directory of your user to the folder with your photos and
+  start a scan. The machine learning models are downloaded on the first
+  scan. Step by step: {WINDOWS_DOCS_URL}#running-it
+
+Where your library is
+  Your photos stay where they are. The database, thumbnails, models and
+  logs are in %LOCALAPPDATA%\\LibrePhotos (tray menu: Open data folder;
+  --data-dir chooses another place), not in this program folder.
+
+Updating, backing up, uninstalling
+  Quit LibrePhotos from its tray icon first (Quit LibrePhotos).
+  Updating:     {WINDOWS_DOCS_URL}#updating
+  Backing up:   {WINDOWS_DOCS_URL}#backing-up
+  Uninstalling: {WINDOWS_DOCS_URL}#uninstalling
+
+Commands
+  librephotos.exe --help lists the options. librephotos.exe manage <cmd>
+  runs any manage.py command, e.g. manage createadmin; options such as
+  --data-dir come before manage. See {WINDOWS_DOCS_URL}#running-a-command
+"""
+
+
 def stage_runtime_files(dist, frontend_build, static, version):
     copy_tree(frontend_build, dist / "frontend_build")
     copy_tree(static, dist / "static")
@@ -299,21 +335,7 @@ def stage_runtime_files(dist, frontend_build, static, version):
     (dist / "build_info.json").write_text(
         json.dumps(build_info(version)), encoding="utf-8"
     )
-    (dist / "START_HERE.txt").write_text(
-        "LibrePhotos standalone\n"
-        "\n"
-        "Double-click librephotos.exe (or run it from a terminal) to start the\n"
-        "server; it opens http://localhost:8000/ in your browser. The first start\n"
-        "creates the admin account and downloads the machine learning models.\n"
-        "\n"
-        "Your library stays where it is: set the scan directory of your user to\n"
-        "the folder with your photos. The database, thumbnails and logs go to\n"
-        "%LOCALAPPDATA%\\LibrePhotos (pass --data-dir to choose another place).\n"
-        "\n"
-        "librephotos.exe --help lists the options; librephotos.exe manage <cmd>\n"
-        "runs any manage.py command, e.g. manage createadmin.\n",
-        encoding="utf-8",
-    )
+    (dist / "START_HERE.txt").write_text(START_HERE_TEXT, encoding="utf-8")
 
 
 def archive(dist, output_dir):
