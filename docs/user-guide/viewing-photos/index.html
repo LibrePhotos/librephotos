@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
-<script src="/assets/js/runtime~main.8a6f3517.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.e4ec85a4.js" defer="defer"></script>
 <script src="/assets/js/main.6b2e9296.js" defer="defer"></script>
 </head>
 <body>
@@ -155,7 +155,14 @@
 </ul>
 <p>When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the <a class="" href="/docs/user-guide/settings/date-rules">date rules</a>, a rescan keeps them, and <strong>Remove timestamp</strong> in a photo&#x27;s <a href="#timestamp" class="">Timestamp</a> editor hands that photo back to the rules. With <a class="" href="/docs/user-guide/settings/#metadata-options">Write edits to files</a> on, LibrePhotos writes them to the photos&#x27; files or sidecars in the background, as <code>XMP:DateCreated</code>. <em>Not released yet.</em></p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="file--camera-info">File &amp; Camera Info<a href="#file--camera-info" class="hash-link" aria-label="Direct link to File &amp; Camera Info" title="Direct link to File &amp; Camera Info" translate="no">​</a></h3>
-<p>Near the top of the sidebar, LibrePhotos shows a summary of the current file: the filename (a link that opens the original file in a new tab), the image dimensions and file size, and — when the photo has more than one file — the <strong>+N formats</strong> toggle described under <a href="#file-variants" class="">File Variants</a> below. When the photo carries camera EXIF, a second line lists the camera and lens with the aperture, shutter speed, focal length and ISO; this line is hidden if the photo has no camera information. A <strong>Show more</strong> button reveals additional details such as the file path, subject distance, digital zoom ratio, 35 mm-equivalent focal length and any duplicate file copies. For the full list of EXIF fields, see <a class="" href="/docs/user-guide/exif-data">EXIF Data</a>.</p>
+<p>Near the top of the sidebar, LibrePhotos shows a summary of the current file: the filename (a link that opens the original file in a new tab), the image dimensions, megapixels and file size (for a video: its dimensions, duration, codec and size), and, when the photo has more than one file, the <strong>+N formats</strong> toggle described under <a href="#file-variants" class="">File Variants</a> below.</p>
+<p>When the photo carries camera EXIF, two rows follow, as on a camera&#x27;s own info screen:</p>
+<ul>
+<li class=""><strong>Camera</strong>: the camera&#x27;s make and model, with the shutter speed, the ISO and the exposure bias (<code>1/250 · ISO 200 · +0.7 EV</code>).</li>
+<li class=""><strong>Lens</strong>: the lens, with the aperture and the focal length, plus its 35 mm equivalent when that differs (<code>ƒ/5.6 · 23 mm (35 mm equiv.)</code>).</li>
+</ul>
+<p>A row the photo has nothing for is left out; without a lens name, the aperture and focal length join the camera row. Numbers follow your interface language, so German shows <code>ƒ/5,6</code> and <code>8,4 MB</code>. A shutter speed of a quarter second or longer is given in seconds (<code>2.5 s</code>).</p>
+<p><strong>Show more</strong> reveals the rest, with labels: whether the flash fired, the white balance, the metering mode, the subject distance and the digital zoom, then the folder of the file and any duplicate file copies. The button is not shown when there is nothing more. For the full list of EXIF fields, see <a class="" href="/docs/user-guide/exif-data">EXIF Data</a>. <em>Not released yet: up to 1.3.0 the camera and lens shared one line, without the exposure bias, the megapixels, the flash, white balance or metering mode.</em></p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="file-variants">File Variants<a href="#file-variants" class="hash-link" aria-label="Direct link to File Variants" title="Direct link to File Variants" translate="no">​</a></h3>
 <p>If a photo has multiple file variants (e.g., RAW+JPEG pairs, Live Photos with embedded video, or edited copies), the file info row shows a <strong>+N formats</strong> toggle that lists them with type badges (JPG, RAW, VIDEO, META). Downloading a photo always includes every one of its file variants in the zip — there is no separate option for that. The download dialog&#x27;s only checkbox, <strong>&quot;Include all photos from stacks&quot;</strong>, controls whether the other photos from the same <em>stack</em> (bursts, brackets, manual stacks) are added as well. A RAW badge overlay is shown on photos that have RAW file variants.</p>
 <p>For more details on how file variants and stacks work, see <a class="" href="/docs/user-guide/stacks-and-file-variants">Stacks &amp; File Variants</a>.</p>
@@ -166,6 +173,7 @@
 <p>To fix many items at once, select them in the grid and choose <strong>Mark as photo</strong>, <strong>Mark as screenshot</strong> or <strong>Mark as document</strong> from the selection actions menu.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="location">Location<a href="#location" class="hash-link" aria-label="Direct link to Location" title="Direct link to Location" translate="no">​</a></h3>
 <p>Displays the location where the photo was taken (if GPS data is available). An interactive map shows where the shot was made — you can pan and zoom it with the on-map navigation controls, and clicking the marker opens a small popup with the photo&#x27;s thumbnail. To set or correct a location, click the pencil icon next to the place name to open the <strong>Pick location</strong> dialog. (The pencil is hidden on publicly shared photos.)</p>
+<p>On your own photos, the coordinates are shown under the place name (<code>37.08990, -8.41280</code>), with a button that copies them in that form for a map or a search box, and the altitude when the photo has one (<code>31 m above sea level</code>). The copy button needs HTTPS, like copying an image. People you share a photo with, and visitors of a public album, never see this line. <em>Not released yet.</em></p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="people">People<a href="#people" class="hash-link" aria-label="Direct link to People" title="Direct link to People" translate="no">​</a></h3>
 <p>Shows faces detected in the photo. You can:</p>
 <ul>
@@ -223,8 +231,9 @@
 <li class=""><strong>Caption</strong>: your caption, with the <strong>Things</strong> found in the photo under it.</li>
 <li class=""><strong>Tags</strong>: your tags, marked when they came from the file&#x27;s keywords.</li>
 <li class=""><strong>Place</strong>: the address and a map; the pencil opens <strong>Pick location</strong>.</li>
-<li class=""><strong>Camera</strong>: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO.</li>
-<li class=""><strong>File</strong>: the file name (it opens the original), its size, the <a href="#category" class="">Category</a> badge, the photo&#x27;s other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.</li>
+<li class=""><strong>Place</strong>&#x27;s coordinates line, with the copy button and the altitude, is the same as in the <a href="#location" class="">Location</a> section.</li>
+<li class=""><strong>Camera</strong>: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO, the exposure bias, and the same <strong>Show more</strong> list as the sidebar.</li>
+<li class=""><strong>File</strong>: the file name (it opens the original), its dimensions, megapixels and size (a video&#x27;s duration and codec), the <a href="#category" class="">Category</a> badge, the photo&#x27;s other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.</li>
 <li class=""><strong>Albums</strong> and <strong>Similar Photos</strong>, when there are any.</li>
 </ul>
 <p>Details a photo does not have yet are not listed as empty cards: they are buttons in one <strong>Add details</strong> card (<strong>Add a caption</strong>, <strong>Add tags</strong>, <strong>Add a place</strong>, <strong>Mark a face</strong>). Each opens its editor straight away.</p>
