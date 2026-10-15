@@ -76,7 +76,7 @@ function AlbumPersonGallery(): React.JSX.Element {
       title={person ? person.name : notFound || personFailure ? t("people") : ""}
       loading={isLoading || personLoading}
       icon={User}
-      headerActions={person ? <PersonHeaderMenu person={person} /> : undefined}
+      headerActions={person ? <PersonHeaderMenu person={person} photos={photosFlat} /> : undefined}
       error={photosFailure ?? personFailure}
       emptyStateConfig={notFound ? personNotFoundState(t, <User size={40} />) : undefined}
       photoset={photosGroupedByDate ?? []}

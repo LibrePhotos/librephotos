@@ -51,7 +51,8 @@ function AlbumUserGallery() {
   // The owner uploads into the album from its "⋮", its empty state, or by dropping files (#612)
   const upload = useAlbumUpload(album && ownAlbum ? { id: album.id, title: album.title, locked: album.locked } : null);
   let headerActions: React.ReactNode;
-  if (album && ownAlbum === true) headerActions = <UserAlbumHeaderMenu album={album} upload={upload} />;
+  if (album && ownAlbum === true)
+    headerActions = <UserAlbumHeaderMenu album={album} upload={upload} photos={flatPhotos} />;
   else if (album && ownAlbum === false) headerActions = <SharedAlbumHeaderMenu album={album} />;
 
   // Only for an album someone shared with you; it sits on its own line under the photo count.

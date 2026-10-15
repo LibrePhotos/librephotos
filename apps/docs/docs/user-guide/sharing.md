@@ -23,7 +23,7 @@ You can share any user album with other users on your LibrePhotos instance:
 2. Open the **⋮** (**Album actions**) at the right of the album's header and choose **Sharing**
 3. Search for users and toggle sharing on or off for each
 
-You can also open the same dialog from the share action on the album's card under **Albums**, or from the selection toolbar's **three-dot menu** (⋮) under **Album Actions**, which only appears on albums that already contain at least one photo.
+You can also open the same dialog from the share action on the album's card under **Albums**, or, while selecting photos, from the selection bar's **three-dot menu** (⋮) under **Album Actions**.
 
 Shared albums show up in the recipient's sharing area: they open **Sharing**, click the **Shared with you** tile, then the **Albums** tab (the page is titled *Albums others shared*).
 

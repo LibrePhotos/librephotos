@@ -1,7 +1,7 @@
 /**
  * The lightbox and modals of a photo list. The add-to-album and tag modals clear the selection
- * when they close (their work is done); the share modals only close; the cover picker forgets
- * which album it was picking for. A public list mounts none of the owner's modals. The lightbox
+ * when they close (their work is done); the share modals only close. A public list mounts none
+ * of the owner's modals (the cover picker moved to the album's "⋮", #2240). The lightbox
  * closes through the slideshow (#1457), which hands a slideshow's close back to the page.
  */
 import { Media } from "@librephotos/api-client";
@@ -41,7 +41,6 @@ vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({ AlbumEditModal: recordMod
 vi.mock("../modals/ModalTagEdit", () => ({ ModalTagEdit: recordModal("tag") }));
 vi.mock("../sharing/ModalPhotosShare", () => ({ ModalPhotosShare: recordModal("sharePhotos") }));
 vi.mock("../sharing/ModalAlbumShare", () => ({ ModalAlbumShare: recordModal("albumShare") }));
-vi.mock("../modals/AlbumCoverPickerModal", () => ({ AlbumCoverPickerModal: recordModal("coverPicker") }));
 
 const photo: PigPhoto = {
   id: "a",
@@ -63,9 +62,6 @@ function makeDialogs(): PhotoListDialogState {
     tag: disclosure(),
     sharePhotos: disclosure(),
     albumShare: disclosure(),
-    coverPicker: disclosure(),
-    coverPickerAlbumType: "useralbum",
-    setCoverPickerAlbumType: vi.fn<PhotoListDialogState["setCoverPickerAlbumType"]>(),
   };
 }
 
@@ -98,12 +94,10 @@ function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lig
         isPublic={isPublic}
         isUserAlbum
         albumID="7"
-        title="Trip"
         idx2hash={[photo]}
         totalCount={1}
         selectionState={selection}
         updateSelectionState={updateSelectionState}
-        onSelectCover={() => {}}
       />
     )
   );
@@ -163,14 +157,5 @@ describe("PhotoListDialogs", () => {
 
     expect(dialogs[name].close).toHaveBeenCalledTimes(1);
     expect(updateSelectionState).not.toHaveBeenCalled();
-  });
-
-  it("forgets the album type when the cover picker closes", () => {
-    const { dialogs } = render();
-
-    modal("coverPicker").onRequestClose();
-
-    expect(dialogs.coverPicker.close).toHaveBeenCalledTimes(1);
-    expect(dialogs.setCoverPickerAlbumType).toHaveBeenCalledWith(null);
   });
 });

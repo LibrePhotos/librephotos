@@ -1,6 +1,5 @@
 import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { ActionIcon, Button, Group, Tooltip } from "@mantine/core";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -20,8 +19,6 @@ type Props = {
 export function SelectionBar(props: Readonly<Props>) {
   const { t } = useTranslation();
   const { selectMode, selectAllMode, updateSelectionState, selectedItems, idx2hash, photosetQuery, totalCount } = props;
-  const [openedAll, { open: openAll, close: closeAll }] = useDisclosure(false);
-  const [openedSelect, { open: openSelect, close: closeSelect }] = useDisclosure(false);
 
   // Without a server-side query, select all can only take the loaded photos. On a page that
   // still shows placeholders, say so instead of claiming the whole set (#2227).
@@ -48,91 +45,75 @@ export function SelectionBar(props: Readonly<Props>) {
 
   return (
     <Group gap="xs">
-      <Popover opened={openedAll} withArrow withinPortal>
-        <Popover.Target>
-          <ActionIcon
-            onMouseEnter={() => openAll()}
-            onMouseLeave={() => closeAll()}
-            variant="light"
-            size={TOOLBAR_ACTION_SIZE}
-            aria-label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel}
-            onClick={() => {
-              if (isAllSelected) {
-                // Already fully selected (server-side or every loaded item) - deselect
-                updateSelectionState({
-                  selectMode: false,
-                  selectAllMode: false,
-                  selectedItems: [],
-                  selectAllQuery: undefined,
-                });
-              } else if (photosetQuery) {
-                // Surface supplies a server-side query (it may lazily page in items
-                // beyond those loaded, e.g. the timeline / person albums). Select all
-                // via the query; selectedItems here tracks exclusions.
-                updateSelectionState({
-                  selectMode: true,
-                  selectAllMode: true,
-                  selectedItems: [],
-                  selectAllQuery: photosetQuery,
-                  totalCount,
-                });
-              } else {
-                // No server-side query (thing/place/user albums, search): the full set
-                // is normally already loaded, so select every loaded item client-side.
-                // Avoids the empty-query fallback that would otherwise match the whole
-                // library. Placeholders are left out; the count then reads "N of M".
-                updateSelectionState({
-                  selectMode: true,
-                  selectAllMode: false,
-                  selectedItems: idx2hash.filter(item => !item.isTemp),
-                  selectAllQuery: undefined,
-                });
-              }
-            }}
-          >
-            <Checks size={ICON_SIZE.toolbar} color={isAllSelected ? "green" : "gray"} />
-          </ActionIcon>
-        </Popover.Target>
-        <Popover.Dropdown>
-          <Text size="sm">{isAllSelected ? t("selectionbar.deselect") : selectAllLabel}</Text>
-        </Popover.Dropdown>
-      </Popover>
-      <div>
-        <Popover opened={openedSelect} withArrow>
-          <Popover.Target>
-            <Button
-              onMouseEnter={() => openSelect()}
-              onMouseLeave={() => closeSelect()}
-              variant="light"
-              size="xs"
-              h={TOOLBAR_CONTROL_HEIGHT}
-              leftSection={<Check size={ICON_SIZE.toolbar} color={selectMode ? "green" : "gray"} />}
-              color={selectMode ? "blue" : "gray"}
-              onClick={() => {
-                if (selectMode) {
-                  // Exit selection mode
-                  updateSelectionState({
-                    selectMode: false,
-                    selectAllMode: false,
-                    selectedItems: [],
-                    selectAllQuery: undefined,
-                  });
-                } else {
-                  // Enter selection mode
-                  updateSelectionState({
-                    selectMode: true,
-                  });
-                }
-              }}
-            >
-              {getDisplayText()}
-            </Button>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <Text size="sm">{t("selectionbar.toggle")}</Text>
-          </Popover.Dropdown>
-        </Popover>
-      </div>
+      <Tooltip label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel} withArrow position="bottom">
+        <ActionIcon
+          variant="light"
+          size={TOOLBAR_ACTION_SIZE}
+          aria-label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel}
+          onClick={() => {
+            if (isAllSelected) {
+              // Already fully selected (server-side or every loaded item) - deselect
+              updateSelectionState({
+                selectMode: false,
+                selectAllMode: false,
+                selectedItems: [],
+                selectAllQuery: undefined,
+              });
+            } else if (photosetQuery) {
+              // Surface supplies a server-side query (it may lazily page in items
+              // beyond those loaded, e.g. the timeline / person albums). Select all
+              // via the query; selectedItems here tracks exclusions.
+              updateSelectionState({
+                selectMode: true,
+                selectAllMode: true,
+                selectedItems: [],
+                selectAllQuery: photosetQuery,
+                totalCount,
+              });
+            } else {
+              // No server-side query (thing/place/user albums, search): the full set
+              // is normally already loaded, so select every loaded item client-side.
+              // Avoids the empty-query fallback that would otherwise match the whole
+              // library. Placeholders are left out; the count then reads "N of M".
+              updateSelectionState({
+                selectMode: true,
+                selectAllMode: false,
+                selectedItems: idx2hash.filter(item => !item.isTemp),
+                selectAllQuery: undefined,
+              });
+            }
+          }}
+        >
+          <Checks size={ICON_SIZE.toolbar} color={isAllSelected ? "green" : "gray"} />
+        </ActionIcon>
+      </Tooltip>
+      <Tooltip label={t("selectionbar.toggle")} withArrow position="bottom">
+        <Button
+          variant="light"
+          size="xs"
+          h={TOOLBAR_CONTROL_HEIGHT}
+          leftSection={<Check size={ICON_SIZE.toolbar} color={selectMode ? "green" : "gray"} />}
+          color={selectMode ? "blue" : "gray"}
+          onClick={() => {
+            if (selectMode) {
+              // Exit selection mode
+              updateSelectionState({
+                selectMode: false,
+                selectAllMode: false,
+                selectedItems: [],
+                selectAllQuery: undefined,
+              });
+            } else {
+              // Enter selection mode
+              updateSelectionState({
+                selectMode: true,
+              });
+            }
+          }}
+        >
+          {getDisplayText()}
+        </Button>
+      </Tooltip>
     </Group>
   );
 }

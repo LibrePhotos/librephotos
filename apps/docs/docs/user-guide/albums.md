@@ -83,8 +83,8 @@ You can customize the cover image for **People Albums** and **User Albums**. The
 ### Method 1: Using the Cover Picker (Recommended)
 
 1. Navigate to the album you want to customize (People or User Album)
-2. Click the **three-dot menu** (⋮) in the selection toolbar
-3. Click **"Set album cover"**
+2. Click the **three-dot menu** (⋮) at the right of the album's header (**Album actions**, or **Person actions** on a person's page)
+3. Click **"Set as cover…"**
 4. A modal will open showing all photos in the album
 5. Click on the photo you want to use as the cover
 6. The cover is set immediately
@@ -98,14 +98,16 @@ The cover picker loads photos in batches of 50 for better performance. Click "Lo
 If you already know which photo you want to use:
 
 1. Navigate to the album
-2. **Select exactly one photo** — hover over it and click the checkbox that appears in its top-left corner (a plain click on a photo opens it in the lightbox instead of selecting it)
-3. Click the **three-dot menu** (⋮) in the selection toolbar
+2. **Select exactly one photo** — click **Select** at the right of the header and then the photo, or hover over it and click the checkbox that appears in its top-left corner (outside select mode, a plain click on a photo opens it in the lightbox instead of selecting it)
+3. Click the **three-dot menu** (⋮) in the selection bar
 4. Click **"Set album cover"**
 5. The selected photo becomes the cover immediately
 
 :::note
-The "Set album cover" option only appears when you're viewing a People Album or User Album. It won't be visible on other pages like the main timeline or auto-generated albums.
+"Set as cover…" and "Set album cover" only appear on a People Album or User Album. They won't be visible on other pages like the main timeline or auto-generated albums.
 :::
+
+*Not released yet: up to 1.3.0, the cover picker was "Set album cover" in the selection toolbar's ⋮ with nothing selected.*
 
 ---
 
@@ -121,8 +123,8 @@ Empty albums stay on **My Albums** with a *No cover* tile, also when you remove 
 
 ### From photos you select
 
-1. Select one or more photos from any view
-2. Click the **plus icon** (+) in the selection toolbar
+1. Select one or more photos from any view: click **Select** at the right of the page header (an icon on a phone) and click the photos, or tick a photo's checkbox. The selection bar appears under the header while you select; its **✕** or the **Escape** key ends selecting and clears the selection
+2. Click the **plus icon** (+) in the selection bar
 3. Click **"Album"**
 4. Either:
    - Enter a name for a new album and click "Create"
@@ -188,7 +190,7 @@ Collections are private. When you share an album, the people you share it with s
 User Albums can be shared with other users on your LibrePhotos instance, or publicly via a link. For full details on all sharing features, see the [Sharing guide](./sharing.md).
 
 1. Navigate to the User Album you want to share
-2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **Sharing** (or, in the selection toolbar's ⋮, **Sharing** under "Album Actions")
+2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **Sharing** (or, while selecting photos, in the selection bar's ⋮, **Sharing** under "Album Actions")
 3. Search for and select the users you want to share with
 
 ---
@@ -198,7 +200,7 @@ User Albums can be shared with other users on your LibrePhotos instance, or publ
 You can share albums publicly with anyone via a unique link, without requiring them to have an account on your LibrePhotos instance:
 
 1. Navigate to the User Album you want to share publicly
-2. Click the **three-dot menu** (⋮) in the selection toolbar and, under "Album Actions", click **"Sharing"**
+2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **"Sharing"**
 3. In the dialog, toggle **"Public sharing"** on — a unique URL slug is generated automatically that you can share with anyone
 4. Click **"Show settings"** to customize the slug (3–64 characters), set an expiration (7, 30 or 90 days, or never), and control what information visitors can see:
    - Location data

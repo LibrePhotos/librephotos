@@ -50,7 +50,7 @@ type Props = {
   totalCount?: number;
   updateSelectionState: (state: Partial<SelectionState>) => void;
   onSharePhotos: () => void;
-  setAlbumCover: (actionType: AlbumCoverType, photoId?: string) => void;
+  setAlbumCover: (actionType: AlbumCoverType) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   onAddTags: () => void;
@@ -338,8 +338,7 @@ export function SelectionActions(props: Readonly<Props>) {
               albumLocked={albumLocked}
               onSetCover={() => {
                 setAlbumCover(albumPage);
-                // Only clear selection if exactly 1 item was selected (used directly)
-                if (selectedItems.length === 1) resetSelection();
+                resetSelection();
               }}
               onShareAlbum={onShareAlbum}
               onRemoveFromAlbum={() => {
