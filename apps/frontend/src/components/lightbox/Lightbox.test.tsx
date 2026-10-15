@@ -8,6 +8,7 @@
  * has not loaded yet, which must not be stepped onto.
  */
 import type { Photo } from "@librephotos/api-client";
+import { MantineProvider } from "@mantine/core";
 import { MotionConfigContext } from "motion/react";
 import React, { act, useContext } from "react";
 import { createRoot } from "react-dom/client";
@@ -33,9 +34,22 @@ vi.mock("./ContentViewer", () => ({
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: details.current }),
 }));
+// The unsaved-edits guard (#2284) waits on the router for Back; Lightbox.unsavedDrafts.test.tsx covers it.
+vi.mock("@tanstack/react-router", () => ({ useBlocker: () => ({ status: "idle" }) }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  // jsdom has no matchMedia, MantineProvider (for the discard dialog) needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
 });
 
 afterEach(() => {
@@ -48,13 +62,15 @@ async function open(idx2hash: LightboxItem[], selectedImage: string, isPublic = 
   const root = createRoot(container);
   await act(async () => {
     root.render(
-      <Lightbox
-        idx2hash={idx2hash}
-        selectedImage={selectedImage}
-        isPublic={isPublic}
-        onCloseRequest={() => {}}
-        onChangedIndex={() => {}}
-      />
+      <MantineProvider>
+        <Lightbox
+          idx2hash={idx2hash}
+          selectedImage={selectedImage}
+          isPublic={isPublic}
+          onCloseRequest={() => {}}
+          onChangedIndex={() => {}}
+        />
+      </MantineProvider>
     );
   });
   await act(async () => root.unmount());

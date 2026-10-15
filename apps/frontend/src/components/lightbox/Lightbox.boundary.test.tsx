@@ -23,6 +23,8 @@ vi.mock("./ContentViewer", () => ({
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined }),
 }));
+// The unsaved-edits guard (#2284) waits on the router for Back; Lightbox.unsavedDrafts.test.tsx covers it.
+vi.mock("@tanstack/react-router", () => ({ useBlocker: () => ({ status: "idle" }) }));
 
 let root: Root;
 let container: HTMLDivElement;

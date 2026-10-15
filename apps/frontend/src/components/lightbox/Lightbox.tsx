@@ -4,7 +4,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
 import { ContentViewer } from "./ContentViewer";
+import { DiscardDraftsModal } from "./DiscardDraftsModal";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
+import { UnsavedDraftsContext } from "./unsavedDrafts";
+import { useLightboxDraftsGuard } from "./useUnsavedDraftsGuard";
 
 type ExtendedLightBoxProps = {
   onImageChange?: (imageId: string) => void;
@@ -67,6 +70,9 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     startSlideshow,
   } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
+  // Every way off this photo (the arrows and their keys, a swipe, a stack or similar photo, close,
+  // Back) asks first while an editor holds an unsaved edit (#2284).
+  const { drafts, guard, dialog } = useLightboxDraftsGuard();
   // Track previous idx2hash to detect when current image is deleted
   const previousIdx2hash = usePrevious(idx2hash);
 
@@ -137,7 +143,7 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     // If image doesn't exist in current idx2hash, don't update the index
   }, [lightboxImageId, idx2hash, onChangedIndex]);
 
-  const onMovePrevRequest = useCallback(() => {
+  const movePrev = useCallback(() => {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const prevIndex = (currentIndex + effectiveIdx2hash.length - 1) % effectiveIdx2hash.length;
@@ -149,7 +155,7 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     onImageChange?.(newImageId);
   }, [lightboxImageId, getEffectiveNavigation, onImageChange]);
 
-  const onMoveNextRequest = useCallback(() => {
+  const moveNext = useCallback(() => {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const nextIndex = (currentIndex + effectiveIdx2hash.length + 1) % effectiveIdx2hash.length;
@@ -204,26 +210,34 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
 
   const mediaType = getMediaType();
 
-  const handleCloseRequest = useCallback(() => {
-    // Clear the snapshot when closing
-    stableNavigationSnapshot.current = [];
-    onCloseRequest();
-  }, [onCloseRequest]);
+  const onMovePrevRequest = useCallback(() => guard(movePrev), [guard, movePrev]);
+  const onMoveNextRequest = useCallback(() => guard(moveNext), [guard, moveNext]);
+
+  const handleCloseRequest = useCallback(
+    () =>
+      guard(() => {
+        // Clear the snapshot when closing
+        stableNavigationSnapshot.current = [];
+        onCloseRequest();
+      }),
+    [guard, onCloseRequest]
+  );
 
   // Handle photo selection from stack thumbnails in the sidebar
   const handlePhotoSelect = useCallback(
-    (photoId: string) => {
-      setLightboxImageId(photoId);
-      onImageChange?.(photoId);
-    },
-    [onImageChange]
+    (photoId: string) =>
+      guard(() => {
+        setLightboxImageId(photoId);
+        onImageChange?.(photoId);
+      }),
+    [guard, onImageChange]
   );
 
   // A viewer who is not the owner gets no photo details, only what the grid knows.
   const gridItem = isPublic ? getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId) : undefined;
 
   return (
-    <div>
+    <UnsavedDraftsContext.Provider value={drafts}>
       <ContentViewer
         mainSrc={lightboxImageId}
         mainSrcHash={currentImageHash}
@@ -242,6 +256,12 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
         startSlideshow={startSlideshow}
         gridItem={gridItem}
       />
-    </div>
+      <DiscardDraftsModal
+        opened={dialog.opened}
+        onClose={dialog.onKeepEditing}
+        onDiscard={dialog.onDiscard}
+        fields={dialog.fields}
+      />
+    </UnsavedDraftsContext.Provider>
   );
 }
