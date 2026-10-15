@@ -16,10 +16,10 @@ const LIST = jobKeys.list({ page: 0, pageSize: 10 });
 
 let queryClient = new QueryClient();
 
-async function removeJob(id: number) {
+async function removeJob(id: number, answer = () => new Response(null, { status: 204 })) {
   vi.stubGlobal(
     "fetch",
-    vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }))
+    vi.fn<typeof fetch>(async () => answer())
   );
   let remove: ((jobId: number) => Promise<void>) | undefined;
   function Host() {
@@ -35,7 +35,7 @@ async function removeJob(id: number) {
     );
   });
   await act(async () => {
-    await remove?.(id);
+    await remove?.(id).catch(() => {});
   });
   act(() => root.unmount());
 }
@@ -83,6 +83,29 @@ describe("useDeleteJobMutation", () => {
     expect(queryClient.getQueryState(jobKeys.detail(7))?.isInvalidated).toBe(false);
     expect(page.fetchJob).not.toHaveBeenCalled();
     page.unsubscribe();
+  });
+
+  it("refreshes the job lists when the server keeps the scan baseline", async () => {
+    queryClient.setQueryData(LIST, "cached");
+    const refused = () =>
+      Response.json(
+        { errors: [{ field: null, message: "This scan is the reference", code: "scan_baseline" }] },
+        { status: 409 }
+      );
+
+    await removeJob(7, refused);
+
+    expect(queryClient.getQueryState(LIST)?.isInvalidated).toBe(true);
+  });
+
+  it("refreshes nothing when another removal fails", async () => {
+    queryClient.setQueryData(LIST, "cached");
+
+    await removeJob(7, () =>
+      Response.json({ errors: [{ field: null, message: "No", code: "not_found" }] }, { status: 404 })
+    );
+
+    expect(queryClient.getQueryState(LIST)?.isInvalidated).toBe(false);
   });
 
   it("drops the removed job's detail when no page shows it", async () => {

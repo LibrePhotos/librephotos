@@ -26,6 +26,7 @@ const job = {
   progress_target: 0,
   progress_step: null,
   result: null,
+  is_scan_baseline: false,
   id: 1,
 };
 
@@ -44,6 +45,15 @@ describe("job list and detail", () => {
       `${API}/jobs/?page=2&page_size=10&mine=true`,
     ]);
     expect(defined(jobs.results[0]).job_type_str).toBe("Scan Photos");
+  });
+
+  it("reads which job is the scan baseline, and a server that does not say", async () => {
+    const { is_scan_baseline: _dropped, ...fromAnOlderServer } = job;
+    const results = [{ ...job, finished: true, is_scan_baseline: true }, fromAnOlderServer];
+    const page = { count: 2, next: null, previous: null, results, page: 1, page_size: 10, num_pages: 1 };
+    const { client } = fakeServer(page);
+    const jobs = await endpoints.fetchJobs(client, 0, 10);
+    expect(jobs.results.map(row => row.is_scan_baseline)).toEqual([true, undefined]);
   });
 
   it("reads one job", async () => {

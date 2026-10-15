@@ -1,7 +1,7 @@
 /**
  * #2223: Remove in the job list looked like deleting a log line, but a finished job is the
  * baseline of the next incremental run (#1104): removing the newest scan made the next one
- * reread far more than the user expected.
+ * reread far more than the user expected. The server now keeps that scan (is_scan_baseline).
  */
 import React, { act } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -69,42 +69,62 @@ describe("DeleteJobButton", () => {
   });
 });
 
+describe("DeleteJobButton on the scan baseline", () => {
+  const baseline = { ...finishedScan, is_scan_baseline: true };
+
+  it("is disabled and says why, and a click asks nothing", async () => {
+    const { container } = await renderInMantine(<DeleteJobButton job={baseline} />);
+    const button = defined(container.querySelector("button"));
+
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    const reason = document.getElementById(defined(button.getAttribute("aria-describedby")));
+    expect(reason?.textContent).toContain("This scan is the reference for the next incremental scan");
+
+    await click(button);
+    expect(openDialog()).toBeNull();
+    expect(stubs.deleteJob).not.toHaveBeenCalled();
+  });
+
+  it("stays enabled on any other scan", async () => {
+    const { container } = await renderInMantine(<DeleteJobButton job={{ ...finishedScan, is_scan_baseline: false }} />);
+
+    expect(defined(container.querySelector("button")).getAttribute("aria-disabled")).toBeNull();
+  });
+});
+
 describe("removeJobMessage", () => {
   const t = i18n.t.bind(i18n);
 
-  it("warns that the next scan rereads more when a library scan goes", () => {
-    expect(removeJobMessage(finishedScan, t)).toContain("the next one rereads every file changed since");
-  });
-
-  it("warns that the next run redoes photos when a face or place run goes", () => {
-    const message = removeJobMessage(jobFixture({ finished: true, job_type: 7, job_type_str: "Scan Faces" }), t);
-
-    expect(message).toContain("Scan Faces only covers photos added since its newest successful run");
-  });
-
-  // The runs the backend never starts a later one from (LongRunningJob.baselines).
+  // The baseline itself never gets here: its Remove is disabled and the server refuses it.
   it.each([
+    ["an older library scan", {}],
     ["a scan of selected files", { result: { status: "completed" } }],
     ["a cancelled scan", { cancelled: true }],
-    ["a scan that failed halfway", { failed: true, progress_current: 80 }],
   ])("says nothing changes for %s", (_name, overrides) => {
-    expect(removeJobMessage({ ...finishedScan, ...overrides }, t)).toContain("Nothing in your library changes");
+    const message = removeJobMessage({ ...finishedScan, ...overrides }, t);
+
+    expect(message).toBe("The job's record and result are deleted. Nothing in your library changes.");
   });
 
-  it("still warns for a scan that failed only for item errors after reading every file", () => {
-    expect(removeJobMessage({ ...finishedScan, failed: true }, t)).toContain("the next one rereads");
+  it("warns that the next run redoes photos when an Add Geolocation run goes", () => {
+    const geolocation = jobFixture({ finished: true, job_type: 11, job_type_str: "Add Geolocation" });
+
+    expect(removeJobMessage(geolocation, t)).toContain("only covers photos added since its newest successful run");
+  });
+
+  it("says nothing changes for an Add Geolocation run that was cut short", () => {
+    const geolocation = jobFixture({ finished: true, job_type: 11, cancelled: true });
+
+    expect(removeJobMessage(geolocation, t)).toContain("Nothing in your library changes");
   });
 
   it("says removing a running job does not stop it", () => {
     expect(removeJobMessage(jobFixture(), t)).toContain("does not stop the job");
   });
 
-  it("says nothing changes for a job that is no baseline", () => {
-    expect(removeJobMessage(jobFixture({ finished: true, job_type: 15 }), t)).toContain(
-      "Nothing in your library changes"
-    );
-    // Cancelled while queued: it never ran, so no later run starts from it.
-    expect(removeJobMessage(jobFixture({ finished: true, started_at: null }), t)).toContain(
+  // Scan Faces picks the photos it has not scanned yet, whatever ran before (faces_scanned_at).
+  it.each([7, 15])("says nothing changes for a finished job of type %i", jobType => {
+    expect(removeJobMessage(jobFixture({ finished: true, job_type: jobType }), t)).toContain(
       "Nothing in your library changes"
     );
   });

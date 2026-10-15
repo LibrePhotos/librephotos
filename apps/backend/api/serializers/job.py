@@ -1,13 +1,30 @@
+from django.db.models import Prefetch
 from rest_framework import serializers
 
 from api.drf.params import QueryFlagField
-from api.models import LongRunningJob
+from api.models import LongRunningJob, User
+from api.models.long_running_job import LongRunningJobQuerySet
+from api.serializers.fields import loaded
 from api.serializers.simple import SimpleUserSerializer
+
+
+def with_job_relations(queryset: LongRunningJobQuerySet) -> LongRunningJobQuerySet:
+    """What ``LongRunningJobSerializer`` reads: the starter and the baseline flag."""
+    return queryset.with_scan_baseline_flag().prefetch_related(
+        Prefetch(
+            "started_by",
+            queryset=User.objects.only("id", "username", "first_name", "last_name"),
+        ),
+    )
 
 
 class LongRunningJobSerializer(serializers.ModelSerializer):
     job_type_str = serializers.SerializerMethodField()
     started_by = SimpleUserSerializer(read_only=True)
+    is_scan_baseline = serializers.SerializerMethodField(
+        help_text="The starter's newest complete library scan: the next incremental "
+        "scan only rereads files changed since it, so it cannot be removed"
+    )
 
     class Meta:
         model = LongRunningJob
@@ -26,6 +43,7 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "progress_target",
             "progress_step",
             "result",
+            "is_scan_baseline",
             "id",
         )
         # Workers write jobs; the API only reports them.
@@ -33,6 +51,9 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
 
     def get_job_type_str(self, obj: LongRunningJob) -> str:
         return dict(LongRunningJob.JOB_TYPES)[obj.job_type]
+
+    def get_is_scan_baseline(self, obj: LongRunningJob) -> bool:
+        return bool(loaded(obj, "is_scan_baseline"))
 
 
 class CancelJobResponseSerializer(serializers.Serializer[None]):

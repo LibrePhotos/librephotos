@@ -1442,7 +1442,6 @@
     },
     "removejob": {
       "title": "Remove this job?",
-      "scanbaseline": "A normal scan only rereads files changed since the newest successful library scan. If this is that scan, the next one rereads every file changed since the scan before it, or your whole library if none is left.",
       "photobaseline": "{{job}} only covers photos added since its newest successful run. If this is that run, the next one redoes every photo added since the run before it, or all your photos if none is left.",
       "unfinished": "Removing the entry does not stop the job; only its record is deleted. Use Cancel to stop it.",
       "plain": "The job's record and result are deleted. Nothing in your library changes.",
@@ -1479,6 +1478,7 @@
     "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "removeentries": "Removing entries",
+    "scanbaseline": "This scan is the reference for the next incremental scan. It can be removed once a newer scan of the whole library has finished.",
     "cancel": "Cancel",
     "itemsprocessed_one": "{{count}} item processed",
     "itemsprocessed_other": "{{count}} items processed",
