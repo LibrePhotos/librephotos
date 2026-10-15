@@ -10,6 +10,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
+import { createUnsavedDrafts, UnsavedDraftsContext } from "../lightbox/unsavedDrafts";
 import { LocationPickerModal } from "./LocationPickerModal";
 
 type UpdateArgs = { id: string; data: Partial<Photo> };
@@ -155,11 +156,13 @@ type RenderProps = {
   onNestedDialogChange?: (opened: boolean) => void;
 };
 
-function render(props: RenderProps = {}) {
+function render(props: RenderProps = {}, drafts = createUnsavedDrafts()) {
   act(() => {
     root.render(
       <MantineProvider env="test">
-        <LocationPickerModal imageHash="abc" onClose={() => {}} {...props} />
+        <UnsavedDraftsContext.Provider value={drafts}>
+          <LocationPickerModal imageHash="abc" onClose={() => {}} {...props} />
+        </UnsavedDraftsContext.Provider>
       </MantineProvider>
     );
   });
@@ -444,5 +447,22 @@ describe("LocationPickerModal: photos taken nearby in time (#2279)", () => {
       id: "abc",
       data: { exif_gps_lat: 41.14, exif_gps_lon: -8.61 },
     });
+  });
+});
+
+describe("LocationPickerModal's unsaved draft (#2284)", () => {
+  it("is unsaved once a spot other than the photo's own is picked", () => {
+    const drafts = createUnsavedDrafts();
+    render({ initialLat: 52.52, initialLon: 13.4 }, drafts);
+    expect(drafts.dirtyFields()).toEqual([]);
+
+    act(() => defined(byTestId("map"), "the map").click());
+    expect(drafts.dirtyFields()).toEqual(["location"]);
+  });
+
+  it("holds nothing to lose while no spot is picked", () => {
+    const drafts = createUnsavedDrafts();
+    render({}, drafts);
+    expect(drafts.dirtyFields()).toEqual([]);
   });
 });

@@ -207,6 +207,10 @@ The sidebar displays detailed information about the current photo and provides q
 
 While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files. _Not released yet._
 
+### Unsaved changes {#unsaved-changes}
+
+An edit is kept only once you save it: the check (✓) of the date, caption and tags editors, or **Save** in the location picker. While the date, caption or tags you typed differ from what is saved, an orange **Unsaved** mark sits next to that editor's title. With such an edit, or a spot picked in the location picker and not saved yet, stepping to another photo (with the arrows, the arrow keys or a swipe), picking a stack or similar photo, closing the viewer, or going **Back** then asks **Discard unsaved changes?** first: **Keep editing** leaves you where you were with your text intact, **Discard** drops the edit and goes on. An editor you opened but did not change never asks. On the [photo page](#photo-page), leaving with an unsaved edit asks **Leave without saving?**, and reloading or closing the tab asks through the browser's own dialog in both places. _Not released yet._
+
 ### Timestamp
 
 Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.

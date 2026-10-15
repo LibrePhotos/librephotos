@@ -12,6 +12,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { TimestampItem } from "./TimestampItem";
+import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
 
 type MutateCallbacks = { onSuccess?: () => void; onError?: () => void };
 const updatePhoto =
@@ -55,11 +56,13 @@ beforeEach(() => {
 
 type TestPhoto = { image_hash: string; exif_timestamp: string | null; date_set_by_user?: boolean };
 
-async function render(root: Root, photo: TestPhoto, isPublic = false) {
+async function render(root: Root, photo: TestPhoto, isPublic = false, drafts = createUnsavedDrafts()) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <TimestampItem photoDetail={photo} isPublic={isPublic} />
+        <UnsavedDraftsContext.Provider value={drafts}>
+          <TimestampItem photoDetail={photo} isPublic={isPublic} />
+        </UnsavedDraftsContext.Provider>
       </MantineProvider>
     );
   });
@@ -327,5 +330,30 @@ describe("TimestampItem removing and saving (#2280)", () => {
     expect(updatePhoto).toHaveBeenCalledTimes(2);
     expect(defined(updatePhoto.mock.calls[1])[0].data).toEqual({ exif_timestamp: null });
     expect(button(container, "Undo timestamp modification")).toBeNull();
+  });
+});
+
+describe("TimestampItem's unsaved draft (#2284)", () => {
+  it("is unsaved while the day or time differs from the photo's, not when the editor is only open", async () => {
+    const drafts = createUnsavedDrafts();
+    const { container, root } = mount();
+    await render(root, PHOTO_A, false, drafts);
+
+    await click(button(container, "Edit date and time"));
+    expect(drafts.dirtyFields()).toEqual([]);
+    expect(container.textContent).not.toContain("Unsaved");
+
+    await click(dayCell(container, "10"));
+    expect(drafts.dirtyFields()).toEqual(["date"]);
+    expect(container.textContent).toContain("Unsaved");
+
+    // Back to the photo's own day: nothing left to lose.
+    await click(dayCell(container, "1"));
+    expect(drafts.dirtyFields()).toEqual([]);
+
+    await typeTime(container, "09:00:00");
+    expect(drafts.dirtyFields()).toEqual(["date"]);
+    await click(button(container, "Cancel"));
+    expect(drafts.dirtyFields()).toEqual([]);
   });
 });

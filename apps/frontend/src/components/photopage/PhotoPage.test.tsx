@@ -54,6 +54,8 @@ function last<Props>(rendered: Props[]): Props {
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
+  // Leaving with an unsaved edit (#2284): PhotoPageDraftsGuard.test.tsx covers it.
+  useBlocker: () => ({ status: "idle" }),
   useCanGoBack: () => stubs.canGoBack,
   useNavigate: () => stubs.navigate,
   useRouter: () => ({ history: { back: stubs.back } }),

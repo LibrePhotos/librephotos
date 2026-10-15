@@ -19,6 +19,8 @@ import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFil
 import { DisabledReason } from "../common/DisabledReason";
 import { writeDestination, writeModeOf } from "../settings/metadataWrite";
 import classes from "./TagsSection.module.css";
+import { UnsavedBadge } from "./UnsavedBadge";
+import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
 
 type TagsSectionProps = {
@@ -44,6 +46,13 @@ function useIsFromFile(photoId: string): (name: string) => boolean {
   const { data: metadata } = useFetchPhotoMetadataQuery(photoId);
   const keys = new Set((metadata?.keywords ?? []).map(keywordKey));
   return name => keys.has(keywordKey(name));
+}
+
+/** Whether the tags typed differ from the photo's, as Save would see them: order and blanks do not count. */
+function draftDiffers(draft: readonly string[], tags: readonly Tag[]): boolean {
+  const wanted = new Set(draft.map(name => name.trim()).filter(name => name.length > 0));
+  const saved = new Set(tags.map(tag => tag.name));
+  return wanted.size !== saved.size || [...wanted].some(name => !saved.has(name));
 }
 
 export function TagsSection(props: TagsSectionProps) {
@@ -129,6 +138,8 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
 
   const tags = photoTags ?? [];
   const isSaving = isAdding || isRemoving;
+  const dirty = editing && draftDiffers(draftTags, tags);
+  useRegisterDraft("tags", dirty);
 
   const handleEditOpen = () => {
     setDraftTags(tags.map(tag => tag.name));
@@ -179,12 +190,15 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
   return (
     <Stack gap="xs">
       <Group justify="space-between" wrap="nowrap">
-        {heading ?? (
-          <Group>
-            <IconTag />
-            <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
-          </Group>
-        )}
+        <Group gap="xs" wrap="nowrap">
+          {heading ?? (
+            <Group>
+              <IconTag />
+              <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
+            </Group>
+          )}
+          {dirty && <UnsavedBadge />}
+        </Group>
         {!editing ? (
           <Tooltip label={t("lightbox.sidebar.editTags")}>
             <ActionIcon

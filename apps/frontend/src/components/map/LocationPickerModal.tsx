@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { invalidatePlaces } from "../../api_client/albums/invalidatePlaces";
 import { useLocatedNearbyQuery } from "../../api_client/photos/hooks/useLocatedNearbyQuery";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
+import { useRegisterDraft } from "../lightbox/unsavedDrafts";
 import { WriteBackHint } from "../lightbox/WriteBackHint";
 import { LocationPickerBody } from "./LocationPickerBody";
 import { hasPosition, NearbyLocatedStrip } from "./NearbyLocatedStrip";
@@ -53,6 +54,8 @@ export function LocationPickerModal({
   });
 
   const { mutate, isPending } = useUpdatePhotoMutation();
+  // Opening the picker on the photo's own location is no change.
+  useRegisterDraft("location", picker.changed);
 
   const handleSave = () => {
     if (!picker.position) return;

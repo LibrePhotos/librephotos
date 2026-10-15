@@ -20,6 +20,7 @@ import { OwnerPhotoDetails } from "./OwnerPhotoDetails";
 import { PhotoActionTiles } from "./PhotoActionTiles";
 import { PhotoMat } from "./PhotoMat";
 import classes from "./PhotoPage.module.css";
+import { PhotoPageDraftsGuard } from "./PhotoPageDraftsGuard";
 import { PhotoPageHeader } from "./PhotoPageHeader";
 import { PhotoStatus } from "./PhotoStatus";
 import { SharedPhotoDetails } from "./SharedPhotoDetails";
@@ -158,6 +159,11 @@ export function PhotoPage({ photoId }: Readonly<{ photoId: string }>) {
   }
 
   // Everything the page holds (an open editor, a rotation, a face being drawn)
-  // belongs to one photo: a similar photo's link starts afresh.
-  return <PhotoPageContent key={photo.image_hash} photo={photo} />;
+  // belongs to one photo: a similar photo's link starts afresh. Leaving with an
+  // unsaved edit asks first (#2284).
+  return (
+    <PhotoPageDraftsGuard key={photo.image_hash}>
+      <PhotoPageContent photo={photo} />
+    </PhotoPageDraftsGuard>
+  );
 }

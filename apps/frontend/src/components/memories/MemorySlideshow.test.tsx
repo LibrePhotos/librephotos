@@ -8,9 +8,10 @@
  * `selectedImage`, as the page first did, makes the second assertion fail.
  */
 import type { PigPhoto } from "@librephotos/api-client";
+import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { tempPigPhoto } from "../../util/util";
 import type { ContentViewer } from "../lightbox/ContentViewer";
 import { MemorySlideshow } from "./MemorySlideshow";
@@ -24,6 +25,23 @@ type ViewerProps = Pick<
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined }),
 }));
+
+// The lightbox's unsaved-edits guard (#2284) waits on the router for Back; nothing is edited here.
+vi.mock("@tanstack/react-router", () => ({ useBlocker: () => ({ status: "idle" }) }));
+
+beforeAll(() => {
+  // jsdom has no matchMedia, MantineProvider (for the lightbox's discard dialog) needs it
+  window.matchMedia = (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+});
 
 // Stands in for the viewer, exposing what it would otherwise do on a timer.
 vi.mock("../lightbox/ContentViewer", () => ({
@@ -46,7 +64,13 @@ function play(items: PigPhoto[]) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<MemorySlideshow items={items} onClose={() => {}} />));
+  act(() =>
+    root.render(
+      <MantineProvider>
+        <MemorySlideshow items={items} onClose={() => {}} />
+      </MantineProvider>
+    )
+  );
 
   const text = (testid: string) => container.querySelector(`[data-testid="${testid}"]`)?.textContent;
   const click = (testid: string) =>
@@ -100,6 +124,7 @@ describe("MemorySlideshow", () => {
   });
 
   it("renders nothing when there is no photo to play", () => {
-    expect(play([]).container.textContent).toBe("");
+    // MantineProvider's own style tag aside.
+    expect(play([]).container.querySelector(":not(style)")).toBeNull();
   });
 });

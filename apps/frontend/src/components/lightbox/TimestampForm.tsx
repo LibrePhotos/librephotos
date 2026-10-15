@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { parsePickerDate, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
 import { DisabledReason } from "../common/DisabledReason";
 import { combineDayAndTime, formatPickerTime, makeTimestampFormSchema } from "./TimestampForm.schema";
+import { UnsavedBadge } from "./UnsavedBadge";
+import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
 
 type Props = Readonly<{
@@ -56,6 +58,10 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
     if (exifValue) onSave(exifValue);
   });
   const { day } = form.getValues();
+  // As Save sees it: the same day and time picked again is no change, a half-typed time is one.
+  const combined = combineDayAndTime(form.getValues());
+  const dirty = combined === null ? form.isDirty() : combined.getTime() !== initial?.getTime();
+  useRegisterDraft("date", dirty);
 
   return (
     <Stack w="100%">
@@ -64,6 +70,7 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
         <Group wrap="nowrap">
           <Calendar />
           <Text>{t("lightbox.sidebar.editdatetime")}</Text>
+          {dirty && <UnsavedBadge />}
         </Group>
         <Group gap="xs" wrap="nowrap">
           <Tooltip label={t("lightbox.sidebar.cancel")}>

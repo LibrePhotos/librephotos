@@ -12,6 +12,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { makePhoto } from "./photoFixture.test-utils";
 import { TagsSection } from "./TagsSection";
+import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
 
 const stubs = vi.hoisted(() => ({
   keywords: undefined as string[] | null | undefined,
@@ -78,14 +79,19 @@ afterEach(async () => {
 const tag = (id: number, name: string): Tag => ({ id, name, photo_count: 1 });
 const markerLabel = () => i18n.t("lightbox.sidebar.tagFromFile");
 
-async function renderTags(props: Partial<React.ComponentProps<typeof TagsSection>> = {}) {
+async function renderTags(
+  props: Partial<React.ComponentProps<typeof TagsSection>> = {},
+  drafts = createUnsavedDrafts()
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <TagsSection photoDetail={makePhoto({ image_hash: "a" })} {...props} />
+        <UnsavedDraftsContext.Provider value={drafts}>
+          <TagsSection photoDetail={makePhoto({ image_hash: "a" })} {...props} />
+        </UnsavedDraftsContext.Provider>
       </MantineProvider>
     );
   });
@@ -235,5 +241,33 @@ describe("TagsSection", () => {
 
     expect(container.querySelector("input")).not.toBeNull();
     expect(container.querySelector(`button[aria-label="${i18n.t("lightbox.sidebar.save")}"]`)).not.toBeNull();
+  });
+});
+
+describe("TagsSection's unsaved draft (#2284)", () => {
+  it("is unsaved only once the tags typed differ from the photo's", async () => {
+    stubs.tags = [tag(1, "family"), tag(2, "beach")];
+    const drafts = createUnsavedDrafts();
+    const container = await renderTags({}, drafts);
+
+    await openEditor(container);
+    expect(drafts.dirtyFields()).toEqual([]);
+    expect(container.textContent).not.toContain("Unsaved");
+
+    const remove = defined(
+      container.querySelector<HTMLButtonElement>(".mantine-Pill-remove"),
+      "a pill's remove button"
+    );
+    await act(async () => remove.click());
+    expect(drafts.dirtyFields()).toEqual(["tags"]);
+    expect(container.textContent).toContain("Unsaved");
+
+    await act(async () =>
+      defined(
+        container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("lightbox.sidebar.cancel")}"]`),
+        "Cancel"
+      ).click()
+    );
+    expect(drafts.dirtyFields()).toEqual([]);
   });
 });

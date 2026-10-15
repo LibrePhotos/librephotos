@@ -84,6 +84,8 @@ export function useLocationPicker(initialPosition: Position | null, initialPlace
 
   return {
     position,
+    /** A spot other than the one the picker opened on is picked, and not saved yet. */
+    changed: position !== null && !samePosition(position, initialPosition),
     knownPlace: known && samePosition(position, known.position) ? known.name : undefined,
     setMapRef,
     onMapClick,

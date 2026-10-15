@@ -824,6 +824,19 @@
       "nofaces": "No faces were found in this photo. If there is one, you can add it yourself.",
       "rotated": "Turn the photo back upright to add a face"
     },
+    "unsaved": {
+      "badge": "Unsaved",
+      "title": "Discard unsaved changes?",
+      "message": "Your changes to the {{fields}} of this photo are not saved yet.",
+      "keep": "Keep editing",
+      "discard": "Discard",
+      "fields": {
+        "date": "date",
+        "caption": "caption",
+        "tags": "tags",
+        "location": "location"
+      }
+    },
     "controls": {
       "fullscreen": "Fullscreen (G)",
       "exitfullscreen": "Exit fullscreen (G)",

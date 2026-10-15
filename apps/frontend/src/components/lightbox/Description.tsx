@@ -26,6 +26,8 @@ import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
 import hashtagClasses from "./Hashtag.module.css";
 import suggestion from "./Suggestion";
+import { UnsavedBadge } from "./UnsavedBadge";
+import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
 
 type Props = Readonly<{
@@ -50,6 +52,100 @@ export function Description(props: Props) {
   // The draft belongs to one photo: remount when the photo changes, or an editor
   // left open while browsing would carry this photo's text over to the next one.
   return <CaptionEditor key={props.photoDetail.image_hash} {...props} />;
+}
+
+type CaptionHeaderProps = Readonly<{
+  heading?: React.ReactNode;
+  /** The draft differs from the saved caption (#2284). */
+  dirty: boolean;
+  editMode: boolean;
+  isPublic: boolean;
+  generating: boolean;
+  onEdit: () => void;
+  onGenerate: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+}>;
+
+/** The section's title (or the card's heading) and its edit controls. */
+function CaptionHeader({
+  heading,
+  dirty,
+  editMode,
+  isPublic,
+  generating,
+  onEdit,
+  onGenerate,
+  onCancel,
+  onSave,
+}: CaptionHeaderProps) {
+  const { t } = useTranslation();
+  return (
+    <Group justify="space-between" wrap="nowrap">
+      <Group gap="xs" wrap="nowrap">
+        {heading ?? (
+          <Group>
+            <Note />
+            <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+          </Group>
+        )}
+        {dirty && <UnsavedBadge />}
+      </Group>
+      {/* Same controls, in the same place, as the tags and keywords below. */}
+      {!editMode && !isPublic && (
+        <Tooltip label={t("lightbox.sidebar.editCaption")}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            aria-label={t("lightbox.sidebar.editCaption")}
+            loading={generating}
+            onClick={onEdit}
+          >
+            <IconPencil size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {editMode && (
+        <Group gap="xs">
+          <Tooltip label={t("lightbox.sidebar.generateCaption")}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("lightbox.sidebar.generateCaption")}
+              loading={generating}
+              onClick={onGenerate}
+            >
+              <Wand size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t("lightbox.sidebar.cancel")}>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label={t("lightbox.sidebar.cancel")}
+              onClick={onCancel}
+            >
+              <IconX size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t("lightbox.sidebar.save")}>
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              size="sm"
+              aria-label={t("lightbox.sidebar.save")}
+              onClick={onSave}
+            >
+              <IconCheck size={16} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      )}
+    </Group>
+  );
 }
 
 function CaptionEditor(props: Props) {
@@ -150,75 +246,27 @@ function CaptionEditor(props: Props) {
     setEditing(false);
   };
 
+  // Compared as Save compares it: an editor opened and left unchanged holds nothing to lose.
+  const dirty = editMode && (imageCaption ?? "") !== savedCaption;
+  useRegisterDraft("caption", dirty);
+
   const im2txt = generatedCaptionOf(photoDetail.captions_json);
   const isEmpty = !editMode && !(imageCaption ?? savedCaption);
 
   return (
     <Stack>
       <Stack gap="xs">
-        <Group justify="space-between" wrap="nowrap">
-          {heading ?? (
-            <Group>
-              <Note />
-              <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
-            </Group>
-          )}
-          {/* Same controls, in the same place, as the tags and keywords below. */}
-          {!editMode && !isPublic && (
-            <Tooltip label={t("lightbox.sidebar.editCaption")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                aria-label={t("lightbox.sidebar.editCaption")}
-                loading={generatingCaptionIm2txt}
-                onClick={() => setEditing(true)}
-              >
-                <IconPencil size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-          {editMode && (
-            <Group gap="xs">
-              <Tooltip label={t("lightbox.sidebar.generateCaption")}>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size="sm"
-                  aria-label={t("lightbox.sidebar.generateCaption")}
-                  loading={generatingCaptionIm2txt}
-                  onClick={() => {
-                    generateImageToTextCaptions({ id: photoDetail.image_hash });
-                  }}
-                >
-                  <Wand size={16} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={t("lightbox.sidebar.cancel")}>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size="sm"
-                  aria-label={t("lightbox.sidebar.cancel")}
-                  onClick={onCancel}
-                >
-                  <IconX size={16} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label={t("lightbox.sidebar.save")}>
-                <ActionIcon
-                  variant="subtle"
-                  color="blue"
-                  size="sm"
-                  aria-label={t("lightbox.sidebar.save")}
-                  onClick={onSave}
-                >
-                  <IconCheck size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          )}
-        </Group>
+        <CaptionHeader
+          heading={heading}
+          dirty={dirty}
+          editMode={editMode}
+          isPublic={isPublic}
+          generating={generatingCaptionIm2txt}
+          onEdit={() => setEditing(true)}
+          onGenerate={() => generateImageToTextCaptions({ id: photoDetail.image_hash })}
+          onCancel={onCancel}
+          onSave={onSave}
+        />
         {im2txt && editMode && !imageCaption?.includes(im2txt) && (
           <div>
             <AISuggestionButton

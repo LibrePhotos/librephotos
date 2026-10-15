@@ -130,7 +130,9 @@ export function LocationSection({
           centered
           closeOnEscape={!nestedOpened}
         >
+          {/* The picked spot belongs to one photo: a step to the next one starts the picker afresh. */}
           <LocationPickerModal
+            key={photoDetail.image_hash}
             imageHash={photoDetail.image_hash}
             onClose={close}
             initialLat={lat ?? undefined}

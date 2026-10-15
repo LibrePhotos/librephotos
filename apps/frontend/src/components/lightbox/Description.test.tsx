@@ -12,6 +12,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { Description } from "./Description";
 import hashtagClasses from "./Hashtag.module.css";
+import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
 
 const saveCaption = vi.fn<(variables: { id: string; caption: string }) => void>();
 const navigate = vi.hoisted(() => vi.fn<(options: { to: string }) => void>());
@@ -84,12 +85,15 @@ async function render(
   root: Root,
   photoDetail: DescribedPhoto,
   isPublic = false,
-  props: Partial<React.ComponentProps<typeof Description>> = {}
+  props: Partial<React.ComponentProps<typeof Description>> = {},
+  drafts = createUnsavedDrafts()
 ) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <Description photoDetail={photoDetail} isPublic={isPublic} {...props} />
+        <UnsavedDraftsContext.Provider value={drafts}>
+          <Description photoDetail={photoDetail} isPublic={isPublic} {...props} />
+        </UnsavedDraftsContext.Provider>
       </MantineProvider>
     );
   });
@@ -246,5 +250,48 @@ describe("Description", () => {
     await render(shared.root, photo("b", ""), true, { startEditing: true });
     expect(shared.container.textContent).toContain("No caption");
     expect(shared.container.querySelector('button[aria-label="Save"]')).toBeNull();
+  });
+});
+
+describe("Description's unsaved draft (#2284)", () => {
+  it("is unsaved once the text differs from the saved caption, not when the editor is only open", async () => {
+    const drafts = createUnsavedDrafts();
+    const { container, root } = mount();
+    await render(root, photo("a", "Sunset at the #beach"), false, {}, drafts);
+
+    await clickLabelled(container, "Edit caption");
+    expect(drafts.dirtyFields()).toEqual([]);
+    expect(container.textContent).not.toContain("Unsaved");
+
+    await type(container, " today");
+    expect(drafts.dirtyFields()).toEqual(["caption"]);
+    expect(container.textContent).toContain("Unsaved");
+
+    await clickLabelled(container, "Cancel");
+    expect(drafts.dirtyFields()).toEqual([]);
+    expect(container.textContent).not.toContain("Unsaved");
+  });
+
+  it("is saved, so no longer unsaved, after Save", async () => {
+    const drafts = createUnsavedDrafts();
+    const { container, root } = mount();
+    await render(root, photo("a", "Saved text"), false, {}, drafts);
+    await clickLabelled(container, "Edit caption");
+    await type(container, " and a draft");
+
+    await clickLabelled(container, "Save");
+    expect(drafts.dirtyFields()).toEqual([]);
+  });
+
+  it("withdraws the draft when the next photo replaces the editor", async () => {
+    const drafts = createUnsavedDrafts();
+    const { container, root } = mount();
+    await render(root, photo("a", "Photo A"), false, {}, drafts);
+    await clickLabelled(container, "Edit caption");
+    await type(container, " edited");
+    expect(drafts.dirtyFields()).toEqual(["caption"]);
+
+    await render(root, photo("b", "Photo B"), false, {}, drafts);
+    expect(drafts.dirtyFields()).toEqual([]);
   });
 });
