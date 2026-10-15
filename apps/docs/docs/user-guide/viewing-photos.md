@@ -230,7 +230,16 @@ When you save, a message says how many photos got their new date and how many a 
 
 ### File & Camera Info
 
-Near the top of the sidebar, LibrePhotos shows a summary of the current file: the filename (a link that opens the original file in a new tab), the image dimensions and file size, and — when the photo has more than one file — the **+N formats** toggle described under [File Variants](#file-variants) below. When the photo carries camera EXIF, a second line lists the camera and lens with the aperture, shutter speed, focal length and ISO; this line is hidden if the photo has no camera information. A **Show more** button reveals additional details such as the file path, subject distance, digital zoom ratio, 35 mm-equivalent focal length and any duplicate file copies. For the full list of EXIF fields, see [EXIF Data](./exif-data.md).
+Near the top of the sidebar, LibrePhotos shows a summary of the current file: the filename (a link that opens the original file in a new tab), the image dimensions, megapixels and file size (for a video: its dimensions, duration, codec and size), and, when the photo has more than one file, the **+N formats** toggle described under [File Variants](#file-variants) below.
+
+When the photo carries camera EXIF, two rows follow, as on a camera's own info screen:
+
+- **Camera**: the camera's make and model, with the shutter speed, the ISO and the exposure bias (`1/250 · ISO 200 · +0.7 EV`).
+- **Lens**: the lens, with the aperture and the focal length, plus its 35 mm equivalent when that differs (`ƒ/5.6 · 23 mm (35 mm equiv.)`).
+
+A row the photo has nothing for is left out; without a lens name, the aperture and focal length join the camera row. Numbers follow your interface language, so German shows `ƒ/5,6` and `8,4 MB`. A shutter speed of a quarter second or longer is given in seconds (`2.5 s`).
+
+**Show more** reveals the rest, with labels: whether the flash fired, the white balance, the metering mode, the subject distance and the digital zoom, then the folder of the file and any duplicate file copies. The button is not shown when there is nothing more. For the full list of EXIF fields, see [EXIF Data](./exif-data.md). _Not released yet: up to 1.3.0 the camera and lens shared one line, without the exposure bias, the megapixels, the flash, white balance or metering mode._
 
 ### File Variants
 
@@ -253,6 +262,8 @@ To fix many items at once, select them in the grid and choose **Mark as photo**,
 ### Location
 
 Displays the location where the photo was taken (if GPS data is available). An interactive map shows where the shot was made — you can pan and zoom it with the on-map navigation controls, and clicking the marker opens a small popup with the photo's thumbnail. To set or correct a location, click the pencil icon next to the place name to open the **Pick location** dialog. (The pencil is hidden on publicly shared photos.)
+
+On your own photos, the coordinates are shown under the place name (`37.08990, -8.41280`), with a button that copies them in that form for a map or a search box, and the altitude when the photo has one (`31 m above sea level`). The copy button needs HTTPS, like copying an image. People you share a photo with, and visitors of a public album, never see this line. _Not released yet._
 
 ### People
 
@@ -331,8 +342,9 @@ Then each subject has a card, with the same editors as the [details sidebar](#ph
 - **Caption**: your caption, with the **Things** found in the photo under it.
 - **Tags**: your tags, marked when they came from the file's keywords.
 - **Place**: the address and a map; the pencil opens **Pick location**.
-- **Camera**: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO.
-- **File**: the file name (it opens the original), its size, the [Category](#category) badge, the photo's other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.
+- **Place**'s coordinates line, with the copy button and the altitude, is the same as in the [Location](#location) section.
+- **Camera**: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO, the exposure bias, and the same **Show more** list as the sidebar.
+- **File**: the file name (it opens the original), its dimensions, megapixels and size (a video's duration and codec), the [Category](#category) badge, the photo's other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.
 - **Albums** and **Similar Photos**, when there are any.
 
 Details a photo does not have yet are not listed as empty cards: they are buttons in one **Add details** card (**Add a caption**, **Add tags**, **Add a place**, **Mark a face**). Each opens its editor straight away.

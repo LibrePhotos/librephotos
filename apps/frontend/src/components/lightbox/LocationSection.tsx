@@ -4,13 +4,16 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconPencil, IconMapPin as MapPin } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { formatCoordinates } from "../../util/exifFormat";
 import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
+import { CoordinatesLine } from "./CoordinatesLine";
 
 type LocationSectionProps = {
   /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
   photoDetail: Pick<PhotoType, "image_hash" | "exif_gps_lat" | "exif_gps_lon"> &
-    Partial<Pick<PhotoType, "search_location" | "exif_timestamp">>;
+    Partial<Pick<PhotoType, "search_location" | "exif_timestamp" | "gps_altitude">>;
   mapHeight?: number;
   isPublic?: boolean;
   /**
@@ -21,6 +24,47 @@ type LocationSectionProps = {
   /** Open the location picker at once: the photo page's "Add a place" asked for it. */
   startEditing?: boolean;
 };
+
+/**
+ * The place name, or what stands in for it: the coordinates the geocoder could not
+ * name (#2253), else "no location". The owner also gets the coordinates to copy and
+ * the altitude (#2276), under the name or as the label; shared and public views never do.
+ */
+function PlaceLabel({
+  photoDetail,
+  isPublic,
+  inCard,
+}: Readonly<{ photoDetail: LocationSectionProps["photoDetail"]; isPublic: boolean; inCard: boolean }>) {
+  const { t } = useTranslation();
+  const locale = useFormatLocale();
+  const { exif_gps_lat: lat, exif_gps_lon: lon, search_location: place } = photoDetail;
+  const ownerCoordinates =
+    !isPublic && lat != null && lon != null ? (
+      <CoordinatesLine lat={lat} lon={lon} altitude={photoDetail.gps_altitude} size={place ? "xs" : "sm"} />
+    ) : null;
+  if (ownerCoordinates && !place) return ownerCoordinates;
+
+  const label = place || formatCoordinates(lat, lon, locale) || t("lightbox.sidebar.no_location");
+  return (
+    <>
+      {inCard ? (
+        // In a card the whole address shows.
+        <Text size="sm" c={place ? undefined : "dimmed"}>
+          {label}
+        </Text>
+      ) : (
+        <Text
+          c={place ? undefined : "dimmed"}
+          title={label}
+          style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          {label}
+        </Text>
+      )}
+      {ownerCoordinates}
+    </>
+  );
+}
 
 export function LocationSection({
   photoDetail,
@@ -34,10 +78,6 @@ export function LocationSection({
   // The picker's removal confirmation owns Escape while it is open; both dialogs would close.
   const [nestedOpened, nested] = useDisclosure(false);
   const { exif_gps_lat: lat, exif_gps_lon: lon } = photoDetail;
-  // Coordinates the geocoder could not name (#2253) are named by themselves, not "no location".
-  const label =
-    photoDetail.search_location ||
-    (lat != null && lon != null ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : t("lightbox.sidebar.no_location"));
   const editButton = !isPublic && (
     <Tooltip label={t("lightbox.sidebar.update_location")}>
       <ActionIcon
@@ -55,26 +95,21 @@ export function LocationSection({
     <Group>
       <Stack w="100%">
         {heading ? (
-          // In a card the whole address shows, under the card's heading.
           <>
             <Group justify="space-between" wrap="nowrap">
               {heading}
               {editButton}
             </Group>
-            <Text size="sm" c={photoDetail.search_location ? undefined : "dimmed"}>
-              {label}
-            </Text>
+            <div>
+              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard />
+            </div>
           </>
         ) : (
           <Group wrap="nowrap" align="center">
             <MapPin />
-            <Text
-              c={photoDetail.search_location ? undefined : "dimmed"}
-              title={label}
-              style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              {label}
-            </Text>
+            <Box flex={1} miw={0}>
+              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard={false} />
+            </Box>
             {editButton}
           </Group>
         )}

@@ -917,10 +917,33 @@
   },
   "exif": {
     "filepath": "File Path",
-    "subjectdistance": "Subject Distance",
-    "digitalzoomratio": "Digital Zoom Ratio",
-    "focallengthin35mmfilm": "Focal Length 35mm Equivalent",
-    "otherversions": "Other Versions",
+    "subjectdistance": "Subject distance",
+    "digitalzoomratio": "Digital zoom",
+    "focalwithequivalent": "{{focal}} ({{equivalent}} equiv.)",
+    "equivalent": "{{value}} equiv.",
+    "exposurebias": "Exposure bias {{value}}",
+    "flash": "Flash",
+    "flashfired": "Fired",
+    "flashnotfired": "Did not fire",
+    "whitebalance": "White balance",
+    "whitebalances": {
+      "auto": "Auto",
+      "manual": "Manual"
+    },
+    "metering": "Metering",
+    "meteringmodes": {
+      "average": "Average",
+      "centerweighted": "Center-weighted average",
+      "spot": "Spot",
+      "multispot": "Multi-spot",
+      "multisegment": "Multi-segment",
+      "partial": "Partial",
+      "other": "Other"
+    },
+    "copycoordinates": "Copy coordinates",
+    "coordinatescopied": "Copied",
+    "abovesealevel": "{{distance}} above sea level",
+    "belowsealevel": "{{distance}} below sea level",
     "duplicates": "Duplicates",
     "showmore": "Show more",
     "showless": "Show less",
@@ -2590,9 +2613,7 @@
       "aperture": "Aperture",
       "shutter": "Shutter",
       "focallength": "Focal length",
-      "equivalent": "{{value}} mm in 35 mm",
-      "iso": "ISO",
-      "distance": "Subject distance {{value}} m"
+      "iso": "ISO"
     },
     "file": {
       "title": "File",

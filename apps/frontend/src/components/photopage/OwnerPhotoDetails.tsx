@@ -18,7 +18,7 @@ import { TagsSection } from "../lightbox/TagsSection";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import type { AddableDetail } from "./AddDetailsCard";
 import { AddDetailsCard } from "./AddDetailsCard";
-import { CameraCard, hasCameraInfo } from "./CameraCard";
+import { CameraCard } from "./CameraCard";
 import { FileCard } from "./FileCard";
 import { PhotoCard } from "./PhotoCard";
 
@@ -119,7 +119,7 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
         </PhotoCard>
       )}
       {addable.length > 0 && <AddDetailsCard missing={addable} onAdd={add} />}
-      {hasCameraInfo(photo) && <CameraCard photo={photo} />}
+      <CameraCard photo={photo} />
       <FileCard photo={photo} />
       {!!albums && albums.length > 0 && (
         <PhotoCard icon={IconBookmark} color="indigo" title={t("lightbox.sidebar.albums")} count={albums.length}>

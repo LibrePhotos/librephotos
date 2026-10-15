@@ -1,64 +1,65 @@
-import type { Photo } from "@librephotos/api-client";
-import { SimpleGrid, Stack, Text } from "@mantine/core";
+import { Anchor, Collapse, SimpleGrid, Stack, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconCamera } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { formatShutterSpeed } from "../../util/shutterSpeed";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
+import { DetailsList } from "../lightbox/DetailsList";
+import type { CameraDetails, CameraPhoto } from "../lightbox/photoDetails";
+import { cameraDetails } from "../lightbox/photoDetails";
 import { PhotoCard } from "./PhotoCard";
 import classes from "./PhotoPage.module.css";
-
-type CameraPhoto = Pick<
-  Photo,
-  "camera" | "lens" | "fstop" | "shutter_speed" | "focal_length" | "focalLength35Equivalent" | "iso" | "subjectDistance"
->;
 
 type Cell = { key: string; value: string; label: string; note?: string };
 
 /** The exposure values the photo has, in the order a camera shows them. */
-function exposureCells(photo: CameraPhoto, t: TFunction): Cell[] {
+function exposureCells(details: CameraDetails, iso: number | null | undefined, t: TFunction): Cell[] {
   const cells: Cell[] = [];
-  if (photo.fstop) cells.push({ key: "aperture", value: `ƒ/${photo.fstop}`, label: t("photopage.camera.aperture") });
-  const shutter = formatShutterSpeed(photo.shutter_speed);
-  if (shutter) cells.push({ key: "shutter", value: shutter, label: t("photopage.camera.shutter") });
-  if (photo.focal_length) {
+  if (details.aperture) cells.push({ key: "aperture", value: details.aperture, label: t("photopage.camera.aperture") });
+  if (details.shutter) cells.push({ key: "shutter", value: details.shutter, label: t("photopage.camera.shutter") });
+  if (details.focalLength) {
+    const equivalent = details.focal35 && details.focal35 !== details.focalLength ? details.focal35 : null;
     cells.push({
       key: "focal",
-      value: `${Math.round(photo.focal_length)} mm`,
+      value: details.focalLength,
       label: t("photopage.camera.focallength"),
-      note: photo.focalLength35Equivalent
-        ? t("photopage.camera.equivalent", { value: Math.round(photo.focalLength35Equivalent) })
-        : undefined,
+      note: equivalent ? t("exif.equivalent", { value: equivalent }) : undefined,
     });
   }
-  if (photo.iso) cells.push({ key: "iso", value: String(photo.iso), label: t("photopage.camera.iso") });
+  // The cell's label says ISO; the value is the number alone.
+  if (details.iso && iso) cells.push({ key: "iso", value: String(Math.round(iso)), label: t("photopage.camera.iso") });
   return cells;
 }
 
-/** Whether the photo says anything about the camera: no card otherwise. */
-export function hasCameraInfo(photo: CameraPhoto): boolean {
-  return (
-    !!photo.camera || !!photo.fstop || !!formatShutterSpeed(photo.shutter_speed) || !!photo.focal_length || !!photo.iso
-  );
-}
-
-/** The camera and lens, then the exposure as a row of labelled values. */
+/**
+ * The camera and lens, then the exposure as a row of labelled values, the
+ * exposure bias, and the rest behind "Show more": the same values, in the same
+ * order, as the lightbox's Details panel. No card when the photo says nothing
+ * about the camera.
+ */
 export function CameraCard({ photo }: Readonly<{ photo: CameraPhoto }>) {
   const { t } = useTranslation();
-  const cells = exposureCells(photo, t);
+  const [showMore, { toggle }] = useDisclosure(false);
+  const locale = useFormatLocale();
+  const details = cameraDetails(photo, t, locale);
+  const cells = exposureCells(details, photo.iso, t);
+  if (!details.camera && !details.lens && cells.length === 0 && !details.bias && details.more.length === 0) {
+    return null;
+  }
   return (
     <PhotoCard icon={IconCamera} color="gray" title={t("photopage.camera.title")}>
       <Stack gap="sm">
-        {(photo.camera || photo.lens) && (
+        {(details.camera || details.lens) && (
           <div>
-            {photo.camera && (
+            {details.camera && (
               <Text size="sm" fw={600}>
-                {photo.camera}
+                {details.camera}
               </Text>
             )}
-            {photo.lens && (
+            {details.lens && (
               <Text size="xs" c="dimmed">
-                {photo.lens}
+                {details.lens}
               </Text>
             )}
           </div>
@@ -72,16 +73,30 @@ export function CameraCard({ photo }: Readonly<{ photo: CameraPhoto }>) {
                 </Text>
                 <Text size="xs" c="dimmed">
                   {cell.label}
-                  {cell.note ? ` · ${cell.note}` : ""}
                 </Text>
+                {cell.note && (
+                  <Text size="xs" c="dimmed">
+                    {cell.note}
+                  </Text>
+                )}
               </div>
             ))}
           </SimpleGrid>
         )}
-        {!!photo.subjectDistance && (
+        {details.bias && (
           <Text size="xs" c="dimmed">
-            {t("photopage.camera.distance", { value: photo.subjectDistance })}
+            {t("exif.exposurebias", { value: details.bias })}
           </Text>
+        )}
+        {details.more.length > 0 && (
+          <div>
+            <Collapse expanded={showMore}>
+              <DetailsList rows={details.more} />
+            </Collapse>
+            <Anchor component="button" type="button" size="xs" aria-expanded={showMore} onClick={toggle}>
+              {showMore ? t("exif.showless") : t("exif.showmore")}
+            </Anchor>
+          </div>
         )}
       </Stack>
     </PhotoCard>

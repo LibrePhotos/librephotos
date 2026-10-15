@@ -36,7 +36,8 @@ vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () =>
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 // The owner's sections have hooks of their own; only which sections render matters here.
-vi.mock("./VersionComponent", () => ({ VersionComponent: () => null, CameraInfoSection: () => null }));
+vi.mock("./VersionComponent", () => ({ VersionComponent: () => null }));
+vi.mock("./CameraInfoSection", () => ({ CameraInfoSection: () => null }));
 vi.mock("./CategoryBadge", () => ({ CategoryBadge: () => null }));
 vi.mock("./StackSection", () => ({ StackSection: () => null }));
 vi.mock("./PeopleSection", () => ({
@@ -153,6 +154,23 @@ describe("Sidebar for the owner", () => {
     expect(container.textContent).toContain("Moved to the trash on");
     expect(container.textContent).toContain("Deleted for good in 20 days");
   });
+
+  it("gives the owner the coordinates and the altitude under the place name (#2276)", async () => {
+    stubs.ownPhoto = makePhoto({
+      id: "p1",
+      image_hash: "h1",
+      exif_gps_lat: 37.0899,
+      exif_gps_lon: -8.4128,
+      search_location: "Praia da Marinha",
+      gps_altitude: 31,
+    });
+
+    const container = await renderSidebar(undefined, false);
+
+    expect(container.textContent).toContain("Praia da Marinha");
+    expect(container.textContent).toContain("37.08990, -8.41280");
+    expect(container.textContent).toContain("31 m above sea level");
+  });
 });
 
 const sharing = (shared: Partial<PublicPhotoDetailResponse["sharing_settings"]>) => ({
@@ -188,6 +206,19 @@ describe("Sidebar on a public album page", () => {
     expect(container.textContent).toContain("Berlin, Germany");
     expect(stubs.people).toEqual(["Ada"]);
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.noAdditionalDetails"));
+  });
+
+  it("gives a visitor no coordinates under the place name (#2276)", async () => {
+    stubs.publicAlbumPhoto = {
+      results: { ...publicPhoto, exif_gps_lat: 52.52, exif_gps_lon: 13.4 },
+      sharing_settings: sharing({ share_location: true, share_camera_info: true }),
+    };
+
+    const container = await renderSidebar(undefined, true, "slug");
+
+    expect(container.textContent).toContain("Berlin, Germany");
+    expect(container.textContent).not.toContain("52.52000");
+    expect(container.querySelector(`[aria-label="${i18n.t("exif.copycoordinates")}"]`)).toBeNull();
   });
 
   it("says there is nothing more when the album shares no details", async () => {

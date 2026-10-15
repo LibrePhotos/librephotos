@@ -1,0 +1,12 @@
+/* Labels in one column, values in the next, so the values line up. */
+.list {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--mantine-spacing-md);
+  margin: 0;
+}
+
+.value {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

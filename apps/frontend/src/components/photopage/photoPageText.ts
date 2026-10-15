@@ -18,9 +18,3 @@ export function fileNameOf(path: string): string {
 export function folderOf(path: string): string {
   return path.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
 }
-
-/** Width × height in megapixels, one decimal ("26.0" reads as 26); null when either is missing. */
-export function megapixels(width: number | null, height: number | null): number | null {
-  if (!width || !height) return null;
-  return Math.round((width * height) / 100_000) / 10;
-}

@@ -2,7 +2,8 @@
  * The file row of the info panel: it printed height × width (a landscape photo
  * read as portrait), showed a Windows backend's sub-path instead of the file
  * name, and built its "+N formats" plural in English code. Its camera row
- * printed a long exposure as a bare "2.5", which reads like 1/2.5 (#2275).
+ * printed a long exposure as a bare "2.5", which reads like 1/2.5 (#2275), and
+ * `ISO200`, `ƒ / 2.8` and an English `58.14 kB` in a German UI (#2276).
  */
 import type { FileVariant, Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -43,7 +44,7 @@ const variant = (hash: string): FileVariant => ({
   filename: null,
 });
 
-async function renderText(overrides: Partial<Photo>) {
+async function render(overrides: Partial<Photo>) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -63,17 +64,30 @@ async function renderText(overrides: Partial<Photo>) {
       </MantineProvider>
     );
   });
-  const text = Array.from(container.querySelectorAll("p, button"))
-    .map(element => element.textContent)
-    .join(" | ");
-  await act(async () => root.unmount());
-  container.remove();
+  return {
+    container,
+    /** The panel's lines, " | " between them. */
+    lines: () =>
+      Array.from(container.querySelectorAll("p, button"))
+        .map(element => element.textContent)
+        .join(" | "),
+    async unmount() {
+      await act(async () => root.unmount());
+      container.remove();
+    },
+  };
+}
+
+async function renderText(overrides: Partial<Photo>) {
+  const panel = await render(overrides);
+  const text = panel.lines();
+  await panel.unmount();
   return text;
 }
 
 describe("VersionComponent", () => {
-  it("shows width × height", async () => {
-    expect(await renderText({})).toContain("4000 × 3000");
+  it("shows width × height, megapixels and the size", async () => {
+    expect(await renderText({})).toContain("4000 × 3000 · 12 MP · 2 MB");
   });
 
   it("shows the file name of a Windows path", async () => {
@@ -86,9 +100,66 @@ describe("VersionComponent", () => {
     expect(await renderText({ file_variants: [variant("a")] })).toContain("+1 format |");
     expect(await renderText({ file_variants: [variant("a"), variant("b")] })).toContain("+2 formats");
   });
+
+  it("gives a video its duration and codec instead of megapixels", async () => {
+    const text = await renderText({
+      video: true,
+      width: 1920,
+      height: 1080,
+      video_length: "42.042",
+      video_codec: "h264",
+    });
+    expect(text).toContain("1920 × 1080 · 0:42 · H.264 · 2 MB");
+  });
 });
 
 describe("CameraInfoSection", () => {
+  const fuji: Partial<Photo> = {
+    camera: "Fujifilm X-T5",
+    lens: "XF16-55mmF2.8 R LM WR",
+    fstop: 5.6,
+    shutter_speed: "1/250",
+    iso: 200,
+    focal_length: 23,
+    focalLength35Equivalent: 35,
+    exposure_compensation: 0.7,
+  };
+
+  it("splits the camera and the lens into two rows", async () => {
+    const text = await renderText(fuji);
+    expect(text).toContain("| Fujifilm X-T5 | 1/250 · ISO 200 · +0.7 EV |");
+    expect(text).toContain("| XF16-55mmF2.8 R LM WR | ƒ/5.6 · 23 mm (35 mm equiv.) |");
+  });
+
+  it("puts the lens values on the camera row when there is no lens name", async () => {
+    const text = await renderText({ camera: "X-T5", fstop: 2.8, iso: 100 });
+    expect(text).toContain("| X-T5 | ƒ/2.8 · ISO 100 |");
+  });
+
+  it("formats in the UI language", async () => {
+    await i18n.changeLanguage("de");
+    try {
+      const text = await renderText({ ...fuji, size: 59_535 });
+      expect(text).toContain("ƒ/5,6");
+      expect(text).toContain("+0,7 EV");
+      expect(text).toContain("58,14 KB");
+    } finally {
+      await i18n.changeLanguage("en");
+    }
+  });
+
+  it("has no camera row for a photo without camera data", async () => {
+    const withCamera = await render(fuji);
+    expect(withCamera.container.querySelector(".tabler-icon-camera")).not.toBeNull();
+    expect(withCamera.container.querySelector(".tabler-icon-aperture")).not.toBeNull();
+    await withCamera.unmount();
+
+    const panel = await render({});
+    expect(panel.container.querySelector(".tabler-icon-camera")).toBeNull();
+    expect(panel.container.querySelector(".tabler-icon-aperture")).toBeNull();
+    await panel.unmount();
+  });
+
   it("gives a long exposure its unit", async () => {
     expect(await renderText({ camera: "X-T5", shutter_speed: "2.5" })).toContain("| 2.5 s |");
   });
@@ -98,6 +169,40 @@ describe("CameraInfoSection", () => {
   });
 
   it("leaves out an older backend's 0", async () => {
-    expect(await renderText({ camera: "X-T5", shutter_speed: "0", iso: 100 })).not.toContain("| 0 |");
+    expect(await renderText({ camera: "X-T5", shutter_speed: "0", iso: 100 })).toContain("| X-T5 | ISO 100 |");
+  });
+});
+
+describe("Show more", () => {
+  it("lists the rest of the exposure with labels", async () => {
+    const panel = await render({
+      camera: "X-T5",
+      flash_fired: false,
+      white_balance: "Auto",
+      metering_mode: "Multi-segment",
+      subjectDistance: 12.4,
+    });
+    const text = panel.container.textContent ?? "";
+    for (const part of ["Flash", "Did not fire", "White balance", "Auto", "Metering", "Multi-segment", "12.4 m"]) {
+      expect(text).toContain(part);
+    }
+    await panel.unmount();
+  });
+
+  it("names a metering mode this app does not know as stored, and leaves out Unknown", async () => {
+    const known = await render({ metering_mode: "Evaluative" });
+    expect(known.container.textContent).toContain("Evaluative");
+    await known.unmount();
+    const unknown = await render({ metering_mode: "Unknown", image_path: [] });
+    expect(unknown.lines()).not.toContain("Show more");
+    await unknown.unmount();
+  });
+
+  it("is not offered when it would open on nothing", async () => {
+    expect(await renderText({ image_path: [] })).not.toContain("Show more");
+  });
+
+  it("is offered for the folder of the file", async () => {
+    expect(await renderText({})).toContain("Show more");
   });
 });

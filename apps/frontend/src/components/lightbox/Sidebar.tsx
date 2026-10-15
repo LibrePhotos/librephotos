@@ -20,6 +20,7 @@ import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
+import { CameraInfoSection } from "./CameraInfoSection";
 import { CategoryBadge } from "./CategoryBadge";
 import { Description } from "./Description";
 import type { FaceLocationType, LightboxItem } from "./lightbox.types";
@@ -30,7 +31,7 @@ import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { TrashedItem } from "./TrashedItem";
-import { CameraInfoSection, VersionComponent } from "./VersionComponent";
+import { VersionComponent } from "./VersionComponent";
 
 type SidebarProps = {
   isPublic: boolean;

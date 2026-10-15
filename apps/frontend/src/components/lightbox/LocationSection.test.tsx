@@ -7,7 +7,7 @@
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { LocationSection } from "./LocationSection";
 
@@ -116,6 +116,87 @@ describe("LocationSection", () => {
       section.container.querySelector(`[aria-label="${i18n.t("lightbox.sidebar.update_location")}"]`)
     ).not.toBeNull();
     await section.unmount();
+  });
+
+  describe("the owner's coordinates (#2276)", () => {
+    const copyLabel = () => i18n.t("exif.copycoordinates");
+    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, "clipboard");
+      writeText.mockClear();
+    });
+
+    it("are under the place name, with a copy button and the altitude", async () => {
+      const section = await renderSection({
+        image_hash: "h1",
+        exif_gps_lat: 37.0899,
+        exif_gps_lon: -8.4128,
+        search_location: "Praia da Marinha",
+        gps_altitude: -4,
+      });
+
+      expect(section.text).toContain("Praia da Marinha");
+      expect(section.text).toContain("37.08990, -8.41280");
+      expect(section.text).toContain("4 m below sea level");
+      const copy = section.container.querySelector<HTMLButtonElement>(`[aria-label="${copyLabel()}"]`);
+      await act(async () => copy?.click());
+      expect(writeText).toHaveBeenCalledWith("37.08990, -8.41280");
+      await section.unmount();
+    });
+
+    it("copy as maps take them in a German UI too", async () => {
+      await i18n.changeLanguage("de");
+      try {
+        const section = await renderSection({
+          image_hash: "h1",
+          exif_gps_lat: 37.0899,
+          exif_gps_lon: -8.4128,
+          search_location: "Praia da Marinha",
+        });
+        expect(section.text).toContain("37,08990; -8,41280");
+        await act(async () =>
+          section.container.querySelector<HTMLButtonElement>(`[aria-label="${copyLabel()}"]`)?.click()
+        );
+        expect(writeText).toHaveBeenCalledWith("37.08990, -8.41280");
+        await section.unmount();
+      } finally {
+        await i18n.changeLanguage("en");
+      }
+    });
+
+    it("are the label, once, where the place has no name", async () => {
+      const section = await renderSection({ image_hash: "h1", exif_gps_lat: 36.5, exif_gps_lon: -6.3 });
+
+      expect(section.text.split("36.50000, -6.30000")).toHaveLength(2);
+      expect(section.container.querySelector(`[aria-label="${copyLabel()}"]`)).not.toBeNull();
+      await section.unmount();
+    });
+
+    it("are not offered to a visitor", async () => {
+      const section = await renderSection(
+        { image_hash: "h1", exif_gps_lat: 37.0899, exif_gps_lon: -8.4128, search_location: "Praia", gps_altitude: 31 },
+        { isPublic: true }
+      );
+
+      expect(section.text).not.toContain("37.08990");
+      expect(section.text).not.toContain("sea level");
+      expect(section.container.querySelector(`[aria-label="${copyLabel()}"]`)).toBeNull();
+      await section.unmount();
+    });
+
+    it("have no copy button where the browser has no clipboard (plain HTTP)", async () => {
+      Reflect.deleteProperty(navigator, "clipboard");
+      const section = await renderSection({ image_hash: "h1", exif_gps_lat: 1, exif_gps_lon: 2, search_location: "X" });
+
+      expect(section.text).toContain("1.00000, 2.00000");
+      expect(section.container.querySelector(`[aria-label="${copyLabel()}"]`)).toBeNull();
+      await section.unmount();
+    });
   });
 
   it("opens the location picker at once when asked to", async () => {
