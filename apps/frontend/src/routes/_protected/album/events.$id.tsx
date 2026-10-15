@@ -12,10 +12,12 @@ import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { eventLocationNames } from "../../../components/album/eventLocations";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
 import { useEventTitle } from "../../../hooks/useEventTitle";
 
 export const Route = createFileRoute("/_protected/album/events/$id")({
   component: AlbumAutoGalleryView,
+  validateSearch: validatePhotoSearch,
 });
 
 function AlbumAutoGalleryView() {

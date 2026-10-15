@@ -32,7 +32,7 @@ vi.mock("@tanstack/react-router", () => ({
     return {};
   },
   useNavigate: () => () => {},
-  useSearch: () => stubs.search,
+  useSearch: ({ select }: { select: (search: Record<string, unknown>) => unknown }) => select(stubs.search),
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useFetchDateAlbumsQuery: () => stubs.emptyTimeline,

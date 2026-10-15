@@ -12,6 +12,7 @@ import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { withPhotoSearch } from "../../components/photolist/photoSearch";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -31,8 +32,8 @@ export const Route = createFileRoute("/_protected/")({
   component: TimestampPhotos,
   // ?media=, ?hide_screenshots=, ?hide_documents=, ?favorites= override the
   // user's saved default timeline filter key by key; none of them is the
-  // default.
-  validateSearch: validateTimelineSearch,
+  // default. ?photo= is the photo open in the lightbox.
+  validateSearch: withPhotoSearch(validateTimelineSearch),
 });
 
 function TimestampPhotos() {

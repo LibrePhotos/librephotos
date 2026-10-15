@@ -57,7 +57,8 @@ vi.mock("@tanstack/react-router", () => ({
     return {};
   },
   useNavigate: () => stubs.navigate,
-  useSearch: () => stubs.search,
+  // As the router does: the filter hook reads its keys through `select`.
+  useSearch: ({ select }: { select: (search: Record<string, unknown>) => unknown }) => select(stubs.search),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () =>

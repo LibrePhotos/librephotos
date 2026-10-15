@@ -16,7 +16,9 @@ import {
 // than fetching (and showing) an unfiltered library first.
 export function useTimelineFilter() {
   const navigate = useNavigate();
-  const rawSearch = useSearch({ strict: false });
+  // The filter's keys only, kept equal by structural sharing: the lightbox's `?photo=` neither
+  // re-renders the timeline nor gives the filter a new identity.
+  const search = useSearch({ strict: false, select: validateTimelineSearch, structuralSharing: true });
   const userQuery = useCurrentUserSelfDetailsQuery();
   const { data: user } = userQuery;
   // Without the user there is no default to wait for: the timeline shows this instead of loading forever
@@ -27,10 +29,7 @@ export function useTimelineFilter() {
   const saved = useMemo(() => savedTimelineFilter(savedRaw), [savedRaw]);
   // The router and the query cache keep both inputs' identity until they
   // change, so `current` is stable across unrelated renders.
-  const current = useMemo(
-    () => resolveTimelineFilter(savedRaw, validateTimelineSearch(rawSearch)),
-    [savedRaw, rawSearch]
-  );
+  const current = useMemo(() => resolveTimelineFilter(savedRaw, search), [savedRaw, search]);
 
   const setFilter = useCallback(
     (filter: TimelineFilter) => {

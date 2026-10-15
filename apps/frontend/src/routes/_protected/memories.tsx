@@ -2,7 +2,7 @@ import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
 import { Group, Stack } from "@mantine/core";
 import { IconSparkles as Sparkles } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchMemoriesQuery } from "../../api_client/memories";
 import { EmptyState } from "../../components/common/EmptyState";
@@ -19,10 +19,12 @@ import {
 } from "../../components/memories/memoryPhotoset";
 import { MemorySlideshow } from "../../components/memories/MemorySlideshow";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { validatePhotoSearch } from "../../components/photolist/photoSearch";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/memories")({
   component: Memories,
+  validateSearch: validatePhotoSearch,
 });
 
 /** What the lightbox is playing: one year's memory, or every year in a row. */
@@ -30,16 +32,20 @@ type Playing = { kind: "all" } | { kind: "one"; id: string };
 
 function Memories() {
   const { t } = useTranslation();
-  const [view, setView] = useState<MemoriesView>("tiles");
+  // A link to a photo of the gallery (`?photo=`, #2231) opens the gallery, where the lightbox is.
+  const linkedPhoto = Route.useSearch({ select: search => search.photo !== undefined });
+  const [view, setView] = useState<MemoriesView>(() => (linkedPhoto ? "gallery" : "tiles"));
   const [playing, setPlaying] = useState<Playing | null>(null);
   // The tiles need only a cover each; showing the whole day at once -- as a
   // gallery, or as one slideshow across the years -- is what justifies asking
   // the backend for every photo it will give.
-  const [wantsEveryPhoto, setWantsEveryPhoto] = useState(false);
+  const [wantsEveryPhoto, setWantsEveryPhoto] = useState(linkedPhoto);
 
   const summary = useFetchMemoriesQuery();
   const everyPhoto = useFetchMemoriesQuery({ size: MAX_MEMORY_ITEMS, enabled: wantsEveryPhoto });
-  const memories = everyPhoto.data?.results ?? summary.data?.results ?? [];
+  const everyResult = everyPhoto.data?.results;
+  const summaryResult = summary.data?.results;
+  const memories = useMemo(() => everyResult ?? summaryResult ?? [], [everyResult, summaryResult]);
   const isFetching = summary.isFetching || everyPhoto.isFetching;
   // The summary is the list: when it failed, the full set is not asked for, or
   // came back empty too. Its photos stay if only a later request failed.
@@ -51,7 +57,10 @@ function Memories() {
   // Whole pixels: a full row of fractional tiles can add up a hair past the page and wrap
   const tileSize = Math.max(Math.floor(columnWidth) - 10, 0);
 
-  const items = memoriesToFlatItems(memories);
+  // Memoised: opening or closing the lightbox re-renders the page, and a new list would make the
+  // grid lay itself out again.
+  const items = useMemo(() => memoriesToFlatItems(memories), [memories]);
+  const groups = useMemo(() => memoriesToPhotoGroups(memories), [memories]);
   const playingItems =
     playing?.kind === "all" ? items : (memories.find(memory => memory.id === playing?.id)?.items ?? []);
 
@@ -95,7 +104,7 @@ function Memories() {
           title={t("memories.title")}
           loading={isFetching && items.length === 0}
           icon={Sparkles}
-          photoset={memoriesToPhotoGroups(memories)}
+          photoset={groups}
           idx2hash={items}
           numberOfItems={items.length}
           selectable

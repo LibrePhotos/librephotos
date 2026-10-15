@@ -67,7 +67,7 @@ export function PhotoListDialogs({
         <Lightbox
           isPublic={isPublic}
           publicAlbumSlug={publicAlbumSlug}
-          idx2hash={toLightboxItems(idx2hash)}
+          idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash)}
           selectedImage={lightbox.lightboxImageId}
           onChangedIndex={lightbox.handleLightboxIndexChange}
           onCloseRequest={slideshow.close}

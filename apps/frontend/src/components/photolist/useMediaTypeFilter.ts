@@ -7,8 +7,8 @@ import { DEFAULT_MEDIA_TYPE } from "./mediaTypeFilter";
 // param. Reset-per-view by design: the value lives in the URL, so it survives
 // reload / back-forward for a given view but does not leak across surfaces.
 export function useMediaTypeFilter(): MediaType {
-  const search = useSearch({ strict: false });
-  return search.media ?? DEFAULT_MEDIA_TYPE;
+  // Only the param it reads: the lightbox's `?photo=` does not re-render the page.
+  return useSearch({ strict: false, select: search => search.media }) ?? DEFAULT_MEDIA_TYPE;
 }
 
 // Sets the current page's `?media` param; the default clears it so the URL stays clean.

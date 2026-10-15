@@ -25,7 +25,8 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  useSearch: () => stubs.search,
+  // As the router does: the hooks read their params through `select`.
+  useSearch: ({ select }: { select: (search: Record<string, unknown>) => unknown }) => select(stubs.search),
   useNavigate: () => stubs.navigate,
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({

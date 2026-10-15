@@ -9,11 +9,13 @@ import { useListFailure } from "../../components/common/useListFailure";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { validatePhotoSearch } from "../../components/photolist/photoSearch";
 import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/screenshots")({
   component: OnlyScreenshots,
+  validateSearch: validatePhotoSearch,
 });
 
 function OnlyScreenshots() {

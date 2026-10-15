@@ -1,4 +1,5 @@
 import type { AlbumMediaFilter, MediaType } from "@librephotos/api-client";
+import { validatePhotoSearch, type PhotoSearch } from "./photoSearch";
 
 export const DEFAULT_MEDIA_TYPE: MediaType = "all";
 
@@ -36,10 +37,13 @@ function isMediaType(value: unknown): value is MediaType {
   return MEDIA_TYPES.some(mediaType => mediaType === value);
 }
 
-// Route `validateSearch` for surfaces that expose the media-type filter. Only
-// the non-default values are kept in the URL; "all" is represented by the
-// absence of the param.
-export function validateMediaSearch(search: Record<string, unknown>): { media?: MediaType } {
+// Route `validateSearch` for the photo lists that expose the media-type filter: the filter and
+// the photo open in the lightbox (`?photo=`). Only the non-default filter values are kept in the
+// URL; "all" is represented by the absence of the param.
+export function validateMediaSearch(search: Record<string, unknown>): { media?: MediaType } & PhotoSearch {
   const { media } = search;
-  return isMediaType(media) && media !== DEFAULT_MEDIA_TYPE ? { media } : {};
+  return {
+    ...(isMediaType(media) && media !== DEFAULT_MEDIA_TYPE ? { media } : {}),
+    ...validatePhotoSearch(search),
+  };
 }

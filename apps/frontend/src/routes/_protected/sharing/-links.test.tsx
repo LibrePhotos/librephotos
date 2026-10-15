@@ -27,11 +27,16 @@ const stubs = vi.hoisted(() => ({
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options?: { component?: React.ComponentType }) => {
     stubs.component = options?.component;
-    return { useNavigate: () => () => {}, useSearch: () => stubs.search };
+    return {
+      useNavigate: () => () => {},
+      useSearch: ({ select }: { select: (search: { tab?: string }) => unknown }) => select(stubs.search),
+    };
   },
   useLocation: () => ({ pathname: "/sharing/links" }),
   useNavigate: () => () => {},
   useRouter: () => ({ state: { location: { pathname: "/sharing/links" } } }),
+  // The photo list's lightbox reads `?photo=`: none here.
+  useSearch: () => undefined,
 }));
 vi.mock("../../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: { access: { user_id: 1, is_admin: true, name: "admin" } } }),
@@ -70,7 +75,8 @@ vi.mock("../../../api_client/albums/hooks", () => {
 });
 vi.mock("../../../api_client/photos/hooks", () => {
   const shares = { data: [], isLoading: false };
-  return { useFetchPhotoSharesQuery: () => shares };
+  const noDetails = { data: undefined, isError: false };
+  return { useFetchPhotoSharesQuery: () => shares, useFetchPhotoDetailsQuery: () => noDetails };
 });
 vi.mock("../../../components/react-pig", () => ({ default: () => <div data-testid="pig" /> }));
 vi.mock("../../../components/scrollscrubber/ScrollScrubber", () => ({

@@ -54,6 +54,26 @@ test("clicking a photo opens it in the lightbox", async ({ page }) => {
   await expect(lightbox.dialog).toBeHidden();
 });
 
+test("the open photo is in the address: Back closes it, a reload reopens it (#2231)", async ({ page }) => {
+  const timeline = new TimelinePage(page);
+  await timeline.goto();
+  await timeline.tiles.first().click();
+
+  const lightbox = new Lightbox(page);
+  await expect(lightbox.dialog).toBeVisible();
+  await expect(page).toHaveURL(/[?&]photo=/);
+  const linked = page.url();
+
+  await page.goBack();
+  await expect(lightbox.dialog).toBeHidden();
+  await expect(page).not.toHaveURL(/[?&]photo=/);
+  await expect(timeline.heading).toBeVisible();
+
+  await page.goto(linked);
+  await expect(lightbox.dialog).toBeVisible();
+  await expect.poll(() => isImageLoaded(lightbox.image)).toBe(true);
+});
+
 test("favorite toggles from the lightbox and persists", async ({ page }) => {
   const timeline = new TimelinePage(page);
   await timeline.goto();
@@ -77,9 +97,9 @@ test("favorite toggles from the lightbox and persists", async ({ page }) => {
 
   await toggle(!wasFavorite);
 
-  // The new state survives a reload, so it came from the server rather than local state.
+  // The new state survives a reload, so it came from the server rather than local state. The
+  // open photo is in the address (#2231), so the reload reopens the lightbox on it.
   await page.reload();
-  await timeline.tiles.first().click();
   await expect(lightbox.favoriteButton).toHaveAccessibleName(
     !wasFavorite ? /^Remove from favorites/ : /^Add to favorites/
   );

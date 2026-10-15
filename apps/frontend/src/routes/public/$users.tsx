@@ -9,12 +9,15 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import type { PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { validatePhotoSearch } from "../../components/photolist/photoSearch";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/public/$users")({
   component: UserPublicPage,
+  // ?photo= is the photo open in the lightbox; ?album= (read below) passes through untouched.
+  validateSearch: validatePhotoSearch,
 });
 
 function UserPublicPage() {
