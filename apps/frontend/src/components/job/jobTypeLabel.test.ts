@@ -29,6 +29,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [25, "Generate Captions"],
   [26, "Apply Date Rules"],
   [27, "Write Metadata to Files"],
+  [28, "Read Shutter Speeds Again"],
 ];
 
 describe("jobTypeLabel", () => {

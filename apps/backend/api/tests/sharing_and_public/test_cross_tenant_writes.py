@@ -108,6 +108,8 @@ NOT_PHOTO_SCOPED = {
     "api/generate-captions/": "queues a job on the requester's own photos",
     "api/photos/reapply-date-rules/": "queues a job on the requester's own photos",
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
+    "api/upgrade-tasks/<slug:key>/start/": "admin-only, instance-wide post-upgrade jobs",
+    "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
     "api/autoalbumgen/": "queues a job on the requester's own photos",
     "api/autoalbumtitlegen/": "queues a job on the requester's own albums",
     "api/stacks/detect/": "queues a job on the requester's own photos",

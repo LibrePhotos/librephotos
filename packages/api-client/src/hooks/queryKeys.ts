@@ -266,6 +266,8 @@ export const jobKeys = {
   all: jobRoot,
   list: (request: JobListParams) => [...jobRoot, "list", request] as const,
   detail: (id: number) => [...jobRoot, "detail", id] as const,
+  /** The Finish the upgrade card's tasks (#2322): under `all`, so a job change refreshes them. */
+  upgradeTasks: () => [...jobRoot, "upgradeTasks"] as const,
   /** Whether the worker can take a job (not under `all`: a job change does not always move it). */
   worker: () => ["worker"] as const,
 };

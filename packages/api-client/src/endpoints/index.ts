@@ -928,6 +928,29 @@ export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobSt
   return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
 }
 
+/** The post-upgrade tasks this instance still has, and those done in the last day (admins only, #2322). */
+export async function fetchUpgradeTasks(client: ApiClient): Promise<S.UpgradeTaskList> {
+  const res = await client.get<unknown>("/upgrade-tasks/");
+  return parseResponse(S.UpgradeTaskList, res, "upgrade tasks");
+}
+
+/**
+ * Start (or retry) a post-upgrade task (admins only, #2322). While another job is queued or
+ * running the server refuses with 409 `queue_busy`; its own job running resolves as that job.
+ */
+export async function startUpgradeTask(
+  client: ApiClient,
+  key: string
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, `/upgrade-tasks/${encodeURIComponent(key)}/start/`, S.JobStartedResponse, "upgrade task");
+}
+
+/** Not now: hide an optional post-upgrade task for good (400 `task_required` for a required one). */
+export async function dismissUpgradeTask(client: ApiClient, key: string): Promise<S.UpgradeTaskList> {
+  const res = await client.post<unknown>(`/upgrade-tasks/${encodeURIComponent(key)}/dismiss/`, {});
+  return parseResponse(S.UpgradeTaskList, res, "dismiss upgrade task");
+}
+
 /**
  * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
  * Returns the queued (or already running) job.

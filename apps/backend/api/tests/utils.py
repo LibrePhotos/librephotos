@@ -39,6 +39,7 @@ from api.models.photo_metadata import MetadataEdit
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
+from api.models.upgrade_task_state import UpgradeTaskState
 from api.photos.media_files import get_or_create_file
 
 fake = Faker()
@@ -258,6 +259,11 @@ def create_test_job(
     return LongRunningJob.objects.create(
         started_by=started_by, job_type=job_type, **kwargs
     )
+
+
+def create_test_upgrade_task_state(key: str, **kwargs: Any) -> UpgradeTaskState:
+    """The row of the post-upgrade task ``key`` (``api.jobs.upgrade_tasks``), made now."""
+    return UpgradeTaskState.objects.create(key=key, **kwargs)
 
 
 def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:

@@ -2,6 +2,7 @@ from django.db.models import Prefetch
 from rest_framework import serializers
 
 from api.drf.params import QueryFlagField
+from api.jobs.upgrade_tasks import TaskList, TaskOverview
 from api.models import LongRunningJob, User
 from api.models.long_running_job import LongRunningJobQuerySet
 from api.serializers.fields import loaded
@@ -113,3 +114,49 @@ class CaptionsJobStartedResponseSerializer(JobStartedResponseSerializer):
     downloads_model = serializers.BooleanField(
         help_text="The captioning model is downloaded first: the job starts after it"
     )
+
+
+class UpgradeTaskSerializer(serializers.Serializer[TaskOverview]):
+    """One row of the Admin page's Finish the upgrade card (``api.jobs.upgrade_tasks``)."""
+
+    key = serializers.CharField(
+        help_text="The task's name; the web app has its title and sentence"
+    )
+    kind = serializers.ChoiceField(
+        choices=["automatic", "action"],
+        help_text="automatic: runs by itself; action: waits for Start",
+    )
+    optional = serializers.BooleanField(
+        help_text="An optional task may be dismissed; automatic ones are required"
+    )
+    status = serializers.ChoiceField(
+        choices=["pending", "running", "failed", "done"],
+        help_text="done: finished in the last day; failed: the last run failed "
+        "or was cancelled",
+    )
+    count = serializers.IntegerField(
+        allow_null=True, help_text="How many items the task works on, when it says"
+    )
+    progress_current = serializers.IntegerField(
+        allow_null=True, help_text="Items done by the running jobs; null when none runs"
+    )
+    progress_target = serializers.IntegerField(
+        allow_null=True, help_text="Items of the running jobs; null when none runs"
+    )
+    latest_job_id = serializers.IntegerField(
+        allow_null=True,
+        help_text="The running job, else the last one since the task appeared "
+        "(a job list id)",
+    )
+    error = serializers.CharField(
+        allow_null=True, help_text="Why the last run failed, when it says"
+    )
+    completed_at = serializers.DateTimeField(
+        allow_null=True, help_text="When the task stopped being needed"
+    )
+
+
+class UpgradeTaskListSerializer(serializers.Serializer[TaskList]):
+    """``GET /api/upgrade-tasks/``: the tasks an upgrade left, done ones for a day."""
+
+    tasks = UpgradeTaskSerializer(many=True)

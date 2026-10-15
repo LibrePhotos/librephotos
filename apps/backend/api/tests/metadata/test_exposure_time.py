@@ -12,12 +12,18 @@ from unittest.mock import patch
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
 
-from api.metadata.photo_reader import extract_exif_data
+from api.metadata.exposure_time_job import refresh_exposure_times_job
+from api.metadata.photo_reader import (
+    extract_exif_data,
+    misread_exposure_times,
+    refresh_exposure_times,
+)
 from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
+from api.models.long_running_job import JobCancelledError, LongRunningJob
 from api.models.photo_metadata import PhotoMetadata, format_exposure_time
 from api.tests.metadata.exiftool_harness import RealExifToolTestCase
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 
 class FormatExposureTimeTest(SimpleTestCase):
@@ -167,3 +173,74 @@ class RefreshExposureTimeCommandTest(TestCase):
         self.assertEqual("1/8000", PhotoMetadata.objects.get(pk=zero.pk).shutter_speed)
         self.assertIn("Updated 1 of 2", out)
         self.assertIn("1 could not be read", out)
+
+
+class RefreshExposureTimesJobTest(TestCase):
+    """The upgrade task behind the Finish the upgrade card runs the same work as a job (#2322)."""
+
+    def setUp(self) -> None:
+        self.admin = create_test_user(is_admin=True)
+        self.photo = create_test_photo(owner=self.admin, shutter_speed="0")
+
+    def run_job(self, **patches: object) -> LongRunningJob:
+        job = create_test_job(self.admin, LongRunningJob.JOB_REFRESH_EXPOSURE_TIMES)
+        with patch("api.metadata.photo_reader.get_metadata", **patches):
+            refresh_exposure_times_job(self.admin, job_id=job.job_id)
+        job.refresh_from_db()
+        return job
+
+    def test_the_job_repairs_every_users_rows_and_reports(self) -> None:
+        other = create_test_photo(owner=create_test_user(), shutter_speed="1/1000")
+
+        job = self.run_job(return_value=[1 / 4000])
+
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertEqual(
+            job.result,
+            {"status": "completed", "checked": 2, "updated": 2, "unreadable": 0},
+        )
+        self.assertEqual((job.progress_current, job.progress_target), (2, 2))
+        self.assertEqual(PhotoMetadata.objects.get(photo=other).shutter_speed, "1/4000")
+
+    def test_an_unexpected_error_fails_the_job(self) -> None:
+        job = self.run_job(side_effect=RuntimeError("exif service down"))
+
+        self.assertTrue(job.failed)
+        self.assertEqual(job.result["error"], "exif service down")
+
+    def test_a_cancelled_job_stops(self) -> None:
+        job = create_test_job(self.admin, LongRunningJob.JOB_REFRESH_EXPOSURE_TIMES)
+
+        def cancel(*args: object, **kwargs: object) -> None:
+            raise JobCancelledError(job.job_id)
+
+        with (
+            patch("api.metadata.photo_reader.get_metadata") as get_metadata,
+            patch.object(LongRunningJob, "stop_if_cancelled", cancel),
+        ):
+            refresh_exposure_times_job(self.admin, job_id=job.job_id)
+
+        get_metadata.assert_not_called()
+        job.refresh_from_db()
+        self.assertFalse(job.finished)
+
+    def test_a_job_cancelled_while_queued_does_nothing(self) -> None:
+        job = create_test_job(
+            self.admin, LongRunningJob.JOB_REFRESH_EXPOSURE_TIMES, finished=True
+        )
+        with patch("api.metadata.photo_reader.get_metadata") as get_metadata:
+            refresh_exposure_times_job(self.admin, job_id=job.job_id)
+        get_metadata.assert_not_called()
+
+    def test_progress_is_reported_every_hundred_rows(self) -> None:
+        reports: list[tuple[int, int]] = []
+        with (
+            patch("api.metadata.photo_reader.EXPOSURE_PROGRESS_EVERY", 1),
+            patch("api.metadata.photo_reader.get_metadata", return_value=[1 / 4000]),
+        ):
+            refresh_exposure_times(
+                misread_exposure_times(),
+                progress=lambda done, total: reports.append((done, total)),
+            )
+        self.assertEqual(reports, [(0, 1), (1, 1), (1, 1)])

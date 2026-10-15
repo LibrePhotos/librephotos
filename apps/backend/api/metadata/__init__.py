@@ -12,6 +12,7 @@ Submodules:
 - ``photo_writer``: writing a photo's edits back to its file or XMP sidecar
 - ``jobs``: background rating writes for bulk rating edits
 - ``date_rules_job``: the job that applies the current date rules to the photos already in the library
+- ``exposure_time_job``: the job that reads the shutter speeds an older version stored wrongly again
 
 Import directly from the submodules, which avoids circular imports::
 

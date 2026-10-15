@@ -26,6 +26,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
+import { useUpgradeTasksQuery } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
@@ -40,6 +41,7 @@ import { PageHeader } from "../PageHeader";
 import classes from "./AdminPage.module.css";
 import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
+import { FinishUpgradeCard } from "./FinishUpgradeCard";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
@@ -291,6 +293,8 @@ export function AdminPage() {
   // disabled query is not "loading", which used to flash the unauthorized state for admins.
   const { data: currentUser, isPending } = useCurrentUserSelfDetailsQuery();
   const { t } = useTranslation();
+  // The card heads the page while an update left something to do (#2322).
+  const upgradeTasks = useUpgradeTasksQuery({ enabled: currentUser?.is_superuser === true }).data?.tasks ?? [];
 
   if (isPending) {
     return <PageLoader />;
@@ -309,6 +313,7 @@ export function AdminPage() {
   }
 
   const sections = [
+    ...(upgradeTasks.length ? [{ id: ADMIN_SECTIONS.upgrade, label: t("upgradetasks.header") }] : []),
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
     { id: ADMIN_SECTIONS.features, label: t("sitesettings.features_header") },
     { id: ADMIN_SECTIONS.email, label: t("emailsettings.header") },
@@ -325,6 +330,11 @@ export function AdminPage() {
       <PageHeader icon={Adjustments} title={t("adminarea.header")} />
       <SectionNav sections={sections}>
         <Stack>
+          {upgradeTasks.length ? (
+            <SettingsSection id={ADMIN_SECTIONS.upgrade}>
+              <FinishUpgradeCard tasks={upgradeTasks} />
+            </SettingsSection>
+          ) : null}
           <SettingsSection id={ADMIN_SECTIONS.site}>
             <SiteSettings />
           </SettingsSection>

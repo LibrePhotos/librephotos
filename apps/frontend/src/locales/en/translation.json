@@ -432,7 +432,9 @@
     "adminarea": "Admin Area",
     "jobs": "My Jobs",
     "accountmenu": "Account menu",
-    "workerstatusbusy": "Worker status: busy"
+    "workerstatusbusy": "Worker status: busy",
+    "upgradetasks_one": "{{count}} upgrade task left",
+    "upgradetasks_other": "{{count}} upgrade tasks left"
   },
   "jobs": {
     "header": "My Jobs",
@@ -463,6 +465,7 @@
       "generate_captions": "Generate Captions",
       "reapply_date_rules": "Apply Date Rules",
       "write_metadata": "Write Metadata to Files",
+      "refresh_exposure_times": "Read Shutter Speeds Again",
       "unknown": "Other job ({{name}})"
     },
     "queuebusy": {
@@ -2969,6 +2972,54 @@
     "back": {
       "title": "LibrePhotos is back",
       "message": "The server answers again."
+    }
+  },
+  "upgradetasks": {
+    "header": "Finish the upgrade",
+    "finishedheader": "The upgrade is finished",
+    "left_one": "{{count}} left",
+    "left_other": "{{count}} left",
+    "intro": "This update left a few things to do once. Automatic tasks run by themselves; you can follow them here or in the job list.",
+    "finishedintro": "Everything the update left to do is done. This card goes away tomorrow.",
+    "automatic": "Automatic",
+    "optional": "Optional",
+    "start": "Start",
+    "retry": "Retry",
+    "notnow": "Not now",
+    "progress": "{{done}} of {{total}} · {{percent}}",
+    "waiting": "Waiting for the running job to finish",
+    "notstarted": "Not started yet",
+    "failed": "Stopped: {{error}}",
+    "failednoreason": "The last run did not finish.",
+    "done": "Done {{when}}",
+    "viewjob": "View job",
+    "status": {
+      "pending": "To do",
+      "running": "Running",
+      "failed": "Failed",
+      "done": "Done"
+    },
+    "unknown": {
+      "title": "Another task from the update ({{key}})",
+      "description": "Start it to finish the update."
+    },
+    "semantic_search_conversion": {
+      "title": "Update search for the new search model",
+      "description": "Search results may be incomplete until this finishes. Your photos are not changed."
+    },
+    "strip_thumbnail_metadata": {
+      "title": "Remove photo details from old thumbnails",
+      "description": "Thumbnails made by LibrePhotos 1.2.1 or older still contain details from the original photo, such as where it was taken. Your photos are not changed."
+    },
+    "refresh_exposure_times": {
+      "title": "Read shutter speeds again",
+      "description": "LibrePhotos 1.3.0 and older stored some shutter speeds wrongly, such as 0 for very short ones. This reads them again from your photos. Your photos are not changed."
+    },
+    "probe_videos": {
+      "title": "Read colour information of older videos",
+      "titlecount_one": "Read colour information of {{count}} older video",
+      "titlecount_other": "Read colour information of {{count}} older videos",
+      "description": "So HDR videos play with the right colours and get new thumbnails. Your videos are not changed."
     }
   }
 }

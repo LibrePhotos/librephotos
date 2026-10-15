@@ -1,5 +1,5 @@
 import type { JobDetail } from "@librephotos/api-client";
-import { ActionIcon, Avatar, Box, Menu } from "@mantine/core";
+import { ActionIcon, Avatar, Badge, Box, Indicator, Menu, VisuallyHidden } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
@@ -13,6 +13,7 @@ import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
+import { useOpenUpgradeTaskCount } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
@@ -30,6 +31,9 @@ export function ProfileButton(): React.ReactNode {
   const { workerRunningJob, currentData } = useWorkerStatus();
   // Busy only once the worker has answered; no ring while the first poll is in flight.
   const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
+  // What an update left for an admin to do (#2322): a dot on the avatar, a count on Admin Area.
+  const upgradeTasksLeft = useOpenUpgradeTaskCount(user?.is_superuser === true);
+  const upgradeTasksLabel = upgradeTasksLeft ? t("topmenu.upgradetasks", { count: upgradeTasksLeft }) : null;
   const [menuOpened, menu] = useDisclosure(false);
   const [cancelOpened, cancelDialog] = useDisclosure(false);
   // The job the user asked to cancel, kept as it was: if it ends and another starts while
@@ -48,22 +52,28 @@ export function ProfileButton(): React.ReactNode {
         {/* While the worker is busy a progress ring wraps the avatar, and the running
           job heads the menu. When idle there is nothing extra in the header. */}
         <Box pos="relative" display="flex">
-          <Menu.Target>
-            <ActionIcon
-              variant="transparent"
-              size={30}
-              aria-label={
-                workerBusy ? `${t("topmenu.accountmenu")}, ${t("topmenu.workerstatusbusy")}` : t("topmenu.accountmenu")
-              }
-            >
-              <Avatar
-                src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
-                size={28}
-                alt=""
-                radius="xl"
-              />
-            </ActionIcon>
-          </Menu.Target>
+          <Indicator color="orange" size={9} offset={3} withBorder disabled={!upgradeTasksLeft} zIndex={2}>
+            <Menu.Target>
+              <ActionIcon
+                variant="transparent"
+                size={30}
+                aria-label={[
+                  t("topmenu.accountmenu"),
+                  workerBusy ? t("topmenu.workerstatusbusy") : null,
+                  upgradeTasksLabel,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              >
+                <Avatar
+                  src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
+                  size={28}
+                  alt=""
+                  radius="xl"
+                />
+              </ActionIcon>
+            </Menu.Target>
+          </Indicator>
           {workerBusy && <WorkerProgressRing percent={jobPercent(workerRunningJob)} />}
         </Box>
 
@@ -93,7 +103,18 @@ export function ProfileButton(): React.ReactNode {
           {user && user.is_superuser && <Menu.Divider />}
 
           {user && user.is_superuser && (
-            <Menu.Item leftSection={<Adjustments size={14} />} onClick={() => navigate({ to: "/admin" })}>
+            <Menu.Item
+              leftSection={<Adjustments size={14} />}
+              rightSection={
+                upgradeTasksLabel ? (
+                  <Badge size="sm" color="orange" circle>
+                    <span aria-hidden>{upgradeTasksLeft}</span>
+                    <VisuallyHidden>{upgradeTasksLabel}</VisuallyHidden>
+                  </Badge>
+                ) : undefined
+              }
+              onClick={() => navigate({ to: "/admin" })}
+            >
               {t("topmenu.adminarea")}
             </Menu.Item>
           )}

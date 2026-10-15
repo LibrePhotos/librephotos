@@ -93,6 +93,7 @@ STARTUP_COMMANDS = (
     ["start_job_cleanup_service"],
     ["clear_cache"],
     ["build_similarity_index"],
+    ["start_upgrade_tasks"],
 )
 
 

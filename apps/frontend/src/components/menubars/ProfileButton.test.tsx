@@ -11,13 +11,18 @@ type Worker = { queue_can_accept_job: boolean; job_detail: JobDetail | null } | 
 
 const stubs = vi.hoisted(() => ({
   worker: undefined as Worker,
+  isAdmin: false,
+  upgradeTasksLeft: 0,
   cancelJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
 vi.mock("../../api_client/auth", () => ({ useLogoutMutation: () => ({ mutate: vi.fn<() => void>() }) }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: { username: "admin", is_superuser: false } }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: { username: "admin", is_superuser: stubs.isAdmin } }),
+}));
+vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
+  useOpenUpgradeTaskCount: (isAdmin: boolean) => (isAdmin ? stubs.upgradeTasksLeft : 0),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useCancelJobMutation: () => ({ mutate: stubs.cancelJob, isPending: false }),
@@ -91,6 +96,8 @@ beforeAll(async () => {
 
 beforeEach(() => {
   stubs.cancelJob.mockClear();
+  stubs.isAdmin = false;
+  stubs.upgradeTasksLeft = 0;
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -165,6 +172,36 @@ describe("ProfileButton worker status", () => {
     expect(ring()?.getAttribute("class")).toContain("indeterminate");
     await openMenu();
     expect(jobSection()?.textContent).toBe(i18n.t("topmenu.busy"));
+  });
+});
+
+describe("ProfileButton upgrade tasks (#2322)", () => {
+  const adminItem = () =>
+    [...container.querySelectorAll<HTMLElement>("[role=menuitem]")].find(item =>
+      item.textContent?.startsWith(i18n.t("topmenu.adminarea"))
+    );
+  const dot = () => container.querySelector(".mantine-Indicator-indicator");
+
+  it("puts a dot on the avatar and the count on Admin Area while tasks are left", async () => {
+    stubs.isAdmin = true;
+    stubs.upgradeTasksLeft = 2;
+    await render({ queue_can_accept_job: true, job_detail: null });
+
+    expect(dot()).not.toBeNull();
+    expect(avatarButton().getAttribute("aria-label")).toBe(
+      `${i18n.t("topmenu.accountmenu")}, ${i18n.t("topmenu.upgradetasks", { count: 2 })}`
+    );
+    await openMenu();
+    expect(adminItem()?.textContent).toBe(`${i18n.t("topmenu.adminarea")}22 upgrade tasks left`);
+  });
+
+  it("shows neither when nothing is left", async () => {
+    stubs.isAdmin = true;
+    await render({ queue_can_accept_job: true, job_detail: null });
+
+    expect(dot()).toBeNull();
+    await openMenu();
+    expect(adminItem()?.textContent).toBe(i18n.t("topmenu.adminarea"));
   });
 });
 

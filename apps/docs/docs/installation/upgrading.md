@@ -42,6 +42,26 @@ On a failure page, **For the person who runs this server** shows the reason code
 
 For now, the backend does not answer at all while it updates the database, so the web app says **LibrePhotos is not answering** during an update as well, and a failed update looks the same; the reason is in `command_migrate.log`. The texts that name the update and its failures need a backend that reports its startup phase, which follows in a later release.
 
+## The Finish the upgrade card {#finish-the-upgrade}
+
+<Since version="1.4.0" /> Up to 1.3.0, the work an update left was only described in the release notes, and some of it needed a terminal.
+
+Some updates leave work to do once: data an older release stored needs reading again or cleaning up. LibrePhotos checks after each start what this server still needs, and shows it to admins on a **Finish the upgrade** card at the top of **Account menu > Admin Area**. While anything is left, the avatar in the top right corner has an orange dot and the **Admin Area** item in its menu shows how many tasks are left. Nothing is shown to other users, and nothing blocks the app meanwhile.
+
+Each task has one row: what it does, why, and what happens to your photos (they are never changed). A running task shows how far it got and links to its job, which also shows in **Worker Logs** and on the avatar's progress ring.
+
+- **Automatic** tasks start by themselves after the update. If one fails, its row says why and offers **Retry**; it is not started again by itself.
+- **Optional** tasks wait for you: **Start** runs it, **Not now** hides it for good. While another job runs, **Start** waits and says so.
+
+When a task is done, its row says so for a day, then goes; the card goes with its last task. A new install never shows the card: the tasks are about data an older release left behind.
+
+| Task | Kind | When it shows |
+| --- | --- | --- |
+| Update search for the new search model | Automatic | Photos still have search data from an earlier search model. Search results may be incomplete until it finishes. |
+| Remove photo details from old thumbnails | Automatic | After updating a server that already had photos: thumbnails from 1.2.1 or older carry the photo's location ([details](#strip-thumbnail-metadata)). |
+| Read shutter speeds again | Automatic | After updating from 1.3.0 or older with shutter speeds stored wrongly ([details](#refresh-exposure-time)). |
+| Read colour information of older videos | Optional | Videos added before LibrePhotos checked their colours when scanning, while ffprobe is available ([Probe Videos](../user-guide/job-system.md#probe-videos)). |
+
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 
 Not released yet: up to 1.3.0, nothing was backed up automatically.
@@ -96,7 +116,9 @@ Releases after 1.3.0 keep the secret key in `protected_media/secret.key` and mov
 
 Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS position, camera serial number and keywords. A public link serves those thumbnails, so anyone holding one can read the location, even with location sharing off. Since 1.3.0, new thumbnails are written without it, but the ones already on disk keep it until you run the cleanup once.
 
-An admin starts it in the web app: **Account menu > Admin Area > Admin Tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker Logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
+<Since version="1.4.0" /> It runs by itself after the update, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Up to 1.3.0, it had to be started by hand.
+
+An admin can also start it in the web app: **Account menu > Admin Area > Admin Tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker Logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
 
 Not released yet: up to 1.3.0, the cleanup is only available as the command below.
 
@@ -124,7 +146,11 @@ Both only rewrite thumbnails that still carry metadata, and keep their pixels an
 
 ## After upgrading from 1.3.0 or older {#refresh-exposure-time}
 
-_Not released yet._ Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so read the exposure time of those photos again, once:
+_Not released yet._ Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so the exposure time of those photos is read again, once.
+
+<Since version="1.4.0" /> This runs by itself after the update, as the **Read Shutter Speeds Again** job, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Only that one value is read from each photo and only the shutter speed is stored; your files are not changed.
+
+To run it again from a script, use the management command:
 
 ```sh
 # Standard Docker setup, from the folder with your docker-compose.yml and .env

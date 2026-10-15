@@ -76,6 +76,8 @@ Runs after each scan to fix RAW files that were scanned as their own photos. For
 
 Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. It rebuilds the thumbnails of every HDR video, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). It does the same for every video not stored as ordinary 8-bit 4:2:0, such as 10-bit clips or the 4:2:2 Motion JPEG files older cameras record, whose animated thumbnails an older version made in a form no browser plays. For each of these videos it also drops any converted copy kept from before, so the next playback converts it again. If a rebuild fails, the old thumbnail is kept. A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Since 1.3.0.
 
+<Since version="1.4.0" /> After an update, an admin can also start it for every user's older videos with **Start** on the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade).
+
 ### Extract Text (OCR)
 
 Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
@@ -95,6 +97,10 @@ Finds duplicate photos in your library using perceptual hashing. It detects both
 ### Remove Photo Details from Thumbnails
 
 Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin Area > Admin Tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. Not released yet: up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
+
+### Read Shutter Speeds Again
+
+<Since version="1.4.0" /> Reads the exposure time again for the photos whose shutter speed 1.3.0 or older stored wrongly, across every user's library. It runs by itself once after updating from such a release, and shows on the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade). Only that one value is read from each photo; nothing is written to your files. See [After upgrading from 1.3.0 or older](../installation/upgrading.md#refresh-exposure-time).
 
 ### Empty Trash
 
