@@ -1,35 +1,127 @@
 name: standalone-windows
 
 # Compiles the backend and the frontend build into one self-contained Windows
-# program (apps/backend/scripts/build_standalone.py, Nuitka) and publishes the
-# zip as a workflow artifact, or attaches it to a release when a tag is given.
-# Every published (non-pre-)release gets the zip, so the landing page's
-# releases/latest/download link keeps resolving.
+# program (apps/backend/scripts/build_standalone.py, Nuitka), runs the zip
+# (scripts/smoke_standalone.py), and publishes it as a workflow artifact or,
+# for a release, as release assets: librephotos-<tag>-windows-x64.zip, the same
+# file as librephotos-windows-x64.zip (the name the docs' and the landing
+# page's releases/latest/download link uses) and SHA256SUMS.
+#
+# Releases are created with `gh release create --latest=false`
+# (.github/release-notes-template.md). This workflow marks the release Latest
+# only once its zip passed the smoke test and is attached, so the download link
+# keeps serving the previous release's zip while this one builds, or when it
+# fails (#2318). A failed release build opens an issue.
+#
+# Dry run on a fork or a branch: push a numeric tag that points at the commit
+# to test (git tag 0.0.1 && git push origin 0.0.1), create a release for it
+# with `gh release create 0.0.1 --latest=false --notes test`, or dispatch with
+# `gh workflow run standalone-windows.yml --ref 0.0.1 -f tag=0.0.1` (the run
+# then creates a pre-release). Delete the tag and the release afterwards.
 on:
   release:
     types: [created]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to attach the zip to (leave empty for an artifact only)"
+        description: "Release tag to build and attach the zip to; dispatch from that tag (leave empty for an artifact only)"
         required: false
       version:
         description: "Numeric X.Y.Z stamped into librephotos.exe; left at 0.0.0, a tag that is X.Y.Z is used instead"
         required: false
         default: "0.0.0"
+      rebuild_from_ref:
+        description: "Build the tag's zip from this branch or commit instead of the tag; the release notes say so"
+        required: false
+        default: ""
+      replace_asset:
+        description: "Replace the zips and SHA256SUMS when the release already has them (old digests go to the run summary)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  # The failure alert.
+  issues: write
+
+# Two runs for the same release would race to upload the same assets.
+concurrency:
+  group: standalone-windows-${{ inputs.tag || github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
-    if: github.event_name != 'release' || !github.event.release.prerelease
+    # Drafts have no tag to check out; pre-releases get no Windows build.
+    if: github.event_name != 'release' || (!github.event.release.prerelease && !github.event.release.draft)
     runs-on: windows-latest
     timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      # Empty for a dispatch without a tag: an artifact only.
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      INPUT_VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
+      REBUILD_FROM_REF: ${{ inputs.rebuild_from_ref }}
+      REPLACE_ASSET: ${{ inputs.replace_asset && 'true' || 'false' }}
+      # build_standalone.py's archive(); SHA256SUMS lists both zips.
+      STABLE_ZIP: librephotos-windows-x64.zip
+      CHECKSUMS: SHA256SUMS
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
+      - name: Resolve the version
+        shell: bash
+        run: |
+          # A manual run attaching to a release with the default version would
+          # otherwise build it as 0.0.0, which reports itself as "dev".
+          VERSION="$INPUT_VERSION"
+          if [ "$VERSION" = "0.0.0" ] && [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="$TAG"
+          fi
+          # The zip's name, librephotos.exe and /api/imagetag all say the tag.
+          if [ -n "$TAG" ] && [ "$VERSION" != "$TAG" ]; then
+            echo "::error::A release build is stamped with its tag, but version is $VERSION and tag is $TAG"
+            exit 1
+          fi
+          {
+            echo "VERSION=$VERSION"
+            echo "VERSIONED_ZIP=librephotos-$VERSION-windows-x64.zip"
+          } >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # A dispatch for a tag builds that tag, or rebuild_from_ref when it is
+          # given; a release event checks out its tag by default.
+          ref: ${{ inputs.rebuild_from_ref || (inputs.tag && format('refs/tags/{0}', inputs.tag)) || '' }}
+      - name: Check what is built
+        if: env.TAG != ''
+        shell: bash
+        run: |
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ -n "$REBUILD_FROM_REF" ]; then
+            echo "::warning::Building the zip of $TAG from $REBUILD_FROM_REF ($HEAD_SHA), not from the tag"
+            echo "BUILT_FROM=$HEAD_SHA" >> "$GITHUB_ENV"
+          elif [ "$HEAD_SHA" != "$GITHUB_SHA" ]; then
+            # The workflow file comes from the dispatched ref, the build from
+            # the tag: refuse a mix of the two.
+            echo "::error::This run was dispatched from $GITHUB_REF ($GITHUB_SHA), not from the tag $TAG ($HEAD_SHA). Dispatch it from the tag (gh workflow run standalone-windows.yml --ref $TAG -f tag=$TAG), or set rebuild_from_ref to build the zip of $TAG from another ref."
+            exit 1
+          fi
+      - name: Check the release assets
+        if: env.TAG != ''
+        shell: bash
+        run: |
+          # Before the three-hour build: re-uploading needs replace_asset.
+          existing=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)
+          clash=""
+          for name in "$VERSIONED_ZIP" "$STABLE_ZIP" "$CHECKSUMS"; do
+            if grep -qxF "$name" <<<"$existing"; then
+              clash="$clash $name"
+            fi
+          done
+          if [ -n "$clash" ] && [ "$REPLACE_ASSET" != "true" ]; then
+            echo "::error::Release $TAG already has$clash. Dispatch with replace_asset to replace them."
+            exit 1
+          fi
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -58,36 +150,115 @@ jobs:
       - name: Build
         working-directory: apps/backend
         shell: bash
-        env:
-          VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
-          TAG: ${{ inputs.tag }}
+        run: python scripts/build_standalone.py --zip --version "$VERSION"
+      - name: Check the checksums
+        working-directory: apps/backend/build/standalone
+        shell: bash
         run: |
-          # A manual run attaching to a release with the default version would
-          # otherwise build it as 0.0.0, which reports itself as "dev".
-          if [ "$VERSION" = "0.0.0" ] && [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            VERSION="$TAG"
-          fi
-          python scripts/build_standalone.py --zip --version "$VERSION"
-      - name: Smoke test
+          cat "$CHECKSUMS"
+          sha256sum -c "$CHECKSUMS"
+      - name: Quick check
         working-directory: apps/backend/build/standalone/librephotos
         shell: bash
         run: |
           ./librephotos.exe --help
-          ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage check
-          ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage migrate --noinput | tail -3
+          ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos-check" manage check
+      # Runs the zip users download: the server, the job cluster, every sidecar
+      # that needs no model, a scan of three photos and the shutdown (#2319).
+      - name: Smoke test
+        id: smoke
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          tag_args=()
+          if [ "$VERSION" != "0.0.0" ]; then
+            tag_args=(--tag "$VERSION")
+          fi
+          python scripts/smoke_standalone.py "build/standalone/$STABLE_ZIP" \
+            --work-dir "$RUNNER_TEMP/librephotos-smoke" "${tag_args[@]}"
+      - name: Upload the smoke test's logs
+        if: failure() && steps.smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test-logs
+          path: ${{ runner.temp }}/librephotos-smoke/data/logs
+          if-no-files-found: warn
+      # Also when the smoke test failed, to try the build by hand.
       - uses: actions/upload-artifact@v7
+        if: success() || steps.smoke.outcome == 'failure'
         with:
           name: librephotos-windows-x64
           path: apps/backend/build/standalone/librephotos-windows-x64.zip
           if-no-files-found: error
           compression-level: 0
       - name: Attach to the release
-        if: inputs.tag != '' || github.event_name == 'release'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        if: env.TAG != ''
+        working-directory: apps/backend/build/standalone
         shell: bash
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
-            --notes "Standalone Windows build; see the installation docs."
-          gh release upload "$TAG" apps/backend/build/standalone/librephotos-windows-x64.zip --clobber
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --prerelease \
+              --notes "Standalone Windows build; see the installation docs."
+          fi
+          files=("$VERSIONED_ZIP" "$STABLE_ZIP" "$CHECKSUMS")
+          clobber=()
+          if [ "$REPLACE_ASSET" = "true" ]; then
+            clobber=(--clobber)
+            {
+              echo "### Replaced release assets of $TAG"
+              echo
+              echo "| Asset | Old digest | New SHA-256 |"
+              echo "|---|---|---|"
+              for name in "${files[@]}"; do
+                old=$(gh api "repos/$GH_REPO/releases/tags/$TAG" \
+                  --jq ".assets[] | select(.name == \"$name\") | (.digest // \"no digest\")")
+                echo "| $name | ${old:-none} | $(sha256sum "$name" | cut -d' ' -f1) |"
+              done
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          gh release upload "$TAG" "${files[@]}" "${clobber[@]}"
+      - name: Say in the release notes where the build came from
+        if: env.TAG != '' && env.REBUILD_FROM_REF != ''
+        shell: bash
+        run: |
+          gh release view "$TAG" --json body --jq .body > "$RUNNER_TEMP/notes.md"
+          printf '\n\nThe Windows download was built from %s (%s), not from the tag: %s\n' \
+            "$BUILT_FROM" "$REBUILD_FROM_REF" "$RUN_URL" >> "$RUNNER_TEMP/notes.md"
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+      # Last: only a release whose zip passed the smoke test and is attached
+      # becomes the one releases/latest points at. A rebuild of an older
+      # release leaves Latest on the newer one.
+      - name: Mark the release latest
+        if: env.TAG != ''
+        shell: bash
+        run: |
+          state=$(gh release view "$TAG" --json isPrerelease,isDraft --jq '"\(.isPrerelease) \(.isDraft)"')
+          if [ "$state" != "false false" ]; then
+            echo "$TAG is a pre-release or a draft; Latest stays where it is."
+            exit 0
+          fi
+          latest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+          newest=$(printf '%s\n%s\n' "$latest" "$TAG" | sed '/^$/d' | sort -V | tail -n 1)
+          if [ "$newest" != "$TAG" ]; then
+            echo "Latest is $latest, which is newer than $TAG; it stays."
+            exit 0
+          fi
+          gh release edit "$TAG" --latest
+          echo "Marked $TAG as the latest release." >> "$GITHUB_STEP_SUMMARY"
+      - name: Open an issue about the failure
+        if: failure() && env.TAG != ''
+        shell: bash
+        run: |
+          title="Windows build failed for $TAG"
+          body="The [standalone-windows run]($RUN_URL) for $TAG failed, so $TAG has no complete Windows download yet. Latest stays on the previous release meanwhile, and the download link in the docs still serves its zip.
+
+          Fix the build, then re-run the failed job, or dispatch the workflow from the tag with tag=$TAG (with rebuild_from_ref for a fix that is not in the tag, and replace_asset if some of the assets were attached)."
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+            exit 0
+          fi
+          # The label may not exist on a fork.
+          gh issue create --title "$title" --body "$body" --label windows \
+            || gh issue create --title "$title" --body "$body"

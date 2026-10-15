@@ -130,9 +130,21 @@ Do them in this order, so the docs and their pictures are live before the releas
 5. Merge the PR. The docs deploy from that push to `dev`.
 6. Generate the body and check how GitHub renders it, without creating anything:
    `node scripts/release-body.mjs <tag> > body.md`, then `gh api markdown -f mode=gfm -F text=@body.md > body.html`.
-7. Create the release from the merge commit of step 5:
-   `gh release create <tag> --target <merge sha> --title "<tag> - <Month Year>" --notes-file body.md`.
-   Once #2318 has shipped, add `--latest=false`; the Windows build then marks the release latest when its zip is attached.
+7. Create the release from the merge commit of step 5, without marking it latest:
+   `gh release create <tag> --target <merge sha> --title "<tag> - <Month Year>" --notes-file body.md --latest=false`.
+   The download link in the docs and on the landing page points at the latest release, which has no
+   Windows zip until the build of step 8 has attached it.
+8. Watch the `standalone-windows` run the release started (about three hours). After the smoke test it
+   attaches `librephotos-<tag>-windows-x64.zip`, `librephotos-windows-x64.zip` and `SHA256SUMS`, and only
+   then marks the release latest. If it fails, it opens an issue "Windows build failed for <tag>" and the
+   previous release stays latest. Fix the build, then re-run the failed job, or dispatch the workflow from
+   the tag: `gh workflow run standalone-windows.yml --ref <tag> -f tag=<tag>`. Add
+   `-f rebuild_from_ref=<branch>` for a fix that is not in the tag (the release notes then say so), and
+   `-f replace_asset=true` if some of the assets were attached already. A fix on the build path is often
+   better shipped as a point release.
+
+A release created without `--latest=false` breaks nothing else: GitHub marks it latest at once, and the
+download link gives a 404 until the zip is attached.
 
 ## Worked example: 1.3.0
 
