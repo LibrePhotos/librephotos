@@ -26,6 +26,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useSetFavoritePhotosMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosRatingMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosHiddenMutation: () => ({ mutate: vi.fn<() => void>() }),
+  useSetPhotosArchivedMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosPublicMutation: () => ({ mutate: vi.fn<() => void>() }),
   useSetPhotosCategoryMutation: () => ({ mutate: vi.fn<() => void>() }),
 }));
@@ -92,7 +93,8 @@ async function openActionsMenu(props: Partial<Props>) {
   const menuItem = (key: ParseKeys) =>
     Array.from(document.body.querySelectorAll('[role="menuitem"]'))
       .filter(item => item instanceof HTMLButtonElement)
-      .find(item => item.textContent?.trim() === i18n.t(key));
+      // An item with a note under its label (Hide, Archive) is named by aria-label.
+      .find(item => (item.getAttribute("aria-label") ?? item.textContent?.trim()) === i18n.t(key));
   return {
     menuItem,
     cleanup: async () => {

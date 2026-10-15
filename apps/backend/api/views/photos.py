@@ -84,6 +84,7 @@ from api.serializers.photos import (
     SavePhotoCaptionRequest,
     SetMainFileRequest,
     SetMainFileResponse,
+    SetPhotosArchivedRequest,
     SetPhotosCategoryRequest,
     SetPhotosDeletedRequest,
     SetPhotosFavoriteRequest,
@@ -486,6 +487,25 @@ class SetPhotosHidden(BulkPhotoMutationView):
 
     def new_values(self, user: User, value: object) -> dict[str, object]:
         return {"hidden": value}
+
+
+class SetPhotosArchived(BulkPhotoMutationView):
+    """Archive photos (#545): off the timeline and Memories, nowhere else.
+
+    Unlike hiding, archiving keeps a photo in its albums, tags, things,
+    people, places, folders and search, so no count needs a refresh.
+    """
+
+    serializer_class = SetPhotosArchivedRequest
+    value_field = "archived"
+    flag_name = "archived"
+    past_tense = {True: "archived", False: "unarchived"}
+
+    def differs(self, user: User, value: object) -> Q:
+        return ~Q(archived=value)
+
+    def new_values(self, user: User, value: object) -> dict[str, object]:
+        return {"archived": value}
 
 
 class SetPhotosPublic(BulkPhotoMutationView):

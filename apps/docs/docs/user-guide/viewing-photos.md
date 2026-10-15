@@ -48,7 +48,33 @@ The rating is the same 0-5 rating that is read from and written to the file's me
 
 ### Hidden
 
-Photos you've hidden from the main timeline. Hiding a photo removes it from the default view without deleting it. To hide photos, select them and choose **"Hide"** from the selection actions menu.
+Photos you've hidden. Hiding a photo takes it out of every view (the timeline, albums, people, places, search and folders) without deleting it; this page is the only place it still shows. To hide photos, select them and choose **"Hide"** from the selection actions menu. To keep a photo in your albums but off the timeline, archive it instead (see [Hidden or archived?](#hidden-or-archived)).
+
+### Archive {#archive}
+
+Photos you've archived. Archiving takes a photo off the main timeline and out of [Memories](./memories.md), and nothing else: it stays in its albums, on the people and places pages, in folders and in search. Use it for photos you have sorted into albums and no longer want to scroll past, or for receipts and other photos you want to keep but not see every day.
+
+- To archive photos, select them and choose **Archive** from the selection actions menu (the ⋮ button). **Unarchive** in the same menu puts them back on the timeline. Both work after **Select all** too.
+- In the photo viewer, the archive button next to the eye (or the `a` key) archives the photo you are looking at, or unarchives it. On the [photo page](#photo-page) it is under **More**.
+- Open the Archive page from the Photos header dropdown (after **Hidden**) or by searching for "Archive" with `Ctrl` + `k`. It has the same [media filter](#media-filter) as the Hidden page.
+- In albums, search and the other views, an archived photo has a small archive mark in its top right corner, so you can see why it is not on your timeline.
+
+*Not released yet: Archive ships with the first release after 1.3.0.*
+
+#### Hidden or archived? {#hidden-or-archived}
+
+| Where the photo shows | Archived | Hidden |
+| --- | --- | --- |
+| Timeline (Photos) | No | No |
+| Memories | No | No |
+| Albums, events | Yes | No |
+| People, places, things, tags | Yes | No |
+| Search | Yes | No |
+| Folders | Yes | No |
+| Favorites, Videos, Screenshots and the other views in the Photos dropdown | Yes | No |
+| Its own page | Archive | Hidden |
+
+A photo can be hidden and archived at the same time; then it is hidden, and shows only on the Hidden page until you unhide it. Neither one deletes the photo or changes its file.
 
 ### Recently Added
 
@@ -135,7 +161,8 @@ The toolbar at the top provides quick actions. From left to right:
 - **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
-- **Hide / Show** (eye icon) - Hide the photo from the main timeline, or unhide it.
+- **Hide / Show** (eye icon) - Hide the photo everywhere but the Hidden page, or unhide it.
+- **Archive / Unarchive** (box icon) - Take the photo off the timeline and Memories, or put it back (see [Archive](#archive)). The box is teal while the photo is archived.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark. In stars mode this is a row of five stars instead (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Share link** (globe icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The globe is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
 - **Delete** - Move the photo to trash.
@@ -143,7 +170,7 @@ The toolbar at the top provides quick actions. From left to right:
 - **Toggle info panel** - Show or hide the photo details sidebar.
 - **Close** - Return to the gallery.
 
-The Hide, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
+The Hide, Archive, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
 
 There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
@@ -282,9 +309,9 @@ Under the title, labelled buttons hold the photo's actions:
 - **Share**: create a revocable link to this photo, as the globe in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
 - **Album**: add the photo to one of your albums, or to a new one.
 - **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
-- **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
+- **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Archive photo** / **Unarchive photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
 
-A photo in the trash or hidden from the timeline says so above these buttons, with a button to restore it or show it again.
+A photo in the trash, hidden or archived says so above these buttons, with a button to restore it, show it again or unarchive it.
 
 Then each subject has a card, with the same editors as the [details sidebar](#photo-details-sidebar):
 
@@ -314,6 +341,7 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `f` | Toggle favorite (favorites mode) |
 | `0` - `5` | Set the star rating, `0` clears it (stars mode) |
 | `h` | Hide / unhide photo |
+| `a` | Archive / unarchive photo |
 | `p` | Open the photo's share link dialog |
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
@@ -321,7 +349,7 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `t` | Select text in the photo / stop selecting it (only on your own photos where [text was recognised](./text-recognition.md#selecting-text-in-the-photo-viewer)) |
 | `Ctrl` + `c` (`⌘` + `c` on macOS) | Copy the photo to the clipboard (still images only; when text is selected, the browser copies the text instead) |
 
-The `f`, `0`-`5`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages. `f` does nothing in stars mode and `0`-`5` do nothing in favorites mode.
+The `f`, `0`-`5`, `h`, `a`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages. `f` does nothing in stars mode and `0`-`5` do nothing in favorites mode.
 
 ### Seeking in Videos
 

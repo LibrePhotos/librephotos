@@ -109,6 +109,9 @@ export const PigPhoto = z.object({
   exif_gps_lon: z.number().nullable().optional(),
   removed: z.boolean().optional(),
   in_trashcan: z.boolean().optional(),
+  // Archived (#545): off the timeline and Memories, still everywhere else; the tile shows a mark.
+  // Absent from older backends, which have no archive.
+  archived: z.boolean().optional(),
   // When the photo went to the trash (ISO date-time), null outside it (#2203).
   // Optional: older backends do not send it.
   trashed_at: z.string().nullable().optional(),
@@ -146,6 +149,7 @@ export enum Photoset {
   FAVORITES = "favorites",
   PHOTOS = "photos",
   HIDDEN = "hidden",
+  ARCHIVED = "archived",
   RECENTLY_ADDED = "recentlyAdded",
   IN_TRASHCAN = "in_trashcan",
   SEARCH = "search",

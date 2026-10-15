@@ -190,6 +190,10 @@ class DateAlbumFilterQuery(PublicViewQuery):
     is_document = TristateFlagField(help_text="Only documents (false: no documents)")
     hide_screenshots = TristateFlagField()
     hide_documents = TristateFlagField()
+    archived = TristateFlagField(
+        help_text="Only archived photos (false: no archived photos, the "
+        "timeline); absent: archived or not"
+    )
     apply_default = TristateFlagField(
         help_text="Apply the user's default_timeline_filter; the other filter "
         "params override it key by key."

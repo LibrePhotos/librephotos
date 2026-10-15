@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
+import { Photoset } from "../schemas";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
 import dateAlbumsList from "./fixtures/dateAlbumsList.json";
@@ -380,6 +381,17 @@ describe("date albums with the timeline filter", () => {
     });
     expect(day.pathname).toBe("/api/albums/date/12/");
     expect(Object.fromEntries(day.searchParams)).toEqual({ hide_documents: "true", page: "2" });
+  });
+
+  it("sends archived as a tri-state flag (#545)", async () => {
+    const params = async (filter: endpoints.DateAlbumFilter) => {
+      const { client, requests } = fakeServer(dateAlbumsList);
+      await endpoints.fetchDateAlbumsList(client, filter);
+      return Object.fromEntries(new URL(defined(requests[0]).url).searchParams);
+    };
+    expect(await params({ archived: false })).toEqual({ archived: "false" });
+    expect(await params(endpoints.photosetToFilter(Photoset.ARCHIVED))).toEqual({ archived: "true" });
+    expect(await params({})).toEqual({});
   });
 });
 

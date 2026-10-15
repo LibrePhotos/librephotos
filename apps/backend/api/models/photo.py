@@ -171,6 +171,10 @@ class Photo(models.Model):
     trashed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     removed = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
+    # Archived (#545): off the timeline and Memories only. Unlike ``hidden``
+    # it is not part of ``visible_photo_q``: an archived photo stays in its
+    # albums, people, places, folders and search.
+    archived = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     # Media category flags. ``category_source`` records who set them so a
     # rescan/backfill never clobbers a manual correction: "auto" (detector) or

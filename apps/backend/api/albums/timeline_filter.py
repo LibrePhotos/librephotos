@@ -6,7 +6,7 @@ server-side select-all (``build_photo_queryset``) agree on exactly which photos
 are in view. If they did not, a day's placeholder count would not match its
 pages, and "select all, then delete" could reach photos the timeline hid.
 
-The filter has four keys, the same as ``User.default_timeline_filter``:
+The saved filter has four keys, the same as ``User.default_timeline_filter``:
 
 * ``media``: ``all``, ``photos`` (no videos) or ``videos``,
 * ``hide_screenshots`` / ``hide_documents``: leave that media category out,
@@ -24,6 +24,11 @@ Explicit params then override the default key by key:
   favorites-only default off,
 * ``is_screenshot`` / ``is_document``: ``true`` shows only that category (the
   Screenshots page), ``false`` hides it.
+
+``archived`` (#545) is a request param only, never part of the saved default:
+the timeline sends ``false`` (archived photos leave it), the Archive page
+``true``, and every other view leaves it out and shows archived photos with
+the rest.
 
 Every flag is tri-state: a true word, a false word, or absent. These params
 used to be read by truthiness, so ``?is_screenshot=false`` returned *only*
@@ -85,6 +90,9 @@ class TimelineFilter:
     screenshots: str = "any"
     documents: str = "any"
     favorites: bool = False
+    #: ``True``: only archived photos (the Archive page); ``False``: none of
+    #: them (the timeline); ``None``: archived or not.
+    archived: bool | None = None
 
     def q(self, user: User | AnonymousUser, prefix: str = "") -> list[Q]:
         """Positive ``Q`` objects for this filter on ``<prefix>`` photo fields.
@@ -113,6 +121,8 @@ class TimelineFilter:
                 user, "favorite_min_rating", settings.DEFAULT_FAVORITE_MIN_RATING
             )
             filters.append(Q(**{f"{prefix}rating__gte": min_rating}))
+        if self.archived is not None:
+            filters.append(Q(**{f"{prefix}archived": self.archived}))
         return filters
 
 
@@ -186,6 +196,7 @@ def resolve_timeline_filter(
         screenshots=base.screenshots if screenshots is None else screenshots,
         documents=base.documents if documents is None else documents,
         favorites=base.favorites if favorites is None else favorites,
+        archived=parse_tristate(params.get("archived")),
     )
 
 

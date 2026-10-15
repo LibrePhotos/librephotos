@@ -156,10 +156,11 @@ def memory_candidates(user: User) -> QuerySet[Photo]:
     own photos, not hidden, not in the trash, thumbnailed, and only the primary
     photo of a stack so a RAW/JPEG pair is not shown twice. Screenshots and
     documents are dropped on top of that: they are photos the user took, but a
-    screenshot from four years ago is not a memory of anything.
+    screenshot from four years ago is not a memory of anything. Archived
+    photos are left out like on the timeline (#545).
     """
     candidates: QuerySet[Photo] = build_photo_queryset(
-        user, {"hide_screenshots": True, "hide_documents": True}
+        user, {"hide_screenshots": True, "hide_documents": True, "archived": False}
     ).filter(removed=False)
     return candidates
 

@@ -356,6 +356,7 @@ urlpatterns = [
     re_path(r"^api/photosedit/favorite/?$", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/rating/?$", photos.SetPhotosRating.as_view()),
     re_path(r"^api/photosedit/hide/?$", photos.SetPhotosHidden.as_view()),
+    path("api/photosedit/archive/", photos.SetPhotosArchived.as_view()),
     re_path(r"^api/photosedit/makepublic/?$", photos.SetPhotosPublic.as_view()),
     re_path(r"^api/photosedit/category/?$", photos.SetPhotosCategory.as_view()),
     re_path(r"^api/photosedit/share/?$", photos.SetPhotosShared.as_view()),

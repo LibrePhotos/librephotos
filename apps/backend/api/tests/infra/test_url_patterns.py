@@ -229,6 +229,7 @@ CLIENT_PATHS = {
     "/api/photos/searchlist/": "api.views.search.SearchListViewSet get=list",
     "/api/photos/shared/fromme/": "api.views.sharing.SharedFromMePhotoSuperSimpleListViewSet get=list",
     "/api/photos/shared/tome/": "api.views.sharing.SharedToMePhotoSuperSimpleListViewSet get=list",
+    "/api/photosedit/archive/": "api.views.photos.SetPhotosArchived",
     "/api/photosedit/category/": "api.views.photos.SetPhotosCategory",
     "/api/photosedit/datetime/": "api.views.photo_dates.SetPhotosDateTimeView",
     "/api/photosedit/delete/": "api.views.photos.DeletePhotos",

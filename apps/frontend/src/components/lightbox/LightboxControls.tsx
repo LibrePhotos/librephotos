@@ -1,34 +1,10 @@
-import {
-  ActionIcon,
-  Divider,
-  Group,
-  Loader,
-  Menu,
-  RingProgress,
-  Select,
-  Tooltip,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Divider, Group, RingProgress, Select, Tooltip, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
-  IconCopy as Copy,
-  IconDotsVertical as Dots,
-  IconEye as Eye,
-  IconEyeOff as EyeOff,
-  IconGlobe as Globe,
   IconInfoCircle as InfoCircle,
-  IconArrowsMaximize as Maximize,
-  IconArrowsMinimize as Minimize,
   IconPlayerPause as Pause,
   IconPlayerPlay as Play,
-  IconArrowBackUp as Restore,
-  IconRotate2 as RotateCCW,
-  IconRotateClockwise2 as RotateCW,
-  IconTextRecognition as TextRecognition,
-  IconTrash as Trash,
   IconX as X,
-  IconZoomIn as ZoomIn,
-  IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,7 +14,8 @@ import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
-import { LightboxRating } from "./LightboxRating";
+import { LightboxPhotoActions } from "./LightboxPhotoActions";
+import { LightboxViewControls } from "./LightboxViewControls";
 import { usePhotoActions } from "./usePhotoActions";
 
 // Interval options for slideshow
@@ -82,7 +59,7 @@ export function LightboxControls({
   // into a menu there instead of wrapping the toolbar onto a second row.
   const isNarrow = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
-  // Favourite, hide, share link and trash, as the photo page has them too.
+  // Favourite, hide, archive, share link and trash, as the photo page has them too.
   const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle });
   const intervalRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +70,7 @@ export function LightboxControls({
       commands.on("favorite", actions.toggleFavorite),
       commands.on("rate", actions.setRating),
       commands.on("hide", actions.toggleHidden),
+      commands.on("archive", actions.toggleArchived),
       commands.on("public", actions.openShareLink),
       commands.on("delete", actions.toggleTrash),
     ];
@@ -102,30 +80,17 @@ export function LightboxControls({
     actions.toggleFavorite,
     actions.setRating,
     actions.toggleHidden,
+    actions.toggleArchived,
     actions.openShareLink,
     actions.toggleTrash,
   ]);
 
   const slideshowLabel = isSlideshowActive ? t("lightbox.controls.stopslideshow") : t("lightbox.controls.slideshow");
-  const liveTextLabel = showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext");
   const copyLabel = t("lightbox.controls.copy", { shortcut: copyKeyLabel() });
   const fullscreenLabel = isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen");
   const infoLabel = lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel");
-  const { toggleHidden, toggleTrash } = actions;
-  const hideLabel = actions.isHidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto");
-  const trashLabel = actions.inTrash ? t("lightbox.toolbar.restorePhoto") : t("lightbox.toolbar.deletePhoto");
-  const shareLabel = t("sharing.shareLinkShortcut");
   // The server refuses to rotate a video, and the player would not show it.
   const canRotate = type !== "video";
-  const hideIcon = actions.isHidden ? (
-    <EyeOff size={ICON_SIZE.lightbox} color="var(--mantine-color-red-6)" />
-  ) : (
-    <Eye size={ICON_SIZE.lightbox} />
-  );
-  const shareIcon = (
-    <Globe size={ICON_SIZE.lightbox} color={actions.isShared ? "var(--mantine-color-green-6)" : undefined} />
-  );
-  const trashIcon = actions.inTrash ? <Restore size={ICON_SIZE.lightbox} /> : <Trash size={ICON_SIZE.lightbox} />;
   // Copy and fullscreen join the menu on a phone too, to leave room for it.
   const actionsInMenu = !!isNarrow && !isPublic;
   const canZoom = enableZoom && type === "photo";
@@ -212,184 +177,39 @@ export function LightboxControls({
       </Group>
 
       {/* Group 2: View controls - Live text, Zoom & Fullscreen */}
-      {showViewGroup && <Divider orientation="vertical" color="var(--app-scrim-white-20)" />}
       {showViewGroup && (
-        <Group gap={4} align="center">
-          {hasOcrText && (
-            <Tooltip label={liveTextLabel} position="bottom" withArrow>
-              <ActionIcon
-                variant="subtle"
-                color={showOcrText ? "blue" : "gray"}
-                onClick={toggleOcrText}
-                size={28}
-                aria-label={liveTextLabel}
-              >
-                <TextRecognition size={ICON_SIZE.lightbox} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-          {canZoom && (
-            <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={toggleZoom}
-                size={28}
-                aria-label={t("lightbox.controls.zoom")}
-                // Only zoom keeps one label, so only it reports its state here;
-                // the other toggles say theirs in the label, and both would be
-                // read out twice.
-                aria-pressed={isZoomed}
-              >
-                {isZoomed ? <ZoomOut size={ICON_SIZE.lightbox} /> : <ZoomIn size={ICON_SIZE.lightbox} />}
-              </ActionIcon>
-            </Tooltip>
-          )}
-          {onCopyToClipboard && !actionsInMenu && (
-            <Tooltip label={copyLabel} position="bottom" withArrow>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={onCopyToClipboard}
-                loading={isCopyingToClipboard}
-                size={28}
-                aria-label={copyLabel}
-              >
-                <Copy size={ICON_SIZE.lightbox} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-          {!actionsInMenu && (
-            <Tooltip label={fullscreenLabel} position="bottom" withArrow>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={toggleFullscreen}
-                size={28}
-                aria-label={fullscreenLabel}
-              >
-                {isFullscreen ? <Minimize size={ICON_SIZE.lightbox} /> : <Maximize size={ICON_SIZE.lightbox} />}
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </Group>
+        <LightboxViewControls
+          hasOcrText={hasOcrText}
+          showOcrText={showOcrText}
+          toggleOcrText={toggleOcrText}
+          canZoom={canZoom}
+          isZoomed={isZoomed}
+          toggleZoom={toggleZoom}
+          onCopyToClipboard={actionsInMenu ? undefined : onCopyToClipboard}
+          isCopyingToClipboard={isCopyingToClipboard}
+          copyLabel={copyLabel}
+          showFullscreen={!actionsInMenu}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          fullscreenLabel={fullscreenLabel}
+        />
       )}
 
-      {/* Group 3: Metadata controls - Hide, Favorite or stars, Public, Delete (only for authenticated users) */}
+      {/* Group 3: Metadata controls - Hide, Archive, Favorite or stars, Public, Delete (only for authenticated users) */}
       {!isPublic && showMetaGroup && (
-        <>
-          <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
-          <Group gap={4} align="center">
-            {isPhotoDetailsLoading && (
-              // Not a button: nothing to press while the details load. mx keeps the 28px slot.
-              <Loader size={ICON_SIZE.inline} color="grey" mx={6} />
-            )}
-            {!isPhotoDetailsLoading && photoDetail && !actionsInMenu && (
-              <Tooltip label={hideLabel} position="bottom" withArrow>
-                <ActionIcon variant="subtle" color="gray" size={28} aria-label={hideLabel} onClick={toggleHidden}>
-                  {hideIcon}
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {photoDetail && <LightboxRating actions={actions} />}
-            {photoDetail && !actionsInMenu && (
-              <Tooltip label={shareLabel} position="bottom" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size={28}
-                  aria-label={shareLabel}
-                  onClick={actions.openShareLink}
-                >
-                  {shareIcon}
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {photoDetail && !actionsInMenu && (
-              <Tooltip label={trashLabel} position="bottom" withArrow>
-                <ActionIcon variant="subtle" color="gray" size={28} aria-label={trashLabel} onClick={toggleTrash}>
-                  {trashIcon}
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {photoDetail && canRotate && !actionsInMenu && (
-              <Tooltip label={t("lightbox.toolbar.rotateCCW")} position="bottom" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size={28}
-                  aria-label={t("lightbox.toolbar.rotateCCW")}
-                  onClick={() => onRotate(-90)}
-                >
-                  <RotateCCW size={ICON_SIZE.lightbox} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {photoDetail && canRotate && !actionsInMenu && (
-              <Tooltip label={t("lightbox.toolbar.rotateCW")} position="bottom" withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  size={28}
-                  aria-label={t("lightbox.toolbar.rotateCW")}
-                  onClick={() => onRotate(90)}
-                >
-                  <RotateCW size={ICON_SIZE.lightbox} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {actionsInMenu && (
-              // Kept inside the lightbox: a portal would not show in fullscreen.
-              <Menu position="bottom-end" withinPortal={false}>
-                <Menu.Target>
-                  <ActionIcon variant="subtle" color="gray" size={28} aria-label={t("lightbox.toolbar.moreActions")}>
-                    <Dots size={ICON_SIZE.lightbox} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  {photoDetail && (
-                    <Menu.Item leftSection={hideIcon} onClick={toggleHidden}>
-                      {hideLabel}
-                    </Menu.Item>
-                  )}
-                  {photoDetail && (
-                    <Menu.Item leftSection={shareIcon} onClick={actions.openShareLink}>
-                      {shareLabel}
-                    </Menu.Item>
-                  )}
-                  {photoDetail && (
-                    <Menu.Item leftSection={trashIcon} onClick={toggleTrash}>
-                      {trashLabel}
-                    </Menu.Item>
-                  )}
-                  {photoDetail && canRotate && (
-                    <Menu.Item leftSection={<RotateCCW size={ICON_SIZE.lightbox} />} onClick={() => onRotate(-90)}>
-                      {t("lightbox.toolbar.rotateCCW")}
-                    </Menu.Item>
-                  )}
-                  {photoDetail && canRotate && (
-                    <Menu.Item leftSection={<RotateCW size={ICON_SIZE.lightbox} />} onClick={() => onRotate(90)}>
-                      {t("lightbox.toolbar.rotateCW")}
-                    </Menu.Item>
-                  )}
-                  {onCopyToClipboard && (
-                    <Menu.Item leftSection={<Copy size={ICON_SIZE.lightbox} />} onClick={onCopyToClipboard}>
-                      {copyLabel}
-                    </Menu.Item>
-                  )}
-                  <Menu.Item
-                    leftSection={
-                      isFullscreen ? <Minimize size={ICON_SIZE.lightbox} /> : <Maximize size={ICON_SIZE.lightbox} />
-                    }
-                    onClick={toggleFullscreen}
-                  >
-                    {fullscreenLabel}
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            )}
-          </Group>
-        </>
+        <LightboxPhotoActions
+          actions={actions}
+          photoDetail={photoDetail}
+          isPhotoDetailsLoading={isPhotoDetailsLoading}
+          actionsInMenu={actionsInMenu}
+          canRotate={canRotate}
+          onRotate={onRotate}
+          onCopyToClipboard={onCopyToClipboard}
+          copyLabel={copyLabel}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          fullscreenLabel={fullscreenLabel}
+        />
       )}
       {!isPublic && <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />}
 

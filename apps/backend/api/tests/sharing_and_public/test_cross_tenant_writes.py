@@ -389,6 +389,8 @@ class CrossTenantWriteTest(TestCase):
         cases += self._bulk("/api/photosedit/favorite", favorite=True)
         cases += self._bulk("/api/photosedit/rating", rating=5)
         cases += self._bulk("/api/photosedit/hide", hidden=True)
+        cases += self._bulk("/api/photosedit/archive/", archived=True)
+        cases += self._bulk("/api/photosedit/archive/", archived=False)
         cases += self._bulk("/api/photosedit/makepublic", val_public=False)
         cases += self._bulk("/api/photosedit/makepublic", val_public=True)
         cases += self._bulk("/api/photosedit/category", category="document")

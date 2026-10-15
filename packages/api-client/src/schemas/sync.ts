@@ -43,6 +43,8 @@ export const SyncPhotoItem = z.looseObject({
   rating: z.number(),
   is_favorite: z.boolean(),
   hidden: z.boolean(),
+  // Off the timeline and Memories (#545). Older servers do not send it.
+  archived: z.boolean().optional(),
   in_trashcan: z.boolean(),
   removed: z.boolean(),
   is_public: z.boolean(),

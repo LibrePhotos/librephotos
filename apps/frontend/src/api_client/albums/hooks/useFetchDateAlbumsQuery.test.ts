@@ -112,11 +112,20 @@ describe("dateAlbumRequestFilter", () => {
     expect(dateAlbumRequestFilter({ photosetType: Photoset.FAVORITES, timelineFilter, username: "Ann" })).toEqual({
       favorite: true,
       hide_screenshots: true,
+      archived: false,
       username: "Ann",
     });
     expect(
       dateAlbumRequestFilter({ photosetType: Photoset.NONE, timelineFilter: { ...timelineFilter, favorites: true } })
-    ).toEqual({ favorite: true, hide_screenshots: true });
+    ).toEqual({ favorite: true, hide_screenshots: true, archived: false });
+  });
+
+  test("the timeline leaves archived photos out, the Archive page lists only them, a folder both (#545)", () => {
+    const timelineFilter = { media: "all" as const, hide_screenshots: false, hide_documents: false, favorites: false };
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.NONE, timelineFilter }).archived).toBe(false);
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.ARCHIVED }).archived).toBe(true);
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.NONE, folder: "/photos" }).archived).toBeUndefined();
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.PERSON, person_id: 3 }).archived).toBeUndefined();
   });
 });
 

@@ -4,6 +4,7 @@ import {
   useFetchPhotoSharesQuery,
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
+  useSetPhotosArchivedMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosRatingMutation,
 } from "../../api_client/photos/hooks";
@@ -21,7 +22,7 @@ type Options = {
 
 /**
  * The owner's actions on one photo, shared by the lightbox toolbar and the
- * photo page: favourite (or the star rating, #2202), hide, share link and trash, with their state. Each
+ * photo page: favourite (or the star rating, #2202), hide, archive (#545), share link and trash, with their state. Each
  * action does nothing without details or for a viewer who is not the owner,
  * so a keyboard shortcut can call it blindly. The labels are each surface's
  * own: the lightbox names its shortcut keys, the page has none.
@@ -30,6 +31,7 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
   const { data: userDetails } = useCurrentUserSelfDetailsQuery();
   const { mutate: setFavorite } = useSetFavoritePhotosMutation();
   const { mutate: setHidden } = useSetPhotosHiddenMutation();
+  const { mutate: setArchived } = useSetPhotosArchivedMutation();
   const { mutate: markDeleted } = useMarkPhotosDeletedMutation();
   // Whether this photo has a live share link, for the share button's colour.
   const { data: photoShares } = useFetchPhotoSharesQuery(!isPublic);
@@ -41,6 +43,7 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
   const isFavorite = !!photoDetail && isFavoriteFor(photoDetail.rating, userDetails);
   const rating = useStarRating(photo, photoDetail, userDetails);
   const isHidden = !!photoDetail?.hidden;
+  const isArchived = !!photoDetail?.archived;
   // In the trash the same action restores the photo instead: trashing it
   // again was a no-op that reported "0 photos moved to trash".
   const inTrash = !!photoDetail?.in_trashcan;
@@ -56,6 +59,10 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
   const toggleHidden = useCallback(() => {
     if (photo) setHidden({ image_hashes: [photo.image_hash], hidden: !photo.hidden });
   }, [photo, setHidden]);
+
+  const toggleArchived = useCallback(() => {
+    if (photo) setArchived({ image_hashes: [photo.image_hash], archived: !photo.archived });
+  }, [photo, setArchived]);
 
   // A share link carries its own random slug, so it can be rotated or revoked
   // later; the old thumbnails_big URL came from the file content and could
@@ -81,6 +88,8 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
     ...rating,
     isHidden,
     toggleHidden,
+    isArchived,
+    toggleArchived,
     isShared,
     sharingPhotoId,
     openShareLink,

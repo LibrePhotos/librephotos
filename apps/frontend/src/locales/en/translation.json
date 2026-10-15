@@ -448,6 +448,7 @@
     "notinalbum": "Not in an album",
     "recentlyadded": "Recently Added",
     "hidden": "Hidden",
+    "archive": "Archive",
     "favorites": "Favorites",
     "mypublicphotos": "My Public Photos",
     "photos": "Photos",
@@ -656,7 +657,11 @@
     "setratingselectall": "Ratings are set on the photos you pick. After Select all, pick the photos one by one instead.",
     "changedatetime": "Change date and time…",
     "hide": "Hide",
+    "hidenote": "Only on the Hidden page",
     "unhide": "Unhide",
+    "archive": "Archive",
+    "archivenote": "Off the timeline and Memories, still in albums and search",
+    "unarchive": "Unarchive",
     "makepublic": "Make Public",
     "deleted": "Move to trash",
     "makeprivate": "Make Private",
@@ -828,6 +833,8 @@
       "playVideo": "Play video (Space)",
       "showPhoto": "Show photo (H)",
       "hidePhoto": "Hide photo (H)",
+      "archivePhoto": "Archive photo (A)",
+      "unarchivePhoto": "Unarchive photo (A)",
       "addToFavorites": "Add to favorites (F)",
       "removeFromFavorites": "Remove from favorites (F)",
       "rating": "Rating (keys 0 to 5)",
@@ -1084,6 +1091,7 @@
     "nolocation": "Photos without Location",
     "notinalbum": "Photos not in an album",
     "hidden": "Hidden Photos",
+    "archived": "Archive",
     "favorite": "Favorite Photos",
     "videos": "Videos",
     "screenshots": "Screenshots",
@@ -1096,6 +1104,7 @@
     "video": "Video",
     "videotaken": "Video taken {{date}}",
     "hdrvideo": "HDR video: recorded with more brightness and color than the tile can show",
+    "archived": "Archived: not on the timeline",
     "select": "Select {{name}}",
     "hdrvideolabel": "HDR video",
     "hdrvideotaken": "HDR video taken {{date}}",
@@ -1239,6 +1248,7 @@
       "tags": "Go to Tags",
       "favorites": "Go to Favorites",
       "hidden": "Go to Hidden",
+      "archived": "Go to Archive",
       "videos": "Go to Videos",
       "screenshots": "Go to Screenshots",
       "documents": "Go to Documents",
@@ -1942,6 +1952,11 @@
     "clearrating_one": "Rating of {{count}} photo cleared.",
     "clearrating_other": "Ratings of {{count}} photos cleared.",
     "hidephoto": "{{numberOfPhotos}} photo(s) were hidden.",
+    "archivephoto_one": "{{count}} photo archived. It is off your timeline and Memories, and still in albums and search.",
+    "archivephoto_other": "{{count}} photos archived. They are off your timeline and Memories, and still in albums and search.",
+    "unarchivephoto_one": "{{count}} photo is back on your timeline.",
+    "unarchivephoto_other": "{{count}} photos are back on your timeline.",
+    "setarchivetitle": "Archive",
     "unhidephoto": "{{numberOfPhotos}} photo(s) were unhidden.",
     "sethidetitle": "Set hidden",
     "scanphotos": "Scanning started",
@@ -2163,6 +2178,10 @@
     "hidden": {
       "title": "No hidden photos",
       "description": "Photos you hide will appear here."
+    },
+    "archived": {
+      "title": "No archived photos",
+      "description": "Archive photos you have sorted to take them off your timeline. They stay in albums, people, places and search, and appear here."
     },
     "deleted": {
       "title": "Trash is empty",
@@ -2515,6 +2534,8 @@
       "share": "Share link",
       "hide": "Hide photo",
       "show": "Show photo",
+      "archive": "Archive photo",
+      "unarchive": "Unarchive photo",
       "trash": "Move to trash",
       "restore": "Restore from trash"
     },
@@ -2559,7 +2580,8 @@
     },
     "status": {
       "trashed": "This photo is in the trash.",
-      "hidden": "This photo is hidden from the timeline."
+      "hidden": "This photo is hidden from the timeline.",
+      "archived": "This photo is archived: it is off your timeline and Memories, and still in albums and search."
     }
   },
   "download": {

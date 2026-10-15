@@ -95,12 +95,16 @@ describe("request params, select-all query and query key", () => {
 
   test("select-all carries the same filter, so it never reaches hidden screenshots", () => {
     expect(timelineFilterToBulkQuery(filter)).toEqual({
+      archived: false,
       media: "photos",
       hide_screenshots: true,
       hide_documents: true,
       favorite: true,
     });
-    expect(timelineFilterToBulkQuery(SHOW_EVERYTHING)).toEqual({});
+  });
+
+  test("the timeline never shows archived photos, whatever the filter (#545)", () => {
+    expect(timelineFilterToBulkQuery(SHOW_EVERYTHING)).toEqual({ archived: false });
   });
 
   test("the query key changes with the filter and is stable for an equal one", () => {

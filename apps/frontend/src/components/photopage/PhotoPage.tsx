@@ -1,7 +1,7 @@
 import type { Photo } from "@librephotos/api-client";
-import { Alert, Button, Center, Stack, Text } from "@mantine/core";
+import { Button, Center, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconAlertCircle, IconEyeOff, IconTrash } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,9 +11,7 @@ import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox/Lightbox";
 import type { FaceLocationType, LightboxItem } from "../lightbox/lightbox.types";
-import { TrashExpiryText } from "../lightbox/TrashedItem";
 import { useFaceDrawing } from "../lightbox/useFaceDrawing";
-import type { PhotoActions } from "../lightbox/usePhotoActions";
 import { usePhotoActions } from "../lightbox/usePhotoActions";
 import { usePhotoRotation } from "../lightbox/usePhotoRotation";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -23,35 +21,8 @@ import { PhotoActionTiles } from "./PhotoActionTiles";
 import { PhotoMat } from "./PhotoMat";
 import classes from "./PhotoPage.module.css";
 import { PhotoPageHeader } from "./PhotoPageHeader";
+import { PhotoStatus } from "./PhotoStatus";
 import { SharedPhotoDetails } from "./SharedPhotoDetails";
-
-/**
- * A trashed or hidden photo says so, with the way back, where its actions are. A trashed one also
- * says since when, and when the trash retention deletes it (#2203).
- */
-function PhotoStatus({ actions, trashedAt }: Readonly<{ actions: PhotoActions; trashedAt?: string | null }>) {
-  const { t } = useTranslation();
-  if (!actions.inTrash && !actions.isHidden) return null;
-  const inTrash = actions.inTrash;
-  return (
-    <Alert
-      variant="light"
-      color={inTrash ? "red" : "gray"}
-      icon={inTrash ? <IconTrash size={18} /> : <IconEyeOff size={18} />}
-      title={inTrash ? t("photopage.status.trashed") : t("photopage.status.hidden")}
-    >
-      {inTrash && <TrashExpiryText trashedAt={trashedAt} mb="xs" />}
-      <Button
-        variant="light"
-        color={inTrash ? "red" : "gray"}
-        size="xs"
-        onClick={inTrash ? actions.toggleTrash : actions.toggleHidden}
-      >
-        {inTrash ? t("photopage.actions.restore") : t("photopage.actions.show")}
-      </Button>
-    </Alert>
-  );
-}
 
 /** The one photo the page shows, for its owner or for someone it is shared with. */
 function PhotoPageContent({ photo }: Readonly<{ photo: Photo }>) {

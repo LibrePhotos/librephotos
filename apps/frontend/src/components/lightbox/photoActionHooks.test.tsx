@@ -19,6 +19,7 @@ const stubs = vi.hoisted(() => ({
   rating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
   user: undefined as Pick<User, "id" | "favorite_min_rating" | "rating_mode"> | undefined,
   hidden: vi.fn<(variables: { image_hashes: string[]; hidden: boolean }) => void>(),
+  archived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   deleted: vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: MutateOptions) => void>(),
   rotate: vi.fn<(variables: { image_hash: string; clockwiseDegrees: number }, options: MutateOptions) => void>(),
   addFace: vi.fn<(variables: { photo: string; personName: string; box: NormalizedFaceBox }) => void>(),
@@ -30,6 +31,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.deleted }),
   useSetFavoritePhotosMutation: () => ({ mutate: stubs.favorite }),
   useSetPhotosHiddenMutation: () => ({ mutate: stubs.hidden }),
+  useSetPhotosArchivedMutation: () => ({ mutate: stubs.archived }),
   useSetPhotosRatingMutation: () => ({ mutate: stubs.rating, isPending: false, variables: undefined }),
 }));
 vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
@@ -54,7 +56,8 @@ const unmounts: Array<() => void> = [];
 
 afterEach(() => {
   while (unmounts.length) defined(unmounts.pop())();
-  for (const mock of [stubs.favorite, stubs.hidden, stubs.deleted, stubs.rotate, stubs.addFace]) mock.mockReset();
+  for (const mock of [stubs.favorite, stubs.hidden, stubs.archived, stubs.deleted, stubs.rotate, stubs.addFace])
+    mock.mockReset();
   stubs.rating.mockReset();
 });
 
@@ -90,13 +93,15 @@ describe("usePhotoActions", () => {
     expect(hook.current().isFavorite).toBe(false);
   });
 
-  it("toggles the favourite, hidden flag and trash, and calls back after the trash", async () => {
+  it("toggles the favourite, hidden and archived flags and trash, and calls back after the trash", async () => {
     const onAfterTrashToggle = vi.fn<() => void>();
     const hook = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false, onAfterTrashToggle });
     act(() => hook.current().toggleFavorite());
     expect(stubs.favorite).toHaveBeenCalledWith({ image_hashes: ["h1"], favorite: false });
     act(() => hook.current().toggleHidden());
     expect(stubs.hidden).toHaveBeenCalledWith({ image_hashes: ["h1"], hidden: true });
+    act(() => hook.current().toggleArchived());
+    expect(stubs.archived).toHaveBeenCalledWith({ image_hashes: ["h1"], archived: true });
     act(() => hook.current().toggleTrash());
     const [variables, options] = defined(stubs.deleted.mock.calls[0]);
     expect(variables).toEqual({ image_hashes: ["h1"], deleted: true });
@@ -118,6 +123,7 @@ describe("usePhotoActions", () => {
     act(() => {
       shared.current().toggleFavorite();
       shared.current().toggleHidden();
+      shared.current().toggleArchived();
       shared.current().toggleTrash();
       shared.current().openShareLink();
     });
@@ -125,6 +131,7 @@ describe("usePhotoActions", () => {
     act(() => none.current().toggleFavorite());
     expect(stubs.favorite).not.toHaveBeenCalled();
     expect(stubs.hidden).not.toHaveBeenCalled();
+    expect(stubs.archived).not.toHaveBeenCalled();
     expect(stubs.deleted).not.toHaveBeenCalled();
     expect(shared.current().sharingPhotoId).toBeNull();
   });

@@ -282,6 +282,10 @@ class MemoriesViewTest(TestCase):
         add_photo_on(self.user, datetime.date(2025, 8, 24), removed=True)
         self.assertEqual(self.memories()["results"], [])
 
+    def test_archived_photos_are_not_memories(self):
+        add_photo_on(self.user, datetime.date(2025, 8, 24), archived=True)
+        self.assertEqual(self.memories()["results"], [])
+
     def test_screenshots_and_documents_are_not_memories(self):
         add_photo_on(self.user, datetime.date(2025, 8, 24), is_screenshot=True)
         add_photo_on(self.user, datetime.date(2025, 8, 24), is_document=True)

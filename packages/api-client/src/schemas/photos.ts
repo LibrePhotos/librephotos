@@ -124,6 +124,8 @@ export const Photo = z.object({
   image_path: z.string().array(),
   rating: z.number(),
   hidden: z.boolean(),
+  // Archived (#545): off the timeline and Memories only. Older backends do not send it.
+  archived: z.boolean().optional(),
   public: z.boolean(),
   in_trashcan: z.boolean(),
   // When the photo went to the trash (ISO date-time), null outside it (#2203).
@@ -194,6 +196,8 @@ export const BulkPhotoQuery = z.object({
   favorite: z.boolean().optional(),
   public: z.boolean().optional(),
   hidden: z.boolean().optional(),
+  // true: only archived photos (the Archive page); false: none of them (the timeline).
+  archived: z.boolean().optional(),
   in_trashcan: z.boolean().optional(),
   video: z.boolean().optional(),
   photo: z.boolean().optional(),

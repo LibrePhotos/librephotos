@@ -11,6 +11,7 @@ type LightboxCommandArgs = {
   /** A 0-5 star rating, in stars mode. */
   rate: [rating: number];
   hide: [];
+  archive: [];
   public: [];
   delete: [];
   /** Seconds to move the playhead; negative goes back. */
@@ -32,6 +33,7 @@ export function createLightboxCommands(): LightboxCommands {
     favorite: new Set(),
     rate: new Set(),
     hide: new Set(),
+    archive: new Set(),
     public: new Set(),
     delete: new Set(),
     seek: new Set(),

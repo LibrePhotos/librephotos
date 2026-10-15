@@ -118,9 +118,12 @@ export function timelineFilterToParams(filter: TimelineFilter | undefined): Reco
 }
 
 // The same filter as a select-all query: "select all, then delete" on the
-// timeline must act on what it shows, never on screenshots it hides.
+// timeline must act on what it shows, never on screenshots it hides. The
+// timeline never shows archived photos (#545), whatever the filter, so every
+// timeline request and select-all leaves them out; the query key needs no slot
+// for it.
 export function timelineFilterToBulkQuery(filter: TimelineFilter): BulkPhotoQuery {
-  const query: BulkPhotoQuery = {};
+  const query: BulkPhotoQuery = { archived: false };
   if (filter.media !== "all") query.media = filter.media;
   if (filter.hide_screenshots) query.hide_screenshots = true;
   if (filter.hide_documents) query.hide_documents = true;

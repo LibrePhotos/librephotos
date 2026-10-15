@@ -56,6 +56,9 @@ class SyncPhotoItemSerializer(serializers.Serializer[None]):
         help_text="The rating reaches the owner's favorite_min_rating"
     )
     hidden = serializers.BooleanField()
+    archived = serializers.BooleanField(
+        help_text="Off the timeline and Memories, still in albums and search"
+    )
     in_trashcan = serializers.BooleanField()
     removed = serializers.BooleanField()
     is_public = serializers.BooleanField()
