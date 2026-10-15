@@ -7,14 +7,21 @@
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import i18n from "../../i18n";
 import { JobProgress } from "./JobProgress";
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key} ${Object.values(vars).join("/")}` : key),
-  }),
-}));
+vi.mock("react-i18next", async importOriginal => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    // The real i18n instance, which the percentage takes the UI language from, with a t that shows the key
+    useTranslation: () => ({
+      ...actual.useTranslation(),
+      t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key} ${Object.values(vars).join("/")}` : key),
+    }),
+  };
+});
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -121,6 +128,39 @@ describe("JobProgress finished states", () => {
     );
 
     expect(barColor(container)).toContain("red");
+    await unmount();
+  });
+});
+
+// #2201: the running percentage used toFixed, so it always had an English decimal point.
+describe("JobProgress while running", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("shows the items processed with the percentage in one sentence", async () => {
+    await i18n.changeLanguage("en");
+    const { container, unmount } = await render(<JobProgress finished={false} target={1000} current={123} />);
+
+    expect(container.textContent).toContain("joblist.itemsprocessedpercent 123/12.3%");
+    await unmount();
+  });
+
+  it("writes the percentage the UI language's way", async () => {
+    await i18n.changeLanguage("de");
+    const { container, unmount } = await render(<JobProgress finished={false} target={1000} current={123} />);
+
+    expect(container.textContent?.replace(/\s/g, " ")).toContain("joblist.itemsprocessedpercent 123/12,3 %");
+    await unmount();
+  });
+
+  it("shows the job's own step instead when it reports one", async () => {
+    const { container, unmount } = await render(
+      <JobProgress finished={false} target={1000} current={123} progressStep="Extracting faces" />
+    );
+
+    expect(container.textContent).toContain("Extracting faces");
+    expect(container.textContent).not.toContain("joblist.itemsprocessedpercent");
     await unmount();
   });
 });

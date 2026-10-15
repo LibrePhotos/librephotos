@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchTagsQuery, useTagPhotosByNameMutation } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
+import { selectionLabel } from "../photolist/selectionLabel";
 import { Tile } from "../Tile";
 import classes from "./ModalTagEdit.module.css";
 import { modalTitleStyles } from "./modalTitleStyles";
@@ -77,8 +78,12 @@ export function ModalTagEdit(props: Props) {
 
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">
-            {t("selectionbar.all")} {photoCount} {t("selectionbar.selected")}
-            {excludedHashes.length > 0 && ` (${excludedHashes.length} ${t("selectionbar.excluded")})`}
+            {selectionLabel(t, {
+              selectAllMode,
+              total: totalCount ?? 0,
+              excluded: excludedHashes.length,
+              selected: selectedImages.length,
+            })}
           </Badge>
         ) : (
           <Group gap="xs">

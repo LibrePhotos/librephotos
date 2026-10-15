@@ -97,6 +97,7 @@ export function PhotoListDialogs({
           selectedImageHashes={selectionState.selectedItems.map(i => i.image_hash)}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
+          totalCount={totalCount}
         />
       )}
       {!isPublic && isUserAlbum && (

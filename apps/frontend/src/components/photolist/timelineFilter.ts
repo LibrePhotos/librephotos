@@ -1,6 +1,7 @@
 import { NO_TIMELINE_FILTER, type BulkPhotoQuery } from "@librephotos/api-client";
 import type { User } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
+import { formatUnitList } from "../../util/formatCount";
 
 // The main timeline's filter (issue #2130). The same four keys are saved as
 // the user's default (User.default_timeline_filter) and resolved by the
@@ -151,12 +152,7 @@ export function describeTimelineFilter(filter: TimelineFilter, t: TFunction, lan
   if (filter.hide_screenshots) parts.push(t("timelinefilter.summary.noscreenshots"));
   if (filter.hide_documents) parts.push(t("timelinefilter.summary.nodocuments"));
   if (parts.length === 0) return t("timelinefilter.summary.everything");
-  try {
-    return new Intl.ListFormat(language, { style: "short", type: "unit" }).format(parts);
-  } catch {
-    // An unknown language tag
-    return new Intl.ListFormat("en", { style: "short", type: "unit" }).format(parts);
-  }
+  return formatUnitList(parts, language);
 }
 
 export type TimelineItem = {

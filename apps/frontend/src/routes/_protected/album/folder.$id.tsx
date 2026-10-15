@@ -213,7 +213,7 @@ function FolderDetail() {
               }}
               title={t("show_all_subfolders")}
             >
-              +{subfolders.length - maxFolders} {t("more")}
+              {t("moresubfolders", { count: subfolders.length - maxFolders })}
             </Button>
           )}
           <FolderListModal

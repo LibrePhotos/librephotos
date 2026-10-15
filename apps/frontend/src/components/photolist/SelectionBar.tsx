@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SelectionState } from "../../api_client/photos/types";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { selectionLabel } from "./selectionLabel";
 
 type Props = {
   selectMode: boolean;
@@ -24,19 +25,19 @@ export function SelectionBar(props: Readonly<Props>) {
   // still shows placeholders, say so instead of claiming the whole set (#2227).
   const selectsLoadedOnly = !photosetQuery && idx2hash.some(item => item.isTemp);
 
-  // Calculate display count based on mode
+  // "5 selected", "All 120 selected", "All 120 selected (3 excluded)", or "5 of 120 selected"
+  // while placeholders keep select all to the loaded photos
   const getDisplayText = () => {
-    if (selectAllMode) {
-      const excludedCount = selectedItems.length;
-      if (excludedCount > 0) {
-        return `${t("selectionbar.all")} ${totalCount} (${excludedCount} ${t("selectionbar.excluded")})`;
-      }
-      return `${t("selectionbar.all")} ${totalCount} ${t("selectionbar.selected")}`;
-    }
-    if (selectsLoadedOnly && selectedItems.length > 0) {
+    if (!selectAllMode && selectsLoadedOnly && selectedItems.length > 0) {
       return t("selectionbar.selectedoftotal", { selected: selectedItems.length, total: totalCount });
     }
-    return `${selectedItems.length} ${t("selectionbar.selected")}`;
+    return selectionLabel(t, {
+      selectAllMode,
+      total: totalCount,
+      // In select-all mode the list holds the exclusions
+      excluded: selectedItems.length,
+      selected: selectedItems.length,
+    });
   };
 
   // Determine if "all" are selected; an empty grid is not "all selected" (0 === 0)

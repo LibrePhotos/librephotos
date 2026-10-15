@@ -3,7 +3,9 @@ import { getRouteApi } from "@tanstack/react-router";
 import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
+import { formatPercent } from "../../util/formatCount";
 import type { FacesTab } from "./facesTab";
 
 type Props = Readonly<{
@@ -17,6 +19,7 @@ type Props = Readonly<{
 const routeApi = getRouteApi("/_protected/faces");
 
 export function FaceTooltip({ tooltipOpened, probability, timestamp, tab, children = null }: Props) {
+  const locale = useFormatLocale();
   let activeTab: FacesTab | undefined;
   try {
     // Try to get the tab from the route if we're in the faces dashboard
@@ -28,9 +31,7 @@ export function FaceTooltip({ tooltipOpened, probability, timestamp, tab, childr
   }
 
   const confidencePercentageLabel =
-    activeTab === "inferred"
-      ? t("settings.confidencepercentage", { percentage: (probability * 100).toFixed(1) })
-      : null;
+    activeTab === "inferred" ? t("settings.confidencepercent", { percent: formatPercent(probability, locale) }) : null;
 
   // The face's timestamp is its photo's exif_timestamp: a wall clock, not an instant
   const photoTime = timestamp ? parsePhotoTimestamp(timestamp) : null;

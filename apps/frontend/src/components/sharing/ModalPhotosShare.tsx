@@ -20,6 +20,7 @@ import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { parseInstant } from "../../util/dateUtils";
+import { selectionLabel } from "../photolist/selectionLabel";
 import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
 
@@ -29,6 +30,7 @@ type Props = Readonly<{
   onRequestClose: () => void;
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
+  totalCount?: number;
 }>;
 
 export function ModalPhotosShare(props: Props) {
@@ -36,7 +38,7 @@ export function ModalPhotosShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
-  const { selectedImageHashes, isOpen, onRequestClose, selectAllMode = false, selectAllQuery } = props;
+  const { selectedImageHashes, isOpen, onRequestClose, selectAllMode = false, selectAllQuery, totalCount } = props;
   const { mutate: updatePhotoSharing } = useUpdatePhotoSharingMutation();
 
   // In selectAllMode, selectedImageHashes contains exclusions
@@ -77,8 +79,12 @@ export function ModalPhotosShare(props: Props) {
       <Stack>
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">
-            {t("selectionbar.all")}{" "}
-            {excludedHashes.length > 0 && `(${excludedHashes.length} ${t("selectionbar.excluded")})`}
+            {selectionLabel(t, {
+              selectAllMode,
+              total: totalCount ?? 0,
+              excluded: excludedHashes.length,
+              selected: selectedImageHashes.length,
+            })}
           </Badge>
         ) : (
           <ScrollArea>

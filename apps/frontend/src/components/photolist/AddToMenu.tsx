@@ -8,14 +8,14 @@ import { DisabledReason } from "../common/DisabledReason";
 type Props = Readonly<{
   /** Why the menu is off: nothing is selected. Empty while there is a selection. */
   reason: string | false;
-  /** How many photos are selected, or "All" after Select all. */
-  selectedCount: React.ReactNode;
+  /** What is selected, e.g. "5 selected" or "All 120 selected". */
+  selection: string;
   onAddToAlbum: () => void;
   onAddTags: () => void;
 }>;
 
 /** The selection toolbar's "+": add the selected photos to an album or give them tags. */
-export function AddToMenu({ reason, selectedCount, onAddToAlbum, onAddTags }: Props) {
+export function AddToMenu({ reason, selection, onAddToAlbum, onAddTags }: Props) {
   const { t } = useTranslation();
   return (
     <Menu width={200}>
@@ -30,7 +30,7 @@ export function AddToMenu({ reason, selectedCount, onAddToAlbum, onAddTags }: Pr
 
       <Menu.Dropdown>
         <Menu.Label>
-          {t("selectionactions.album")} ({selectedCount} {t("selectionactions.selected")})
+          {t("selectionactions.labelwithselection", { label: t("selectionactions.album"), selection })}
         </Menu.Label>
 
         <Menu.Divider />

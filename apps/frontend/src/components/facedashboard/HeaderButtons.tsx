@@ -79,7 +79,7 @@ export function HeaderButtons({
             color={selectMode ? "blue" : "gray"}
             onClick={changeSelectMode}
           >
-            {`${selectedFaces.length} ${t("selectionbar.selected")}`}
+            {t("selectionbar.count", { count: selectedFaces.length })}
           </Button>
           {/* Dividers only where the controls fit on one row: when the row wraps they end up dangling at line ends */}
           <Divider orientation="vertical" visibleFrom="md" />

@@ -155,7 +155,7 @@
     "scanoptions": "Scanning Options",
     "sceneconfidence": "Scene confidence",
     "confidencelevel": "Confidence level",
-    "confidencepercentage": "Confidence: {{percentage}}%",
+    "confidencepercent": "Confidence: {{percent}}",
     "confidence": {
       "high": "High",
       "standard": "Standard",
@@ -624,18 +624,21 @@
     "revokeLinkConfirm": "The link stops working right away and cannot be restored."
   },
   "selectionbar": {
-    "selected": "selected",
     "toggle": "Toggle select mode",
     "deselect": "Deselect all",
     "select": "Select all",
     "selectloaded": "Select the loaded photos",
-    "selectedoftotal": "{{selected}} of {{total}} selected",
+    "selectedoftotal": "{{selected, number}} of {{total, number}} selected",
     "selectmode": "Select",
     "selectphotos": "Select photos",
     "done": "Done selecting",
     "toolbar": "Selection",
-    "all": "All",
-    "excluded": "excluded"
+    "count_one": "{{count, number}} selected",
+    "count_other": "{{count, number}} selected",
+    "allcount_one": "All {{count, number}} selected",
+    "allcount_other": "All {{count, number}} selected",
+    "allexcluded_one": "All {{total, number}} selected ({{count, number}} excluded)",
+    "allexcluded_other": "All {{total, number}} selected ({{count, number}} excluded)"
   },
   "defaultheader": {
     "welcome": "Welcome to LibrePhotos",
@@ -643,16 +646,16 @@
     "gettingstarted": "Set Up Library",
     "loading": "Loading...",
     "noimages": "No images found",
-    "days": "days",
-    "photos": "photos",
-    "days_one": "day",
-    "photos_one": "photo",
-    "videos": "videos",
-    "videos_one": "video"
+    "dayscount_one": "{{count, number}} day",
+    "dayscount_other": "{{count, number}} days",
+    "photoscount_one": "{{count, number}} photo",
+    "photoscount_other": "{{count, number}} photos",
+    "videoscount_one": "{{count, number}} video",
+    "videoscount_other": "{{count, number}} videos"
   },
   "selectionactions": {
     "photoactions": "Photo Actions",
-    "selected": "selected",
+    "labelwithselection": "{{label}}: {{selection}}",
     "favorite": "Favorite",
     "unfavorite": "Unfavorite",
     "setrating": "Set rating",
@@ -1480,8 +1483,10 @@
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "removeentries": "Removing entries",
     "cancel": "Cancel",
-    "itemsprocessed_one": "{{count}} item processed",
-    "itemsprocessed_other": "{{count}} items processed",
+    "itemsprocessed_one": "{{count, number}} item processed",
+    "itemsprocessed_other": "{{count, number}} items processed",
+    "itemsprocessedpercent_one": "{{count, number}} item processed ({{percent}})",
+    "itemsprocessedpercent_other": "{{count, number}} items processed ({{percent}})",
     "cancelled": "Cancelled",
     "completed": "Completed",
     "actions": "Actions",
@@ -1612,7 +1617,11 @@
     "explorecharts": "Explore charts"
   },
   "statistics": {
-    "title": "Statistics"
+    "title": "Statistics",
+    "photocount_one": "{{count, number}} photo",
+    "photocount_other": "{{count, number}} photos",
+    "facecount_one": "{{name}}: {{count, number}} face",
+    "facecount_other": "{{name}}: {{count, number}} faces"
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} events",
@@ -2203,7 +2212,8 @@
   "folders": "Folders",
   "back_to_folders": "Back to Folders",
   "show_all_subfolders": "Show all subfolders",
-  "more": "more",
+  "moresubfolders_one": "+{{count, number}} more",
+  "moresubfolders_other": "+{{count, number}} more",
   "all_subfolders": "All subfolders",
   "filter_folders": "Filter by name or path...",
   "clear": "Clear",
@@ -2342,12 +2352,11 @@
       "description": "Add photos with timestamps to see your photo timeline."
     },
     "scanning": {
-      "title": "Scan in progress",
-      "processed": "items processed",
+      "titlewithjob": "Scan in progress: {{job}}",
       "refresh": "Refresh the page to see newly scanned photos.",
       "refreshButton": "Refresh",
-      "progress_one": "{{current}} / {{count}} item processed",
-      "progress_other": "{{current}} / {{count}} items processed"
+      "progress_one": "{{current, number}} / {{count, number}} item processed",
+      "progress_other": "{{current, number}} / {{count, number}} items processed"
     },
     "goToLibrary": "Go to Library",
     "goToFaces": "Go to Faces",
