@@ -88,6 +88,14 @@
       "enabled": false
     },
     {
+      "description": "Majors of the mobile test, styling and lint tooling are tied to the Expo SDK, not to their own release cycle, so they wait for the next SDK upgrade (#2148 bundled them and could not merge). jest-expo 57 runs on Jest 29 (jest 30 and @types/jest 30 do not fit), Testing Library for React Native 14 needs React >= 19.3 while SDK 57 ships 19.2.3 (and its async API is a test rewrite), Tailwind CSS 4 needs NativeWind 5 (react-native-css-interop accepts Tailwind 3 only), eslint-config-expo 57's plugins support ESLint 9 only, and SDK 57 bundles react-native-gesture-handler ~2.32 (the root overrides pin it too). They are listed on the Dependency Dashboard and come as one PR only when ticked there: tick it during an Expo SDK upgrade. SDK-versioned packages (expo, jest-expo, eslint-config-expo, babel-preset-expo) are left out on purpose, their majors are the SDK upgrade itself. packages/api-client is not matched: it has its own ESLint 10 setup.",
+      "matchFileNames": ["apps/mobile/package.json", "package.json"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["jest", "@types/jest", "babel-jest", "/^@jest\\//", "/^jest-environment-/", "/^@testing-library\\//", "tailwindcss", "nativewind", "react-native-css-interop", "react-native-gesture-handler", "eslint", "@eslint/js", "/^eslint-plugin-/", "/^@typescript-eslint\\//", "typescript-eslint"],
+      "groupName": "mobile expo sdk coupled majors",
+      "dependencyDashboardApproval": true
+    },
+    {
       "matchFileNames": ["apps/docs/**"],
       "groupName": "docs dependencies",
       "addLabels": ["docs"]
