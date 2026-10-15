@@ -87,7 +87,7 @@ function StartTime({ stored, onSave }: { stored: string; onSave: (time: string) 
         onKeyDown={event => {
           if (event.key === "Enter") commit();
         }}
-        style={{ flex: 1 }}
+        flex={1}
       />
     </Group>
   );
