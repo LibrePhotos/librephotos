@@ -6,6 +6,7 @@ Everything here runs from source: the compiled binary is recognised through
 relies on is covered without a Nuitka build.
 """
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -13,6 +14,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import zipfile
 from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -158,6 +160,55 @@ class StageRuntimeFilesTest(SimpleTestCase):
                 self.stage(Path(tmp), with_binaries=False)
 
         self.assertIn("is missing", str(stopped.exception))
+
+
+class ArchiveTest(SimpleTestCase):
+    """The release zip under a versioned name and the stable alias, with
+    SHA256SUMS for both (#2318, #2317)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.build = load_build_script()
+
+    def test_a_release_gets_a_versioned_name_and_the_stable_one(self):
+        self.assertEqual(
+            ["librephotos-1.4.0-windows-x64", "librephotos-windows-x64"],
+            self.build.archive_names("1.4.0", "windows-x64"),
+        )
+
+    def test_an_unversioned_build_only_gets_the_stable_name(self):
+        self.assertEqual(
+            ["librephotos-windows-x64"],
+            self.build.archive_names("0.0.0", "windows-x64"),
+        )
+
+    def test_the_zips_are_the_same_file_and_sha256sums_lists_both(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            dist = output / "librephotos"
+            dist.mkdir()
+            (dist / "librephotos.exe").write_bytes(b"MZ")
+            with (
+                patch.object(self.build, "platform_suffix", return_value="windows-x64"),
+                patch("builtins.print"),
+            ):
+                zips = self.build.archive(dist, output, "1.4.0")
+
+            self.assertEqual(
+                ["librephotos-1.4.0-windows-x64.zip", "librephotos-windows-x64.zip"],
+                [path.name for path in zips],
+            )
+            versioned, stable = (path.read_bytes() for path in zips)
+            self.assertEqual(versioned, stable)
+            digest = hashlib.sha256(versioned).hexdigest()
+            self.assertEqual(
+                f"{digest}  librephotos-1.4.0-windows-x64.zip\n"
+                f"{digest}  librephotos-windows-x64.zip\n",
+                (output / "SHA256SUMS").read_bytes().decode("utf-8"),
+            )
+            with zipfile.ZipFile(zips[1]) as bundle:
+                self.assertIn("librephotos/librephotos.exe", bundle.namelist())
 
 
 class StandaloneExecutableTest(SimpleTestCase):

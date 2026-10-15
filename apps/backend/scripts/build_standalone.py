@@ -11,6 +11,7 @@ loads at run time. See librephotos/standalone.py for what the binary does.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -338,18 +339,62 @@ def stage_runtime_files(dist, frontend_build, static, version):
     (dist / "START_HERE.txt").write_text(START_HERE_TEXT, encoding="utf-8")
 
 
-def archive(dist, output_dir):
+# Written next to the zips and attached to the release with them (#2317).
+CHECKSUMS_NAME = "SHA256SUMS"
+
+
+def platform_suffix():
     machine = platform.machine().lower()
     arch = {"amd64": "x64", "x86_64": "x64", "arm64": "arm64", "aarch64": "arm64"}.get(
         machine, machine
     )
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, sys.platform)
-    name = f"librephotos-{system}-{arch}"
-    path = shutil.make_archive(
-        str(output_dir / name), "zip", root_dir=output_dir, base_dir=dist.name
+    return f"{system}-{arch}"
+
+
+def archive_names(version, suffix):
+    """The zip's file names without .zip: the versioned one first, which says
+    which release a downloaded file is, then the stable alias that the docs'
+    and the landing page's releases/latest/download link names (#2318). A
+    build nobody versioned (0.0.0) only gets the alias."""
+    stable = f"{DIST_NAME}-{suffix}"
+    if version == "0.0.0":
+        return [stable]
+    return [f"{DIST_NAME}-{version}-{suffix}", stable]
+
+
+def sha256_of(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(2**20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def write_checksums(paths, target):
+    """SHA256SUMS in sha256sum's format, which `sha256sum -c` reads back and
+    Get-FileHash's output can be compared with (#2317)."""
+    lines = [f"{sha256_of(path)}  {Path(path).name}\n" for path in paths]
+    target.write_text("".join(lines), encoding="utf-8", newline="\n")
+    return target
+
+
+def archive(dist, output_dir, version):
+    """Zip the distribution once and copy it under the alias; write SHA256SUMS
+    for both next to them. Returns the zips, the versioned one first."""
+    first, *aliases = archive_names(version, platform_suffix())
+    path = Path(
+        shutil.make_archive(
+            str(output_dir / first), "zip", root_dir=output_dir, base_dir=dist.name
+        )
     )
-    print(f"archive: {path} ({os.path.getsize(path) / 2**20:.0f} MB)")
-    return Path(path)
+    paths = [path]
+    for alias in aliases:
+        paths.append(Path(shutil.copyfile(path, output_dir / f"{alias}.zip")))
+    checksums = write_checksums(paths, output_dir / CHECKSUMS_NAME)
+    for written in (*paths, checksums):
+        print(f"archive: {written} ({os.path.getsize(written) / 2**20:.0f} MB)")
+    return paths
 
 
 def main():
@@ -381,7 +426,7 @@ def main():
     stage_runtime_files(dist, frontend_build, static, args.version)
     print(f"built: {dist}")
     if args.zip:
-        archive(dist, output_dir)
+        archive(dist, output_dir, args.version)
 
 
 if __name__ == "__main__":

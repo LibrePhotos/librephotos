@@ -236,4 +236,7 @@ golden tests at a local bundle.
 `scripts/build_standalone.py --zip` (needs `requirements.standalone.txt`, MSVC and Node 24) compiles
 `librephotos_standalone.py` with Nuitka into one `librephotos.exe` that runs the server, qcluster and
 every sidecar (`librephotos/standalone.py` dispatches on `run`/`manage`/`service`) with
-`librephotos.settings.standalone`. `.github/workflows/standalone-windows.yml` builds it in CI.
+`librephotos.settings.standalone`. `.github/workflows/standalone-windows.yml` builds it in CI, runs the zip
+with `scripts/smoke_standalone.py` (server, sidecars, a scan, the shutdown; `--from-source` tries it without a
+build) and only then attaches it to the release and marks the release latest; its release path is guarded by
+`api/tests/infra/test_standalone_windows_workflow.py`.

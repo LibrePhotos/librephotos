@@ -141,7 +141,7 @@ platform = "linux"               # Windows dev boxes report exactly what CI repo
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 files = ["api", "librephotos", "service", "nextcloud", "chunked_upload", "image_similarity", "scripts/typecheck.py",
          "scripts/check_dead_code.py", "scripts/ruff_baseline.py", "scripts/openapi_schema.py",
-         "scripts/import_contracts_baseline.py"]
+         "scripts/import_contracts_baseline.py", "scripts/smoke_standalone.py"]
 exclude = ['/migrations/', '/tests?/', '/tests\.py$']
 check_untyped_defs = true
 disallow_untyped_defs = true     # every function must be annotated
