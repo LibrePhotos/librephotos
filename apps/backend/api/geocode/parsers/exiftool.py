@@ -77,7 +77,7 @@ def parse(
         return no_place()
     center = _position(answer.get("GeolocationPosition")) or [lat, lon]
     places = [name for name, _ in names]
-    result: dict[str, object] = {
+    return {
         "features": [
             {"text": name, "center": center, "place_type": place_type}
             for name, place_type in names
@@ -86,12 +86,18 @@ def parse(
         "address": ", ".join(places),
         "center": center,
         "provider": EXIFTOOL_PROVIDER,
+        **_extras(answer),
         "_v": GEOCODE_VERSION,
     }
+
+
+def _extras(answer: Mapping[str, object]) -> dict[str, object]:
+    """The town's ``country_code`` and ``distance_km`` from the photo, where readable."""
+    extras: dict[str, object] = {}
     country_code = answer.get("GeolocationCountryCode")
     if isinstance(country_code, str) and country_code:
-        result["country_code"] = country_code
+        extras["country_code"] = country_code
     distance = answer.get("GeolocationDistance")
     if isinstance(distance, int | float) and not isinstance(distance, bool):
-        result["distance_km"] = float(distance)
-    return result
+        extras["distance_km"] = float(distance)
+    return extras
