@@ -7,6 +7,7 @@ import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
+import { AutoScanSetting } from "./AutoScanSetting";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SectionLink } from "./SettingsSection";
 import { TrashRetentionSetting } from "./TrashRetentionSetting";
@@ -228,6 +229,7 @@ function SiteSettingsForm() {
           <Grid justify="flex-end">
             <SkipPatternsSetting />
             <MissingPhotosLimitSetting />
+            <AutoScanSetting />
             <TrashRetentionSetting />
             <Grid.Col span={LABEL_SPAN}>
               <Stack gap={0}>

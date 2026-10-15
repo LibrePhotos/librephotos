@@ -11654,6 +11654,16 @@
           "refresh"
         ]
       },
+      "AutoScanEnum": {
+        "enum": [
+          "off",
+          "hourly",
+          "daily",
+          "custom"
+        ],
+        "type": "string",
+        "description": "* `off` - off\n* `hourly` - hourly\n* `daily` - daily\n* `custom` - custom"
+      },
       "BlockingPath": {
         "type": "object",
         "description": "The path component that stopped the web server (``Blocking``).",
@@ -20240,6 +20250,65 @@
           "username"
         ]
       },
+      "SiteAutoScanStatus": {
+        "type": "object",
+        "description": "The automatic scan's last run and next run, by username.",
+        "properties": {
+          "last_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When it last ran; null before the first run."
+          },
+          "scanned": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Users whose scans of that run finished."
+          },
+          "running": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Users whose scans of that run are queued or running."
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Users skipped because a scan of theirs was still running."
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Users whose library could not be scanned, or whose scan failed."
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "The next run; null while it is off."
+          },
+          "time_zone": {
+            "type": "string",
+            "description": "The server's time zone, which auto_scan_time is in."
+          }
+        },
+        "required": [
+          "failed",
+          "last_run_at",
+          "next_run_at",
+          "running",
+          "scanned",
+          "skipped",
+          "time_zone"
+        ]
+      },
       "SiteFeatureState": {
         "type": "object",
         "description": "One optional feature as the Features card shows it.",
@@ -20327,7 +20396,7 @@
       },
       "SiteSettings": {
         "type": "object",
-        "description": "What GET (and a successful POST) answers.\n\n``features`` and ``model_download`` are sent to staff only; the GET is\nanonymous (the login page reads it).",
+        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download`` and the ``auto_scan`` fields are sent to\nstaff only; the GET is anonymous (the login page reads it).",
         "properties": {
           "allow_registration": {
             "type": "boolean"
@@ -20389,6 +20458,24 @@
           },
           "features": {
             "$ref": "#/components/schemas/SiteFeatures"
+          },
+          "auto_scan": {
+            "type": "string",
+            "description": "off, hourly, daily or custom. Staff only."
+          },
+          "auto_scan_time": {
+            "type": "string",
+            "description": "HH:MM in the server's time zone. Staff only."
+          },
+          "auto_scan_days": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Weekdays of a custom scan, 0 (Monday) to 6. Staff only."
+          },
+          "auto_scan_status": {
+            "$ref": "#/components/schemas/SiteAutoScanStatus"
           },
           "model_download": {
             "allOf": [
@@ -20469,6 +20556,27 @@
             "maximum": 36500,
             "minimum": 0,
             "description": "Days a photo stays in the trash before it and its files are deleted for good; 0 keeps it until its owner empties the trash."
+          },
+          "auto_scan": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AutoScanEnum"
+              }
+            ],
+            "description": "Scan every library automatically: off, hourly, daily, or custom (the days in auto_scan_days).\n\n* `off` - off\n* `hourly` - hourly\n* `daily` - daily\n* `custom` - custom"
+          },
+          "auto_scan_time": {
+            "type": "string",
+            "description": "When a daily or custom scan starts, HH:MM in the server's time zone."
+          },
+          "auto_scan_days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "maximum": 6,
+              "minimum": 0
+            },
+            "description": "The weekdays a custom scan runs, 0 (Monday) to 6 (Sunday)."
           },
           "video_enabled": {
             "type": "boolean"

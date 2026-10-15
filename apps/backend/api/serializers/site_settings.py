@@ -4,6 +4,11 @@ from collections.abc import Mapping
 
 from rest_framework import serializers
 
+from api.directory_watcher.scan_schedule import (
+    FREQUENCIES,
+    is_valid_time,
+    stored_days,
+)
 from api.drf.params import (
     JsonBooleanField,
     JsonFractionField,
@@ -65,6 +70,23 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         help_text="Days a photo stays in the trash before it and its files are"
         " deleted for good; 0 keeps it until its owner empties the trash.",
     )
+    # The automatic library scan (#235).
+    auto_scan = serializers.ChoiceField(
+        choices=FREQUENCIES,
+        required=False,
+        help_text="Scan every library automatically: off, hourly, daily, or"
+        " custom (the days in auto_scan_days).",
+    )
+    auto_scan_time = JsonStringField(
+        required=False,
+        help_text="When a daily or custom scan starts, HH:MM in the server's time zone.",
+    )
+    auto_scan_days = serializers.ListField(
+        child=JsonIntegerField(min_value=0, max_value=6),
+        allow_empty=False,
+        required=False,
+        help_text="The weekdays a custom scan runs, 0 (Monday) to 6 (Sunday).",
+    )
     # The feature switches (api/runtime/features.py). A switch the server
     # environment turned off is locked: writing it is a 400 naming the field.
     video_enabled = JsonBooleanField(required=False)
@@ -84,6 +106,15 @@ class SiteSettingsRequest(serializers.Serializer[None]):
                 code="unknown_map_api_provider",
             )
         return value
+
+    def validate_auto_scan_time(self, value: str) -> str:
+        if not is_valid_time(value):
+            raise serializers.ValidationError("Give the time as HH:MM, 00:00 to 23:59.")
+        return value
+
+    def validate_auto_scan_days(self, value: list[int]) -> str:
+        """The days as ``AUTO_SCAN_DAYS`` stores them, which the view saves."""
+        return stored_days(value)
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
         if not attrs:
@@ -141,11 +172,41 @@ class SiteModelDownloadSerializer(serializers.Serializer[None]):
     progress_target = serializers.IntegerField()
 
 
+class SiteAutoScanStatusSerializer(serializers.Serializer[None]):
+    """The automatic scan's last run and next run, by username."""
+
+    last_run_at = serializers.DateTimeField(
+        allow_null=True, help_text="When it last ran; null before the first run."
+    )
+    scanned = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Users whose scans of that run finished.",
+    )
+    running = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Users whose scans of that run are queued or running.",
+    )
+    skipped = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Users skipped because a scan of theirs was still running.",
+    )
+    failed = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Users whose library could not be scanned, or whose scan failed.",
+    )
+    next_run_at = serializers.DateTimeField(
+        allow_null=True, help_text="The next run; null while it is off."
+    )
+    time_zone = serializers.CharField(
+        help_text="The server's time zone, which auto_scan_time is in."
+    )
+
+
 class SiteSettingsSerializer(serializers.Serializer[None]):
     """What GET (and a successful POST) answers.
 
-    ``features`` and ``model_download`` are sent to staff only; the GET is
-    anonymous (the login page reads it).
+    ``features``, ``model_download`` and the ``auto_scan`` fields are sent to
+    staff only; the GET is anonymous (the login page reads it).
     """
 
     allow_registration = serializers.BooleanField()
@@ -174,6 +235,18 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     )
     email_configured = serializers.BooleanField()
     features = SiteFeaturesSerializer(required=False)
+    auto_scan = serializers.CharField(
+        required=False, help_text="off, hourly, daily or custom. Staff only."
+    )
+    auto_scan_time = serializers.CharField(
+        required=False, help_text="HH:MM in the server's time zone. Staff only."
+    )
+    auto_scan_days = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="Weekdays of a custom scan, 0 (Monday) to 6. Staff only.",
+    )
+    auto_scan_status = SiteAutoScanStatusSerializer(required=False)
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)
 
 

@@ -16,7 +16,8 @@ receives the row's id as ``job_id`` and claims the row when it starts
 - ``enqueue_task`` / ``enqueue_task_chain``: work without a row of its own,
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
-- ``schedule_once`` / ``ensure_schedule``: django-q schedules.
+- ``schedule_once`` / ``ensure_schedule`` / ``replace_schedule`` /
+  ``remove_schedule``: django-q schedules.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
 ``django_q.tasks``. ``transcode_cache`` fills its cache from a thread while a
@@ -32,6 +33,7 @@ from datetime import datetime
 from typing import NamedTuple
 
 from django.db import transaction
+from django.utils import timezone
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
 
@@ -251,6 +253,42 @@ def ensure_schedule(
         return False
     schedule(func, schedule_type=schedule_type, minutes=minutes)
     return True
+
+
+def replace_schedule(
+    func: str,
+    *,
+    name: str,
+    schedule_type: str,
+    next_run: datetime | None = None,
+    intended_date_kwarg: str | None = None,
+) -> bool:
+    """Make ``name`` the one schedule of the function at dotted path ``func``.
+
+    For a schedule that follows a setting: the name says what it does (the
+    automatic library scan's names its frequency and time), so a changed
+    setting replaces the schedule, while a restart leaves it alone,
+    ``next_run`` included. With ``intended_date_kwarg`` each run gets the time
+    it was due under that keyword. Returns whether a schedule was written.
+    """
+    existing = Schedule.objects.filter(func=func)
+    if existing.filter(name=name).exists():
+        return False
+    existing.delete()
+    schedule(
+        func,
+        name=name,
+        schedule_type=schedule_type,
+        next_run=next_run or timezone.now(),
+        intended_date_kwarg=intended_date_kwarg,
+    )
+    return True
+
+
+def remove_schedule(func: str) -> bool:
+    """Drop the schedules of the function at dotted path ``func``; whether there were any."""
+    deleted, _ = Schedule.objects.filter(func=func).delete()
+    return deleted > 0
 
 
 def remove_queued_tasks(job_id: str) -> int:

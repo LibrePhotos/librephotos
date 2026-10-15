@@ -35,6 +35,23 @@ export const SiteModelDownload = z.object({
 });
 export type SiteModelDownload = z.infer<typeof SiteModelDownload>;
 
+/** The automatic library scan's last run, by username, and its next run (#235). Staff only. */
+export const SiteAutoScanStatus = z.object({
+  // When it last ran; null before the first run.
+  last_run_at: z.string().nullable(),
+  // Users whose scans of that run finished, are still queued or running, were skipped because a
+  // scan of theirs was still running, or could not be scanned (or whose scan failed).
+  scanned: z.string().array(),
+  running: z.string().array(),
+  skipped: z.string().array(),
+  failed: z.string().array(),
+  // The next run; null while it is off.
+  next_run_at: z.string().nullable(),
+  // The server's time zone, which auto_scan_time is in.
+  time_zone: z.string(),
+});
+export type SiteAutoScanStatus = z.infer<typeof SiteAutoScanStatus>;
+
 /** GET/POST /api/sitesettings (api/views/site_settings.py). GET is anonymous; POST is admin-only. */
 export const SiteSettings = z.object({
   allow_registration: z.boolean(),
@@ -69,6 +86,14 @@ export const SiteSettings = z.object({
   // Staff only, and older backends have no feature switches.
   features: SiteFeatures.optional(),
   model_download: SiteModelDownload.nullish(),
+  // The automatic library scan (#235), staff only; older backends do not have it. "off",
+  // "hourly", "daily" or "custom" (on auto_scan_days, 0 = Monday); a string, so a frequency a
+  // newer server adds does not fail the anonymous settings answer.
+  auto_scan: z.string().optional(),
+  // HH:MM in the server's time zone (auto_scan_status.time_zone).
+  auto_scan_time: z.string().optional(),
+  auto_scan_days: z.number().array().optional(),
+  auto_scan_status: SiteAutoScanStatus.optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 
@@ -77,7 +102,7 @@ export type SiteSettings = z.infer<typeof SiteSettings>;
  * `<feature>_enabled`; one the server environment locked is refused with a 400 naming the field.
  */
 export type SiteSettingsUpdate = Partial<
-  Omit<SiteSettings, "features" | "model_download" | "heavyweight_process"> & {
+  Omit<SiteSettings, "features" | "model_download" | "heavyweight_process" | "auto_scan_status"> & {
     [K in SiteFeatureName as `${K}_enabled`]: boolean;
   }
 >;
