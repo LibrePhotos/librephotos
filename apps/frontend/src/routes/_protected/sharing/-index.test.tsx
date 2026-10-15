@@ -4,10 +4,20 @@
  * what they were. Every card now has a caption: "Share link" and when it was made, "Public photo"
  * and when it was taken. The other sections keep their previews, placeholders and empty notes.
  *
+ * The public photos come from their own page of the server's answer, with its count (#2686): read
+ * through the public day list, every day not loaded yet was placeholders, and the overview showed
+ * and counted none. The day list is not mocked here, so reading it again would fail these tests.
+ *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
 import { Media } from "@librephotos/api-client";
-import type { DatePhotosGroup, ListUser, PhotoShareLink, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
+import type {
+  ListUser,
+  MyPublicPhotosResponse,
+  PhotoShareLink,
+  PigPhoto,
+  UserAlbumInfo,
+} from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { act } from "react";
@@ -26,7 +36,8 @@ const stubs = vi.hoisted(() => ({
   users: [] as ListUser[],
   albums: [] as UserAlbumInfo[],
   shares: [] as PhotoShareLink[],
-  publicPhotos: [] as DatePhotosGroup[],
+  publicPhotos: { count: 0, next: null, previous: null, results: [] } as MyPublicPhotosResponse,
+  publicPhotosPageSize: undefined as number | undefined,
   photosWithMe: [] as PhotoGroup[],
   albumsWithMe: [] as AlbumGroup[],
   photosByMe: [] as PhotoGroup[],
@@ -53,12 +64,15 @@ vi.mock("../../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => answer(stubs.users),
 }));
 vi.mock("../../../api_client/albums/hooks", () => ({
-  useFetchDateAlbumsQuery: () => answer(stubs.publicPhotos),
   useFetchSharedAlbumsByMeQuery: () => answer(stubs.albumsByMe),
   useFetchSharedAlbumsWithMeQuery: () => answer(stubs.albumsWithMe),
   useFetchUserAlbumsQuery: () => answer(stubs.albums),
 }));
 vi.mock("../../../api_client/photos/hooks", () => ({
+  useFetchMyPublicPhotosQuery: (pageSize: number) => {
+    stubs.publicPhotosPageSize = pageSize;
+    return answer(stubs.publicPhotos);
+  },
   useFetchPhotoSharesQuery: () => answer(stubs.shares),
   useFetchSharedPhotosByMeQuery: () => answer(stubs.photosByMe),
   useFetchSharedPhotosWithMeQuery: () => answer(stubs.photosWithMe),
@@ -116,6 +130,14 @@ const user = (id: number, username: string, publicSharing: boolean, first = "", 
   public_sharing: publicSharing,
 });
 
+/** The first page of my public photos, as GET /api/photos/public/ answers it. */
+const publicPage = (count: number, results: PigPhoto[]): MyPublicPhotosResponse => ({
+  count,
+  next: count > results.length ? "/api/photos/public/?page=2&page_size=6" : null,
+  previous: null,
+  results,
+});
+
 let root: Root | undefined;
 
 beforeAll(async () => {
@@ -144,9 +166,8 @@ beforeEach(() => {
   stubs.albumsByMe = [];
   stubs.albums = [album(7, "Porto 2025")];
   stubs.shares = [share("abc", DateTime.now().minus({ days: 2 }).toISO())];
-  stubs.publicPhotos = [
-    { date: "2024-03-01", location: "", items: [photo("p1", "2024-03-01T10:00:00Z"), photo("p2", null)] },
-  ];
+  stubs.publicPhotos = publicPage(2, [photo("p1", "2024-03-01T10:00:00Z"), photo("p2", null)]);
+  stubs.publicPhotosPageSize = undefined;
 });
 
 afterEach(async () => {
@@ -218,6 +239,28 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
     for (const caption of captions) expect(caption).toHaveLength(2);
   });
 
+  it("shows the latest public photos and counts every one, not only those on the first page (#2686)", async () => {
+    stubs.publicPhotos = publicPage(9, [photo("p1", "2024-03-01T10:00:00Z"), photo("p2", null)]);
+    await render();
+
+    // Asks the server for one row's worth
+    expect(stubs.publicPhotosPageSize).toBe(6);
+    const publicPhotoCards = publicLinkCards().filter(card => captionOf(card)[0] === "Public photo");
+    expect(publicPhotoCards).toHaveLength(2);
+    // 9 public photos and 1 share link; 1 public album
+    expect(sectionOf("Public Links").textContent).toContain("10 photos, 1 album");
+  });
+
+  it("counts public photos alone as public links", async () => {
+    stubs.albums = [];
+    stubs.shares = [];
+    stubs.publicPhotos = publicPage(3, [photo("p1", null)]);
+    await render();
+
+    expect(sectionOf("Public Links").textContent).toContain("3 photos, 0 albums");
+    expect(document.body.textContent).not.toContain("You haven't made anything public via link yet");
+  });
+
   it("opens the share dialog of a public album from its card", async () => {
     await render();
     const button = sectionOf("Public Links").querySelector<HTMLButtonElement>('button[aria-label="Sharing"]');
@@ -253,7 +296,7 @@ describe("the Sharing overview's other sections", () => {
   it("says when nothing is shared or public", async () => {
     stubs.albums = [];
     stubs.shares = [];
-    stubs.publicPhotos = [];
+    stubs.publicPhotos = publicPage(0, []);
     await render();
 
     const text = document.body.textContent;

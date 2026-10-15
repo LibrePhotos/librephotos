@@ -1,13 +1,11 @@
-import type { PigPhoto } from "@librephotos/api-client";
-import { Photoset } from "@librephotos/api-client";
 import { Stack, Tabs, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLink } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
+import { useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { PageBody } from "../../../components/PageBody";
@@ -17,7 +15,7 @@ import { validatePhotoSearch, type PhotoSearch } from "../../../components/photo
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
-import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
+import { useMyPublicPhotoDays } from "../../../components/sharing/useMyPublicPhotoDays";
 
 const PublicLinksTab = z.enum(["albums", "photos"]);
 type PublicLinksTab = z.infer<typeof PublicLinksTab>;
@@ -54,19 +52,15 @@ function PublicLinksPage() {
     showShareDialog();
   };
 
-  // Fetch public photos
-  const { data: publicPhotosGrouped, isLoading: isLoadingPhotos } = useFetchDateAlbumsQuery({
-    photosetType: Photoset.PUBLIC,
-  });
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
-
-  useEffect(() => {
-    if (publicPhotosGrouped) {
-      setPhotosFlat(getPhotosFlatFromGroupedByDate(publicPhotosGrouped));
-    }
-  }, [publicPhotosGrouped]);
-
-  const totalPhotos = photosFlat.filter(p => !p.isTemp).length;
+  // My public photos by day. Counted by the days' sizes: a day's photos are placeholders until
+  // its page loads, so counting loaded photos showed none at all (#2686).
+  const {
+    days: publicPhotoDays,
+    photosFlat,
+    count: totalPhotos,
+    isLoading: isLoadingPhotos,
+    updateGroups,
+  } = useMyPublicPhotoDays();
   // The per-photo share links belong here too, as the docs say; they were only
   // listed under "You shared".
   const { data: photoShares = [], isLoading: isLoadingShares } = useFetchPhotoSharesQuery();
@@ -121,7 +115,8 @@ function PublicLinksPage() {
                   title={t("sharing.publicPhotos")}
                   loading={isLoadingPhotos}
                   icon={IconLink}
-                  photoset={publicPhotosGrouped ?? []}
+                  photoset={publicPhotoDays}
+                  updateGroups={updateGroups}
                   idx2hash={photosFlat}
                   selectable
                   // Keeps its header for the selection bar, under this page's h1

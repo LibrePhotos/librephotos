@@ -270,6 +270,25 @@ class NoAlbumPhotoViewSet(ListViewSet):
         return super().list(*args, **kwargs)
 
 
+class PublicPhotoListViewSet(ListViewSet):
+    """The requester's own public photos, newest first, a page at a time (#2686).
+
+    The Sharing overview previews the first few (``?page_size=``) and shows
+    the page's ``count``, instead of reading the public day list, whose days
+    are placeholders until their page loads. Only the requester's photos:
+    another user's public photos are on that user's public page.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PhotoSummarySerializer
+    pagination_class = DefaultPagination
+
+    def get_queryset(self) -> QuerySet[Photo]:
+        return with_photo_summary_relations(
+            Photo.visible.owned_by(scope_user(self.request)).filter(public=True)
+        ).order_by(F("exif_timestamp").desc(nulls_last=True), "-added_on", "pk")
+
+
 class BulkPhotoMutationView(APIView):
     """Set one flag on many of the requester's photos in a single UPDATE.
 

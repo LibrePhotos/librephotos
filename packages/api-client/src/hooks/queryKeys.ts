@@ -49,6 +49,7 @@ type PhotoGridKind =
   | "withoutTimestamp"
   | "withoutLocation"
   | "notInAlbum"
+  | "myPublicPhotos"
   | "sharedByMe"
   | "sharedWithMe";
 
@@ -102,6 +103,8 @@ export const photoGridKeys = {
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
   /** One page of the photos in none of my albums. */
   notInAlbum: (page: number, mediaType: MediaType) => [...gridKind("notInAlbum"), page, mediaType] as const,
+  /** The first `pageSize` of my own public photos and their count (the Sharing overview). */
+  myPublicPhotos: (pageSize: number) => [...gridKind("myPublicPhotos"), pageSize] as const,
   /** The photos I shared, grouped by recipient (web). */
   sharedByMe: () => gridKind("sharedByMe"),
   /** The photos I shared, one row per share as the server sends them. */

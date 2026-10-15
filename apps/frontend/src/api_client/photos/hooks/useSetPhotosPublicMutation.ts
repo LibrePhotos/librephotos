@@ -24,14 +24,15 @@ export const useSetPhotosPublicMutation = () =>
     },
     onSuccess: (data, request) => {
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
+      void queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
+      void queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
+      void queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
+      void queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("myPublicPhotos") });
 
       // If we have a single photo in individual mode, invalidate its details
       const imageHash = singlePhotoHash(request);
       if (imageHash !== undefined) {
-        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
+        void queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
       }
     },
   });

@@ -1,4 +1,3 @@
-import { Photoset } from "@librephotos/api-client";
 import type { PhotoShareLink, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLink } from "@tabler/icons-react";
@@ -6,10 +5,9 @@ import { Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
-import { useFetchPhotoSharesQuery } from "../../api_client/photos/hooks";
+import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchMyPublicPhotosQuery, useFetchPhotoSharesQuery } from "../../api_client/photos/hooks";
 import { parseInstant, parsePhotoTimestamp } from "../../util/dateUtils";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import classes from "../album/AlbumSection.module.css";
 import { AlbumShareButton } from "./AlbumShareButton";
 import { ModalAlbumShare } from "./ModalAlbumShare";
@@ -89,20 +87,16 @@ export function PublicLinksSection() {
   const [isShareDialogOpen, shareDialog] = useDisclosure(false);
 
   const { data: userAlbums, isLoading: isLoadingUserAlbums } = useFetchUserAlbumsQuery();
-  const { data: publicPhotosGrouped, isLoading: isLoadingPublicPhotos } = useFetchDateAlbumsQuery({
-    photosetType: Photoset.PUBLIC,
-  });
+  // The latest few of my public photos and how many there are, straight from the server: the
+  // public day list holds placeholders until a day's page loads, so it showed and counted none (#2686).
+  const { data: publicPhotosPage, isLoading: isLoadingPublicPhotos } = useFetchMyPublicPhotosQuery(PREVIEW_SIZE);
   // Per-photo share links are public links too; the Public Links page lists them.
   const { data: photoShares, isLoading: isLoadingPhotoShares } = useFetchPhotoSharesQuery();
 
   const publicAlbums = useMemo(() => (userAlbums ?? []).filter(album => album.public), [userAlbums]);
-  // A day whose photos are not loaded yet holds placeholders: only loaded photos count and show
-  const publicPhotos = useMemo(
-    () => getPhotosFlatFromGroupedByDate(publicPhotosGrouped ?? []).filter(photo => !photo.isTemp),
-    [publicPhotosGrouped]
-  );
+  const publicPhotos = publicPhotosPage?.results ?? [];
   const shares = photoShares ?? [];
-  const photoCount = publicPhotos.length + shares.length;
+  const photoCount = (publicPhotosPage?.count ?? 0) + shares.length;
 
   return (
     <>
