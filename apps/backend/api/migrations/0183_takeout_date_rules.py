@@ -114,7 +114,7 @@ def remove_takeout_rules(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0181_person_groups"),
+        ("api", "0182_file_indexed_mtimes"),
     ]
 
     operations = [

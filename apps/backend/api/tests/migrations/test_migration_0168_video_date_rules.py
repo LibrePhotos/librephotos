@@ -14,7 +14,7 @@ migration_0168 = importlib.import_module("api.migrations.0168_video_date_rules")
 
 # The default list before #2268 added rules 17-19 (after 0167 dropped rule 14).
 OLD_DEFAULT_IDS = [16, 1, 15, 2, 11, 3, 4, 5]
-# The default list 0168 left: 0182 added the Takeout rules 20 and 21 later (#2270).
+# The default list 0168 left: 0183 added the Takeout rules 20 and 21 later (#2270).
 DEFAULT_IDS_AFTER = [16, 1, 15, 17, 2, 18, 11, 3, 4, 19, 5]
 
 

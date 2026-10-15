@@ -13,6 +13,7 @@ from django.test import SimpleTestCase, TestCase
 
 from api.directory_watcher import file_handlers
 from api.directory_watcher.scan_jobs import (
+    KnownFile,
     _group_needs_processing,
     _partition_scan_paths,
 )
@@ -28,6 +29,7 @@ from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.metadata.tags import Tags
 from api.models.photo import LocationSource
 from api.models.photo_caption import PhotoCaption
+from api.photos.indexed_mtimes import Observed
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 UTC = datetime.timezone.utc
@@ -292,15 +294,22 @@ class _FakeScan:
 
 class TakeoutChangeDetectionTest(SimpleTestCase):
     group = [exported("IMG_1.jpg"), exported("IMG_1.jpg.json")]
+    # What the scan recorded of the media file when it read it (#2296).
+    recorded = Observed(1_700_000_000_000_000_000)
 
-    def needs_processing(self, modified):
-        with mock.patch(
-            "api.directory_watcher.scan_jobs._file_was_modified_after",
-            side_effect=lambda path, time: path in modified,
+    def needs_processing(self, modified, known=None, on_disk=recorded):
+        known = known or {exported("IMG_1.jpg"): KnownFile("hash")}
+        with (
+            mock.patch(
+                "api.directory_watcher.scan_jobs._file_was_modified_after",
+                side_effect=lambda path, time: path in modified,
+            ),
+            mock.patch(
+                "api.directory_watcher.scan_jobs.indexed_mtimes.observe",
+                return_value=on_disk,
+            ),
         ):
-            return _group_needs_processing(
-                self.group, {exported("IMG_1.jpg")}, False, _FakeScan()
-            )
+            return _group_needs_processing(self.group, known, False, _FakeScan())
 
     def test_a_known_photo_with_an_unchanged_json_is_skipped(self):
         self.assertFalse(self.needs_processing(set()))
@@ -310,6 +319,13 @@ class TakeoutChangeDetectionTest(SimpleTestCase):
 
     def test_the_media_file_still_counts(self):
         self.assertTrue(self.needs_processing({exported("IMG_1.jpg")}))
+
+    def test_with_a_record_only_the_json_time_is_compared_with_the_last_scan(self):
+        known = {exported("IMG_1.jpg"): KnownFile("hash", self.recorded)}
+        self.assertFalse(self.needs_processing(set(), known))
+        self.assertTrue(self.needs_processing({exported("IMG_1.jpg.json")}, known))
+        changed = Observed(self.recorded.mtime_ns + 1)
+        self.assertTrue(self.needs_processing(set(), known, on_disk=changed))
 
 
 class FileGroupTakeoutTest(SimpleTestCase):

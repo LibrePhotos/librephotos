@@ -10,7 +10,7 @@ from api.models import User
 from ..utils import create_test_user
 
 # The module name starts with a digit, so a plain import cannot load it.
-migration_0182 = importlib.import_module("api.migrations.0182_takeout_date_rules")
+migration_0183 = importlib.import_module("api.migrations.0183_takeout_date_rules")
 
 # The default list before #2270 added the Takeout rules 20 and 21.
 OLD_DEFAULT_IDS = [16, 1, 15, 17, 2, 18, 11, 3, 4, 19, 5]
@@ -38,7 +38,7 @@ class TakeoutDateRulesMigrationTest(TestCase):
         user.save(update_fields=["datetime_rules"])
         return user
 
-    def _rules_after(self, user, step=migration_0182.add_takeout_rules):
+    def _rules_after(self, user, step=migration_0183.add_takeout_rules):
         step(global_apps, None)
         return User.objects.get(pk=user.pk).datetime_rules
 
@@ -56,7 +56,7 @@ class TakeoutDateRulesMigrationTest(TestCase):
         added = [
             rule
             for rule in json.loads(self._rules_after(user))
-            if rule["id"] in migration_0182.NEW_IDS
+            if rule["id"] in migration_0183.NEW_IDS
         ]
 
         defaults = {rule["id"]: rule for rule in DEFAULT_RULES_PARAMS}
@@ -92,7 +92,7 @@ class TakeoutDateRulesMigrationTest(TestCase):
                 self.assertEqual(stored, self._rules_after(user))
 
     def test_a_list_that_has_a_takeout_rule_already_is_unchanged(self):
-        rules = default_rules(OLD_DEFAULT_IDS) + [dict(migration_0182.RULE_21)]
+        rules = default_rules(OLD_DEFAULT_IDS) + [dict(migration_0183.RULE_21)]
         user = self._user_with(json.dumps(rules))
 
         self.assertEqual(json.dumps(rules), self._rules_after(user))
@@ -108,7 +108,7 @@ class TakeoutDateRulesMigrationTest(TestCase):
         user = self._user_with(json.dumps(default_rules(OLD_DEFAULT_IDS)))
         self._rules_after(user)
 
-        stored = self._rules_after(user, migration_0182.remove_takeout_rules)
+        stored = self._rules_after(user, migration_0183.remove_takeout_rules)
 
         self.assertEqual(OLD_DEFAULT_IDS, ids_of(stored))
 
@@ -117,5 +117,5 @@ class TakeoutDateRulesMigrationTest(TestCase):
         user = self._user_with(stored)
 
         self.assertEqual(
-            stored, self._rules_after(user, migration_0182.remove_takeout_rules)
+            stored, self._rules_after(user, migration_0183.remove_takeout_rules)
         )
