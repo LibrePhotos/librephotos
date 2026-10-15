@@ -1,5 +1,6 @@
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { BackendStatusGate } from "../components/common/BackendStatusGate";
 
 // The router passes no context to its routes (see createRouter in App.tsx).
 export const Route = createRootRoute({
@@ -18,7 +19,10 @@ function AppShellPublicWithoutHeader() {
         minHeight: "100dvh",
       }}
     >
-      <Outlet />
+      {/* Over the login and the app alike: "LibrePhotos is updating" and friends (#2310). */}
+      <BackendStatusGate>
+        <Outlet />
+      </BackendStatusGate>
     </div>
   );
 }

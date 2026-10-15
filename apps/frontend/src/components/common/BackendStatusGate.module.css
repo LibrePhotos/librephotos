@@ -1,0 +1,12 @@
+/* Covers the page it replaces, login or app, under the toasts (Notifications sit at 1001). */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}
+
+.heading:focus {
+  outline: none;
+}

@@ -11,6 +11,7 @@ import { ApiError } from "./apiError";
 import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 import { reportMutationError, reportWriteError } from "./mutationErrors";
 import { notifyParseError } from "./parseErrors";
+import { reportRequestFailure } from "./server/backendTrouble";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
@@ -179,7 +180,10 @@ async function call<T>(endpoint: string, run: () => Promise<T>): Promise<T> {
   try {
     return await run();
   } catch (error) {
-    throw toWebError(error, endpoint);
+    const webError = toWebError(error, endpoint);
+    // A server that is down or starting gets BackendStatusGate's screen (#2310).
+    reportRequestFailure(webError);
+    throw webError;
   }
 }
 

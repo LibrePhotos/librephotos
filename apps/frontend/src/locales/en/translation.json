@@ -1195,7 +1195,6 @@
       "token_not_valid": "Login expired. Please log in again.",
       "token": "Token issue"
     },
-    "errorbackend": "No connection to backend server, try again in a few minutes.",
     "errorpassword": "Password may not be blank!",
     "errorusername": "Username may not be blank!",
     "errorusernameexists": "A user with that username already exists.",
@@ -2850,5 +2849,57 @@
     "filemissingtitle": "The file could not be read",
     "readfailedtitle": "ExifTool could not read the file",
     "retry": "Try again"
+  },
+  "backendStatus": {
+    "updating": {
+      "title": "LibrePhotos is updating",
+      "text": "Your photos are safe. This can take a few minutes on large libraries. This page reloads by itself.",
+      "tab": "Updating · LibrePhotos"
+    },
+    "starting": {
+      "title": "LibrePhotos is starting",
+      "text": "LibrePhotos is starting its services. This usually takes a few seconds, and this page reloads by itself.",
+      "tab": "Starting · LibrePhotos"
+    },
+    "unreachable": {
+      "title": "LibrePhotos is not answering",
+      "text": "The server may be restarting. Your photos are safe. This page tries again every few seconds and reloads by itself.",
+      "tab": "Not answering · LibrePhotos",
+      "long": "Still no answer. If you run this server, check that the backend container or the Windows app is running."
+    },
+    "slow": "Still working? Large libraries can take longer. If nothing changes for an hour, ask the person who set up LibrePhotos to look at the log.",
+    "failed": {
+      "tab": "Update failed · LibrePhotos",
+      "E001": {
+        "title": "This LibrePhotos is too old to update in one step",
+        "text": "Your photos and settings are unchanged. Install version 1.1.0 first, start it once, then update again.",
+        "details": "The database is older than LibrePhotos 2026w10, the oldest release this version can update from (reason code E001)."
+      },
+      "E002": {
+        "title": "This database belongs to a newer LibrePhotos",
+        "text": "Your photos and settings are unchanged. The database was already updated by a newer release. Install that release or a newer one again.",
+        "details": "A newer LibrePhotos release has already updated this database, and this older release cannot run on it (reason code E002)."
+      },
+      "unknown": {
+        "title": "The update could not finish",
+        "text": "LibrePhotos did not start. Your photos are unchanged. The reason is in the logs folder: command_migrate.log (Docker) or console.log (Windows app).",
+        "details": "The database update stopped with an error. The log named above says which step failed and why."
+      }
+    },
+    "elapsed": {
+      "updating": "Updating for {{duration}}",
+      "waiting": "Waiting for {{duration}}"
+    },
+    "nextCheck": "Checking again in {{seconds}} s",
+    "checking": "Checking…",
+    "checkNow": "Check now",
+    "upgradeGuide": "Open the upgrade guide",
+    "copyDetails": "Copy details",
+    "copied": "Copied",
+    "detailsTitle": "For the person who runs this server",
+    "back": {
+      "title": "LibrePhotos is back",
+      "message": "The server answers again."
+    }
   }
 }

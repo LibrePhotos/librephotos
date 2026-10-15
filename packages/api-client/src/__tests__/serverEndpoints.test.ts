@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
 import { ServerStats, type LocationSunburst } from "../schemas";
+import { createApiClient } from "../transport";
 import { defined } from "./defined";
 import locationSunburst from "./fixtures/locationSunburst.json";
 import serverStats from "./fixtures/serverStats.json";
@@ -188,5 +189,82 @@ describe("services", () => {
     const result = await endpoints.runServiceAction(client, "ocr", action);
     expect(defined(requests[0])).toMatchObject({ url: `${API}/services/ocr/${action}/`, method: "POST" });
     expect(result.message).toContain("ocr");
+  });
+});
+
+/*
+ * The readiness probe behind the web's "LibrePhotos is updating" screen (#2310). Today's server
+ * answers 200 or 503 `{status: "error", checks}`; the startup placeholder (backend part of #2310)
+ * answers 503 with a StartupStatus body while the database updates.
+ */
+describe("fetchBackendReadiness", () => {
+  it("GETs /healthz/ready/ and is ready on a 200", async () => {
+    const { client, requests } = fakeServer({
+      status: "ok",
+      checks: { postgresql: { status: "ok" }, queue: { status: "ok" } },
+    });
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({ state: "ready" });
+    expect(defined(requests[0]).url).toBe(`${API}/healthz/ready/`);
+  });
+
+  it.each(["starting", "updating"] as const)("names the placeholder's %s phase", async status => {
+    const { client } = fakeServer({ status, version: "1.4.0" }, 503);
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
+      state: status,
+      reasonCode: null,
+      version: "1.4.0",
+    });
+  });
+
+  it("passes a failed update's reason code on", async () => {
+    const { client } = fakeServer({ status: "failed", reason_code: "E001" }, 503);
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
+      state: "failed",
+      reasonCode: "E001",
+      version: null,
+    });
+  });
+
+  it("reads a failure without a reason code", async () => {
+    const { client } = fakeServer({ status: "failed" }, 503);
+    expect(await endpoints.fetchBackendReadiness(client)).toMatchObject({
+      state: "failed",
+      reasonCode: null,
+    });
+  });
+
+  it.each([
+    ["the running server's own 503 (database down)", { status: "error", checks: {} }, 503],
+    ["a proxy's 502", { detail: "Bad Gateway" }, 502],
+    ["a proxy's 504", { detail: "Gateway Timeout" }, 504],
+  ])("is unreachable on %s", async (_name, body, status) => {
+    const { client } = fakeServer(body, status);
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
+      state: "unreachable",
+      reasonCode: null,
+      version: null,
+    });
+  });
+
+  it("is unreachable when nothing answers", async () => {
+    const client = createApiClient({
+      baseUrl: "https://demo.example.com",
+      tokens: {
+        getAccessToken: () => null,
+        getRefreshToken: () => null,
+        setAccessToken: () => {},
+        clearTokens: () => {},
+      },
+      fetch: () => Promise.reject(new TypeError("Failed to fetch")),
+    });
+    expect(await endpoints.fetchBackendReadiness(client)).toMatchObject({
+      state: "unreachable",
+    });
+  });
+
+  // Something answers for the server, so the app's own error handling takes over.
+  it.each([404, 500])("is ready on a %i", async status => {
+    const { client } = fakeServer({ errors: [] }, status);
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({ state: "ready" });
   });
 });

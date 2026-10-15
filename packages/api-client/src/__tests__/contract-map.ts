@@ -212,6 +212,7 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   PhotoStackSummary:
     "nested in PhotoSummary.stacks, which the schema leaves untyped (PhotoSummarySerializer.get_stacks returns a bare list or dict)",
   LoginPost: "a request body",
+  StartupStatus: "the 503 the startup placeholder answers while the database updates (#2310), not a Django view",
   LoginResponse: "simplejwt's TokenObtainPairView declares no response serializer",
   RefreshPost: "a request body",
   TokenClaims: "the JWT payload, not a response body",
