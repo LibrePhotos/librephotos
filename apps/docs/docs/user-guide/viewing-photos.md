@@ -122,6 +122,8 @@ This view is not in a release yet; it ships with the first release after 1.3.0.
 
 Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
 
+To give many of them one place, select them and choose **Set location…** from the selection actions menu (see [Setting the location of many photos](./places.md#setting-the-location-of-many-photos)). **Select all** reaches every photo on the page, not only the ones loaded so far, and the page has the [media filter](#media-filter).
+
 ### Not in an Album {#not-in-an-album}
 
 :::note
