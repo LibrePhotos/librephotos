@@ -1,3 +1,4 @@
+import type { ThingAlbumInfo } from "@librephotos/api-client";
 import { Flex, Group, Text } from "@mantine/core";
 import { IconTags as Tags } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -5,6 +6,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { THING_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -17,6 +21,9 @@ export const Route = createFileRoute("/_protected/album/things/")({
   component: AlbumThing,
 });
 
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_THINGS: ThingAlbumInfo[] = [];
+
 function AlbumThing() {
   const { t } = useTranslation();
   const albumsQuery = useFetchThingsAlbumsQuery();
@@ -24,6 +31,7 @@ function AlbumThing() {
   const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = albums && albums.length > 0;
+  const albumSort = useAlbumSort(THING_SORT, albums ?? NO_THINGS);
 
   return (
     <div>
@@ -35,6 +43,7 @@ function AlbumThing() {
           count: albums?.length ?? 0,
           number: albums?.length ?? 0,
         })}
+        actions={hasAlbums ? <AlbumSortMenu {...albumSort.menu} /> : null}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
@@ -49,7 +58,8 @@ function AlbumThing() {
       ) : (
         <TileGrid
           scrollRestorationId="album-things"
-          items={albums ?? []}
+          items={albumSort.sorted}
+          orderKey={albumSort.orderKey}
           getKey={album => album.id}
           sizing={sizing}
           renderItem={(album, size) => {

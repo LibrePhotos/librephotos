@@ -16,12 +16,15 @@ import {
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
-import type { Person } from "../../../api_client/albums/hooks";
+import type { Person, PersonList } from "../../../api_client/albums/hooks";
+import { PEOPLE_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { PeopleHeader } from "../../../components/album/PeopleHeader";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
 import { PersonGroupParam } from "../../../components/album/personGroupSearch";
 import { PersonGroupsModal } from "../../../components/album/PersonGroupsModal";
 import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { usePeopleInGroup } from "../../../components/album/usePersonGroupFilter";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
@@ -35,6 +38,9 @@ export const Route = createFileRoute("/_protected/album/persons/")({
   // The chosen group (#1126) stays in the URL, so Back from a person returns to it
   validateSearch: z.object({ group: PersonGroupParam }),
 });
+
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_PEOPLE: PersonList = [];
 
 function AlbumPeople() {
   const navigate = Route.useNavigate();
@@ -61,7 +67,9 @@ function AlbumPeople() {
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
   const hasAlbums = albums && albums.length > 0;
-  const { groups, group, shown } = usePeopleInGroup(albums, Route.useSearch().group);
+  // Sorted before the group filter, which keeps the order (#620)
+  const personSort = useAlbumSort(PEOPLE_SORT, albums ?? NO_PEOPLE);
+  const { groups, group, shown } = usePeopleInGroup(personSort.sorted, Route.useSearch().group);
   const showGroup = (next: number | undefined) => void navigate({ search: next === undefined ? {} : { group: next } });
 
   function openDeleteDialog(album: Person) {
@@ -178,6 +186,7 @@ function AlbumPeople() {
         groups={groups}
         group={group}
         onGroupChange={showGroup}
+        sortMenu={<AlbumSortMenu {...personSort.menu} />}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
@@ -201,6 +210,7 @@ function AlbumPeople() {
         <TileGrid
           scrollRestorationId="album-persons"
           items={shown}
+          orderKey={personSort.orderKey}
           getKey={album => album.id}
           sizing={sizing}
           renderItem={renderPerson}

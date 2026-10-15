@@ -65,6 +65,11 @@ export const UserAlbumInfo = z.object({
   title: z.string(),
   cover_photo: UserAlbumCover.nullable(),
   photo_count: z.number(),
+  /**
+   * When the album's oldest visible photo was taken (an exif_timestamp), for sorting My Albums by
+   * date (#620). Null for an album without a dated photo; absent from older servers.
+   */
+  first_photo_date: z.string().nullish(),
   owner: SimpleUser,
   shared_to: SimpleUser.array(),
   created_on: z.string(),

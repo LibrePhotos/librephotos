@@ -119,6 +119,27 @@ describe("TileGrid", () => {
     expect(firstCell.lastElementChild?.getAttribute("data-caption")).toBe("0");
   });
 
+  it("goes back to the top when the order changes, and stays put when only the items do (#620)", async () => {
+    const grid = (orderKey: string, count = 100) => (
+      <TileGrid
+        items={items(count)}
+        getKey={item => item.id}
+        sizing={sizing}
+        renderItem={renderTile}
+        orderKey={orderKey}
+      />
+    );
+    await render(grid("name-asc"));
+    const scroller = defined(container.querySelector<HTMLElement>("div[tabindex='0']"));
+    scroller.scrollTop = 800;
+
+    await render(grid("name-asc", 99));
+    expect(scroller.scrollTop).toBe(800);
+
+    await render(grid("count-desc", 99));
+    expect(scroller.scrollTop).toBe(0);
+  });
+
   it("drops the rows a shrinking list no longer fills", async () => {
     await render(<TileGrid items={items(13)} getKey={item => item.id} sizing={sizing} renderItem={renderTile} />);
     await render(<TileGrid items={items(4)} getKey={item => item.id} sizing={sizing} renderItem={renderTile} />);

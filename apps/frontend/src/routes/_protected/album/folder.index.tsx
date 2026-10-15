@@ -4,6 +4,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
+import { FOLDER_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -21,6 +24,7 @@ function AlbumFolder() {
   const { subfolders, isLoading, isFetching, query } = useAllFolderSubfolders();
   const listFailure = useListFailure(query);
   const sizing = useAlbumListGridConfig();
+  const folderSort = useAlbumSort(FOLDER_SORT, subfolders);
 
   return (
     <div>
@@ -29,6 +33,7 @@ function AlbumFolder() {
         title={t("folders")}
         loading={isFetching}
         subtitle={t("folders_count", { count: subfolders.length })}
+        actions={subfolders.length > 0 ? <AlbumSortMenu {...folderSort.menu} /> : null}
       />
 
       {/* Outside the grid: with no folders it renders no cells to put a message in */}
@@ -45,7 +50,8 @@ function AlbumFolder() {
       ) : (
         <TileGrid
           scrollRestorationId="album-folder"
-          items={subfolders}
+          items={folderSort.sorted}
+          orderKey={folderSort.orderKey}
           getKey={subfolder => subfolder.path}
           sizing={sizing}
           renderItem={(subfolder, size) => (

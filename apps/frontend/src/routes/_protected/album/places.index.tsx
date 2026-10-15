@@ -2,7 +2,6 @@ import { Flex, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { orderBy } from "lodash-es";
 import type { GeoJSONSource, Source as MapSource } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +10,9 @@ import { AttributionControl, Layer, NavigationControl, Source } from "react-map-
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
+import { PLACE_SORT } from "../../../components/album/albumSortConfigs";
+import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { PageLoader } from "../../../components/common/PageLoader";
@@ -39,8 +41,8 @@ type Props = Readonly<{
   height?: number;
 }>;
 
-// Broad places first, and within a level the ones with the most photos
-const sortPlaces = (albums: PlaceAlbumList) => orderBy(albums, ["geolocation_level", "photo_count"], ["asc", "desc"]);
+// One empty list while loading, so the sorted list is not recomputed on every render
+const NO_PLACES: PlaceAlbumList = [];
 
 // The map (or its placeholder) above the grid, and the padding under it
 const MAP_HEIGHT = 240;
@@ -76,7 +78,9 @@ function AlbumPlace({ height = 0 }: Props) {
     isLoading: isLoadingLocationClusters,
   } = useFetchLocationClustersQuery();
   const { mapStyle, mapsDisabled } = useMapStyle();
-  const shownAlbums = useMemo(() => visibleAlbums ?? sortPlaces(albums ?? []), [visibleAlbums, albums]);
+  // In the order the user picked (#620); by default countries first, then the most photos
+  const placeSort = useAlbumSort(PLACE_SORT, visibleAlbums ?? albums ?? NO_PLACES);
+  const shownAlbums = placeSort.sorted;
   // The hook leaves room for the header only. Less the map, so the page does not scroll
   // as well as the grid, but always tall enough for one row on a short screen.
   const sizing = useAlbumListGridConfig({ reservedHeight: MAP_BLOCK_HEIGHT });
@@ -106,7 +110,7 @@ function AlbumPlace({ height = 0 }: Props) {
 
       const visiblePlaceNames = markers.map(el => el.name);
       const visiblePlaceAlbums = albums.filter(el => visiblePlaceNames.includes(el.title));
-      setVisibleAlbums(sortPlaces(visiblePlaceAlbums));
+      setVisibleAlbums(visiblePlaceAlbums);
     },
     [albums, locationClusters]
   );
@@ -176,10 +180,11 @@ function AlbumPlace({ height = 0 }: Props) {
           count: shownAlbums.length,
           number: shownAlbums.length,
         })}
+        actions={hasPlaces ? <AlbumSortMenu {...placeSort.menu} /> : null}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
-      ) : !isLoadingAlbums && !hasPlaces ? (
+      ) : !hasPlaces ? (
         <EmptyState
           icon={<Map2 size={40} />}
           title={t("emptystate.places.title")}
@@ -227,6 +232,7 @@ function AlbumPlace({ height = 0 }: Props) {
           <TileGrid
             scrollRestorationId="album-places"
             items={shownAlbums}
+            orderKey={placeSort.orderKey}
             getKey={place => place.id}
             sizing={sizing}
             renderItem={(place, size) => {

@@ -11362,6 +11362,12 @@
             "type": "integer",
             "readOnly": true
           },
+          "first_photo_date": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
+          },
           "public": {
             "type": "boolean",
             "readOnly": true
@@ -11397,6 +11403,7 @@
           "cover_photo",
           "created_on",
           "favorited",
+          "first_photo_date",
           "id",
           "locked",
           "owner",

@@ -25,6 +25,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../../i18n";
+import { STORAGE_KEYS } from "../../../util/storage";
 // Imported statically, like every other test's subject: loading the route's
 // module graph then happens while the file is collected, which has no time
 // limit. Under a parallel run on a busy machine it can take many seconds, and
@@ -69,6 +70,8 @@ const stubs = vi.hoisted(() => ({
   },
   // A background refetch: the data is there and the queries are fetching again
   fetching: false,
+  // The first load, before any answer
+  loading: false,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -89,7 +92,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({
-  useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: false }),
+  useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: stubs.loading }),
   useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: stubs.fetching, isLoading: false }),
 }));
 vi.mock("../../../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
@@ -157,6 +160,8 @@ beforeEach(() => {
   stubs.albums = [...ALBUMS];
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };
   stubs.fetching = false;
+  stubs.loading = false;
+  localStorage.clear();
 });
 
 async function renderPage() {
@@ -235,6 +240,43 @@ describe("a place without a cover photo", () => {
     const links = page.links("/album/places/1");
     expect(links).toHaveLength(2);
     expect(links.some(link => link.textContent?.includes("Paris"))).toBe(true);
+    await page.unmount();
+  });
+});
+
+// #620: the places can be sorted, and the page keeps the order the user picked.
+describe("sorting the places", () => {
+  it("offers a sort menu that names the default order", async () => {
+    const page = await renderPage();
+
+    const button = page.container.querySelector('button[aria-label^="Sort:"]');
+    expect(button?.getAttribute("aria-label")).toBe("Sort: Size of place, Largest first");
+    await page.unmount();
+  });
+
+  it("lists the places in the stored order from the first render", async () => {
+    localStorage.setItem(STORAGE_KEYS.albumSortPlaces, JSON.stringify({ key: "name", direction: "asc" }));
+    const page = await renderPage();
+
+    expect(page.titles()).toEqual(["Berlin", "Paris"]);
+    await page.unmount();
+  });
+
+  it("shows the empty state and no sort menu without places", async () => {
+    stubs.albums = [];
+    const page = await renderPage();
+
+    expect(page.subtitle()).toContain(i18n.t("emptystate.places.title"));
+    expect(page.container.querySelector('button[aria-label^="Sort:"]')).toBeNull();
+    await page.unmount();
+  });
+
+  it("shows the loader on the first load", async () => {
+    stubs.loading = true;
+    const page = await renderPage();
+
+    expect(page.subtitle()).toContain(i18n.t("placealbum.maploading"));
+    expect(page.titles()).toEqual([]);
     await page.unmount();
   });
 });

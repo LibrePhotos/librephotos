@@ -76,6 +76,30 @@ Automatically generated albums based on detected objects and scenes in your phot
 
 ---
 
+## Sorting album lists
+
+**My Albums**, **Events**, **Things**, **Places**, **People**, **Tags** and **Folders** have a **Sort** button at the right of their header; on a phone it is an icon. It names the current order, for example **Sort: Name**. Click it and pick:
+
+- under **Sort by**, what to sort on;
+- under **Order**, which way round: **A to Z** or **Z to A** for names, **Most first** or **Fewest first** for numbers, **Newest first** or **Oldest first** for dates;
+- **Reset to default**, to go back to the page's usual order. It only shows while you use another order, and so does the button's coloured background.
+
+| Page | Usual order | Other orders |
+| --- | --- | --- |
+| My Albums | Name, A to Z | Number of photos; Date taken |
+| Events | Date taken, newest first | Name; Number of photos |
+| Things, Tags, Folders | Name, A to Z | Number of photos |
+| Places | Size of place, largest first (countries first, then the places with the most photos) | Name; Number of photos |
+| People | Name, A to Z | Number of faces |
+
+**Date taken** on My Albums is when the album's oldest photo was taken, not when you made the album; photos in the trash or hidden do not count, and albums without a dated photo come last. People are sorted by their number of faces, the count under each name on the People page. Names sort the way people read them: "Album 2" comes before "Album 10", and upper and lower case do not matter.
+
+Each page remembers its order in your browser, so going **Back** from an album returns to the same list at the same place. The order only changes what you see in the web app; the mobile app keeps its own.
+
+*Not released yet: up to 1.3.0, the album lists could not be sorted.*
+
+---
+
 ## Setting an Album Cover
 
 You can customize the cover image for **People Albums** and **User Albums**. There are two ways to do this:

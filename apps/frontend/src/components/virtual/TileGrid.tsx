@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { ScrollRestoredVirtualGrid } from "./ScrollRestoredVirtualGrid";
 import classes from "./TileGrid.module.css";
 import { VirtualGrid } from "./VirtualGrid";
-import type { GridCellProps } from "./VirtualGrid";
+import type { GridCellProps, VirtualGridHandle } from "./VirtualGrid";
 
 /** How a tile grid is laid out: computed by a sizing hook (useAlbumListGridConfig, useMeasuredTileSizing). */
 export type TileGridSizing = Readonly<{
@@ -40,6 +40,12 @@ type TileGridProps<T> = Readonly<
      * Back (#377). Needs a router; leave it out where the position should not be kept.
      */
     scrollRestorationId?: string;
+    /**
+     * Names the order of the items (an album list's sort, #620). When it changes, the grid goes
+     * back to the top: the same offset would show other items. Not on mount, so Back still
+     * restores the position.
+     */
+    orderKey?: string;
   } & (
     | { items: readonly T[]; groups?: undefined; headerHeight?: undefined }
     | { groups: readonly TileGroup<T>[]; headerHeight: number; items?: undefined }
@@ -56,6 +62,18 @@ function tileRows<T>(items: readonly T[], columnCount: number): TileRow<T>[] {
   return rows;
 }
 
+/** A ref for a grid that scrolls to its top when `key` changes after the first render. */
+function useScrollToTopOnChange(key: string | undefined) {
+  const gridRef = useRef<VirtualGridHandle>(null);
+  const shownKey = useRef(key);
+  useEffect(() => {
+    if (shownKey.current === key) return;
+    shownKey.current = key;
+    gridRef.current?.scrollToPosition({ scrollTop: 0 });
+  }, [key]);
+  return gridRef;
+}
+
 /**
  * The one grid for fixed-size tiles (albums, people, places, folders): rows virtualized through
  * VirtualGrid, so a list that grows with the library only mounts the rows in view. It owns the
@@ -63,7 +81,8 @@ function tileRows<T>(items: readonly T[], columnCount: number): TileRow<T>[] {
  * Photo layouts go through PhotoListView instead.
  */
 export function TileGrid<T>(props: TileGridProps<T>) {
-  const { getKey, renderItem, renderCaption, sizing, scrollRestorationId } = props;
+  const { getKey, renderItem, renderCaption, sizing, scrollRestorationId, orderKey } = props;
+  const gridRef = useScrollToTopOnChange(orderKey);
   const { columnCount, columnWidth, cellPadding, captionHeight, height, gutter } = sizing;
   // The album sizing has 0 columns until its first effect has run
   const columns = Math.max(0, Math.ceil(columnCount));
@@ -130,8 +149,8 @@ export function TileGrid<T>(props: TileGridProps<T>) {
   };
 
   return scrollRestorationId === undefined ? (
-    <VirtualGrid {...gridProps} />
+    <VirtualGrid ref={gridRef} {...gridProps} />
   ) : (
-    <ScrollRestoredVirtualGrid {...gridProps} scrollRestorationId={scrollRestorationId} />
+    <ScrollRestoredVirtualGrid ref={gridRef} {...gridProps} scrollRestorationId={scrollRestorationId} />
   );
 }
