@@ -19,6 +19,9 @@ export const Job = z.object({
   progress_step: z.string().nullable().optional(),
   // Whatever the job reported: status, error, error_count, errors, counts...
   result: z.record(z.string(), z.unknown()).nullable().optional(),
+  // The starter's scan baseline, which the server refuses to remove (409 scan_baseline, #1104).
+  // Older servers do not send it.
+  is_scan_baseline: z.boolean().optional(),
   id: z.number(),
 });
 export type Job = z.infer<typeof Job>;
@@ -46,6 +49,8 @@ export const JobDetail = z.object({
   progress_step: z.string().nullable().optional(),
   // Whatever the job reported: status, error, error_count, errors, counts...
   result: z.record(z.string(), z.unknown()).nullable().optional(),
+  // See Job.is_scan_baseline.
+  is_scan_baseline: z.boolean().optional(),
 });
 export type JobDetail = z.infer<typeof JobDetail>;
 

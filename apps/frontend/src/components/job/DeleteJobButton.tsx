@@ -5,14 +5,14 @@ import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteJobMutation } from "../../api_client/jobs/hooks";
+import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { jobTypeLabel } from "./jobTypeLabel";
 
-// Job types whose next incremental run starts from the newest successful run of the same type
-// (LongRunningJob.baselines in the backend): a scan rereads files changed since it, face scans
-// and geolocation redo photos added since it. Tagging and OCR skip photos they already did.
-const SCAN_PHOTOS = 1;
-const PHOTO_BASELINE_TYPES: ReadonlySet<number> = new Set([7, 11]);
+// Add Geolocation's next incremental run only covers photos added since its newest complete run
+// (LongRunningJob.baselines in the backend). A scan's baseline comes from the server instead
+// (is_scan_baseline), and the other jobs pick up what is left to do whatever ran before.
+const ADD_GEOLOCATION = 11;
 
 type RemovableJob = Pick<
   Job,
@@ -24,7 +24,6 @@ type RemovableJob = Pick<
   | "failed"
   | "progress_current"
   | "progress_target"
-  | "result"
 >;
 
 /**
@@ -37,27 +36,18 @@ function ranToTheEnd(job: RemovableJob): boolean {
   return job.finished && job.started_at !== null && !job.cancelled && (!job.failed || reachedTarget);
 }
 
-/** The baseline message for `job`'s type, or null when no later run starts from it. */
-function baselineMessage(job: RemovableJob, t: TFunction): string | null {
-  // Only a scan of the whole scan directory counts, not a file-list or Nextcloud scan.
-  if (job.job_type === SCAN_PHOTOS) {
-    return job.result?.library_scan === true ? t("confirmdialog.removejob.scanbaseline") : null;
-  }
-  if (PHOTO_BASELINE_TYPES.has(job.job_type)) {
-    return t("confirmdialog.removejob.photobaseline", { job: jobTypeLabel(job, t) });
-  }
-  return null;
-}
-
 /**
- * What removing the job loses. A complete run is the baseline of the next incremental run of
- * its type, so removing the newest one makes that run redo work (#1104).
+ * What removing the job loses. The scan the next incremental scan starts from cannot be removed
+ * (see DeleteJobButton), so removing any other scan changes nothing in the library (#1104).
  */
 export function removeJobMessage(job: RemovableJob, t: TFunction): string {
   if (!job.finished) {
     return t("confirmdialog.removejob.unfinished");
   }
-  return (ranToTheEnd(job) && baselineMessage(job, t)) || t("confirmdialog.removejob.plain");
+  if (job.job_type === ADD_GEOLOCATION && ranToTheEnd(job)) {
+    return t("confirmdialog.removejob.photobaseline", { job: jobTypeLabel(job, t) });
+  }
+  return t("confirmdialog.removejob.plain");
 }
 
 type DeleteJobButtonProps = Readonly<{
@@ -73,9 +63,12 @@ export function DeleteJobButton({ job, onDeleted }: DeleteJobButtonProps) {
 
   return (
     <>
-      <Button onClick={open} color="red" variant="outline" size="xs">
-        {t("adminarea.remove")}
-      </Button>
+      {/* The server refuses it too (409 scan_baseline): without it the next scan rereads every file. */}
+      <DisabledReason reason={job.is_scan_baseline === true && t("joblist.scanbaseline")}>
+        <Button onClick={open} color="red" variant="outline" size="xs">
+          {t("adminarea.remove")}
+        </Button>
+      </DisabledReason>
       <ConfirmModal
         opened={confirmOpened}
         onClose={close}

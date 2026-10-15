@@ -14523,6 +14523,11 @@
             "readOnly": true,
             "nullable": true
           },
+          "is_scan_baseline": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "The starter's newest complete library scan: the next incremental scan only rereads files changed since it, so it cannot be removed"
+          },
           "id": {
             "type": "integer",
             "readOnly": true
@@ -14534,6 +14539,7 @@
           "finished",
           "finished_at",
           "id",
+          "is_scan_baseline",
           "job_id",
           "job_type",
           "job_type_str",

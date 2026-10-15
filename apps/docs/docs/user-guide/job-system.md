@@ -118,6 +118,11 @@ If a job is still running and you want to stop it, use the **Cancel** button in 
 
 The **Remove** button only deletes the log entry from the database — it does **not** stop a running job. Use it for a job that has genuinely crashed (nothing is progressing and the logs show an ungraceful failure) so that the queue will accept new jobs again.
 
-Removing a finished job is not as harmless as it looks. A normal scan only rereads files changed since the newest successful scan of the whole scan directory, and **Scan Faces** and **Add Geolocation** only cover photos added since their own newest successful run (see above). Remove that run and the next one starts from the run before it, or from the whole library if none is left, so it redoes work that was already done. The confirmation dialog says so before anything is removed.
+Removing a finished job deletes its record and result; nothing in your library changes. Two runs are different, because a later run starts from them:
+
+- The newest scan of the whole scan directory that reached every file is the reference for the next normal scan, which only rereads the files changed since then (see [Scan Photos](#scan-photos)). Without it, the next normal scan reads every file of your library again, as a full scan does. So its **Remove** button is greyed out, and pointing at it says "This scan is the reference for the next incremental scan"; LibrePhotos refuses to remove it in any other way too, also for an admin. It can be removed once a newer scan of the whole library has finished. A cancelled scan, a scan of a few selected files or a Nextcloud scan does not replace it. This scan is kept by the automatic cleanup of old jobs as well.
+- The newest complete **Add Geolocation** run: the next one looks up the photos added since it started. Remove it and the next run looks up the places of every photo added since the run before it, or of all your photos if none is left. The confirmation dialog warns about it.
+
+<Since version="1.4.0" /> Up to 1.3.0, the reference scan could be removed, and the next scan then read the whole library again. The confirmation dialog could not tell which scan was the reference, and it also warned about **Scan Faces**, which picks the photos whose faces have not been looked for whatever ran before.
 
 *Not released yet: up to 1.3.0, **Cancel** and **Remove** acted on the first click, without asking.*

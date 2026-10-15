@@ -111,6 +111,36 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
             .order_by("-finished_at", "-id")
         )
 
+    def with_scan_baseline_flag(self) -> LongRunningJobQuerySet:
+        """Annotate ``is_scan_baseline``: whether the row is its starter's scan baseline.
+
+        That is the run ``LongRunningJob.baseline_for(row.started_by,
+        JOB_SCAN_PHOTOS)`` returns, the one the next incremental scan compares
+        the library against. Removing it would make that scan read every file
+        again (#1104). One correlated subquery inside the same query, so a
+        list of jobs pays no query per row.
+        """
+        # The starter of each row, not a scope to a user: every row is
+        # compared with the baseline of whoever started it.
+        baseline = (
+            LongRunningJob.objects.filter(started_by=models.OuterRef("started_by"))
+            .baselines(LongRunningJob.JOB_SCAN_PHOTOS)
+            .values("pk")[:1]
+        )
+        return self.annotate(
+            is_scan_baseline=models.Case(
+                # CASE stops at the first match: the subquery only runs for a
+                # finished scan, never for /api/rqavailable/'s running job.
+                models.When(
+                    ~models.Q(job_type=LongRunningJob.JOB_SCAN_PHOTOS, finished=True),
+                    then=models.Value(False),
+                ),
+                models.When(pk=models.Subquery(baseline), then=models.Value(True)),
+                default=models.Value(False),
+                output_field=models.BooleanField(),
+            )
+        )
+
 
 class LongRunningJob(models.Model):
     # How often ``stop_if_cancelled`` reads the row: a loop may call it on

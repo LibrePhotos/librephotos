@@ -1,6 +1,6 @@
 import logging
 
-from django.db.models import F, Prefetch, QuerySet
+from django.db.models import F, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -10,16 +10,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.exceptions import Conflict
 from api.drf.pagination import DefaultPagination
 from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import remove_queued_tasks
-from api.models import LongRunningJob, User
+from api.models import LongRunningJob
+from api.serializers.fields import loaded
 from api.serializers.job import (
     CancelJobResponseSerializer,
     JobListQuery,
     LongRunningJobSerializer,
     QueueAvailabilitySerializer,
+    with_job_relations,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,12 +49,7 @@ class LongRunningJobViewSet(
         # delete or cancel another user's jobs. Staff/superusers retain
         # the global view. See issue #1861. Object-level actions (cancel/destroy)
         # inherit this via get_object().
-        qs = LongRunningJob.objects.prefetch_related(
-            Prefetch(
-                "started_by",
-                queryset=User.objects.only("id", "username", "first_name", "last_name"),
-            ),
-        ).order_by("-started_at")
+        qs = with_job_relations(LongRunningJob.objects.all()).order_by("-started_at")
         user = request_user(self.request)
         own_jobs = qs.owned_by(user)
 
@@ -68,6 +66,17 @@ class LongRunningJobViewSet(
         if parse_query(self.request, JobListQuery)["mine"]:
             return own_jobs
         return qs
+
+    def perform_destroy(self, instance: LongRunningJob) -> None:
+        # Without its baseline the next incremental scan would read the whole
+        # library again (#1104); the row goes once a newer library scan is in.
+        if loaded(instance, "is_scan_baseline"):
+            raise Conflict(
+                "This scan is the reference for the next incremental scan. It "
+                "can be removed once a newer scan of the whole library has finished.",
+                code="scan_baseline",
+            )
+        instance.delete()
 
     @extend_schema(request=None, responses=CancelJobResponseSerializer)
     @action(detail=True, methods=["post"])
@@ -103,7 +112,7 @@ class QueueAvailabilityView(APIView):
         # one shown is the job actually running, else the oldest queued one.
         # running() leaves out rows past the stuck-job threshold (#1919).
         running_job = (
-            LongRunningJob.objects.running()
+            with_job_relations(LongRunningJob.objects.running())
             .order_by(F("started_at").asc(nulls_last=True), "queued_at")
             .first()
         )
