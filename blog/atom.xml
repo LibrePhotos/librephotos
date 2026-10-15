@@ -2,11 +2,279 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://docs.librephotos.com/blog</id>
     <title>LibrePhotos Blog</title>
-    <updated>2026-06-21T00:00:00.000Z</updated>
+    <updated>2026-10-11T11:36:15.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://docs.librephotos.com/blog"/>
     <subtitle>LibrePhotos Blog</subtitle>
     <icon>https://docs.librephotos.com/img/favicon.ico</icon>
+    <entry>
+        <title type="html"><![CDATA[1.3.0: Timeline filter, videos that play everywhere, faster search]]></title>
+        <id>https://docs.librephotos.com/blog/1-3-0</id>
+        <link href="https://docs.librephotos.com/blog/1-3-0"/>
+        <updated>2026-10-11T11:36:15.000Z</updated>
+        <summary type="html"><![CDATA[This release adds a timeline filter that keeps screenshots and documents out of the way, makes videos play in every browser, makes search, the API and scans a lot faster on less memory, and fixes a set of reported security issues, including two code execution bugs.]]></summary>
+        <content type="html"><![CDATA[<p>This release adds a <strong>timeline filter</strong> that keeps screenshots and documents out of the way, makes <strong>videos play in every browser</strong>, makes <strong>search, the API and scans a lot faster on less memory</strong>, and fixes a set of <strong>reported security issues, including two code execution bugs</strong>.</p>
+<p><strong>Who should update:</strong> Everyone. If other people use your LibrePhotos, or you share public links, update right away: this release fixes security problems.</p>
+<p><strong>What's new for you:</strong></p>
+<ul>
+<li class="">Use the new <strong>Filter</strong> button on the timeline to hide screenshots and documents, or show only videos or favorites. <strong>Save as default</strong> keeps your choice.</li>
+<li class="">Videos that did not play in your browser before now play, for example iPhone videos in Firefox.</li>
+<li class="">If a photo is marked as a screenshot or document by mistake, fix it with the badge in the photo details.</li>
+<li class="">Search, scans and the app are faster and need less memory.</li>
+</ul>
+<p><strong>After you update:</strong></p>
+<ul>
+<li class=""><strong>Nothing to do for search and tags.</strong> After the update, LibrePhotos reads every photo again in the background so that tags and search use the new model. Search finds more photos while this runs, and the <strong>Things</strong> albums fill up again. You can follow it under <strong>Account menu &gt; My Jobs</strong>.</li>
+<li class=""><strong>Admins: remove photo details from old thumbnails once. Recommended for everyone, required if you use public links.</strong> Thumbnails made before 1.3.0 still contain the location and camera details of the photo, and public links show those thumbnails. One cleanup removes that data. Your photos and the thumbnails' pictures stay as they are, and running it twice does no harm.<!-- -->
+<ul>
+<li class=""><strong>Windows app:</strong> open the folder that contains <code>librephotos.exe</code>. Click the address bar of the folder window, type <code>cmd</code> and press Enter. In the black window, paste <code>start /wait librephotos.exe manage strip_thumbnail_metadata</code> and press Enter. If you start LibrePhotos with <code>--data-dir</code>, put the same <code>--data-dir &lt;folder&gt;</code> right after <code>librephotos.exe</code>. It is done when the window shows the prompt again.</li>
+<li class=""><strong>Docker:</strong> in the folder with your <code>docker-compose.yml</code>, run <code>docker compose exec backend python manage.py strip_thumbnail_metadata</code>. Single container: <code>docker exec librephotos python manage.py strip_thumbnail_metadata</code>.</li>
+<li class="">More detail: <a href="https://docs.librephotos.com/docs/installation/upgrading#strip-thumbnail-metadata" target="_blank" rel="noopener noreferrer" class="">After upgrading from 1.2.1 or older</a>.</li>
+</ul>
+</li>
+<li class="">
+<details class="details_lb9f alert alert--info details_b_Ee" data-collapsed="true"><summary>Kubernetes</summary><div><div class="collapsibleContent_i85q">The manifests in deploy/k8s now use 1.3.0 and PostgreSQL 16 instead of 2023w31 and PostgreSQL 13. Read the <a href="https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s">Kubernetes README</a> before you apply them to an existing install.</div></div></details>
+</li>
+</ul>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: One Open Model for Tags and Search</p>
+<p>Tags, semantic search, and similar photos now all come from <strong>OpenCLIP ViT-B/32</strong>, trained by LAION on DataComp-XL and released under the MIT licence. It replaces CLIP ViT-B/32 for search and the separate tagging model, so a scan runs one vision model per photo: tagging a photo produces its search embedding in the same pass. The separate <code>clip_embeddings</code> service is gone, and so are the model choices in the site settings, because there is nothing left to choose. Captions (LFM2.5-VL) and faces (InsightFace) are unchanged. See <a href="https://docs.librephotos.com/docs/user-guide/search" target="_blank" rel="noopener noreferrer" class="">Semantic search</a>.</p>
+<p>🚀 LibrePhotos: Faster Search, API, and Scans on Less Memory</p>
+<p>The Rust and TypeScript backend experiments were much faster than Django, and most of the difference turned out to be queries, app-layer work, and ML memory rather than the language. Every optimization that applies to Django is now in LibrePhotos. On a 50,000 photo library, text search takes about half the time (1.19 s down to 0.56 s), album lists, the date list, user details, site settings, and thumbnails answer faster with fewer queries, and duplicate detection finishes in 27 seconds instead of running for hours. The idle API server uses about half the memory and starts in 3 seconds, heavy libraries load only when they are needed, and a scan with machine learning committed 2.25 GB instead of 10.7 GB in our test.</p>
+<p>🚀 LibrePhotos: Timeline Filter and Category Correction</p>
+<p>The timeline has a <strong>Filter</strong> button: show photos, videos, or both, hide screenshots, hide documents, or show only favorites, and <strong>Save as default</strong> to make that your timeline (<a href="https://github.com/LibrePhotos/librephotos/issues/2130" target="_blank" rel="noopener noreferrer" class="">#2130</a>). Select all acts on exactly what the timeline shows. When the automatic detection gets a photo wrong, fix its category in the lightbox (a badge says whether it was detected or set by you, with Undo) or mark a whole selection as photo, screenshot, or document from the selection menu. The sidebar is tidier too: Memories now appear as a strip on top of the timeline, the organizing pages moved into the Photos menu, and background jobs show as a progress ring around your avatar.</p>
+<p>🚀 LibrePhotos: Videos That Play in Every Browser</p>
+<p>Each video is now probed once during the scan, and its codec, pixel format, and colour transfer are stored. The web app uses that to ask the browser whether it can play the file, and converts only the videos it cannot play (for example HEVC in Firefox), instead of leaving "Always transcode videos" as the only way to play them (<a href="https://github.com/LibrePhotos/librephotos/issues/477" target="_blank" rel="noopener noreferrer" class="">#477</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/714" target="_blank" rel="noopener noreferrer" class="">#714</a>). HDR videos get an HDR badge on their tiles and correctly tonemapped thumbnails, and a <strong>Probe Videos</strong> job fills in videos scanned before this release. (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</p>
+<p>🚀 LibrePhotos: Security Fixes</p>
+<p>This release fixes several reported vulnerabilities, so please upgrade. A person name containing a line break could inject options into ExifTool when face tags were written to files, which let a logged-in user run code on the server (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-x465-w9j9-42rp" target="_blank" rel="noopener noreferrer" class="">GHSA-x465-w9j9-42rp</a>). ExifTool tag names in a user's own date and burst detection rules could do the same in the exif service (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-cgq8-jvp9-r3j7" target="_blank" rel="noopener noreferrer" class="">GHSA-cgq8-jvp9-r3j7</a>). On the unified image and the Windows standalone build, a crafted <code>/media/</code> URL could read files outside the media folder (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-cf3f-2fmg-mjj6" target="_blank" rel="noopener noreferrer" class="">GHSA-cf3f-2fmg-mjj6</a>). Thumbnails kept the original photo's GPS position and camera details, so public links leaked the location even with "Share location information" off (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-j84j-mc98-7wq3" target="_blank" rel="noopener noreferrer" class="">GHSA-j84j-mc98-7wq3</a>). Nextcloud server addresses are now validated on the host the connection really uses, which closes a bypass of the check added in 1.2.0 (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-xq77-cj4c-42qr" target="_blank" rel="noopener noreferrer" class="">GHSA-xq77-cj4c-42qr</a>). The advisory for the album and <code>select_all</code> owner scope fix that shipped in 1.2.0 is published too (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-phvg-g65q-rhq3" target="_blank" rel="noopener noreferrer" class="">GHSA-phvg-g65q-rhq3</a>). Thanks to <a href="https://github.com/wk-cs" target="_blank" rel="noopener noreferrer" class="">wk-cs</a>, <a href="https://github.com/Seven11Eleven" target="_blank" rel="noopener noreferrer" class="">Seven11Eleven</a>, and <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a> for the responsible disclosure.</p>
+<ul>
+<li class="">✨ Frontend: Lock a user album to protect which photos are in it: locked albums cannot gain or lose photos until you unlock them (<a href="https://github.com/LibrePhotos/librephotos/issues/867" target="_blank" rel="noopener noreferrer" class="">#867</a>) (Implemented by <a href="https://github.com/krisnaparahita" target="_blank" rel="noopener noreferrer" class="">krisnaparahita</a>)</li>
+<li class="">✨ LibrePhotos: User settings show where web uploads are stored, and an admin can set a user's upload folder (<a href="https://github.com/LibrePhotos/librephotos/issues/2033" target="_blank" rel="noopener noreferrer" class="">#2033</a>) (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">✨ LibrePhotos: Star ratings set in the mobile app are saved on the server and written to the file</li>
+<li class="">✨ Frontend: The lightbox shows the photo's category as a badge on the file row</li>
+<li class="">✨ Frontend: React 19, Mantine 9, zod 4, Vite 8, and TypeScript 6, with strict types across the web app</li>
+<li class="">✨ LibrePhotos: Node.js 24 everywhere, and many Renovate dependency updates</li>
+<li class="">✨ Docs: The README shows real screenshots of the app</li>
+<li class="">🔨 LibrePhotos: Owners can open their own hidden and trashed photos in the lightbox again, and hidden and trashed photos are left out of user, public, place, and folder albums</li>
+<li class="">🔨 LibrePhotos: Deleting a user turns off their public album links, photo links, and public photos (also for users deleted earlier), and deleting a second user no longer fails</li>
+<li class="">🔨 LibrePhotos: Sidecar and other non-media files (RawTherapee <code>.pp3</code>, <code>.aae</code>, Takeout <code>.json</code>) no longer mark a scan as failed, users without a scan folder no longer stop the scan for everyone after them, and <code>--scan-files</code> assigns a file only to the user whose scan folder really contains it</li>
+<li class="">🔨 LibrePhotos: Scan follow-up jobs no longer overwrite photo edits made at the same time (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Logout works from any page, even when the server refuses the request (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Numeric photo keywords such as years are kept instead of breaking the keyword import (<a href="https://github.com/LibrePhotos/librephotos/issues/2152" target="_blank" rel="noopener noreferrer" class="">#2152</a>) (Implemented by <a href="https://github.com/Boulea7" target="_blank" rel="noopener noreferrer" class="">Boulea7</a>)</li>
+<li class="">🔨 LibrePhotos: Video thumbnails survive a failed rebuild, MKV and WebM videos get a duration, and a person with only video faces no longer empties the People page</li>
+<li class="">🔨 LibrePhotos: Zip downloads stream to disk and work on the unified image, the Windows build, and native installs; uploads are no longer read into memory twice</li>
+<li class="">🔨 Frontend: Day headers show the photo's own date instead of the viewer's time zone, the info panel no longer saves a date edit to the previous photo, Nextcloud settings can be typed into again, renaming an album to an existing name no longer crashes, and grids refresh after favorite, hide, or trash</li>
+<li class="">🔨 Frontend: Photo grid preferences save for users with an avatar, and settings pages show server errors instead of swallowing them</li>
+<li class="">🔨 LibrePhotos: Event titles no longer read "Unknown - Other", and several pages that returned errors (missing albums, expired public links, rotating a photo with a duplicate) are fixed</li>
+<li class="">🔒 LibrePhotos: Person names are written to files on a single line, and ExifTool refuses any value with a line break</li>
+<li class="">🔒 Backend: ExifTool tag names in date and burst detection rules are validated when they are saved and again in the exif service</li>
+<li class="">🔒 LibrePhotos: Direct-mode media serving refuses paths with <code>..</code> or backslashes and checks that every file stays inside the media folder</li>
+<li class="">🔒 LibrePhotos: Thumbnails keep only the colour profile, with no EXIF, GPS, or XMP, and <code>strip_thumbnail_metadata</code> cleans the existing ones</li>
+<li class="">🔒 LibrePhotos: Nextcloud addresses are checked on the host the connection actually uses</li>
+<li class="">🔒 Backend: The admin delete-user endpoint only deletes: it no longer lists user records or changes scan folders without validation</li>
+</ul>
+<p><strong>Full changelog:</strong> <a href="https://github.com/LibrePhotos/librephotos/compare/1.2.1...1.3.0" target="_blank" rel="noopener noreferrer" class="">https://github.com/LibrePhotos/librephotos/compare/1.2.1...1.3.0</a></p>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>1</strong> awesome person!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
+        <author>
+            <name>Niaz Faridani-Rad</name>
+            <uri>https://github.com/derneuere</uri>
+        </author>
+        <category label="release" term="release"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[1.2.1: SQLite databases repaired]]></title>
+        <id>https://docs.librephotos.com/blog/1-2-1</id>
+        <link href="https://docs.librephotos.com/blog/1-2-1"/>
+        <updated>2026-09-29T13:11:11.000Z</updated>
+        <summary type="html"><![CDATA[This point release repairs SQLite databases. SQLite is the database of the unified Docker image and of the standalone Windows build, so if you run either of them, please upgrade. PostgreSQL installs are not affected by the repair.]]></summary>
+        <content type="html"><![CDATA[<p>This point release <strong>repairs SQLite databases</strong>. SQLite is the database of the unified Docker image and of the standalone Windows build, so if you run either of them, please upgrade. PostgreSQL installs are not affected by the repair.</p>
+<p><strong>Before you upgrade (SQLite only):</strong> two one-time migrations rebuild some tables. They copy each table before dropping the old one, so make sure you have free disk space of roughly the size of your database. On a test library with 1.6 million album entries and 160,000 faces they took about 30 seconds, and the database file grew by about 650 MB; SQLite reuses that space for later writes, and <code>VACUUM</code> hands it back to the file system. If your library already had photos when you upgraded past the switch to UUID photo IDs in early 2026, <strong>run "Rescan All Photos" (Settings, Library) after upgrading</strong> so camera, lens, and image size details are read from your files again (see below).</p>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: SQLite Databases Repaired</p>
+<p>When photos moved from content hashes to UUID primary keys in early 2026, the SQLite version of that migration stored every existing photo's new ID with dashes, while Django stores and looks up UUIDs on SQLite without them. Those photos kept showing up in lists, but anything that looks a photo up by its ID missed them: their faces, thumbnails, captions, and metadata were not found, adding one to a new album left the album empty, and tagging or sharing one failed with "FOREIGN KEY constraint failed". The same migration also rebuilt twelve tables (album contents, faces, thumbnails, captions, search, files, and sharing) without their foreign keys and other constraints, on every SQLite install, fresh ones included. This release rewrites the stored IDs into the form Django reads, removes entries that pointed at photos, albums, or people that no longer exist, and rebuilds those tables with their foreign keys, so SQLite now enforces what PostgreSQL always did (<a href="https://github.com/LibrePhotos/librephotos/pull/2121" target="_blank" rel="noopener noreferrer" class="">#2121</a>).</p>
+<p>On the affected installs, the migration that moved camera, lens, and image size details into their own table also skipped the old photos, and the old columns were removed after it. "Rescan All Photos" reads those details from your files again.</p>
+<ul>
+<li class="">🔨 LibrePhotos: The standalone Windows build pins <code>lazy_loader</code> 0.5, which Nuitka needs to compile scikit-image; 0.6 broke the build (<a href="https://github.com/LibrePhotos/librephotos/pull/2120" target="_blank" rel="noopener noreferrer" class="">#2120</a>)</li>
+<li class="">🔨 Docs: The landing page links the standalone Windows download (<a href="https://github.com/LibrePhotos/librephotos/pull/2119" target="_blank" rel="noopener noreferrer" class="">#2119</a>)</li>
+</ul>
+<p><strong>Full changelog:</strong> <a href="https://github.com/LibrePhotos/librephotos/compare/1.2.0...1.2.1" target="_blank" rel="noopener noreferrer" class="">https://github.com/LibrePhotos/librephotos/compare/1.2.0...1.2.1</a></p>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>1</strong> awesome person!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
+        <author>
+            <name>Niaz Faridani-Rad</name>
+            <uri>https://github.com/derneuere</uri>
+        </author>
+        <category label="release" term="release"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[1.2.0: A Windows app, Memories, and faster scans]]></title>
+        <id>https://docs.librephotos.com/blog/1-2-0</id>
+        <link href="https://docs.librephotos.com/blog/1-2-0"/>
+        <updated>2026-09-29T08:09:51.000Z</updated>
+        <summary type="html"><![CDATA[This release brings a standalone Windows build that needs no Docker, moves every machine learning model to ONNX Runtime and drops PyTorch, brings Memories, makes scanning and the web app a lot faster, and closes a long list of security issues: all multi-user instances should upgrade. Here is an overview of all the new features, improvements, and bug fixes since the last release.]]></summary>
+        <content type="html"><![CDATA[<p>This release brings a <strong>standalone Windows build</strong> that needs no Docker, moves <strong>every machine learning model to ONNX Runtime and drops PyTorch</strong>, brings <strong>Memories</strong>, makes <strong>scanning and the web app a lot faster</strong>, and closes a long list of <strong>security issues</strong>: all multi-user instances should upgrade. Here is an overview of all the new features, improvements, and bug fixes since the last release.</p>
+<p><strong>Before you upgrade:</strong> the first 100 database migrations are now combined into one. Installs on 2026w10 or later (including every 1.x release) upgrade directly as usual. Installs on an older release must first run <strong>1.1.0</strong> once so its migrations complete, then upgrade to this release. If you skip that step, the migration stops with a hint that names the upgrade path. See <a href="https://docs.librephotos.com/docs/installation/upgrading#old-releases" target="_blank" rel="noopener noreferrer" class="">Upgrading from a release older than 2026w10</a>.</p>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: Standalone Windows Build, No Docker Needed</p>
+<p>LibrePhotos now runs on a plain Windows PC: download <code>librephotos-windows-x64.zip</code> from the assets of this release, unzip it anywhere, and double-click <code>librephotos.exe</code>. That one program is the web server, the web app, the background workers, and every machine learning service, with ExifTool and ffmpeg bundled next to it. There is nothing else to install: no Python, no Docker, no database server. The database is SQLite in <code>%LOCALAPPDATA%\LibrePhotos</code>, your photos stay where they are, and LibrePhotos lives in the notification area with an icon to open it, open the data or log folder, and quit (which stops everything it started). Your browser opens on the first-time setup, and the models download on the first scan. It is meant for one person's library on their own PC; for a shared server or PostgreSQL, keep using one of the Docker deployments. See the <a href="https://docs.librephotos.com/docs/installation/windows-standalone" target="_blank" rel="noopener noreferrer" class="">Windows standalone guide</a> for options such as <code>--data-dir</code> and <code>--photos</code>.</p>
+<p>🚀 LibrePhotos: Every ML Model on ONNX Runtime, PyTorch Removed</p>
+<p>Tagging, captioning, semantic search, and face recognition now all run on ONNX Runtime. PyTorch, sentence-transformers, transformers, and llama.cpp are gone from the images, which makes them much smaller and faster to build. Default tagging now uses <strong>MobileCLIP-S2</strong> zero-shot over the shared tag vocabulary instead of Places365, semantic search keeps the same CLIP ViT-B/32 weights in ONNX form, and captioning is a single small vision-language model (<strong>LFM2.5-VL-450M</strong>) that is always available and is prompted with the people and places in the photo, so captions can name who is in the picture and where it was taken. This replaces the BLIP captioner (broken for about a year), im2txt, Moondream, and the optional Mistral caption polish. The GPU image now actually runs the models on the GPU, ML services only start when their feature flag is on, and idle services unload their models to free memory.</p>
+<p>🚀 LibrePhotos: Memories</p>
+<p>A new <strong>Memories</strong> page shows the photos you took on this day in earlier years (<a href="https://github.com/LibrePhotos/librephotos/issues/844" target="_blank" rel="noopener noreferrer" class="">#844</a>). There is one tile per year with a cover, the place, and how many photos it holds; clicking a tile plays that year as a slideshow, "Play all" plays every year in a row, and a gallery switch shows the whole day across the years as one grid. Memories cover the anniversary plus or minus three days, roll over at your own midnight, and scale with the number of years in your library, not the number of photos. Nothing is injected into the timeline and nothing autoplays: if you do not want memories, you simply never open the page. (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</p>
+<p>🚀 LibrePhotos: Faster Scans and a Faster Web App</p>
+<p>The scan pipeline was profiled end to end. The metadata service now reads every tag of a request in one ExifTool command instead of one per tag (about 390 ms down to about 30 ms per photo), thumbnails are decoded once per photo instead of three times, RAW files use the camera's embedded preview when it is good enough, every file is hashed once, face detection keeps the embeddings it already computed, and backend services are reached on <code>127.0.0.1</code> instead of <code>localhost</code>, which cost two seconds per request on some systems. In the browser, route code splitting now actually splits routes and translations load on demand, so the main JavaScript chunk shrinks from 3.68 MB to 829 KB. The photo grid moved to TanStack Virtual and drag and drop to dnd-kit.</p>
+<p>🚀 LibrePhotos: Security Hardening</p>
+<p>A thorough authorization review of the backend closed a series of cross-user leaks. User albums and the <code>select_all</code> download could be used to place another user's private photos in your own album and share them again; albums can now only vouch for their owner's photos. Three reported issues are fixed and published: a photo hash existence oracle (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-hq2w-x39h-8wmp" target="_blank" rel="noopener noreferrer" class="">GHSA-hq2w-x39h-8wmp</a>), the map API key being returned to anonymous callers (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-6367-m327-c4pf" target="_blank" rel="noopener noreferrer" class="">GHSA-6367-m327-c4pf</a>), and other users' job records in <code>/api/rqavailable/</code> (<a href="https://github.com/LibrePhotos/librephotos/security/advisories/GHSA-975v-mx44-9jxq" target="_blank" rel="noopener noreferrer" class="">GHSA-975v-mx44-9jxq</a>). On top of that: day albums, read-only album shares, folder paths, photo metadata lookups, chunked uploads, zip downloads, and hash-keyed photo lookups are scoped to the requesting user; public albums honour their location and time sharing settings; and password reset links can no longer be poisoned through the <code>Host</code> header. Thanks to <a href="https://github.com/Hama1cco" target="_blank" rel="noopener noreferrer" class="">Hama1cco</a> for the responsible disclosure.</p>
+<ul>
+<li class="">✨ LibrePhotos: Revocable per-photo share links: the lightbox share button now creates a link for a single photo that you can copy, replace, or revoke from the Public Links page (<a href="https://github.com/LibrePhotos/librephotos/issues/2028" target="_blank" rel="noopener noreferrer" class="">#2028</a>) (Implemented by <a href="https://github.com/jonesfionn101-dotcom" target="_blank" rel="noopener noreferrer" class="">jonesfionn101-dotcom</a>)</li>
+<li class="">✨ Frontend: Add a face the scan missed by drawing a box on the photo and naming the person in the usual Label faces dialog (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Frontend: Tag a whole selection at once: select photos anywhere in the grid and press <code>t</code> (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ LibrePhotos: Transcoded videos are now seekable (the converted file is cached after the first play), and the arrow keys seek in the lightbox (<a href="https://github.com/LibrePhotos/librephotos/issues/1983" target="_blank" rel="noopener noreferrer" class="">#1983</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Frontend: Copy a photo to the clipboard from the lightbox with the Copy button or Ctrl/Cmd+C</li>
+<li class="">✨ Frontend: A floating upload progress card shows every file of an upload and its state</li>
+<li class="">✨ LibrePhotos: Optionally give each new user their own data folder (<code>AUTO_CREATE_USER_DIRECTORY</code>, off by default) (<a href="https://github.com/LibrePhotos/librephotos/issues/2038" target="_blank" rel="noopener noreferrer" class="">#2038</a>) (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">✨ Backend: Photo descriptions are imported from XMP (<code>dc:description</code>) (Implemented by <a href="https://github.com/jdmasa" target="_blank" rel="noopener noreferrer" class="">jdmasa</a>)</li>
+<li class="">✨ LibrePhotos: Native install on every platform: the backend installs with a plain <code>pip install</code> everywhere, with libvips, LibRaw, ExifTool, and ffmpeg all coming from wheels, and the base Docker images shrink accordingly</li>
+<li class="">✨ LibrePhotos: The official mobile app is rebuilt from scratch with Expo and an offline-first sync engine, backed by new delta-sync endpoints on the server; it replaces the old React Native app in the repository</li>
+<li class="">✨ Frontend: Library counter tiles are abbreviated on mobile, with the exact value in a tooltip (<a href="https://github.com/LibrePhotos/librephotos/issues/973" target="_blank" rel="noopener noreferrer" class="">#973</a>) (Implemented by <a href="https://github.com/krisnaparahita" target="_blank" rel="noopener noreferrer" class="">krisnaparahita</a>)</li>
+<li class="">✨ Backend: Per-module log levels with <code>LOG_LEVELS=package=LEVEL,...</code></li>
+<li class="">🔨 LibrePhotos: HDR videos from phones are tonemapped instead of playing washed out</li>
+<li class="">🔨 LibrePhotos: The live video transcode is bounded and no longer hangs on a full pipe (<a href="https://github.com/LibrePhotos/librephotos/issues/1920" target="_blank" rel="noopener noreferrer" class="">#1920</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Faces: hand-drawn and XMP face regions no longer receive a stranger's embedding, face counts count inferred faces correctly, unnamed and deleted faces are shown truthfully, the face dashboard no longer requests pages that moved faces removed, and antelopev2/buffalo_m model zips unpack correctly (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Scanning: files replaced in place are re-indexed, per-file scan failures are recorded on the job, XMP sidecars stay with their photo, symlink loops are handled, job progress is race-free, and failed photos no longer starve the CLIP embedding job</li>
+<li class="">🔨 LibrePhotos: Folders and scan directories: a folder no longer absorbs a sibling whose name it prefixes, a directory that only shares the allowed root's prefix is refused, a scan directory another user already scans is rejected, and scan directories are validated on user creation (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">🔨 LibrePhotos: Photos marked public are served to anonymous visitors again, and a <code>MEDIA_FILE</code> rotation is no longer applied twice on rebuild (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">🔨 LibrePhotos: Orphaned thumbnail files are removed (Implemented by <a href="https://github.com/stepheng223" target="_blank" rel="noopener noreferrer" class="">stepheng223</a>)</li>
+<li class="">🔨 LibrePhotos: Database: the album photo indexes and unique constraints lost in migration 0099 are restored, and tag photo counts stay correct when photos stop counting (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Revoking a public album link and sharing again now mints a new link</li>
+<li class="">🔨 LibrePhotos: The people and user album lists no longer run one query per album, and place albums show before the map reports its bounds</li>
+<li class="">🔨 Frontend: Password managers can remember login credentials again (<a href="https://github.com/LibrePhotos/librephotos/issues/924" target="_blank" rel="noopener noreferrer" class="">#924</a>), video tiles no longer download whole clips as images, album covers no longer autoplay every video, and the timeline stays populated after an upload</li>
+<li class="">🔨 Frontend: Single-flight token refresh: concurrent requests share one refresh and an expired session logs out once, plus a series of accessibility and translation fixes</li>
+<li class="">🔨 LibrePhotos: Captioning reports the service's real error, uses the q4 model export that works on all CPUs (including ARM64), and starts the model download when a caption is requested too early</li>
+<li class="">🔨 LibrePhotos: The Windows job cluster works again with django-q2 1.11.1, ML services honour <code>BASE_DATA</code>, and a busy ML service is no longer killed by the watchdog mid-request</li>
+<li class="">🔒 LibrePhotos: Photo edits and deletes through the photo API are owner-only, staff included: administrators can no longer edit or delete other users' photos</li>
+<li class="">🔒 LibrePhotos: Nextcloud server addresses are validated on every use (loopback, link-local, and reserved addresses are refused) and the download is hardened; set <code>NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=false</code> to restrict users to Nextcloud servers on the public internet</li>
+<li class="">🔒 LibrePhotos: The cover-face and incomplete-faces queries are scoped to the requesting user (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">🔒 LibrePhotos: On the unified and standalone images, password reset mail is only sent when the address is trusted: set <code>FRONTEND_BASE_URL</code> (or list your origin in <code>CSRF_TRUSTED_ORIGINS</code>) to keep self-service password reset working</li>
+<li class="">🔒 LibrePhotos: A security policy for private vulnerability reporting (Implemented by <a href="https://github.com/dchaudhari7177" target="_blank" rel="noopener noreferrer" class="">dchaudhari7177</a>)</li>
+<li class="">✨ LibrePhotos: Hardened release pipelines (Implemented by <a href="https://github.com/Totara-thib" target="_blank" rel="noopener noreferrer" class="">Totara-thib</a>), release-pinned base images, a backend refactor of every function with a CRAP score above 30 (tests first), a Playwright end-to-end suite, a frontend type-check ratchet, Docusaurus 3 for the documentation site with a redesigned landing page, and many Renovate dependency updates</li>
+</ul>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>1</strong> awesome person!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
+        <author>
+            <name>Niaz Faridani-Rad</name>
+            <uri>https://github.com/derneuere</uri>
+        </author>
+        <category label="release" term="release"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[1.1.0: Single sign-on, text search in your photos, and a security fix]]></title>
+        <id>https://docs.librephotos.com/blog/1-1-0</id>
+        <link href="https://docs.librephotos.com/blog/1-1-0"/>
+        <updated>2026-08-28T08:25:11.000Z</updated>
+        <summary type="html"><![CDATA[This release brings single sign-on, OCR text search with live text, and an important security fix: all multi-user instances should upgrade. Here is an overview of all the new features, improvements, and bug fixes since the last release.]]></summary>
+        <content type="html"><![CDATA[<p>This release brings <strong>single sign-on</strong>, <strong>OCR text search with live text</strong>, and an important <strong>security fix</strong>: all multi-user instances should upgrade. Here is an overview of all the new features, improvements, and bug fixes since the last release.</p>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: OpenID Connect Single Sign-On</p>
+<p>You can now log in through any OIDC identity provider (Keycloak, Authentik, Authelia, Zitadel, Google, Entra ID, and friends) via django-allauth. SSO logins mint the same JWT pair as password logins, so everything downstream behaves identically, and password login stays untouched. It is configured through an admin-editable <code>SocialApp</code> plus <code>OIDC_ENABLED</code>, <code>OIDC_BUTTON_LABEL</code>, and <code>OIDC_ALLOW_SIGNUP</code> (off by default) site settings, and ships with setup docs including the exact callback URL to register. The implementation is defensive by design: account linking requires a provider-verified email, ambiguous or blank email matches are refused, and SSO-provisioned accounts are never staff or superuser. (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</p>
+<p>🚀 LibrePhotos: Screenshot &amp; Document Categories with OCR Text Search and Live Text</p>
+<p>Screenshots and documents are now their own media categories with filters, search captions, stats counts, and a dedicated <code>/screenshots</code> page. Screenshots are detected deterministically (localized filename prefixes, <code>Screenshots</code> directories, a conservative PNG-without-camera-metadata fallback), documents via rule-based signals, and manual overrides always win. On top of that, an optional PP-OCRv6-based OCR sidecar extracts the text from your photos: full-text search finds photos by the text in them, and the photo viewer overlays selectable "live text" on the image so you can copy it right off a screenshot. OCR is off by default, so nothing changes until an admin picks an OCR model and runs the extraction job. A fast DB-only backfill classifies existing libraries.</p>
+<p>🚀 LibrePhotos: Security Fix for <code>select_all</code> Bulk Endpoints (CVE-2026-57943)</p>
+<p>Residual fixes for CVE-2026-57943 (<a href="https://github.com/LibrePhotos/librephotos/issues/1980" target="_blank" rel="noopener noreferrer" class="">#1980</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/1981" target="_blank" rel="noopener noreferrer" class="">#1981</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/1982" target="_blank" rel="noopener noreferrer" class="">#1982</a>): the <code>select_all</code> branches of the bulk photo-edit endpoints (make public/private, hide/unhide, trash/restore, favorite, share, delete) built their write target from the shared read-path queryset builder, which drops the owner filter for <code>public: true</code> queries. Any authenticated user could therefore bulk-modify <strong>other users' public photos</strong>, for example flipping every public photo on the instance to private, hiding them, or moving them to trash. Private photos were never exposed. Every branch now binds the write to the requesting user, with cross-user regression tests for each endpoint.</p>
+<ul>
+<li class="">✨ LibrePhotos: User-defined tags as a first-class entity: create your own tags and organize photos with them, independent of the ML-generated things</li>
+<li class="">✨ LibrePhotos: Self-service password reset, rate-limited and enumeration-safe, closing one of the oldest open requests (<a href="https://github.com/LibrePhotos/librephotos/issues/596" target="_blank" rel="noopener noreferrer" class="">#596</a>), powered by admin-configurable outgoing email with SMTP and provider presets (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ LibrePhotos: Deploy-time feature flags: <code>FEATURE_*</code> environment variables let admins disable individual features per deployment, and the Nextcloud integration is now behind an admin toggle</li>
+<li class="">✨ LibrePhotos: Kubernetes-ready liveness/readiness health endpoints plus example k8s manifests</li>
+<li class="">✨ LibrePhotos: Configurable map tile provider: choose PhotoPrism, OpenStreetMap, or no map at all (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ LibrePhotos: Regular users can now see their own background jobs; the worker status view is no longer admin-only (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ LibrePhotos: Scan Phase 1 prefetches known file paths instead of issuing a query per file, making large rescans significantly faster (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Frontend: Media-type filter: All / Photos / Videos toggle on search, user, place, thing, and person albums (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Frontend: Server-side Select All: Add-to-album and Create-album now work on a whole query result without loading every photo into the browser (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Frontend: Faces page improvements: recently tagged people are offered first in the tagging popup, and person groups can be folded and unfolded</li>
+<li class="">✨ Backend: A backend test suite now runs in CI on every pull request</li>
+<li class="">🔨 LibrePhotos: Worked through the open bug backlog, fixing 13 long-standing issues with a regression test for each: Nextcloud scanning/browsing/subfolders (<a href="https://github.com/LibrePhotos/librephotos/issues/1066" target="_blank" rel="noopener noreferrer" class="">#1066</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/1030" target="_blank" rel="noopener noreferrer" class="">#1030</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/631" target="_blank" rel="noopener noreferrer" class="">#631</a>), auto album generation stuck at 0% (<a href="https://github.com/LibrePhotos/librephotos/issues/836" target="_blank" rel="noopener noreferrer" class="">#836</a>), duplicated auto albums (<a href="https://github.com/LibrePhotos/librephotos/issues/462" target="_blank" rel="noopener noreferrer" class="">#462</a>), timeouts when tagging many faces (<a href="https://github.com/LibrePhotos/librephotos/issues/897" target="_blank" rel="noopener noreferrer" class="">#897</a>), slow album loading (<a href="https://github.com/LibrePhotos/librephotos/issues/619" target="_blank" rel="noopener noreferrer" class="">#619</a>), black video playback (<a href="https://github.com/LibrePhotos/librephotos/issues/477" target="_blank" rel="noopener noreferrer" class="">#477</a>), and more</li>
+<li class="">🔨 LibrePhotos: Repaired the bugs surfaced by the documentation audit and reconciled the documentation with the code</li>
+<li class="">🔨 LibrePhotos: Photo times are shown in the viewer's timezone, and CPU limits no longer kill the backend</li>
+<li class="">🔨 LibrePhotos: Date edits are written as <code>XMP:DateCreated</code> (the previous tag name was invalid and silently did nothing), and metadata edit history ordering is now deterministic</li>
+<li class="">🔨 LibrePhotos: Thumbnail fixes: UUID-addressed thumbnails are served correctly in direct mode and for <code>thumbnails_big</code>, thumbnail dimensions are read locally so photos can no longer go invisible, and UUID person cover photos are accepted (Implemented by <a href="https://github.com/v-marinkov" target="_blank" rel="noopener noreferrer" class="">v-marinkov</a> and <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Faces &amp; XMP: XMP face import is complete, named XMP faces are reconciled with existing people, person albums stay in sync when untagging faces, and person album photo lists get the right album ID (Implemented by <a href="https://github.com/v-marinkov" target="_blank" rel="noopener noreferrer" class="">v-marinkov</a>)</li>
+<li class="">🔨 LibrePhotos: Event album loading, lightbox, and add-to-album restored (Implemented by <a href="https://github.com/v-marinkov" target="_blank" rel="noopener noreferrer" class="">v-marinkov</a>)</li>
+<li class="">🔨 LibrePhotos: Media for album-shared photos is served instead of returning a 500 (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Photos with equal timestamps are ordered by filename (Implemented by <a href="https://github.com/terminalchai" target="_blank" rel="noopener noreferrer" class="">terminalchai</a>)</li>
+<li class="">🔨 Frontend: The video player now says why a video will not play instead of guessing (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Stuck-job cleanup is scheduled automatically, so aged queue blockers no longer grey out the scan buttons forever (Implemented by <a href="https://github.com/Shaurya2k06" target="_blank" rel="noopener noreferrer" class="">Shaurya2k06</a>)</li>
+<li class="">🔨 Frontend: The worker-indicator popover is click-toggled so Cancel is reachable (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 LibrePhotos: Deploy and admin fixes: the unified image no longer ships a stale <code>production.py</code>, the constance admin no longer 500s on <code>FACE_RECOGNITION_MODEL</code>, and backend logging is configurable and single-sourced (<a href="https://github.com/LibrePhotos/librephotos/issues/170" target="_blank" rel="noopener noreferrer" class="">#170</a>)</li>
+<li class="">🔨 LibrePhotos: Live Photo companions are returned with their on-disk spelling, and stack review ordering is now deterministic</li>
+<li class="">🔒 LibrePhotos: Security: ML model downloads are pinned to known hashes and third-party models are served from the LibrePhotos mirror, so a tampered or partial download can no longer land in the model directory</li>
+<li class="">✨ LibrePhotos: Python 3.14, roughly 30 Renovate dependency updates across backend and frontend, and updated documentation: frontend contribution page rewritten and dev-server commands corrected</li>
+</ul>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>1</strong> awesome person!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
+        <author>
+            <name>Niaz Faridani-Rad</name>
+            <uri>https://github.com/derneuere</uri>
+        </author>
+        <category label="release" term="release"/>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[1.0.0 to 1.0.3: Switching to version numbers]]></title>
+        <id>https://docs.librephotos.com/blog/1-0-0</id>
+        <link href="https://docs.librephotos.com/blog/1-0-0"/>
+        <updated>2026-06-26T10:53:57.000Z</updated>
+        <summary type="html"><![CDATA[LibrePhotos switched to semantic versioning: the release after 2026w25 is 1.0.0, and releases are numbered from now on instead of being named after the week. 1.0.1, 1.0.2 and 1.0.3 followed within two days with small fixes. This post collects all four.]]></summary>
+        <content type="html"><![CDATA[<p>LibrePhotos switched to semantic versioning: the release after 2026w25 is <strong>1.0.0</strong>, and releases are numbered from now on instead of being named after the week. 1.0.1, 1.0.2 and 1.0.3 followed within two days with small fixes. This post collects all four.</p>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: Switching to Semantic Versioning</p>
+<p>1.0.0 is the first numbered release. Next to the new version scheme, it carries the fixes merged since 2026w25:</p>
+<ul>
+<li class="">🔨 Backend: Clear the old 128-dim face encodings in migration 0126 with a set-based UPDATE (<a href="https://github.com/LibrePhotos/librephotos/pull/1872" target="_blank" rel="noopener noreferrer" class="">#1872</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Harden metadata reading against transient exif-service failures (<a href="https://github.com/LibrePhotos/librephotos/pull/1873" target="_blank" rel="noopener noreferrer" class="">#1873</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Retry transient face-service connection drops (<a href="https://github.com/LibrePhotos/librephotos/pull/1874" target="_blank" rel="noopener noreferrer" class="">#1874</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Keep the latest finished job per type when old jobs are cleaned up, so the scan keeps its baseline (<a href="https://github.com/LibrePhotos/librephotos/pull/1875" target="_blank" rel="noopener noreferrer" class="">#1875</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Numeric EXIF tag values are read as text in the date-time extractor (<a href="https://github.com/LibrePhotos/librephotos/pull/1879" target="_blank" rel="noopener noreferrer" class="">#1879</a>) (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">✨ Backend: PyExifTool is pinned to 0.4.9 (<a href="https://github.com/LibrePhotos/librephotos/pull/1882" target="_blank" rel="noopener noreferrer" class="">#1882</a>), and the backend dependencies are updated (<a href="https://github.com/LibrePhotos/librephotos/pull/1877" target="_blank" rel="noopener noreferrer" class="">#1877</a>)</li>
+<li class="">🔒 Frontend: Security updates for <code>@babel/runtime</code> 7.26.10 (<a href="https://github.com/LibrePhotos/librephotos/pull/1820" target="_blank" rel="noopener noreferrer" class="">#1820</a>) and <code>lodash</code> 4.18.1 (<a href="https://github.com/LibrePhotos/librephotos/pull/1821" target="_blank" rel="noopener noreferrer" class="">#1821</a>)</li>
+</ul>
+<p><strong>1.0.1 and 1.0.2:</strong></p>
+<ul>
+<li class="">🔨 LibrePhotos: Fix the GPU backend image (<code>image-backend-gpu</code>)</li>
+</ul>
+<p><strong>1.0.3:</strong></p>
+<ul>
+<li class="">🔨 Frontend: Non-admin users no longer see a flood of "Required at results.N.…" popups on the main page (<a href="https://github.com/LibrePhotos/librephotos/issues/1888" target="_blank" rel="noopener noreferrer" class="">#1888</a>, <a href="https://github.com/LibrePhotos/librephotos/pull/1889" target="_blank" rel="noopener noreferrer" class="">#1889</a>). The user list is now validated leniently, and the non-sensitive <code>public_sharing</code> flag is back in the public user serializer so the public-user discovery page keeps working. Sensitive fields (email, scan directory, Nextcloud credentials, superuser flag) remain hidden.</li>
+</ul>
+<p><strong>Full changelog:</strong> <a href="https://github.com/LibrePhotos/librephotos/compare/2026w25...1.0.3" target="_blank" rel="noopener noreferrer" class="">https://github.com/LibrePhotos/librephotos/compare/2026w25...1.0.3</a></p>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>1</strong> awesome person!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
+        <author>
+            <name>Niaz Faridani-Rad</name>
+            <uri>https://github.com/derneuere</uri>
+        </author>
+        <category label="release" term="release"/>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Development: April - June 2026]]></title>
         <id>https://docs.librephotos.com/blog/2026w25</id>
@@ -537,160 +805,6 @@
 <hr>
 <p><strong>Sponsoring development:</strong></p>
 <p>My work is sponsored by <strong>6</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
-        <author>
-            <name>Niaz Faridani-Rad</name>
-            <uri>https://github.com/derneuere</uri>
-        </author>
-        <category label="release" term="release"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Development: 2024 - August]]></title>
-        <id>https://docs.librephotos.com/blog/2024w36</id>
-        <link href="https://docs.librephotos.com/blog/2024w36"/>
-        <updated>2024-08-31T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Upstream:]]></summary>
-        <content type="html"><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🔨 LibrePhotos GPU: Fixed build issues</li>
-<li class="">🔨 LibrePhotos: Fixed an issue where it was possible to upload images with authentication</li>
-<li class="">🔨 LibrePhotos: Fix path traversal issue when uploading an image (Fixed by <a href="https://github.com/adventure8812" target="_blank" rel="noopener noreferrer" class="">adventure8812</a>)</li>
-<li class="">🔨 Frontend: Fix removing missing photos</li>
-<li class="">🔨 Frontend: Tokens will now be saved in the cookies instead of session storage</li>
-<li class="">✨ LibrePhotos: Updated dependencies and updated language strings from the community</li>
-<li class="">✨ LibrePhotos: Photos are now soft removed in order to improve the last modified query parameter for album date endpoints. Images in trash can now return "in_trashcan=true" and removed images are called "deleted=true"</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>8</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
-        <author>
-            <name>Niaz Faridani-Rad</name>
-            <uri>https://github.com/derneuere</uri>
-        </author>
-        <category label="release" term="release"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Development: 2024 - July]]></title>
-        <id>https://docs.librephotos.com/blog/2024w32</id>
-        <link href="https://docs.librephotos.com/blog/2024w32"/>
-        <updated>2024-08-07T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Upstream:]]></summary>
-        <content type="html"><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🔨 Mobile: Fixed icons</li>
-<li class="">🔨 Mobile: Fixed uploading</li>
-<li class="">🔨 Frontend: Fixed admin settings</li>
-<li class="">🔨 Frontend: Fixed "Page not found" error in face dashboard</li>
-<li class="">✨ Mobile: Increased the numbers of images fetch from photo roll</li>
-<li class="">✨ Mobile: Build up-to-date version</li>
-<li class="">✨ LibrePhotos: Updated dependencies and updated language strings from the community</li>
-<li class="">✨ LibrePhotos: Add last modified query parameter for album date endpoints</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>8</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
-        <author>
-            <name>Niaz Faridani-Rad</name>
-            <uri>https://github.com/derneuere</uri>
-        </author>
-        <category label="release" term="release"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Development: 2024 - June]]></title>
-        <id>https://docs.librephotos.com/blog/2024w28</id>
-        <link href="https://docs.librephotos.com/blog/2024w28"/>
-        <updated>2024-07-12T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Upstream:]]></summary>
-        <content type="html"><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🚀 LibrePhotos: Split up scan job in smaller tasks</li>
-</ul>
-<p>This is a pretty big change. Instead of doing all the work for each image, we will now prioritize creating a thumbnail and making the image visible in the UI and pushing other tasks like looking for faces or generating tags later.</p>
-<ul>
-<li class="">✨ LibrePhotos: Updated dependencies and updated language strings from the community</li>
-<li class="">✨ LibrePhotos API: Job progress is now reported slightly different</li>
-<li class="">✨ LibrePhotos/Frontend: Merge minor versions automatically</li>
-<li class="">✨ LibrePhotos: Default background worker is now the number of cores of the host system</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>8</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
-        <author>
-            <name>Niaz Faridani-Rad</name>
-            <uri>https://github.com/derneuere</uri>
-        </author>
-        <category label="release" term="release"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Development: 2024 - May]]></title>
-        <id>https://docs.librephotos.com/blog/2024w23</id>
-        <link href="https://docs.librephotos.com/blog/2024w23"/>
-        <updated>2024-06-09T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Upstream:]]></summary>
-        <content type="html"><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🔨 Frontend: Fix GPS issues on map view (Implemented by <a href="https://github.com/CodingGhost" target="_blank" rel="noopener noreferrer" class="">CodingGhost</a>)</li>
-<li class="">🔨 LibrePhotos: Fix possible auth confusion, because of multiple token types</li>
-<li class="">🔨 LibrePhotos: Ensure that models are downloaded when using multiple workers</li>
-<li class="">🔨 LibrePhotos: Downloading an original image will now have the correct filename</li>
-<li class="">🔨 LibrePhotos: Close and restart services more reliably</li>
-<li class="">✨ LibrePhotos: Updated a bunch of dependencies and updated language strings from the community</li>
-<li class="">✨ LibrePhotos: Add person, file type, lens, camera and path to search caption</li>
-<li class="">✨ LibrePhotos: Added mistral v2 as LLM option</li>
-<li class="">✨ LibrePhotos: Improved API speed by persisting database connections</li>
-<li class="">✨ LibrePhotos: Recycle workers, when they exceed RAM limit</li>
-<li class="">✨ LibrePhotos: Improve RAM usage after scanning by unloading unused services</li>
-<li class="">✨ LibrePhotos: Extract places365 to new service</li>
-<li class="">✨ LibrePhotos: Improved speed, due to new exif service</li>
-<li class="">🚀 Frontend: Migration to redux toolkit is now done (Implemented by <a href="https://github.com/sickelap" target="_blank" rel="noopener noreferrer" class="">sickelap</a>)</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>7</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
-        <author>
-            <name>Niaz Faridani-Rad</name>
-            <uri>https://github.com/derneuere</uri>
-        </author>
-        <category label="release" term="release"/>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Development: 2024 - April]]></title>
-        <id>https://docs.librephotos.com/blog/2024w18</id>
-        <link href="https://docs.librephotos.com/blog/2024w18"/>
-        <updated>2024-05-04T00:00:00.000Z</updated>
-        <summary type="html"><![CDATA[Upstream:]]></summary>
-        <content type="html"><![CDATA[<p><strong>Upstream:</strong></p>
-<p>✨ LibrePhotos: Improved service management
-The services now get started with Django and there is a cron job, which checks if the service is still running. There are now a bunch of new endpoints for handling services.
-[GET] /services/: List all services
-[GET] /services/{id}/: Retrieve the health status of a service
-[POST] /services/{id}/start/: Start a service
-[POST] /services/{id}/stop/: Stop a service</p>
-<ul>
-<li class="">🔨 LibrePhotos: Do not download model, if "none" is selected</li>
-<li class="">🔨 LibrePhotos: Chain download and dependents together</li>
-<li class="">🔨 Frontend: Fix updating avatar (Implemented by <a href="https://github.com/sickelap" target="_blank" rel="noopener noreferrer" class="">sickelap</a>)</li>
-<li class="">🔨 Frontend: Always show header, even when there are no images</li>
-<li class="">✨ Docker: Updated to Ubuntu 24.04 and removed build tools</li>
-<li class="">✨ LibrePhotos: Updated a bunch of dependencies and updated language strings from the community</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>7</strong> awesome people!</p>
 <p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content>
         <author>
             <name>Niaz Faridani-Rad</name>
