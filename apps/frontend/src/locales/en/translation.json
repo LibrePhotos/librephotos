@@ -207,6 +207,46 @@
         "location": "locations"
       }
     },
+    "writeexisting": {
+      "title": "Write existing edits to files",
+      "sidecar_one": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photo to its .xmp file.",
+      "sidecar_other": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photos to their .xmp files.",
+      "mediafile_one": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photo into the photo file itself.",
+      "mediafile_other": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photos into the photo files themselves.",
+      "nothing": "Your photos have no edits to write: no ratings, dates, rotations, captions, tags or locations set in LibrePhotos.",
+      "off": "Turn on Save to sidecar or Save to media file above first.",
+      "unsaved": "Save your changes first; this writes with the saved setting.",
+      "button": "Write now",
+      "running": "Writing: {{current}} of {{target}} photos",
+      "types": {
+        "ratings": "ratings",
+        "dates": "dates",
+        "rotations": "rotations",
+        "captions": "captions",
+        "locations": "locations",
+        "keywords": "tags",
+        "face_tags": "face tags"
+      },
+      "typecounts": {
+        "ratings": "Ratings",
+        "dates": "Dates you set",
+        "rotations": "Rotations",
+        "captions": "Captions",
+        "locations": "Locations you set",
+        "keywords": "Tags, as keywords",
+        "face_tags": "Face tags"
+      },
+      "photos_one": "{{count}} photo",
+      "photos_other": "{{count}} photos",
+      "sidecartitle_one": "Write to {{count}} sidecar file?",
+      "sidecartitle_other": "Write to {{count}} sidecar files?",
+      "sidecarmessage": "LibrePhotos writes these into an .xmp file next to each photo, such as IMG_2041.jpg.xmp. The photos themselves are not changed.",
+      "sidecarconfirm": "Write to files",
+      "mediafiletitle_one": "Change {{count}} original file?",
+      "mediafiletitle_other": "Change {{count}} original files?",
+      "mediafilemessage": "LibrePhotos writes these into the photo files themselves. Keep a backup of your originals.",
+      "mediafileconfirm": "Write into originals"
+    },
     "favoriteupdate": "Update",
     "savechanges": "Save changes?",
     "leavewithoutsaving": {
@@ -422,6 +462,7 @@
       "empty_trash": "Empty Trash",
       "generate_captions": "Generate Captions",
       "reapply_date_rules": "Apply Date Rules",
+      "write_metadata": "Write Metadata to Files",
       "unknown": "Other job ({{name}})"
     },
     "queuebusy": {
@@ -2157,6 +2198,15 @@
     "daterulesappliedtitle": "Date rules applied",
     "daterulesfailed": "The date rules could not be applied. The job list has the details.",
     "daterulesfailedtitle": "Date rules not applied",
+    "writemetadatastarted": "Writing your edits to your files. Follow it in the job list; you can keep using LibrePhotos.",
+    "writemetadatastartedtitle": "Writing metadata to files",
+    "writemetadatawritten_one": "{{count}} photo written.",
+    "writemetadatawritten_other": "{{count}} photos written.",
+    "writemetadataunwritten_one": "{{count}} photo could not be written; the job list has the details.",
+    "writemetadataunwritten_other": "{{count}} photos could not be written; the job list has the details.",
+    "writemetadatadonetitle": "Metadata written to files",
+    "writemetadatafailed": "Your edits could not be written to your files. The job list has the details.",
+    "writemetadatafailedtitle": "Metadata not written",
     "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
     "taggedphotostitle": "Photos tagged",
     "setcategorytitle": "Set category",

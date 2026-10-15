@@ -324,6 +324,9 @@ export const settingsKeys = {
   predefinedRules: () => [...settingsRoot, "predefinedRules"] as const,
   timezones: () => [...settingsRoot, "timezones"] as const,
   trashRetentionPreview: (days: number) => [...settingsRoot, "trashRetentionPreview", days] as const,
+  /** What "Write metadata to files" would write, for the saved write mode and face tag switch. */
+  writeMetadataPreview: (mode: string, faceTags: boolean) =>
+    [...settingsRoot, "writeMetadataPreview", mode, faceTags] as const,
 };
 
 const stackRoot = ["stacks"] as const;

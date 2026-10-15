@@ -57,6 +57,8 @@ vi.mock("./ConfigDateTime", () => ({
     </div>
   ),
 }));
+// Its own test: WriteExistingEditsRow.test.tsx.
+vi.mock("./WriteExistingEditsRow", () => ({ WriteExistingEditsRow: () => null }));
 vi.mock("./SaveChangesDialog", () => ({
   SaveChangesDialog: ({ opened, onSave }: { opened: boolean; onSave: () => void }) =>
     opened ? (

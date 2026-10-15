@@ -42,6 +42,8 @@ vi.mock("../../api_client/user/hooks", () => ({
 }));
 vi.mock("./ConfigBurstDetection", () => ({ ConfigBurstDetection: () => null }));
 vi.mock("./ConfigDateTime", () => ({ ConfigDateTime: () => null }));
+// Its own test: WriteExistingEditsRow.test.tsx.
+vi.mock("./WriteExistingEditsRow", () => ({ WriteExistingEditsRow: () => null }));
 vi.mock("./SaveChangesDialog", () => ({ SaveChangesDialog: () => null }));
 
 beforeAll(async () => {

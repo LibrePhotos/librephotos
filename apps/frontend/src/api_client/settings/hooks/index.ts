@@ -6,3 +6,4 @@ export * from "./useFetchPredefinedBurstRulesQuery";
 export * from "./useFetchTimezonesQuery";
 export * from "./useFollowModelDownload";
 export * from "./useTrashRetentionPreviewQuery";
+export * from "./useWriteMetadataPreviewQuery";

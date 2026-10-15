@@ -104,6 +104,10 @@ _Not released yet._ Started with the **Empty trash** button on the Trash page. P
 
 _Not released yet._ Started with **Apply** under **Dates** on the Library page, or with **Apply to existing photos** on the date rules card after you saved changed rules. Reads the date of every photo of yours again with your current date rules and moves the photos whose date changed to their new day; a date you set by hand stays, and nothing is written to your files. A photo whose date cannot be read keeps its date and is listed in the job. See [Applying the rules](./settings/date-rules.md#applying-the-rules).
 
+### Write Metadata to Files
+
+_Not released yet._ Started with **Write now** under **Write edits to files** in Settings → Metadata Options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

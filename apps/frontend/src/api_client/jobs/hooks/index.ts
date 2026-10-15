@@ -13,3 +13,4 @@ export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";
 export * from "./useStripThumbnailMetadataMutation";
 export * from "./useWorkerQuery";
+export * from "./useWriteMetadataToFiles";

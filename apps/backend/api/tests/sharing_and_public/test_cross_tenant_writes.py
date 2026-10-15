@@ -95,7 +95,7 @@ NOT_PHOTO_SCOPED = {
     "api/email-config/test/": "admin-only mail config",
     "api/upload/": "chunked upload into the requester's library",
     "api/upload/complete/": "completes only the requester's own upload; its album_id is owner-scoped (UploadIntoAlbumCrossTenantTest)",
-    "api/savemetadata/": "writes the requester's own photos' metadata to disk",
+    "api/savemetadata/": "queues a job writing the requester's own photos' metadata to disk",
     "api/trainfaces/": "queues a job on the requester's own faces",
     "api/clusterfaces/": "queues a job on the requester's own faces",
     "api/scanphotos/": "scans the requester's own library",

@@ -222,9 +222,11 @@ python manage.py scan -n
 # Build similarity index for all users
 python manage.py build_similarity_index
 
-# Save metadata to XMP sidecars or image files, as each owner's "Synchronize
-# metadata to disk" setting says (users with it Off are skipped; --sidecar or
-# --media-file overrides it for the one user named with --user)
+# Write the edits already in LibrePhotos to XMP sidecars or image files, as each
+# owner's "Write edits to files" setting says (users with it Off are skipped;
+# --sidecar or --media-file overrides it for the one user named with --user;
+# --types limits what is written, --dry-run only counts). The same writes as
+# Settings > Metadata Options > Write now.
 python manage.py save_metadata
 
 # Start all ML services (individual services are managed from the Admin Area)

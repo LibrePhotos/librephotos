@@ -12,7 +12,6 @@
 "api/geocode/parsers/tomtom.py" = ["PLW0108"]
 "api/geocode/photo_location.py" = ["BLE001"]
 "api/geocode/rate_limit.py" = ["PLW0603"]
-"api/management/commands/save_metadata.py" = ["BLE001"]
 "api/management/commands/scan.py" = ["BLE001"]
 "api/metadata/face_regions.py" = ["BLE001", "PLR0913"]
 "api/models/album_auto.py" = ["DJ012"]

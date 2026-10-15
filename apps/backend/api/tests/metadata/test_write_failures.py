@@ -18,7 +18,9 @@ import PIL.Image
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.metadata import library_write
 from api.metadata.jobs import write_photo_ratings
+from api.metadata.library_write import write_library_metadata
 from api.metadata.tags import Tags
 from api.metadata.writer import (
     MetadataWriteError,
@@ -27,6 +29,7 @@ from api.metadata.writer import (
     remove_from,
     write_metadata,
 )
+from api.models import LongRunningJob
 from api.models.face import Face
 from api.models.person import Person
 from api.models.user import User
@@ -35,6 +38,7 @@ from api.runtime import binaries
 from api.tests.metadata.exiftool_harness import EXIFTOOL, RealExifToolTestCase
 from api.tests.utils import (
     create_test_face,
+    create_test_job,
     create_test_person,
     create_test_photo,
     create_test_user,
@@ -216,19 +220,19 @@ class FailedWritesReachTheCallerTest(RealExifToolTestCase):
         self.assertEqual(200, response.status_code, response.content)
         self.assertIsNone(response.json()["write_error"])
 
-    def test_the_save_metadata_endpoint_counts_the_failure(self):
-        photo, _, _ = self._face_photo(MEDIA_FILE, damaged=True)
-        client = APIClient()
-        client.force_authenticate(user=photo.owner)
+    def test_the_write_metadata_job_counts_the_failure(self):
+        photo, _, path = self._face_photo(MEDIA_FILE, damaged=True)
+        job = create_test_job(photo.owner, LongRunningJob.JOB_WRITE_METADATA)
 
-        response = client.post(
-            "/api/savemetadata", {"types": ["ratings"]}, format="json"
-        )
+        with patch.object(
+            library_write, "enqueue_task", side_effect=lambda f, *a: f(*a)
+        ):
+            write_library_metadata(photo.owner, ["face_tags"], job_id=job.job_id)
 
-        self.assertEqual(200, response.status_code, response.content)
-        self.assertEqual(
-            (0, 1), (response.json()["written"], response.json()["errors"])
-        )
+        job.refresh_from_db()
+        self.assertEqual(0, job.result["written"])
+        self.assertEqual(1, job.result["error_count"])
+        self.assertTrue(job.result["errors"][0].startswith(f"{path}: face_tags: "))
 
     def _rotate(self, photo, angle=90):
         client = APIClient()

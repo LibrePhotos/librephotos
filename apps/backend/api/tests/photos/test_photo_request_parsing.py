@@ -143,27 +143,29 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
 
     def setUp(self):
         super().setUp()
-        # With "Synchronize metadata to disk" Off the endpoint is a 400 (#2293).
+        # With "Write edits to files" Off the endpoint is a 400 (#2293).
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
         self.user.save()
 
-    @patch("api.views.photos.write_photo_metadata")
-    def test_types_default_to_ratings(self, save_metadata):
-        create_test_photo(owner=self.user)
-        response = self.client.post(self.URL, {}, format="json")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(save_metadata.call_args.kwargs["metadata_types"], ["ratings"])
+    @patch("api.jobs.queue.AsyncTask")
+    def test_types_default_to_what_the_settings_write(self, async_task):
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.URL, {}, format="json")
+        self.assertEqual(response.status_code, 202, response.content)
+        self.assertNotIn("face_tags", response.json()["types"])
+        self.assertIn("ratings", response.json()["types"])
 
-    @patch("api.views.photos.write_photo_metadata")
-    def test_given_types_are_passed_on(self, save_metadata):
-        create_test_photo(owner=self.user)
-        response = self.client.post(
-            self.URL, {"types": ["ratings", "face_tags"]}, format="json"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            save_metadata.call_args.kwargs["metadata_types"], ["ratings", "face_tags"]
-        )
+    @patch("api.jobs.queue.AsyncTask")
+    def test_given_types_are_passed_on(self, async_task):
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                self.URL, {"types": ["ratings", "captions"]}, format="json"
+            )
+        self.assertEqual(response.status_code, 202, response.content)
+        self.assertEqual(async_task.call_args.args[2], ["ratings", "captions"])
+
+    def test_unknown_types_are_rejected(self):
+        self.assert_rejected("post", self.URL, {"types": ["titles"]}, "types")
 
     def test_types_must_be_a_list(self):
         self.assert_rejected("post", self.URL, {"types": "ratings"}, "types")
