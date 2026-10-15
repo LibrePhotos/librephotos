@@ -151,6 +151,19 @@ export const Photo = z.object({
   subjectDistance: z.number().nullable(),
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
+  // The rest of the exposure the camera recorded (#2276): EV, whether the flash
+  // fired, and metering mode / white balance as ExifTool names them ("Spot",
+  // "Auto"). Optional: backends before 1.4 do not send them.
+  exposure_compensation: z.number().nullable().optional(),
+  flash_fired: z.boolean().nullable().optional(),
+  metering_mode: z.string().nullable().optional(),
+  white_balance: z.string().nullable().optional(),
+  // Metres above sea level (negative below it); null for anyone but the owner.
+  gps_altitude: z.number().nullable().optional(),
+  // A video's duration in seconds, as a string like the grid's; and its codec as
+  // ffprobe names it ("h264", "hevc"; "" when the probe could not tell).
+  video_length: z.string().nullable().optional(),
+  video_codec: z.string().nullable().optional(),
   embedded_media: z.object({ id: z.string(), type: z.enum(Media) }).array(),
   file_variants: FileVariant.array().nullable().optional(),
   stacks: PhotoStackDetail.array().nullable().optional(),

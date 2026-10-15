@@ -16758,6 +16758,43 @@
             "nullable": true,
             "readOnly": true
           },
+          "exposure_compensation": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "flash_fired": {
+            "type": "boolean",
+            "nullable": true,
+            "readOnly": true
+          },
+          "metering_mode": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "white_balance": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "gps_altitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "readOnly": true
+          },
+          "video_length": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
+          },
+          "video_codec": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
+          },
           "embedded_media": {
             "type": "array",
             "items": {
@@ -16821,11 +16858,14 @@
           "exif_gps_lon",
           "exif_json",
           "exif_timestamp",
+          "exposure_compensation",
           "file_variants",
+          "flash_fired",
           "focalLength35Equivalent",
           "focal_length",
           "fstop",
           "geolocation_json",
+          "gps_altitude",
           "height",
           "hidden",
           "id",
@@ -16838,6 +16878,7 @@
           "lens",
           "local_orientation",
           "metadata",
+          "metering_mode",
           "ocr",
           "owner",
           "people",
@@ -16856,7 +16897,10 @@
           "subjectDistance",
           "trashed_at",
           "video",
+          "video_codec",
+          "video_length",
           "video_playback_type",
+          "white_balance",
           "width"
         ]
       },

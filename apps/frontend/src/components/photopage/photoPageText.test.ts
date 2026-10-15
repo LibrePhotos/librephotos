@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fileNameOf, folderOf, megapixels, photoDate } from "./photoPageText";
+import { fileNameOf, folderOf, photoDate } from "./photoPageText";
 
 describe("photo page text", () => {
   it("titles a photo by its date and keeps the time apart", () => {
@@ -20,12 +20,5 @@ describe("photo page text", () => {
     expect(fileNameOf("/photos/trip/IMG_1.jpg")).toBe("IMG_1.jpg");
     expect(folderOf("C:\\Photos\\Trip\\IMG_1.jpg")).toBe("C:/Photos/Trip");
     expect(folderOf("/photos/trip/IMG_1.jpg")).toBe("/photos/trip");
-  });
-
-  it("counts megapixels to one decimal, and none without a size", () => {
-    expect(megapixels(6240, 4160)).toBe(26);
-    expect(megapixels(1600, 1200)).toBe(1.9);
-    expect(megapixels(null, 1200)).toBeNull();
-    expect(megapixels(0, 0)).toBeNull();
   });
 });

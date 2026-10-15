@@ -6,24 +6,15 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { formatFileSize } from "../../util/fileSize";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { CategoryBadge } from "../lightbox/CategoryBadge";
+import { fileFacts } from "../lightbox/photoDetails";
 import { StackSection } from "../lightbox/StackSection";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
 import { PhotoCard } from "./PhotoCard";
 import classes from "./PhotoPage.module.css";
-import { fileNameOf, folderOf, megapixels } from "./photoPageText";
-
-/** "6240 × 4160 · 26 MP · 8.4 MB", leaving out what the photo does not have. */
-function fileFacts(photo: Photo): string {
-  const facts: string[] = [];
-  if (photo.width && photo.height) facts.push(`${photo.width} × ${photo.height}`);
-  const mp = megapixels(photo.width, photo.height);
-  if (mp) facts.push(`${mp} MP`);
-  if (photo.size) facts.push(formatFileSize(photo.size));
-  return facts.join(" · ");
-}
+import { fileNameOf, folderOf } from "./photoPageText";
 
 /** A label above a group of rows in the card. */
 function Label({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -81,6 +72,7 @@ export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserSelfDetailsQuery();
   const navigate = useNavigate();
+  const locale = useFormatLocale();
   // A photo of the stack opens on its own page (by hash: the page's address takes one).
   const openStackPhoto = (photoId: string) => {
     const member = photo.stacks?.flatMap(stack => stack.photos).find(stackPhoto => stackPhoto.id === photoId);
@@ -111,7 +103,7 @@ export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
             <IconExternalLink size={14} aria-hidden className={classes.inlineIcon} />
           </Anchor>
           <Text size="xs" c="dimmed">
-            {fileFacts(photo)}
+            {fileFacts(photo, locale).join(" · ")}
           </Text>
         </div>
         <OtherFormats photo={photo} />

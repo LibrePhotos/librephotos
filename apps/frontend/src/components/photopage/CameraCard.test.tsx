@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { makePhoto } from "../lightbox/photoFixture.test-utils";
 import { setUpMantineDom } from "../modals/confirmModal.test-utils";
-import { CameraCard, hasCameraInfo } from "./CameraCard";
+import { CameraCard } from "./CameraCard";
 
 beforeAll(setUpMantineDom);
 
@@ -40,27 +40,47 @@ describe("camera card", () => {
         focal_length: 23.4,
         focalLength35Equivalent: 35,
         iso: 200,
-        subjectDistance: 12.4,
+        exposure_compensation: -0.7,
       })
     );
     const text = container.textContent ?? "";
-    for (const part of ["X-T5", "XF16-55mm", "ƒ/5.6", "1/250", "23 mm", "200", "photopage.camera.distance"]) {
+    for (const part of [
+      "X-T5",
+      "XF16-55mm",
+      "ƒ/5.6",
+      "1/250",
+      "23.4 mm",
+      "200",
+      "exif.equivalent",
+      "exif.exposurebias",
+    ]) {
       expect(text).toContain(part);
     }
-    expect(text).toContain("photopage.camera.equivalent");
   });
 
   it("leaves out what the photo does not say", async () => {
     const container = await renderCard(makePhoto({ iso: 100 }));
     expect(container.textContent).not.toContain("photopage.camera.aperture");
-    expect(container.textContent).not.toContain("photopage.camera.distance");
+    expect(container.textContent).not.toContain("exif.exposurebias");
+    expect(container.textContent).not.toContain("exif.showmore");
     expect(container.textContent).toContain("photopage.camera.iso");
   });
 
-  it("has a card only when the photo says something about the camera", () => {
-    expect(hasCameraInfo(makePhoto())).toBe(false);
-    expect(hasCameraInfo(makePhoto({ shutter_speed: "0" }))).toBe(false);
-    expect(hasCameraInfo(makePhoto({ camera: "X-T5" }))).toBe(true);
-    expect(hasCameraInfo(makePhoto({ focal_length: 23 }))).toBe(true);
+  it("keeps the rest behind Show more, labelled like the Details panel", async () => {
+    const container = await renderCard(makePhoto({ camera: "X-T5", subjectDistance: 12.4, white_balance: "Manual" }));
+    const toggle = defined(container.querySelector("button[aria-expanded]"));
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(container.textContent).toContain("exif.subjectdistance");
+    expect(container.textContent).toContain("12.4 m");
+    expect(container.textContent).toContain("exif.whitebalances.manual");
+  });
+
+  it("has no card when the photo says nothing about the camera", async () => {
+    const title = "photopage.camera.title";
+    expect((await renderCard(makePhoto())).textContent).not.toContain(title);
+    expect((await renderCard(makePhoto({ shutter_speed: "0" }))).textContent).not.toContain(title);
+    expect((await renderCard(makePhoto({ camera: "X-T5" }))).textContent).toContain(title);
+    expect((await renderCard(makePhoto({ focal_length: 23 }))).textContent).toContain(title);
+    expect((await renderCard(makePhoto({ flash_fired: true }))).textContent).toContain(title);
   });
 });

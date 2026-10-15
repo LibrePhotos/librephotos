@@ -1,22 +1,20 @@
 import type { FileVariant, Photo as PhotoType } from "@librephotos/api-client";
 import { Anchor, Badge, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
-import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
+import { IconMovie as Movie, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
-import { formatShutterSpeed } from "../../util/shutterSpeed";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
-import { FileInfoComponent } from "./FileInfoComponent";
+import { fileNameOf, folderOf } from "../photopage/photoPageText";
+import { CameraInfoSection } from "./CameraInfoSection";
+import { DetailsList } from "./DetailsList";
+import { cameraDetails, fileFacts } from "./photoDetails";
 
 // Where the text next to a 24px row icon starts (icon plus the Group's default
 // md gap), so the toggles and expanded details line up with the rows above.
 const TEXT_COLUMN = "calc(24px + var(--mantine-spacing-md))";
-
-/** The file name of a path from either a POSIX or a Windows backend. */
-function fileNameOf(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path;
-}
 
 /** The badge colour and label of a file variant's type (JPG, RAW, VIDEO, META). */
 export function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
@@ -45,6 +43,7 @@ function PhotoInfoSection({
   t: TFunction;
 }) {
   const [showVariants, setShowVariants] = useState(false);
+  const locale = useFormatLocale();
   const fileVariants = photoDetail.file_variants || [];
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
   const hasVariants = nonMainVariants.length > 0;
@@ -56,7 +55,7 @@ function PhotoInfoSection({
     <Stack gap="xs" w="100%">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
         <Group justify="flex-start" wrap="nowrap">
-          <Photo />
+          {photoDetail.video ? <Movie /> : <Photo />}
           <div>
             <Anchor href={mediaUrl.photo(photoDetail.image_hash)} target="_blank">
               <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
@@ -64,12 +63,9 @@ function PhotoInfoSection({
               </Text>
             </Anchor>
             <Group gap="xs">
-              <FileInfoComponent info={`${photoDetail.width} × ${photoDetail.height}`} />
-              {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
-                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} />
-              ) : (
-                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
-              )}
+              <Text size="xs" c="dimmed">
+                {fileFacts(photoDetail, locale).join(" · ")}
+              </Text>
               {hasVariants && (
                 <Anchor
                   component="button"
@@ -113,62 +109,29 @@ function PhotoInfoSection({
 }
 
 /**
- * Camera equipment and settings information
- * Exported for use in public album views
- */
-export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoType> }) {
-  if (!photoDetail.camera) return null;
-
-  return (
-    <Group justify="space-between">
-      <Group justify="flex-start">
-        <Camera />
-        <div>
-          <Text fw={800}>{photoDetail.camera?.toString()}</Text>
-          <Group gap="xs">
-            {/* !! so a 0 renders nothing rather than a stray "0" */}
-            {!!photoDetail.lens && <FileInfoComponent info={photoDetail.lens.toString()} />}
-            {!!photoDetail.subjectDistance && <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />}
-            {!!photoDetail.fstop && <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />}
-            <FileInfoComponent info={formatShutterSpeed(photoDetail.shutter_speed) ?? undefined} />
-            {!!photoDetail.focal_length && <FileInfoComponent info={`${Math.round(photoDetail.focal_length)} mm`} />}
-            {!!photoDetail.iso && <FileInfoComponent info={`ISO${photoDetail.iso.toString()}`} />}
-          </Group>
-        </div>
-      </Group>
-    </Group>
-  );
-}
-
-/**
- * Additional photo metadata shown in expanded view
+ * The folder (the owner's only) and the labelled rest of the camera's settings,
+ * shown under "Show more".
  */
 function AdditionalInfoSection({
-  photoDetail,
-  isPublic,
+  folder,
+  rows,
   t,
 }: {
-  photoDetail: PhotoType;
-  isPublic: boolean;
+  folder: string | null;
+  rows: React.ComponentProps<typeof DetailsList>["rows"];
   t: TFunction;
 }) {
-  const firstImagePath = photoDetail.image_path?.[0];
   return (
-    <Stack>
-      {!isPublic && firstImagePath !== undefined && (
+    <Stack gap="xs">
+      <DetailsList rows={rows} />
+      {folder !== null && (
         <Group>
           <Text size="xs" c="dimmed">
             {t("exif.filepath")}
           </Text>
-          <BreadcrumbPath fullPath={firstImagePath.replace(/\\/g, "/").split("/").slice(0, -1).join("/")} />
+          <BreadcrumbPath fullPath={folder} />
         </Group>
       )}
-      <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
-      <FileInfoComponent description={t("exif.digitalzoomratio")} info={photoDetail.digitalZoomRatio?.toString()} />
-      <FileInfoComponent
-        description={t("exif.focallengthin35mmfilm")}
-        info={`${photoDetail.focalLength35Equivalent} mm`}
-      />
     </Stack>
   );
 }
@@ -192,7 +155,7 @@ function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: TFuncti
             <Text size="xs" c="dimmed">
               {t("exif.filepath")}
             </Text>
-            <BreadcrumbPath fullPath={element.replace(/\\/g, "/").split("/").slice(0, -1).join("/")} />
+            <BreadcrumbPath fullPath={folderOf(element)} />
           </Group>
           <Divider my="sm" />
         </Stack>
@@ -212,47 +175,44 @@ export function VersionComponent(
   const { photoDetail, isPublic, category } = props;
 
   const [showMore, setShowMore] = useState(false);
-  const [otherVersions] = useState<PhotoType[]>([]);
   const { t } = useTranslation();
 
-  const fileVariants = photoDetail.file_variants || [];
-
-  // Get paths from file variants to exclude them from duplicates
-  const fileVariantPaths = new Set(fileVariants.map(v => v.path));
-
-  // Duplicates are extra image_path entries that are NOT file variants
-  // (file variants are same capture in different formats, duplicates are actual file copies)
-  const duplicates = photoDetail.image_path
-    ? photoDetail.image_path.slice(1).filter(path => !fileVariantPaths.has(path))
-    : [];
+  // File variants are the same capture in another format; any other extra path
+  // is a copy of the file.
+  const fileVariantPaths = new Set((photoDetail.file_variants || []).map(v => v.path));
+  const duplicates = photoDetail.image_path.slice(1).filter(path => !fileVariantPaths.has(path));
+  const firstImagePath = photoDetail.image_path[0];
+  const folder = !isPublic && firstImagePath !== undefined ? folderOf(firstImagePath) : null;
+  const locale = useFormatLocale();
+  const moreRows = cameraDetails(photoDetail, t, locale).more;
+  // No toggle that would open on nothing.
+  const hasMore = folder !== null || moreRows.length > 0 || duplicates.length > 0;
 
   return (
     <div>
       <Stack align="flex-start">
-        {/* Basic photo information with file variants toggle */}
         <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
-
-        {/* Camera equipment and settings */}
         <CameraInfoSection photoDetail={photoDetail} />
-
-        {/* Expanded information section */}
-        <Collapse expanded={showMore}>
-          <Stack ml={TEXT_COLUMN}>
-            {/* Additional photo metadata */}
-            <AdditionalInfoSection photoDetail={photoDetail} isPublic={isPublic} t={t} />
-
-            {/* Other versions section (placeholder) */}
-            {otherVersions.length > 0 && <Text fw={800}>{t("exif.otherversions")}</Text>}
-
-            {/* Duplicates section - only shown if there are true duplicates */}
-            {duplicates.length > 0 && <DuplicatesSection duplicates={duplicates} t={t} />}
-          </Stack>
-        </Collapse>
-
-        {/* Show more/less button */}
-        <Anchor component="button" type="button" size="xs" ml={TEXT_COLUMN} onClick={() => setShowMore(!showMore)}>
-          {showMore ? t("exif.showless") : t("exif.showmore")}
-        </Anchor>
+        {hasMore && (
+          <>
+            <Collapse expanded={showMore}>
+              <Stack ml={TEXT_COLUMN}>
+                <AdditionalInfoSection folder={folder} rows={moreRows} t={t} />
+                {duplicates.length > 0 && <DuplicatesSection duplicates={duplicates} t={t} />}
+              </Stack>
+            </Collapse>
+            <Anchor
+              component="button"
+              type="button"
+              size="xs"
+              ml={TEXT_COLUMN}
+              aria-expanded={showMore}
+              onClick={() => setShowMore(!showMore)}
+            >
+              {showMore ? t("exif.showless") : t("exif.showmore")}
+            </Anchor>
+          </>
+        )}
       </Stack>
     </div>
   );

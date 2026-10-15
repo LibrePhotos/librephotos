@@ -520,6 +520,15 @@ class PhotoSerializer(serializers.ModelSerializer):
     focalLength35Equivalent = serializers.SerializerMethodField()
     digitalZoomRatio = serializers.SerializerMethodField()
     subjectDistance = serializers.SerializerMethodField()
+    # The rest of the exposure the camera recorded (#2276), null where the file
+    # does not say.
+    exposure_compensation = serializers.SerializerMethodField()
+    flash_fired = serializers.SerializerMethodField()
+    metering_mode = serializers.SerializerMethodField()
+    white_balance = serializers.SerializerMethodField()
+    # Height above sea level from the GPS: location-derived, so the owner's
+    # only, like ``ocr``.
+    gps_altitude = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -568,6 +577,15 @@ class PhotoSerializer(serializers.ModelSerializer):
             "focalLength35Equivalent",
             "digitalZoomRatio",
             "subjectDistance",
+            "exposure_compensation",
+            "flash_fired",
+            "metering_mode",
+            "white_balance",
+            "gps_altitude",
+            # A video's duration in seconds (as a string, like the grid's) and
+            # its codec as ffprobe names it ("" once probed without an answer).
+            "video_length",
+            "video_codec",
             "embedded_media",
             "video_playback_type",
             "file_variants",
@@ -579,7 +597,13 @@ class PhotoSerializer(serializers.ModelSerializer):
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
         # category_source="user"; category_source is server-managed.
-        read_only_fields = ("is_screenshot", "is_document", "category_source")
+        read_only_fields = (
+            "is_screenshot",
+            "is_document",
+            "category_source",
+            "video_length",
+            "video_codec",
+        )
         extra_kwargs = {"rating": {"min_value": 0, "max_value": edits.MAX_RATING}}
 
     def update(self, instance: Photo, validated_data: dict[str, Any]) -> Photo:
@@ -653,6 +677,29 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_subjectDistance(self, obj: Photo) -> float | None:
         metadata = self._get_metadata(obj)
         return metadata.subject_distance if metadata else None
+
+    def get_exposure_compensation(self, obj: Photo) -> float | None:
+        metadata = self._get_metadata(obj)
+        return metadata.exposure_compensation if metadata else None
+
+    def get_flash_fired(self, obj: Photo) -> bool | None:
+        metadata = self._get_metadata(obj)
+        return metadata.flash_fired if metadata else None
+
+    def get_metering_mode(self, obj: Photo) -> str | None:
+        metadata = self._get_metadata(obj)
+        return metadata.metering_mode if metadata else None
+
+    def get_white_balance(self, obj: Photo) -> str | None:
+        metadata = self._get_metadata(obj)
+        return metadata.white_balance if metadata else None
+
+    def get_gps_altitude(self, obj: Photo) -> float | None:
+        request = self.context.get("request")
+        if request is None or request.user != obj.owner:
+            return None
+        metadata = self._get_metadata(obj)
+        return metadata.gps_altitude if metadata else None
 
     def get_ocr(self, obj: Photo) -> dict | None:
         """OCR text plus block geometry normalized to [0, 1], owner-only.
