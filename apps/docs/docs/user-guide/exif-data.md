@@ -1,450 +1,287 @@
 ---
 title: "📇 Exif Data"
-description: "What exif data can we read, write and filter for"
+description: "Which metadata LibrePhotos reads from your photos and their XMP sidecars, and what it writes back"
 sidebar_position: 18
 ---
 
-## Compatibility
+LibrePhotos reads a photo's metadata with [ExifTool](https://exiftool.org) when it scans the
+photo: from the file itself and from the XMP sidecars next to it. What you change in LibrePhotos
+(a date, a caption, tags, a location, a rating, a rotation, the people on a photo) is stored in
+LibrePhotos' database. With **Settings → Metadata Options → Write edits to files** set to
+`Save to sidecar` or `Save to media file`, some of these edits are also written back, so other
+apps see them.
 
-<table>
-    <tr>
-        <th>Exif Field</th>
-        <th>Representation</th>
-        <th>Read</th>
-        <th>Write</th>
-        <th>Explanation</th>
-    </tr>
-    <tr>
-        <td>Rating</td>
-        <td>Favorites</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Write edits to files" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment. A scan only reads the rating and never writes it back. <em>Not released yet: up to 1.3.0, a scan wrote a rating it found in the file back to disk, which in sidecar mode created an <code>.xmp</code> holding just that rating; such sidecars are harmless unless the rating is later changed in the original by another app.</em></td>
-    </tr>
-    <tr>
-        <td>ImageHeight</td>
-        <td>Height</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Used for aspect ratio calculation</td>
-    </tr>
-    <tr>
-        <td>ImageWidth</td>
-        <td>Width</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Used for aspect ratio calculation</td>
-    </tr>
-    <tr>
-        <td>Composite:Rotation</td>
-        <td>Width and height</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are then swapped, so Info shows the size it plays at. <em>Not released yet; the update fixes the size of videos scanned before.</em></td>
-    </tr>
-    <tr>
-        <td>EXIF:DateTimeOriginal</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Parsing rules settable in settings. Dates you edit are written back to XMP:DateCreated, never to an EXIF date tag.</td>
-    </tr>
-    <tr>
-        <td>XMP:DateCreated</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>The only tag LibrePhotos writes dates to. It is used instead of an EXIF date tag because EXIF tags cannot be written into an XMP sidecar, and because writing it leaves the camera's original EXIF:DateTimeOriginal untouched. Highest-priority date parsing rule.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ModifyDate</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Read-only. Parsing rules settable in settings; dates you edit are written back to XMP:DateCreated.</td>
-    </tr>
-    <tr>
-        <td>QuickTime:CreateDate</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Parsing rules settable in settings. Dates you edit are written back to XMP:DateCreated, never to an EXIF date tag.</td>
-    </tr>
-    <tr>
-        <td>QuickTime:CreationDate</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>The local time a phone (iPhone, many Android phones) recorded a video at, with its UTC offset. Used as is by the date rule "Local time from the video's QuickTime:CreationDate tag (phones)", ranked above the UTC QuickTime:CreateDate. <em>Not released yet.</em></td>
-    </tr>
-    <tr>
-        <td>Matroska:DateTimeOriginal</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>The creation date of MKV and WebM files, in UTC. Converted to local time with the time zone of the video's position, or else your default time zone. <em>Not released yet; before, only a date in the file name could date these files.</em></td>
-    </tr>
-    <tr>
-        <td>QuickTime:Duration</td>
-        <td>Video length</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Used for video length on video tiles</td>
-    </tr>
-    <tr>
-        <td>Matroska:Duration</td>
-        <td>Video length</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Video length of MKV and WebM files, which carry no QuickTime:Duration. Since 1.3.0; videos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>Composite:GPSLatitude</td>
-        <td>GPS_lat</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Used for photo label on map. A location you set or remove is written back when "Write edits to files" is enabled; see <a href="#what-librephotos-writes">What LibrePhotos writes</a> for the tags. <em>Not released yet.</em></td>
-    </tr>
-    <tr>
-        <td>Composite:GPSLongitude</td>
-        <td>GPS_lon</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Used for photo label on map. Written back together with the latitude.</td>
-    </tr>
-    <tr>
-        <td>Composite:GPSDateTime</td>
-        <td>Timestamp</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Used by the GPS-based timestamp parsing rules.</td>
-    </tr>
-    <tr>
-        <td>EXIF:Model</td>
-        <td>Camera Model</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Camera model in Info</td>
-    </tr>
-    <tr>
-        <td>QuickTime:Make, QuickTime:Model</td>
-        <td>Camera</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Camera maker and model of a video, which carries no EXIF:Make or EXIF:Model. <em>Not released yet; videos scanned before get them with a Rescan from the Library page.</em></td>
-    </tr>
-    <tr>
-        <td>EXIF:LensModel</td>
-        <td>Lens</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Lens in Info</td>
-    </tr>
-    <tr>
-        <td>EXIF:Make, EXIF:LensMake</td>
-        <td>Camera and lens maker</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Shown in front of the camera model and lens in Info ("Fujifilm X-T5"), unless the model already starts with it ("NIKON D850", not "NIKON CORPORATION NIKON D850"). Corporate words at the end of a maker's name are left out there ("OLYMPUS IMAGING CORP." shows as "OLYMPUS"). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>EXIF:SerialNumber</td>
-        <td>Camera serial number</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Stored in the photo's metadata (<code>{"/api/photos/{id}/metadata/"}</code>), not shown in Info and not sent with every photo. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ExposureCompensation, EXIF:Flash, EXIF:MeteringMode, EXIF:WhiteBalance</td>
-        <td>Exposure compensation, flash fired, metering mode, white balance</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Stored in the photo's metadata; metering mode and white balance under the names ExifTool prints (Multi-segment, Auto, ...). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ColorSpace, File:BitsPerSample</td>
-        <td>Colour space, bit depth</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Stored in the photo's metadata. Bit depth is read from JPEG files only. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>Composite:GPSAltitude</td>
-        <td>Altitude</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Altitude in metres, negative below sea level, stored in the photo's metadata. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>EXIF:SubjectDistance, EXIF:DigitalZoomRatio</td>
-        <td>Subject distance, digital zoom</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Shown under "Show more" in Info. 0, which EXIF uses for "unknown" and "not used", is left empty. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>File:FileSize</td>
-        <td>File Size</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>File Size in Info</td>
-    </tr>
-    <tr>
-        <td>EXIF:FNumber</td>
-        <td>F Stop</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>F Stop in Info</td>
-    </tr>
-    <tr>
-        <td>EXIF:ExposureTime</td>
-        <td>Shutter Speed</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Shown as Shutter Speed in Info the way ExifTool prints it: <code>1/4000</code> up to a quarter second, then seconds (<code>0.3 s</code>, <code>2.5 s</code>, <code>30 s</code>). <em>Not released yet: up to 1.3.0, anything faster than about 1/2000 s was stored as <code>0</code>, 1/1250 to 1/2000 s as <code>1/1000</code>, and long exposures as fractions such as <code>5/2</code>.</em> <code>python manage.py refresh_exposure_time</code> reads just the exposure time of those photos again; a Rescan from the Library page also fixes them.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ISOSpeedRatings</td>
-        <td>ISO</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>ISO in Info</td>
-    </tr>
-    <tr>
-        <td>EXIF:FocalLength</td>
-        <td>Focal Length</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Focal Length in Info</td>
-    </tr>
-    <tr>
-        <td>EXIF:FocalLengthIn35mmFilm</td>
-        <td>Focal Length in 35mm </td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Focal Length in 35mm Film in Info</td>
-    </tr>
-    <tr>
-        <td>XMP:RegionInfo</td>
-        <td>Faces</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Faces and people are read from XMP:RegionInfo. Writing is opt-in via the "Write face tags to image files" setting (off by default); when enabled and "Write edits to files" is set to a sidecar or the media file, labelling a face writes MWG regions as XMP-mwg-rs:RegionInfo (with AppliedToDimensions and normalized areas) to the image file or XMP sidecar. Only manually labelled people are given a name; auto-detected faces are written as unnamed regions. The areas are in the coordinates of the stored image, as the standard asks, so on a rotated photo (most phone portraits, and photos you turned in LibrePhotos) other apps show them on the faces. <em>Not released yet</em>: earlier versions wrote the regions of rotated photos in the wrong place, and read the regions of photos turned in LibrePhotos onto the wrong spot; <code>python manage.py save_metadata --types face_tags</code> rewrites them.</td>
-    </tr>
-    <tr>
-        <td>XMP:Subject</td>
-        <td>Keywords / People</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Read and merged with IPTC:Keywords, XMP-iptcExt:PersonInImage and XMP-lr:HierarchicalSubject into the photo's keywords. Written alongside face regions: the names of manually labelled people are added as keywords for Lightroom compatibility. The photo's other keywords stay, and relabelling a face removes the previous name. A new XMP sidecar starts from the photo's own keywords (XMP:Subject and IPTC:Keywords), so they are not hidden behind it. <em>Not released yet</em>: earlier versions replaced the keywords with the names. Your tags are written here too when "Write edits to files" is enabled; see <a href="#what-librephotos-writes">What LibrePhotos writes</a>. <em>Not released yet.</em></td>
-    </tr>
-    <tr>
-        <td>IPTC:Keywords</td>
-        <td>Keywords</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Merged with XMP:Subject into the photo's keywords. With "Save to media file", your tag edits reach it too, but only in a file that already has IPTC data. <em>Not released yet.</em></td>
-    </tr>
-    <tr>
-        <td>XMP-iptcExt:PersonInImage</td>
-        <td>Keywords</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Names of the people shown (without face regions), added to the photo's keywords and so its tags. Not linked to people in LibrePhotos, which come from faces. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. Never written: removing such a tag leaves the name here.</td>
-    </tr>
-    <tr>
-        <td>XMP-lr:HierarchicalSubject</td>
-        <td>Keywords</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Hierarchical keywords as written by Lightroom, digiKam and darktable. The last level of each path becomes a keyword: <code>Places|USA|San Francisco</code> adds <code>San Francisco</code>. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. Never written: removing such a tag leaves the path here.</td>
-    </tr>
-    <tr>
-        <td>XMP:Description</td>
-        <td>Caption</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>The photo's description becomes its caption: the default-language entry first, else any language entry. A caption you typed is never replaced, and one you cleared stays cleared. A caption you type is written back as the description when "Write edits to files" is enabled. <em>Not released yet.</em></td>
-    </tr>
-    <tr>
-        <td>IPTC:Caption-Abstract</td>
-        <td>Caption</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Caption fallback when the file has no XMP description (older Photoshop and Lightroom, Picasa, newsroom tools). <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. With "Save to media file", a caption you type replaces it, but only in a file that already has an IPTC block.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ImageDescription</td>
-        <td>Caption</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Last caption fallback. Placeholders cameras write there, such as <code>OLYMPUS DIGITAL CAMERA</code> or <code>SONY DSC</code>, and a description that only repeats the camera model are skipped. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page. With "Save to media file", a caption you type replaces it.</td>
-    </tr>
-    <tr>
-        <td>XMP:Title, XMP:Headline, IPTC:ObjectName</td>
-        <td>Title</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>The title, from the first of these tags that has one. A title you edit is kept on later scans until you restore the photo from its file. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>XMP:Creator, IPTC:By-line, EXIF:Artist</td>
-        <td>Creator</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>The creator, from the first of these tags that has one (the first name when there are several). An edit of yours is kept on later scans. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>XMP:Rights, IPTC:CopyrightNotice, EXIF:Copyright</td>
-        <td>Copyright</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>The copyright notice, from the first of these tags that has one. An edit of yours is kept on later scans. <em>Not released yet</em>; photos scanned by an older version get it with a Rescan from the Library page.</td>
-    </tr>
-    <tr>
-        <td>EXIF:Orientation</td>
-        <td>Orientation</td>
-        <td>✔️</td>
-        <td>✔️</td>
-        <td>Read to transform face-region coordinates, and to store the size a photo is shown at: an orientation of 5-8 turns the photo a quarter, so its width and height are swapped, as they are when you rotate it a quarter yourself. <em>Not released yet; the update fixes the size of photos scanned before.</em> Written back (composed with your rotation) when you rotate a photo, but only if "Write edits to files" is enabled: into the original for JPEG, PNG, TIFF and WebP, as XMP-tiff:Orientation into the sidecar for every format (for HEIC and AVIF composed with the file's irot/imir, which is what the photo is shown under). HEIC, AVIF and RAW originals are not rewritten. LibrePhotos does not read the sidecar's orientation back. <em>Not released yet</em>: earlier versions wrote no orientation into sidecars and a wrong one into HEIC, AVIF and RAW originals.</td>
-    </tr>
-    <tr>
-        <td>EXIF:SubSecTimeOriginal</td>
-        <td>Sub-second time</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Read on every metadata extract; used for burst/sequence detection.</td>
-    </tr>
-    <tr>
-        <td>EXIF:ImageNumber</td>
-        <td>Image sequence</td>
-        <td>✔️</td>
-        <td>❌</td>
-        <td>Read on every metadata extract; used for burst/sequence detection.</td>
-    </tr>
-</table>
+The tag names on this page are ExifTool's. A family 0 group such as `XMP:` matches every XMP
+namespace, a family 1 group such as `XMP-dc:` one of them. To see what a file holds, run
+`exiftool -G1 -a -s photo.jpg`. Some names differ from the EXIF standard: ExifTool calls ISO
+`EXIF:ISO` (not `ISOSpeedRatings`), the 35 mm focal length `EXIF:FocalLengthIn35mmFormat` (not
+`FocalLengthIn35mmFilm`) and the EXIF `DateTime` tag `EXIF:ModifyDate`.
+
+:::info Not released yet
+Much of this page describes the next release. Up to 1.3.0:
+
+- the setting was called **Synchronize metadata to disk**. It wrote ratings, dates, face regions
+  and rotations, but never captions, locations or tags, and rotations never reached a sidecar.
+  In a HEIC, AVIF or RAW original it wrote a wrong orientation, often the opposite turn;
+- a scan wrote a rating it found in a file back to disk, which in sidecar mode created an `.xmp`
+  holding just that rating (harmless, unless the rating is later changed in the original by
+  another app);
+- a write always went to `IMG.xmp`, even next to an existing `IMG.jpg.xmp`, and a failed write
+  looked like a success;
+- face regions of rotated photos were written in the wrong place, adding person names replaced the
+  photo's keywords, and deleting a face left its region in the file;
+- a sidecar's date, position and camera (its `exif:`, `tiff:` and `exifEX:` properties) and the
+  sidecar of a photo's RAW or video file were not read, nor were the IPTC and EXIF captions, the
+  title, creator and copyright, the `PersonInImage` and `HierarchicalSubject` keywords, the camera
+  and lens maker, the serial number and the other exposure fields, the altitude, and the date and
+  camera of MKV, WebM and phone videos;
+- shutter speeds faster than about 1/2000 s were stored as `0`, and photos and videos turned a
+  quarter by their orientation were stored at their unturned size (the update fixes the size).
+
+After the update, a **Rescan** from the Library page reads the new fields of the photos already in
+your library. `python manage.py save_metadata --types face_tags` rewrites the face regions of
+photos written by an older version, and `python manage.py refresh_exposure_time` reads just their
+shutter speeds again.
+:::
+
+## What LibrePhotos reads
+
+Where a field lists several tags, the first one the photo has is used.
+
+| In LibrePhotos | Tags, best first | Notes |
+| --- | --- | --- |
+| Date and time | `XMP:DateCreated`, `EXIF:DateTimeOriginal`, `EXIF:ModifyDate`, `QuickTime:CreationDate`, `QuickTime:CreateDate`, `Matroska:DateTimeOriginal`, `Composite:GPSDateTime`, then the file name | Decided by your [date rules](./settings/date-rules.md), in the order of your list; this is the default order. A date you set by hand wins over every rule. `QuickTime:CreationDate` is the local time a phone recorded a video at; `QuickTime:CreateDate` (MP4, MOV), `Matroska:DateTimeOriginal` (MKV, WebM) and `Composite:GPSDateTime` are UTC and are converted with the time zone of the photo's position, or else your default time zone. `XMP:DateCreated` is where LibrePhotos writes dates. Accounts created before 1.1.0 do not have its rule unless they add it with **Add Rule** or **Reset To Defaults**. |
+| Location | `Composite:GPSLatitude`, `Composite:GPSLongitude` | ExifTool builds them from the EXIF GPS block, the embedded XMP or a video's `GPSCoordinates`. The place name (city, country) is looked up from the position. |
+| Altitude | `Composite:GPSAltitude` | In metres, negative below sea level, stored in the photo's metadata. |
+| Rating, favorite | `Rating` | Without a group ExifTool answers with `XMP-xmp:Rating` or the EXIF `Rating`. A photo rated at least **Minimum image rating to interpret as favorite** is a favorite. |
+| Tags | `XMP:Subject`, `IPTC:Keywords`, `XMP:PersonInImage`, `XMP:HierarchicalSubject` | All four are merged, and each keyword becomes a tag with a small file icon. Of a hierarchical keyword (Lightroom, digiKam, darktable) the last level counts: `Places\|USA\|San Francisco` adds `San Francisco`. The `XMP-iptcExt:PersonInImage` names become tags, not people: people come from face regions. |
+| Caption | `XMP:Description`, `XMP:Description-*`, `IPTC:Caption-Abstract`, `EXIF:ImageDescription` | The description's default-language entry first, else any language entry, then the IPTC caption (older Photoshop and Lightroom, Picasa, newsroom tools), then the EXIF one. Text cameras put there, such as `OLYMPUS DIGITAL CAMERA` or `SONY DSC`, and a description that only repeats the camera model are skipped. |
+| Title | `XMP:Title`, `XMP:Headline`, `IPTC:ObjectName` | Stored in the photo's metadata (`/api/photos/{id}/metadata/`). |
+| Creator | `XMP:Creator`, `IPTC:By-line`, `EXIF:Artist` | The first name when there are several. Stored in the photo's metadata. |
+| Copyright | `XMP:Rights`, `IPTC:CopyrightNotice`, `EXIF:Copyright` | Stored in the photo's metadata. |
+| Faces and people | `XMP:RegionInfo` | MWG face regions (`XMP-mwg-rs:RegionInfo`) with normalized areas. A region with a name becomes a face of the person of that name. LibrePhotos' own face detection runs as well; a detected face that overlaps a region is the same face. |
+| Orientation | `EXIF:Orientation`; for HEIC and AVIF `QuickTime:Rotation` and `QuickTime:Mirroring` | An orientation of 5 to 8 turns the photo a quarter, so its width and height are swapped. A HEIC or AVIF photo is shown under its `irot` and `imir` properties, which ExifTool reports as `QuickTime:Rotation` and `QuickTime:Mirroring`, whatever its EXIF orientation says. Face regions are placed with the same orientation. |
+| Width, height | `ImageWidth`, `ImageHeight`; for videos also `Composite:Rotation` | The size the photo is shown at, used for its aspect ratio. A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are swapped. |
+| Video length | `QuickTime:Duration`, `Matroska:Duration` | MKV and WebM files carry no `QuickTime:Duration`. |
+| Camera | `EXIF:Make`, `EXIF:Model`; for videos `QuickTime:Make`, `QuickTime:Model` | Info shows the maker in front of the model ("Fujifilm X-T5"), unless the model already starts with it ("NIKON D850", not "NIKON CORPORATION NIKON D850"). Corporate words at the end of a maker's name are left out there ("OLYMPUS IMAGING CORP." shows as "OLYMPUS"). |
+| Lens | `EXIF:LensMake`, `EXIF:LensModel` | Shown like the camera. |
+| Exposure | `EXIF:FNumber`, `EXIF:ExposureTime`, `EXIF:ISO`, `EXIF:FocalLength`, `EXIF:FocalLengthIn35mmFormat` | Shown in Info. The shutter speed is shown the way ExifTool prints it: `1/4000` up to a quarter second, then seconds (`0.3 s`, `2.5 s`, `30 s`). |
+| More exposure details | `EXIF:ExposureCompensation`, `EXIF:Flash`, `EXIF:MeteringMode`, `EXIF:WhiteBalance`, `EXIF:SubjectDistance`, `EXIF:DigitalZoomRatio` | Stored in the photo's metadata; metering mode and white balance under the names ExifTool prints (Multi-segment, Auto, ...). Subject distance and digital zoom are shown under **Show more** in Info; 0, which EXIF uses for "unknown" and "not used", is left empty. |
+| Camera serial number | `EXIF:SerialNumber` | Stored in the photo's metadata, not shown in Info. |
+| Colour space, bit depth | `EXIF:ColorSpace`, `File:BitsPerSample` | Stored in the photo's metadata. The bit depth is read from JPEG files only. |
+| File size | `File:FileSize` | Shown in Info. |
+| Bursts | `EXIF:SubSecTimeOriginal`, `EXIF:ImageNumber`; `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive`, `MakerNotes:SequenceNumber` | Used by [stack detection](./stacks-and-file-variants.md) to find burst sequences. The `MakerNotes` tags are only read while the matching burst detection rule is on in your settings. |
 
 ## XMP sidecars
 
-A sidecar (`photo.xmp` or `photo.jpg.xmp` next to `photo.jpg`) is read together with the
-photo, and a value found in the sidecar wins over the one embedded in the file. Apps that
-leave the original untouched (geotaggers, digiKam, darktable, Lightroom) store EXIF
-properties in the sidecar under their XMP names, and LibrePhotos reads these there too:
+### Which sidecars are read
+
+A sidecar is an `.xmp` file next to the photo. LibrePhotos reads both naming conventions, in lower
+or upper case. For a photo `IMG_2.jpg`, from the highest priority down:
+
+1. `IMG_2.xmp`, then `IMG_2.XMP` (Lightroom, LibrePhotos up to 1.3.0);
+2. `IMG_2.jpg.xmp`, then `IMG_2.jpg.XMP` (digiKam, darktable, Immich, LibrePhotos from the next
+   release);
+3. the sidecars named after the photo's other files, such as `IMG_2.CR2.xmp` for the RAW file of a
+   RAW+JPEG pair, or the video of a Live Photo;
+4. other `.xmp` files the scan grouped with the photo;
+5. the photo file itself.
+
+Each tag is taken from the highest one that has it, so one field can come from the sidecar and
+the next from the photo. A keyword list in a sidecar replaces the photo's own `XMP:Subject`, for
+example, while the photo's `IPTC:Keywords`, which a sidecar cannot hold, are still added to the
+tags. On a file system that ignores case (Windows, macOS), `IMG_2.xmp` and `IMG_2.XMP` are the same
+file and it is read once.
+
+Apps that leave the original untouched (geotaggers, digiKam, darktable, Lightroom) store the EXIF
+properties of a photo in the sidecar under XMP names. LibrePhotos reads these there:
 
 | Field | Read from the sidecar as |
 | --- | --- |
 | `EXIF:DateTimeOriginal` | `exif:DateTimeOriginal` |
 | `Composite:GPSLatitude`, `Composite:GPSLongitude` | `exif:GPSLatitude`, `exif:GPSLongitude` |
 | `Composite:GPSDateTime` | `exif:GPSTimeStamp` |
-| `EXIF:Model` | `tiff:Model` |
-| `EXIF:LensModel` | `exifEX:LensModel` |
+| `EXIF:Make`, `EXIF:Model` | `tiff:Make`, `tiff:Model` |
+| `EXIF:LensMake`, `EXIF:LensModel` | `exifEX:LensMake`, `exifEX:LensModel` |
 | `EXIF:FNumber`, `EXIF:ExposureTime`, `EXIF:ISO`, `EXIF:FocalLength`, `EXIF:FocalLengthIn35mmFormat` | `exif:FNumber`, `exif:ExposureTime`, `exif:ISOSpeedRatings`, `exif:FocalLength`, `exif:FocalLengthIn35mmFilm` |
-| `EXIF:Make`, `EXIF:LensMake` | `tiff:Make`, `exifEX:LensMake` (_not released yet_) |
-| `EXIF:ExposureCompensation`, `EXIF:MeteringMode`, `EXIF:WhiteBalance`, `EXIF:SubjectDistance`, `EXIF:DigitalZoomRatio` | `exif:ExposureBiasValue`, `exif:MeteringMode`, `exif:WhiteBalance`, `exif:SubjectDistance`, `exif:DigitalZoomRatio` (_not released yet_) |
+| `EXIF:ExposureCompensation`, `EXIF:MeteringMode`, `EXIF:WhiteBalance`, `EXIF:SubjectDistance`, `EXIF:DigitalZoomRatio` | `exif:ExposureBiasValue`, `exif:MeteringMode`, `exif:WhiteBalance`, `exif:SubjectDistance`, `exif:DigitalZoomRatio` |
 
-_Not released yet:_ before this, only the XMP-native fields (rating, keywords, description,
-`XMP:DateCreated`, face regions) were taken from a sidecar. Photos already in your library pick
-up a sidecar's date and camera with a **Rescan** from the Library page; a position in the
-sidecar of a photo that is already in the library does not reach the map yet ([#2264](https://github.com/LibrePhotos/librephotos/issues/2264)). A sidecar's
-modify date and orientation are never read: they describe the last edit, not the photo.
+The right column is how the properties are named inside the `.xmp` file; ExifTool shows them as
+`XMP:DateTimeOriginal`, `XMP:GPSDateTime`, `XMP:ISO` and so on. The XMP fields (rating, keywords,
+description, title, creator, copyright, `XMP:DateCreated`, face regions) are read from a sidecar
+under their own names. A sidecar's modify date and orientation are never read: they describe the
+last edit, not the photo, and a sidecar orientation must not turn LibrePhotos' thumbnails. Its
+flash, colour space and serial number are not read either.
 
-## Rules
+### Which sidecar is written
 
-Some tags are only read when a matching rule is active. The burst/stacking detection
-rules read `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive` and
-`MakerNotes:SequenceNumber` only when the corresponding stack-detection rule is enabled
-in your settings.
+With **Write edits to files** set to `Save to sidecar`, an edit goes to the sidecar of the photo
+file that already exists, so a digiKam or darktable sidecar is updated in place and keeps its other
+tags. When both `IMG_2.xmp` and `IMG_2.jpg.xmp` exist, the edit goes to `IMG_2.xmp`, the one that is
+read first (the backend log warns about it). When there is none, LibrePhotos creates
+`IMG_2.jpg.xmp`, which other apps also read and which cannot be mistaken for the sidecar of a RAW
+file next to the JPEG (`IMG_2.CR2`). The sidecar of a photo's RAW file (`IMG_2.CR2.xmp`) is read but
+not written: the edit goes to the sidecar of the photo's main file, the JPEG.
 
-To back-fill an existing library with face tags, run
-`python manage.py save_metadata --types face_tags`. Each photo is written where its owner's
-"Write edits to files" setting says (XMP sidecar or media file), and photos of users
-who have it Off are skipped. `--sidecar` or `--media-file` overrides the setting for the one
-user named with `--user`.
+A photo that up to 1.3.0 got an `IMG_2.xmp` next to an existing `IMG_2.jpg.xmp` keeps both:
+LibrePhotos reads and writes `IMG_2.xmp`, and the other app keeps its own file.
 
 ## What LibrePhotos writes
 
-With **Settings → Metadata Options → Write edits to files** set to `Save to sidecar` or `Save to
-media file`, these edits are also written to the photo's `.xmp` sidecar or into the photo file
-itself. With `Off`, the default, nothing is written. _Not released yet: up to 1.3.0, the setting
-was called "Synchronize metadata to disk"._
+With `Off`, the default, LibrePhotos never writes to your files. A scan never writes either: it
+only reads. With `Save to sidecar` or `Save to media file`, these edits are written after they are
+saved in LibrePhotos. An edit of many photos at once (a rating, **Change date and time…**, a
+location for a selection, renaming a tag) is written by a background job, so the files can lag the
+library by a moment.
 
-| Edit | Written | Tag |
-|---|---|---|
-| Rating and favorite | yes | `Rating` |
-| Date and time | yes | `XMP:DateCreated` |
-| Rotation | yes, except into HEIC, AVIF and RAW originals | `XMP-tiff:Orientation` in the sidecar, `EXIF:Orientation` in the file |
-| Caption | yes (_not released yet_) | `XMP-dc:Description` in the sidecar; in the file `XMP-dc:Description` and `EXIF:ImageDescription`, and `IPTC:Caption-Abstract` if the file already has IPTC data |
-| Location | yes (_not released yet_) | `XMP-exif:GPSLatitude`/`GPSLongitude` in the sidecar; in an image file `GPS:GPSLatitude`/`GPSLongitude` with their `N`/`S` and `E`/`W` references; in an MP4 or MOV `Keys:GPSCoordinates` |
-| Face names and areas | only with "Write face tags to image files" | `XMP-mwg-rs:RegionInfo`, names added to `XMP:Subject`; deleting a photo's last face removes `RegionInfo` (an empty one in the sidecar) |
-| Tags | yes (_not released yet_) | `XMP-dc:Subject` in the sidecar; in the file `XMP-dc:Subject`, and `IPTC:Keywords` if the file already has IPTC data |
+| Edit | `Save to sidecar` | `Save to media file` |
+| --- | --- | --- |
+| Rating and favorite, also from the mobile app | `XMP-xmp:Rating` | `XMP-xmp:Rating`, and the EXIF `Rating` if the file has one |
+| Date and time | `XMP-photoshop:DateCreated` | `XMP-photoshop:DateCreated`; the camera's EXIF dates stay as they are |
+| Rotation | `XMP-tiff:Orientation`, for every image format | `EXIF:Orientation`, into JPEG, PNG, TIFF and WebP files only |
+| Caption you type | `XMP-dc:Description` | `XMP-dc:Description` and `EXIF:ImageDescription`, and `IPTC:Caption-Abstract` if the file already has IPTC data |
+| Location | `XMP-exif:GPSLatitude`, `XMP-exif:GPSLongitude` | In an image `GPS:GPSLatitude`, `GPS:GPSLatitudeRef`, `GPS:GPSLongitude`, `GPS:GPSLongitudeRef`; in an MP4 or MOV `Keys:GPSCoordinates` |
+| Tags | `XMP-dc:Subject` | `XMP-dc:Subject`, and `IPTC:Keywords` if the file already has IPTC data |
+| Faces and their names, only with **Write face tags to image files** | `XMP-mwg-rs:RegionInfo`, names added to `XMP-dc:Subject` | the same, in the file |
+| Title, creator, copyright | not written | not written |
+
+Never written: the place name (city, country), which is looked up from the position again; a
+generated caption; albums, hidden and archived photos; and every other tag on this page. The
+**Write edits to files** options in the settings list the same edits, and the date editor, the
+caption and tags editors and the **Pick location** dialog say in a line under the editor whether
+the edit reaches the file, with a link to the setting.
+
+Photos imported from [Nextcloud](./library.md#nextcloud-integration) are never written to:
+LibrePhotos works on a local copy, which the next scan replaces when the file changes on the
+server, and nothing is uploaded back. Their edits stay in LibrePhotos.
+
+### Formats
+
+`Save to sidecar` works for every format, since the photo itself is never opened for writing.
+
+`Save to media file` needs a format ExifTool can write: JPEG, PNG, TIFF, WebP, HEIC, AVIF, JPEG XL,
+GIF, MP4, MOV and most RAW formats (CR2, CR3, NEF, ARW, DNG, ORF, RAF, RW2, ...). BMP, MKV, WebM,
+AVI and a few RAW formats cannot be written, and an edit of such a file stays in LibrePhotos (see
+[Writes that fail](#writes-that-fail)). A rotation reaches only JPEG, PNG, TIFF and WebP files,
+whose viewers apply an EXIF orientation. HEIC, AVIF, RAW, GIF and the other formats are not
+rewritten for a rotation and keep it in LibrePhotos: libheif shows a HEIC or AVIF under its `irot`
+and `imir` properties, and a RAW decoder ignores the tag, so a written tag would only replace the
+camera's own value.
+
+### Dates, rotations, captions and locations
+
+A date is written as the local time LibrePhotos shows, without a UTC offset. Removing a date you
+set by hand (**Remove timestamp** in the date editor) removes `XMP-photoshop:DateCreated` again; in
+a media file that also removes one another app had written there.
+
+A rotation in a sidecar is the orientation that shows the original the way LibrePhotos shows it
+now; for a HEIC or AVIF it starts from the file's `irot` and `imir`, not from its EXIF orientation,
+which can disagree. Apps that take the orientation from a sidecar, such as digiKam, show the photo
+turned the same way. In a media file the rotation is folded into the file's own orientation, and
+LibrePhotos' own rotation goes back to none, so it is not applied twice. See
+[Rotating Photos](./viewing-photos.md#rotating-photos).
 
 A caption keeps its line breaks. Clearing the caption removes the description, and removing a
-location removes the position tags. Setting a location in a photo file also removes the file's old
-altitude, which belonged to the old position. The place name (city, country) is never written: it
-is looked up from the position again. A generated caption is never written, only one you type.
+location removes the position tags. Setting a location in an image file also removes the file's old
+altitude (`GPS:GPSAltitude`, `GPS:GPSAltitudeRef`), which belonged to the old position, and an
+embedded `XMP-exif:GPSLatitude`/`GPSLongitude` that would disagree with the new one. In an MP4 or
+MOV the older copies `UserData:GPSCoordinates` and `ItemList:GPSCoordinates` go.
+
+### Tags and keywords
 
 Tags are written as keywords, one change at a time: adding a tag adds that keyword (once, never
 twice), removing it removes that keyword, and the file's other keywords stay. Renaming, merging or
-deleting a tag on the Albums page changes the keyword in the files of every photo that carries
-the tag, in one background job. The names of people that the face write-back adds stay, even when
-you remove a tag of the same name, and `XMP-iptcExt:PersonInImage` and
-`XMP-lr:HierarchicalSubject` are never changed. A tag that came from one of those is not written
-as a keyword unless you add it yourself. A new sidecar starts from the photo's own keywords, so
-it does not hide them.
+deleting a tag on the Albums page changes the keyword in the files of every photo that carries the
+tag, in one background job.
 
-Face regions always follow the faces a photo has in LibrePhotos: labelling, adding, deleting or
-restoring a face writes the photo's regions again, and the names of the people no longer on it
-leave the keywords, unless the photo has a tag of that name. Deleting the last face removes
-`XMP-mwg-rs:RegionInfo` from the photo file; in the sidecar mode the sidecar gets an empty
-`RegionInfo` instead, so the regions another app wrote into the original stay hidden. A photo that
-has no faces in LibrePhotos at all (not scanned for faces yet) keeps the regions of its file.
-`XMP-MP:RegionInfo` and `XMP-digiKam:TagsList` are never changed. _Not released yet: up to 1.3.0,
-deleting a face left its region in the file._
+`XMP:PersonInImage` and `XMP:HierarchicalSubject` are never written. A tag that came from one of
+them is not written as a keyword unless you add it yourself, and removing such a tag leaves the
+name or the keyword path in the file. The names of people that the face write-back added stay,
+even when you remove a tag of the same name.
 
-With tags written to files, a rescan only turns keywords into tags that the file did not have
-before, such as one another app added. A tag you removed stays removed, even where the file still
-carries the keyword (a people name or keyword path, or an `IPTC:Keywords` entry the sidecar cannot
-remove). With `Off`, a rescan adds every keyword of the file back as a tag, as before.
+A new sidecar starts from the photo's own keywords (`XMP:Subject` and `IPTC:Keywords`), so it does
+not hide them. In sidecar mode a removal only reaches the sidecar: a description, position or
+keyword stored in the photo file itself stays there, and an app that reads the file (or a new import
+into LibrePhotos) sees it again. Removing the last keyword leaves the sidecar without a keyword
+list, so the photo file's keywords show again. Inside LibrePhotos the removal stays.
 
-In the sidecar mode a removal only reaches the sidecar: a description, position or keyword stored
-in the photo file itself stays there, and an app that reads the file (or a new import into
-LibrePhotos) sees it again. Removing the last keyword leaves the sidecar without a keyword list,
-so the photo file's keywords show again. Inside LibrePhotos the removal stays.
+### Face regions
 
-The date editor, the caption and tags editors and the **Pick location** dialog say the same in a
-line under the editor, with a link to the setting.
+Writing faces needs both **Write face tags to image files** (Settings → Face Options, off by
+default) and a sidecar or media file chosen under **Write edits to files**. Then labelling, adding,
+deleting or restoring a face writes the photo's regions again, as MWG regions in
+`XMP-mwg-rs:RegionInfo` with `AppliedToDimensions` and normalized areas. The areas are in the
+coordinates of the stored image, as the standard asks, so on a rotated photo (most phone
+portraits, and photos you turned in LibrePhotos) other apps show them on the faces.
 
-## XMP sidecars
+Only faces of people you named get a name; the other faces are written as regions without one. The
+names are added to the keywords (`XMP-dc:Subject`) for Lightroom and digiKam, which show people as
+keywords. The photo's other keywords stay, and the name of a person no longer on the photo leaves
+the keywords, unless the photo has a tag of that name.
 
-LibrePhotos reads both sidecar naming conventions next to a photo `IMG_2.jpg`, in lower or
-upper case: `IMG_2.xmp` (Lightroom, older LibrePhotos versions) and `IMG_2.jpg.xmp`
-(digiKam, darktable, Immich). A value in a sidecar overrides the same tag in the photo, and
-when both sidecars exist, `IMG_2.xmp` wins.
+Deleting the last face removes `XMP-mwg-rs:RegionInfo` from the photo file; in sidecar mode the
+sidecar gets an empty `RegionInfo` instead, so the regions another app wrote into the original stay
+hidden. A photo that has no faces in LibrePhotos at all (not scanned for faces yet) keeps the
+regions of its file. `XMP-MP:RegionInfoMP` (Windows Photo Gallery) and `XMP-digiKam:TagsList` are
+never changed.
 
-With "Write edits to files" set to the sidecar, an edit is written to the sidecar
-that already exists, so a digiKam or darktable sidecar is updated in place and keeps its other
-tags. When both exist, the edit goes to `IMG_2.xmp`, the one that is read. When there is none,
-LibrePhotos creates `IMG_2.jpg.xmp`, which other apps also read and which cannot be mistaken
-for the sidecar of a RAW file next to the JPEG (`IMG_2.CR2`).
+### Writing the edits of a whole library
 
-_Not released yet: up to 1.3.0, LibrePhotos always wrote to `IMG_2.xmp`, creating it next to
-an existing `IMG_2.jpg.xmp`. A photo that already has both keeps both; LibrePhotos reads and
-writes `IMG_2.xmp`, and the other app keeps its own file._
+`python manage.py save_metadata` writes the ratings (`--types ratings`, the default) or the face
+regions (`--types face_tags`) of every photo again, for example after turning write-back on for an
+existing library. Each photo is written where its owner's **Write edits to files** says, and photos
+of users who have it `Off` are skipped. `--sidecar` or `--media-file` overrides the setting for the
+one user named with `--user`; `--dry-run` only shows what would be written. `POST /api/savemetadata/`
+does the same for your own photos.
+
+## How a rescan treats your edits
+
+A **Rescan** reads every file again, and a scan reads a file again when it or its sidecar changed.
+What it does to a value you edited in LibrePhotos:
+
+| Field | On a rescan |
+| --- | --- |
+| Date and time | A date you set by hand wins over every date rule and is kept. **Remove timestamp** in the date editor hands the photo back to the rules. |
+| Location | A position you set is kept. A position that came from the file follows the file: it moves when the file's position changes and is cleared when the file has none any more. |
+| Caption | Kept. A description in the file becomes the caption only when it is new or changed since it was last imported, and only while your caption is empty or still the one imported before. A caption you cleared stays cleared. |
+| Title, creator, copyright | Kept once you edited them through the metadata API, until you restore the photo from its file. |
+| Tags | With **Write edits to files** `Off`, every keyword of the file becomes a tag again, so a tag you removed comes back while the file still has the keyword. With a sidecar or the media file chosen, only a keyword the file did not have before becomes a tag, such as one another app added; a tag you removed stays removed, even where the file still carries the keyword. |
+| Rating | Taken from the file whenever the file or its sidecar has a `Rating`, also 0. With write-back on, that is the rating you set. With `Off`, a rating you changed in LibrePhotos is replaced by the file's on a rescan ([#2250](https://github.com/LibrePhotos/librephotos/issues/2250)). |
+| Rotation | Kept. A sidecar's orientation is never read. |
+| Faces | The faces LibrePhotos has stay. A face region in the file that overlaps one of them is not added again. |
+
+`POST /api/photos/{id}/metadata/revert-all/` restores a photo from its file: it reads the file and
+its sidecars again and sets every field (date, location, rating, caption, tags, title, copyright,
+creator) to what they say, or empties it where they say nothing. Nothing is written. In sidecar
+mode the sidecar holds the edits LibrePhotos wrote, so those come back as they are there.
+
+## Undoing write-back
+
+Turning **Write edits to files** back to `Off` stops further writes; it does not change back what
+was written. Your edits stay in LibrePhotos either way.
+
+**Sidecar mode** never changes the photo files. To take LibrePhotos' writes back, delete the
+sidecars it created: `IMG_2.jpg.xmp`, or `IMG_2.xmp` for writes up to 1.3.0. A sidecar that another
+app made and LibrePhotos updated also holds that app's data, so do not delete those blindly;
+remove single tags with ExifTool instead, for example `exiftool -XMP-tiff:Orientation= IMG_2.jpg.xmp`.
+
+**Media file mode** changes your originals in place. ExifTool runs with `-overwrite_original`, so
+no `IMG_2.jpg_original` backup is kept; the image data itself is not re-encoded. Keep a backup
+before you turn it on. To see what LibrePhotos changed in a file, compare
+`exiftool -G1 -a -s IMG_2.jpg` of the file and of its backup; LibrePhotos only touches the tags in
+the table under [What LibrePhotos writes](#what-librephotos-writes).
 
 ## Writes that fail
 
 A write ExifTool cannot make, for example into a read-only library, a damaged file or a format
-that cannot hold the tag, never undoes your edit: the rating, date, caption, location, face label
-or rotation stays in LibrePhotos. The backend log names the photo and ExifTool's reason. Labelling a face, drawing
-one and rotating a photo also return the reason as `write_error` in the API response, and
-`POST /api/savemetadata` and `manage.py save_metadata` count the photos they could not write
-as errors.
+that cannot hold the tag, never undoes your edit: the rating, date, caption, location, tags, face
+label or rotation stays in LibrePhotos. The backend log names the photo and ExifTool's reason.
+Labelling a face, drawing one and rotating a photo also return the reason as `write_error` in the
+API response, and `POST /api/savemetadata/` and `manage.py save_metadata` count the photos they
+could not write as errors.
 
 In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
 orange **Not written to the file** notice next to the usual confirmation: "Saved in LibrePhotos,
 but not written to the file", followed by the reason. It stays until you close it. Changing a
-date, a rating, a caption or a location writes the file after the edit is saved, so a failure
-there is only in the backend log.
-
-_Not released yet: up to 1.3.0, a failed write looked like a success and was not logged, and the
-web app showed no notice._
+date, a rating, a caption, tags or a location writes the file after the edit is saved, so a
+failure there is only in the backend log.

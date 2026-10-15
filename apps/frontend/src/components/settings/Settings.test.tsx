@@ -216,8 +216,10 @@ describe("Settings write edits to files (#2281)", () => {
     expect(optionText("Save to media file")).toContain("This changes your originals, so keep a backup.");
   });
 
-  it("says that HEIC, AVIF and RAW rotations stay in LibrePhotos (#2297)", () => {
-    expect(optionText("Save to media file")).toContain("HEIC, AVIF and RAW files keep their rotation in LibrePhotos.");
+  it("says that only JPEG, PNG, TIFF and WebP files get the rotation (#2297)", () => {
+    expect(optionText("Save to media file")).toContain(
+      "Rotations are only written into JPEG, PNG, TIFF and WebP files; other formats, such as HEIC, AVIF and RAW, keep their rotation in LibrePhotos."
+    );
   });
 
   it("points the face tag switch at the renamed setting", () => {
