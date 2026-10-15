@@ -36,6 +36,7 @@ export function PublicAlbumsGrid({ albums, onShare }: PublicAlbumsGridProps) {
   return (
     <Box ref={ref} mt="md">
       <TileGrid
+        scrollRestorationId="sharing-public-albums"
         items={albums}
         getKey={album => album.id}
         sizing={sizing}

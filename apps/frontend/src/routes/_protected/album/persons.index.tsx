@@ -180,6 +180,7 @@ function AlbumPeople() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-persons"
           items={albums ?? []}
           getKey={album => album.id}
           sizing={sizing}

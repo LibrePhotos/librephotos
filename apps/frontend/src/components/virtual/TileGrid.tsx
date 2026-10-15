@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { ScrollRestoredVirtualGrid } from "./ScrollRestoredVirtualGrid";
 import classes from "./TileGrid.module.css";
 import { VirtualGrid } from "./VirtualGrid";
 import type { GridCellProps } from "./VirtualGrid";
@@ -34,6 +35,11 @@ type TileGridProps<T> = Readonly<
     /** Below the padded cell, in the caption height. Leave out when renderItem draws its own caption. */
     renderCaption?: (item: T) => ReactNode;
     sizing: TileGridSizing;
+    /**
+     * A name for the grid, unique across the app, to come back to the same scroll position on
+     * Back (#377). Needs a router; leave it out where the position should not be kept.
+     */
+    scrollRestorationId?: string;
   } & (
     | { items: readonly T[]; groups?: undefined; headerHeight?: undefined }
     | { groups: readonly TileGroup<T>[]; headerHeight: number; items?: undefined }
@@ -57,7 +63,7 @@ function tileRows<T>(items: readonly T[], columnCount: number): TileRow<T>[] {
  * Photo layouts go through PhotoListView instead.
  */
 export function TileGrid<T>(props: TileGridProps<T>) {
-  const { getKey, renderItem, renderCaption, sizing } = props;
+  const { getKey, renderItem, renderCaption, sizing, scrollRestorationId } = props;
   const { columnCount, columnWidth, cellPadding, captionHeight, height, gutter } = sizing;
   // The album sizing has 0 columns until its first effect has run
   const columns = Math.max(0, Math.ceil(columnCount));
@@ -112,16 +118,20 @@ export function TileGrid<T>(props: TileGridProps<T>) {
     "--tile-grid-cell-padding": `${cellPadding}px`,
   };
 
-  return (
-    <VirtualGrid
-      style={containerStyle}
-      cellRenderer={renderCell}
-      columnWidth={columnWidth}
-      columnCount={columns}
-      height={height}
-      // A constant when there are no header rows, as the album grids always passed
-      rowHeight={props.groups === undefined ? tileRowHeight : rowHeight}
-      rowCount={rows.length}
-    />
+  const gridProps = {
+    style: containerStyle,
+    cellRenderer: renderCell,
+    columnWidth,
+    columnCount: columns,
+    height,
+    // A constant when there are no header rows, as the album grids always passed
+    rowHeight: props.groups === undefined ? tileRowHeight : rowHeight,
+    rowCount: rows.length,
+  };
+
+  return scrollRestorationId === undefined ? (
+    <VirtualGrid {...gridProps} />
+  ) : (
+    <ScrollRestoredVirtualGrid {...gridProps} scrollRestorationId={scrollRestorationId} />
   );
 }

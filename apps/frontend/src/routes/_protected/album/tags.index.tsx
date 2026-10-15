@@ -139,6 +139,7 @@ function AlbumTag() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-tags"
           items={tags ?? []}
           getKey={tag => tag.id}
           sizing={sizing}

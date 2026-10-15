@@ -23,6 +23,8 @@ vi.mock("@tanstack/react-router", () => ({
   },
   useNavigate: () => () => {},
   Link: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  // No saved scroll position: the grid starts at the top
+  useElementScrollRestoration: () => undefined,
 }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useAllFolderSubfolders: () => ({ ...stubs.folders, query: stubs.query }),

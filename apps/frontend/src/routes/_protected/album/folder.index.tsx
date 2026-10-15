@@ -44,6 +44,7 @@ function AlbumFolder() {
         />
       ) : (
         <TileGrid
+          scrollRestorationId="album-folder"
           items={subfolders}
           getKey={subfolder => subfolder.path}
           sizing={sizing}

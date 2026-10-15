@@ -84,6 +84,8 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to, params }: { children?: React.ReactNode; to: string; params?: { id: string } }) => (
     <a href={to.replace("$id", params?.id ?? "")}>{children}</a>
   ),
+  // No saved scroll position: the grid starts at the top
+  useElementScrollRestoration: () => undefined,
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({
