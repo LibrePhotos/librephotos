@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.b5590801.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.6a0f39a6.js" defer="defer"></script>
 <script src="/assets/js/main.2f86c283.js" defer="defer"></script>
 </head>
 <body>
@@ -198,8 +198,16 @@ of users who have it <code>Off</code> are skipped. <code>--sidecar</code> or <co
 one user named with <code>--user</code>; <code>--dry-run</code> only shows what would be written. <code>POST /api/savemetadata/</code>
 does the same for your own photos.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="how-a-rescan-treats-your-edits">How a rescan treats your edits<a href="#how-a-rescan-treats-your-edits" class="hash-link" aria-label="Direct link to How a rescan treats your edits" title="Direct link to How a rescan treats your edits" translate="no">​</a></h2>
-<p>A <strong>Rescan</strong> reads every file again, and a scan reads a file again when it or its sidecar changed.
-What it does to a value you edited in LibrePhotos:</p>
+<p>A <strong>Rescan</strong> reads every file again, and a scan reads a file again when it or its sidecar changed.</p>
+<p><span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span> A write LibrePhotos makes itself is not such a change. A scan remembers the
+modification time of every file it reads and of its sidecars, and a write that ExifTool reports as
+done updates what was remembered, so rating or re-dating a thousand photos does not make the next
+scan read them all again. In media file mode the write still moves the file&#x27;s modification time,
+so backup and sync tools see that the file changed. A change another app makes is still picked up:
+a file it edited, a sidecar it added or one that was deleted, before or after LibrePhotos&#x27; write.
+A photo indexed by an earlier version gets its times remembered on the first scan that reads it or
+finds it unchanged; until then, a write makes the next scan read the photo once more, as before.</p>
+<p>What a scan does to a value you edited in LibrePhotos:</p>
 <table><thead><tr><th>Field</th><th>On a rescan</th></tr></thead><tbody><tr><td>Date and time</td><td>A date you set by hand wins over every date rule and is kept. <strong>Remove timestamp</strong> in the date editor hands the photo back to the rules.</td></tr><tr><td>Location</td><td>A position you set is kept. A position that came from the file follows the file: it moves when the file&#x27;s position changes and is cleared when the file has none any more.</td></tr><tr><td>Caption</td><td>Kept. A description in the file becomes the caption only when it is new or changed since it was last imported, and only while your caption is empty or still the one imported before. A caption you cleared stays cleared.</td></tr><tr><td>Title, creator, copyright</td><td>Kept once you edited them through the metadata API, until you restore the photo from its file.</td></tr><tr><td>Tags</td><td>With <strong>Write edits to files</strong> <code>Off</code>, every keyword of the file becomes a tag again, so a tag you removed comes back while the file still has the keyword. With a sidecar or the media file chosen, only a keyword the file did not have before becomes a tag, such as one another app added; a tag you removed stays removed, even where the file still carries the keyword.</td></tr><tr><td>Rating</td><td>Taken from the file whenever the file or its sidecar has a <code>Rating</code>, also 0. With write-back on, that is the rating you set. With <code>Off</code>, a rating you changed in LibrePhotos is replaced by the file&#x27;s on a rescan (<a href="https://github.com/LibrePhotos/librephotos/issues/2250" target="_blank" rel="noopener noreferrer" class="">#2250</a>).</td></tr><tr><td>Rotation</td><td>Kept. A sidecar&#x27;s orientation is never read.</td></tr><tr><td>Faces</td><td>The faces LibrePhotos has stay. A face region in the file that overlaps one of them is not added again.</td></tr></tbody></table>
 <p><code>POST /api/photos/{id}/metadata/revert-all/</code> restores a photo from its file: it reads the file and
 its sidecars again and sets every field (date, location, rating, caption, tags, title, copyright,
