@@ -14,7 +14,13 @@ import {
   Title,
 } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import {
+  IconUserSquare as Face,
+  IconPhoto as Photo,
+  IconUpload as Upload,
+  IconUser as User,
+} from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { AvatarEditorRef } from "react-avatar-editor";
@@ -33,6 +39,7 @@ import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { dataUrlToFile } from "../../util/dataUrl";
 import { PageHeader } from "../PageHeader";
+import { AvatarFacePickerModal } from "./AvatarFacePickerModal";
 import { LANGUAGE_OPTIONS } from "./languageOptions";
 import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
@@ -67,6 +74,7 @@ export function Profile() {
   const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
   const dropzoneRef = useRef<DropzoneRef>(null);
+  const [facePickerOpen, { open: openFacePicker, close: closeFacePicker }] = useDisclosure(false);
 
   // What the form starts from and what an edit is measured against: the stored profile, or what
   // was just saved.
@@ -154,6 +162,9 @@ export function Profile() {
               <Group>
                 <Button size="sm" leftSection={<Photo size={16} />} onClick={() => dropzoneRef.current?.open()}>
                   <Trans i18nKey="settings.image" />
+                </Button>
+                <Button size="sm" variant="light" leftSection={<Face size={16} />} onClick={openFacePicker}>
+                  {t("settings.choosefromface")}
                 </Button>
                 <Button
                   size="sm"
@@ -259,6 +270,7 @@ export function Profile() {
           </Group>
         </Card>
         <Space h="xl" />
+        <AvatarFacePickerModal opened={facePickerOpen} onClose={closeFacePicker} onPick={setAvatarImgSrc} />
         <SaveChangesDialog
           opened={isEdited}
           saving={updateUser.isPending}

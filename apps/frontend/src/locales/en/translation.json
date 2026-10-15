@@ -7,6 +7,14 @@
     "avatar": "Public Avatar",
     "uploadheader": "Upload new avatar",
     "image": "Choose image",
+    "choosefromface": "Choose from a face",
+    "facepicker": {
+      "title": "Choose a face",
+      "hint": "Pick a person to start from their cover face. You can still move and zoom it before you upload.",
+      "pick": "Use the face of {{name}}",
+      "emptytitle": "No faces to choose from",
+      "emptydescription": "People with a cover face show up here once your photos have been scanned for faces."
+    },
     "upload": "Upload",
     "filesize": "The maximum file size allowed is 200 kB.",
     "accountinformation": "Account info",
