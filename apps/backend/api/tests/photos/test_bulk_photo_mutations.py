@@ -29,6 +29,7 @@ from api.serializers.photos import (
 )
 from api.tests.utils import (
     create_test_duplicate,
+    create_test_photo,
     create_test_photos,
     create_test_stack,
     create_test_user,
@@ -343,6 +344,41 @@ class NoLocationSelectAllTest(TestCase):
 
         selected = build_photo_queryset(self.user, {**self.QUERY, "video": True})
         self.assertCountEqual([str(p.id) for p in selected], listed)
+
+    def test_half_located_hidden_and_trashed_photos_match_the_list(self):
+        # One coordinate is not a position: the list shows these, so must the query.
+        half_located = [
+            create_test_photo(owner=self.user, gps_lat=1.0),
+            create_test_photo(owner=self.user, gps_lon=2.0),
+        ]
+        # Hidden and trashed photos leave both.
+        create_test_photo(owner=self.user, hidden=True)
+        create_test_photo(owner=self.user, in_trashcan=True)
+
+        listed = self._listed_ids()
+        self.assertCountEqual(
+            listed, [str(p.id) for p in self.no_location + half_located]
+        )
+        selected = build_photo_queryset(self.user, self.QUERY)
+        self.assertCountEqual([str(p.id) for p in selected], listed)
+
+    def test_select_all_leaves_the_excluded_photos_alone(self):
+        excluded = self.no_location[1]  # a stack member that is not the primary
+        with patch("api.metadata.jobs.enqueue_task"):
+            response = self.client.post(
+                "/api/photosedit/favorite/",
+                {
+                    "select_all": True,
+                    "query": self.QUERY,
+                    "excluded_hashes": [excluded.image_hash],
+                    "favorite": True,
+                },
+                format="json",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 4)
+        excluded.refresh_from_db()
+        self.assertEqual(excluded.rating, 0)
 
     def test_select_all_favorites_every_photo_without_gps_and_no_located_one(self):
         with patch("api.metadata.jobs.enqueue_task"):
