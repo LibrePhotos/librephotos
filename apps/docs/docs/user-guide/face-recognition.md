@@ -121,6 +121,17 @@ Every face scan, the one after a photo scan as well as Re-scan faces, first give
 A re-scan will not bring back faces you removed with the delete face action. Deleting a face marks it as deleted but keeps its region on record, and the re-scan skips any newly detected face that overlaps an existing record — including deleted ones. To get a deleted face back, restore it from the **Deleted** tab (see [Restore deleted faces](#restore-deleted-faces)).
 :::
 
+### Detect faces again in some photos or a folder
+
+<Since version="1.4.0" />
+
+Re-scan faces on the Library page looks at every photo, which takes hours on a large library. To look at a few photos or one folder only:
+
+- **Some photos**: select them, open the **⋮** (Photo Actions) and choose **Detect faces again** in the **Files** group (up to 1,000 photos). In the photo viewer it is in the **⋮** after the rotate buttons, and on a photo's page under **More**.
+- **A folder**: on the folder's page (open it from **Folders**), open the **⋮** (Folder actions) and choose **Detect faces again in this folder**. It covers the folder and its subfolders and asks first, saying how many photos that is.
+
+It works like Re-scan faces for those photos: faces already found and named stay as they are, and a face you deleted is not found again; restore it from the **Deleted** tab instead. The other photos are not touched, and the next face scan after a photo scan still looks at every photo whose faces have not been looked for yet. Only your own photos can be scanned, and a folder must be inside your scan directory or upload folder.
+
 ## Workflow
 
 After the first scan finished, go to the face dashboard. Label a couple of faces per person. Then train the faces with the blue button. Check if the inferred faces are accurate and add a couple of the inferred faces to the labels. Train the faces again. You will get the best results if all the persons in the pictures are known and when every label has at least a couple of faces.

@@ -332,7 +332,7 @@ class FileGroupTakeoutTest(SimpleTestCase):
     def test_the_group_is_processed_without_its_json_and_without_listing(self):
         seen = {}
 
-        def handle(user, paths, job_id):
+        def handle(user, paths, job_id, rebuild_thumbnails=False):
             seen["paths"] = paths
             seen["json"] = takeout.takeout_json_path([exported("IMG_1.jpg")])
 

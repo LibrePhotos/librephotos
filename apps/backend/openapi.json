@@ -6514,6 +6514,55 @@
         }
       }
     },
+    "/api/photos/rescan/": {
+      "post": {
+        "operationId": "api_photos_rescan_create",
+        "description": "Read the files of some of the requester's photos again (#2214).\n\nAlso the files that did not change: their thumbnails, metadata, date and\nhashes are read and rendered again. Dates set by hand, locations, captions\nand albums stay (exif-data.md, How a rescan treats your edits). Faces are\nnot detected again; that is ``POST /api/scanfaces`` with ``photo_ids``.\n404 when none of the photos is the requester's, 400 when none has a file\nleft in their library, 409 while a scan runs.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescanPhotosRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RescanPhotosRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RescanPhotosRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RescanPhotosResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
@@ -8033,6 +8082,55 @@
         }
       }
     },
+    "/api/scan-files/": {
+      "post": {
+        "operationId": "api_scan_files_create",
+        "description": "Scan files an outside process says are new or changed (#900).\n\nFor a folder watcher (inotify, watchfiles) next to the library: it sends\nthe paths, as the server sees them, with the user's credentials. Only\nexisting files inside the requester's scan directory or upload folder are\nscanned; the answer lists the paths it left out. A file is read when it is\nnew or changed, as on an incremental scan. 400 when no path is left, 409\nwhile a scan of the requester's runs (send the paths again later).",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFilesRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFilesRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFilesRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanFilesResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/scanfaces/": {
       "get": {
         "operationId": "api_scanfaces_retrieve",
@@ -8067,6 +8165,25 @@
         "tags": [
           "api"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFacesRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFacesRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanFacesRequestRequest"
+              }
+            }
+          }
+        },
         "security": [
           {
             "jwtAuth": []
@@ -19072,6 +19189,60 @@
           "status"
         ]
       },
+      "RescanPhotosRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/photos/rescan/``: the photos whose files to read again (#2214).",
+        "properties": {
+          "photo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Ids of the requester's photos; someone else's id is ignored",
+            "maxItems": 1000,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "photo_ids"
+        ]
+      },
+      "RescanPhotosResponse": {
+        "type": "object",
+        "description": "``POST /api/photos/rescan/``: the started scan and what it reads.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "job_id": {
+            "type": "string",
+            "description": "The started job's id (its last step's)"
+          },
+          "job_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every step's job id, in order"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The photos whose files are read again"
+          },
+          "file_count": {
+            "type": "integer",
+            "description": "Their files: main files, variants and sidecars"
+          }
+        },
+        "required": [
+          "file_count",
+          "job_id",
+          "job_ids",
+          "photo_count",
+          "status"
+        ]
+      },
       "ResolveDuplicateResponse": {
         "type": "object",
         "properties": {
@@ -19292,6 +19463,84 @@
         "required": [
           "caption",
           "image_hash"
+        ]
+      },
+      "ScanFacesRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/scanfaces``: where to detect faces again (#524).\n\nNeither field: every photo of the requester's. One of them narrows the\nrun to a folder or to some photos; both at once is a 400.",
+        "properties": {
+          "photo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only these photos of the requester's",
+            "maxItems": 1000,
+            "minItems": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Only the photos with a file in this folder or below it, inside the requester's scan directory or upload folder"
+          }
+        }
+      },
+      "ScanFilesRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/scan-files/``: files an outside process says are new or changed (#900).",
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Absolute paths of files in the requester's scan directory or upload folder, as the server sees them",
+            "maxItems": 1000,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "paths"
+        ]
+      },
+      "ScanFilesResponse": {
+        "type": "object",
+        "description": "``POST /api/scan-files/``: the started scan and the paths it left out.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "job_id": {
+            "type": "string",
+            "description": "The started job's id (its last step's)"
+          },
+          "job_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every step's job id, in order"
+          },
+          "file_count": {
+            "type": "integer",
+            "description": "The files the scan looks at"
+          },
+          "ignored_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Paths left out: outside the requester's library, folders, files that do not exist, and repeats"
+          }
+        },
+        "required": [
+          "file_count",
+          "ignored_paths",
+          "job_id",
+          "job_ids",
+          "status"
         ]
       },
       "SearchResults": {

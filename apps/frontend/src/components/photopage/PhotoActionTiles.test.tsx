@@ -20,6 +20,8 @@ const stubs = vi.hoisted(() => {
   return { album };
 });
 
+// The Files items have their own tests (FileActionItems.test.tsx).
+vi.mock("../photolist/FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({
   AlbumEditModal: (props: React.ComponentProps<typeof AlbumEditModal>) => {
@@ -56,6 +58,7 @@ function makeActions(overrides: Partial<PhotoActions> = {}): PhotoActions {
     closeShareLink: vi.fn<() => void>(),
     inTrash: false,
     toggleTrash: vi.fn<() => void>(),
+    isOwner: true,
     ...overrides,
   };
 }

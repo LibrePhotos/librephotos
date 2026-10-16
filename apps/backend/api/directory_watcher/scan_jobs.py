@@ -502,17 +502,28 @@ def _queue_scan_work(
     full_scan: bool,
     last_scan: LongRunningJob | None,
     job_id: UUID | str,
+    force_files: bool = False,
 ) -> None:
     """Queue the file groups and the sidecars whose photo is not in this scan.
 
     Sidecars of photos in this scan travel inside their file group, so the
     remaining ones have nothing to wait for and are queued directly.
+    ``force_files``: the groups rebuild their thumbnails too (a rescan of
+    chosen photos, #2214).
     """
     image_group_id = str(uuid.uuid4())
+    group_options = {"rebuild_thumbnails": True} if force_files else {}
     for idx, (_, paths) in enumerate(_videos_first(groups_to_process)):
         if _queuing_cancelled(idx, job_id):
             return
-        enqueue_task(handle_file_group, user, paths, job_id, group=image_group_id)
+        enqueue_task(
+            handle_file_group,
+            user,
+            paths,
+            job_id,
+            group=image_group_id,
+            **group_options,
+        )
 
     if metadata_paths:
         logger.info(
@@ -522,7 +533,7 @@ def _queue_scan_work(
     for idx, path in enumerate(metadata_paths):
         if _queuing_cancelled(idx, job_id):
             return
-        photo_scanner(user, last_scan, full_scan, path, job_id)
+        photo_scanner(user, last_scan, full_scan or force_files, path, job_id)
 
 
 def _queuing_cancelled(idx: int, job_id: UUID | str) -> bool:
@@ -679,6 +690,7 @@ def scan_photos(
     job_id: UUID | str,
     scan_directory: str = "",
     scan_files: list[str] | None = None,
+    force_files: bool = False,
 ) -> None:
     """
     Two-phase scan to avoid race conditions with RAW+JPEG grouping.
@@ -700,9 +712,17 @@ def scan_photos(
         job_id: Job ID for tracking progress
         scan_directory: Directory to scan (defaults to user's scan_directory)
         scan_files: Optional list of specific files to scan
+        force_files: Read every file of ``scan_files`` again, also the ones
+            that did not change, and rebuild their thumbnails (#2214). The
+            follow-up jobs still only cover what is new (``full_scan`` stays
+            as given), and like any scan of chosen files it is not the change
+            baseline of the next scan (``_remember_followups``).
     """
     if scan_files is None:
         scan_files = []
+    # Only a list of files is ever forced: a forced walk would read the whole
+    # library again without being a full scan.
+    force_files = force_files and bool(scan_files)
     thumbnail_dirs = [
         os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"),
         os.path.join(settings.MEDIA_ROOT, "square_thumbnails"),
@@ -750,7 +770,7 @@ def scan_photos(
         # ``file_groups``, could spike RAM on very large collections in
         # constrained-RAM environments (e.g. ~725 MB at 5M photos vs <2 MB here).
         groups_to_process = _select_groups_to_process(
-            list(file_groups.items()), _known_paths, full_scan, last_scan
+            list(file_groups.items()), _known_paths, full_scan or force_files, last_scan
         )
 
         # Progress target is number of groups (not individual files)
@@ -774,7 +794,13 @@ def scan_photos(
         # Process groups sequentially to avoid race conditions
         # Each group creates one Photo with all file variants
         _queue_scan_work(
-            user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
+            user,
+            groups_to_process,
+            metadata_paths,
+            full_scan,
+            last_scan,
+            job_id,
+            force_files,
         )
 
         logger.info("Scanned %s files in : %s", files_found, scan_directory)

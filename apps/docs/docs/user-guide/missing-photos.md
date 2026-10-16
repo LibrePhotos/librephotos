@@ -26,7 +26,7 @@ LibrePhotos only marks photos as missing during its missing-file check. This che
 - the scan is a **full scan** (a rescan of your whole library), or
 - the scan covers your configured scan directory without targeting a specific list of files.
 
-It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload — unless that scan is a full scan. It is also skipped when the scan had to skip a folder it could not read. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
+It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload, a [rescan of some photos](./library.md#rescan-some-photos) or a [scan of files a watcher reported](./auto-scan.md#tell-librephotos-about-new-files) — unless that scan is a full scan. It is also skipped when the scan had to skip a folder it could not read. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
 
 Simply opening, viewing, or downloading a photo whose file has gone does **not** mark it as missing — you will just get an error for that one photo. The missing-photo count only updates after a scan has run this check.
 

@@ -56,6 +56,19 @@ For a video, and for a photo you have rotated inside LibrePhotos, the two cannot
 The first scan after upgrading may re-key files LibrePhotos had previously written metadata into. That is bookkeeping with no visible change to your library, and it happens only once per file.
 :::
 
+### Rescan some photos
+
+<Since version="1.4.0" />
+
+When one photo is wrong (a bad thumbnail, a date that does not match the file after another app edited it, a file replaced with one that kept the old modification time), you can read just its files again instead of rescanning the whole library:
+
+- **Several photos**: select them, open the **⋮** (Photo Actions) and choose **Rescan files** in the **Files** group. Up to 1,000 photos at a time; after **Select all**, pick the photos one by one instead.
+- **One photo**: in the photo viewer, open the **⋮** after the rotate buttons (on a phone, the **⋮** menu) and choose **Rescan file**. On the photo's page it is under **More**.
+
+A rescan reads every file of the photo again, also when it did not change: the main file, its [variants](./stacks-and-file-variants.md) and its sidecars. It renders the thumbnails again (the old ones stay if that fails), reads the metadata and the date, and checks the file's hash. What you changed in LibrePhotos stays: a date you set by hand, a location you set, captions and albums (see [How a rescan treats your edits](./exif-data.md#how-a-rescan-treats-your-edits) for every field). The things, places and faces jobs that follow only look at what is new, as after a **Scan**, so a rescan does not detect faces again: use **Detect faces again** next to it for that (see [Face recognition](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder)).
+
+The items are only shown for your own photos, not for photos someone shared with you. Like every job, a rescan waits while another job runs. It is never what the next **Scan** compares the library against, so a file changed elsewhere in the library is still picked up then.
+
 ### Scan Progress
 
 Scan progress is shown in the [Job System](./job-system.md). The scan is split into smaller tasks, prioritizing thumbnail creation so photos appear in the UI quickly while heavier processing (faces, things) happens in the background.
@@ -145,7 +158,7 @@ The Library page provides quick access to common maintenance actions:
 | **Generate Event Albums** | **Generate** | Group photos into events by when they were taken |
 | **Regenerate Event Titles** | **Generate** | Regenerate the titles of existing events |
 | **Train faces** | **Train** | Run face clustering and classification |
-| **Rescan Faces** | **Rescan** | Re-detect faces in all photos |
+| **Rescan Faces** | **Rescan** | Re-detect faces in all photos; for some photos or one folder see [Detect faces again](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder) |
 | **Nextcloud** | **Scan** | Scan photos from a connected Nextcloud instance |
 | **Extract Text** | **Extract** | Read the text on photos that have not been read yet (see [Text Recognition](./text-recognition.md#extracting-text)) |
 | **Extract Text** (dropdown) | **Extract text again for all photos** | Read the text on every photo again |

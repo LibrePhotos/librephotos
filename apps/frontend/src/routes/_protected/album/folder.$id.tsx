@@ -12,6 +12,7 @@ import {
   useFetchDateAlbumsQuery,
   useFetchFolderSubfoldersQuery,
 } from "../../../api_client/albums/hooks";
+import { FolderActionsMenu } from "../../../components/album/FolderActionsMenu";
 import { FolderListModal } from "../../../components/album/FolderListModal";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
@@ -227,10 +228,17 @@ function FolderDetail() {
     );
   }
 
+  const title = folderName(folderPath) || t("folder");
   return (
     <PhotoListView
-      title={folderName(folderPath) || t("folder")}
+      title={title}
       additionalSubHeader={getSubheader()}
+      // An empty folder has no photos to detect faces in.
+      headerActions={
+        photosFlat.length > 0 ? (
+          <FolderActionsMenu folderPath={folderPath} folderName={title} photoCount={photosFlat.length} />
+        ) : undefined
+      }
       loading={isLoading}
       icon={Folder}
       photoset={photosGroupedByDate ?? []}

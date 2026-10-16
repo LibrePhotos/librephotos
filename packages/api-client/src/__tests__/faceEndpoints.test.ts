@@ -192,6 +192,13 @@ describe("face writes", () => {
     expect(started.job_id).toBe("j1");
   });
 
+  it("narrows a face scan to a folder or to some photos (#524)", async () => {
+    const { client, requests } = fakeServer({ status: true, job_id: "j1", job_ids: ["j1"] });
+    await endpoints.scanFaces(client, { path: "/data/alice/2025" });
+    await endpoints.scanFaces(client, { photo_ids: ["p1", "p2"] });
+    expect(requests.map(request => request.body)).toEqual([{ path: "/data/alice/2025" }, { photo_ids: ["p1", "p2"] }]);
+  });
+
   it("follows a face scan that is already running", async () => {
     const { client } = fakeServer(
       {

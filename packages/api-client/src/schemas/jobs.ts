@@ -119,6 +119,23 @@ export const WriteMetadataPreview = z.object({
 });
 export type WriteMetadataPreview = z.infer<typeof WriteMetadataPreview>;
 
+/**
+ * `POST /photos/rescan/`: the scan that reads the chosen photos' files again (#2214), with how many
+ * photos it covers and their files (main files, variants and sidecars).
+ */
+export const RescanPhotosResponse = JobStartedResponse.extend({
+  photo_count: z.number(),
+  file_count: z.number(),
+});
+export type RescanPhotosResponse = z.infer<typeof RescanPhotosResponse>;
+
+/** `POST /scan-files/`: the scan of the files an outside process named (#900), and the paths it left out. */
+export const ScanFilesResponse = JobStartedResponse.extend({
+  file_count: z.number(),
+  ignored_paths: z.array(z.string()),
+});
+export type ScanFilesResponse = z.infer<typeof ScanFilesResponse>;
+
 /** What a job trigger answers when a job of its kind is already queued or running (a 409). */
 export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
 

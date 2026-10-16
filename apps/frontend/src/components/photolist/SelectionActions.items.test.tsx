@@ -27,6 +27,8 @@ const stubs = vi.hoisted(() => ({
   mergeStacks: vi.fn<Call>(),
   removeFromStack: vi.fn<Call>(async () => undefined),
 }));
+// The Files items have their own tests (FileActionItems.test.tsx).
+vi.mock("./FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../util/util", async importOriginal => ({

@@ -23,6 +23,8 @@ type RemoveFromPerson = ReturnType<typeof useRemovePhotosFromPersonMutation>["mu
 
 const stubs = vi.hoisted(() => ({ pathname: "/album/persons/5", removeFromPerson: vi.fn<RemoveFromPerson>() }));
 const noopMutation = vi.hoisted(() => () => ({ mutate: () => {}, mutateAsync: async () => {} }));
+// The Files items have their own tests (FileActionItems.test.tsx).
+vi.mock("./FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: stubs.pathname }) }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({

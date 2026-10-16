@@ -89,6 +89,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   WriteTypeCount: { schema: S.WriteTypeCount, components: ["WriteTypeCount"] },
   UpgradeTask: { schema: S.UpgradeTask, components: ["UpgradeTask"] },
   UpgradeTaskList: { schema: S.UpgradeTaskList, components: ["UpgradeTaskList"] },
+  RescanPhotosResponse: { schema: S.RescanPhotosResponse, components: ["RescanPhotosResponse"] },
+  ScanFilesResponse: { schema: S.ScanFilesResponse, components: ["ScanFilesResponse"] },
   // photo edits
   RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
   BulkPhotoMutationResponse: { schema: S.BulkPhotoMutationResponse, components: ["BulkPhotoMutationResponse"] },

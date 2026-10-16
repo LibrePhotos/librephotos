@@ -92,6 +92,7 @@ class ScanPhotosCharacterizationBase(TestCase):
         job_id=None,
         flags=None,
         finish_work=False,
+        force_files=False,
     ):
         """Run ``scan_photos`` with every external effect recorded/mocked.
 
@@ -149,6 +150,7 @@ class ScanPhotosCharacterizationBase(TestCase):
                     job_id or self.job_id,
                     scan_directory=scan_directory,
                     scan_files=scan_files,
+                    force_files=force_files,
                 )
                 if finish_work:
                     self.finish_queued_work(job_id)

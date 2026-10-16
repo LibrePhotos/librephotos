@@ -34,6 +34,8 @@ const stubs = vi.hoisted(() => ({
   ratingMode: "favorite" as User["rating_mode"],
 }));
 const noopMutation = vi.hoisted(() => () => ({ mutate: () => {}, mutateAsync: async () => {} }));
+// The Files items have their own tests (FileActionItems.test.tsx).
+vi.mock("./FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({ useRemovePhotoFromUserAlbumMutation: noopMutation }));

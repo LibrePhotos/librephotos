@@ -1001,6 +1001,29 @@ export async function writeMetadataToFiles(
   );
 }
 
+/**
+ * Read the files of some of the signed-in user's photos again (#2214), also unchanged ones: their
+ * thumbnails, metadata, date and hashes. At most 1,000 photos. ApiError 404 when none is the
+ * user's, 400 (`no_files_to_scan`) when none has a file left in their library.
+ */
+export async function rescanPhotos(
+  client: ApiClient,
+  photoIds: readonly string[]
+): Promise<S.RescanPhotosResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/photos/rescan/", S.RescanPhotosResponse, "rescan photos", { photo_ids: photoIds });
+}
+
+/**
+ * Scan files an outside process says are new or changed (#900): paths as the server sees them,
+ * at most 1,000. Only files in the user's library are scanned; the answer lists the paths left out.
+ */
+export async function scanFiles(
+  client: ApiClient,
+  paths: readonly string[]
+): Promise<S.ScanFilesResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/scan-files/", S.ScanFilesResponse, "scan files", { paths });
+}
+
 /** Make event albums from the photos added or changed since the last run, and title them. */
 export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");
@@ -1391,9 +1414,16 @@ export async function trainFaces(client: ApiClient): Promise<S.JobTriggerRespons
   return triggerJob(client, "/trainfaces", S.JobTriggerResponse, "train faces");
 }
 
-/** Detect faces again in every photo (ApiError 403 when face detection is turned off). */
-export async function scanFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
-  return triggerJob(client, "/scanfaces", S.JobTriggerResponse, "scan faces");
+/** Where a face scan looks (#524): every photo, one folder (and those below it), or some photos. */
+export type FaceScanScope = Record<string, never> | { path: string } | { photo_ids: readonly string[] };
+
+/**
+ * Detect faces again in every photo, or with `scope` in one folder or some photos of the user's
+ * (#524). ApiError 403 when face detection is turned off, 400 for a folder outside the library,
+ * 404 when none of the photos is the user's.
+ */
+export async function scanFaces(client: ApiClient, scope: FaceScanScope = {}): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/scanfaces", S.JobTriggerResponse, "scan faces", scope);
 }
 
 /**

@@ -36,6 +36,7 @@ from api.models import AlbumDate, Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
+from api.photos.paths import folder_path_q
 from api.runtime import sidecars
 from api.runtime.ml_models import captioning_model_exists
 from api.search import semantic
@@ -896,27 +897,54 @@ def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> Exception | None:
     return failure
 
 
-def _faces_to_scan(user: User, full_scan: bool) -> QuerySet[Photo]:
+def _faces_to_scan(
+    user: User,
+    full_scan: bool,
+    path: str | None = None,
+    photo_ids: list[str] | None = None,
+) -> QuerySet[Photo]:
     """The photos a Scan Faces covers: every one, or those not scanned yet.
 
     Not scanned: new, the face service failed on them (#2199), or their file
     was replaced. A window of photos added since the last run would miss the
-    last two.
+    last two. ``path`` narrows them to the photos with a file in that folder
+    or below it, ``photo_ids`` to those photos (#524).
     """
     photos = Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False)
+    if path:
+        photos = photos.filter(
+            pk__in=Photo.objects.owned_by(user)
+            .filter(folder_path_q("files__path", path))
+            .values("pk")
+        )
+    if photo_ids is not None:
+        photos = photos.filter(pk__in=photo_ids)
     if full_scan:
         return photos
     return photos.filter(faces_scanned_at__isnull=True)
 
 
-def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
+def scan_faces(
+    user: User,
+    job_id: UUID,
+    full_scan: bool = False,
+    path: str | None = None,
+    photo_ids: list[str] | None = None,
+) -> None:
     """
     Detect and extract faces from photos.
+
+    Which photos have been looked at is kept per photo
+    (``Photo.faces_scanned_at``), so a run over a folder or a few photos
+    leaves the others to the next incremental run: there is no run-wide
+    baseline that a partial run could move past them.
 
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
         full_scan: If True, process all photos; otherwise those not scanned yet
+        path: Only the photos with a file in this folder or below it (#524)
+        photo_ids: Only these photos of the user's (#524)
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_FACES, job_id)
     if lrj is None:
@@ -925,7 +953,7 @@ def scan_faces(user: User, job_id: UUID, full_scan: bool = False) -> None:
     try:
         # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
-        existing_photos = _faces_to_scan(user, full_scan)
+        existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
         if not _begin_photo_scan(lrj, existing_photos):
             return
 

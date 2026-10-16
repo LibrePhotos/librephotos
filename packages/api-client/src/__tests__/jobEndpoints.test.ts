@@ -113,6 +113,27 @@ describe("job triggers", () => {
     expect(answer).toEqual({ ...started, downloads_model: true });
   });
 
+  it("rescans chosen photos by id and reads how many it covers (#2214)", async () => {
+    const { client, requests } = fakeServer({ ...started, photo_count: 2, file_count: 3 });
+    const answer = await endpoints.rescanPhotos(client, ["p1", "p2"]);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/photos/rescan/`,
+      method: "POST",
+      body: { photo_ids: ["p1", "p2"] },
+    });
+    expect(answer).toEqual({ ...started, photo_count: 2, file_count: 3 });
+  });
+
+  it("scans files by path and reads the paths it left out (#900)", async () => {
+    const { client, requests } = fakeServer({ ...started, file_count: 1, ignored_paths: ["/etc/passwd"] });
+    const answer = await endpoints.scanFiles(client, ["/data/alice/a.jpg", "/etc/passwd"]);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/scan-files/`,
+      body: { paths: ["/data/alice/a.jpg", "/etc/passwd"] },
+    });
+    expect(answer).toEqual({ ...started, file_count: 1, ignored_paths: ["/etc/passwd"] });
+  });
+
   it("follows the job already running instead of failing on a 409", async () => {
     for (const trigger of [
       endpoints.scanNextcloudPhotos,
@@ -122,6 +143,8 @@ describe("job triggers", () => {
       endpoints.lookUpPlaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
+      (client: Parameters<typeof endpoints.rescanPhotos>[0]) => endpoints.rescanPhotos(client, ["p1"]),
+      (client: Parameters<typeof endpoints.scanFiles>[0]) => endpoints.scanFiles(client, ["/a.jpg"]),
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
       (client: Parameters<typeof endpoints.generateCaptions>[0]) => endpoints.generateCaptions(client, false),
       endpoints.detectStacks,

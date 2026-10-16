@@ -35,6 +35,7 @@ import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
+import { SelectionFileItems } from "./FileActionItems";
 import { SelectionEditItems } from "./SelectionEditItems";
 import { selectionLabel } from "./selectionLabel";
 import { SelectionRatingItems } from "./SelectionRatingItems";
@@ -253,6 +254,14 @@ export function SelectionActions(props: Readonly<Props>) {
           </DisabledReason>
 
           <Menu.Divider />
+
+          <SelectionFileItems
+            selectedItems={selectedItems}
+            selectAllMode={selectAllMode}
+            userId={userId}
+            disabledReason={noSelection}
+            onDone={resetSelection}
+          />
 
           <DisabledReason reason={noSelection} position="left">
             <Menu.Item

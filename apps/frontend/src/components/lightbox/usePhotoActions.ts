@@ -48,6 +48,8 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
   // again was a no-op that reported "0 photos moved to trash".
   const inTrash = !!photoDetail?.in_trashcan;
   const isShared = !!photoDetail && !!photoShares?.some(share => share.photo_id === photoDetail.id);
+  // Rescan and face detection touch the files, so only the owner gets them (#2214, #524).
+  const isOwner = ownsPhoto(photo, userDetails);
 
   // The favourite toggle (F) acts only in favourite mode: in stars mode its
   // un-favorite would set the rating to 0.
@@ -96,6 +98,7 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
     closeShareLink,
     inTrash,
     toggleTrash,
+    isOwner,
   };
 }
 
