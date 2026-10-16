@@ -3146,9 +3146,9 @@ i18next-browser-languagedetector@^8.2.1:
     "@babel/runtime" "^7.23.2"
 
 i18next@^26.0.0:
-  version "26.4.5"
-  resolved "https://registry.yarnpkg.com/i18next/-/i18next-26.4.5.tgz#af9e0aa894dde8e02e58975e2feefd5fd891a5bc"
-  integrity sha512-CY9xqbWNQ+eLGDhFX3eNl1kDO1amJixszVKjC4Nd0tvfxUFLKqarN0VUHRt+2b88U7bkNIhnL84dRKQ5mFI+fg==
+  version "26.4.7"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-26.4.7.tgz#9e366d66690f03c1793563d7060703f5edaa3ecd"
+  integrity sha512-p/3hqy6EcuqRs6wNwBYwGGC1fzBJSMxV9zMuN814ab/7QjdZbXfjXwuPZdQbngX6KDOTxM01uUiZyqmMB8ghZg==
 
 ignore@^5.2.0:
   version "5.3.2"
@@ -4262,9 +4262,9 @@ react-dropzone@^20.0.0:
     file-selector "^5.0.1"
 
 react-i18next@^17.0.0:
-  version "17.0.17"
-  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.0.17.tgz#2ba91c10b0176bd0bbaa5871c8179daa9b2daf41"
-  integrity sha512-/gI72sAiVDJh7WAFdF0Sd9BMsVjF97W6avaCjPqgYDPj4Sq6wv9/94Gti3t8g9bYqo6A9c+xdmL3gRRH8GaM2Q==
+  version "17.0.19"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.0.19.tgz#aba317f5167a2c1180399bce7e1faf7b2b333c0d"
+  integrity sha512-BRHqiqOfW4J/LBVtbBFHoBoZm/Ez2/tkHPitYtn0CSpkYhEaEAsZMPsg7hZlomu30UJYQ6ZKiP3pwa3QnxGvQw==
   dependencies:
     "@babel/runtime" "^7.29.7"
     html-parse-stringify "^4.0.1"
