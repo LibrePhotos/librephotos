@@ -137,6 +137,9 @@ export const photoKeys = {
   locationSummary: (selection: Record<string, unknown>) => [...photoRoot, "locationSummary", selection] as const,
   /** The geotagged photos taken in a window, to copy a location from. */
   locatedNearby: (from: string, to: string) => [...photoRoot, "locatedNearby", from, to] as const,
+  /** What moving a selection to a folder would do (#352), keyed by the selection and the folder. */
+  movePreview: (selection: Record<string, unknown>, targetFolder: string) =>
+    [...photoRoot, "movePreview", selection, targetFolder] as const,
 };
 
 // The album lists and pickers. An album's photos are a grid: photoGridKeys.
@@ -249,6 +252,8 @@ export const folderKeys = {
   all: folderRoot,
   dirTree: (path: string) => [...folderRoot, "dirTree", path] as const,
   nextcloudDirs: () => [...folderRoot, "nextcloudDirs"] as const,
+  /** One level of the folders a move can go to (#352); null: the library folders themselves. */
+  moveTargets: (path: string | null) => [...folderRoot, "moveTargets", path] as const,
 };
 
 const geocodeRoot = ["geocode"] as const;

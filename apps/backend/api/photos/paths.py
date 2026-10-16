@@ -2,16 +2,23 @@
 
 ``is_valid_path`` keeps a requested path inside a scan root; ``folder_path_q``
 selects the files recorded below a folder without picking up its siblings;
-``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded.
+``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded;
+``library_roots`` names the folders a user's library lives in.
 """
+
+from __future__ import annotations
 
 import os
 import os.path
 import re
 from types import ModuleType
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db.models import Q
+
+if TYPE_CHECKING:
+    from api.models.user import User
 
 
 def nextcloud_media_root() -> str:
@@ -31,6 +38,22 @@ def is_nextcloud_copy(path: str) -> bool:
     """
     root = nextcloud_media_root()
     return is_valid_path(path, root) and not is_valid_path(root, path)
+
+
+def library_roots(user: User) -> list[str]:
+    """The folders ``user``'s library lives in, absolute and normalised.
+
+    The scan directory, and the upload folder when it is set outside it
+    (``User.upload_root``). Empty for a user without a scan directory. The
+    photos the user may move stay inside these (#352).
+    """
+    if not user.scan_directory:
+        return []
+    roots = [os.path.normpath(os.path.abspath(user.scan_directory))]
+    upload_root = os.path.normpath(os.path.abspath(user.upload_root()))
+    if not is_valid_path(upload_root, roots[0]):
+        roots.append(upload_root)
+    return roots
 
 
 def is_valid_path(path: str, root_path: str) -> bool:

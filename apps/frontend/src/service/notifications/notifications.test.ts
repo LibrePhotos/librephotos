@@ -263,3 +263,32 @@ describe("toasts with an Undo (#127)", () => {
     expect(lastShown()).toMatchObject({ message: "1 face(s) were deleted", autoClose: undefined });
   });
 });
+
+describe("moving photos (#352)", () => {
+  const counts = { moved: 3, skipped: 0, refused: 0, failed: 0 };
+
+  it("names the folder the photos went to", () => {
+    notification.photosMoved(counts, "Porto");
+    expect(lastShown()).toMatchObject({ color: "teal", message: "Moved 3 photos to Porto." });
+  });
+
+  it("says how many stayed, and keeps that toast up", () => {
+    notification.photosMoved({ ...counts, skipped: 1, failed: 1 }, "Porto");
+    expect(lastShown()).toMatchObject({
+      color: "orange",
+      message: "Moved 3 photos to Porto. 2 photos stayed where they were.",
+      autoClose: false,
+    });
+    notification.photosMoved({ ...counts, moved: 0, refused: 1 }, "Porto");
+    expect(lastShown().message).toBe("Nothing moved: 1 photo stayed where it was.");
+  });
+
+  it("shows the server's reason for a refused move, else a plain one", () => {
+    notification.photosMoveFailed("The folder is not in your library.");
+    expect(lastShown()).toMatchObject({ color: "red", message: "The folder is not in your library." });
+    notification.photosMoveFailed(null);
+    expect(lastShown().message).toBe("The photos could not be moved.");
+    notification.movePhotosStarted();
+    expect(lastShown().message).toBe("The photos are moving in the background.");
+  });
+});

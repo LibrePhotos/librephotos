@@ -30,17 +30,17 @@ import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
 import { PersonRemovePhotosModal } from "../album/PersonRemovePhotosModal";
 import { DisabledReason } from "../common/DisabledReason";
-import { BulkLocationModal } from "../map/BulkLocationModal";
 import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
-import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import { SelectionFileItems } from "./FileActionItems";
+import { SelectionEditDialogs } from "./SelectionEditDialogs";
 import { SelectionEditItems } from "./SelectionEditItems";
 import { selectionLabel } from "./selectionLabel";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { SelectionVisibilityItems } from "./SelectionVisibilityItems";
 import { StackSelectionActions } from "./StackSelectionActions";
+import { useSelectionEditDialogs } from "./useSelectionEditDialogs";
 
 /** The albums whose cover the selection can set. */
 export type AlbumCoverType = AlbumPageKind;
@@ -135,8 +135,7 @@ export function SelectionActions(props: Readonly<Props>) {
   // Download modal state
   const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
   const [isRemoveFromPersonOpen, { open: openRemoveFromPerson, close: closeRemoveFromPerson }] = useDisclosure(false);
-  const [isDateTimeOpen, { open: openDateTime, close: closeDateTime }] = useDisclosure(false);
-  const [isSetLocationOpen, { open: openSetLocation, close: closeSetLocation }] = useDisclosure(false);
+  const editDialogs = useSelectionEditDialogs();
   const albumPage = albumPageKind(location.pathname);
 
   // In select-all mode the modal can only show an upper bound, because the
@@ -174,14 +173,12 @@ export function SelectionActions(props: Readonly<Props>) {
         onRequestClose={() => closeDownloadModal()}
         onConfirm={handleDownloadConfirm}
       />
-      {/* Mounted while open only: it asks the server for the selection's dates. */}
-      {isDateTimeOpen && (
-        <ChangeDateTimeModal opened onClose={closeDateTime} selection={photoSelection()} onSaved={resetSelection} />
-      )}
-      {/* Mounted only while open: it asks the server about the selection. */}
-      {isSetLocationOpen && (
-        <BulkLocationModal opened onClose={closeSetLocation} selection={photoSelection()} onDone={resetSelection} />
-      )}
+      <SelectionEditDialogs
+        dialogs={editDialogs}
+        selection={photoSelection}
+        onDone={resetSelection}
+        pathname={location.pathname}
+      />
       {albumPage === "person" && (
         <PersonRemovePhotosModal
           opened={isRemoveFromPersonOpen}
@@ -225,8 +222,9 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <SelectionEditItems
             disabledReason={noSelection}
-            onSetLocation={openSetLocation}
-            onChangeDateTime={openDateTime}
+            onSetLocation={editDialogs.location.open}
+            onChangeDateTime={editDialogs.dateTime.open}
+            onMoveToFolder={editDialogs.move.open}
           />
 
           <Menu.Divider />

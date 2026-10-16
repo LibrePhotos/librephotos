@@ -1,20 +1,28 @@
-"""The files behind a photo: detaching the missing ones and removing a photo
-together with the files only it uses.
+"""The files behind a photo: detaching the missing ones, removing a photo
+together with the files only it uses, and moving a photo's files to another
+folder.
 
 Moved out of ``Photo``; every function takes the photo as its first argument.
 """
 
 from __future__ import annotations
 
+import enum
 import logging
 import os
-from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, NamedTuple
+import shutil
+from collections.abc import Callable, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
+from django.db import transaction
+
+from api.metadata.reader import existing_sidecars
+from api.models.file import File, FileCopy
+from api.models.photo_search import PhotoSearch
+from api.photos import indexed_mtimes
 from api.video import transcode_cache
 
 if TYPE_CHECKING:
-    from api.models.file import File
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
@@ -181,3 +189,235 @@ def remove_photos(
         if progress is not None:
             progress(done)
     return Removal(removed, failed)
+
+
+# ------------------------------------------------------------------ moving
+
+#: What to do when a name is taken in the target folder (#352): give the photo's
+#: files a free name (``IMG_1 (1).jpg``), or leave the photo where it is. A file
+#: in the target folder is never overwritten.
+OnConflict = Literal["rename", "skip"]
+
+#: How many `` (n)`` suffixes a rename tries before it gives up.
+MAX_RENAME_ATTEMPTS = 999
+
+
+class MoveOutcome(enum.Enum):
+    """What ``move_photo_files`` did with a photo."""
+
+    MOVED = "moved"
+    #: A name was taken in the target folder and ``on_conflict`` said skip.
+    SKIPPED = "skipped"
+    #: The photo already is in the target folder.
+    UNCHANGED = "unchanged"
+
+
+class MoveError(Exception):
+    """A photo's files could not be moved; what had moved was moved back."""
+
+
+def path_key(path: str) -> str:
+    """``path`` as the file system compares it: absolute, normalised, case-folded on Windows."""
+    return os.path.normcase(os.path.normpath(os.path.abspath(path)))
+
+
+def photo_folder(photo: Photo) -> str:
+    """The folder the photo's main file is in."""
+    assert photo.main_file is not None
+    return os.path.dirname(photo.main_file.path)
+
+
+def files_to_move(photo: Photo) -> list[str]:
+    """The files that move with ``photo``, as their paths, each once.
+
+    Every file of the photo in its main file's folder that is on disk (the
+    main file, RAW and JPEG variants, a Live Photo video, attached XMP
+    sidecars), plus the XMP sidecars of each of those on disk, in both
+    naming conventions (``IMG.xmp``, ``IMG.jpg.xmp``, #2505) even when they
+    have no row. A file elsewhere, such as a Motion Photo video extracted
+    into ``protected_media``, is not part of the library folder and stays.
+    """
+    assert photo.main_file is not None
+    folder = path_key(photo_folder(photo))
+    found: dict[str, str] = {}
+    for file in [photo.main_file, *photo.files.all()]:
+        if path_key(os.path.dirname(file.path)) != folder:
+            continue
+        if not os.path.isfile(file.path):
+            continue
+        found.setdefault(path_key(file.path), file.path)
+        if file.type == File.METADATA_FILE:
+            continue
+        for sidecar in existing_sidecars(file.path):
+            found.setdefault(path_key(sidecar), sidecar)
+    return sorted(found.values())
+
+
+def _renamed(name: str, stem: str, suffix: str) -> str:
+    """``name`` with ``suffix`` added after the photo's ``stem``.
+
+    ``IMG_1.CR2`` and ``IMG_1.jpg.xmp`` of a photo whose main file is
+    ``IMG_1.jpg`` become ``IMG_1 (1).CR2`` and ``IMG_1 (1).jpg.xmp``, so
+    the scan still groups them as one photo.
+    """
+    if not suffix:
+        return name
+    if name.lower().startswith(stem.lower()):
+        return name[: len(stem)] + suffix + name[len(stem) :]
+    base, extension = os.path.splitext(name)
+    return base + suffix + extension
+
+
+def move_destinations(
+    photo: Photo, sources: Collection[str], target_dir: str, suffix: str = ""
+) -> dict[str, str]:
+    """Where each of ``sources`` goes in ``target_dir``, with ``suffix`` after the stem."""
+    assert photo.main_file is not None
+    stem = os.path.splitext(os.path.basename(photo.main_file.path))[0]
+    return {
+        source: os.path.join(
+            target_dir, _renamed(os.path.basename(source), stem, suffix)
+        )
+        for source in sources
+    }
+
+
+def is_taken(path: str) -> bool:
+    """Whether a file is at ``path``, or the library has one recorded there."""
+    return (
+        os.path.lexists(path)
+        or File.objects.filter(path=path).exists()
+        or FileCopy.objects.filter(path=path).exists()
+    )
+
+
+def free_destinations(
+    photo: Photo,
+    sources: Collection[str],
+    target_dir: str,
+    reserved: Collection[str] = (),
+) -> dict[str, str] | None:
+    """The first renamed destinations (`` (1)``, `` (2)``, ...) that are all free.
+
+    ``reserved`` holds the ``path_key`` of names another photo of the same
+    move takes. None after ``MAX_RENAME_ATTEMPTS`` tries.
+    """
+    for attempt in range(1, MAX_RENAME_ATTEMPTS + 1):
+        plan = move_destinations(photo, sources, target_dir, f" ({attempt})")
+        if not any(
+            path_key(dest) in reserved or is_taken(dest) for dest in plan.values()
+        ):
+            return plan
+    return None
+
+
+def _plan_move(
+    photo: Photo, sources: list[str], target_dir: str, on_conflict: OnConflict
+) -> dict[str, str] | None:
+    """Where ``sources`` go, renamed if names are taken; None to skip the photo."""
+    plan = move_destinations(photo, sources, target_dir)
+    if not any(is_taken(dest) for dest in plan.values()):
+        return plan
+    if on_conflict == "skip":
+        return None
+    renamed = free_destinations(photo, sources, target_dir)
+    if renamed is None:
+        raise MoveError(f"no free name for photo {photo.image_hash}")
+    return renamed
+
+
+def _move_back(moved: Mapping[str, str]) -> None:
+    """Undo the moves in ``moved`` (source -> destination), newest first."""
+    for source, dest in reversed(list(moved.items())):
+        try:
+            shutil.move(dest, source)
+        except OSError as error:
+            # The file stays at its new path; the next scan finds it there.
+            logger.error(
+                "could not move a file back after a failed move: %s", error.strerror
+            )
+
+
+def _move_on_disk(plan: Mapping[str, str]) -> dict[str, str]:
+    """Move each file of ``plan``; on a failure move the others back and raise."""
+    moved: dict[str, str] = {}
+    try:
+        for source, dest in plan.items():
+            # Checked again right before the move: a file that appeared
+            # since the plan was made is not overwritten.
+            if is_taken(dest):
+                raise MoveError("a file appeared in the target folder")
+            shutil.move(source, dest)
+            moved[source] = dest
+    except OSError as error:
+        _move_back(moved)
+        # strerror, not str(): the paths stay out of the logs and the API.
+        raise MoveError(error.strerror or type(error).__name__) from error
+    except MoveError:
+        _move_back(moved)
+        raise
+    return moved
+
+
+def _record_new_paths(
+    photo: Photo, moved: Mapping[str, str], indexed: Collection[str]
+) -> None:
+    """Point the rows of the moved files at their new paths.
+
+    A media file whose record matched the disk before the move (``indexed``,
+    #2296) gets the times seen at its new path, so the next incremental scan
+    does not read it again: a move is not an outside edit. Its sidecars'
+    keys follow a rename too. One whose record did not match keeps it, and
+    the scan reads it as it would have.
+    """
+    for file in File.objects.filter(path__in=list(moved)):
+        source = file.path
+        file.path = moved[source]
+        fields = ["path"]
+        if source in indexed:
+            seen = indexed_mtimes.observe(file.path)
+            file.indexed_mtime_ns = seen.mtime_ns
+            file.indexed_sidecar_mtimes = dict(seen.sidecars)
+            fields += ["indexed_mtime_ns", "indexed_sidecar_mtimes"]
+        file.save(update_fields=fields)
+    photo.save(update_fields=["last_modified"])
+    search = PhotoSearch.objects.filter(photo=photo).first()
+    if search is not None:
+        # The folder names are searchable: search_captions holds the paths.
+        search.recreate_search_captions()
+        search.save()
+
+
+def move_photo_files(
+    photo: Photo, target_dir: str, on_conflict: OnConflict
+) -> MoveOutcome:
+    """Move every file of ``photo`` (``files_to_move``) into ``target_dir``.
+
+    All or nothing: when one file cannot be moved, or the rows cannot be
+    updated, the files already moved go back and ``MoveError`` is raised.
+    Names taken in ``target_dir`` are renamed or skip the photo as
+    ``on_conflict`` says; nothing is overwritten. The ``File`` rows follow
+    (``File.path``, the scan's record of their times), ``last_modified`` is
+    bumped for the sync feed, and thumbnails, named after the image hash,
+    stay linked. ``target_dir`` must exist; the caller checked that it is
+    inside the owner's library.
+    """
+    sources = files_to_move(photo)
+    if not sources:
+        raise MoveError(f"the files of photo {photo.image_hash} are not on disk")
+    if path_key(photo_folder(photo)) == path_key(target_dir):
+        return MoveOutcome.UNCHANGED
+    plan = _plan_move(photo, sources, target_dir, on_conflict)
+    if plan is None:
+        return MoveOutcome.SKIPPED
+    indexed = set(indexed_mtimes.as_indexed(sources))
+    moved = _move_on_disk(plan)
+    try:
+        with transaction.atomic():
+            _record_new_paths(photo, moved, indexed)
+    except Exception as error:
+        logger.exception("photo %s: could not record its new paths", photo.image_hash)
+        _move_back(moved)
+        raise MoveError("the new paths could not be recorded") from error
+    logger.info("moved photo %s (%s files)", photo.image_hash, len(moved))
+    return MoveOutcome.MOVED

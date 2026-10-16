@@ -6168,6 +6168,154 @@
         }
       }
     },
+    "/api/photos/move/": {
+      "post": {
+        "operationId": "api_photos_move_create",
+        "description": "Move the selected photos, with all their files, to ``target_folder``.\n\nOnly the requester's own photos, only inside their library folders.\nWithout ``on_conflict`` a taken name is a 409 ``name_conflict`` and\nnothing moves. Up to ``SYNC_MOVE_LIMIT`` photos move within the request\n(200 with the counts); more queue the \"Move Photos\" job (202). A scan of\nthe library running meanwhile is a 409 ``scan_running``: it reads the\npaths a move changes.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePhotosRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePhotosRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePhotosRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovePhotosResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovePhotosStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/move/folders/": {
+      "get": {
+        "operationId": "api_photos_move_folders_retrieve",
+        "description": "The folders of the requester's library a move can go to, one level at\na time: without ``path`` the library folders (scan directory, upload\nfolder), with it the subfolders of that folder. Folders the scan skips\nare left out. A ``path`` outside the library is a 400, checked before\nanything about it is read.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "The folder to list; without it the library folders themselves"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolderListing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/move/preview/": {
+      "post": {
+        "operationId": "api_photos_move_preview_create",
+        "description": "What moving the selected photos to ``target_folder`` would do: the\nphotos and files that move, those already there or refused, and each name\nthat is taken there with the name \"rename\" would give it. A POST because a\nselection can be a whole query; it changes nothing.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePreviewRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePreviewRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePreviewRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovePreviewResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/no-album/": {
       "get": {
         "operationId": "api_photos_no_album_list",
@@ -14694,10 +14842,11 @@
           26,
           27,
           28,
-          29
+          29,
+          30
         ],
         "type": "integer",
-        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names"
+        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names\n* `30` - Move Photos"
       },
       "KindEnum": {
         "enum": [
@@ -14718,6 +14867,51 @@
         },
         "required": [
           "album_id"
+        ]
+      },
+      "LibraryFolder": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "has_subfolders": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "has_subfolders",
+          "name",
+          "path"
+        ]
+      },
+      "LibraryFolderListing": {
+        "type": "object",
+        "description": "The folders a move can go to, one level at a time.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": true,
+            "description": "The folder listed; null for the library folders"
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryFolder"
+            }
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "More subfolders exist than were listed"
+          }
+        },
+        "required": [
+          "folders",
+          "path",
+          "truncated"
         ]
       },
       "ListedStackTypeEnum": {
@@ -15455,6 +15649,226 @@
           "read_only",
           "type"
         ]
+      },
+      "MoveClash": {
+        "type": "object",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The main file's name, taken in the folder"
+          },
+          "renamed_to": {
+            "type": "string",
+            "nullable": true,
+            "description": "The name \"rename\" gives it; null when no free name was found"
+          }
+        },
+        "required": [
+          "name",
+          "photo_id",
+          "renamed_to"
+        ]
+      },
+      "MoveOnConflictEnum": {
+        "enum": [
+          "rename",
+          "skip"
+        ],
+        "type": "string",
+        "description": "* `rename` - rename\n* `skip` - skip"
+      },
+      "MovePhotosRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and where they go.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "target_folder": {
+            "type": "string",
+            "minLength": 1,
+            "description": "An absolute folder inside the requester's library; it is created when it does not exist"
+          },
+          "on_conflict": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoveOnConflictEnum"
+              }
+            ],
+            "description": "\"rename\" gives a photo whose name is taken a free one (\"IMG_1 (1).jpg\"), \"skip\" leaves it where it is. Without it a taken name is a 409 name_conflict and nothing moves. A file in the folder is never overwritten\n\n* `rename` - rename\n* `skip` - skip"
+          }
+        },
+        "required": [
+          "target_folder"
+        ]
+      },
+      "MovePhotosResponse": {
+        "type": "object",
+        "description": "What the move did, in photos (200: the move ran in the request).",
+        "properties": {
+          "target_folder": {
+            "type": "string"
+          },
+          "moved": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer",
+            "description": "Left in place: a name was taken (\"skip\")"
+          },
+          "unchanged": {
+            "type": "integer",
+            "description": "Already in the folder"
+          },
+          "refused": {
+            "type": "integer",
+            "description": "Photos that cannot move"
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Photos whose files could not be moved; they stay where they were"
+          }
+        },
+        "required": [
+          "failed",
+          "moved",
+          "refused",
+          "skipped",
+          "target_folder",
+          "unchanged"
+        ]
+      },
+      "MovePhotosStartedResponse": {
+        "type": "object",
+        "description": "202: more photos than a request moves; the \"Move Photos\" job does it.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "target_folder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "target_folder"
+        ]
+      },
+      "MovePreviewRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and where they go.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "target_folder": {
+            "type": "string",
+            "minLength": 1,
+            "description": "An absolute folder inside the requester's library; it is created when it does not exist"
+          }
+        },
+        "required": [
+          "target_folder"
+        ]
+      },
+      "MovePreviewResponse": {
+        "type": "object",
+        "description": "What a move to ``target_folder`` would do; nothing changed yet.",
+        "properties": {
+          "target_folder": {
+            "type": "string",
+            "description": "The folder, normalised"
+          },
+          "photos": {
+            "type": "integer",
+            "description": "Photos that would move"
+          },
+          "files": {
+            "type": "integer",
+            "description": "Their files, variants and XMP sidecars included"
+          },
+          "unchanged": {
+            "type": "integer",
+            "description": "Photos already in the folder"
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefusedCount"
+            },
+            "description": "Photos that cannot move"
+          },
+          "clashes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MoveClash"
+            },
+            "description": "Photos whose name is taken in the folder"
+          }
+        },
+        "required": [
+          "clashes",
+          "files",
+          "photos",
+          "refused",
+          "target_folder",
+          "unchanged"
+        ]
+      },
+      "MoveRefusalReasonEnum": {
+        "enum": [
+          "nextcloud",
+          "shared_file",
+          "not_on_disk"
+        ],
+        "type": "string",
+        "description": "* `nextcloud` - nextcloud\n* `shared_file` - shared_file\n* `not_on_disk` - not_on_disk"
       },
       "NullEnum": {
         "enum": [
@@ -19268,6 +19682,26 @@
         "required": [
           "date",
           "results"
+        ]
+      },
+      "RefusedCount": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoveRefusalReasonEnum"
+              }
+            ],
+            "description": "nextcloud: a local copy of a Nextcloud file; shared_file: a file another photo also uses; not_on_disk: its files are missing\n\n* `nextcloud` - nextcloud\n* `shared_file` - shared_file\n* `not_on_disk` - not_on_disk"
+          },
+          "photos": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "photos",
+          "reason"
         ]
       },
       "RemoveFromStackResponse": {

@@ -20,6 +20,7 @@ export * from "./server";
 export * from "./folders";
 export * from "./geocode";
 export * from "./photoLocations";
+export * from "./photoMoves";
 export * from "./diagnostics";
 export * from "./memories";
 export * from "./sync";

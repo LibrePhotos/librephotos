@@ -73,6 +73,32 @@ The items are only shown for your own photos, not for photos someone shared with
 
 Scan progress is shown in the [Job System](./job-system.md). The scan is split into smaller tasks, prioritizing thumbnail creation so photos appear in the UI quickly while heavier processing (faces, things) happens in the background.
 
+## Moving photos to another folder
+
+<Since version="1.4.0" />
+
+You can move your own photos to another folder of your library without leaving LibrePhotos. Select the photos and choose **Move to folder…** in the photo actions menu (⋮), or open a photo and choose **More → Move to folder…**.
+
+The dialog shows the folders of your library: your scan directory and, when it is set elsewhere, your upload folder. Folders the scan skips (hidden folders and the ones matching the skip patterns) are not listed, and you cannot move photos outside your library. Pick a folder in the tree or type its full path. **New folder** names a folder inside the one you picked; it is made when the photos move.
+
+Before you move, the dialog says how many photos and files move and which photos stay where they are:
+
+- photos already in that folder;
+- local copies of Nextcloud files, which the next Nextcloud scan would download again to the old place;
+- photos that share a file with another photo;
+- photos whose files are missing on disk.
+
+A photo moves with all its files: the main file, its RAW or JPEG variant, a Live Photo's video and its XMP sidecars (both `IMG_1.xmp` and `IMG_1.jpg.xmp`). It moves completely or not at all: if one file cannot be moved, the others are put back. A Motion Photo video that LibrePhotos extracted into its own data folder stays there.
+
+If a file with the same name is already in the folder, a second dialog lists the names and lets you choose:
+
+- **Rename, keep both**: the moved photo gets a free name, such as `IMG_1 (1).jpg`, for all its files, so they still belong together.
+- **Skip**: those photos stay where they are.
+
+A file in the folder is never overwritten.
+
+Albums, faces, tags, ratings and sharing stay with the photo, and the folder views show it in its new folder right away. The next scan does not read a moved photo again. A selection of more than 100 photos moves in the background as a **Move Photos** job (see [Job System](./job-system.md)); a move cannot start while a scan of your library runs.
+
 ## Nextcloud Integration
 
 If you have a Nextcloud instance, you can scan photos directly from it without manually transferring files.

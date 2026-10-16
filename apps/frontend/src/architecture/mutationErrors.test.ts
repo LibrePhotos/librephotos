@@ -15,6 +15,10 @@ const LOCAL_ON_ERROR = new Map<string, string>([
   ["/src/components/facedashboard/hooks/useFaceActions.ts", "undims the face it acted on; the toast reports"],
   ["/src/components/lightbox/CategoryBadge.tsx", "drops the optimistic badge; the hook reports"],
   ["/src/components/lightbox/usePhotoRotation.ts", "undoes the preview rotation; the toast reports"],
+  [
+    "/src/components/movephotos/MovePhotosModal.tsx",
+    "opens the name clash dialog on a 409; the hook's own onError reports every other failure",
+  ],
   ["/src/components/settings/useSaveSiteSettings.ts", "reloads the settings; the toast reports"],
   ["/src/hooks/useCopyPhotoToClipboard.ts", "its own useMutation onError, which the cache sees"],
 ]);
