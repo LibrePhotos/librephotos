@@ -99,6 +99,16 @@ services:
       - VIDEO_PREVIEW_CRF=${videoPreviewCrf:-20}
       - STUCK_JOB_HOURS=${stuckJobHours:-24}
       - DEBUG=0
+    # 200 once LibrePhotos serves. Until then the start-up page answers 503
+    # (updating, starting, or failed and why), so `docker compose ps` says
+    # "starting" while the database updates and "unhealthy" after a failure.
+    healthcheck:
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/healthz/ready')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Updating the database after a release can take a while.
+      start_period: 15m
     depends_on:
       db:
         condition: service_healthy

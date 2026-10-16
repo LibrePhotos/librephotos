@@ -50,6 +50,17 @@ _.has_add_permission  # method in api/admin.py (LongRunningJobAdmin)
 _.has_change_permission  # method in api/admin.py (LongRunningJobAdmin)
 _.megapixels  # property in api/models/photo_metadata.py (serializer ReadOnlyField)
 
+# http.server's BaseHTTPRequestHandler calls "do_" + the request's method by
+# name, and version_string for the Server header (librephotos/startup_page.py).
+_.do_GET
+_.do_HEAD
+_.do_POST
+_.do_PUT
+_.do_PATCH
+_.do_DELETE
+_.do_OPTIONS
+_.version_string
+
 # Test hooks that reset module-level caches between tests.
 _.reset_probe_cache  # function in api/video/ffmpeg_budget.py
 _.reset_for_tests  # function in api/geocode/rate_limit.py

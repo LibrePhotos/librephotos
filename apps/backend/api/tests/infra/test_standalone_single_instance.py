@@ -217,6 +217,17 @@ class StartupStatusTest(SimpleTestCase):
             patch.object(
                 startup, "show_tray", side_effect=lambda url: order.append("tray")
             ),
+            patch.object(
+                startup,
+                "show_page",
+                side_effect=lambda host, port: order.append("page"),
+            ),
+            patch("webbrowser.open", side_effect=lambda url: order.append("browser")),
+            patch.object(
+                startup,
+                "set_phase",
+                side_effect=lambda *phase: order.append(phase),
+            ),
             patch.object(startup, "notify") as notify,
             patch.object(startup, "status") as status,
             patch.object(standalone, "run_teed", side_effect=teed),
@@ -224,15 +235,46 @@ class StartupStatusTest(SimpleTestCase):
             patch.object(standalone, "_shutdown"),
         ):
             try:
-                standalone.run_server("127.0.0.1", 8000, False, True, startup)
+                standalone.run_server(
+                    "127.0.0.1", 8000, self.open_browser, True, startup
+                )
             except RuntimeError:
                 pass
         return order, notify, status, setup
 
+    open_browser = False
+
     def test_the_icon_comes_before_the_backup_and_migrate(self):
         order, _, _, _ = self.start([], [])
         self.assertEqual(order[0], "tray")
-        self.assertEqual(order[1:], ["backup_database", "migrate"])
+        self.assertEqual(
+            order[1:], ["page", "backup_database", "migrate", ("starting",)]
+        )
+
+    def test_the_browser_opens_on_the_start_up_page_at_once(self):
+        # #2310: before migrate, not once the server answers.
+        self.open_browser = True
+        order, _, _, _ = self.start([], [])
+        self.assertEqual(order[:4], ["tray", "page", "browser", "backup_database"])
+
+    def test_the_page_says_updating_while_migrations_run(self):
+        applying = ["  Applying api.0160_x... OK\n", "  Applying api.0161_x... OK\n"]
+        order, _, _, _ = self.start(BACKUP_BEFORE_UPDATE, applying)
+        phases = [step for step in order if isinstance(step, tuple)]
+        # Once for the backup's report, once for the first migration.
+        self.assertEqual(phases, [("updating",), ("updating",), ("starting",)])
+
+    def test_a_first_start_says_updating_from_its_first_migration(self):
+        order, _, _, _ = self.start(
+            ["The database is new: nothing to back up."],
+            ["  Applying api.0001_squashed_0100... OK\n"],
+        )
+        self.assertLess(order.index(("updating",)), order.index(("starting",)))
+
+    def test_nothing_to_migrate_stays_starting(self):
+        order, _, _, _ = self.start([], ["No migrations to apply.\n"])
+        phases = [step for step in order if isinstance(step, tuple)]
+        self.assertEqual(phases, [("starting",)])
 
     def test_an_update_says_so_once_and_counts(self):
         applying = [f"  Applying api.016{n}_x... OK\n" for n in range(3)]

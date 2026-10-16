@@ -190,9 +190,7 @@ class ServerExitTest(SimpleTestCase):
             patch("api.runtime.ports.port_owner", return_value=PortOwner(9, "x.exe")),
         ):
             try:
-                standalone._serve(
-                    server, cluster, "http://x/", False, standalone.Startup()
-                )
+                standalone._serve(server, cluster, "http://x/", standalone.Startup())
             finally:
                 shutdown.assert_called_once_with(cluster)
 
@@ -232,6 +230,4 @@ class ServerExitTest(SimpleTestCase):
             patch.object(standalone, "_shutdown"),
             self.assertRaises(SystemExit),
         ):
-            standalone._serve(
-                server, object(), "http://x/", False, standalone.Startup()
-            )
+            standalone._serve(server, object(), "http://x/", standalone.Startup())

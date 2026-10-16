@@ -105,7 +105,7 @@ services:
       - FEATURE_REVERSE_GEOCODING=false
       - DEBUG=0
     healthcheck:
-      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/healthz')"
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/healthz/ready')"
       interval: 5s
       timeout: 5s
       retries: 24

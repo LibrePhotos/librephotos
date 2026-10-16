@@ -17,6 +17,10 @@
   Renovate pins the versions (the base images' ``--upgrade pip`` excepted).
 * The frontend build stages of ``frontend/Dockerfile`` and ``unified/Dockerfile``
   have the same instructions.
+* The start-up page (#2310) holds the backend port from before the backup and
+  the migration until right before uvicorn, and the compose healthchecks and
+  the e2e seed wait for ``/api/healthz/ready``: ``/api/healthz`` answers from
+  the first seconds, so it no longer means "migrated and serving".
 
 The checks read files only and skip without the repository checkout (inside the
 backend image); the detectors are tested on planted text.
@@ -68,6 +72,17 @@ FRONTEND_BUILDERS = (
     "deploy/docker/frontend/Dockerfile",
     "deploy/docker/unified/Dockerfile",
 )
+
+# The compose files whose backend has a healthcheck, and that service's name.
+READINESS_CHECKED = {
+    "deploy/compose/docker-compose.yml": "backend",
+    "deploy/compose/docker-compose.unified.yml": "backend",
+    "deploy/compose/docker-compose.e2e.yml": "e2e-backend",
+}
+READINESS_URL = "http://localhost:8001/api/healthz/ready"
+E2E_ENTRYPOINT = "deploy/e2e/entrypoint.sh"
+# /api/healthz not followed by /ready: the liveness probe.
+_LIVENESS_URL = re.compile(r"/api/healthz(?!/ready)\b")
 
 _PIP_INSTALL = re.compile(r"\bpip3?\s+install\b([^;&|\n]*)")
 _REQUIREMENTS_FILE = re.compile(r"^requirements(\.[a-z]+)?\.txt$")
@@ -154,6 +169,35 @@ def direct_pip_packages(dockerfile: str) -> list[str]:
 def frontend_builder(dockerfile: str) -> tuple[str, list[tuple[str, str]]]:
     image, _, instructions = dockerfile_stages(dockerfile)[0]
     return image, instructions
+
+
+def _code_lines(script: str) -> list[str]:
+    stripped = (line.strip() for line in script.splitlines())
+    return [line for line in stripped if line and not line.startswith("#")]
+
+
+def _first(lines: list[str], pattern: str) -> int | None:
+    return next((i for i, line in enumerate(lines) if re.search(pattern, line)), None)
+
+
+def startup_page_problems(script: str) -> list[str]:
+    """How an entrypoint breaks the start-up page's hold on the port (#2310)."""
+    lines = _code_lines(script)
+    serve = _first(lines, r"librephotos\.startup_page serve\b.*&$")
+    stop = _first(lines, r"^stop_startup_page$")
+    uvicorn = _first(lines, r"^uvicorn\b")
+    if serve is None or stop is None or uvicorn is None:
+        return ["starts no start-up page in the background, or never stops it"]
+    problems = []
+    for step in ("backup_database", "migrate", "showmigrations"):
+        first = _first(lines, rf"manage\.py {step}\b")
+        if first is not None and first < serve:
+            problems.append(f"{step} runs before the start-up page")
+    if not serve < stop < uvicorn:
+        problems.append("the start-up page is not stopped right before uvicorn")
+    elif any("manage.py" in line for line in lines[stop:uvicorn]):
+        problems.append("a manage.py command runs between the page and uvicorn")
+    return problems
 
 
 def workflow_path_filters(workflow_text: str) -> list[list[str]]:
@@ -269,6 +313,35 @@ class DeployImageDetectionTest(SimpleTestCase):
             frontend_builder(a), frontend_builder(a.replace("/src", "/app"))
         )
 
+    def test_the_start_up_page_must_cover_backup_and_migrate(self):
+        good = (
+            "python -m librephotos.startup_page serve --port 8001 &\n"
+            "python manage.py showmigrations\n"
+            "python manage.py backup_database\n"
+            "python manage.py migrate\n"
+            "python manage.py qcluster &\n"
+            "# stop_startup_page\n"
+            "stop_startup_page\n"
+            "uvicorn app\n"
+        )
+        self.assertEqual([], startup_page_problems(good))
+        late = "python manage.py migrate\n" + good
+        self.assertEqual(
+            ["migrate runs before the start-up page"], startup_page_problems(late)
+        )
+        gap = good.replace(
+            "stop_startup_page\n", "stop_startup_page\npython manage.py clear_cache\n"
+        )
+        self.assertEqual(
+            ["a manage.py command runs between the page and uvicorn"],
+            startup_page_problems(gap),
+        )
+        early = good.replace("stop_startup_page\n", "").replace(
+            "&\n", "&\nstop_startup_page\n", 1
+        )
+        self.assertEqual(1, len(startup_page_problems(early)))
+        self.assertEqual(1, len(startup_page_problems("uvicorn app\n")))
+
     def test_workflow_paths_must_cover_the_entrypoint(self):
         workflow = (
             "on:\n  push:\n    paths:\n      - 'deploy/docker/unified/**'\n"
@@ -376,6 +449,28 @@ class DeployImagesTest(SimpleTestCase):
             if package not in DIRECT_PIP_PACKAGES.get(path, set())
         ]
         self.assertEqual([], problems)
+
+    def test_the_start_up_page_holds_the_port_until_uvicorn(self):
+        self.assertEqual(
+            [], startup_page_problems(BACKEND_ENTRYPOINT.read_text(encoding="utf-8"))
+        )
+
+    def test_healthchecks_wait_for_readiness(self):
+        for path, name in READINESS_CHECKED.items():
+            with self.subTest(path=path):
+                compose = load_compose((REPO_ROOT / path).read_text(encoding="utf-8"))
+                service = (compose.get("services") or {})[name]
+                self.assertIn(READINESS_URL, str(service["healthcheck"]["test"]))
+
+    def test_nothing_waits_for_liveness_to_mean_ready(self):
+        """The e2e files waited for /api/healthz to mean "migrated and serving"."""
+        for path in (*READINESS_CHECKED, E2E_ENTRYPOINT):
+            with self.subTest(path=path):
+                text = (REPO_ROOT / path).read_text(encoding="utf-8")
+                self.assertIsNone(_LIVENESS_URL.search(text))
+        self.assertIn(
+            READINESS_URL, (REPO_ROOT / E2E_ENTRYPOINT).read_text(encoding="utf-8")
+        )
 
     def test_frontend_builder_stages_match(self):
         dockerfiles = self.dockerfiles()

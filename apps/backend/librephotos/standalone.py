@@ -35,7 +35,7 @@ from collections import deque
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
-from librephotos import instance_lock
+from librephotos import instance_lock, startup_page
 
 if TYPE_CHECKING:
     # Only for annotations: the GUI and the server modules are imported lazily
@@ -379,20 +379,6 @@ def child_command(*args: str, role: str | None = None) -> list[str]:
     return [executable, *args]
 
 
-def _open_browser_when_up(url: str, timeout: float = 120) -> None:
-    import requests
-
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        try:
-            if requests.get(f"{url}api/healthz", timeout=2).status_code < 500:
-                break
-        except requests.RequestException:
-            pass
-        time.sleep(1)
-    webbrowser.open(url)
-
-
 # The job object of _take_children_down_with_us, once it holds this process.
 _job_handles: list[int] = []
 # JobObjectBasicProcessIdList; room for more processes than LibrePhotos starts.
@@ -584,8 +570,9 @@ class StartupCancelledError(Exception):
 
 
 class Startup:
-    """One start of LibrePhotos: its tray icon, the start-up child it waits
-    for, the server once there is one, and whether Quit was chosen.
+    """One start of LibrePhotos: its tray icon, the start-up page, the
+    start-up child it waits for, the server once there is one, and whether
+    Quit was chosen.
 
     The tray exists from the first second, so Quit has to work before there
     is a server to stop (#2316): it terminates the running migrate (or backup)
@@ -595,6 +582,8 @@ class Startup:
     def __init__(self) -> None:
         self.tray: Tray | None = None
         self.server: uvicorn.Server | None = None
+        self.page: startup_page.StartupPage | None = None
+        self.phase = startup_page.PhaseHolder()
         self._child: subprocess.Popen[str] | None = None
         self._cancelled = threading.Event()
         self._lock = threading.Lock()
@@ -620,6 +609,31 @@ class Startup:
         except Exception as error:
             # pystray missing, no desktop session: LibrePhotos runs anyway.
             print(f"No notification area icon: {error!r}", flush=True)
+
+    def show_page(self, host: str, port: int) -> None:
+        """Answer on the server's port with the start-up page (#2310) until
+        the server takes it over, so the browser can open on it at once."""
+        try:
+            self.page = startup_page.serve_in_thread(
+                host,
+                port,
+                self.phase,
+                serve_frontend=True,
+                version=os.environ.get("IMAGE_TAG"),
+            )
+        except OSError as error:
+            # Taken between check_port and here.
+            raise StartupError(port_unavailable_message(port, error)) from error
+
+    def close_page(self) -> None:
+        """Free the port for the server."""
+        if self.page is not None:
+            self.page.stop()
+            self.page = None
+
+    def set_phase(self, status: str, reason_code: str | None = None) -> None:
+        """What the start-up page says (startup_page.STATUSES)."""
+        self.phase.set(status, reason_code)
 
     def status(self, text: str) -> None:
         print(f"LibrePhotos: {text}", flush=True)
@@ -654,6 +668,7 @@ class Startup:
             raise StartupCancelledError
 
     def close(self) -> None:
+        self.close_page()
         if self.tray is not None:
             self.tray.stop()
             self.tray = None
@@ -676,6 +691,7 @@ class MigrationProgress:
             return
         self.done += 1
         if self.done == 1:
+            self.startup.set_phase(startup_page.UPDATING)
             self.startup.notify(*(NOTICE_UPDATE if self.total else NOTICE_SETUP))
         if self.total:
             done = min(self.done, self.total)
@@ -714,7 +730,12 @@ _FAILURE_TAIL_LINES = 200
 
 
 class StartupError(Exception):
-    """A start-up step failed. The message is the whole text for the user."""
+    """A start-up step failed. The message is the whole text for the user;
+    ``reason_code`` is what the start-up page may say about it (#2310)."""
+
+    def __init__(self, message: str, reason_code: str = startup_page.UNKNOWN) -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 def failure_detail(lines: Sequence[str]) -> str | None:
@@ -787,7 +808,10 @@ def run_startup_step(
     if returncode == 0:
         return lines
     detail = failure_detail(lines)
-    raise StartupError(f"{failure}\n\n{detail}" if detail else failure)
+    raise StartupError(
+        f"{failure}\n\n{detail}" if detail else failure,
+        startup_page.reason_code(lines),
+    )
 
 
 def port_unavailable_message(port: int, error: OSError | None) -> str:
@@ -896,6 +920,10 @@ def run_server(
     The data folder's lock comes first (#2316): a second start from the same
     folder touches neither console.log, nor the database, nor any process,
     and only waits for the first one to answer.
+
+    From the port check on, the start-up page answers on the port (#2310),
+    so the browser opens at once and says "LibrePhotos is updating" (or why
+    it failed) instead of waiting for the server.
     """
     import django
 
@@ -922,8 +950,12 @@ def run_server(
     check_port(host, port)
     if tray:
         startup.show_tray(url)
+    startup.show_page(host, port)
+    if open_browser:
+        webbrowser.open(url)
     _take_children_down_with_us()
     prepare_database(startup)
+    startup.set_phase(startup_page.STARTING)
     startup.status(STATUS_SERVICES)
     django.setup()
     try:
@@ -952,7 +984,7 @@ def run_server(
     )
     cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
     startup.server = server
-    _serve(server, cluster, url, open_browser, startup)
+    _serve(server, cluster, url, startup)
 
 
 def _wait_for_other_instance(
@@ -1037,6 +1069,7 @@ def prepare_database(startup: Startup | None = None) -> None:
     )
     total = pending_migration_count(lines)
     if total:
+        startup.set_phase(startup_page.UPDATING)
         startup.status(STATUS_DATABASE_UPDATE.format(done=0, total=total))
     run_startup_step(
         ["migrate", "--noinput"],
@@ -1050,10 +1083,12 @@ def _serve(
     server: uvicorn.Server,
     cluster: subprocess.Popen[bytes],
     url: str,
-    open_browser: bool,
     startup: Startup,
 ) -> None:
-    """Run the API server until it stops; then stop the rest."""
+    """Run the API server until it stops; then stop the rest.
+
+    The start-up page gives the port up only now; the browser that opened on
+    it reloads into the app once the server answers."""
     stopped = threading.Event()
     try:
         _set_console_title(f"LibrePhotos - {url} - close this window to stop")
@@ -1063,10 +1098,7 @@ def _serve(
             args=(server, url, startup, stopped),
             daemon=True,
         ).start()
-        if open_browser:
-            threading.Thread(
-                target=_open_browser_when_up, args=(url,), daemon=True
-            ).start()
+        startup.close_page()
         try:
             server.run()
         except SystemExit:
@@ -1198,17 +1230,21 @@ def main(argv: list[str] | None = None) -> None:
             print("LibrePhotos was quit while it was starting", flush=True)
         except StartupError as error:
             # The child's own output, already in the console or console.log,
-            # is the traceback; the message box gets the plain reason.
+            # is the traceback; the message box gets the plain reason, and
+            # the start-up page in the browser its reason code.
+            startup.set_phase(startup_page.FAILED, error.reason_code)
             _report_failure(str(error))
             raise SystemExit(1) from error
         except Exception as error:
             import traceback
 
             traceback.print_exc()
+            startup.set_phase(startup_page.FAILED)
             _report_failure(f"LibrePhotos could not start: {error}")
             raise SystemExit(1) from error
         finally:
-            # After the message box: the icon stays while it is open.
+            # After the message box: the icon and the failure page stay
+            # while it is open.
             startup.close()
 
 

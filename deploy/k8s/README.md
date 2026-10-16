@@ -55,7 +55,7 @@ The backend exposes four unauthenticated endpoints. They live under `/api/` beca
 
 | Endpoint | Meaning |
 | --- | --- |
-| `/api/healthz` | The process is up. Never touches the database, so a database outage does not get the pod killed. Used as the startup and liveness probes. |
+| `/api/healthz` | The process is up. Never touches the database, so a database outage does not get the pod killed. Used as the startup and liveness probes. While the backend migrates and starts, a start-up page answers it with `200`, and every other `/api/` path with `503` and `{"status": "starting" \| "updating" \| "failed"}`. |
 | `/api/healthz/postgresql` | PostgreSQL answers a trivial query. |
 | `/api/healthz/queue` | The django-q2 broker is reachable. |
 | `/api/healthz/ready` | Both of the above are healthy. Used as the readiness probe. |
