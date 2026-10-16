@@ -217,3 +217,61 @@ describe("zip downloads", () => {
     ]);
   });
 });
+
+describe("upgrade tasks (#2322)", () => {
+  const task = {
+    key: "probe_videos",
+    kind: "action",
+    optional: true,
+    status: "running",
+    count: 120,
+    progress_current: 40,
+    progress_target: 120,
+    latest_job_id: 7,
+    error: null,
+    completed_at: null,
+  };
+
+  it("reads the card's tasks", async () => {
+    const { client, requests } = fakeServer({ tasks: [task] });
+    const answer = await endpoints.fetchUpgradeTasks(client);
+    expect(defined(requests[0]).url).toBe(`${API}/upgrade-tasks/`);
+    expect(answer.tasks).toEqual([task]);
+  });
+
+  it("refuses a status this client does not know", async () => {
+    const { client } = fakeServer({ tasks: [{ ...task, status: "paused" }] });
+    await expect(endpoints.fetchUpgradeTasks(client)).rejects.toBeInstanceOf(ResponseParseError);
+  });
+
+  it("starts a task, and follows its job when it already runs", async () => {
+    const { client, requests } = fakeServer({
+      status: true,
+      job_id: "j1",
+      job_ids: ["j1"],
+    });
+    const answer = await endpoints.startUpgradeTask(client, "probe_videos");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/upgrade-tasks/probe_videos/start/`,
+      method: "POST",
+    });
+    expect(answer.job_id).toBe("j1");
+
+    const running = fakeServer(alreadyRunning, 409);
+    await expect(endpoints.startUpgradeTask(running.client, "probe_videos")).resolves.toEqual({
+      status: true,
+      job_id: "j0",
+      already_running: true,
+    });
+  });
+
+  it("dismisses an optional task and reads the tasks left", async () => {
+    const { client, requests } = fakeServer({ tasks: [] });
+    const answer = await endpoints.dismissUpgradeTask(client, "probe_videos");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/upgrade-tasks/probe_videos/dismiss/`,
+      method: "POST",
+    });
+    expect(answer.tasks).toEqual([]);
+  });
+});

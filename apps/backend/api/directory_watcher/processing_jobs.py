@@ -684,19 +684,27 @@ def classify_media(user: User, job_id: UUID) -> None:
         lrj.fail(error=err)
 
 
-def videos_to_probe(user: User) -> QuerySet[Photo]:
-    """The user's videos the scan has never probed: indexed before #2045.
+UNPROBED_VIDEO = Q(
+    video=True,
+    video_color_transfer__isnull=True,
+    main_file__isnull=False,
+    main_file__missing=False,
+    removed=False,
+)
+
+
+def unprobed_videos() -> QuerySet[Photo]:
+    """Every user's videos the scan has never probed: indexed before #2045.
 
     A file flagged missing is left out: probing it can only fail, and counting
     it would queue this job after every scan until the drive comes back.
     """
-    return Photo.objects.owned_by(user).filter(
-        video=True,
-        video_color_transfer__isnull=True,
-        main_file__isnull=False,
-        main_file__missing=False,
-        removed=False,
-    )
+    return Photo.objects.filter(UNPROBED_VIDEO)
+
+
+def videos_to_probe(user: User) -> QuerySet[Photo]:
+    """The user's ``unprobed_videos``."""
+    return Photo.objects.owned_by(user).filter(UNPROBED_VIDEO)
 
 
 def _repair_probed_video(photo: Photo, fields: list[str]) -> None:

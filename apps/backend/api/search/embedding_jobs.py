@@ -205,6 +205,16 @@ def _embed_batches(
             since_rebuild = 0
 
 
+def photos_with_earlier_embeddings() -> QuerySet[Photo]:
+    """Every user's photos whose search embedding comes from an earlier model.
+
+    The semantic search conversion re-embeds them (migration 0152).
+    """
+    return Photo.objects.filter(clip_embeddings__isnull=False).exclude(
+        produced_by_openclip()
+    )
+
+
 def queue_semantic_search_conversion() -> list[int]:
     """Queue the embedding job for every user with an earlier model's embeddings.
 
@@ -213,10 +223,7 @@ def queue_semantic_search_conversion() -> list[int]:
     the index as it goes. Returns the ids of the users queued.
     """
     user_ids: list[int] = list(
-        Photo.objects.filter(clip_embeddings__isnull=False)
-        .exclude(produced_by_openclip())
-        .values_list("owner_id", flat=True)
-        .distinct()
+        photos_with_earlier_embeddings().values_list("owner_id", flat=True).distinct()
     )
     for user in User.objects.filter(pk__in=user_ids):
         enqueue_followup(

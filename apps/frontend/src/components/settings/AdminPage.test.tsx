@@ -5,6 +5,7 @@
  * - Every card has an anchor for the section navigation (#2226).
  * - The users table reads name first, actions last, like the worker jobs table, without the
  *   user's own scene confidence, and a long scan directory stays on one line (#2244).
+ * - The Finish the upgrade card heads the page only while an update left work (#2322).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -28,9 +29,12 @@ type ListedUser = {
 const mocks = vi.hoisted(() => {
   const selfDetails: SelfDetailsResult = { data: undefined, isPending: true };
   const users: ListedUser[] = [];
+  const upgradeTasks: { key: string }[] = [];
   return {
     selfDetails,
     users,
+    upgradeTasks,
+    upgradeTasksEnabled: [] as boolean[],
     // What the theme's sm breakpoint query answers: true is the desktop layout.
     desktop: false,
     deleteAll: vi.fn<(variables: undefined, options?: { onSettled?: () => void }) => void>(),
@@ -52,6 +56,13 @@ vi.mock("../../api_client/user/hooks", () => ({
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => mocks.selfDetails,
 }));
+vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
+  useUpgradeTasksQuery: ({ enabled }: { enabled: boolean }) => {
+    mocks.upgradeTasksEnabled.push(enabled);
+    return { data: enabled ? { tasks: mocks.upgradeTasks } : undefined };
+  },
+}));
+vi.mock("./FinishUpgradeCard", () => ({ FinishUpgradeCard: () => "finish-upgrade-card" }));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../job/JobList", () => ({ JobList: () => null }));
 vi.mock("../modals/ModalUserDelete", () => ({ ModalUserDelete: () => null }));
@@ -89,6 +100,8 @@ let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
   mocks.deleteAll.mockReset();
   mocks.users = [];
+  mocks.upgradeTasks = [];
+  mocks.upgradeTasksEnabled = [];
   mocks.desktop = false;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -170,6 +183,27 @@ describe("AdminPage", () => {
       "#admin-users",
       "#admin-jobs",
     ]);
+  });
+
+  it("puts the Finish the upgrade card first while an update left work (#2322)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    mocks.upgradeTasks = [{ key: "probe_videos" }];
+    await render();
+
+    expect(document.getElementById("admin-upgrade")?.textContent).toBe("finish-upgrade-card");
+    const toc = defined(container.querySelector("nav"), "the section navigation");
+    expect(toc.querySelector("a")?.getAttribute("href")).toBe("#admin-upgrade");
+  });
+
+  it("has no Finish the upgrade card without tasks, and asks for none for a non-admin", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+    expect(document.getElementById("admin-upgrade")).toBeNull();
+
+    mocks.selfDetails = { data: { is_superuser: false }, isPending: false };
+    mocks.upgradeTasksEnabled = [];
+    await render();
+    expect(mocks.upgradeTasksEnabled.every(enabled => !enabled)).toBe(true);
   });
 
   it("offers the thumbnail metadata cleanup among the admin tools (#2321)", async () => {

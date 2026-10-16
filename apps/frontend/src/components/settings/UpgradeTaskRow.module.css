@@ -1,0 +1,41 @@
+/* The rows of the Finish the upgrade card (#2322): a list, one line between tasks. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  padding-block: var(--mantine-spacing-sm);
+}
+
+.row + .row {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* Lines the status mark up with the title's first line. */
+.status {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+/* A running task's mark turns, unless the reader asked for less motion. */
+.spin {
+  animation: upgrade-task-spin 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+@keyframes upgrade-task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

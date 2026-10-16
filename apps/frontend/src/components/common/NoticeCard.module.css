@@ -1,0 +1,19 @@
+/*
+ * The notice cards at the top of the Admin page: what to do after an update (#2322), and the
+ * release and What's new cards that share their look. A thin bar in the card's colour on top.
+ */
+.card {
+  border-top: 3px solid var(--notice-color);
+}
+
+.card[data-color="blue"] {
+  --notice-color: var(--mantine-color-blue-filled);
+}
+
+.card[data-color="grape"] {
+  --notice-color: var(--mantine-color-grape-filled);
+}
+
+.card[data-color="orange"] {
+  --notice-color: var(--mantine-color-orange-filled);
+}

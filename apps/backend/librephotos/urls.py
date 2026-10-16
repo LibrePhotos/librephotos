@@ -80,6 +80,7 @@ from api.views import (
     sync,
     tags,
     timezone,
+    upgrade_tasks,
     upload,
     user,
     zip_downloads,
@@ -395,6 +396,15 @@ urlpatterns = [
     path(
         "api/strip-thumbnail-metadata/",
         scan_triggers.StripThumbnailMetadataView.as_view(),
+    ),
+    path("api/upgrade-tasks/", upgrade_tasks.UpgradeTaskListView.as_view()),
+    path(
+        "api/upgrade-tasks/<slug:key>/start/",
+        upgrade_tasks.UpgradeTaskStartView.as_view(),
+    ),
+    path(
+        "api/upgrade-tasks/<slug:key>/dismiss/",
+        upgrade_tasks.UpgradeTaskDismissView.as_view(),
     ),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(

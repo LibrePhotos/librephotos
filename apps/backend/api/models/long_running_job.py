@@ -173,6 +173,7 @@ class LongRunningJob(models.Model):
     JOB_GENERATE_CAPTIONS = 25
     JOB_REAPPLY_DATE_RULES = 26
     JOB_WRITE_METADATA = 27
+    JOB_REFRESH_EXPOSURE_TIMES = 28
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -200,6 +201,7 @@ class LongRunningJob(models.Model):
         (JOB_GENERATE_CAPTIONS, "Generate Captions"),
         (JOB_REAPPLY_DATE_RULES, "Apply Date Rules"),
         (JOB_WRITE_METADATA, "Write Metadata to Files"),
+        (JOB_REFRESH_EXPOSURE_TIMES, "Read Shutter Speeds Again"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

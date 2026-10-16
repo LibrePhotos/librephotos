@@ -122,6 +122,33 @@ export type WriteMetadataPreview = z.infer<typeof WriteMetadataPreview>;
 /** What a job trigger answers when a job of its kind is already queued or running (a 409). */
 export type JobAlreadyRunning = { status: true; job_id: string; already_running: true };
 
+/**
+ * One row of the Admin page's Finish the upgrade card (`GET /upgrade-tasks/`, #2322): work an
+ * upgrade left for this instance. `automatic` tasks run by themselves and are required;
+ * `optional` ones (kind `action`) wait for Start and may be dismissed. Progress is that of the
+ * running jobs.
+ */
+export const UpgradeTask = z.object({
+  key: z.string(),
+  kind: z.enum(["automatic", "action"]),
+  optional: z.boolean(),
+  status: z.enum(["pending", "running", "failed", "done"]),
+  count: z.number().nullable(),
+  progress_current: z.number().nullable(),
+  progress_target: z.number().nullable(),
+  // The job list's id (Job.id) of the running job, else the last one.
+  latest_job_id: z.number().nullable(),
+  error: z.string().nullable(),
+  completed_at: z.string().nullable(),
+});
+export type UpgradeTask = z.infer<typeof UpgradeTask>;
+
+/** `GET /upgrade-tasks/`, and the answer of a dismiss: the tasks still left, and those done today. */
+export const UpgradeTaskList = z.object({
+  tasks: z.array(UpgradeTask),
+});
+export type UpgradeTaskList = z.infer<typeof UpgradeTaskList>;
+
 /** `POST /photos/download`: the archive job and the archive's file name (a UUID). */
 export const PhotoDownloadStart = z.looseObject({
   job_id: z.string(),

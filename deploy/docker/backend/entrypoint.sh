@@ -87,6 +87,9 @@ python manage.py start_job_cleanup_service
 python manage.py clear_cache
 python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
     || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
+# The automatic post-upgrade tasks (Admin page, Finish the upgrade), each once.
+python manage.py start_upgrade_tasks 2>&1 | tee "$logs_dir/command_start_upgrade_tasks.log" \
+    || echo "start_upgrade_tasks failed, continuing. See $logs_dir/command_start_upgrade_tasks.log" >&2
 
 # The admin account is only ever touched through createadmin: it creates the
 # account on the first start (ADMIN_EMAIL is used then, and may be blank) and
