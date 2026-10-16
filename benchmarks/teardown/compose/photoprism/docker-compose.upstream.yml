@@ -1,0 +1,255 @@
+# UPSTREAM COPY, do not edit: PhotoPrism 261007-65faaae5d setup/docker/compose.yaml
+# https://github.com/photoprism/photoprism/blob/65faaae5dd343e30c2341112d7089592b8514279/setup/docker/compose.yaml
+# Benchmark changes live in docker-compose.bench.yml.
+# Example Docker Compose config file for PhotoPrism (Linux / AMD64)
+#
+# Note:
+# - Running PhotoPrism on a server with less than 4 GB of swap space or setting a memory/swap limit can cause unexpected
+#   restarts ("crashes"), for example, when the indexer temporarily needs more memory to process large files.
+# - If you install PhotoPrism on a public server outside your home network, please always run it behind a secure
+#   HTTPS reverse proxy such as Traefik or Caddy. Your files and passwords will otherwise be transmitted
+#   in clear text and can be intercepted by anyone, including your provider, hackers, and governments:
+#   https://docs.photoprism.app/getting-started/proxies/traefik/
+#
+# Setup Guides:
+# - https://docs.photoprism.app/getting-started/docker-compose/
+# - https://docs.photoprism.app/getting-started/raspberry-pi/
+# - https://www.photoprism.app/kb/activation/
+#
+# Troubleshooting Checklists:
+# - https://docs.photoprism.app/getting-started/troubleshooting/
+# - https://docs.photoprism.app/getting-started/troubleshooting/docker/
+# - https://docs.photoprism.app/getting-started/troubleshooting/mariadb/
+#
+# CLI Commands:
+# - https://docs.photoprism.app/getting-started/docker-compose/#command-line-interface
+#
+# All commands may have to be prefixed with "sudo" when not running as root.
+# This will point the home directory shortcut ~ to /root in volume mounts.
+
+services:
+  photoprism:
+    ## Use photoprism/photoprism:preview for testing preview builds:
+    image: photoprism/photoprism:latest
+    ## Don't enable automatic restarts until PhotoPrism has been properly configured and tested!
+    ## If the service gets stuck in a restart loop, this points to a memory, filesystem, network, or database issue:
+    ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
+    # restart: unless-stopped
+    stop_grace_period: 15s
+    depends_on:
+      - mariadb
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    ## Server port mapping in the format "Host:Container". To use a different port, change the host port on
+    ## the left-hand side and keep the container port, e.g. "80:2342" (for HTTP) or "443:2342 (for HTTPS):
+    ports:
+      - "2342:2342"
+    ## Before you start the service, please check the following config options (and change them as needed):
+    ## https://docs.photoprism.app/getting-started/config-options/
+    environment:
+      PHOTOPRISM_ADMIN_USER: "admin"                 # admin login username
+      PHOTOPRISM_ADMIN_PASSWORD: "insecure"          # initial admin password (8-72 characters)
+      PHOTOPRISM_AUTH_MODE: "password"               # authentication mode (public, password)
+      PHOTOPRISM_DISABLE_TLS: "false"                # disables HTTPS/TLS even if the site URL starts with https:// and a certificate is available
+      PHOTOPRISM_DEFAULT_TLS: "true"                 # defaults to a self-signed HTTPS/TLS certificate if no other certificate is available
+      PHOTOPRISM_DEFAULT_LOCALE: "en"                # default user interface language, e.g. "en" or "de"
+      PHOTOPRISM_PLACES_LOCALE: "local"              # location details language, e.g. "local", "en", or "de"
+      PHOTOPRISM_SITE_URL: "http://localhost:2342/"  # server URL in the format "http(s)://domain.name(:port)/(path)"
+      PHOTOPRISM_SITE_NAME: ""                       # short name for identifying this instance within a cluster
+      PHOTOPRISM_SITE_TITLE: "PhotoPrism"            # main title shown in the web interface and meta tags
+      PHOTOPRISM_SITE_CAPTION: "AI-Powered Photos App"  # short caption or tagline shown alongside the title
+      PHOTOPRISM_SITE_DESCRIPTION: ""                # longer description shown in SEO and social meta tags
+      PHOTOPRISM_SITE_AUTHOR: ""                     # site owner shown in the author meta tag
+      PHOTOPRISM_LOG_LEVEL: "info"                   # log level: trace, debug, info, warning, or error
+      PHOTOPRISM_READONLY: "false"                   # do not modify originals directory (reduced functionality)
+      PHOTOPRISM_EXPERIMENTAL: "false"               # enables experimental features
+      PHOTOPRISM_DISABLE_CHOWN: "false"              # disables updating storage permissions via chmod and chown on startup
+      PHOTOPRISM_DISABLE_WEBDAV: "false"             # disables built-in WebDAV server
+      PHOTOPRISM_DISABLE_MCP: "false"                # disables Model Context Protocol (MCP) API endpoint for AI agent integrations
+      PHOTOPRISM_DISABLE_SETTINGS: "false"           # disables settings UI and API
+      PHOTOPRISM_DISABLE_TENSORFLOW: "false"         # disables all features depending on TensorFlow
+      PHOTOPRISM_DISABLE_FACES: "false"              # disables face detection and recognition
+      PHOTOPRISM_DISABLE_VECTORS: "false"            # disables vector graphics support
+      PHOTOPRISM_DISABLE_RAW: "false"                # disables indexing and conversion of RAW images
+      PHOTOPRISM_RAW_PRESETS: "false"                # enables applying user presets when converting RAW images (reduces performance)
+      PHOTOPRISM_SIDECAR_YAML: "true"                # creates YAML sidecar files to back up picture metadata
+      PHOTOPRISM_BACKUP_ALBUMS: "true"               # creates YAML files to back up album metadata
+      PHOTOPRISM_BACKUP_DATABASE: "true"             # creates regular backups based on the configured schedule
+      PHOTOPRISM_BACKUP_SCHEDULE: "daily"            # backup SCHEDULE in cron format (e.g. "0 12 * * *" for daily at noon) or at a random time (daily, weekly)
+      PHOTOPRISM_INDEX_SCHEDULE: ""                  # indexing SCHEDULE in cron format (e.g. "@every 3h" for every 3 hours; "" to disable)
+      PHOTOPRISM_AUTO_INDEX: 300                     # delay before automatically indexing files in SECONDS when uploading via WebDAV (-1 to disable)
+      PHOTOPRISM_AUTO_IMPORT: -1                     # delay before automatically importing files in SECONDS when uploading via WebDAV (-1 to disable)
+      PHOTOPRISM_DETECT_NSFW: "false"                # automatically flags photos as private that MAY be offensive
+      PHOTOPRISM_UPLOAD_NSFW: "true"                 # allows uploads that MAY be offensive
+      PHOTOPRISM_XMP_FACES: "true"                   # imports face regions and names from XMP metadata as people markers
+      PHOTOPRISM_UPLOAD_ALLOW: ""                    # restricts uploads to these file types (comma-separated list of EXTENSIONS; leave blank to allow all)
+      PHOTOPRISM_UPLOAD_ARCHIVES: "true"             # allows upload of zip archives (will be extracted before import)
+      PHOTOPRISM_UPLOAD_LIMIT: 5000                  # maximum size of uploaded files and uncompressed archive contents in MB
+      PHOTOPRISM_ORIGINALS_LIMIT: 5000               # maximum size of original media files in MB (larger files are skipped)
+      PHOTOPRISM_HTTP_COMPRESSION: "zstd,gzip"       # improves transfer speed and bandwidth utilization (none, gzip, zstd, or comma-separated list e.g. "zstd,gzip")
+      # PHOTOPRISM_DATABASE_DRIVER: "sqlite"         # SQLite is an embedded database that does not require a separate database server
+      PHOTOPRISM_DATABASE_DRIVER: "mysql"            # MariaDB 10.5.12+ (MySQL successor) offers significantly better performance compared to SQLite
+      PHOTOPRISM_DATABASE_SERVER: "mariadb:3306"     # MariaDB database server (hostname:port)
+      PHOTOPRISM_DATABASE_NAME: "photoprism"         # MariaDB database, see MARIADB_DATABASE in the mariadb service
+      PHOTOPRISM_DATABASE_USER: "photoprism"         # MariaDB database username, must be the same as MARIADB_USER
+      PHOTOPRISM_DATABASE_PASSWORD: "insecure"       # MariaDB database password, must be the same as MARIADB_PASSWORD
+      ## Run/install on first startup (https://docs.photoprism.app/getting-started/config-options/#docker-image):
+      PHOTOPRISM_INIT: "https"                       # options: update https intel gpu davfs yt-dlp
+      ## Computer Vision (https://docs.photoprism.app/getting-started/config-options/#computer-vision):
+      PHOTOPRISM_VISION_API: "false"                 # server: enables service API endpoints under /api/v1/vision (requires access token)
+      PHOTOPRISM_VISION_URI: ""                      # client: service URI, e.g. http://hostname/api/v1/vision (leave blank to disable)
+      PHOTOPRISM_VISION_KEY: ""                      # client: service access token (for authentication)
+      OLLAMA_BASE_URL: "http://ollama:11434"         # use "https://ollama.com" for Ollama Cloud
+      OLLAMA_API_KEY: ""                             # API key required to access Ollama (optional)
+      ## Video Transcoding (https://docs.photoprism.app/getting-started/advanced/transcoding/):
+      # PHOTOPRISM_FFMPEG_ENCODER: "software"        # H.264/AVC encoder (software, intel, nvidia, apple, raspberry, vaapi, or vulkan)
+      # PHOTOPRISM_FFMPEG_SIZE: "1920"               # video size limit in pixels (720-15360) (default: 3840)
+      # PHOTOPRISM_FFMPEG_BITRATE: "64"              # transcoding bitrate threshold in Mbps, also NVIDIA peak limit (default: 60)
+      ## NVIDIA GPU Hardware Acceleration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
+      # NVIDIA_VISIBLE_DEVICES: "all"
+      # NVIDIA_DRIVER_CAPABILITIES: "all"
+      ## Run as a non-root user after initialization (supported: 0, 33, 50-99, 500-600, 900-1250, and 2000-2100):
+      # PHOTOPRISM_UID: 1000
+      # PHOTOPRISM_GID: 1000
+      # PHOTOPRISM_UMASK: 0000
+    ## Start as non-root user before initialization (supported: 0, 33, 50-99, 500-600, 900-1250, and 2000-2100);
+    ## add a group ID, e.g. "1000:1000", only if network storage such as NFS requires it:
+    # user: "1000"
+    ## Shared devices for video hardware transcoding (optional):
+    # devices:
+    #  - "/dev/dri:/dev/dri"                         # Required Intel QSV or VAAPI hardware transcoding
+    #  - "/dev/video11:/dev/video11"                 # Video4Linux Video Encode Device (h264_v4l2m2m)
+    working_dir: "/photoprism" # do not change or remove
+    ## Storage Folders: "~" is a shortcut for your home directory, "." for the current directory
+    volumes:
+      # "/host/folder:/photoprism/folder"                # Example
+      - "~/Pictures:/photoprism/originals"               # Original media files (DO NOT REMOVE)
+      # - "/example/family:/photoprism/originals/family" # *Additional* media folders can be mounted like this
+      # - "~/Import:/photoprism/import"                  # *Optional* base folder from which files can be imported to originals
+      - "./storage:/photoprism/storage"                  # *Writable* storage folder for cache, database, and sidecar files (DO NOT REMOVE)
+    ## NVIDIA GPU Hardware Acceleration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: "nvidia"
+    #          capabilities: [ gpu ]
+    #          count: "all"
+
+  ## MariaDB Database Server (recommended)
+  ## see https://docs.photoprism.app/getting-started/faq/#should-i-use-sqlite-mariadb-or-mysql
+  mariadb:
+    image: mariadb:12.3
+    ## If MariaDB gets stuck in a restart loop, this points to a memory or filesystem issue:
+    ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
+    restart: unless-stopped
+    stop_grace_period: 15s
+    security_opt: # see https://github.com/MariaDB/mariadb-docker/issues/434#issuecomment-1136151239
+      - seccomp:unconfined
+      - apparmor:unconfined
+    command: --innodb-buffer-pool-size=512M --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=120
+    ## Never store database files on an unreliable device such as a USB flash drive, an SD card, or a shared network folder:
+    volumes:
+      - "./database:/var/lib/mysql" # DO NOT REMOVE
+    ## See https://link.photoprism.app/mariadb-environment-variables:
+    environment:
+      MARIADB_AUTO_UPGRADE: "1"
+      MARIADB_INITDB_SKIP_TZINFO: "1"
+      MARIADB_DATABASE: "photoprism"
+      MARIADB_USER: "photoprism"
+      MARIADB_PASSWORD: "insecure"
+      MARIADB_ROOT_PASSWORD: "insecure"
+      ## When specified, the container will connect to this host and replicate from it (for advanced users only):
+      # MARIADB_MASTER_HOST: ""
+      # MARIADB_REPLICATION_USER: ""
+      # MARIADB_REPLICATION_PASSWORD: ""
+
+  ## Ollama Large-Language Model Runner (optional)
+  ## run "ollama pull [name]:[version]" to download a vision model
+  ## listed at <https://ollama.com/search?c=vision>, for example:
+  ## docker compose exec ollama ollama pull gemma4:latest
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ## Only starts if the "all", "ollama", or "vision" profile is specified:
+    ## docker compose --profile ollama up -d
+    profiles: ["all", "ollama", "vision"]
+    ## Insecurely exposes the Ollama service on port 11434
+    ## without authentication (for private networks only):
+    # ports:
+    #  - "11434:11434"
+    environment:
+      ## Ollama Configuration Options:
+      OLLAMA_HOST: "0.0.0.0:11434"
+      OLLAMA_MODELS: "/root/.ollama"   # model storage path (see volumes section below)
+      OLLAMA_MAX_QUEUE: "100"          # maximum number of queued requests
+      OLLAMA_NUM_PARALLEL: "1"         # maximum number of parallel requests
+      OLLAMA_MAX_LOADED_MODELS: "1"    # maximum number of loaded models per GPU
+      OLLAMA_LOAD_TIMEOUT: "5m"        # maximum time for loading models (default "5m")
+      OLLAMA_KEEP_ALIVE: "5m"          # duration that models stay loaded in memory (default "5m")
+      OLLAMA_CONTEXT_LENGTH: "4096"    # maximum input context length
+      OLLAMA_MULTIUSER_CACHE: "false"  # optimize prompt caching for multi-user scenarios
+      OLLAMA_NOPRUNE: "false"          # disables pruning of model blobs at startup
+      OLLAMA_NOHISTORY: "true"         # disables readline history
+      OLLAMA_FLASH_ATTENTION: "true"   # required for OLLAMA_KV_CACHE_TYPE quantization
+      OLLAMA_KV_CACHE_TYPE: "f16"      # cache precision: f16 (default), q8_0, q4_0
+      OLLAMA_SCHED_SPREAD: "false"     # allows scheduling models across all GPUs.
+      # OLLAMA_DEBUG: "true"             # shows additional debug information
+      # OLLAMA_INTEL_GPU: "true"         # enables experimental Intel GPU detection
+      ## Telemetry / privacy opt-outs (containers do not inherit /etc/environment):
+      DO_NOT_TRACK: "true"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      # OLLAMA_NO_CLOUD: "1"           # uncomment to disable Ollama Cloud models/features
+      ## NVIDIA GPU Hardware Acceleration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
+      # NVIDIA_VISIBLE_DEVICES: "all"
+      # NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    volumes:
+      - "./ollama:/root/.ollama"
+    ## NVIDIA GPU Hardware Acceleration (see https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html):
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: "nvidia"
+    #          capabilities: [ gpu ]
+    #          count: "all"
+
+  ## Open WebUI, a Web Interface for Ollama (optional)
+  ## see https://github.com/open-webui/open-webui
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    stop_grace_period: 5s
+    ## Only starts if the "all", "ollama", "open-webui", or "vision" profile is specified:
+    ## docker compose --profile ollama up -d
+    profiles: [ "all", "ollama", "open-webui", "vision" ]
+    ## Exposes Open WebUI at http://localhost:8080 (use an HTTPS reverse proxy for remote access):
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      WEBUI_URL: "http://localhost:8080"
+      # WEBUI_SECRET_KEY: ""
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      ANONYMIZED_TELEMETRY: "false"   # disable Chroma telemetry
+      HF_HUB_DISABLE_TELEMETRY: "1"   # disable Hugging Face telemetry
+      # HUGGING_FACE_HUB_TOKEN: ""      # see https://huggingface.co/docs/hub/en/security-tokens
+    volumes:
+      - "./open-webui:/app/backend/data"
+
+  ## Watchtower upgrades services automatically (optional)
+  ## see https://docs.photoprism.app/getting-started/updates/#watchtower
+  ## activate via "COMPOSE_PROFILES=update docker compose up -d"
+  watchtower:
+    image: nickfedor/watchtower
+    restart: unless-stopped
+    ## Only starts if the "update" profile is specified:
+    ## docker compose --profile update up -d
+    profiles: ["update"]
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: 7200 # checks for updates every 2 hours
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "~/.docker/config.json:/config.json" # optional, for authentication if you have a Docker Hub account

@@ -1,0 +1,18 @@
+# Teardown benchmark overlay for the LibrePhotos dev image (what becomes 1.4.0).
+# The dev tag moves with every merge, so the digests below pin the build pushed to Docker Hub at
+# 2026-10-16T07:55Z. The image carries no source revision label: it was built from dev between
+# 9f71dd425 (#2690, "Write metadata to files" job) and 442d06aaa. Update digests and tools.json together.
+# Only pins and the library mount mode; no tuning, no feature changes.
+services:
+  proxy:
+    image: reallibrephotos/librephotos-proxy:dev@sha256:e16afbd46dac5199e508019be8d11db383a30ec7678d8c2f70f3f3bd2099db33
+    volumes:
+      - ${scanDirectory}:/data:${BENCH_LIBRARY_MODE:-rw}
+  frontend:
+    image: reallibrephotos/librephotos-frontend:dev@sha256:d44d5d861ab7082897702f5dddc0492d278519091c1aa46ce681906f7dcaba39
+  backend:
+    image: reallibrephotos/librephotos:dev@sha256:c1b5f9067dd4995f96234973d68ca7f4402b7723bfcf721e6677cfc67ca0e361
+    volumes:
+      - ${scanDirectory}:/data:${BENCH_LIBRARY_MODE:-rw}
+  db:
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:575035dfba2ea65b375270b45ddc4a4830ee7636e25bd539156743352ece8f7d

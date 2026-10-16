@@ -1,0 +1,204 @@
+{
+ "_comment": "Pinned releases and hand-maintained setup steps. Update version, images, source and documented_setup_steps together; README.md explains the rules. Each tool runs twice in CI: library mounted rw and ro.",
+ "tools": {
+  "librephotos": {
+   "name": "LibrePhotos",
+   "version": "1.3.0",
+   "released": "2026-10-11",
+   "source": "https://github.com/LibrePhotos/librephotos/tree/d55257cb0b3b690b9698aace54e429e140abe991",
+   "port": 3000,
+   "env_template": "compose/librephotos/librephotos.env.upstream",
+   "images": {
+    "backend": "reallibrephotos/librephotos:1.3.0@sha256:bc39ea6e9f2ef0c755f64eef613d887eda57c2ff0fa050310259ad999e49a11b",
+    "frontend": "reallibrephotos/librephotos-frontend:1.3.0@sha256:ec2ced60327d64d4d41b91731591b76f463cf3c6fb2e17670877b4b0ebe3eab8",
+    "proxy": "reallibrephotos/librephotos-proxy:1.3.0@sha256:fafd1dce6766e7b2e0f9ce45b12da664fc93469b8d7283de926833eb14067247",
+    "db": "pgautoupgrade/pgautoupgrade:18-alpine@sha256:575035dfba2ea65b375270b45ddc4a4830ee7636e25bd539156743352ece8f7d"
+   },
+   "write_back_opt_in": "User settings 'Write edits to files' (save_metadata_to_disk, OFF by default) and 'Write face tags to image files' (save_face_tags_to_disk, off). The benchmark runs the round-trip with defaults, then with SIDECAR_FILE and with MEDIA_FILE, each with face tags on. 1.3.0 writes rating, date, rotation and face regions; caption, keyword and GPS write-back exist only on dev (librephotos-dev).",
+   "documented_setup_steps": [
+    {
+     "step": "git clone the repository (or download deploy/compose/docker-compose.yml and librephotos.env)",
+     "source": "https://docs.librephotos.com/docs/installation/standard-install"
+    },
+    {
+     "step": "cp librephotos.env .env",
+     "source": "standard-install"
+    },
+    {
+     "step": "edit .env: scanDirectory, data (and passwords)",
+     "source": "standard-install"
+    },
+    {
+     "step": "create the directories named in .env",
+     "source": "standard-install"
+    },
+    {
+     "step": "docker compose up -d",
+     "source": "standard-install"
+    },
+    {
+     "step": "first-time setup wizard: create the admin account",
+     "source": "standard-install, Next Steps 1"
+    },
+    {
+     "step": "wizard: site settings (uploads, registration)",
+     "source": "standard-install, Next Steps 2"
+    },
+    {
+     "step": "wizard: set the scan directory",
+     "source": "standard-install, Next Steps 3"
+    },
+    {
+     "step": "start Scan photos",
+     "source": "user guide"
+    }
+   ]
+  },
+  "librephotos-dev": {
+   "name": "LibrePhotos dev",
+   "version": "dev-2026-10-16",
+   "released": null,
+   "source": "https://github.com/LibrePhotos/librephotos/tree/9f71dd4258dff2f0d147d262c8063045677a6469",
+   "port": 3000,
+   "env_template": "compose/librephotos-dev/librephotos.env.upstream",
+   "images": {
+    "backend": "reallibrephotos/librephotos:dev@sha256:c1b5f9067dd4995f96234973d68ca7f4402b7723bfcf721e6677cfc67ca0e361",
+    "frontend": "reallibrephotos/librephotos-frontend:dev@sha256:d44d5d861ab7082897702f5dddc0492d278519091c1aa46ce681906f7dcaba39",
+    "proxy": "reallibrephotos/librephotos-proxy:dev@sha256:e16afbd46dac5199e508019be8d11db383a30ec7678d8c2f70f3f3bd2099db33",
+    "db": "pgautoupgrade/pgautoupgrade:18-alpine@sha256:575035dfba2ea65b375270b45ddc4a4830ee7636e25bd539156743352ece8f7d"
+   },
+   "write_back_opt_in": "Same settings as 1.3.0; dev also writes captions, keywords (tags) and hand-set GPS, and has the 'Write metadata to files' job (#2690).",
+   "documented_setup_steps": [
+    {
+     "step": "git clone the repository (or download deploy/compose/docker-compose.yml and librephotos.env)",
+     "source": "https://docs.librephotos.com/docs/installation/standard-install"
+    },
+    {
+     "step": "cp librephotos.env .env",
+     "source": "standard-install"
+    },
+    {
+     "step": "edit .env: scanDirectory, data (and passwords)",
+     "source": "standard-install"
+    },
+    {
+     "step": "create the directories named in .env",
+     "source": "standard-install"
+    },
+    {
+     "step": "docker compose up -d",
+     "source": "standard-install"
+    },
+    {
+     "step": "first-time setup wizard: create the admin account",
+     "source": "standard-install, Next Steps 1"
+    },
+    {
+     "step": "wizard: site settings (uploads, registration)",
+     "source": "standard-install, Next Steps 2"
+    },
+    {
+     "step": "wizard: set the scan directory",
+     "source": "standard-install, Next Steps 3"
+    },
+    {
+     "step": "start Scan photos",
+     "source": "user guide"
+    }
+   ],
+   "source_note": "Docker Hub dev tag pushed 2026-10-16T07:55Z; the image has no revision label, built from dev between 9f71dd425 and 442d06aaa. Compose and env copied from 9f71dd425."
+  },
+  "immich": {
+   "name": "Immich",
+   "version": "v3.3.3",
+   "released": "2026-10-14",
+   "source": "https://github.com/immich-app/immich/tree/d2dac658fe1c67e8bbd08aa18200a32e5d45b9e4",
+   "port": 2283,
+   "env_template": "compose/immich/example.env.upstream",
+   "images": {
+    "immich-server": "ghcr.io/immich-app/immich-server:v3.3.3@sha256:bae7664ff3aa4c2c1fcbdcdd86b40b105643c5f861f3e6a770fc760089f25862",
+    "immich-machine-learning": "ghcr.io/immich-app/immich-machine-learning:v3.3.3@sha256:73915f07e1f4289ba45b174c58443db74cef47ddf502613f475fc5e52458ea42",
+    "redis": "docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d",
+    "database": "ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23"
+   },
+   "write_back_opt_in": null,
+   "documented_setup_steps": [
+    {
+     "step": "mkdir ./immich-app",
+     "source": "docs/docs/partials/_docker-compose-install-steps.mdx Step 1"
+    },
+    {
+     "step": "wget docker-compose.yml",
+     "source": "Step 1"
+    },
+    {
+     "step": "wget example.env as .env",
+     "source": "Step 1"
+    },
+    {
+     "step": "edit .env: UPLOAD_LOCATION, DB_DATA_LOCATION, DB_PASSWORD, TZ",
+     "source": "Step 2"
+    },
+    {
+     "step": "docker compose up -d",
+     "source": "Step 3"
+    },
+    {
+     "step": "register the admin user in the web UI",
+     "source": "docs/docs/install/post-install.mdx"
+    },
+    {
+     "step": "edit docker-compose.yml: mount the existing photo folder into immich-server",
+     "source": "docs/docs/features/libraries.md Mount Docker Volumes"
+    },
+    {
+     "step": "docker compose up -d again",
+     "source": "libraries.md"
+    },
+    {
+     "step": "Administration > External Libraries: create a library, set its owner, add the import path",
+     "source": "libraries.md Create A New Library"
+    },
+    {
+     "step": "scan the library",
+     "source": "libraries.md"
+    }
+   ]
+  },
+  "photoprism": {
+   "name": "PhotoPrism",
+   "version": "261007-65faaae5d",
+   "released": "2026-10-07",
+   "source": "https://github.com/photoprism/photoprism/tree/65faaae5dd343e30c2341112d7089592b8514279",
+   "port": 2342,
+   "env_template": "compose/photoprism/env.template",
+   "images": {
+    "photoprism": "photoprism/photoprism:261007@sha256:0f85369636ad99ca9a1c33f2d04df6c590802d16b7c33b4a1ea026b595be06d1",
+    "mariadb": "mariadb:12.3@sha256:2bdff1534a7e569fecaf4b10b66ad0d410806e382d9db29ba305448addda97c4"
+   },
+   "write_back_opt_in": null,
+   "documented_setup_steps": [
+    {
+     "step": "download compose.yaml",
+     "source": "https://docs.photoprism.app/getting-started/docker-compose/ (not re-read for this benchmark)"
+    },
+    {
+     "step": "edit compose.yaml: admin password, originals and storage paths, database passwords",
+     "source": "setup/docker/compose.yaml comments"
+    },
+    {
+     "step": "docker compose up -d",
+     "source": "getting-started"
+    },
+    {
+     "step": "log in as admin",
+     "source": "getting-started"
+    },
+    {
+     "step": "Library > Index > Start",
+     "source": "getting-started"
+    }
+   ]
+  }
+ }
+}

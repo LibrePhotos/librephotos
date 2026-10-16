@@ -1,0 +1,21 @@
+# Teardown benchmark overlay for LibrePhotos 1.3.0 (docker-compose.upstream.yml is the release's file).
+# Only pins (every image by tag AND digest, so a rerun gets the same bytes) and the library mount
+# mode for the read-only run. No tuning, no feature changes.
+# Paths, version, port and the admin login come from .env (bench/run_tool.sh writes it from
+# librephotos.env.upstream, changing only the keys the install guide tells a user to edit).
+services:
+  proxy:
+    image: reallibrephotos/librephotos-proxy:1.3.0@sha256:fafd1dce6766e7b2e0f9ce45b12da664fc93469b8d7283de926833eb14067247
+    volumes:
+      # Same mount as upstream; BENCH_LIBRARY_MODE=ro makes it read-only for the read-only run.
+      - ${scanDirectory}:/data:${BENCH_LIBRARY_MODE:-rw}
+  frontend:
+    image: reallibrephotos/librephotos-frontend:1.3.0@sha256:ec2ced60327d64d4d41b91731591b76f463cf3c6fb2e17670877b4b0ebe3eab8
+  backend:
+    image: reallibrephotos/librephotos:1.3.0@sha256:bc39ea6e9f2ef0c755f64eef613d887eda57c2ff0fa050310259ad999e49a11b
+    volumes:
+      - ${scanDirectory}:/data:${BENCH_LIBRARY_MODE:-rw}
+  db:
+    # Upstream 1.3.0 says pgautoupgrade:latest, which is not reproducible; 18-alpine is what
+    # latest resolved to on 2026-10-16 (Docker Hub digest below).
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:575035dfba2ea65b375270b45ddc4a4830ee7636e25bd539156743352ece8f7d

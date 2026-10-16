@@ -1,0 +1,138 @@
+# Teardown benchmark: LibrePhotos (1.3.0 and the dev image), Immich and PhotoPrism on identical
+# GitHub-hosted runners, each with the library mounted read-write and again read-only.
+#
+# It never runs on its own. Start it with "Run workflow" (only offered once this file is on dev,
+# because GitHub dispatches from the default branch), or, before then, push a commit to a branch
+# whose message contains "[run teardown]" (this branch or bench/**). Push runs use the defaults below.
+# See benchmarks/teardown/README.md for the fairness rules and what each number means.
+name: teardown-benchmark
+
+on:
+  # No paths filter: the trigger commit is usually empty, and an empty commit matches no path.
+  push:
+    branches: ['docs/positioning-research', 'bench/**']
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Dataset profile: small (about 375 files) or full (about 1,260)"
+        type: choice
+        options: [small, full]
+        default: small
+      budget:
+        description: "Seconds per tool from compose up to the end of the export check"
+        default: "600"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: teardown-benchmark
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: benchmarks/teardown
+
+env:
+  # Push events carry no inputs, so fall back to the dispatch defaults.
+  PROFILE: ${{ inputs.profile || 'small' }}
+  BUDGET: ${{ inputs.budget || '600' }}
+
+jobs:
+  dataset:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[run teardown]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dataset tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl ffmpeg libheif-examples libheif-plugin-x265
+      - name: Cache downloads
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/dataset/library/clean
+          key: teardown-dataset-${{ env.PROFILE }}-${{ hashFiles('benchmarks/teardown/dataset/manifest.json') }}
+      - name: Prepare dataset
+        run: bash bench/prepare_dataset.sh "$RUNNER_TEMP/dataset" "$PROFILE"
+      - name: Tool versions
+        run: |
+          {
+            echo "exiftool $(exiftool -ver)"
+            ffmpeg -version | head -1
+            heif-enc --version 2>&1 | head -1 || true
+          } | tee "$RUNNER_TEMP/dataset/meta/tool-versions.txt"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: teardown-dataset
+          path: ${{ runner.temp }}/dataset
+          retention-days: 3
+
+  run:
+    needs: dataset
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      # One tool and mount mode per job: each gets a fresh runner of the same type, nothing else on it.
+      matrix:
+        tool: [librephotos, librephotos-dev, immich, photoprism]
+        mode: [rw, ro]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install measurement tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl
+      - uses: actions/download-artifact@v8
+        with:
+          name: teardown-dataset
+          path: ${{ runner.temp }}/dataset
+      - name: Runner
+        run: |
+          {
+            echo "cpus: $(nproc)"
+            free -m | head -2
+            docker version --format 'docker {{.Server.Version}}'
+            docker compose version
+          } | tee "$RUNNER_TEMP/runner.txt"
+      - name: Run ${{ matrix.tool }} (${{ matrix.mode }})
+        env:
+          BENCH_BUDGET: ${{ env.BUDGET }}
+          BENCH_WORK_ROOT: ${{ runner.temp }}/work
+        run: bash bench/run_tool.sh "${{ matrix.tool }}" "$RUNNER_TEMP/dataset" "$RUNNER_TEMP/results" "${{ matrix.mode }}"
+      - name: Keep the runner description
+        if: always()
+        run: cp "$RUNNER_TEMP/runner.txt" "$RUNNER_TEMP/results/${{ matrix.tool }}-${{ matrix.mode }}.runner.txt" || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: teardown-result-${{ matrix.tool }}-${{ matrix.mode }}
+          path: ${{ runner.temp }}/results
+          retention-days: 30
+
+  report:
+    needs: run
+    if: always() && needs.run.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: teardown-result-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/results
+      - name: Build results.json and results.md
+        working-directory: benchmarks/teardown/bench
+        run: |
+          python3 -m teardown_bench.report --results "$RUNNER_TEMP/results" --tools ../tools.json
+          cat "$RUNNER_TEMP/results/results.md" >>"$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: teardown-results
+          path: |
+            ${{ runner.temp }}/results/results.json
+            ${{ runner.temp }}/results/results.md
+          retention-days: 90

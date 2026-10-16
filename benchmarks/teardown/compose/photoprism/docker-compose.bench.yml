@@ -1,0 +1,16 @@
+# Teardown benchmark overlay for PhotoPrism 261007 (docker-compose.upstream.yml is the release's file).
+# Pins photoprism and mariadb by digest and points the two volumes upstream marks "DO NOT REMOVE" at
+# the benchmark's folders (upstream: ~/Pictures and ./storage). The image is the default build
+# (photoprism/photoprism:261007, what upstream's :latest resolved to), not the separate -ce tag.
+# Optional profiles (ollama, open-webui, watchtower) stay off, as upstream ships them.
+# BENCH_LIBRARY_MODE=ro mounts the originals read-only; PHOTOPRISM_READONLY stays at its default (false).
+services:
+  photoprism:
+    image: photoprism/photoprism:261007@sha256:0f85369636ad99ca9a1c33f2d04df6c590802d16b7c33b4a1ea026b595be06d1
+    volumes:
+      - "${BENCH_LIBRARY}:/photoprism/originals:${BENCH_LIBRARY_MODE:-rw}"
+      - "${BENCH_WORK}/storage:/photoprism/storage"
+  mariadb:
+    image: mariadb:12.3@sha256:2bdff1534a7e569fecaf4b10b66ad0d410806e382d9db29ba305448addda97c4
+    volumes:
+      - "${BENCH_WORK}/database:/var/lib/mysql"

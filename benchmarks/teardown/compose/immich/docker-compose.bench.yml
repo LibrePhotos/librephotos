@@ -1,0 +1,14 @@
+# Teardown benchmark overlay for Immich v3.3.3 (docker-compose.upstream.yml is the release's file).
+# Pins server and machine-learning images by digest (redis and postgres are digest-pinned upstream)
+# and mounts the dataset as an external library, the documented way to index an existing folder
+# (docs/docs/features/libraries.md "Mount Docker Volumes"). Read-write, like every tool in the
+# benchmark's main run, so write-back and deletes can be observed; a second run mounts it read-only.
+# No tuning, no feature changes.
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v3.3.3@sha256:bae7664ff3aa4c2c1fcbdcdd86b40b105643c5f861f3e6a770fc760089f25862
+    volumes:
+      # BENCH_LIBRARY_MODE=ro gives a read-only external library (`:ro`), as the Immich docs describe.
+      - ${BENCH_LIBRARY}:/mnt/library:${BENCH_LIBRARY_MODE:-rw}
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v3.3.3@sha256:73915f07e1f4289ba45b174c58443db74cef47ddf502613f475fc5e52458ea42

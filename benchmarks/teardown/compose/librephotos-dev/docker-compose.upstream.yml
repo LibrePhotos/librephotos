@@ -1,0 +1,107 @@
+# UPSTREAM COPY, do not edit: LibrePhotos dev deploy/compose/docker-compose.yml at 9f71dd425
+# https://github.com/LibrePhotos/librephotos/blob/9f71dd4258dff2f0d147d262c8063045677a6469/deploy/compose/docker-compose.yml
+# Benchmark changes live in docker-compose.bench.yml.
+# DO NOT EDIT
+# The .env file has everything you need to edit.
+# Run options:
+# 1. Use prebuilt images (preferred method):
+#   run cmd: docker compose up -d
+# 2. Build images on your own machine:
+#   build cmd: docker compose build
+#   run cmd: docker compose up -d
+
+services:
+  proxy:
+    image: reallibrephotos/librephotos-proxy:${tag}
+    container_name: proxy
+    restart: unless-stopped
+    volumes:
+      - ${scanDirectory}:/data
+      - ${data}/protected_media:/protected_media
+    ports:
+      - ${httpPort:-3000}:80
+    depends_on:
+      - backend
+      - frontend
+
+  db:
+    # Pinned to a Postgres major: a new one upgrades the database on the next
+    # pull, so Renovate opens it as its own pull request (renovate.json).
+    image: pgautoupgrade/pgautoupgrade:18-alpine
+    container_name: db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - ${data}/db:/var/lib/postgresql
+    healthcheck:
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: reallibrephotos/librephotos-frontend:${tag}
+    container_name: frontend
+    restart: unless-stopped
+
+  backend:
+    image: reallibrephotos/librephotos:${tag}
+    container_name: backend
+    restart: unless-stopped
+    volumes:
+      - ${scanDirectory}:/data
+      - ${data}/protected_media:/protected_media
+      - ${data}/logs:${baseLogs:-/logs}
+      - ${data}/cache:/root/.cache
+    environment:
+      - SECRET_KEY=${shhhhKey:-}
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=${adminEmail:-}
+      - ADMIN_USERNAME=${userName:-}
+      - ADMIN_PASSWORD=${userPass:-}
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=${dbHost}
+      - DB_PORT=5432
+      - MAPBOX_API_KEY=${mapApiKey:-}
+      - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - WORKER_CONCURRENCY=${workerConcurrency:-}
+      - BASE_LOGS=${baseLogs:-/logs}
+      - LOG_LEVEL=${logLevel:-INFO}
+      - SKIP_PATTERNS=${skipPatterns:-}
+      - ALLOW_UPLOAD=${allowUpload:-false}
+      - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
+      - NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=${nextcloudAllowPrivateAddresses:-true}
+      - NEXTCLOUD_CA_BUNDLE=${nextcloudCaBundle:-}
+      - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - FRONTEND_BASE_URL=${frontendBaseUrl:-}
+      - FEATURE_VIDEO=${featureVideo:-true}
+      - FEATURE_FACE_DETECTION=${featureFaceDetection:-true}
+      - FEATURE_FACE_CLUSTER=${featureFaceCluster:-true}
+      - FEATURE_IMAGE_CAPTIONING=${featureImageCaptioning:-true}
+      - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
+      - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
+      - FEATURE_VIDEO_PREVIEWS=${featureVideoPreviews:-true}
+      - FEATURE_PROCESS_EMBEDDED_MEDIA=${featureProcessEmbeddedMedia:-true}
+      - TRANSCODE_CACHE_MAX_GB=${transcodeCacheMaxGb:-10}
+      - TRANSCODE_CACHE_MIN_FREE_GB=${transcodeCacheMinFreeGb:-2}
+      - TRANSCODE_CACHE_MAX_CONCURRENT=${transcodeCacheMaxConcurrent:-1}
+      - TRANSCODE_CACHE_NICE=${transcodeCacheNice:-10}
+      - TRANSCODE_LIVE_CPU_FRACTION=${transcodeLiveCpuFraction:-2}
+      - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
+      - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
+      - SQUARE_THUMBNAIL_QUALITY=${squareThumbnailQuality:-80}
+      - BIG_THUMBNAIL_QUALITY=${bigThumbnailQuality:-95}
+      - BIG_THUMBNAIL_HEIGHT=${bigThumbnailHeight:-1080}
+      - VIDEO_PREVIEW_SECONDS=${videoPreviewSeconds:-5}
+      - VIDEO_PREVIEW_CRF=${videoPreviewCrf:-20}
+      - STUCK_JOB_HOURS=${stuckJobHours:-24}
+      - DEBUG=0
+    depends_on:
+      db:
+        condition: service_healthy

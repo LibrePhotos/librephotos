@@ -1,0 +1,554 @@
+repo,type,kind,cluster,reactions,title,url,created,labels,source,state_reason
+ente,open,feature,auth-sso,78,Add OIDC support for self host,https://github.com/ente/ente/discussions/2241,2024-06-21,server;self-hosting,discussion:Enhancements,
+immich,declined?,feature,auth-sso,29,[Feature] Passkeys,https://github.com/immich-app/immich/discussions/3338,2023-07-19,,discussion:OUTDATED,OUTDATED
+photoprism,gated,feature,auth-sso,18,Auth: Add Login from a LDAP Server,https://github.com/photoprism/photoprism/issues/484,2020-08-30,idea;released;pro-feature,issue:label:photoprism-gated2,completed
+librephotos,open,feature,auth-sso,17,LDAP Support for Authentication,https://github.com/LibrePhotos/librephotos/issues/616,2022-08-19,documentation;enhancement;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,auth-sso,16,OpenID support,https://github.com/LibrePhotos/librephotos/issues/401,2021-11-28,documentation;enhancement;frontend;backend;size: L;difficulty: hard,issue,
+memories,open,feature,auth-sso,8,Android Nextcloud SingleSignOn,https://github.com/pulsejet/memories/issues/1026,2024-01-29,feature;android,issue,
+immich,declined?,feature,auth-sso,7,[Feature] Add MFA Support,https://github.com/immich-app/immich/discussions/5478,2023-12-04,,discussion:OUTDATED,OUTDATED
+photoprism,declined,feature,auth-sso,0,Security: use proxy header for username,https://github.com/photoprism/photoprism/issues/5184,2025-08-30,declined;idea,issue:label:declined,completed
+photoprism,gated,feature,auth-sso,0,Auth: Support asymmetric JSON Web Tokens (JWT) and Key Sets (JWKS),https://github.com/photoprism/photoprism/issues/5230,2025-09-25,security;pro-feature;auth;config,issue:label:photoprism-gated2,completed
+photoprism,gated,feature,auth-sso,0,OIDC: Add support for Microsoft Entra ID security groups,https://github.com/photoprism/photoprism/issues/5334,2025-11-23,released;security;tested;pro-feature;auth,issue:label:photoprism-gated2,completed
+immich,open,feature,dedup-stacks,472,[Feature] Automatic stacking,https://github.com/immich-app/immich/discussions/2479,2023-05-19,,discussion:Feature Request,
+photoprism,open,bug,dedup-stacks,106,Duplicates: Display duplicated files with option to delete,https://github.com/photoprism/photoprism/issues/1308,2021-05-20,,issue,
+immich,open,feature,dedup-stacks,104,[META] Stacks on all views,https://github.com/immich-app/immich/issues/16549,2025-03-03,🖥️web,issue,
+immich,open,feature,dedup-stacks,94,[Feature] Duplicate Rules,https://github.com/immich-app/immich/discussions/10665,2024-06-27,,discussion:Feature Request,REOPENED
+ente,open,feature,dedup-stacks,69,Add support for RAW+JPEG pairs,https://github.com/ente/ente/discussions/2276,2024-06-24,photos,discussion:Enhancements,
+ente,open,feature,dedup-stacks,56,"Improving the ""Remove duplicates"" feature",https://github.com/ente/ente/discussions/764,2024-03-04,photos,discussion:Enhancements,
+photoprism,open,feature,dedup-stacks,47,Stacks: Search + manually stack similar images,https://github.com/photoprism/photoprism/issues/28,2018-10-08,idea;priority,issue,
+ente,open,feature,dedup-stacks,32,Organizing shared photos without duplicates,https://github.com/ente/ente/discussions/790,2024-01-14,photos,discussion:Enhancements,
+photoprism,open,feature,dedup-stacks,29,Stacks: Prefer edited photos in stacks as primary,https://github.com/photoprism/photoprism/issues/1028,2021-02-13,idea;ux;metadata,issue,
+ente,open,feature,dedup-stacks,25,Stack/Unstack Similar Photos,https://github.com/ente/ente/discussions/3043,2024-08-29,photos,discussion:Enhancements,
+photoprism,open,feature,dedup-stacks,18,"Stacks: Add ""Unstack All"" Button",https://github.com/photoprism/photoprism/issues/667,2020-11-30,idea;ux,issue,
+immich,open,bug,dedup-stacks,5,Duplicate detection excludes already stacked images,https://github.com/immich-app/immich/issues/21529,2025-09-02,,issue,reopened
+immich,open,bug,dedup-stacks,4,API: Database key constraint error during import from Google takeout via API when creating stacks,https://github.com/immich-app/immich/issues/25132,2026-01-08,🗄️server;needs-answer,issue,
+ente,open,bug,dedup-stacks,4,edited photos from Google Takeout cause duplicates,https://github.com/ente/ente/issues/3169,2024-09-08,web;desktop;photos,issue,
+immich,declined,feature,dedup-stacks,4,[Feature] Deduplication of images at server level,https://github.com/immich-app/immich/issues/185,2022-05-25,,issue:not_planned,not_planned
+ente,open,bug,dedup-stacks,2,Remove duplicates on large number of files,https://github.com/ente/ente/issues/568,2024-01-17,mobile;photos,issue,
+ente,open,bug,dedup-stacks,1,Importing Google Takeout create lots of duplicated image (live vs still),https://github.com/ente/ente/issues/2477,2024-07-18,desktop;photos,issue,
+memories,declined,feature,dedup-stacks,1,[Feature Request] Option to Find Duplicates,https://github.com/pulsejet/memories/issues/123,2022-10-26,wontfix,issue:not_planned,not_planned
+photoprism,declined,feature,dedup-stacks,0,Files: Unstack button is missing for stacked media files,https://github.com/photoprism/photoprism/issues/3429,2023-05-24,,issue:not_planned,not_planned
+photoprism,declined,feature,dedup-stacks,0,Experiment with Docker stacks and distributed application bundles,https://github.com/photoprism/photoprism/issues/45,2018-10-23,declined;idea,issue:label:declined,completed
+photoprism,declined,feature,dedup-stacks,0,Imported TIF photos break stacking logic,https://github.com/photoprism/photoprism/issues/1120,2021-03-07,declined,issue:label:declined,completed
+photoprism,declined,feature,dedup-stacks,0,Stacking: Deleting a stacked file leads to inconsistent photo metadata,https://github.com/photoprism/photoprism/issues/2330,2022-05-17,won't fix,issue:label:won't fix,completed
+immich,declined,feature,e2ee-encryption,4,[Feature]: Encryption for data at rest,https://github.com/immich-app/immich/issues/450,2022-08-10,,issue:not_planned,not_planned
+immich,declined?,feature,e2ee-encryption,4,"[Feature] Transparent Data Encryption (TDE), ( It's NOT E2EE )",https://github.com/immich-app/immich/discussions/22680,2025-10-05,,discussion:OUTDATED,OUTDATED
+ente,open,bug,e2ee-encryption,2,[Bug]: Disabling Machine Learning on client orphans encrypted ML blobs on the server (Self-Hosted),https://github.com/ente/ente/issues/9281,2026-02-21,server;self-hosting,issue,
+ente,open,bug,e2ee-encryption,1,[BUG] Safe storage failure due to `Error while encrypting the text provided to safeStorage.encryptString. Encryption is not available.`,https://github.com/ente/ente/issues/7942,2025-11-16,desktop;photos,issue,
+immich,open,feature,editing,132,[Feature] Auto Image Rotation Detection,https://github.com/immich-app/immich/discussions/10136,2024-06-11,,discussion:Feature Request,
+ente,open,feature,editing,124,Compress images on upload,https://github.com/ente/ente/discussions/555,2023-11-10,photos,discussion:Enhancements,
+ente,open,feature,editing,80,"Auto rotate pictures, or/and edit existing photos without creating a copy",https://github.com/ente/ente/discussions/2535,2024-07-24,photos,discussion:Enhancements,
+immich,declined?,feature,editing,43,[Feature] Automatic file format conversion,https://github.com/immich-app/immich/discussions/3996,2023-09-06,,discussion:OUTDATED,OUTDATED
+ente,open,feature,editing,35,Feature Request: Photo Editing Capabilities in Ente Photos,https://github.com/ente/ente/discussions/4754,2025-01-16,photos,discussion:Enhancements,
+immich,declined,feature,editing,29,[Feature]: Photo editor,https://github.com/immich-app/immich/issues/768,2022-10-01,,issue:not_planned,not_planned
+ente,open,feature,editing,26,Save photo edits without needing to save it as a new photo,https://github.com/ente/ente/discussions/4299,2024-12-03,photos,discussion:Enhancements,
+ente,open,feature,editing,23,Support in place edit,https://github.com/ente/ente/discussions/578,2024-02-01,photos,discussion:Enhancements,
+ente,open,feature,editing,20,Advanced image editor,https://github.com/ente/ente/discussions/2047,2024-06-07,mobile;photos,discussion:Enhancements,
+ente,open,feature,editing,19,"Downsize, Compression and conversion tools for photos and videos.",https://github.com/ente/ente/discussions/4588,2025-01-04,photos,discussion:Enhancements,
+ente,open,feature,editing,15,[photos] Feature request: Option to overwrite original photo when editing (e.g. rotate),https://github.com/ente/ente/discussions/6742,2025-08-03,photos,discussion:Enhancements,
+immich,declined,bug,editing,12,Edited photos on iPhone are not synced automatically,https://github.com/immich-app/immich/issues/9250,2024-05-04,📱mobile,issue:not_planned,not_planned
+photoprism,open,feature,editing,2,Crop images,https://github.com/photoprism/photoprism/discussions/3785,2023-10-03,,discussion:Ideas,
+ente,open,feature,editing,1,Discoloration with collage feature on iOS,https://github.com/ente/ente/issues/9020,2026-02-03,mobile;photos,issue,
+photoprism,declined,feature,editing,0,"Write unit tests for commands/convert.go, commands/import.go, fsutil and forms",https://github.com/photoprism/photoprism/issues/72,2018-11-22,declined,issue:label:declined,completed
+immich,open,feature,export-download,89,[Feature Request] Flexible Download Options: Format Conversion and Size Selection,https://github.com/immich-app/immich/discussions/15033,2025-01-02,,discussion:Feature Request,
+immich,open,bug,export-download,5,"Firefox kills SW fetch after 30 seconds, failing large downloads when service worker is enabled",https://github.com/immich-app/immich/issues/21490,2025-09-01,🖥️web,issue,
+immich,declined,bug,export-download,5,Downloading large album fails in webapp on devices with limited memory,https://github.com/immich-app/immich/issues/7542,2024-02-29,📱mobile,issue:not_planned,not_planned
+immich,declined?,feature,export-download,4,"Separate, auto-populating, library for downloaded media",https://github.com/immich-app/immich/discussions/3838,2023-08-22,,discussion:OUTDATED,OUTDATED
+ente,open,feature,export-download,3,Desktop export downloads files multiple times,https://github.com/ente/ente/issues/10045,2026-04-13,desktop;photos,issue,
+ente,open,bug,export-download,2,Ente CLI - 404 errors when exporting from cloud,https://github.com/ente/ente/issues/7193,2025-09-17,cli,issue,
+immich,open,feature,faces-people,92,[Feature] Enhancing face id Correlation for Video,https://github.com/immich-app/immich/discussions/5936,2023-12-22,,discussion:Feature Request,
+immich,open,feature,faces-people,76,[Feature] Link Faces with Contacts,https://github.com/immich-app/immich/discussions/2629,2023-06-01,,discussion:Feature Request,
+photoprism,open,feature,faces-people,42,People: Add feature to suggest simillar faces for merging,https://github.com/photoprism/photoprism/issues/1595,2021-10-04,idea;priority;faces,issue,
+photoprism,open,feature,faces-people,33,People: Exclude a person from search results,https://github.com/photoprism/photoprism/issues/757,2020-12-28,idea,issue,
+photoprism,open,feature,faces-people,32,People: Add relations between people,https://github.com/photoprism/photoprism/issues/144,2019-09-24,idea;metadata;faces,issue,
+photoprism,open,feature,faces-people,29,People: Manually assign people to photos/videos without setting a marker,https://github.com/photoprism/photoprism/issues/1863,2021-12-31,idea;ai,issue,
+photoprism,open,feature,faces-people,25,People: Select multiple new faces to name them together,https://github.com/photoprism/photoprism/issues/1679,2021-10-27,idea;faces,issue,
+memories,open,feature,faces-people,25,[Feature Request] read face tags from other software (digikam),https://github.com/pulsejet/memories/issues/127,2022-10-27,feature,issue,
+ente,open,feature,faces-people,23,[Photos] More functions for people/Face recognition,https://github.com/ente/ente/discussions/5936,2025-05-16,photos,discussion:Enhancements,
+ente,open,feature,faces-people,22,Allow editing recognised faces individually on photos,https://github.com/ente/ente/discussions/5569,2025-04-09,photos,discussion:Enhancements,
+photoprism,open,feature,faces-people,21,People: Improve facial recognition for young children,https://github.com/photoprism/photoprism/issues/1587,2021-10-03,idea;ai;faces,issue,
+photoprism,open,feature,faces-people,20,People: Untagged faces section,https://github.com/photoprism/photoprism/issues/1556,2021-09-25,faces,issue,
+ente,open,bug,faces-people,11,Face groupings not synced to Desktop,https://github.com/ente/ente/issues/3531,2024-09-29,photos;not-reproducible,issue,
+immich,open,bug,faces-people,9,Resetting facial recognition does not work for persons with manually tagged faces,https://github.com/immich-app/immich/issues/31452,2026-09-11,,issue,
+photoprism,open,feature,faces-people,5,People: Manually select area as face on picture,https://github.com/photoprism/photoprism/discussions/2047,2022-02-19,,discussion:Ideas,
+memories,open,feature,faces-people,5,TODO: Face Recognition Integration.,https://github.com/pulsejet/memories/issues/285,2022-12-12,feature,issue,
+photoprism,open,feature,faces-people,3,People: Improvement of the face:new feature,https://github.com/photoprism/photoprism/discussions/3808,2023-10-09,,discussion:Ideas,
+photoprism,open,feature,faces-people,3,UI: see all faces of one person (close-up),https://github.com/photoprism/photoprism/discussions/2977,2022-12-07,,discussion:Ideas,
+photoprism,open,feature,faces-people,2,Face/people match from Google Photos json file,https://github.com/photoprism/photoprism/discussions/4954,2025-04-20,,discussion:Ideas,
+ente,open,feature,faces-people,1,Face recognition one picture 2 times the person,https://github.com/ente/ente/issues/7956,2025-11-17,photos,issue,
+librephotos,open,feature,faces-people,1,Ability to select individual photo for face scan,https://github.com/LibrePhotos/librephotos/issues/1117,2023-10-04,enhancement;frontend;backend;size: S;difficulty: moderate,issue,
+librephotos,open,feature,faces-people,1,Face recognition feedback from a new user perspective,https://github.com/LibrePhotos/librephotos/issues/978,2023-08-01,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,faces-people,1,Combine duplicate faces when labeling,https://github.com/LibrePhotos/librephotos/issues/488,2022-04-20,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+memories,declined,feature,faces-people,1,Edits to People are not carried over to all users,https://github.com/pulsejet/memories/issues/614,2023-04-24,blocked,issue:not_planned,not_planned
+librephotos,open,feature,faces-people,0,Management command and API endpoint for face deduplication,https://github.com/LibrePhotos/librephotos/issues/2030,2026-09-16,enhancement;frontend;backend;size: M;difficulty: easy,issue,
+librephotos,open,feature,faces-people,0,Add birthdate and other info for a face,https://github.com/LibrePhotos/librephotos/issues/922,2023-07-14,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+librephotos,open,feature,faces-people,0,Feature request: ability to backup face scoring models,https://github.com/LibrePhotos/librephotos/issues/883,2023-06-15,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+memories,declined,feature,faces-people,0,button to select all pictures of a person,https://github.com/pulsejet/memories/issues/1138,2024-04-15,feature,issue:not_planned,not_planned
+librephotos,declined,feature,faces-people,0,"Bulk remove faces from person in ""Person"" album",https://github.com/LibrePhotos/librephotos/issues/658,2022-10-07,enhancement;frontend;backend;size: S;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,feature,faces-people,0,Make faces be a possibility in more than one person in case of mistake,https://github.com/LibrePhotos/librephotos/issues/921,2023-07-14,enhancement;frontend;backend;size: L;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,feature,faces-people,0,Faces with the same name for different people,https://github.com/LibrePhotos/librephotos/issues/864,2023-05-19,enhancement;frontend;backend;size: L;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,feature,faces-people,0,Access to ML model in Faces,https://github.com/LibrePhotos/librephotos/issues/678,2022-11-09,enhancement;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+immich,open,feature,folders-external-libs,81,[Feature] Quickly hide/unhide External Libraries from Timeline,https://github.com/immich-app/immich/discussions/6134,2024-01-02,,discussion:Feature Request,
+immich,open,feature,folders-external-libs,76,[Feature] External library upload,https://github.com/immich-app/immich/discussions/5453,2023-12-02,,discussion:Feature Request,
+ente,open,feature,folders-external-libs,32,2-way sync with local folder,https://github.com/ente/ente/discussions/1318,2024-04-04,desktop;photos,discussion:Enhancements,
+memories,open,feature,folders-external-libs,8,"""Open in Folder view""",https://github.com/pulsejet/memories/issues/808,2023-09-10,feature,issue,
+memories,open,feature,folders-external-libs,6,Album Folders/Categories,https://github.com/pulsejet/memories/issues/1573,2025-11-23,feature,issue,
+immich,declined,bug,folders-external-libs,6,Files wrongly reported as untracked,https://github.com/immich-app/immich/issues/7436,2024-02-26,,issue:not_planned,not_planned
+immich,declined?,feature,folders-external-libs,4,[feature] show original path on disk,https://github.com/immich-app/immich/discussions/14353,2024-11-26,,discussion:OUTDATED,OUTDATED
+ente,open,bug,folders-external-libs,3,Changed file in watched folder is not re-scanned,https://github.com/ente/ente/issues/4848,2025-01-24,desktop;photos,issue,
+librephotos,open,feature,folders-external-libs,3,Provide multiple paths containing pictures per user,https://github.com/LibrePhotos/librephotos/issues/123,2021-01-10,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+photoprism,declined,feature,folders-external-libs,3,File System: Reflect albums on the folder structure in originals,https://github.com/photoprism/photoprism/issues/327,2020-05-22,declined,issue:label:declined,completed
+librephotos,declined,feature,folders-external-libs,3,Ability To Add Multiple Sources,https://github.com/LibrePhotos/librephotos/issues/236,2021-04-15,enhancement;frontend;backend;size: L;difficulty: moderate,issue:not_planned,not_planned
+ente,open,bug,folders-external-libs,2,"Watched folder, same filename, changed content does not replace as expected",https://github.com/ente/ente/issues/6433,2025-07-01,desktop;photos,issue,
+librephotos,open,feature,folders-external-libs,2,Moving image to a different folder,https://github.com/LibrePhotos/librephotos/issues/352,2021-09-19,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+ente,open,feature,folders-external-libs,1,"Ente desktop app always creates or looks for a ""Ente Photos"" folder wherever it is pointed to",https://github.com/ente/ente/issues/6519,2025-07-12,desktop;photos,issue,
+photoprism,declined,feature,folders-external-libs,1,Import: Hard linking instead of move/copy,https://github.com/photoprism/photoprism/issues/2543,2022-07-24,declined;idea,issue:label:declined,completed
+librephotos,open,feature,folders-external-libs,0,Replaced-file re-index: threshold hash comparison and upload dedup after re-key,https://github.com/LibrePhotos/librephotos/issues/2051,2026-09-16,enhancement;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,folders-external-libs,0,Decide how derived data is refreshed when a file is replaced in place,https://github.com/LibrePhotos/librephotos/issues/2041,2026-09-16,enhancement;backend;discussion;size: L;difficulty: hard,issue,
+librephotos,open,feature,folders-external-libs,0,Changing the scan directory should update ownership of already scanned photos,https://github.com/LibrePhotos/librephotos/issues/2036,2026-09-16,enhancement;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,folders-external-libs,0,Create a new folder from the scan directory picker,https://github.com/LibrePhotos/librephotos/issues/2035,2026-09-16,enhancement;frontend;backend;size: S;difficulty: easy,issue,
+librephotos,open,feature,folders-external-libs,0,Re-hash library job to detect files replaced with a preserved mtime,https://github.com/LibrePhotos/librephotos/issues/2040,2026-09-16,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,folders-external-libs,0,ability to deselect subfolders for inclusion,https://github.com/LibrePhotos/librephotos/issues/791,2023-03-14,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,folders-external-libs,0,Allow external process to signal file addition,https://github.com/LibrePhotos/librephotos/issues/900,2023-06-25,documentation;enhancement;backend;size: S;difficulty: moderate,issue,
+librephotos,open,feature,folders-external-libs,0,Directory watch: Monitor /data for updated/deleted/created paths,https://github.com/LibrePhotos/librephotos/issues/380,2021-10-24,documentation;enhancement;frontend;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,folders-external-libs,0,Automatic rename files,https://github.com/LibrePhotos/librephotos/issues/307,2021-08-06,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,folders-external-libs,0,Seafile integration,https://github.com/LibrePhotos/librephotos/issues/247,2021-05-06,documentation;enhancement;backend;size: L;difficulty: hard,issue,
+ente,declined,feature,folders-external-libs,0,Reflect empty folder added to Watch Folder on the dashboard,https://github.com/ente/ente/issues/626,2023-11-07,desktop;photos,issue:not_planned,not_planned
+memories,declined,feature,folders-external-libs,0,[Feature] Different sorting options in a folder,https://github.com/pulsejet/memories/issues/253,2022-11-24,wontfix,issue:not_planned,not_planned
+memories,declined,feature,folders-external-libs,0,Installation on yunohost nextcloud instance : memcache dependencie,https://github.com/pulsejet/memories/issues/46,2022-09-16,needs details,issue:not_planned,not_planned
+memories,declined,feature,folders-external-libs,0,Allow changing binary temp directory,https://github.com/pulsejet/memories/issues/841,2023-10-02,feature,issue:not_planned,not_planned
+memories,declined,feature,folders-external-libs,0,Support folder exclude via .noimage file filter,https://github.com/pulsejet/memories/issues/1084,2024-03-22,feature;wontfix,issue:not_planned,not_planned
+memories,declined,feature,folders-external-libs,0,"""Thumbs.db"" file in directory prevents its visiblity in Memories (Solved)",https://github.com/pulsejet/memories/issues/1312,2024-10-14,needs triage,issue:not_planned,not_planned
+librephotos,declined,feature,folders-external-libs,0,Is there a mean to scan only photos and not videos?,https://github.com/LibrePhotos/librephotos/issues/531,2022-06-27,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+immich,open,feature,formats-hdr-raw-video,201,"[Feature] Support for ""Ultra HDR"" pictures on Android",https://github.com/immich-app/immich/discussions/7262,2024-02-20,,discussion:Feature Request,
+ente,open,feature,formats-hdr-raw-video,126,Support for RAW formats,https://github.com/ente/ente/discussions/625,2024-01-18,desktop;photos,discussion:Enhancements,
+immich,open,feature,formats-hdr-raw-video,82,[Feature] Sphere/Panorama view for the mobile client,https://github.com/immich-app/immich/discussions/6572,2024-01-22,,discussion:Feature Request,
+ente,open,feature,formats-hdr-raw-video,63,Support uploading of JPEG XL,https://github.com/ente/ente/discussions/599,2023-06-24,desktop;photos,discussion:Enhancements,
+ente,open,feature,formats-hdr-raw-video,56,Ultra HDR support,https://github.com/ente/ente/discussions/779,2024-02-29,mobile;photos,discussion:Enhancements,
+photoprism,open,feature,formats-hdr-raw-video,39,Config: Add option to generate AVIF and/or JPEG XL thumbnails instead of (only) JPEG,https://github.com/photoprism/photoprism/issues/668,2020-11-30,idea;ux;needs-analysis;config,issue,
+photoprism,open,feature,formats-hdr-raw-video,36,Videos: Configurable Quality for Video Streaming On Different Bandwidths,https://github.com/photoprism/photoprism/issues/1070,2021-02-17,idea;priority;ux;video,issue,
+immich,open,bug,formats-hdr-raw-video,33,Certain DNG files cannot be processed,https://github.com/immich-app/immich/issues/13029,2024-09-29,🗄️server;format,issue,
+ente,open,feature,formats-hdr-raw-video,33,Stream decrypted buffer on the fly,https://github.com/ente/ente/discussions/963,2023-04-18,web;mobile;photos,discussion:Enhancements,
+immich,declined,feature,formats-hdr-raw-video,31,[Feature]: Support audio files,https://github.com/immich-app/immich/issues/374,2022-07-25,,issue:not_planned,not_planned
+ente,open,feature,formats-hdr-raw-video,25,Add support for photo spheres / 360° photos,https://github.com/ente/ente/discussions/522,2024-03-02,web;desktop;photos,discussion:Enhancements,
+immich,open,feature,formats-hdr-raw-video,15,HDR Tone mapping - Dark videos,https://github.com/immich-app/immich/issues/23106,2025-10-20,,issue,
+immich,open,bug,formats-hdr-raw-video,13,Previews and thumbnails for HEIC HDR images look flat,https://github.com/immich-app/immich/issues/18636,2025-05-26,🗄️server;format,issue,
+immich,open,bug,formats-hdr-raw-video,8,Hardware acceleration cause video play with stuttering effect,https://github.com/immich-app/immich/issues/8657,2024-04-09,🗄️server;format,issue,reopened
+memories,open,feature,formats-hdr-raw-video,8,Support for UltraHDR Images,https://github.com/pulsejet/memories/issues/1110,2024-04-02,feature;android,issue,
+immich,open,bug,formats-hdr-raw-video,7,Android: cannot show original AVIF pictures,https://github.com/immich-app/immich/issues/22000,2025-09-15,📱mobile,issue,
+immich,open,bug,formats-hdr-raw-video,7,Server crash on ffmpeg error while processing thumbnail of video,https://github.com/immich-app/immich/issues/16546,2025-03-03,🗄️server,issue,
+photoprism,gated,feature,formats-hdr-raw-video,6,"Index: SVG, PS and EPS Vector Graphics Support",https://github.com/photoprism/photoprism/issues/2207,2022-03-30,idea;released;vector;pro-feature;plus-feature,issue:label:photoprism-gated1,completed
+immich,open,bug,formats-hdr-raw-video,4,Error “Input file has corrupt header” on a valid JPEG during thumbnail generation,https://github.com/immich-app/immich/issues/21499,2025-09-01,,issue,
+immich,open,bug,formats-hdr-raw-video,4,[BUG] Transcoding deadlock during software-decoding fallback for iPhone HDR videos on AMD VAAPI,https://github.com/immich-app/immich/issues/28932,2026-06-09,,issue,
+ente,open,bug,formats-hdr-raw-video,3,Black screen while playing videos,https://github.com/ente/ente/issues/3744,2024-10-17,desktop;photos,issue,
+librephotos,open,feature,formats-hdr-raw-video,2,Photo Sphere / Panorama Support,https://github.com/LibrePhotos/librephotos/issues/483,2022-04-07,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+photoprism,declined,feature,formats-hdr-raw-video,2,Transcode videos on-the-fly,https://github.com/photoprism/photoprism/issues/1748,2021-11-22,declined;idea;video,issue:label:declined,completed
+ente,open,bug,formats-hdr-raw-video,1,Can't play videos on firefox,https://github.com/ente/ente/issues/2581,2024-07-30,web;photos,issue,reopened
+ente,open,feature,formats-hdr-raw-video,1,Images with missing thumbnails do not regenerate thumbnails in local cache even when higher res is downloaded,https://github.com/ente/ente/issues/3488,2024-09-26,mobile;desktop;photos,issue,
+ente,open,feature,formats-hdr-raw-video,1,Problem playing high-bitrate gopro footage,https://github.com/ente/ente/issues/3647,2024-10-09,mobile;photos;triage,issue,
+librephotos,open,feature,formats-hdr-raw-video,0,Still poster thumbnail for videos and hover-only video mount in the grid,https://github.com/LibrePhotos/librephotos/issues/2026,2026-09-16,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+photoprism,declined,feature,formats-hdr-raw-video,0,JPEG: Use mozjpeg for smaller thumbnail files,https://github.com/photoprism/photoprism/issues/1705,2021-11-07,declined;idea,issue:label:declined,completed
+ente,declined,feature,formats-hdr-raw-video,0,Photos uploaded from web interface don't get thumbnails(all black) in the gallery view,https://github.com/ente/ente/issues/2189,2024-06-18,web;photos,issue:not_planned,not_planned
+memories,declined,feature,formats-hdr-raw-video,0,Implement Blurhash or Thumbhash,https://github.com/pulsejet/memories/issues/924,2023-11-18,wontfix,issue:not_planned,not_planned
+memories,declined,bug,formats-hdr-raw-video,0,Motion/live photos from Google Pixel 6a doesn't show the animation/video,https://github.com/pulsejet/memories/issues/928,2023-11-18,,issue:not_planned,not_planned
+librephotos,declined,feature,formats-hdr-raw-video,0,add a switch to allow saving thumbnails in JPG format,https://github.com/LibrePhotos/librephotos/issues/420,2022-01-12,enhancement;frontend;backend;size: L;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,tech-debt,formats-hdr-raw-video,0,Replace square_thumbnail_small with thumbhash,https://github.com/LibrePhotos/librephotos/issues/812,2023-04-06,frontend;backend;react-pig;tech-debt,issue:not_planned,not_planned
+librephotos,declined,tech-debt,formats-hdr-raw-video,0,Rename square_thumbnails and square_thumbnails_small,https://github.com/LibrePhotos/librephotos/issues/332,2021-08-30,frontend;backend;tech-debt,issue:not_planned,not_planned
+photoprism,gated,feature,formats-hdr-raw-video,0,"Support for source files from apps like Inkscape, Pitivi, GIMP, Blender, Adobe Illustrator, Final Cut, etc.",https://github.com/photoprism/photoprism/issues/1177,2021-04-07,duplicate;idea;vector;pro-feature;plus-feature,issue:label:photoprism-gated1,completed
+photoprism,open,feature,import-migration,43,Synchronization: Proof-of-concept for syncing with Google Photos API,https://github.com/photoprism/photoprism/issues/223,2020-01-24,help wanted;idea,issue,
+ente,open,feature,import-migration,27,Import photos with ente cli,https://github.com/ente/ente/discussions/2347,2024-07-02,photos;cli,discussion:Enhancements,
+photoprism,open,feature,import-migration,18,People: Import people tags from google takeout json,https://github.com/photoprism/photoprism/issues/1571,2021-09-29,,issue,
+immich,declined,feature,import-migration,14,[Feature]: Ability to upload a Google takeout zip file,https://github.com/immich-app/immich/issues/455,2022-08-11,nice to have,issue:not_planned,not_planned
+immich,declined?,feature,import-migration,7,[Feature] Import/bulk upload photos for users without their API key,https://github.com/immich-app/immich/discussions/3681,2023-08-14,,discussion:OUTDATED,OUTDATED
+immich,declined,feature,import-migration,5,"Pictures don't get added to albums, when uploading through cli",https://github.com/immich-app/immich/issues/8046,2024-03-18,cli,issue:not_planned,not_planned
+photoprism,open,feature,import-migration,2,"telegram2photoprism bot allows uploading photos, videos from Telegram to a PhotoPrism server and selecting predefined tags. https://github.com/dssysolyatin/telegram2photoprism",https://github.com/photoprism/photoprism/discussions/4083,2024-02-29,,discussion:Ideas,
+photoprism,open,feature,import-migration,2,Feature-rich companion app to compete Google Photos,https://github.com/photoprism/photoprism/discussions/2244,2022-04-12,,discussion:Ideas,
+ente,open,bug,import-migration,2,[Photos] [Desktop] [Linux] Metadata/jpg.json not used when importing from export dir,https://github.com/ente/ente/issues/9220,2026-02-16,desktop;photos;cli,issue,
+photoprism,open,feature,maps-location,15,Metadata: Estimate location by Google's Location History,https://github.com/photoprism/photoprism/issues/1174,2021-04-05,idea;metadata,issue,
+memories,open,feature,maps-location,8,Feature Request: GPX Integration,https://github.com/pulsejet/memories/issues/749,2023-07-26,feature,issue,
+memories,open,feature,maps-location,6,Drag and drop to fix inaccurate image location data,https://github.com/pulsejet/memories/issues/692,2023-06-14,feature,issue,
+memories,open,feature,maps-location,5,Feature Request: Add/Edit Geolocation via Map,https://github.com/pulsejet/memories/issues/982,2024-01-02,feature,issue,
+immich,declined,bug,maps-location,4,[UI] Multiple issues with Location filtering in Search,https://github.com/immich-app/immich/issues/10994,2024-07-10,,issue:not_planned,not_planned
+librephotos,open,feature,maps-location,0,"Places Shows Photos (duplicated) under multiple locations (derived from various parts of geolocation data - city, county, street, etc)",https://github.com/LibrePhotos/librephotos/issues/343,2021-09-05,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,maps-location,0,Defining places,https://github.com/LibrePhotos/librephotos/issues/1365,2024-08-08,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+photoprism,declined,feature,maps-location,0,Support Google Maps API for geocoding,https://github.com/photoprism/photoprism/issues/10,2018-10-08,declined,issue:label:declined,completed
+photoprism,gated,feature,maps-location,0,"Places: Enable terrain mode to display the satellite, outdoor and topography maps in 3D",https://github.com/photoprism/photoprism/issues/3455,2023-06-07,released;member-feature;places,issue:label:photoprism-gated0,completed
+immich,open,feature,memories-rediscovery,234,[Feature] Memories showcase,https://github.com/immich-app/immich/discussions/2836,2023-06-18,,discussion:Feature Request,
+immich,open,feature,memories-rediscovery,220,[Feature] App push notifications for Memories on this day,https://github.com/immich-app/immich/discussions/3981,2023-09-05,,discussion:Feature Request,
+photoprism,open,feature,memories-rediscovery,135,Discover: Show memories like today x years ago,https://github.com/photoprism/photoprism/issues/720,2020-12-17,idea;priority,issue,
+immich,open,feature,memories-rediscovery,80,[Feature] Enhanced Memories (Trips),https://github.com/immich-app/immich/discussions/7437,2024-02-26,,discussion:Feature Request,
+ente,open,feature,memories-rediscovery,24,Statistics,https://github.com/ente/ente/discussions/1162,2024-03-20,photos,discussion:Enhancements,
+memories,open,feature,memories-rediscovery,12,Widget for on this day images,https://github.com/pulsejet/memories/issues/1018,2024-01-24,feature;android,issue,
+memories,open,feature,memories-rediscovery,7,"Auto generate short video clips of people, places etc (like ios memories)",https://github.com/pulsejet/memories/issues/1057,2024-02-27,feature,issue,
+memories,open,feature,memories-rediscovery,7,This day -> Choose any day,https://github.com/pulsejet/memories/issues/1052,2024-02-24,feature,issue,
+memories,open,feature,memories-rediscovery,6,event/holiday clustering,https://github.com/pulsejet/memories/issues/759,2023-08-01,feature,issue,
+librephotos,open,feature,memories-rediscovery,0,Android App to give notification for memories,https://github.com/LibrePhotos/librephotos/issues/843,2023-05-05,enhancement;backend;mobile;size: L;difficulty: hard,issue,
+immich,open,feature,metadata-writeback-interop,115,[Feature] Write face metadata to sidecar files,https://github.com/immich-app/immich/discussions/15083,2025-01-04,,discussion:Feature Request,
+photoprism,open,feature,metadata-writeback-interop,67,Metadata: Implement (5) star rating,https://github.com/photoprism/photoprism/issues/713,2020-12-16,idea,issue,
+photoprism,open,feature,metadata-writeback-interop,64,Write metadata back to originals,https://github.com/photoprism/photoprism/discussions/1092,2021-02-23,,discussion:Ideas,
+memories,open,feature,metadata-writeback-interop,49,Read existing tags / keywords in the image metadata,https://github.com/pulsejet/memories/issues/891,2023-10-27,feature,issue,
+photoprism,open,feature,metadata-writeback-interop,45,Metadata: Write PhotoPrism metadata to XMP sidecars or EXIF,https://github.com/photoprism/photoprism/issues/402,2020-07-14,idea;priority;needs-analysis,issue,
+immich,open,feature,metadata-writeback-interop,41,Custom EXIF Tags,https://github.com/immich-app/immich/issues/1965,2023-03-07,🗄️server,issue,reopened
+immich,open,bug,metadata-writeback-interop,28,Read-only external library metadata edits silently fail,https://github.com/immich-app/immich/issues/10538,2024-06-22,🗄️server;external-library,issue,reopened
+ente,open,feature,metadata-writeback-interop,22,"Support XMP metadata: Displaying, searching, filtering, editing, exporting",https://github.com/ente/ente/discussions/1910,2024-05-28,mobile;desktop;photos,discussion:Enhancements,
+ente,open,feature,metadata-writeback-interop,19,Option to strip EXIF metadata before upload,https://github.com/ente/ente/discussions/896,2023-09-16,mobile;photos,discussion:Enhancements,
+ente,open,feature,metadata-writeback-interop,16,Removal of metadata for sharing.,https://github.com/ente/ente/discussions/4497,2024-12-24,photos,discussion:Enhancements,
+immich,declined?,feature,metadata-writeback-interop,13,"[Feature] Apply, Not Export, Sidecar Metadata",https://github.com/immich-app/immich/discussions/14169,2024-11-15,nice to have,discussion:OUTDATED,OUTDATED
+immich,declined?,feature,metadata-writeback-interop,13,[Feature] Support for Google Takeout JSON Sidecars,https://github.com/immich-app/immich/discussions/5083,2023-11-16,,discussion:OUTDATED,OUTDATED
+ente,open,bug,metadata-writeback-interop,12,Editing a photo loses EXIF,https://github.com/ente/ente/issues/576,2024-02-01,mobile;desktop;photos,issue,
+memories,open,feature,metadata-writeback-interop,12,Add rating,https://github.com/pulsejet/memories/issues/691,2023-06-14,feature,issue,
+memories,open,feature,metadata-writeback-interop,8,"Allow filtering photos by rating in EXIF/XMP metadata (""stars"")",https://github.com/pulsejet/memories/issues/564,2023-04-13,feature,issue,
+immich,open,bug,metadata-writeback-interop,7,[Regression] sRGB is assumed when generating thumbnails,https://github.com/immich-app/immich/issues/21999,2025-09-15,🗄️server;format,issue,
+immich,open,bug,metadata-writeback-interop,7,"iOS/iPadOS Client Issues: Video Distorted, EXIF Wrong",https://github.com/immich-app/immich/issues/17374,2025-04-04,📱mobile,issue,
+immich,open,feature,metadata-writeback-interop,6,Normalize camera make/model fields,https://github.com/immich-app/immich/issues/12613,2024-09-12,🗄️server,issue,
+immich,open,bug,metadata-writeback-interop,6,"""Error loading image"" displayed for a file and metadata extraction fails",https://github.com/immich-app/immich/issues/29600,2026-07-05,,issue,
+memories,open,feature,metadata-writeback-interop,6,Rating support,https://github.com/pulsejet/memories/issues/751,2023-07-27,feature,issue,reopened
+immich,open,bug,metadata-writeback-interop,5,"[BUG] In the iOS app, the metadata of the backed up file is different.",https://github.com/immich-app/immich/issues/5818,2023-12-18,📱mobile,issue,
+immich,open,feature,metadata-writeback-interop,5,Captions are not transferred when performing backup with iOS app,https://github.com/immich-app/immich/issues/16026,2025-02-11,📱mobile,issue,
+memories,open,feature,metadata-writeback-interop,5,"Open ""Edit Metadata"" in sidebar",https://github.com/pulsejet/memories/issues/613,2023-04-24,feature,issue,
+librephotos,declined,feature,metadata-writeback-interop,5,Bulk editing features,https://github.com/LibrePhotos/librephotos/issues/230,2021-04-09,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+photoprism,open,feature,metadata-writeback-interop,2,Change files' folder when updating metadata,https://github.com/photoprism/photoprism/discussions/3923,2023-11-29,,discussion:Ideas,
+ente,open,bug,metadata-writeback-interop,2,wrong photo metadata after upload,https://github.com/ente/ente/issues/3087,2024-09-01,desktop;photos,issue,
+ente,open,feature,metadata-writeback-interop,2,Color reproduction in Ente gallery is different than e.g. Samsung or Fossify Gallery,https://github.com/ente/ente/issues/10594,2026-05-22,mobile;desktop;photos,issue,
+memories,declined,feature,metadata-writeback-interop,1,Integration with TagSpaces,https://github.com/pulsejet/memories/issues/1098,2024-03-27,feature,issue:not_planned,not_planned
+memories,declined,feature,metadata-writeback-interop,1,Offset for mp4 exif dates,https://github.com/pulsejet/memories/issues/1511,2025-08-11,needs triage,issue:not_planned,not_planned
+librephotos,open,feature,metadata-writeback-interop,0,"Let users create and edit date/time rules (tag, filename pattern, time zone)",https://github.com/LibrePhotos/librephotos/issues/2272,2026-10-11,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+librephotos,open,feature,metadata-writeback-interop,0,Keep the UTC offset of a photo's capture time instead of discarding it,https://github.com/LibrePhotos/librephotos/issues/2262,2026-10-11,enhancement;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,metadata-writeback-interop,0,Decide how in-app metadata edits survive a rescan (per-field source),https://github.com/LibrePhotos/librephotos/issues/2250,2026-10-11,enhancement;backend;size: L;difficulty: hard,issue,
+photoprism,declined,bug,metadata-writeback-interop,0,GPS data lost during import when EXIF contains Offset Time fields (Pixel 10 / Android June 2026),https://github.com/photoprism/photoprism/issues/5687,2026-06-24,,issue:not_planned,not_planned
+photoprism,declined,bug,metadata-writeback-interop,0,Sidecar thumbnails for video's not cleaned up on removal - causes issues when moving files,https://github.com/photoprism/photoprism/issues/5044,2025-06-02,needs-work;needs-analysis,issue:not_planned,not_planned
+photoprism,declined,feature,metadata-writeback-interop,0,Mobile upload: Figure out why Exif data is missing,https://github.com/photoprism/photoprism/issues/181,2020-01-05,help wanted;declined;easy,issue:label:declined,completed
+memories,declined,feature,metadata-writeback-interop,0,Memories uses file creation date for image instead of creation date from metadata,https://github.com/pulsejet/memories/issues/824,2023-09-19,needs triage,issue:not_planned,not_planned
+memories,declined,feature,metadata-writeback-interop,0,Support for DCI-P3 profile,https://github.com/pulsejet/memories/issues/972,2023-12-26,wontfix,issue:not_planned,not_planned
+photoprism,declined,feature,ml-hardware,85,Config: Add support for AI inference with Coral Edge TPU USB devices,https://github.com/photoprism/photoprism/issues/536,2020-10-07,declined;idea;ai;config,issue:label:declined,completed
+photoprism,open,feature,ml-hardware,24,Settings: Add admin panel for background job scheduling,https://github.com/photoprism/photoprism/issues/2495,2022-07-05,idea,issue,
+immich,declined?,feature,ml-hardware,15,[Question]: Support Coral.ai Accelerator ?,https://github.com/immich-app/immich/discussions/6872,2022-06-01,,discussion:OUTDATED,OUTDATED
+immich,open,bug,ml-hardware,14,immich-ml giving me errors since upgrading to latest today.,https://github.com/immich-app/immich/issues/20496,2025-08-01,🧠machine-learning,issue,
+immich,open,bug,ml-hardware,11,Immich v2.5.0 to v2.5.2 broke ML for NVIDIA GeForce GTX 960 - Status Message: CUDA error cudaErrorNoKernelImageForDevice:no kernel image is available for execution on the device,https://github.com/immich-app/immich/issues/25732,2026-01-30,🧠machine-learning,issue,
+immich,declined?,feature,ml-hardware,8,[Feature] Outsource video transcoding,https://github.com/immich-app/immich/discussions/7925,2024-03-13,,discussion:OUTDATED,OUTDATED
+photoprism,open,feature,ml-hardware,6,Option for generating two thumbnails only,https://github.com/photoprism/photoprism/discussions/4327,2024-06-10,,discussion:Ideas,
+immich,declined,bug,ml-hardware,6,Machine Learning container crashing after upgrade from 2.5.6 to 2.6.1,https://github.com/immich-app/immich/issues/27127,2026-03-21,🧠machine-learning,issue:not_planned,not_planned
+immich,declined?,feature,ml-hardware,6,[Feature] Allow Multiple URLs for the Machine Learning Server,https://github.com/immich-app/immich/discussions/4616,2023-10-23,,discussion:OUTDATED,OUTDATED
+photoprism,open,feature,ml-hardware,4,Run heavy tasks remotely,https://github.com/photoprism/photoprism/discussions/3584,2023-07-28,,discussion:Ideas,
+librephotos,declined,feature,ml-hardware,3,"Have the possibility to deactivate some ""ai"" stuff",https://github.com/LibrePhotos/librephotos/issues/255,2021-05-24,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+photoprism,declined,feature,ml-hardware,1,Find alternative to Darktable that runs on ARM64,https://github.com/photoprism/photoprism/issues/145,2019-10-04,declined,issue:label:declined,completed
+photoprism,declined,feature,ml-hardware,0,TensorFlow: Running models with GPU support,https://github.com/photoprism/photoprism/issues/5618,2026-05-26,help wanted,issue:not_planned,not_planned
+photoprism,declined,feature,ml-hardware,0,Docker: Do not load libtensorflow.so.1 if TensorFlow is disabled,https://github.com/photoprism/photoprism/issues/2031,2022-02-14,declined,issue:label:declined,completed
+immich,open,feature,mobile-sync-offline,798,[Feature]: Upload large files in chunks,https://github.com/immich-app/immich/discussions/1674,2022-09-03,nice to have,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,239,[Feature] Support Android's new cloud media provider for stock photo picker,https://github.com/immich-app/immich/discussions/7101,2024-02-13,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,211,[Feature] Delete from web and sync to mobile,https://github.com/immich-app/immich/discussions/3594,2023-08-08,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,202,Being able to use the mobile app offline or standalone,https://github.com/immich-app/immich/discussions/4466,2023-10-13,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,195,[Feature] Make an album available offline,https://github.com/immich-app/immich/discussions/7627,2024-03-04,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,146,[Feature] Two-way Sync,https://github.com/immich-app/immich/discussions/4341,2023-10-04,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,121,[Feature] Backup only images starting from a particular date,https://github.com/immich-app/immich/discussions/4169,2023-09-21,,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,115,[Feature] Avoid resyncing if deleted manually,https://github.com/immich-app/immich/discussions/4282,2023-09-29,,discussion:Feature Request,
+ente,open,feature,mobile-sync-offline,99,Act as Android's gallery app,https://github.com/ente/ente/discussions/975,2022-11-15,mobile;photos;planned,discussion:Enhancements,
+immich,open,feature,mobile-sync-offline,75,[Feature]: Select images in Immich using native system tools,https://github.com/immich-app/immich/discussions/1641,2022-11-20,nice to have;📱mobile,discussion:Feature Request,
+immich,open,feature,mobile-sync-offline,72,[Feature] Mobile: filter by upload status,https://github.com/immich-app/immich/discussions/2155,2023-04-03,,discussion:Feature Request,
+immich,declined,feature,mobile-sync-offline,53,[Feature]: Second server url for fallback / local ip to external domain name swtich,https://github.com/immich-app/immich/issues/308,2022-07-05,,issue:not_planned,not_planned
+ente,open,feature,mobile-sync-offline,48,Automatically download photos for offline use,https://github.com/ente/ente/discussions/885,2023-10-13,mobile;photos,discussion:Enhancements,
+memories,open,feature,mobile-sync-offline,34,Android app offline mode,https://github.com/pulsejet/memories/issues/854,2023-10-08,feature;android,issue,
+immich,open,bug,mobile-sync-offline,21,Automatic local URL switching frequently fails,https://github.com/immich-app/immich/issues/15220,2025-01-10,📱mobile,issue,
+ente,open,feature,mobile-sync-offline,21,Prompt to delete files deleted on remote,https://github.com/ente/ente/discussions/900,2023-09-12,mobile;photos;planned,discussion:Enhancements,
+immich,open,feature,mobile-sync-offline,20,[META] Experimental network features,https://github.com/immich-app/immich/issues/15230,2025-01-10,📱mobile,issue,
+ente,open,feature,mobile-sync-offline,17,"On Android, deleting a local file, should delete it from ente",https://github.com/ente/ente/discussions/3546,2024-10-01,mobile;photos,discussion:Enhancements,
+photoprism,open,feature,mobile-sync-offline,15,"UX: Browse, Sync & Share Photos stored on Mobile Devices",https://github.com/photoprism/photoprism/issues/1666,2021-10-25,idea;ux;sharing,issue,
+ente,open,feature,mobile-sync-offline,15,Run in background,https://github.com/ente/ente/discussions/668,2024-03-04,needs more info;mobile;photos,discussion:Enhancements,
+memories,open,feature,mobile-sync-offline,15,Ios support plan?,https://github.com/pulsejet/memories/issues/998,2024-01-11,feature,issue,
+immich,open,bug,mobile-sync-offline,13,Deletes on the mobile app are confusing/broken,https://github.com/immich-app/immich/issues/22015,2025-09-15,📱mobile,issue,
+immich,declined,feature,mobile-sync-offline,12,Get 4 notifications every time the iOS app starts syncing.,https://github.com/immich-app/immich/issues/22483,2025-09-29,📱mobile,issue:not_planned,not_planned
+immich,open,bug,mobile-sync-offline,9,"iOS backup uploads frequently fail with ""PathNotFoundException""",https://github.com/immich-app/immich/issues/30756,2026-08-14,📱mobile,issue,
+immich,declined,bug,mobile-sync-offline,9,[BUG] Background upload doesn't work even with Automatic Foreground Backup and Automatic background backup service enabled.,https://github.com/immich-app/immich/issues/5994,2023-12-26,📱mobile,issue:not_planned,not_planned
+immich,declined,bug,mobile-sync-offline,9,background backup worker not work,https://github.com/immich-app/immich/issues/7124,2024-02-14,📱mobile,issue:not_planned,not_planned
+immich,declined,bug,mobile-sync-offline,9,[beta] deleting through mobile app still broken,https://github.com/immich-app/immich/issues/20682,2025-08-05,📱mobile,issue:not_planned,not_planned
+ente,open,feature,mobile-sync-offline,8,[photos] Upload is very unreliable,https://github.com/ente/ente/issues/4996,2025-02-08,mobile;photos,issue,
+ente,open,bug,mobile-sync-offline,8,"Android Apps (both Auth and Photos): Slow and sluggish on Android, low framerate",https://github.com/ente/ente/issues/8873,2026-01-21,mobile;auth;photos,issue,
+memories,open,feature,mobile-sync-offline,8,Memories as default gallery app,https://github.com/pulsejet/memories/issues/1322,2024-10-23,feature,issue,
+immich,open,bug,mobile-sync-offline,7,Opening deep link for an asset does not allow forwards/backwards navigation in asset viewer,https://github.com/immich-app/immich/issues/20289,2025-07-26,📱mobile,issue,
+immich,open,bug,mobile-sync-offline,7,[v3.0.0 & 3.0.1] iOS / iPhone App Crashes on start | APP UNUSABLE,https://github.com/immich-app/immich/issues/29500,2026-07-03,📱mobile,issue,reopened
+memories,open,feature,mobile-sync-offline,7,Pinch to zoom in photos tab,https://github.com/pulsejet/memories/issues/1077,2024-03-20,feature;android,issue,
+immich,open,bug,mobile-sync-offline,6,iOS app locks out uploads when hashing fails - assets stuck in processing state indefinitely,https://github.com/immich-app/immich/issues/25248,2026-01-13,📱mobile,issue,reopened
+immich,open,bug,mobile-sync-offline,6,Immich iOS app doesn't upload but prepares images and taking my space,https://github.com/immich-app/immich/issues/22850,2025-10-11,📱mobile,issue,
+ente,open,bug,mobile-sync-offline,6,Background synchronization does not work on iOS,https://github.com/ente/ente/issues/7127,2025-09-10,mobile;photos,issue,
+memories,open,feature,mobile-sync-offline,6,Become an Android cloud media provider,https://github.com/pulsejet/memories/issues/1306,2024-10-05,feature;android,issue,
+immich,open,bug,mobile-sync-offline,5,3-dot menu keeps disappearing on iPadOS,https://github.com/immich-app/immich/issues/28099,2026-04-26,📱mobile,issue,
+immich,open,bug,mobile-sync-offline,5,"upload failed with: PathNotFoundException: Cannot retrieve length of file, path ='xxx'",https://github.com/immich-app/immich/issues/30073,2026-07-20,,issue,
+immich,open,feature,mobile-sync-offline,5,Mobile not hashing manually uploaded assets,https://github.com/immich-app/immich/issues/23511,2025-11-02,📱mobile,issue,
+immich,open,bug,mobile-sync-offline,5,The issue with the lying ✔️ icon,https://github.com/immich-app/immich/issues/28327,2026-05-10,📱mobile,issue,
+memories,open,feature,mobile-sync-offline,5,Precise timeline in mobile client,https://github.com/pulsejet/memories/issues/1047,2024-02-17,feature,issue,
+immich,open,feature,mobile-sync-offline,4,IOS app - LivePhone sometimes not correct uploaded,https://github.com/immich-app/immich/issues/18961,2025-06-06,📱mobile,issue,
+immich,open,bug,mobile-sync-offline,4,Android App - Two backup setting areas can be confusing.,https://github.com/immich-app/immich/issues/22477,2025-09-29,📱mobile,issue,
+immich,open,bug,mobile-sync-offline,4,The mobile app does not display new photos,https://github.com/immich-app/immich/issues/30203,2026-07-24,,issue,
+immich,declined,bug,mobile-sync-offline,4,[BUG] Immich should detect content type server side and reject uploads early,https://github.com/immich-app/immich/issues/2824,2023-06-17,📱mobile;🖥️web;🗄️server,issue:not_planned,not_planned
+immich,declined,bug,mobile-sync-offline,4,Backup album is not selected when the content is emptied,https://github.com/immich-app/immich/issues/13134,2024-10-03,,issue:not_planned,not_planned
+immich,declined,bug,mobile-sync-offline,4,Scrollbar iOS can't go all the way down.,https://github.com/immich-app/immich/issues/12453,2024-09-07,,issue:not_planned,not_planned
+ente,open,feature,mobile-sync-offline,3,"[Photos] iOS re-hashes and re-downloads the entire library every sync when a second device joins a large, already-backed-up library",https://github.com/ente/ente/issues/10851,2026-06-06,mobile;server;photos,issue,
+immich,declined,feature,mobile-sync-offline,3,[Feature]: automatic deletion of photos/videos after x days,https://github.com/immich-app/immich/issues/356,2022-07-17,,issue:not_planned,not_planned
+immich,declined,bug,mobile-sync-offline,3,Background downloader does not take HTTP configuration into account causing asset downloads to fail for certain HTTP configurations,https://github.com/immich-app/immich/issues/14945,2024-12-27,,issue:not_planned,not_planned
+immich,declined?,feature,mobile-sync-offline,3,[Feature] add option to disable pinch to resize photo grid,https://github.com/immich-app/immich/discussions/30779,2026-08-15,,discussion:OUTDATED,OUTDATED
+ente,open,bug,mobile-sync-offline,1,Ente photo crash often when uploading massive photos,https://github.com/ente/ente/issues/9607,2026-03-11,mobile;photos;pending-op,issue,
+ente,declined,feature,mobile-sync-offline,1,Same photos and videos keep being reuploaded from the same phone,https://github.com/ente/ente/issues/1848,2024-05-24,mobile;photos,issue:not_planned,not_planned
+ente,declined,bug,mobile-sync-offline,1,"Why after installing Ente Photos on Android the application is not updated, but two applications are installed side by side, but only different versions.",https://github.com/ente/ente/issues/3527,2024-09-29,needs more info,issue:not_planned,not_planned
+ente,declined,bug,mobile-sync-offline,1,Mobile Photos app crashing with protobuf error,https://github.com/ente/ente/issues/3907,2024-11-02,triage,issue:not_planned,not_planned
+ente,declined,bug,mobile-sync-offline,1,Video upload doesn't work after the update,https://github.com/ente/ente/issues/5468,2025-03-29,mobile;photos,issue:not_planned,not_planned
+memories,declined,bug,mobile-sync-offline,1,Mobile app shows placeholder images/thumbnails for local files,https://github.com/pulsejet/memories/issues/935,2023-11-22,bug;android,issue:not_planned,not_planned
+photoprism,declined,feature,mobile-sync-offline,0,UX: Improve Magic Keyboard touch support on Apple iPad Pro,https://github.com/photoprism/photoprism/issues/1339,2021-05-30,help wanted;idea;ux,issue:not_planned,not_planned
+photoprism,declined,feature,mobile-sync-offline,0,"Idea: As a User, I would like to see the current upload speed of the file being uploaded in the iOS/Android app",https://github.com/photoprism/photoprism/issues/4075,2024-02-23,idea,issue:not_planned,not_planned
+ente,declined,bug,mobile-sync-offline,0,Upload cancellation not working,https://github.com/ente/ente/issues/588,2022-12-14,desktop;photos,issue:not_planned,not_planned
+memories,declined,bug,mobile-sync-offline,0,Timeline text slightly cutoff on mobile,https://github.com/pulsejet/memories/issues/249,2022-11-24,bug,issue:not_planned,not_planned
+memories,declined,feature,mobile-sync-offline,0,"Consider using the local file, even when it's already saved to Nextcloud",https://github.com/pulsejet/memories/issues/1021,2024-01-25,feature,issue:not_planned,not_planned
+memories,declined,feature,mobile-sync-offline,0,Deleting items in android app re-uploads the image/video as .trashed file.,https://github.com/pulsejet/memories/issues/1153,2024-04-21,,issue:not_planned,not_planned
+memories,declined,feature,mobile-sync-offline,0,Auto-Upload / Sync,https://github.com/pulsejet/memories/issues/1468,2025-06-24,feature;wontfix,issue:label:wontfix,not_planned
+librephotos,declined,feature,mobile-sync-offline,0,Delete from trash after n days,https://github.com/LibrePhotos/librephotos/issues/1163,2024-02-18,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,feature,mobile-sync-offline,0,Notify the user to activate MANAGE_EXTERNAL_STORAGE,https://github.com/LibrePhotos/librephotos/issues/782,2023-03-09,enhancement;good first issue;mobile;size: S;difficulty: easy,issue:not_planned,not_planned
+librephotos,declined,tech-debt,mobile-sync-offline,0,Improve hashing,https://github.com/LibrePhotos/librephotos/issues/467,2022-03-09,backend;discussion;tech-debt,issue:not_planned,not_planned
+immich,open,feature,nested-albums-organize,394,[Feature]: Nested albums,https://github.com/immich-app/immich/discussions/2073,2022-11-23,,discussion:Feature Request,
+ente,open,feature,nested-albums-organize,257,Ability to add sub albums/folders,https://github.com/ente/ente/discussions/552,2023-10-25,photos,discussion:Enhancements,
+immich,open,feature,nested-albums-organize,144,[Feature] Tree structured album folders,https://github.com/immich-app/immich/discussions/5078,2023-11-16,,discussion:Feature Request,REOPENED
+photoprism,open,feature,nested-albums-organize,85,Folders: Option to show folders hierarchically,https://github.com/photoprism/photoprism/issues/1536,2021-09-18,idea,issue,
+immich,open,feature,nested-albums-organize,84,[Feature] Rename and Move Tags,https://github.com/immich-app/immich/discussions/12210,2024-09-01,,discussion:Feature Request,
+immich,open,feature,nested-albums-organize,82,[Feature] Add option to move pictures from one album to another (new or existing) album,https://github.com/immich-app/immich/discussions/8604,2024-04-07,,discussion:Feature Request,
+immich,open,feature,nested-albums-organize,80,[Feature] Support manual re-ordering photos in albums,https://github.com/immich-app/immich/discussions/2208,2023-04-08,,discussion:Feature Request,
+ente,open,feature,nested-albums-organize,79,Add ability to tag photos,https://github.com/ente/ente/discussions/543,2023-09-25,photos;planned,discussion:Enhancements,
+photoprism,open,feature,nested-albums-organize,47,Albums: Hierarchical albums,https://github.com/photoprism/photoprism/issues/401,2020-07-14,idea;needs-analysis,issue,
+memories,open,feature,nested-albums-organize,34,Feature : nested albums,https://github.com/pulsejet/memories/issues/523,2023-03-26,feature,issue,
+ente,open,feature,nested-albums-organize,15,Improvement of album management,https://github.com/ente/ente/discussions/5620,2025-04-14,photos,discussion:Enhancements,
+ente,open,feature,nested-albums-organize,15,Faster keyword and tag creation,https://github.com/ente/ente/discussions/1481,2024-04-18,photos,discussion:Enhancements,
+photoprism,open,feature,nested-albums-organize,3,Support for complex/composite keywords,https://github.com/photoprism/photoprism/discussions/3713,2023-08-15,idea,discussion:Ideas,
+librephotos,declined,feature,nested-albums-organize,3,Album folders,https://github.com/LibrePhotos/librephotos/issues/871,2023-05-30,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+photoprism,declined,feature,nested-albums-organize,0,Labels: Don't allow to create/rename labels with existing label names,https://github.com/photoprism/photoprism/issues/3736,2023-09-18,won't fix,issue:label:won't fix,completed
+photoprism,open,feature,nextcloud-integration,51,Feature suggestion: Add ons for nextcloud,https://github.com/photoprism/photoprism/issues/1271,2021-05-06,idea,issue,
+librephotos,open,feature,nextcloud-integration,24,Link photos from NextCloud,https://github.com/LibrePhotos/librephotos/issues/55,2020-12-30,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+photoprism,open,feature,nextcloud-integration,17,When can we see PhotoPrism as an app in the NextCloud app store?,https://github.com/photoprism/photoprism/discussions/2259,2022-04-16,,discussion:Ideas,
+librephotos,open,feature,nextcloud-integration,3,Allow importing of NextCloud Contacts for Face Tags,https://github.com/LibrePhotos/librephotos/issues/527,2022-06-18,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+immich,declined,bug,other,28,[BUG] Repair page not accessible,https://github.com/immich-app/immich/issues/4510,2023-10-17,,issue:not_planned,not_planned
+memories,open,feature,other,27,Migrating to nextcloud?,https://github.com/pulsejet/memories/issues/183,2022-11-11,meta,issue,
+ente,open,feature,other,19,Add to the Accrescent.app store,https://github.com/ente/ente/discussions/2504,2024-07-21,mobile;auth;photos,discussion:Enhancements,
+immich,declined,tech-debt,other,5,Metadata extraction jobs need better error handling,https://github.com/immich-app/immich/issues/2229,2023-04-10,tech-debt;🗄️server,issue:not_planned,not_planned
+immich,declined?,feature,other,5,Does the app support Chinise?,https://github.com/immich-app/immich/discussions/2377,2023-05-04,,discussion:OUTDATED,OUTDATED
+immich,declined?,feature,other,5,[Feature] Take ownership of photos/albums from users,https://github.com/immich-app/immich/discussions/5303,2023-11-25,,discussion:OUTDATED,OUTDATED
+photoprism,open,feature,other,4,Remember the hash of a deleted image,https://github.com/photoprism/photoprism/discussions/2237,2022-04-11,,discussion:Ideas,
+immich,declined,feature,other,4,"F-Droid page still has old logo, screenshots, and descriptions",https://github.com/immich-app/immich/issues/24773,2025-12-22,,issue:not_planned,not_planned
+immich,declined?,feature,other,4,[Feature] Typesense API better env variables,https://github.com/immich-app/immich/discussions/2046,2023-03-22,,discussion:OUTDATED,OUTDATED
+ente,open,feature,other,3,Custom domains can be hijacked (sort of),https://github.com/ente/ente/issues/7107,2025-09-08,server,issue,
+photoprism,open,feature,other,2,seccomp and apparmor,https://github.com/photoprism/photoprism/discussions/1273,2021-05-06,,discussion:Ideas,
+photoprism,open,feature,other,2,PostrgeSQL support,https://github.com/photoprism/photoprism/discussions/4352,2024-06-23,,discussion:Ideas,
+ente,open,bug,other,2,CLI: Error getting password from keyring,https://github.com/ente/ente/issues/722,2024-01-26,cli,issue,
+photoprism,declined,feature,other,2,Upgrade vuetify to version 2,https://github.com/photoprism/photoprism/issues/132,2019-08-22,declined;frontend,issue:label:declined,completed
+photoprism,declined,feature,other,2,"Possibility to change the ""Monochrome"" indicator",https://github.com/photoprism/photoprism/issues/596,2020-11-11,declined,issue:label:declined,completed
+ente,open,bug,other,1,Email verification toggle does not affect account recovery,https://github.com/ente/ente/issues/1045,2024-03-11,server,issue,
+ente,open,feature,other,1,"""Album * not found in local metadata"" warning",https://github.com/ente/ente/issues/5956,2025-05-18,cli,issue,
+ente,open,bug,other,1,"ente cli error: ""Failed to read from decoder crypto failed""",https://github.com/ente/ente/issues/8495,2025-12-25,cli,issue,
+ente,declined,bug,other,1,Payment via Ideal in app is broken.,https://github.com/ente/ente/issues/903,2023-09-09,mobile;photos,issue:not_planned,not_planned
+ente,declined,bug,other,1,Black Screen on app re-opening,https://github.com/ente/ente/issues/1193,2024-03-24,mobile;auth;photos,issue:not_planned,not_planned
+memories,declined,bug,other,1,"memories not displaying pictures, nginx error?",https://github.com/pulsejet/memories/issues/1236,2024-07-01,bug,issue:not_planned,not_planned
+memories,declined,bug,other,1,Incorrect Link on Nextcloud Dashboard,https://github.com/pulsejet/memories/issues/1207,2024-05-29,,issue:not_planned,not_planned
+photoprism,gated,feature,other,1,Metrics: Add OpenTelemetry (OTLP) integration,https://github.com/photoprism/photoprism/issues/5382,2025-12-11,pro-feature;config;observability,issue:label:photoprism-gated2,
+librephotos,open,bug,other,0,proxy getting forbidden error from backend,https://github.com/LibrePhotos/librephotos/issues/803,2023-03-27,question,issue,
+librephotos,open,feature,other,0,"Add a ""Remember me"" option on the login page",https://github.com/LibrePhotos/librephotos/issues/2024,2026-09-16,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+librephotos,open,tech-debt,other,0,Remove the pagination compatibility fields from #2466 after the next release,https://github.com/LibrePhotos/librephotos/issues/2500,2026-10-13,frontend;backend;tech-debt;size: S;difficulty: easy,issue,
+photoprism,declined,bug,other,0,Translations: Remove translations that are not shown,https://github.com/photoprism/photoprism/issues/1480,2021-08-18,,issue:not_planned,not_planned
+photoprism,declined,feature,other,0,Update in the documentation,https://github.com/photoprism/photoprism/issues/3076,2023-01-08,idea,issue:not_planned,not_planned
+photoprism,declined,feature,other,0,Use a SQL mock driver to test database interactions,https://github.com/photoprism/photoprism/issues/84,2018-12-20,help wanted;declined,issue:label:declined,completed
+photoprism,declined,feature,other,0,Use Cobra & Viper,https://github.com/photoprism/photoprism/issues/87,2018-12-26,declined,issue:label:declined,completed
+photoprism,declined,feature,other,0,Check if we can (statically?) link against darktable using cgo,https://github.com/photoprism/photoprism/issues/62,2018-11-09,declined,issue:label:declined,completed
+photoprism,declined,feature,other,0,Implement init command?,https://github.com/photoprism/photoprism/issues/46,2018-10-23,declined;idea,issue:label:declined,completed
+photoprism,declined,bug,other,0,Flaky TestMediaFile_GetColors_Slow test,https://github.com/photoprism/photoprism/issues/105,2019-04-20,declined,issue:label:declined,completed
+photoprism,declined,bug,other,0,Upgrade TiDB to v3.0,https://github.com/photoprism/photoprism/issues/195,2020-01-14,declined,issue:label:declined,completed
+photoprism,declined,bug,other,0,Library: Readdirnames throws errors on CIFS,https://github.com/photoprism/photoprism/issues/615,2020-11-16,declined,issue:label:declined,completed
+ente,declined,bug,other,0,Issues with the login screen : clicking multiples time will sent multiple confirmation,https://github.com/ente/ente/issues/1097,2024-03-14,mobile;photos,issue:not_planned,not_planned
+ente,declined,feature,other,0,(Some?) Google Top Shot are not recognized as such on the web/desktop,https://github.com/ente/ente/issues/1180,2024-03-22,web;desktop;photos,issue:not_planned,not_planned
+memories,declined,bug,other,0,Wrong datetime exif data crashes memories:index command,https://github.com/pulsejet/memories/issues/16,2022-08-23,,issue:not_planned,not_planned
+memories,declined,feature,other,0,Merge changes upstream,https://github.com/pulsejet/memories/issues/12,2022-08-20,wontfix,issue:not_planned,not_planned
+memories,declined,feature,other,0,Default photos app required to use albums,https://github.com/pulsejet/memories/issues/137,2022-10-30,wontfix,issue:not_planned,not_planned
+memories,declined,feature,other,0,"Undefined array key ""Copy2:DirectoryItemLength"" at <memories_path>/lib/Db/LivePhoto.php#78",https://github.com/pulsejet/memories/issues/1020,2024-01-25,duplicate,issue:not_planned,not_planned
+memories,declined,bug,other,0,occ memories:places-setup do not work with no table prefix,https://github.com/pulsejet/memories/issues/648,2023-05-16,wontfix,issue:label:wontfix,completed
+memories,declined,bug,other,0,"False ""temp binary path is not writable"" error when using external go-vod binary",https://github.com/pulsejet/memories/issues/1647,2026-04-07,wontfix;vod;needs triage,issue:label:wontfix,completed
+librephotos,declined,bug,other,0,Date selector always picks the day before the day you selected,https://github.com/LibrePhotos/librephotos/issues/647,2022-09-22,bug,issue:not_planned,not_planned
+librephotos,declined,bug,other,0,Compose container renaming broken as described in docs,https://github.com/LibrePhotos/librephotos/issues/889,2023-06-20,bug,issue:not_planned,not_planned
+librephotos,declined,tech-debt,other,0,Make attributes more consistent in PhotoSerializer,https://github.com/LibrePhotos/librephotos/issues/513,2022-06-03,backend;tech-debt,issue:not_planned,not_planned
+photoprism,gated,feature,other,0,Config: Update CSP header to allow loading content from a CDN,https://github.com/photoprism/photoprism/issues/3454,2023-06-07,released;security;plus-feature,issue:label:photoprism-gated1,completed
+immich,open,feature,pets-objects-ocr,791,[Feature] Pet detection,https://github.com/immich-app/immich/discussions/7151,2024-02-16,,discussion:Feature Request,
+ente,open,feature,pets-objects-ocr,135,Pet recognition,https://github.com/ente/ente/discussions/2167,2024-06-17,mobile;desktop;photos,discussion:Enhancements,
+ente,open,feature,pets-objects-ocr,72,Text recognition & Search,https://github.com/ente/ente/discussions/547,2023-10-09,photos,discussion:Enhancements,
+photoprism,open,feature,pets-objects-ocr,64,Labels: Allow a model to be trained for better results,https://github.com/photoprism/photoprism/issues/448,2020-08-07,idea;ai;labels,issue,
+photoprism,open,feature,pets-objects-ocr,42,AI: Animal pet detection,https://github.com/photoprism/photoprism/issues/1561,2021-09-28,help wanted;idea;ai;faces,issue,
+photoprism,open,feature,pets-objects-ocr,19,Labels: Automatically translate label names,https://github.com/photoprism/photoprism/issues/485,2020-09-01,idea;labels,issue,
+immich,declined,feature,pets-objects-ocr,19,[Feature]: OCR,https://github.com/immich-app/immich/issues/565,2022-09-02,nice to have,issue:not_planned,not_planned
+photoprism,open,feature,pets-objects-ocr,18,AI: Integrate a model for Optical Character Recognition (OCR),https://github.com/photoprism/photoprism/issues/907,2021-01-16,idea;needs-analysis;ai,issue,
+photoprism,open,feature,pets-objects-ocr,11,Support newer image classifiers for labels,https://github.com/photoprism/photoprism/discussions/3590,2023-07-30,,discussion:Ideas,
+immich,open,bug,pets-objects-ocr,6,OCR not matching sub-strings,https://github.com/immich-app/immich/issues/23689,2025-11-07,🗄️server,issue,
+photoprism,declined,feature,pets-objects-ocr,6,AI: Use a version of YOLO for creating labels,https://github.com/photoprism/photoprism/issues/3205,2023-02-18,idea;ai,issue:not_planned,not_planned
+photoprism,open,feature,pets-objects-ocr,3,AI: Generate Description with Clip Interrogator,https://github.com/photoprism/photoprism/discussions/3419,2023-05-20,,discussion:Ideas,
+photoprism,open,feature,pets-objects-ocr,3,Custom ML models,https://github.com/photoprism/photoprism/discussions/1416,2021-07-07,,discussion:Ideas,
+photoprism,declined,feature,pets-objects-ocr,3,People: DeepStack go,https://github.com/photoprism/photoprism/issues/728,2020-12-22,declined;idea,issue:label:declined,completed
+librephotos,open,feature,pets-objects-ocr,2,"Select the language of the clouds of words, things and places",https://github.com/LibrePhotos/librephotos/issues/677,2022-11-04,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,pets-objects-ocr,2,Ability to train object detection from scratch or expand current dataset for object detection/im2txt,https://github.com/LibrePhotos/librephotos/issues/592,2022-08-07,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+librephotos,open,feature,pets-objects-ocr,1,Expand the Face Detection to Animal faces,https://github.com/LibrePhotos/librephotos/issues/548,2022-07-15,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+immich,open,feature,private-locked,266,Creating albums in a locked folder,https://github.com/immich-app/immich/discussions/18470,2025-05-22,,discussion:Feature Request,
+immich,open,feature,private-locked,127,[Feature] toggleable 'private' mode instead of completely separated locked folder,https://github.com/immich-app/immich/discussions/18645,2025-05-26,,discussion:Feature Request,
+photoprism,open,feature,private-locked,125,Security: Add Password for Access to Private Pictures,https://github.com/photoprism/photoprism/issues/325,2020-05-22,priority;security;auth,issue,
+photoprism,open,feature,private-locked,28,Albums/Labels: Option to mark albums and  labels as private or archive,https://github.com/photoprism/photoprism/issues/480,2020-08-23,idea,issue,
+memories,open,feature,private-locked,14,Password-protected public album link,https://github.com/pulsejet/memories/issues/348,2023-01-18,feature;blocked,issue,
+memories,open,feature,private-locked,8,Hiding Photos with a Tag,https://github.com/pulsejet/memories/issues/805,2023-09-04,feature,issue,
+immich,open,feature,sharing-multiuser,749,Better sharing in Immich (feature freeze),https://github.com/immich-app/immich/issues/12614,2024-09-12,sharing,issue,
+photoprism,open,feature,sharing-multiuser,610,Sharing: Multi-user / multi-library support with private and shared photos/albums,https://github.com/photoprism/photoprism/issues/98,2019-02-22,in-progress;priority;sharing;api,issue,
+immich,open,feature,sharing-multiuser,564,"[Feature]: ""Add to Library""",https://github.com/immich-app/immich/discussions/1587,2023-02-05,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,296,[Feature] Choose Libraries for Partner Sharing,https://github.com/immich-app/immich/discussions/4500,2023-10-16,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,182,[Feature] View photos from albums shared with me in timeline,https://github.com/immich-app/immich/discussions/1779,2023-02-17,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,181,[Feature] Shared Albums in Search Results,https://github.com/immich-app/immich/discussions/2995,2023-06-28,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,153,[Feature] Ability to favorite partner's photo,https://github.com/immich-app/immich/discussions/4278,2023-09-29,,discussion:Feature Request,REOPENED
+immich,open,feature,sharing-multiuser,148,[Feature] allow use of explore features for shared albums,https://github.com/immich-app/immich/discussions/3176,2023-07-09,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,143,[Feature]: User Groups for sharing/permissions,https://github.com/immich-app/immich/discussions/1633,2022-12-02,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,97,[Feature]: Add federation to share albums with users from other immich servers,https://github.com/immich-app/immich/discussions/13621,2022-09-20,,discussion:Feature Request,
+immich,open,feature,sharing-multiuser,89,[BUG] Partner Sharing - Unable to delete photo,https://github.com/immich-app/immich/discussions/9441,2023-11-21,,discussion:Feature Request,
+ente,open,feature,sharing-multiuser,89,Share all content with another user,https://github.com/ente/ente/discussions/787,2024-02-21,photos,discussion:Enhancements,
+photoprism,open,feature,sharing-multiuser,61,Sharing:  Configure sharing options like upload / edit/view metadata / views,https://github.com/photoprism/photoprism/issues/557,2020-10-20,idea;priority;security;sharing;upload,issue,
+photoprism,open,feature,sharing-multiuser,61,Sharing: Generate File Links,https://github.com/photoprism/photoprism/issues/466,2020-08-14,idea;sharing;api,issue,
+photoprism,open,feature,sharing-multiuser,49,Users: Add comments support,https://github.com/photoprism/photoprism/issues/143,2019-09-24,idea,issue,
+photoprism,open,feature,sharing-multiuser,39,"Sharing: Share photos via messenger (Telegram, Whats App...)",https://github.com/photoprism/photoprism/issues/658,2020-11-26,idea;priority;sharing,issue,
+photoprism,open,feature,sharing-multiuser,38,Sharing: ActivityPub support for sharing with friends,https://github.com/photoprism/photoprism/issues/316,2020-05-17,idea;sharing,issue,
+ente,open,feature,sharing-multiuser,37,Add download zip option for shared link album downloads,https://github.com/ente/ente/discussions/628,2023-11-08,desktop;photos,discussion:Enhancements,REOPENED
+ente,open,feature,sharing-multiuser,27,Shared face recognition models / people,https://github.com/ente/ente/discussions/8760,2026-01-14,photos,discussion:Enhancements,
+photoprism,open,feature,sharing-multiuser,26,Sharing: Public Image Wall,https://github.com/photoprism/photoprism/issues/669,2020-12-01,idea;frontend;priority;sharing;api,issue,
+immich,declined,feature,sharing-multiuser,17,[Feature]: Add federation to share albums with users from other immich servers,https://github.com/immich-app/immich/issues/728,2022-09-20,,issue:not_planned,not_planned
+immich,declined?,feature,sharing-multiuser,15,[Feature] Custom share URL,https://github.com/immich-app/immich/discussions/2724,2023-06-11,good first issue,discussion:OUTDATED,OUTDATED
+memories,open,feature,sharing-multiuser,14,Upload to public/shared album without account,https://github.com/pulsejet/memories/issues/712,2023-06-29,feature,issue,
+librephotos,declined,feature,sharing-multiuser,14,Collaboration(shared) album and user ACL for shared album,https://github.com/LibrePhotos/librephotos/issues/261,2021-05-30,enhancement;frontend;backend;size: L;difficulty: moderate,issue:not_planned,not_planned
+memories,open,feature,sharing-multiuser,13,Permissions on shared albums,https://github.com/pulsejet/memories/issues/530,2023-03-27,feature,issue,
+memories,open,feature,sharing-multiuser,13,Ability to include shared albums to all Memories features,https://github.com/pulsejet/memories/issues/724,2023-07-05,feature,issue,
+memories,open,feature,sharing-multiuser,12,Map view for shared Albums,https://github.com/pulsejet/memories/issues/1257,2024-07-31,feature,issue,
+immich,open,feature,sharing-multiuser,11,How can I delete photos from other users in the shared album ?,https://github.com/immich-app/immich/issues/3802,2023-08-20,🗄️server,issue,reopened
+memories,open,feature,sharing-multiuser,11,Map view for (shared and personal) albums,https://github.com/pulsejet/memories/issues/867,2023-10-13,feature,issue,
+immich,open,bug,sharing-multiuser,9,"""Assets cannot be added to the album"" error when adding partner photos to an album from timeline (web only)",https://github.com/immich-app/immich/issues/27545,2026-04-06,,issue,reopened
+memories,open,feature,sharing-multiuser,9,Add `Shared with you` menu item,https://github.com/pulsejet/memories/issues/787,2023-08-23,feature,issue,
+immich,open,bug,sharing-multiuser,8,Images that are both in my library and in an iOS shared album appear as duplicate in Immich,https://github.com/immich-app/immich/issues/28129,2026-04-28,📱mobile,issue,
+memories,open,feature,sharing-multiuser,8,Notification when photo added to album by another user / person,https://github.com/pulsejet/memories/issues/956,2023-12-08,feature,issue,
+librephotos,open,feature,sharing-multiuser,8,Shared library,https://github.com/LibrePhotos/librephotos/issues/395,2021-11-16,documentation;enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+memories,open,feature,sharing-multiuser,7,Add username label in shared album for added photos,https://github.com/pulsejet/memories/issues/955,2023-12-08,feature,issue,
+immich,open,bug,sharing-multiuser,6,Partner sharing discloses list of (non-public) users,https://github.com/immich-app/immich/issues/24528,2025-12-11,📱mobile,issue,
+memories,open,bug,sharing-multiuser,6,Adding images to album from a folder shared with me fails,https://github.com/pulsejet/memories/issues/669,2023-05-28,bug;blocked,issue,
+librephotos,open,feature,sharing-multiuser,6,Shared albums - let other users add photos,https://github.com/LibrePhotos/librephotos/issues/464,2022-03-07,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+immich,open,feature,sharing-multiuser,5,"Merging people in a cluster group only merges my own faces, dropping the other user's photos",https://github.com/immich-app/immich/issues/32292,2026-10-09,,issue,
+memories,open,feature,sharing-multiuser,5,Choice whether to allow or not download in shared albums,https://github.com/pulsejet/memories/issues/1027,2024-01-29,feature,issue,
+librephotos,open,feature,sharing-multiuser,5,Share face labels with multiple users,https://github.com/LibrePhotos/librephotos/issues/632,2022-09-07,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
+immich,declined,feature,sharing-multiuser,5,[Feature]: Public instance/ folders,https://github.com/immich-app/immich/issues/497,2022-08-19,,issue:not_planned,not_planned
+immich,open,feature,sharing-multiuser,4,New Map Side Panel Bad Request when Partner's Assets Enabled,https://github.com/immich-app/immich/issues/27079,2026-03-20,🖥️web,issue,
+librephotos,open,feature,sharing-multiuser,4,Sharing People Albums,https://github.com/LibrePhotos/librephotos/issues/668,2022-10-18,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+librephotos,open,feature,sharing-multiuser,4,"Share places, people and things when sharing the picture(s) associated with them",https://github.com/LibrePhotos/librephotos/issues/166,2021-02-10,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+librephotos,open,feature,sharing-multiuser,3,Comments and likes in shared photos or albums,https://github.com/LibrePhotos/librephotos/issues/262,2021-05-30,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+librephotos,open,feature,sharing-multiuser,2,Public photos without account,https://github.com/LibrePhotos/librephotos/issues/434,2022-01-28,enhancement;frontend;backend;size: L;difficulty: moderate,issue,
+ente,open,feature,sharing-multiuser,1,Shared photos appear twice in web and desktop app timeline when added to shared album,https://github.com/ente/ente/issues/9185,2026-02-13,mobile;desktop;photos;reproducible,issue,
+librephotos,open,feature,sharing-multiuser,0,Add copyright to photos for public photos page,https://github.com/LibrePhotos/librephotos/issues/425,2022-01-16,enhancement;frontend;backend;size: M;difficulty: moderate,issue,
+photoprism,declined,feature,sharing-multiuser,0,"Security: Configure an additional HTTP port, serving for public access only (shared links only, login panel disabled)",https://github.com/photoprism/photoprism/issues/5165,2025-08-15,declined;idea,issue:label:declined,completed
+memories,declined,bug,sharing-multiuser,0,Can not add shared photos to an album,https://github.com/pulsejet/memories/issues/524,2023-03-26,bug;blocked,issue:not_planned,not_planned
+memories,declined,feature,sharing-multiuser,0,share URLs should be meaningful,https://github.com/pulsejet/memories/issues/561,2023-04-11,feature;wontfix,issue:not_planned,not_planned
+librephotos,declined,feature,sharing-multiuser,0,Allow users to upload media to shared albums,https://github.com/LibrePhotos/librephotos/issues/911,2023-07-04,enhancement;frontend;backend;size: M;difficulty: moderate,issue:not_planned,not_planned
+immich,open,feature,smart-albums-automation,211,[Feature] Automatic creation of albums in external libraries,https://github.com/immich-app/immich/discussions/4279,2023-09-22,,discussion:Feature Request,
+immich,open,feature,smart-albums-automation,188,[Feature]: Rule-based smart albums (workflows),https://github.com/immich-app/immich/discussions/1673,2022-09-03,nice to have,discussion:Feature Request,
+photoprism,open,feature,smart-albums-automation,41,Albums: Smart/Conditional Albums,https://github.com/photoprism/photoprism/issues/1431,2021-07-13,idea,issue,
+memories,open,feature,smart-albums-automation,25,Smart Albums,https://github.com/pulsejet/memories/issues/352,2023-01-19,feature,issue,
+memories,open,feature,smart-albums-automation,22,Convert Folders to Albums,https://github.com/pulsejet/memories/issues/810,2023-09-10,feature,issue,
+memories,open,feature,smart-albums-automation,19,Automatically create albums in Memories based on Nextcloud folder structure,https://github.com/pulsejet/memories/issues/1467,2025-06-20,feature,issue,
+ente,open,feature,smart-albums-automation,18,"Smart Albums - Filter by Persons, Locations, etc. Automatically",https://github.com/ente/ente/discussions/4851,2025-01-25,photos,discussion:Enhancements,
+memories,open,feature,smart-albums-automation,6,Auto managed albums based on pre-defined rules,https://github.com/pulsejet/memories/issues/1202,2024-05-27,feature,issue,
+librephotos,declined,feature,smart-albums-automation,4,Create albums based on date,https://github.com/LibrePhotos/librephotos/issues/662,2022-10-10,enhancement;frontend;backend;size: M;difficulty: easy,issue:not_planned,not_planned
+photoprism,open,feature,storage-deploy-db,165,Infrastructure: Support for cloud storage ( with encryption ),https://github.com/photoprism/photoprism/issues/93,2019-01-31,idea;priority,issue,
+immich,open,feature,storage-deploy-db,163,[Feature]: Webdav support (import/export),https://github.com/immich-app/immich/discussions/1687,2022-07-30,,discussion:Feature Request,
+photoprism,open,feature,storage-deploy-db,157,Database: Add support for PostgreSQL 18,https://github.com/photoprism/photoprism/issues/47,2018-10-24,idea;please-test;priority;awesome,issue,
+immich,open,feature,storage-deploy-db,79,"[Feature]: Support native deployments (without docker, includes example)",https://github.com/immich-app/immich/discussions/1657,2022-09-22,documentation,discussion:Feature Request,
+photoprism,open,feature,storage-deploy-db,46,Plugin System,https://github.com/photoprism/photoprism/issues/117,2019-06-06,idea,issue,
+immich,declined,feature,storage-deploy-db,40,[Feature]: Consider adding SQLite support,https://github.com/immich-app/immich/issues/562,2022-09-01,nice to have,issue:not_planned,not_planned
+photoprism,open,feature,storage-deploy-db,36,Infrastructure: Use PhotoPrism without cloud services,https://github.com/photoprism/photoprism/issues/180,2020-01-05,idea,issue,
+ente,open,feature,storage-deploy-db,27,Demo Instance,https://github.com/ente/ente/discussions/982,2024-03-09,photos,discussion:Enhancements,
+photoprism,open,feature,storage-deploy-db,19,Infrastructure: LXC container,https://github.com/photoprism/photoprism/issues/147,2019-10-14,help wanted;idea;ci,issue,
+ente,open,feature,storage-deploy-db,15,rclone support,https://github.com/ente/ente/discussions/616,2023-10-08,cli,discussion:Enhancements,
+immich,declined?,feature,storage-deploy-db,12,[Feature] Change immich logo in settings,https://github.com/immich-app/immich/discussions/8196,2024-03-22,,discussion:OUTDATED,OUTDATED
+immich,declined?,feature,storage-deploy-db,6,[Feature] Support for MySql/Mariadb,https://github.com/immich-app/immich/discussions/3674,2023-08-14,,discussion:OUTDATED,OUTDATED
+immich,open,feature,storage-deploy-db,4,"Server stats endpoint should return max available storage, respecting user quota",https://github.com/immich-app/immich/issues/16852,2025-03-13,,issue,
+photoprism,open,feature,storage-deploy-db,4,enable webdav when authmode=public,https://github.com/photoprism/photoprism/discussions/2883,2022-11-11,,discussion:Ideas,
+immich,declined,feature,storage-deploy-db,3,Weird logo displayed after the last update,https://github.com/immich-app/immich/issues/8431,2024-04-01,,issue:not_planned,not_planned
+ente,open,bug,storage-deploy-db,2,"""Open ente on startup"" doesn't work in the Flatpak version",https://github.com/ente/ente/issues/9008,2026-02-02,desktop;photos,issue,
+ente,open,feature,storage-deploy-db,1,Installing .deb on Ubuntu 24,https://github.com/ente/ente/issues/3555,2024-10-02,desktop;photos,issue,
+ente,open,bug,storage-deploy-db,1,File not uploading - s3 request returns SignatureDoesNotMatch,https://github.com/ente/ente/issues/6944,2025-08-23,server;self-hosting,issue,
+ente,open,bug,storage-deploy-db,1,Ente flatpak not starting in Fedora 43,https://github.com/ente/ente/issues/7659,2025-10-30,desktop;photos;flatpak,issue,
+photoprism,declined,feature,storage-deploy-db,1,Question: Pluggable storage backend to enable running on top of perkeep?,https://github.com/photoprism/photoprism/issues/31,2018-10-13,declined;idea,issue:label:declined,completed
+librephotos,declined,feature,storage-deploy-db,1,Create legacy docker image,https://github.com/LibrePhotos/librephotos/issues/321,2021-08-22,enhancement;ci/cd,issue:not_planned,not_planned
+librephotos,open,feature,storage-deploy-db,0,Switch from FAISS to pgvector,https://github.com/LibrePhotos/librephotos/issues/814,2023-04-07,enhancement;backend;ci;size: L;difficulty: hard,issue,
+photoprism,declined,bug,storage-deploy-db,0,PhotoPrism container cannot connect to MariaDB service,https://github.com/photoprism/photoprism/issues/4346,2024-06-20,,issue:not_planned,not_planned
+photoprism,declined,feature,storage-deploy-db,0,Dockerfile for linux distros that don't use apt-get,https://github.com/photoprism/photoprism/issues/51,2018-10-27,declined;idea,issue:label:declined,completed
+photoprism,declined,bug,storage-deploy-db,0,Segmentation fault on start of Docker container,https://github.com/photoprism/photoprism/issues/89,2019-01-01,declined,issue:label:declined,completed
+photoprism,declined,bug,storage-deploy-db,0,"SQLite: ""database is locked"" error",https://github.com/photoprism/photoprism/issues/1734,2021-11-16,declined,issue:label:declined,completed
+photoprism,declined,bug,storage-deploy-db,0,UX: The Photoprism logo/icon in the loading screen is deformed when the viewport is too large (>= 2560x1216px),https://github.com/photoprism/photoprism/issues/2409,2022-06-08,frontend;ux;won't fix,issue:label:won't fix,completed
+photoprism,declined,feature,storage-deploy-db,0,Docker: opensuse repo for darktable has invalid signature,https://github.com/photoprism/photoprism/issues/2327,2022-05-17,won't fix,issue:label:won't fix,completed
+ente,declined,feature,storage-deploy-db,0,Notification to update non-AppImage Linux Releases,https://github.com/ente/ente/issues/606,2023-10-30,desktop;photos,issue:not_planned,not_planned
+memories,declined,feature,storage-deploy-db,0,Possible to run on Docker without NextCloud?,https://github.com/pulsejet/memories/issues/302,2022-12-21,,issue:not_planned,not_planned
+memories,declined,feature,storage-deploy-db,0,Download exiftool/go-vod during installation,https://github.com/pulsejet/memories/issues/545,2023-04-05,feature;wontfix,issue:label:wontfix,completed
+librephotos,declined,feature,storage-deploy-db,0,"""Version in ""./docker-compose.yml"" is unsupported"" on Ubuntu 20.04 LTS",https://github.com/LibrePhotos/librephotos/issues/311,2021-08-09,,issue:not_planned,not_planned
+librephotos,declined,tech-debt,storage-deploy-db,0,Change internal backend docker paths to best practices,https://github.com/LibrePhotos/librephotos/issues/202,2021-03-12,backend;tech-debt,issue:not_planned,not_planned
+photoprism,gated,feature,storage-deploy-db,0,Publish his own icon of the app,https://github.com/photoprism/photoprism/issues/2938,2022-11-25,idea;pro-feature,issue:label:photoprism-gated2,completed
+photoprism,open,feature,timeline-search-browse-ux,230,UX: Timeline View,https://github.com/photoprism/photoprism/issues/152,2019-12-07,priority;ux;api,issue,
+immich,open,feature,timeline-search-browse-ux,198,[Feature] Sort by Modified/Uploaded date in addition to the metadata defined date(created).,https://github.com/immich-app/immich/discussions/8128,2024-03-20,,discussion:Feature Request,
+immich,open,feature,timeline-search-browse-ux,194,[Feature] Search Results organized by date (an more),https://github.com/immich-app/immich/discussions/8377,2024-03-29,,discussion:Feature Request,
+immich,open,feature,timeline-search-browse-ux,174,[Feature]: Sorting for albums,https://github.com/immich-app/immich/discussions/1689,2022-07-27,,discussion:Feature Request,
+immich,open,feature,timeline-search-browse-ux,96,[Feature] general sorting options for views,https://github.com/immich-app/immich/discussions/10400,2024-06-16,,discussion:Feature Request,
+photoprism,open,feature,timeline-search-browse-ux,94,UX: Add a hybrid Photo/Video Viewer (Lightbox),https://github.com/photoprism/photoprism/issues/1307,2021-05-20,in-progress;frontend;ux;video;live,issue,
+immich,open,feature,timeline-search-browse-ux,76,[Feature] Add Album Filter to Search Tab,https://github.com/immich-app/immich/discussions/12258,2024-09-03,,discussion:Feature Request,
+ente,open,feature,timeline-search-browse-ux,55,"Allow photos in albums to be sorted by name, size or Custom order",https://github.com/ente/ente/discussions/638,2024-01-07,web;photos,discussion:Enhancements,
+photoprism,open,feature,timeline-search-browse-ux,42,Search: Not Operator / Negative Filters / Exclude Filters,https://github.com/photoprism/photoprism/issues/2073,2022-02-26,idea;faces,issue,
+ente,open,feature,timeline-search-browse-ux,33,Pinch to change grid size in app.,https://github.com/ente/ente/discussions/4086,2024-11-18,mobile;desktop;photos,discussion:Enhancements,
+ente,open,feature,timeline-search-browse-ux,29,Searching photos by camera model,https://github.com/ente/ente/discussions/5588,2025-04-10,photos,discussion:Enhancements,
+photoprism,open,feature,timeline-search-browse-ux,20,UX: Searchbar + Filters within Albums/Moments/Calendar/Folders,https://github.com/photoprism/photoprism/issues/651,2020-11-25,idea;priority;ux,issue,
+ente,open,feature,timeline-search-browse-ux,18,"Photo layout on Mobile, Desktop and Web",https://github.com/ente/ente/discussions/4810,2025-01-22,photos,discussion:Enhancements,
+memories,open,feature,timeline-search-browse-ux,16,Combinable filter capabilities,https://github.com/pulsejet/memories/issues/868,2023-10-13,feature,issue,
+photoprism,open,feature,timeline-search-browse-ux,15,Slideshow: Add settings/features,https://github.com/photoprism/photoprism/issues/2016,2022-02-07,idea;priority,issue,
+ente,open,feature,timeline-search-browse-ux,15,Allow sorting images by upload date and time,https://github.com/ente/ente/discussions/3846,2024-10-26,mobile;desktop;photos,discussion:Enhancements,
+memories,open,feature,timeline-search-browse-ux,15,Allow for more sorting options within Albums view,https://github.com/pulsejet/memories/issues/558,2023-04-10,feature,issue,
+immich,open,feature,timeline-search-browse-ux,13,Timeline scroll position resets to top after viewing a photo,https://github.com/immich-app/immich/issues/23435,2025-10-31,🖥️web,issue,
+memories,open,feature,timeline-search-browse-ux,13,Search Image by File Name,https://github.com/pulsejet/memories/issues/1162,2024-04-27,feature,issue,
+memories,open,feature,timeline-search-browse-ux,12,Sorting the albums by date of the photos,https://github.com/pulsejet/memories/issues/1123,2024-04-05,feature,issue,
+ente,open,bug,timeline-search-browse-ux,10,Stuttering while scrolling in gallery mode,https://github.com/ente/ente/issues/4441,2024-12-18,mobile;photos;pending-op,issue,reopened
+photoprism,gated,feature,timeline-search-browse-ux,10,Settings: Custom themes,https://github.com/photoprism/photoprism/issues/1763,2021-11-27,idea;pro-feature,issue:label:photoprism-gated2,completed
+immich,open,bug,timeline-search-browse-ux,9,[Bug] Can't set profile picture,https://github.com/immich-app/immich/issues/15812,2025-01-31,🖥️web,issue,reopened
+immich,open,bug,timeline-search-browse-ux,8,Better failed job management,https://github.com/immich-app/immich/issues/28855,2026-06-05,,issue,reopened
+memories,open,feature,timeline-search-browse-ux,7,Keyboard shortcuts  [UX/accessibility],https://github.com/pulsejet/memories/issues/988,2024-01-07,feature,issue,
+memories,open,feature,timeline-search-browse-ux,6,Albums: Add photos from within the Album view,https://github.com/pulsejet/memories/issues/946,2023-11-28,feature,issue,
+immich,declined,bug,timeline-search-browse-ux,5,"Search results are not sorted, should be newest first",https://github.com/immich-app/immich/issues/11819,2024-08-15,,issue:not_planned,not_planned
+photoprism,open,feature,timeline-search-browse-ux,4,Add Search support for Description and Notes,https://github.com/photoprism/photoprism/discussions/4385,2024-07-09,,discussion:Ideas,
+photoprism,open,feature,timeline-search-browse-ux,3,Picture Zoom,https://github.com/photoprism/photoprism/discussions/2224,2022-04-05,idea,discussion:Ideas,
+photoprism,gated,feature,timeline-search-browse-ux,3,UX: Have a dark theme,https://github.com/photoprism/photoprism/issues/700,2020-12-12,idea;released;member-feature,issue:label:photoprism-gated0,completed
+photoprism,open,feature,timeline-search-browse-ux,2,"Feature Request: ""No Categories"" album search option",https://github.com/photoprism/photoprism/discussions/4646,2024-12-02,,discussion:Ideas,
+photoprism,open,feature,timeline-search-browse-ux,2,Search: Ideas for improvement,https://github.com/photoprism/photoprism/discussions/1082,2021-02-18,,discussion:Ideas,
+librephotos,open,feature,timeline-search-browse-ux,2,Show the original image once the user starts to zoom,https://github.com/LibrePhotos/librephotos/issues/593,2022-08-08,enhancement;frontend;backend;size: L;difficulty: hard,issue,
+memories,declined,bug,timeline-search-browse-ux,2,Mull browser - Cannot scroll (pictures open on scroll),https://github.com/pulsejet/memories/issues/739,2023-07-14,needs triage,issue:not_planned,not_planned
+ente,open,feature,timeline-search-browse-ux,1,Magic search is inconsistent,https://github.com/ente/ente/issues/5410,2025-03-22,mobile;photos,issue,
+ente,open,bug,timeline-search-browse-ux,1,Deleting while previewing an image can mess up the image queue,https://github.com/ente/ente/issues/6205,2025-06-08,desktop;photos,issue,
+librephotos,open,feature,timeline-search-browse-ux,1,demo2.librephotos.com ssl certificate?,https://github.com/LibrePhotos/librephotos/issues/2007,2026-09-13,,issue,
+photoprism,declined,feature,timeline-search-browse-ux,1,CI Feature Request: Integrate pull request preview environments,https://github.com/photoprism/photoprism/issues/3066,2023-01-06,idea,issue:not_planned,not_planned
+ente,declined,feature,timeline-search-browse-ux,1,Initiate search by clicking where search field will be,https://github.com/ente/ente/issues/3678,2024-10-12,triage,issue:not_planned,not_planned
+ente,declined,bug,timeline-search-browse-ux,1,"Input fields (e. g. Search, Password) not working if App lock / Device lock is turned on",https://github.com/ente/ente/issues/4209,2024-11-27,duplicate,issue:not_planned,not_planned
+librephotos,open,feature,timeline-search-browse-ux,0,Shortcuts and direct links between settings and admin area,https://github.com/LibrePhotos/librephotos/issues/2037,2026-09-16,enhancement;frontend;size: S;difficulty: easy,issue,
+librephotos,open,feature,timeline-search-browse-ux,0,Sort search results by most images,https://github.com/LibrePhotos/librephotos/issues/301,2021-07-26,enhancement;good first issue;frontend;backend;size: S;difficulty: easy,issue,
+photoprism,declined,feature,timeline-search-browse-ux,0,Feature request: Keyboard shortcuts,https://github.com/photoprism/photoprism/issues/3624,2023-08-12,duplicate,issue:not_planned,not_planned
+photoprism,declined,feature,timeline-search-browse-ux,0,"UI: Add ""river"" view which displays thumbnails in original aspect ratio",https://github.com/photoprism/photoprism/issues/3625,2023-08-13,duplicate;idea,issue:not_planned,not_planned
+photoprism,declined,feature,timeline-search-browse-ux,0,Search: Support Negative Filters,https://github.com/photoprism/photoprism/issues/3628,2023-08-13,duplicate,issue:not_planned,not_planned
+photoprism,declined,feature,timeline-search-browse-ux,0,Sort photos by one timezone (UTC),https://github.com/photoprism/photoprism/issues/5723,2026-07-10,duplicate,issue:not_planned,not_planned
+photoprism,declined,feature,timeline-search-browse-ux,0,Improved search based on Solr,https://github.com/photoprism/photoprism/issues/6,2018-10-08,declined;idea,issue:label:declined,completed
+photoprism,declined,bug,timeline-search-browse-ux,0,Album Sorting: Alphanumeric Filenames are Not Sorted Naturally,https://github.com/photoprism/photoprism/issues/1960,2022-01-20,declined,issue:label:declined,completed
+photoprism,declined,feature,timeline-search-browse-ux,0,"Albums: Change default sort order from ""oldest"" to ""newest""",https://github.com/photoprism/photoprism/issues/3021,2022-12-19,won't fix,issue:label:won't fix,completed
+ente,declined,bug,timeline-search-browse-ux,0,Double tapping search tab very fast doesn't open up the keyboard,https://github.com/ente/ente/issues/862,2023-11-18,mobile;photos,issue:not_planned,not_planned
+memories,declined,feature,timeline-search-browse-ux,0,No preview or display of high-resolution photos,https://github.com/pulsejet/memories/issues/131,2022-10-28,,issue:not_planned,not_planned
+memories,declined,feature,timeline-search-browse-ux,0,Auto hide navigation bar,https://github.com/pulsejet/memories/issues/1159,2024-04-26,feature,issue:not_planned,not_planned
+memories,declined,feature,timeline-search-browse-ux,0,Album only with timeline view,https://github.com/pulsejet/memories/issues/1045,2024-02-13,feature;wontfix,issue:label:wontfix,completed
+librephotos,declined,bug,timeline-search-browse-ux,0,Unraid App: cannot view images. 404 Bad,https://github.com/LibrePhotos/librephotos/issues/1511,2025-01-04,bug,issue:not_planned,not_planned
+librephotos,declined,feature,timeline-search-browse-ux,0,Integrate pull request preview environments,https://github.com/LibrePhotos/librephotos/issues/696,2022-12-12,enhancement;ci;size: M;difficulty: moderate,issue:not_planned,not_planned
+librephotos,declined,bug,timeline-search-browse-ux,0,Verify: photos in a place album only load after scrolling or refresh,https://github.com/LibrePhotos/librephotos/issues/2043,2026-09-16,bug;frontend,issue:not_planned,not_planned
+photoprism,gated,feature,timeline-search-browse-ux,0,UI: Add Electra theme,https://github.com/photoprism/photoprism/issues/2916,2022-11-18,released;ux;member-feature,issue:label:photoprism-gated0,completed
+immich,declined?,feature,tv-cast,107,[Feature] Apple TV App,https://github.com/immich-app/immich/discussions/3892,2023-08-28,,discussion:OUTDATED,OUTDATED
+photoprism,open,feature,tv-cast,52,External Services: ChromeCast Support,https://github.com/photoprism/photoprism/issues/1008,2021-02-06,idea;video,issue,
+photoprism,open,feature,tv-cast,25,Apps: Apple TV App,https://github.com/photoprism/photoprism/issues/1513,2021-09-07,idea,issue,
+ente,open,feature,tv-cast,18,Ability to cast photos individually,https://github.com/ente/ente/discussions/2027,2024-06-06,mobile;photos,discussion:Enhancements,
+photoprism,open,feature,tv-cast,15,"Plex integration with PhotoPrism, no need to reinvent the wheel.",https://github.com/photoprism/photoprism/discussions/2316,2022-05-11,,discussion:Ideas,
+memories,open,feature,tv-cast,12,[Feature Request] Chromecast support,https://github.com/pulsejet/memories/issues/555,2023-04-09,feature,issue,
+memories,open,feature,tv-cast,9,Android TV App,https://github.com/pulsejet/memories/issues/1062,2024-03-06,feature;android,issue,
+librephotos,open,feature,tv-cast,0,[Feature Request] Synchronized watching slideshow / videos,https://github.com/LibrePhotos/librephotos/issues/181,2021-03-01,enhancement;frontend;backend;size: XL;difficulty: hard,issue,
