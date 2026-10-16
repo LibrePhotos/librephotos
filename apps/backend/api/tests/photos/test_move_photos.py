@@ -35,10 +35,11 @@ class ResolveTargetTest(LibraryTestCase):
         )
         # A backslash is a separator on Windows (the %5C.. trap of #2122) and
         # part of a name on POSIX: neither way does it climb out.
-        sneaky = self.root + "\\..\\..\\x"
+        sneaky = os.path.join(self.root, "sub\\..\\..\\x")
         if os.sep == "\\":
             self.assert_refused(sneaky, "outside_library")
         else:
+            # One folder named "sub\..\..\x" inside the library.
             self.assertEqual(sneaky, resolve_target(self.user, sneaky))
         self.assert_refused("b", "outside_library")
         self.assert_refused(self.target + "\x00", "outside_library")
