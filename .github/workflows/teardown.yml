@@ -73,6 +73,9 @@ jobs:
     needs: dataset
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: read
     strategy:
       fail-fast: false
       # One tool and mount mode per job: each gets a fresh runner of the same type, nothing else on it.
@@ -89,6 +92,12 @@ jobs:
         with:
           name: teardown-dataset
           path: ${{ runner.temp }}/dataset
+      # Anonymous ghcr.io pulls (Immich's images) hit "toomanyrequests" when eight jobs pull at
+      # once; an authenticated pull gets the higher limit.
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Runner
         run: |
           {

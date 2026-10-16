@@ -292,8 +292,9 @@ class LibrePhotos(Adapter):
         job = self.api.post("/api/photos/download", {"image_hashes": [r.id for r in refs]})
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
-            # The same endpoint reports the job: 202 PENDING, then 200 SUCCESS or FAILURE.
-            state = (self.api.get("/api/photos/download/", job_id=job["job_id"]) or {}).get("status")
+            # The same endpoint reports the job: 202 PENDING, then 200 SUCCESS or FAILURE. No trailing
+            # slash, as the web client calls it: with one, CI run 2 got a 404 for a job that existed.
+            state = (self.api.get("/api/photos/download", job_id=job["job_id"]) or {}).get("status")
             if state == "FAILURE":
                 raise RuntimeError(f"zip download job {job['job_id']} failed")
             if state == "SUCCESS":
