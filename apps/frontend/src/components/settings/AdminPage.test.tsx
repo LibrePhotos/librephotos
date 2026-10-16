@@ -73,6 +73,7 @@ vi.mock("./ServerLogsCard", () => ({ ServerLogsCard: () => null }));
 vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
 vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
+vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -211,6 +212,13 @@ describe("AdminPage", () => {
     await render();
 
     expect(document.getElementById("admin-tools")?.textContent).toContain("strip-thumbnail-metadata-tool");
+  });
+
+  it("offers looking up the place names again among the admin tools (#2302)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+
+    expect(document.getElementById("admin-tools")?.textContent).toContain("look-up-places-tool");
   });
 
   it("asks before deleting all auto created albums", async () => {

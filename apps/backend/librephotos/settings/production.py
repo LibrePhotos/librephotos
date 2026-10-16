@@ -418,7 +418,7 @@ CONSTANCE_CONFIG = {
         str,
     ),
     "MAP_API_PROVIDER": (
-        env_str("MAP_API_PROVIDER", "nominatim"),
+        env_str("MAP_API_PROVIDER", "exiftool"),
         "Map Provider",
         "map_api_provider",
     ),

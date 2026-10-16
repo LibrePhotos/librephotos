@@ -7,8 +7,8 @@ from typing import Any
 from rest_framework import serializers
 
 from api.drf.params import JsonBooleanField, JsonCoordinateField
-from api.geocode.photo_location import short_place_name
 from api.models import Photo
+from api.models.place_names import short_place_name
 from api.serializers.photos import PhotoSelectionRequest
 
 

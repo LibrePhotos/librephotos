@@ -44,7 +44,7 @@ Runs the configured tagging model over your photos to produce the scene and cont
 
 ### Add Geolocation
 
-Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan processes photos added since the last successful run started, plus every photo whose position has no place name looked up for it yet (its GPS changed in the file, or an earlier lookup failed; a position where the provider found no place, such as open sea, is not asked again until it changes), while a full scan reprocesses everything. It looks up the position LibrePhotos has stored, which the scan keeps in line with the file unless you set the location yourself. A run that was cancelled or failed before it reached every photo does not count as successful.
+Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan processes photos added since the last successful run started, plus every photo whose position has no place name looked up for it yet (its GPS changed in the file, or an earlier lookup failed; a position where the provider found no place, such as open sea, is not asked again until it changes), while a full scan goes over every photo. A photo whose place was already looked up for its position is skipped either way, so switching the Map Provider renames nothing; [Look Up Place Names](#look-up-place-names) does. It looks up the position LibrePhotos has stored, which the scan keeps in line with the file unless you set the location yourself. A run that was cancelled or failed before it reached every photo does not count as successful.
 
 ### Scan Faces
 
@@ -113,6 +113,10 @@ _Not released yet._ Started with **Apply** under **Dates** on the Library page, 
 ### Write Metadata to Files
 
 _Not released yet._ Started with **Write now** under **Write edits to files** in Settings → Metadata Options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
+
+### Look Up Place Names
+
+<Since version="1.4.0" /> Asks the Map Provider set in Site Settings again for the place of every photo with a location, across every user's library, for example after switching to ExifTool. An admin starts it with **Look up place names again** under **Admin Area > Admin Tools**, after a confirmation. Photos move to the Places albums of their new names, and the day albums name their places again; a photo whose lookup fails keeps its old place. See [Switching the provider](./places.md#switching-the-provider).
 
 ## Where to get information about previous run jobs
 

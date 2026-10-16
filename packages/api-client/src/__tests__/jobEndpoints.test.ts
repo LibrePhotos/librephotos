@@ -86,6 +86,7 @@ describe("job triggers", () => {
     ["generateEventAlbums", "/autoalbumgen/", endpoints.generateEventAlbums],
     ["regenerateEventAlbumTitles", "/autoalbumtitlegen/", endpoints.regenerateEventAlbumTitles],
     ["stripThumbnailMetadata", "/strip-thumbnail-metadata/", endpoints.stripThumbnailMetadata],
+    ["lookUpPlaces", "/look-up-places/", endpoints.lookUpPlaces],
     ["emptyTrash", "/photosedit/empty-trash/", endpoints.emptyTrash],
     ["reapplyDateRules", "/photos/reapply-date-rules/", endpoints.reapplyDateRules],
   ] as const)("%s POSTs %s", async (_name, path, trigger) => {
@@ -118,6 +119,7 @@ describe("job triggers", () => {
       endpoints.generateEventAlbums,
       endpoints.regenerateEventAlbumTitles,
       endpoints.stripThumbnailMetadata,
+      endpoints.lookUpPlaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),

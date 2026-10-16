@@ -111,9 +111,10 @@ class TitlePartsTest(TestCase):
         self.assertEqual(6, result["weekday"])
 
     def test_top_two_people_and_places(self):
-        photo = self.add_photo(
-            utc(2022, 1, 3, 8, 0), places=["Rome", "Rome", "Lazio", "Italy"]
-        )
+        """The two most frequent towns of the photos (#2302)."""
+        photo = self.add_photo(utc(2022, 1, 3, 8, 0), places=["Rome", "Italy"])
+        for minute, town in enumerate(["Rome", "Milan", "Naples", "Rome", "Milan"]):
+            self.add_photo(utc(2022, 1, 3, 9, minute), places=[town, "Italy"])
         anna = create_test_person(name="Anna")
         ben = create_test_person(name="Ben")
         carl = create_test_person(name="Carl")
@@ -123,7 +124,7 @@ class TitlePartsTest(TestCase):
         result = self.compute()
 
         self.assertEqual(["Anna", "Ben"], result["people"])
-        self.assertEqual(["Rome", "Lazio"], result["places"])
+        self.assertEqual(["Rome", "Milan"], result["places"])
 
     def test_an_empty_album_reads_its_key(self):
         result = self.compute()

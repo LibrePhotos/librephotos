@@ -47,4 +47,4 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), a small vision-language model that also takes the recognised people and the place into account
 - **Tags, semantic search and similar photos:** [OpenCLIP](https://github.com/mlfoundations/open_clip) ViT-B/32 trained by LAION on DataComp-XL ([model card](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K), MIT licence), one model for all three, with embeddings indexed by [FAISS](https://github.com/facebookresearch/faiss)
 - **ML runtime:** every model above runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch or llama.cpp in the image
-- **Reverse geocoding:** [Nominatim](https://nominatim.openstreetmap.org/) (default) and other providers (Mapbox, MapTiler, OpenCage, TomTom)
+- **Reverse geocoding:** [ExifTool's Geolocation database](https://exiftool.org/geolocation.html) with place names from [GeoNames](https://www.geonames.org/) (default, offline), [Nominatim](https://nominatim.openstreetmap.org/) and other providers (Mapbox, MapTiler, OpenCage, TomTom)

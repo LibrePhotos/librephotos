@@ -55,6 +55,7 @@ services:
       - DB_HOST=${dbHost}
       - DB_PORT=5432
       - MAPBOX_API_KEY=${mapApiKey:-}
+      - MAP_API_PROVIDER=${mapApiProvider:-exiftool}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - WORKER_CONCURRENCY=${workerConcurrency:-}
       - BASE_LOGS=${baseLogs:-/logs}

@@ -156,12 +156,13 @@ class EmbeddedMotionVideoFeatureFlagTest(TestCase):
 
 class ReverseGeocodingFeatureFlagTest(TestCase):
     @patch("api.geocode.geocode.wait_for_provider")
-    @patch("api.geocode.geocode.Geocode")
-    def test_reverse_geocode_runs_by_default(self, geocode_mock, wait_mock):
-        geocode_mock.return_value.reverse.return_value = {"places365": []}
+    @patch("api.geocode.geocode.exiftool_provider.reverse")
+    def test_reverse_geocode_runs_by_default(self, reverse_mock, wait_mock):
+        # ExifTool is the default Map Provider (#2302).
+        reverse_mock.return_value = {"places365": []}
 
         self.assertEqual({"places365": []}, reverse_geocode(52.52, 13.40))
-        geocode_mock.assert_called_once()
+        reverse_mock.assert_called_once_with(52.52, 13.40)
 
     @override_settings(FEATURE_REVERSE_GEOCODING=False)
     @patch("api.geocode.geocode.wait_for_provider")

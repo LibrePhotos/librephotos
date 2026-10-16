@@ -2,13 +2,32 @@ from api.geocode import GEOCODE_VERSION
 
 expectations = [
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Beach Road", "center": [-33.888012425, 151.275216500055]},
-            {"text": "Bondi Beach", "center": [-33.888012425, 151.275216500055]},
-            {"text": "Sydney", "center": [-33.888012425, 151.275216500055]},
-            {"text": "New South Wales", "center": [-33.888012425, 151.275216500055]},
-            {"text": "Australia", "center": [-33.888012425, 151.275216500055]},
+            {
+                "text": "Beach Road",
+                "center": [-33.888012425, 151.275216500055],
+                "place_type": "street",
+            },
+            {
+                "text": "Bondi Beach",
+                "center": [-33.888012425, 151.275216500055],
+                "place_type": "locality",
+            },
+            {
+                "text": "Sydney",
+                "center": [-33.888012425, 151.275216500055],
+                "place_type": "city",
+            },
+            {
+                "text": "New South Wales",
+                "center": [-33.888012425, 151.275216500055],
+                "place_type": "region",
+            },
+            {
+                "text": "Australia",
+                "center": [-33.888012425, 151.275216500055],
+                "place_type": "country",
+            },
         ],
         "places": [
             "Beach Road",
@@ -19,15 +38,36 @@ expectations = [
         ],
         "address": "17 Beach Road, Bondi Beach New South Wales 2026, Australia",
         "center": [-33.888012425, 151.275216500055],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Fire Route 47", "center": [44.5540639, -78.1955566]},
-            {"text": "Lakefield", "center": [44.5540639, -78.1955566]},
-            {"text": "Peterborough County", "center": [44.5540639, -78.1955566]},
-            {"text": "Ontario", "center": [44.5540639, -78.1955566]},
-            {"text": "Canada", "center": [44.5540639, -78.1955566]},
+            {
+                "text": "Fire Route 47",
+                "center": [44.5540639, -78.1955566],
+                "place_type": "street",
+            },
+            {
+                "text": "Lakefield",
+                "center": [44.5540639, -78.1955566],
+                "place_type": "city",
+            },
+            {
+                "text": "Peterborough County",
+                "center": [44.5540639, -78.1955566],
+                "place_type": "subregion",
+            },
+            {
+                "text": "Ontario",
+                "center": [44.5540639, -78.1955566],
+                "place_type": "region",
+            },
+            {
+                "text": "Canada",
+                "center": [44.5540639, -78.1955566],
+                "place_type": "country",
+            },
         ],
         "places": [
             "Fire Route 47",
@@ -38,48 +78,87 @@ expectations = [
         ],
         "address": "2880 Fire Route 47, Lakefield, Ontario K0L 2H0, Canada",
         "center": [44.5540639, -78.1955566],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Roncalli", "center": [52.501711, 13.381502]},
-            {"text": "Kreuzberg", "center": [52.501711, 13.381502]},
-            {"text": "Berlin", "center": [52.501711, 13.381502]},
-            {"text": "Germany", "center": [52.501711, 13.381502]},
+            {"text": "Roncalli", "center": [52.501711, 13.381502], "place_type": "poi"},
+            {
+                "text": "Kreuzberg",
+                "center": [52.501711, 13.381502],
+                "place_type": "locality",
+            },
+            {"text": "Berlin", "center": [52.501711, 13.381502], "place_type": "city"},
+            {
+                "text": "Germany",
+                "center": [52.501711, 13.381502],
+                "place_type": "country",
+            },
         ],
         "places": ["Roncalli", "Kreuzberg", "Berlin", "Germany"],
         "address": "Roncalli, Mckernstr, Berlin, 10963, Germany",
         "center": [52.501711, 13.381502],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Lakeshore Road", "center": [33.913368523661, 78.45710763764029]},
-            {"text": "Shachokol", "center": [33.913368523661, 78.45710763764029]},
-            {"text": "Leh", "center": [33.913368523661, 78.45710763764029]},
-            {"text": "Leh", "center": [33.913368523661, 78.45710763764029]},
-            {"text": "Ladakh", "center": [33.913368523661, 78.45710763764029]},
-            {"text": "India", "center": [33.913368523661, 78.45710763764029]},
+            {
+                "text": "Lakeshore Road",
+                "center": [33.913368523661, 78.45710763764029],
+                "place_type": "street",
+            },
+            {
+                "text": "Shachokol",
+                "center": [33.913368523661, 78.45710763764029],
+                "place_type": "locality",
+            },
+            {
+                "text": "Leh",
+                "center": [33.913368523661, 78.45710763764029],
+                "place_type": "city",
+            },
+            {
+                "text": "Ladakh",
+                "center": [33.913368523661, 78.45710763764029],
+                "place_type": "region",
+            },
+            {
+                "text": "India",
+                "center": [33.913368523661, 78.45710763764029],
+                "place_type": "country",
+            },
         ],
-        "places": [
-            "Lakeshore Road",
-            "Shachokol",
-            "Leh",
-            "Leh",
-            "Ladakh",
-            "India",
-        ],
+        "places": ["Lakeshore Road", "Shachokol", "Leh", "Ladakh", "India"],
         "address": "Lakeshore Road ، 194201 Leh، India",
         "center": [33.913368523661, 78.45710763764029],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Mahon Rock Pool", "center": [-33.94292, 151.263303]},
-            {"text": "Maroubra", "center": [-33.94292, 151.263303]},
-            {"text": "Sydney", "center": [-33.94292, 151.263303]},
-            {"text": "New South Wales", "center": [-33.94292, 151.263303]},
-            {"text": "Australia", "center": [-33.94292, 151.263303]},
+            {
+                "text": "Mahon Rock Pool",
+                "center": [-33.94292, 151.263303],
+                "place_type": "poi",
+            },
+            {
+                "text": "Maroubra",
+                "center": [-33.94292, 151.263303],
+                "place_type": "locality",
+            },
+            {"text": "Sydney", "center": [-33.94292, 151.263303], "place_type": "city"},
+            {
+                "text": "New South Wales",
+                "center": [-33.94292, 151.263303],
+                "place_type": "region",
+            },
+            {
+                "text": "Australia",
+                "center": [-33.94292, 151.263303],
+                "place_type": "country",
+            },
         ],
         "places": [
             "Mahon Rock Pool",
@@ -90,26 +169,37 @@ expectations = [
         ],
         "address": "Mahon Rock Pool, Marine Pde., Sydney, New South Wales, Australia",
         "center": [-33.94292, 151.263303],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
     {
-        "_v": GEOCODE_VERSION,
         "features": [
-            {"text": "Main Bazaar", "center": [34.1622089, 77.585527]},
-            {"text": "Chuchat Yakma", "center": [34.1622089, 77.585527]},
-            {"text": "Leh", "center": [34.1622089, 77.585527]},
-            {"text": "Leh", "center": [34.1622089, 77.585527]},
-            {"text": "Ladakh", "center": [34.1622089, 77.585527]},
-            {"text": "India", "center": [34.1622089, 77.585527]},
+            {
+                "text": "Main Bazaar",
+                "center": [34.1622089, 77.585527],
+                "place_type": "street",
+            },
+            {
+                "text": "Chuchat Yakma",
+                "center": [34.1622089, 77.585527],
+                "place_type": "locality",
+            },
+            {"text": "Leh", "center": [34.1622089, 77.585527], "place_type": "city"},
+            {
+                "text": "Ladakh",
+                "center": [34.1622089, 77.585527],
+                "place_type": "region",
+            },
+            {
+                "text": "India",
+                "center": [34.1622089, 77.585527],
+                "place_type": "country",
+            },
         ],
-        "places": [
-            "Main Bazaar",
-            "Chuchat Yakma",
-            "Leh",
-            "Leh",
-            "Ladakh",
-            "India",
-        ],
+        "places": ["Main Bazaar", "Chuchat Yakma", "Leh", "Ladakh", "India"],
         "address": "Main Bazaar ، 194101 Leh، India",
         "center": [34.1622089, 77.585527],
+        "provider": "mapbox",
+        "_v": GEOCODE_VERSION,
     },
 ]

@@ -8,6 +8,7 @@ from django.db import models
 
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.place_names import short_place_name
 from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
 
@@ -60,7 +61,7 @@ class TitleParts(TypedDict):
     weekend: bool
     # At most the two most frequent named people.
     people: list[str]
-    # At most the two most frequent places, as the reverse geocoder named them.
+    # At most the two most frequent towns of the photos (``short_place_name``).
     places: list[str]
     # The album's grouping date (YYYY-MM-DD), for "Album from <date>".
     date: str
@@ -82,9 +83,9 @@ def _collect_photo_details(
     people: list[str] = []
     timestamps: list[datetime] = []
     for photo in photos:
-        geolocation = photo.geolocation_json
-        if geolocation and len(geolocation.get("places", [])) > 0:
-            places = geolocation["places"]
+        place = short_place_name(photo.geolocation_json)
+        if place:
+            places.append(place)
         timestamp = photo.exif_timestamp
         # Only called from _title_parts(), whose caller turns any exception into
         # the fallback title. A photo without a time always ended there: min()

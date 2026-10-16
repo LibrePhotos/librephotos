@@ -25,13 +25,14 @@ from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import (
+    HAS_POSITION,
     add_location_to_album_dates,
     geolocate_photo,
     needs_geocoding,
 )
 from api.jobs.queue import enqueue_task
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
-from api.models import Face, LongRunningJob, Photo, User
+from api.models import AlbumDate, Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
@@ -142,8 +143,9 @@ def _queue_per_photo_tasks(
     photos: QuerySet[Photo],
     job_id: UUID | str,
     cancelled_message: str,
+    **task_kwargs: object,
 ) -> None:
-    """Queue ``task(photo_id, job_id)`` for each photo.
+    """Queue ``task(photo_id, job_id, **task_kwargs)`` for each photo.
 
     The queue gets primary keys, not pickled ``Photo`` instances: the payload
     stays small and the worker works on the row as it is when the task runs.
@@ -152,7 +154,7 @@ def _queue_per_photo_tasks(
     for idx, photo_id in enumerate(photo_ids):
         if _scan_cancelled(idx, job_id, cancelled_message):
             return
-        enqueue_task(task, photo_id, job_id)
+        enqueue_task(task, photo_id, job_id, **task_kwargs)
 
 
 def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
@@ -821,13 +823,43 @@ def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
         lrj.fail(error=err)
 
 
-def geolocation_job(photo_id: UUID | Photo, job_id: UUID) -> None:
+def look_up_places(user: User, job_id: UUID) -> None:
+    """Look the place of every photo with a position up again (#2302).
+
+    Every user's photos, with the Map Provider set now: switching the
+    provider renames nothing by itself, so an admin starts this afterwards.
+    The day albums' places start over, since each photo adds its town back
+    (a cancelled run leaves the days of the photos it did not reach without
+    one until a full run); the Places albums of the old names are left empty.
+    """
+    lrj = LongRunningJob.claim(user, LongRunningJob.JOB_LOOK_UP_PLACES, job_id)
+    if lrj is None:
+        return
+    try:
+        photos = Photo.objects.filter(HAS_POSITION)
+        if not _begin_photo_scan(lrj, photos):
+            return
+        AlbumDate.objects.exclude(location=None).update(location=None)
+        _queue_per_photo_tasks(
+            geolocation_job,
+            photos,
+            job_id,
+            "Look up place names job cancelled",
+            force=True,
+        )
+    except Exception as err:
+        logger.exception("An error occurred: ")
+        lrj.fail(error=err)
+
+
+def geolocation_job(photo_id: UUID | Photo, job_id: UUID, force: bool = False) -> None:
     """
     Worker task to add geolocation for a single photo.
 
     Args:
         photo_id: Primary key of the photo to process
         job_id: Job ID for tracking progress
+        force: Look the place up even when the stored one is current
     """
     photo = _photo_for_task(photo_id, job_id)
     if photo is None:
@@ -835,7 +867,7 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID) -> None:
     failed = False
     error = None
     try:
-        geolocate_photo(photo)
+        geolocate_photo(photo, force=force)
         add_location_to_album_dates(photo)
     except Exception as err:
         logger.exception("An error occurred: ")

@@ -24,6 +24,7 @@ from api.models import (
     Photo,
     User,
 )
+from api.models.place_names import place_name
 from api.models.user import get_deleted_user
 from api.runtime import binaries
 from api.search.semantic import OPENCLIP
@@ -489,12 +490,26 @@ def get_searchterms_wordcloud(user: User) -> dict[str, list[dict[str, str | floa
     }
 
 
+def _sunburst_path(geolocation_json: object) -> tuple[str, str, str] | None:
+    """Country, region and town of a place (``place_name``); None if one is missing.
+
+    A level a parser folded into a finer one repeats that name: ExifTool's
+    Lisbon is "Portugal / Lisbon / Lisbon".
+    """
+    country = place_name(geolocation_json, "country")
+    region = place_name(geolocation_json, "region")
+    city = place_name(geolocation_json, "city")
+    if country is None or region is None or city is None:
+        return None
+    return country, region, city
+
+
 def get_location_sunburst(user: User) -> SunburstNode:
     levels: list[list[Any]] = []
 
     from collections import Counter
 
-    counter: Counter[tuple[Any, Any, Any]] = Counter()
+    counter: Counter[tuple[str, str, str]] = Counter()
     # Stream results to avoid caching entire queryset in memory
     photo_geo_iter = (
         Photo.objects.owned_by(user)
@@ -503,18 +518,9 @@ def get_location_sunburst(user: User) -> SunburstNode:
         .iterator(chunk_size=2000)
     )
     for geo in photo_geo_iter:
-        features = _geo_features(geo)
-        if len(features) < 3:
-            continue
-        f1 = features[-1] if isinstance(features[-1], dict) else {}
-        f2 = features[-2] if isinstance(features[-2], dict) else {}
-        f3 = features[-3] if isinstance(features[-3], dict) else {}
-        l1 = f1.get("text")
-        l2 = f2.get("text")
-        l3 = f3.get("text")
-        if l1 is None or l2 is None or l3 is None:
-            continue
-        counter[(l1, l2, l3)] += 1
+        path = _sunburst_path(geo)
+        if path is not None:
+            counter[path] += 1
     levels = [[k[0], k[1], k[2], v] for k, v in counter.items()]
     levels = sorted(levels, key=lambda x: (x[0], x[1], x[2]))
 
@@ -594,15 +600,7 @@ def get_location_clusters(user: User) -> list[list[Any]]:
 def get_location_timeline(user: User) -> list[dict[str, Any]]:
     # Python fallback: iterate photos ordered by timestamp and build contiguous location spans
     def extract_location(geo: object) -> str | None:
-        if not geo or not isinstance(geo, dict):
-            return None
-        features = geo.get("features", [])
-        if not isinstance(features, list) or not features:
-            return None
-        last = features[-1]
-        if isinstance(last, dict):
-            return last.get("text")
-        return None
+        return place_name(geo, "country")
 
     # Stream through photos ordered by exif_timestamp
     qs = (

@@ -17,9 +17,7 @@ expectation = {
             "children": [
                 {
                     "name": "Ontario",
-                    "children": [
-                        {"name": "Peterborough County", "value": 1, "hex": "#c957db"}
-                    ],
+                    "children": [{"name": "Lakefield", "value": 1, "hex": "#c957db"}],
                     "hex": "#dbae57",
                 }
             ],
@@ -30,10 +28,7 @@ expectation = {
             "children": [
                 {
                     "name": "Berlin",
-                    "children": [
-                        {"name": "Friedrichshain", "value": 1, "hex": "#db5f57"},
-                        {"name": "Kreuzberg", "value": 1, "hex": "#69db57"},
-                    ],
+                    "children": [{"name": "Berlin", "value": 2, "hex": "#db5f57"}],
                     "hex": "#db579e",
                 }
             ],

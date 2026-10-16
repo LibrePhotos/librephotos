@@ -30,6 +30,7 @@ const JOB_TYPE_KEYS: Partial<Record<number, ParseKeys>> = {
   26: "jobs.type.reapply_date_rules",
   27: "jobs.type.write_metadata",
   28: "jobs.type.refresh_exposure_times",
+  29: "jobs.type.look_up_places",
 };
 
 /**

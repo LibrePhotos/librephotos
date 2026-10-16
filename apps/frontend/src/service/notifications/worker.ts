@@ -19,6 +19,11 @@ function startStripThumbnailMetadata() {
   toast.success(i18n.t("toasts.stripthumbnailmetadata"), { title: i18n.t("toasts.stripthumbnailmetadatatitle") });
 }
 
+/** The place name lookup an admin started from the Admin Area (#2302). */
+function startLookUpPlaces() {
+  toast.success(i18n.t("toasts.lookupplaces"), { title: i18n.t("toasts.lookupplacestitle") });
+}
+
 function requestFailed(title: string, message: string) {
   toast.error(message, { title });
 }
@@ -63,5 +68,6 @@ export const worker = {
   requestFailed,
   saveFailed,
   serverError,
+  startLookUpPlaces,
   startStripThumbnailMetadata,
 };
