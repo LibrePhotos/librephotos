@@ -45,7 +45,7 @@ def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     return error_count > threshold
 
 
-def _skip_patterns() -> list[str]:
+def skip_patterns() -> list[str]:
     """Parse the ``SKIP_PATTERNS`` site setting (one DB read)."""
     skip_patterns = site_config.SKIP_PATTERNS
     if not skip_patterns:
@@ -60,7 +60,7 @@ def should_skip(path: str, skip_list: list[str] | None = None) -> bool:
     setting is read once per walk instead of once per entry.
     """
     if skip_list is None:
-        skip_list = _skip_patterns()
+        skip_list = skip_patterns()
     return any(pattern in path for pattern in skip_list)
 
 
@@ -123,7 +123,7 @@ def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory
     Returns:
         The subdirectories that were skipped because they could not be listed.
     """
-    walk = _DirectoryWalk(callback, _skip_patterns())
+    walk = _DirectoryWalk(callback, skip_patterns())
     walk.walk_entries(directory, _list_directory(directory))
     return walk.skipped
 

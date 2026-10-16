@@ -597,6 +597,9 @@ SPECTACULAR_SETTINGS = {
         # What "Write metadata to files" writes, and where (#2287).
         "MetadataWriteTypeEnum": "api.serializers.photos.METADATA_WRITE_TYPES",
         "MetadataWriteTargetEnum": "api.serializers.photos.METADATA_WRITE_TARGETS",
+        # Moving photos to another folder (#352): a taken name, a refused photo.
+        "MoveOnConflictEnum": "api.serializers.photo_moves.ON_CONFLICT_CHOICES",
+        "MoveRefusalReasonEnum": "api.serializers.photo_moves.MOVE_REFUSAL_REASONS",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

@@ -1685,6 +1685,50 @@ export async function fetchLocatedNearbyInTime(
   return parseResponse(S.LocatedPhotosResponse, res, "photos located nearby in time");
 }
 
+/* ---- moving photos (#352) ----------------------------------------------- */
+
+/** Where the selected photos go and what to do with a name taken there (absent: a 409 `name_conflict`). */
+export type MovePhotosTarget = { targetFolder: string; onConflict?: S.MoveOnConflict };
+
+/** What moving the selected photos to `targetFolder` would do: counts, refusals and taken names. */
+export async function previewPhotosMove(
+  client: ApiClient,
+  imageHashes: string[],
+  targetFolder: string,
+  selectAll?: SelectAllPhotos
+): Promise<S.MovePreviewResponse> {
+  const res = await client.post<unknown>("/photos/move/preview/", {
+    ...photoSelection(imageHashes, selectAll),
+    target_folder: targetFolder,
+  });
+  return parseResponse(S.MovePreviewResponse, res, "preview photos move");
+}
+
+/**
+ * Move the selected photos, with all their files, to a folder of the library. A small selection
+ * answers the counts; a large one the "Move Photos" job that does it (`job_id`).
+ */
+export async function movePhotos(
+  client: ApiClient,
+  imageHashes: string[],
+  target: MovePhotosTarget,
+  selectAll?: SelectAllPhotos
+): Promise<S.MovePhotosAnswer> {
+  const res = await client.post<unknown>("/photos/move/", {
+    ...photoSelection(imageHashes, selectAll),
+    target_folder: target.targetFolder,
+    ...(target.onConflict ? { on_conflict: target.onConflict } : {}),
+  });
+  return parseResponse(S.MovePhotosAnswer, res, "move photos");
+}
+
+/** The subfolders of `path` a move can go to; without it the library folders themselves. */
+export async function fetchMoveFolders(client: ApiClient, path: string | null): Promise<S.LibraryFolderListing> {
+  const query = path === null ? "" : `?${new URLSearchParams({ path }).toString()}`;
+  const res = await client.get<unknown>(`/photos/move/folders/${query}`);
+  return parseResponse(S.LibraryFolderListing, res, "move folders");
+}
+
 /* ---- media -------------------------------------------------------------- */
 
 /** Admin: why the web server refused to serve this photo's original. */

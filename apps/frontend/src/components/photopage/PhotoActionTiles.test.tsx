@@ -13,11 +13,13 @@ import { makePhoto } from "../lightbox/photoFixture.test-utils";
 import type { PhotoActions } from "../lightbox/usePhotoActions";
 import type { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { setUpMantineDom } from "../modals/confirmModal.test-utils";
+import type { MovePhotosModal } from "../movephotos/MovePhotosModal";
 import { PhotoActionTiles } from "./PhotoActionTiles";
 
 const stubs = vi.hoisted(() => {
   const album: React.ComponentProps<typeof AlbumEditModal>[] = [];
-  return { album };
+  const move: React.ComponentProps<typeof MovePhotosModal>[] = [];
+  return { album, move };
 });
 
 // The Files items have their own tests (FileActionItems.test.tsx).
@@ -30,6 +32,12 @@ vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({
   },
 }));
 vi.mock("../sharing/PhotoShareLinkModal", () => ({ PhotoShareLinkModal: () => null }));
+vi.mock("../movephotos/MovePhotosModal", () => ({
+  MovePhotosModal: (props: React.ComponentProps<typeof MovePhotosModal>) => {
+    stubs.move.push(props);
+    return null;
+  },
+}));
 
 beforeAll(setUpMantineDom);
 
@@ -38,6 +46,7 @@ const mounted: Array<() => Promise<void>> = [];
 afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
   stubs.album.length = 0;
+  stubs.move.length = 0;
 });
 
 function makeActions(overrides: Partial<PhotoActions> = {}): PhotoActions {
@@ -173,6 +182,7 @@ describe("photo action tiles", () => {
       "lightbox.toolbar.rotateCW",
       "photopage.actions.hide",
       "photopage.actions.archive",
+      "selectionactions.movetofolder",
       "photopage.openinviewer",
       "photopage.actions.trash",
     ]);
@@ -199,5 +209,19 @@ describe("photo action tiles", () => {
     expect(items).not.toContain("lightbox.toolbar.rotateCW");
     expect(items).toContain("photopage.actions.show");
     expect(items).toContain("photopage.actions.restore");
+  });
+
+  it("moves the photo to another folder from More, marking the folder it is in (#352)", async () => {
+    const { container } = await renderTiles();
+    expect(stubs.move).toEqual([]);
+
+    await openMore(container);
+    await act(async () => byText(document, '[role="menuitem"]', "selectionactions.movetofolder").click());
+
+    expect(stubs.move.at(-1)).toMatchObject({
+      opened: true,
+      selection: { image_hashes: ["h1"] },
+      currentFolder: "/lib",
+    });
   });
 });

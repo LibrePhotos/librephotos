@@ -118,6 +118,10 @@ _Not released yet._ Started with **Write now** under **Write edits to files** in
 
 <Since version="1.4.0" /> Asks the Map Provider set in Site Settings again for the place of every photo with a location, across every user's library, for example after switching to ExifTool. An admin starts it with **Look up place names again** under **Admin Area > Admin Tools**, after a confirmation. Photos move to the Places albums of their new names, and the day albums name their places again; a photo whose lookup fails keeps its old place. See [Switching the provider](./places.md#switching-the-provider).
 
+### Move Photos
+
+<Since version="1.4.0" /> Started with **Move to folder…** for a selection of more than 100 photos. Moves your photos, with all their files, to another folder of your library, one photo after the other; a photo whose name is taken there is renamed or skipped as you chose. A cancel stops after the photo it is on, and the photos moved until then stay moved. It ends with how many photos moved and how many stayed where they were. See [Moving photos to another folder](./library.md#moving-photos-to-another-folder).
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

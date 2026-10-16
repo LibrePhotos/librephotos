@@ -55,6 +55,7 @@ from api.tests.infra.routes import (
 )
 from api.tests.uploads.test_upload_into_album import UploadIntoAlbumTestBase
 from api.tests.utils import (
+    TEST_MEDIA_ROOT,
     create_test_album_auto,
     create_test_album_collection,
     create_test_album_date,
@@ -342,11 +343,17 @@ class CrossTenantWriteTest(TestCase):
             p.image_hash for p in self.victim_photos
         }
 
+        self._stub_side_effects()
+
+    def _stub_side_effects(self):
+        """No disk check, no download job; the attacker gets a library (#352)."""
         disk = patch("shutil.disk_usage")
         disk.start().return_value.free = 10**12
         self.addCleanup(disk.stop)
         self.download_job = patch("api.views.zip_downloads.create_download_job").start()
         self.download_job.return_value = "job"
+        # So a move gets past the target check and reaches the photo scope.
+        patch("api.photos.moves.library_roots", return_value=[TEST_MEDIA_ROOT]).start()
         self.addCleanup(patch.stopall)
 
     # ------------------------------------------------------------ cases
@@ -422,6 +429,10 @@ class CrossTenantWriteTest(TestCase):
             "/api/photosedit/location/", lat=41.1, lon=-8.6, overwrite=True
         )
         cases += self._bulk("/api/photos/location-summary/")
+        cases += self._bulk("/api/photos/move/preview/", target_folder=TEST_MEDIA_ROOT)
+        cases += self._bulk(
+            "/api/photos/move/", target_folder=TEST_MEDIA_ROOT, on_conflict="rename"
+        )
         cases += self._bulk(
             "/api/photosedit/share", val_shared=True, target_user_id=self.target.id
         )

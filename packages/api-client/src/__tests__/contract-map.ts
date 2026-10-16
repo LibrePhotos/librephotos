@@ -125,6 +125,14 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PlaceCount: { schema: S.PlaceCount, components: ["PlaceCount"] },
   LocationSummaryResponse: { schema: S.LocationSummaryResponse, components: ["LocationSummaryResponse"] },
   LocatedPhoto: { schema: S.LocatedPhoto, components: ["LocatedPhoto"] },
+  // moving photos (#352)
+  MoveClash: { schema: S.MoveClash, components: ["MoveClash"] },
+  RefusedCount: { schema: S.RefusedCount, components: ["RefusedCount"] },
+  MovePreviewResponse: { schema: S.MovePreviewResponse, components: ["MovePreviewResponse"] },
+  MovePhotosResponse: { schema: S.MovePhotosResponse, components: ["MovePhotosResponse"] },
+  MovePhotosStartedResponse: { schema: S.MovePhotosStartedResponse, components: ["MovePhotosStartedResponse"] },
+  LibraryFolder: { schema: S.LibraryFolder, components: ["LibraryFolder"] },
+  LibraryFolderListing: { schema: S.LibraryFolderListing, components: ["LibraryFolderListing"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },

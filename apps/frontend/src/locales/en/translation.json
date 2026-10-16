@@ -469,7 +469,8 @@
       "write_metadata": "Write Metadata to Files",
       "refresh_exposure_times": "Read Shutter Speeds Again",
       "look_up_places": "Look Up Place Names",
-      "unknown": "Other job ({{name}})"
+      "unknown": "Other job ({{name}})",
+      "move_photos": "Move Photos"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -754,7 +755,8 @@
     "createstacktwophotos": "Select at least two photos to stack them",
     "stacksselectall": "Not available with Select all: select the photos one by one",
     "nomanualstack": "None of the selected photos is in a manual stack",
-    "setlocation": "Set location…"
+    "setlocation": "Set location…",
+    "movetofolder": "Move to folder…"
   },
   "fileactions": {
     "files": "Files",
@@ -2292,7 +2294,16 @@
     "setlocationkept_one": "{{count}} photo kept its own location.",
     "setlocationkept_other": "{{count}} photos kept their own location.",
     "setlocationnone": "Nothing changed: the photos already have a location.",
-    "setlocationfailed": "The location could not be set. Please try again."
+    "setlocationfailed": "The location could not be set. Please try again.",
+    "movephotostitle": "Move to folder",
+    "movephotosstarted": "The photos are moving in the background.",
+    "photosmoved_one": "Moved {{count}} photo to {{folder}}.",
+    "photosmoved_other": "Moved {{count}} photos to {{folder}}.",
+    "photosmovedstayed_one": "{{count}} photo stayed where it was.",
+    "photosmovedstayed_other": "{{count}} photos stayed where they were.",
+    "photosmovednone_one": "Nothing moved: {{count}} photo stayed where it was.",
+    "photosmovednone_other": "Nothing moved: {{count}} photos stayed where they were.",
+    "photosmovefailed": "The photos could not be moved."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -3059,5 +3070,63 @@
       "titlecount_other": "Read colour information of {{count}} older videos",
       "description": "So HDR videos play with the right colours and get new thumbnails. Your videos are not changed."
     }
+  },
+  "movephotos": {
+    "title": "Move to another folder",
+    "destination": "Destination",
+    "destinationhint": "A folder of your library. A new folder is made when the photos move.",
+    "pickfolder": "Pick a folder of your library.",
+    "absolutepath": "Enter the full path of the folder, as the tree shows it.",
+    "foldername": "Enter a name for the folder.",
+    "badfoldername": "A folder name has no / or \\ and does not start with a dot.",
+    "pickparent": "Pick the folder to make it in first.",
+    "newfolder": "New folder",
+    "newfoldername": "New folder name",
+    "addfolder": "Add",
+    "checking": "Checking the folder…",
+    "checkfailed": "The folder could not be checked.",
+    "folderrefused": "This folder cannot take the photos.",
+    "nothingtomove": "None of the selected photos can move here.",
+    "move_one": "Move {{count}} photo",
+    "move_other": "Move {{count}} photos",
+    "filesnote": "RAW files, Live Photo videos and XMP sidecars move with their photo. Nothing in the folder is overwritten.",
+    "summary_one": "{{count}} photo with {{files}} files will move.",
+    "summary_other": "{{count}} photos with {{files}} files will move.",
+    "unchanged_one": "{{count}} photo is already in this folder.",
+    "unchanged_other": "{{count}} photos are already in this folder.",
+    "clashes_one": "{{count}} photo has a name that is taken in this folder: you choose what to do next.",
+    "clashes_other": "{{count}} photos have a name that is taken in this folder: you choose what to do next.",
+    "refused": {
+      "nextcloud_one": "{{count}} photo is a copy of a Nextcloud file and stays where it is.",
+      "nextcloud_other": "{{count}} photos are copies of Nextcloud files and stay where they are.",
+      "shared_file_one": "{{count}} photo shares a file with another photo and stays where it is.",
+      "shared_file_other": "{{count}} photos share a file with another photo and stay where they are.",
+      "not_on_disk_one": "{{count}} photo has no files on disk and stays where it is.",
+      "not_on_disk_other": "{{count}} photos have no files on disk and stay where they are."
+    },
+    "listfailed": "The folders could not be read.",
+    "truncated": "More folders are not shown. Type the path above.",
+    "nolibrary": "You have no library folder yet. An admin sets your scan directory.",
+    "treelabel": "Library folders",
+    "expand": "Open {{name}}",
+    "collapse": "Close {{name}}",
+    "currentfolder": "Current",
+    "newbadge": "New",
+    "conflicttitle_one": "{{count}} name is taken in {{folder}}",
+    "conflicttitle_other": "{{count}} names are taken in {{folder}}",
+    "conflictintro_one": "The folder already has a file with the name of this photo.",
+    "conflictintro_other": "The folder already has files with the names of these {{count}} photos.",
+    "clashname": "In the folder",
+    "clashrenamed": "Rename gives",
+    "becomes": "becomes",
+    "nofreename": "No free name",
+    "moreclashes_one": "and {{count}} more",
+    "moreclashes_other": "and {{count}} more",
+    "renamehint": "Rename, keep both: the moved photo gets a free name, such as IMG_1 (1).jpg, for all its files.",
+    "skiphint_one": "Skip: this photo stays where it is.",
+    "skiphint_other": "Skip: these {{count}} photos stay where they are.",
+    "skip_one": "Skip this photo",
+    "skip_other": "Skip {{count}} photos",
+    "rename": "Rename, keep both"
   }
 }

@@ -1,0 +1,5 @@
+.scroller {
+  max-height: 280px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}

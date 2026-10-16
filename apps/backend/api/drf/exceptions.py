@@ -88,3 +88,17 @@ class JobAlreadyRunning(Conflict):
         super().__init__(f"{job_name} is already running.")
         self.job_id = job_id
         self.entry_fields = {"job_id": job_id}
+
+
+class NameConflict(Conflict):
+    """Names of the photos to move are taken in the target folder (#352).
+
+    Its entry carries the ``count`` of such photos; the move preview lists them.
+    """
+
+    default_detail = "Names are taken in the target folder."
+    default_code = "name_conflict"
+
+    def __init__(self, message: str, count: int) -> None:
+        super().__init__(message)
+        self.entry_fields = {"count": str(count)}
