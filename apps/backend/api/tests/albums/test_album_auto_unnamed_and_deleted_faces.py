@@ -19,7 +19,8 @@ from datetime import datetime
 import pytz
 from django.test import TestCase
 
-from api.serializers.album_auto import AlbumAutoSerializer
+from api.models import AlbumAuto
+from api.serializers.album_auto import AlbumAutoSerializer, with_event_cover
 from api.tests.utils import (
     create_test_album_auto,
     create_test_face,
@@ -82,7 +83,9 @@ class AlbumAutoPeopleListTest(TestCase):
         self.album.photos.add(self.photo)
 
     def _people(self):
-        return AlbumAutoSerializer(self.album).data["people"]
+        # Loaded as the event page loads it: the serializer reads the cover (#429).
+        album = with_event_cover(AlbumAuto.objects.filter(pk=self.album.pk)).get()
+        return AlbumAutoSerializer(album).data["people"]
 
     def test_deleted_faces_are_not_listed(self):
         create_test_face(
