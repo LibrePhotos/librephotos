@@ -102,6 +102,10 @@ class Adapter:
         """Settings that switch write-back on; empty when the app has none (or it is always on)."""
         return []
 
+    def name_faces(self, relatives: list[str]) -> int:
+        """Name the detected faces of these photos, as a user does before writing face tags; returns how many."""
+        return 0
+
     def app_sidecars(self, ref: PhotoRef) -> list[Path]:
         """The app's own (non-XMP) sidecar files for a photo, if it keeps any."""
         return []
@@ -261,6 +265,22 @@ class LibrePhotos(Adapter):
                           setting("MEDIA_FILE"), self.write_faces),
         ]
 
+    def name_faces(self, relatives: list[str]) -> int:
+        # Face tags carry only names a user gave (1.3.0 writes nothing else, dev writes unnamed boxes).
+        named = 0
+        for number, relative in enumerate(relatives, start=1):
+            ref = self.find(relative)
+            if ref is None:
+                continue
+            face_ids = [p["face_id"] for p in self.api.get(f"/api/photos/{ref.id}/").get("people") or []
+                        if p.get("face_id") is not None]
+            if face_ids:
+                self.api.post("/api/labelfaces/", {"face_ids": face_ids, "person_name": f"Bench Person {number}"})
+                named += len(face_ids)
+        if named:
+            self.step("name the people in the photos (People > face > name)")
+        return named
+
     def write_faces(self) -> None:
         """Settings > "Write metadata to files" for face tags (1.3.0 runs it in the request, dev queues a job)."""
         self.api.post("/api/savemetadata/", {"types": ["face_tags"]})
@@ -272,7 +292,11 @@ class LibrePhotos(Adapter):
         job = self.api.post("/api/photos/download", {"image_hashes": [r.id for r in refs]})
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
-            if self.api.get(f"/api/jobs/{job['job_id']}/").get("finished"):
+            # The same endpoint reports the job: 202 PENDING, then 200 SUCCESS or FAILURE.
+            state = (self.api.get("/api/photos/download/", job_id=job["job_id"]) or {}).get("status")
+            if state == "FAILURE":
+                raise RuntimeError(f"zip download job {job['job_id']} failed")
+            if state == "SUCCESS":
                 break
             time.sleep(2)
         _status, body, _headers = self.api.raw("GET", f"/media/zip/{job['url']}")

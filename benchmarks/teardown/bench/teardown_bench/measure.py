@@ -217,6 +217,11 @@ def main() -> int:
     indexed = phase("index", lambda: index(app, args.stats, now() + max(30, budget.left() - reserve)))
     if indexed:
         result["index"] = {k: v for k, v in indexed.items() if k not in ("started", "ended")}
+        # Background ML jobs often outlast the budget; when every photo showed up is a number on its own.
+        polls = indexed.get("polls") or []
+        most = max((p.get("count") or 0 for p in polls), default=0)
+        result["index"]["all_visible_seconds"] = next((p["t"] for p in polls if most and p.get("count") == most),
+                                                      None)
         result["resources"]["indexing"] = stats.summarise(stats.load(args.stats), indexed["started"],
                                                           indexed["ended"])
     idle_start = now()
@@ -245,6 +250,10 @@ def main() -> int:
     if default:
         default["label"] = "default"
         trips.append(default)
+    # Everything up to here ran on defaults. Once a write-back switch is on, writing into the
+    # library is what was asked for (including the "Write metadata to files" job), so it is
+    # reported apart from what the app did on its own.
+    tree_defaults = checks.tree(app.library)
     if not modes:
         result["write_back_switch"] = "none: the app has no write-back setting (see tools.json)"
     for number, mode in enumerate(modes, start=1):
@@ -256,6 +265,9 @@ def main() -> int:
             trip["label"] = mode.label
             trip["setting"] = mode.setting
             if mode.write_faces:
+                if "faces_named" not in result:
+                    result["faces_named"] = phase("name-faces",
+                                                  lambda: app.name_faces(lock.get("people_targets", [])))
                 phase(f"write-faces-{mode.label}", mode.write_faces)
                 trip["face_regions"] = phase(f"face-regions-{mode.label}",
                                              lambda: checks.face_regions_written(app, lock.get("people_targets", [])))
@@ -268,10 +280,14 @@ def main() -> int:
     if refs:
         result["export"] = phase("export", lambda: export_check(app, refs, trips))
 
-    # 4. File safety: did indexing and editing move, rename, rewrite or create anything?
+    # 4. File safety: on defaults, did indexing and one edit move, rename, rewrite or create anything?
+    #    Then, separately, what the write-back switches wrote.
+    edited_default = {default["target"]} if default and "target" in default else set()
     edited = {t["target"] for t in trips if "target" in t}
-    result["file_safety"] = phase("tree-diff", lambda: checks.tree_diff(tree_before, checks.tree(app.library),
-                                                                        edited))
+    result["file_safety"] = phase("tree-diff", lambda: checks.tree_diff(tree_before, tree_defaults, edited_default))
+    if modes:
+        result["file_safety_write_back_on"] = phase(
+            "tree-diff-write-back", lambda: checks.tree_diff(tree_defaults, checks.tree(app.library), edited))
     # 5. Delete: trash, delete permanently, and what the configured trash expiry would do.
     delete_targets = lock.get("delete_targets") or []
     if delete_targets:

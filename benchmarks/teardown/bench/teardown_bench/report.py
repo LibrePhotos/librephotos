@@ -72,14 +72,15 @@ def main_table(results: list[dict], tools: dict) -> str:
                       else f"> {fmt(get(result, 'index', 'timed_out_after'))}")
         rows.append([
             label(result, tools), str(len(tool.get("documented_setup_steps", []))),
-            fmt(result.get("startup_seconds")), index_cell,
+            fmt(result.get("startup_seconds")), fmt(get(result, "index", "all_visible_seconds")), index_cell,
             f"{fmt(get(result, 'counts', 'found'))} / {fmt(get(result, 'counts', 'expected_media_files'))}",
             fmt(get(result, "resources", "idle_after_index", "mem_mib_mean")),
             fmt(get(result, "resources", "indexing", "mem_mib_peak")),
             fmt(get(result, "resources", "indexing", "cpu_percent_peak")),
             exported(result), "yes" if result.get("within_budget") else "no",
         ])
-    return table(["Run", "Documented setup steps", "Startup (s)", "Index (s)", "Found / expected",
+    return table(["Run", "Documented setup steps", "Startup (s)", "All photos visible (s)",
+                  "All jobs done (s)", "Found / expected",
                   "Idle RAM (MiB)", "Peak RAM (MiB)", "Peak CPU (%)", "Edits in export (r/d/k)",
                   "Within 10 min"], rows)
 
@@ -113,6 +114,10 @@ def safety_table(results: list[dict], tools: dict) -> str:
     rows = []
     for result in results:
         diff = result.get("file_safety") or {}
+        switched = result.get("file_safety_write_back_on")
+        written = ("n/a" if switched is None else
+                   f"{len(switched.get('rewritten_unexpected', []))} rewritten, "
+                   f"{len(switched.get('created_unexpected', []))} created")
         delete = result.get("delete") or {}
         policy = delete.get("trash_policy") or {}
         expiry = (f"{policy.get('days')} days" if policy.get("auto_expiry")
@@ -121,11 +126,13 @@ def safety_table(results: list[dict], tools: dict) -> str:
             label(result, tools),
             str(len(diff.get("moved_or_renamed", []))), str(len(diff.get("deleted", []))),
             str(len(diff.get("rewritten_unexpected", []))), str(len(diff.get("created_unexpected", []))),
+            written,
             "yes" if delete.get("original_removed_from_disk") else "no" if delete else "n/a",
             ", ".join(delete.get("sidecars_removed_from_disk") or []) or "-",
             expiry,
         ])
-    return table(["Run", "Moved/renamed", "Deleted", "Rewritten (unasked)", "Created (unasked)",
+    return table(["Run", "Moved/renamed (defaults)", "Deleted (defaults)", "Rewritten (defaults, unasked)",
+                  "Created (defaults, unasked)", "Beyond the edited photos, with write-back on",
                   "Permanent delete removes original", "Sidecars removed", "Auto trash expiry"], rows)
 
 

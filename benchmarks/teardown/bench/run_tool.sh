@@ -115,12 +115,18 @@ esac
 compose config --quiet
 echo "== $run: pulling images (not timed)" >&2
 pull_start=$(date +%s.%N)
-compose pull --quiet
+# Eight jobs pull at once, and a registry can answer "toomanyrequests"; back off and retry.
+for attempt in 1 2 3 4 5; do
+  compose pull --quiet && break
+  ((attempt == 5)) && exit 1
+  echo "== $run: pull failed (attempt $attempt), retrying in $((attempt * 20))s" >&2
+  sleep $((attempt * 20))
+done
 pull_seconds=$(python3 -c "import sys; print(round(float(sys.argv[2]) - float(sys.argv[1]), 1))" \
   "$pull_start" "$(date +%s.%N)")
 
 rm -f "$stop_file"
-"$here/bench/sample_stats.sh" "$project" "$work/stats.jsonl" "$stop_file" &
+bash "$here/bench/sample_stats.sh" "$project" "$work/stats.jsonl" "$stop_file" &
 sampler_pid=$!
 
 echo "== $run: starting (budget ${budget}s)" >&2
