@@ -15,6 +15,8 @@ issue and flips to an unexpected success once that bug is fixed.
 import ast
 import datetime
 import os
+import tempfile
+import zipfile
 from contextlib import contextmanager
 from unittest.mock import patch
 
@@ -47,6 +49,7 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import description_of
 from api.models.tag import Tag
 from api.models.user import User
+from api.photos.zip_downloads import zip_photos_task
 from api.serializers.photos import PhotoEditSerializer
 from api.tests.metadata.exiftool_harness import (
     RealExifToolTestCase,
@@ -2146,6 +2149,80 @@ class LibraryWriteRoundTripTest(RealExifToolTestCase):
                     path, tags=[Tags.DATE_CREATED], try_sidecar=True
                 )
                 self.assertTrue(str(date_created).startswith("2019:08:15 07:45:00"))
+
+
+class ZipDownloadRoundTripTest(RealExifToolTestCase):
+    """The edits written to a sidecar travel in the photo's zip download.
+
+    The teardown benchmark (positioning research) found the zip held only the
+    JPEG: write-back creates the sidecar, but it is no File of the photo
+    until the next scan, and the archive packed only the photo's files.
+    """
+
+    def _edited_in_sidecar_mode(self, user, folder="."):
+        os.makedirs(os.path.join(self.directory, folder), exist_ok=True)
+        path = self.make_image(".jpg", os.path.join(folder, "edited"))
+        # Its own bytes: two identical fixtures would share one File row.
+        self.tag(path, f"-XMP-dc:Source={folder}")
+        photo = self.photo_for(path, user)
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            edits.set_rating(Photo.objects.filter(pk=photo.pk), 4, user)
+            edits.set_caption(photo, CAPTION, user)
+            edits.set_keywords(photo, ["Sunset"], user)
+        self.assertWritesLanded()
+        self.assertEqual([path + ".xmp"], existing_sidecars(path))
+        return Photo.objects.select_related("main_file").get(pk=photo.pk)
+
+    def _download(self, photos, user):
+        job = create_test_job(user, LongRunningJob.JOB_DOWNLOAD_PHOTOS)
+        with patch("api.photos.zip_downloads.schedule_once"):
+            archive = zip_photos_task(user, photos, f"{job.job_id}.zip", job.job_id)
+        self.assertIsNotNone(archive)
+        unpacked = tempfile.mkdtemp(dir=self.library)
+        with zipfile.ZipFile(archive) as zf:
+            names = sorted(zf.namelist())
+            zf.extractall(unpacked)
+        return names, unpacked
+
+    def _edits_read_from(self, path):
+        return get_metadata(
+            path,
+            tags=[Tags.RATING, Tags.DESCRIPTION_XMP, Tags.SUBJECT],
+            try_sidecar=True,
+        )
+
+    def test_the_sidecar_of_an_edited_photo_is_in_its_zip(self):
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        photo = self._edited_in_sidecar_mode(user)
+
+        names, unpacked = self._download([photo], photo.owner)
+
+        self.assertEqual(["edited.jpg", "edited.jpg.xmp"], names)
+        rating, caption, keywords = self._edits_read_from(
+            os.path.join(unpacked, "edited.jpg")
+        )
+        self.assertEqual(4, rating)
+        self.assertEqual(CAPTION, caption)
+        self.assertIn("Sunset", keywords)
+
+    def test_a_renamed_photo_keeps_its_sidecar_next_to_it(self):
+        # Two folders' "edited.jpg": the second goes in as "edited_1.jpg", and
+        # its sidecar under the name an editor looks for next to it.
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        first = self._edited_in_sidecar_mode(user, "2019")
+        second = self._edited_in_sidecar_mode(user, "2020")
+
+        names, unpacked = self._download([first, second], user)
+
+        self.assertEqual(
+            ["edited.jpg", "edited.jpg.xmp", "edited_1.jpg", "edited_1.jpg.xmp"],
+            names,
+        )
+        (rating, *_) = self._edits_read_from(os.path.join(unpacked, "edited_1.jpg"))
+        self.assertEqual(4, rating)
 
 
 EXERCISED_WRITERS = {

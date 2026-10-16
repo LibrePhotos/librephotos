@@ -38,7 +38,7 @@ When viewing a photo that has file variants:
 
 - A **RAW badge** appears on the thumbnail in the photo grid
 - In the lightbox sidebar, next to the filename (beside the dimensions and file size), a photo with extra formats shows a **+N format(s)** link. Expanding it lists the non-primary variants, each with a format badge (**JPG**, **RAW**, **VIDEO**, **META**, or **FILE**).
-- When you download photos as a zip, all file variants of each photo are included automatically.
+- When you download photos as a zip, all file variants of each photo are included automatically. <Since version="1.4.0" /> So are their XMP sidecars, see [Sidecars in a download](./exif-data.md#sidecars-in-a-download).
 
 ## Stacks
 
