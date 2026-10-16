@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
 import { FOLDER_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { FolderCoverTile } from "../../../components/album/FolderCoverTile";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
@@ -13,7 +14,6 @@ import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import classes from "./folder.module.css";
 
 export const Route = createFileRoute("/_protected/album/folder/")({
   component: AlbumFolder,
@@ -55,10 +55,12 @@ function AlbumFolder() {
           getKey={subfolder => subfolder.path}
           sizing={sizing}
           renderItem={(subfolder, size) => (
-            <Link to="/album/folder/$id" params={{ id: encodeURIComponent(subfolder.path) }}>
-              <div className={classes.folderTile} style={{ width: size, height: size }}>
-                <Folder size={40} stroke={1.5} />
-              </div>
+            <Link
+              to="/album/folder/$id"
+              params={{ id: encodeURIComponent(subfolder.path) }}
+              aria-label={subfolder.name}
+            >
+              <FolderCoverTile folder={subfolder} size={size} />
             </Link>
           )}
           renderCaption={subfolder => (

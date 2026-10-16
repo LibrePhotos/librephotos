@@ -98,6 +98,10 @@ def _merge_album(
         # The merged album carries user state that only exists on it, so move
         # it over before it is gone.
         album.favorited = album.favorited or duplicate.favorited
+        # A picked cover is one of the duplicate's photos, which are the
+        # album's now. The album's own pick wins (#429).
+        if album.cover_photo_id is None:
+            album.cover_photo_id = duplicate.cover_photo_id
         album.shared_to.add(*duplicate.shared_to.all())
         album.save()
         duplicate.delete()

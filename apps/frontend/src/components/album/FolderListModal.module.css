@@ -28,3 +28,19 @@
   outline: 2px solid var(--mantine-color-blue-5);
   outline-offset: 2px;
 }
+
+/* A folder's cover, the size and corners of the icon Avatar (lg) it replaces */
+.coverBox {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

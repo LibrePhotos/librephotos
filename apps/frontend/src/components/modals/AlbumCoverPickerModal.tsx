@@ -1,7 +1,7 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Media } from "@librephotos/api-client";
 import { Box, Button, Group, Modal, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
-import { IconInfoCircle, IconPhoto } from "@tabler/icons-react";
+import { IconCheck, IconInfoCircle, IconPhoto, IconSparkles } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tile } from "../Tile";
@@ -16,9 +16,30 @@ type Props = Readonly<{
   photos: PigPhoto[];
   onSelectCover: (photoId: string) => void;
   albumTitle?: string;
+  /** The photo id of the cover in use, marked in the grid; null while it is automatic. */
+  currentCoverId?: string | null;
+  /** Offer an "Automatic" choice first (an event's first photo, #429), which calls this. */
+  onSelectAutomatic?: () => void;
 }>;
 
-export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelectCover, albumTitle }: Props) {
+/** The check on the cell of the cover in use. */
+function SelectedMark() {
+  return (
+    <span className={classes.selectedMark} aria-hidden>
+      <IconCheck size={12} stroke={3} />
+    </span>
+  );
+}
+
+export function AlbumCoverPickerModal({
+  isOpen,
+  onRequestClose,
+  photos,
+  onSelectCover,
+  albumTitle,
+  currentCoverId,
+  onSelectAutomatic,
+}: Props) {
   const { t } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(PHOTOS_PER_PAGE);
 
@@ -26,6 +47,12 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
     onSelectCover(photoId);
     onRequestClose();
   };
+
+  const handleSelectAutomatic = () => {
+    onSelectAutomatic?.();
+    onRequestClose();
+  };
+  const automaticSelected = !currentCoverId;
 
   const handleLoadMore = () => {
     setVisibleCount(prev => prev + PHOTOS_PER_PAGE);
@@ -60,22 +87,47 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
 
         <Box className={classes.photoGrid}>
           <SimpleGrid cols={{ base: 3, xs: 4, sm: 5, md: 6 }} spacing="sm">
-            {visiblePhotos.map((photo, index) => (
+            {onSelectAutomatic && (
               <UnstyledButton
-                key={photo.id}
-                onClick={() => handleSelectPhoto(photo.id)}
-                className={classes.photoButton}
+                onClick={handleSelectAutomatic}
+                className={classes.automaticButton}
+                data-selected={automaticSelected || undefined}
+                aria-pressed={automaticSelected}
               >
-                <Tile
-                  className={classes.photoTile}
-                  height={120}
-                  width={120}
-                  image_hash={photo.id}
-                  video={photo.type === Media.VIDEO}
-                  alt={t("photoofcount", { index: index + 1, count: photos.length })}
-                />
+                <Stack gap={2} align="center">
+                  <IconSparkles size={20} aria-hidden />
+                  <Text size="xs" fw={600}>
+                    {t("modalalbumcover.automatic")}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {t("modalalbumcover.automatichint")}
+                  </Text>
+                </Stack>
+                {automaticSelected && <SelectedMark />}
               </UnstyledButton>
-            ))}
+            )}
+            {visiblePhotos.map((photo, index) => {
+              const selected = photo.id === currentCoverId;
+              return (
+                <UnstyledButton
+                  key={photo.id}
+                  onClick={() => handleSelectPhoto(photo.id)}
+                  className={classes.photoButton}
+                  data-selected={selected || undefined}
+                  aria-pressed={currentCoverId === undefined ? undefined : selected}
+                >
+                  <Tile
+                    className={classes.photoTile}
+                    height={120}
+                    width={120}
+                    image_hash={photo.id}
+                    video={photo.type === Media.VIDEO}
+                    alt={t("photoofcount", { index: index + 1, count: photos.length })}
+                  />
+                  {selected && <SelectedMark />}
+                </UnstyledButton>
+              );
+            })}
           </SimpleGrid>
         </Box>
 

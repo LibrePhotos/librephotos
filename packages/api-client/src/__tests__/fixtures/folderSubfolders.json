@@ -3,8 +3,20 @@
   "next": null,
   "previous": null,
   "results": [
-    { "name": "2023", "path": "/data/photos/2023", "photo_count": 120, "modified": 1717171717.25 },
-    { "name": "2024", "path": "/data/photos/2024", "photo_count": 48, "modified": 1727272727.5 }
+    {
+      "name": "2023",
+      "path": "/data/photos/2023",
+      "photo_count": 120,
+      "modified": 1717171717.25,
+      "cover_photo": { "image_hash": "h2023", "video": false }
+    },
+    {
+      "name": "2024",
+      "path": "/data/photos/2024",
+      "photo_count": 48,
+      "modified": 1727272727.5,
+      "cover_photo": { "image_hash": "h2024", "video": true }
+    }
   ],
   "page": 1,
   "page_size": 100,
@@ -12,8 +24,20 @@
   "current_path": "/data/photos",
   "parent_path": null,
   "subfolders": [
-    { "name": "2023", "path": "/data/photos/2023", "photo_count": 120, "modified": 1717171717.25 },
-    { "name": "2024", "path": "/data/photos/2024", "photo_count": 48, "modified": 1727272727.5 }
+    {
+      "name": "2023",
+      "path": "/data/photos/2023",
+      "photo_count": 120,
+      "modified": 1717171717.25,
+      "cover_photo": { "image_hash": "h2023", "video": false }
+    },
+    {
+      "name": "2024",
+      "path": "/data/photos/2024",
+      "photo_count": 48,
+      "modified": 1727272727.5,
+      "cover_photo": { "image_hash": "h2024", "video": true }
+    }
   ],
   "pagination": {
     "page": 1,

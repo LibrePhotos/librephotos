@@ -325,10 +325,7 @@ class CrossTenantWriteTest(TestCase):
         self.a_photo = create_test_photo(owner=self.attacker)
         self.a_photo2 = create_test_photo(owner=self.attacker)
         self.a_tag = create_test_tag(name="attacker-tag", owner=self.attacker)
-        self.a_album = create_test_album_user(title="Loot", owner=self.attacker)
-        self.a_collection = create_test_album_collection(
-            name="Loot Collection", owner=self.attacker
-        )
+        self._attacker_albums()
         self.a_stack = create_test_stack(
             owner=self.attacker, stack_type="manual", primary_photo=self.a_photo
         )
@@ -384,6 +381,15 @@ class CrossTenantWriteTest(TestCase):
                 },
             ),
         ]
+
+    def _attacker_albums(self):
+        """An album, an event of their own photos (#429) and a collection."""
+        self.a_album = create_test_album_user(title="Loot", owner=self.attacker)
+        self.a_auto = create_test_album_auto(title="Loot Event", owner=self.attacker)
+        self.a_auto.photos.add(self.a_photo, self.a_photo2)
+        self.a_collection = create_test_album_collection(
+            name="Loot Collection", owner=self.attacker
+        )
 
     def _person_groups(self):
         """A group of each user's (#1126): the victim's holds their person."""
@@ -585,6 +591,24 @@ class CrossTenantWriteTest(TestCase):
                 {"image_hash": self.v_pub.image_hash, "rating": 5},
             ),
             ("patch", f"/api/albums/auto/{self.v_auto.pk}/", {"favorited": True}),
+            # the cover of an event (#429): a victim's photo on the attacker's
+            # event, and any photo on the victim's
+            (
+                "patch",
+                f"/api/albums/auto/{self.a_auto.pk}/",
+                {"cover_photo": str(self.v_pub.pk)},
+            ),
+            (
+                "patch",
+                f"/api/albums/auto/{self.v_auto.pk}/",
+                {"cover_photo": str(self.v_pub.pk)},
+            ),
+            (
+                "patch",
+                f"/api/albums/auto/{self.v_auto.pk}/",
+                {"cover_photo": str(self.a_photo.pk)},
+            ),
+            ("patch", f"/api/albums/auto/{self.v_auto.pk}/", {"cover_photo": None}),
             ("put", f"/api/albums/auto/{self.v_auto.pk}/", {"favorited": True}),
             ("delete", f"/api/albums/auto/{self.v_auto.pk}/", None),
             ("patch", f"/api/albums/thing/{self.v_thing.pk}/", {"favorited": True}),

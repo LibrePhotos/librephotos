@@ -246,8 +246,20 @@ export const AutoAlbum = z.object({
   /** The people whose (non-deleted) faces appear in the album's photos. */
   people: Person.array(),
   photos: PhotoSimple.array(),
+  /**
+   * The id of the cover the owner picked (#429); null while the cover is automatic (the first
+   * photo), also when the picked one was hidden or trashed since. Older backends lack it.
+   */
+  cover_photo: UuidString.nullish(),
 });
 export type AutoAlbum = z.infer<typeof AutoAlbum>;
+
+/** PATCH /albums/auto/{id}/: the event's cover after the change. */
+export const AutoAlbumEdit = z.object({
+  id: z.number(),
+  cover_photo: UuidString.nullable(),
+});
+export type AutoAlbumEdit = z.infer<typeof AutoAlbumEdit>;
 
 /* ---- Thing / Place albums --------------------------------------------- */
 
@@ -319,6 +331,8 @@ export const FolderSubfolder = z.object({
   photo_count: z.number(),
   /** The directory's mtime, in seconds. */
   modified: z.number(),
+  /** The newest photo in and below it (#2233); older backends lack it. */
+  cover_photo: PhotoHash.nullish(),
 });
 export type FolderSubfolder = z.infer<typeof FolderSubfolder>;
 

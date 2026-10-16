@@ -74,7 +74,6 @@
   "src/routes/__root.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/album/events.index.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/album/folder.$id.tsx": { "inlineStyles": 2 },
-  "src/routes/_protected/album/folder.index.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/album/index.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/album/places.index.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/route.tsx": { "inlineStyles": 1 },

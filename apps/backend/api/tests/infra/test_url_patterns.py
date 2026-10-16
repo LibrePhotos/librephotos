@@ -153,7 +153,7 @@ LEGACY_RE_ROUTES = frozenset(
 
 CLIENT_PATHS = {
     "/api/addface": "api.views.faces.AddFaceView",
-    "/api/albums/auto/1/": "api.views.album_auto.AlbumAutoViewSet delete=destroy,get=retrieve",
+    "/api/albums/auto/1/": "api.views.album_auto.AlbumAutoViewSet delete=destroy,get=retrieve,patch=partial_update",
     "/api/albums/auto/delete_all/": "api.views.album_auto.AlbumAutoViewSet post=delete_all",
     "/api/albums/auto/list/": "api.views.album_auto.AlbumAutoListViewSet get=list",
     "/api/albums/date/1/": "api.views.albums.AlbumDateViewSet get=retrieve",

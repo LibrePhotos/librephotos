@@ -96,6 +96,26 @@ describe("the Folders page", () => {
     expect(container.textContent).toContain("3 Photos");
   });
 
+  it("shows each folder's newest photo with a folder badge, the icon without one (#2233)", async () => {
+    stubs.folders = {
+      subfolders: [
+        { name: "trip", path: "/photos/trip", photo_count: 3, cover_photo: { image_hash: "newest", video: false } },
+        // An older server sends no cover
+        { name: "old", path: "/photos/old", photo_count: 2 },
+      ],
+      isLoading: false,
+      isFetching: false,
+    };
+    await renderPage();
+
+    const images = Array.from(container.querySelectorAll("img"));
+    expect(images.map(image => image.getAttribute("src"))).toEqual([expect.stringContaining("newest")]);
+    // One badge on the cover and one icon tile: both folder icons, neither announced
+    const icons = container.querySelectorAll("svg.tabler-icon-folder");
+    expect(icons.length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelector("[aria-hidden] svg.tabler-icon-folder")).not.toBeNull();
+  });
+
   it("does not claim there are none while the first answer is out", async () => {
     stubs.folders = { subfolders: [], isLoading: true, isFetching: true };
     await renderPage();

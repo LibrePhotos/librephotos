@@ -204,6 +204,16 @@ class AlbumAuto(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
     )
+    # The cover the owner picked (#429), one of the event's photos; None shows
+    # the first visible photo. Event generation only adds photos to an event,
+    # so a regeneration keeps it (api/albums/auto_albums.py).
+    cover_photo = models.ForeignKey(
+        Photo,
+        related_name="album_auto_cover",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
 
     shared_to = models.ManyToManyField(User, related_name="album_auto_shared_to")
     # Delta-sync ordering key (mobile v2, doc 04).

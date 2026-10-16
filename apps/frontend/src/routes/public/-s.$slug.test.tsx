@@ -62,6 +62,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
     return { data: stubs.album, isLoading: false, isError: false };
   },
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
+  useSetEventCoverMutation: () => ({ mutate: () => {} }),
   useSetUserAlbumCoverMutation: () => ({ mutate: () => {} }),
 }));
 vi.mock("../../api_client/auth/hooks", () => ({ useAccessToken: () => ({ data: undefined }) }));
