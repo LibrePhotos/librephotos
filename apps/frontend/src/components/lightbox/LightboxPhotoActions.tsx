@@ -1,5 +1,6 @@
 import type { Photo } from "@librephotos/api-client";
 import { ActionIcon, Divider, Group, Loader, Menu, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconCopy as Copy,
   IconDotsVertical as Dots,
@@ -14,6 +15,7 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
+import { FileActionItems } from "../photolist/FileActionItems";
 import { LightboxRating } from "./LightboxRating";
 import { VisibilityButtons, VisibilityMenuItems } from "./LightboxVisibilityActions";
 import type { PhotoActions } from "./usePhotoActions";
@@ -103,6 +105,13 @@ function PhotoActionsMenu(props: Props) {
             {label}
           </Menu.Item>
         ))}
+        {photoDetail && actions.isOwner && (
+          <>
+            <Menu.Divider />
+            <FileActionItems photoIds={[photoDetail.id]} single iconSize={ICON_SIZE.lightbox} />
+            <Menu.Divider />
+          </>
+        )}
         {onCopyToClipboard && (
           <Menu.Item leftSection={<Copy size={ICON_SIZE.lightbox} />} onClick={onCopyToClipboard}>
             {copyLabel}
@@ -119,9 +128,38 @@ function PhotoActionsMenu(props: Props) {
   );
 }
 
-/** The row's buttons for a photo whose details have loaded: hide, archive, rating, share, trash, rotate. */
+/** The desktop row's ⋮ after rotate: the owner's file actions (rescan, faces), kept out of the row. */
+function MoreActionsMenu({ photoId }: Readonly<{ photoId: string }>) {
+  const { t } = useTranslation();
+  const [opened, { open, close }] = useDisclosure(false);
+  const label = t("lightbox.toolbar.moreActions");
+  return (
+    // Kept inside the lightbox: a portal would not show in fullscreen.
+    <Menu
+      position="bottom-end"
+      withinPortal={false}
+      width={260}
+      opened={opened}
+      onChange={next => (next ? open() : close())}
+    >
+      <Menu.Target>
+        {/* Hidden while the menu is open: it would sit over the first item. */}
+        <Tooltip label={label} position="bottom" withArrow disabled={opened}>
+          <ActionIcon variant="subtle" color="gray" size={28} aria-label={label}>
+            <Dots size={ICON_SIZE.lightbox} />
+          </ActionIcon>
+        </Tooltip>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <FileActionItems photoIds={[photoId]} single iconSize={ICON_SIZE.lightbox} />
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
+/** The row's buttons for a photo whose details have loaded: hide, archive, rating, share, trash, rotate, ⋮. */
 function PhotoActionButtons(props: Props) {
-  const { actions, isPhotoDetailsLoading } = props;
+  const { actions, isPhotoDetailsLoading, photoDetail } = props;
   const { share, trash, rotations } = useRowActions(props);
   return (
     <>
@@ -130,6 +168,7 @@ function PhotoActionButtons(props: Props) {
       {[share, trash, ...rotations].map(button => (
         <ToolbarButton key={button.label} {...button} />
       ))}
+      {photoDetail && actions.isOwner && <MoreActionsMenu photoId={photoDetail.id} />}
     </>
   );
 }

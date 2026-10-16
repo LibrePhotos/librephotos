@@ -1,3 +1,4 @@
+import type { MantineColor } from "@mantine/core";
 import { Button, Modal, Stack, Text } from "@mantine/core";
 import React from "react";
 import type { ReactNode } from "react";
@@ -17,6 +18,8 @@ type Props = Readonly<{
   confirmLabel: string;
   /** "Cancel" unless that is ambiguous next to the confirm label ("Keep running" beside "Cancel job"). */
   cancelLabel?: string;
+  /** The confirm button's colour: red for a destructive action, the theme's for a long one (#524). */
+  confirmColor?: MantineColor;
   /** Adds the red "This action cannot be undone." line. */
   irreversible?: boolean;
   /**
@@ -43,6 +46,7 @@ export function ConfirmModal({
   message,
   confirmLabel,
   cancelLabel,
+  confirmColor = "red",
   irreversible = false,
   loading = false,
 }: Props) {
@@ -73,7 +77,7 @@ export function ConfirmModal({
           <Button variant="default" onClick={onClose} disabled={loading} data-autofocus>
             {cancelLabel ?? t("cancel")}
           </Button>
-          <Button color="red" onClick={onConfirm} loading={loading}>
+          <Button color={confirmColor} onClick={onConfirm} loading={loading}>
             {confirmLabel}
           </Button>
         </div>

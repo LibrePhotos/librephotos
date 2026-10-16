@@ -32,6 +32,10 @@ const stubs = vi.hoisted(() => ({
   narrow: false,
 }));
 
+// The Files items have their own tests (FileActionItems.test.tsx); here they show what they got.
+vi.mock("../photolist/FileActionItems", () => ({
+  FileActionItems: ({ photoIds }: { photoIds: string[] }) => <span data-file-actions={photoIds.join(",")} />,
+}));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoSharesQuery: () => ({ data: [] }),
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.markDeleted }),
@@ -279,6 +283,39 @@ describe("LightboxControls", () => {
     expect(setSlideshowInterval).toHaveBeenCalledWith(10);
     // Escape and the other shortcuts skip a focused input.
     expect(document.activeElement).toBe(container);
+  });
+
+  it("gives the owner a ⋮ after rotate with Rescan file and Detect faces again (#2214, #524)", async () => {
+    const container = await renderControls();
+    const more = defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]'));
+
+    await act(async () => more.click());
+
+    expect(container.querySelector("[data-file-actions]")?.getAttribute("data-file-actions")).toBe("p1");
+  });
+
+  it("puts the file actions in the phone's menu too", async () => {
+    stubs.narrow = true;
+    const container = await renderControls();
+
+    await act(async () => {
+      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]')).click();
+    });
+
+    expect(container.querySelector("[data-file-actions]")?.getAttribute("data-file-actions")).toBe("p1");
+  });
+
+  it("offers no file actions on a photo shared with you", async () => {
+    stubs.user = { ...FAVORITE_USER, id: 2 };
+    const wide = await renderControls();
+    expect(labels(wide)).not.toContain("lightbox.toolbar.moreActions");
+
+    stubs.narrow = true;
+    const phone = await renderControls();
+    await act(async () => {
+      defined(phone.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]')).click();
+    });
+    expect(phone.querySelector("[data-file-actions]")).toBeNull();
   });
 
   it("needs no menu on a public page, which has no owner's actions", async () => {

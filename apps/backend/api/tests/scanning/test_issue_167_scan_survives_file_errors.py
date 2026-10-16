@@ -49,7 +49,7 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
         paths = [_write_image(self.p(f"IMG_{i}.png"), width=10 + i) for i in range(3)]
         failing_path = paths[1]
 
-        def flaky_process(photo, path, job_id, start):
+        def flaky_process(photo, path, job_id, start, rebuild_thumbnails=False):
             if path == failing_path:
                 raise OSError(116, "Stale file handle")
 
@@ -83,7 +83,7 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
         paths = [_write_image(self.p(f"R_{i}.png"), width=20 + i) for i in range(3)]
         failing_path = paths[1]
 
-        def flaky_process(photo, path, job_id, start):
+        def flaky_process(photo, path, job_id, start, rebuild_thumbnails=False):
             if path == failing_path:
                 raise OSError(116, "Stale file handle")
 

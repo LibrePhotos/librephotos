@@ -16,6 +16,8 @@ type RemoveFromAlbum = ReturnType<typeof useRemovePhotoFromUserAlbumMutation>["m
 type MarkDeleted = ReturnType<typeof useMarkPhotosDeletedMutation>["mutate"];
 
 const hooks = vi.hoisted(() => ({ remove: vi.fn<RemoveFromAlbum>(), deleted: vi.fn<MarkDeleted>() }));
+// The Files items have their own tests (FileActionItems.test.tsx).
+vi.mock("./FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/album/user/867" }) }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../../api_client/albums/hooks", () => ({

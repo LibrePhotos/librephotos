@@ -47,6 +47,7 @@ from api.jobs.start import start_job, start_jobs
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.person import Person, get_or_create_person
 from api.models.thumbnail import Thumbnail
+from api.photos.library_files import in_library
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import missing_models_prerequisites
 from api.serializers.face import (
@@ -61,6 +62,7 @@ from api.serializers.face import (
     PersonFaceListSerializer,
     RestoreFaceLabelsRequest,
     RestoreFacesResponse,
+    ScanFacesRequest,
     SetFacePersonLabelRequest,
     SetFacePersonLabelResponse,
 )
@@ -82,15 +84,23 @@ class ScanFacesView(APIView):
     def get(self, request: Request, format: str | None = None) -> Response:
         return self._scan_faces(request)
 
-    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    @extend_schema(request=ScanFacesRequest, responses=JobStartedResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
-        return self._scan_faces(request)
+        return self._scan_faces(request, parse_body(request, ScanFacesRequest))
 
-    def _scan_faces(self, request: Request, format: str | None = None) -> Response:
+    def _scan_faces(
+        self, request: Request, scope: dict[str, Any] | None = None
+    ) -> Response:
+        """Detect faces again in every photo, or in a folder or some photos (#524).
+
+        Faces already found stay, and so do deleted ones: a face detected
+        over one is not added again.
+        """
         if not feature_enabled("FACE_DETECTION"):
             raise PermissionDenied("Face detection is disabled")
 
         user = request_user(request)
+        narrowed = _face_scan_scope(user, scope or {})
         return start_job(
             user,
             LongRunningJob.JOB_SCAN_FACES,
@@ -99,7 +109,31 @@ class ScanFacesView(APIView):
             full_scan=True,
             description="the face scan",
             prerequisites=missing_models_prerequisites(user),
+            **narrowed,
         )
+
+
+def _face_scan_scope(user: User, scope: dict[str, Any]) -> dict[str, object]:
+    """``scan_faces``' ``path`` or ``photo_ids`` from a checked request body.
+
+    A folder outside the user's library is a 400; photos none of which is
+    theirs a 404, so nothing is queued for them.
+    """
+    path = scope.get("path")
+    if path is not None:
+        if not in_library(user, path):
+            raise ValidationError(
+                {"path": "This folder is not in your library."},
+                code="path_outside_library",
+            )
+        return {"path": path}
+    photo_ids = scope.get("photo_ids")
+    if photo_ids is not None:
+        owned = Photo.objects.owned_by(user).filter(pk__in=photo_ids)
+        if not owned.exists():
+            raise NotFound("None of these photos is yours.")
+        return {"photo_ids": [str(pk) for pk in owned.values_list("pk", flat=True)]}
+    return {}
 
 
 class TrainFaceView(APIView):

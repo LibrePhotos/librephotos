@@ -21,6 +21,7 @@ naming the route and saying out loud that it cannot reference photos.
 """
 
 import json
+import os
 import uuid
 from collections.abc import Iterable, Mapping
 from collections.abc import Set as AbstractSet
@@ -101,7 +102,6 @@ NOT_PHOTO_SCOPED = {
     "api/scanphotos/": "scans the requester's own library",
     "api/scanuploadedphotos/": "scans the requester's own uploads",
     "api/fullscanphotos/": "scans the requester's own library",
-    "api/scanfaces/": "queues a job on the requester's own photos",
     "api/deletemissingphotos/": "queues a job on the requester's own photos",
     "api/classifymedia/": "queues a job on the requester's own photos",
     "api/generateocr/": "queues a job on the requester's own photos",
@@ -639,6 +639,20 @@ class CrossTenantWriteTest(TestCase):
                 "post",
                 f"/api/persons/{self.v_person.pk}/remove-photos/",
                 {"photo_ids": self._ids()},
+            ),
+            # Reading the victim's files again (#2214, #900) or detecting
+            # their faces again (#524): by photo id, by path and by folder.
+            ("post", "/api/photos/rescan/", {"photo_ids": self._ids()}),
+            (
+                "post",
+                "/api/scan-files/",
+                {"paths": [p.main_file.path for p in self.victim_photos]},
+            ),
+            ("post", "/api/scanfaces/", {"photo_ids": self._ids()}),
+            (
+                "post",
+                "/api/scanfaces/",
+                {"path": os.path.dirname(self.v_pub.main_file.path)},
             ),
             (
                 "post",

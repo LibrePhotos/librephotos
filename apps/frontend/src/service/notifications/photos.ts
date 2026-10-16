@@ -163,6 +163,16 @@ function startFullPhotoScan() {
   toast.success(i18n.t("toasts.fullscanphotos"), { title: i18n.t("toasts.fullscanphotostitle") });
 }
 
+/** A rescan of chosen photos started (#2214): what it reads again, and what it keeps. */
+function rescanPhotosStarted(count: number) {
+  toast.success(i18n.t("toasts.rescanphotos"), { title: i18n.t("toasts.rescanphotostitle", { count }) });
+}
+
+/** A rescan of chosen photos did not start; `message` says why (the server's words). */
+function rescanPhotosFailed(message: string) {
+  toast.error(message, { title: i18n.t("toasts.rescanphotosfailedtitle") });
+}
+
 function startOcrScan() {
   toast.success(i18n.t("toasts.ocrscan"), { title: i18n.t("toasts.ocrscantitle") });
 }
@@ -272,6 +282,8 @@ export const photos = {
   photosDateChanged,
   photosLocationSet,
   removePhotos,
+  rescanPhotosFailed,
+  rescanPhotosStarted,
   savePhotoCaptions,
   scanDirectoryRequired,
   setPhotosCategory,

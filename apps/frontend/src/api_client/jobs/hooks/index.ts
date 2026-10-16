@@ -10,6 +10,7 @@ export * from "./useJobsQuery";
 export * from "./useLookUpPlacesMutation";
 export * from "./useRegenerateEventTitlesMutation";
 export * from "./useRescanPhotosMutation";
+export * from "./useRescanSelectedPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";
 export * from "./useStripThumbnailMetadataMutation";

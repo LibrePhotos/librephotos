@@ -27,6 +27,7 @@ import { StarRow, starSymbols } from "../lightbox/LightboxRating";
 import type { PhotoActions } from "../lightbox/usePhotoActions";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
+import { FileActionItems } from "../photolist/FileActionItems";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import classes from "./PhotoActionTiles.module.css";
 import { fileNameOf } from "./photoPageText";
@@ -158,7 +159,8 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
         <TileFace icon={<IconBookmarkPlus size={TILE_ICON} />} label={t("photopage.tiles.album")} />
       </UnstyledButton>
       <DownloadTile photo={photo} />
-      <Menu position="bottom-end">
+      {/* Wide enough for the note under Rescan file. */}
+      <Menu position="bottom-end" width={260}>
         <Menu.Target>
           <UnstyledButton className={classes.tile}>
             <TileFace icon={<IconDotsVertical size={TILE_ICON} />} label={t("photopage.tiles.more")} />
@@ -197,6 +199,8 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
           <Menu.Item leftSection={<IconArrowsMaximize size={ICON_SIZE.menu} />} onClick={onOpenViewer}>
             {t("photopage.openinviewer")}
           </Menu.Item>
+          <Menu.Divider />
+          <FileActionItems photoIds={[photo.id]} single />
           <Menu.Divider />
           <Menu.Item
             color={actions.inTrash ? undefined : "red"}

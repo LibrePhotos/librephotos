@@ -5,6 +5,7 @@ from api.drf.params import QueryFlagField
 from api.jobs.upgrade_tasks import TaskList, TaskOverview
 from api.models import LongRunningJob, User
 from api.models.long_running_job import LongRunningJobQuerySet
+from api.photos.library_files import MAX_REQUESTED
 from api.serializers.fields import loaded
 from api.serializers.simple import SimpleUserSerializer
 
@@ -160,3 +161,48 @@ class UpgradeTaskListSerializer(serializers.Serializer[TaskList]):
     """``GET /api/upgrade-tasks/``: the tasks an upgrade left, done ones for a day."""
 
     tasks = UpgradeTaskSerializer(many=True)
+
+
+class RescanPhotosRequest(serializers.Serializer[None]):
+    """``POST /api/photos/rescan/``: the photos whose files to read again (#2214)."""
+
+    photo_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=1,
+        max_length=MAX_REQUESTED,
+        help_text="Ids of the requester's photos; someone else's id is ignored",
+    )
+
+
+class RescanPhotosResponseSerializer(JobStartedResponseSerializer):
+    """``POST /api/photos/rescan/``: the started scan and what it reads."""
+
+    photo_count = serializers.IntegerField(
+        help_text="The photos whose files are read again"
+    )
+    file_count = serializers.IntegerField(
+        help_text="Their files: main files, variants and sidecars"
+    )
+
+
+class ScanFilesRequest(serializers.Serializer[None]):
+    """``POST /api/scan-files/``: files an outside process says are new or changed (#900)."""
+
+    paths = serializers.ListField(
+        child=serializers.CharField(trim_whitespace=False),
+        min_length=1,
+        max_length=MAX_REQUESTED,
+        help_text="Absolute paths of files in the requester's scan directory "
+        "or upload folder, as the server sees them",
+    )
+
+
+class ScanFilesResponseSerializer(JobStartedResponseSerializer):
+    """``POST /api/scan-files/``: the started scan and the paths it left out."""
+
+    file_count = serializers.IntegerField(help_text="The files the scan looks at")
+    ignored_paths = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Paths left out: outside the requester's library, folders, "
+        "files that do not exist, and repeats",
+    )

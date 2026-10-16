@@ -3,7 +3,7 @@
 import os
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +18,7 @@ from api.jobs.start import start_job
 from api.metadata.date_rules_job import reapply_date_rules_job
 from api.models import LongRunningJob
 from api.models.user import User
+from api.photos.library_files import rescan_targets, scannable_files
 from api.photos.retention import empty_trash_job
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
@@ -29,6 +30,10 @@ from api.serializers.job import (
     GenerateCaptionsRequest,
     GenerateOcrRequest,
     JobStartedResponseSerializer,
+    RescanPhotosRequest,
+    RescanPhotosResponseSerializer,
+    ScanFilesRequest,
+    ScanFilesResponseSerializer,
 )
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
 
@@ -99,6 +104,91 @@ class FullScanPhotosView(APIView):
         user = request_user(request)
         _validate_scan_directory(user)
         return _start_photo_scan(user, user.scan_directory, full_scan=True)
+
+
+def _start_file_scan(
+    user: User, paths: list[str], force_files: bool, description: str
+) -> Response:
+    """Scan ``paths``, a list of the user's files, as a Scan Photos job.
+
+    Not a library scan, so it never becomes the change baseline of the next
+    one (#2192); its follow-ups only cover what is new.
+    """
+    return start_job(
+        user,
+        LongRunningJob.JOB_SCAN_PHOTOS,
+        scan_photos,
+        user,
+        False,
+        scan_files=paths,
+        force_files=force_files,
+        description=description,
+        prerequisites=missing_models_prerequisites(user),
+    )
+
+
+class RescanPhotosView(APIView):
+    """Read the files of some of the requester's photos again (#2214).
+
+    Also the files that did not change: their thumbnails, metadata, date and
+    hashes are read and rendered again. Dates set by hand, locations, captions
+    and albums stay (exif-data.md, How a rescan treats your edits). Faces are
+    not detected again; that is ``POST /api/scanfaces`` with ``photo_ids``.
+    404 when none of the photos is the requester's, 400 when none has a file
+    left in their library, 409 while a scan runs.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        request=RescanPhotosRequest, responses=RescanPhotosResponseSerializer
+    )
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        photo_ids = parse_body(request, RescanPhotosRequest)["photo_ids"]
+        targets = rescan_targets(user, photo_ids)
+        if not targets.found:
+            raise NotFound("None of these photos is yours.")
+        if not targets.paths:
+            raise ValidationError(
+                "None of these photos has a file in your library any more.",
+                code="no_files_to_scan",
+            )
+        response = _start_file_scan(
+            user, targets.paths, True, "the rescan of the selected photos"
+        )
+        response.data["photo_count"] = targets.photo_count
+        response.data["file_count"] = len(targets.paths)
+        return response
+
+
+class ScanFilesView(APIView):
+    """Scan files an outside process says are new or changed (#900).
+
+    For a folder watcher (inotify, watchfiles) next to the library: it sends
+    the paths, as the server sees them, with the user's credentials. Only
+    existing files inside the requester's scan directory or upload folder are
+    scanned; the answer lists the paths it left out. A file is read when it is
+    new or changed, as on an incremental scan. 400 when no path is left, 409
+    while a scan of the requester's runs (send the paths again later).
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=ScanFilesRequest, responses=ScanFilesResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        paths = parse_body(request, ScanFilesRequest)["paths"]
+        kept, ignored = scannable_files(user, paths)
+        if not kept:
+            raise ValidationError(
+                "None of the paths is a file in your library.",
+                code="no_files_to_scan",
+            )
+        response = _start_file_scan(user, kept, False, "the scan of the given files")
+        response.data["file_count"] = len(kept)
+        response.data["ignored_paths"] = ignored
+        return response
 
 
 class DeleteMissingPhotosView(APIView):

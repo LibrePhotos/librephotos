@@ -101,6 +101,24 @@ class JobStartResponsesTest(DeclaredResponseTestCase):
                 body = self.start(path, "post")
                 self.assertEqual(missing, body["downloads_model"])
 
+    def test_the_rescans_of_chosen_photos_and_files(self) -> None:
+        path = os.path.join(self.scan_directory, "a.jpg")
+        file = create_test_file(path, self.user, b"rescan me")
+        photo = create_test_photo(owner=self.user, main_file=file)
+        data = {"photo_ids": [str(photo.pk)]}
+        with queue_stub():
+            body = self.assert_declared(
+                "/api/photos/rescan/", "/api/photos/rescan/", method="post", data=data
+            )
+        self.assertEqual(1, body["file_count"])
+        LongRunningJob.objects.update(finished=True)
+        data = {"paths": [path, "/elsewhere.jpg"]}
+        with queue_stub():
+            body = self.assert_declared(
+                "/api/scan-files/", "/api/scan-files/", method="post", data=data
+            )
+        self.assertEqual(["/elsewhere.jpg"], body["ignored_paths"])
+
     @override_config(NEXTCLOUD_ENABLED=True)
     def test_the_nextcloud_scan(self) -> None:
         self.user.nextcloud_server_address = "https://cloud.example.com"

@@ -13,6 +13,17 @@ function rescanFaces() {
   toast.success(i18n.t("toasts.rescanfaces"), { title: i18n.t("toasts.rescanfacestitle") });
 }
 
+/** Face detection started again in some photos (`count`) or in a folder (null) (#524). */
+function detectFacesAgain(count: number | null) {
+  const message = count === null ? i18n.t("toasts.detectfacesfolder") : i18n.t("toasts.detectfacesphotos", { count });
+  toast.success(message, { title: i18n.t("toasts.detectfacestitle") });
+}
+
+/** Face detection did not start again; `message` says why. */
+function detectFacesAgainFailed(message: string) {
+  toast.error(message, { title: i18n.t("toasts.detectfacestitle") });
+}
+
 function rescanFacesFailed() {
   toast.error(i18n.t("toasts.rescanfacesfailed"), { title: i18n.t("toasts.rescanfacestitle") });
 }
@@ -69,6 +80,8 @@ function restoreFaceLabels(numberOfFaces: number) {
 export const faces = {
   addFacesToPerson,
   deleteFaces,
+  detectFacesAgain,
+  detectFacesAgainFailed,
   removeFacesFromPerson,
   rescanFaces,
   rescanFacesFailed,

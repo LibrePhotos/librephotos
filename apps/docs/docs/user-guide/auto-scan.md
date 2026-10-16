@@ -1,6 +1,6 @@
 ---
 title: "🤖 Auto scan all folders"
-description: "Scan every library automatically, on a schedule set in Site settings or from a cron job on the host"
+description: "Scan every library automatically, on a schedule set in Site settings or from a cron job on the host, or let a folder watcher name the new files"
 sidebar_position: 12
 ---
 
@@ -51,6 +51,59 @@ An incremental scan only reads files that are new or changed since a scan last r
 Only a scan that went through the whole library is what the next scan compares against. A scan that was cancelled, failed, or covered only some files (an upload, a single folder) is not, so the next scheduled scan also picks up what that one never got to.
 
 A scan that stops making progress, for example because a worker died, is marked failed after a while ([`STUCK_JOB_HOURS`](../installation/environment-variables.md#stuck-jobs), 24 hours by default) and no longer counts as running, so the schedule picks that library up again. A long scan that is still making progress is left alone.
+
+## Tell LibrePhotos about new files
+
+<Since version="1.4.0" />
+
+A scheduled scan walks every folder. When something outside LibrePhotos already knows which files are new, such as a sync tool, a camera upload script or a folder watcher, it can name them instead, and they show up within seconds of the call:
+
+```bash
+curl -u myuser:mypassword -H 'Content-Type: application/json'   -d '{"paths": ["/data/2026/10/IMG_2041.jpg", "/data/2026/10/IMG_2041.CR3"]}'   "http://localhost:3000/api/scan-files/"
+```
+
+`POST /api/scan-files/` takes up to 1,000 paths, **as LibrePhotos sees them** (inside the container that is the scan directory set for your user, such as `/data/...`, not the folder on the host). It authenticates like every other endpoint, with your user's password over Basic auth or a JWT access token (see [API authentication](./api-authentication.md)); a script that runs for days is simpler with Basic auth, because an access token expires after 5 minutes. Use HTTPS, or call it from the same machine.
+
+The call starts a **Scan Photos** job for those files and answers at once:
+
+```json
+{"status": true, "job_id": "…", "job_ids": ["…"], "file_count": 2, "ignored_paths": []}
+```
+
+- A file is read when it is new or changed, as on a **Scan**. Its things, places and faces follow as after any scan. A file that was deleted is not removed: the next scan of the whole library notices that (see [Missing Photos](./missing-photos.md)).
+- Only existing files inside your scan directory or upload folder are scanned. Folders, files that do not exist and anything outside your library are listed in `ignored_paths`. When nothing is left, the answer is a 400 with the code `no_files_to_scan`.
+- While a scan of yours runs, the answer is a 409 (`job_already_running`) with that job's `job_id`. Nothing is queued then: send the paths again later. The next scheduled scan picks the files up too.
+- Such a scan never counts as the scan of the whole library that the next **Scan** compares against, so it cannot make a later scan miss a file.
+
+### A folder watcher
+
+This script watches the library on the host with `inotifywait` (package `inotify-tools`, plus `curl` and `jq`), collects what changed, and sends it once nothing has changed for 30 seconds, so a burst of uploads is one call. A batch is kept while a scan runs (409) and sent again with the next one.
+
+```bash
+#!/usr/bin/env bash
+# The library on the host, and the same folder as LibrePhotos sees it.
+HOST_ROOT=/srv/photos
+LP_ROOT=/data
+URL=http://localhost:3000/api/scan-files/
+# LP_USER and LP_PASSWORD come from the environment.
+
+batch=()
+inotifywait -m -r -q -e close_write -e moved_to --format '%w%f' "$HOST_ROOT" |
+  while true; do
+    if read -r -t 30 path; then
+      batch+=("$LP_ROOT${path#"$HOST_ROOT"}")
+      [ ${#batch[@]} -lt 1000 ] && continue
+    fi
+    [ ${#batch[@]} -eq 0 ] && continue
+    body=$(printf '%s
+' "${batch[@]}" | jq -R . | jq -s '{paths: .}')
+    status=$(curl -s -o /dev/null -w '%{http_code}' -u "$LP_USER:$LP_PASSWORD"       -H 'Content-Type: application/json' -d "$body" "$URL")
+    # 409: a scan is running, keep the batch for the next try.
+    [ "$status" != 409 ] && batch=()
+  done
+```
+
+Run it as a systemd service or in `screen`. To keep a quiet library from being called every 30 seconds, the script only sends when it has something.
 
 ## With a cron job on the host
 

@@ -756,6 +756,24 @@
     "nomanualstack": "None of the selected photos is in a manual stack",
     "setlocation": "Set location…"
   },
+  "fileactions": {
+    "files": "Files",
+    "rescanfiles": "Rescan files",
+    "rescanfile": "Rescan file",
+    "rescannote": "Read the files again: thumbnails, date, metadata",
+    "detectfaces": "Detect faces again",
+    "selectall": "Not available with Select all: select at most 1,000 photos one by one. For the whole library, use Rescan on the Library page.",
+    "toomany": "Select at most 1,000 photos. For the whole library, use Rescan on the Library page."
+  },
+  "folderactions": {
+    "label": "Folder actions",
+    "detectfaces": "Detect faces again in this folder",
+    "detectfacesnote": "This folder and its subfolders",
+    "detectfacestitle": "Detect faces again in {{folder}}?",
+    "detectfacesmessage_one": "Looks for faces in the {{count}} photo of this folder and its subfolders again. Faces already found and named stay as they are. Faces you deleted are not found again: restore them from the Deleted tab of the face dashboard.",
+    "detectfacesmessage_other": "Looks for faces in the {{count}} photos of this folder and its subfolders again. Faces already found and named stay as they are. Faces you deleted are not found again: restore them from the Deleted tab of the face dashboard.",
+    "detectfacesconfirm": "Detect faces"
+  },
   "changedatetime": {
     "title_one": "Change date and time of {{count}} photo",
     "title_other": "Change date and time of {{count}} photos",
@@ -2093,6 +2111,15 @@
     "rescanfaces": "Scanning started",
     "rescanfacestitle": "Face rescanning",
     "rescanfacesfailed": "Could not start the scan. Face detection may be turned off on this server.",
+    "detectfacestitle": "Detect faces again",
+    "detectfacesphotos_one": "Looking for faces in {{count}} photo again. Faces you deleted are not found again.",
+    "detectfacesphotos_other": "Looking for faces in {{count}} photos again. Faces you deleted are not found again.",
+    "detectfacesfolder": "Looking for faces in this folder and its subfolders again. Faces you deleted are not found again.",
+    "rescanphotostitle_one": "Rescanning {{count}} photo",
+    "rescanphotostitle_other": "Rescanning {{count}} photos",
+    "rescanphotos": "Thumbnails, dates and metadata are read from the files again. Dates you set, locations, captions and albums stay.",
+    "rescanphotosfailedtitle": "Rescan not started",
+    "rescanphotosfailed": "Could not start the rescan.",
     "renameperson": "Person {{personName}} was successfully renamed to {{newPersonName}}",
     "renamepersontitle": "Rename person",
     "deleteperson": "Person deleted",

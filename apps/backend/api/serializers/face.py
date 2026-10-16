@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from api.drf.params import QueryFlagField, required_string
 from api.models import Face, Person
+from api.photos.library_files import MAX_REQUESTED
 from api.serializers.fields import declare_fields
 
 
@@ -134,6 +135,35 @@ class FaceIncompleteListQuery(serializers.Serializer[None]):
         help_text="Only the people in this group of yours (#1126); the "
         "Unknown - Other entry still comes last",
     )
+
+
+class ScanFacesRequest(serializers.Serializer[None]):
+    """``POST /api/scanfaces``: where to detect faces again (#524).
+
+    Neither field: every photo of the requester's. One of them narrows the
+    run to a folder or to some photos; both at once is a 400.
+    """
+
+    photo_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        min_length=1,
+        max_length=MAX_REQUESTED,
+        help_text="Only these photos of the requester's",
+    )
+    path = serializers.CharField(
+        required=False,
+        trim_whitespace=False,
+        help_text="Only the photos with a file in this folder or below it, "
+        "inside the requester's scan directory or upload folder",
+    )
+
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
+        if "photo_ids" in attrs and "path" in attrs:
+            raise serializers.ValidationError(
+                "Give photo_ids or path, not both.", code="photo_ids_or_path"
+            )
+        return attrs
 
 
 class FaceIdsRequest(serializers.Serializer[None]):

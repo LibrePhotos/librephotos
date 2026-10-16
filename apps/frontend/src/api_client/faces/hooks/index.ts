@@ -7,3 +7,4 @@ export * from "./useFetchFacesQuery";
 export * from "./useClusterFacesQuery";
 export * from "./useRescanFacesMutation";
 export * from "./useRestoreFacesMutation";
+export * from "./useDetectFacesAgainMutation";
