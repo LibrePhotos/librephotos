@@ -238,3 +238,15 @@ type = "forbidden"
 source_modules = ["api", "api.runtime", "api.metadata"]
 forbidden_modules = ["django"]
 as_packages = false
+
+[[tool.importlinter.contracts]]
+id = "startup-page-django-free"
+name = "The start-up page runs before Django and never imports it"
+type = "forbidden"
+# librephotos.startup_page answers on the server's port while migrate runs
+# (#2310): `python -m librephotos.startup_page` in the Docker entrypoint, a
+# thread of the Windows app before it sets Django up. librephotos/__init__.py
+# runs first, so it stays empty too.
+source_modules = ["librephotos", "librephotos.startup_page"]
+forbidden_modules = ["django"]
+as_packages = false

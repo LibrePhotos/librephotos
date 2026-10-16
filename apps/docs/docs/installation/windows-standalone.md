@@ -51,7 +51,9 @@ either folder.
    may show **Windows protected your PC**, because the program is not signed: click **More info**,
    then **Run anyway**.
 5. No window opens: LibrePhotos runs in the background with an icon in the notification area (the
-   tray, bottom right), and after the first migrations your browser opens `http://localhost:8000/`.
+   tray, bottom right), and your browser opens `http://localhost:8000/`. While the first start sets
+   up the database, the page says "LibrePhotos is updating" and turns into LibrePhotos by itself
+   (not released yet: up to 1.3.0 the browser only opened after the first migrations).
    Windows 11 may put a new icon behind the **^** arrow (**Show hidden icons**) next to the clock;
    drag it from there onto the taskbar to keep it in view.
 6. Create the admin account on the first-time setup screen, then set the scan directory of your user
@@ -79,7 +81,8 @@ during the start too.
 Only one LibrePhotos runs per data folder. Starting it again while it runs just opens the browser
 on the running one. Not released yet: a start while the first one is still starting shows the
 notification "LibrePhotos is already starting", waits for it and then opens the browser; nothing
-else happens. Up to 1.3.0 a second start during the first one's database update started a second
+else happens. Once the first one shows its start-up page, a second start opens the browser on that
+page at once. Up to 1.3.0 a second start during the first one's database update started a second
 copy, which could show an error and stop the first copy's background services.
 
 Started from a terminal instead, it prints its log there and Ctrl-C stops it; `--no-tray` leaves the
@@ -290,8 +293,9 @@ and settings are all still there afterwards. The steps assume the program is in
    `C:\Users\<you>\LibrePhotos-app` again. You now have a new `librephotos` folder next to
    `librephotos-old`. Shortcuts to `librephotos\librephotos.exe` keep working.
 6. Double-click `librephotos.exe` in the new `librephotos` folder, once. If the release brings
-   database changes, the first start updates the database before the browser opens. That can take
-   a few minutes with a large library: wait, and do not start it again meanwhile.
+   database changes, the first start updates the database, and the browser shows "LibrePhotos is
+   updating" meanwhile ([what the page says](upgrading.md#updating-screen)). That can take a few
+   minutes with a large library: wait, and do not start it again meanwhile.
 7. Check that LibrePhotos works: log in and open a few photos and albums. Then delete the
    `librephotos-old` folder. Keep it for a while if you might want to [go back](#going-back).
 

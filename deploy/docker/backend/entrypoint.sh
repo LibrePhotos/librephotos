@@ -58,27 +58,82 @@ fi
 # and override only what serving the frontend changes. manage.py, asgi.py and
 # wsgi.py use os.environ.setdefault, so exporting here wins for every python
 # invocation below, for uvicorn, and for the ML services those spawn.
+startup_page_args=(--port 8001)
 if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     echo "Serving the frontend from Django on port 8001 (no proxy)"
     export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-librephotos.settings.production_noproxy}"
+    startup_page_args+=(--serve-frontend)
 fi
 
+# Until uvicorn starts, librephotos/startup_page.py answers on port 8001
+# (#2310): /api/healthz 200, every other /api/ path 503 with what is going on
+# (starting, updating, failed and why), and with SERVE_FRONTEND a page that
+# says so. It reads that from the status file this script writes.
+startup_status_file=/tmp/librephotos-startup.json
+startup_phase() {
+    python -m librephotos.startup_page set --status-file "$startup_status_file" "$@"
+}
+startup_phase starting >/dev/null
+python -m librephotos.startup_page serve --status-file "$startup_status_file" "${startup_page_args[@]}" &
+startup_page_pid=$!
+stop_startup_page() {
+    kill "$startup_page_pid" 2>/dev/null
+    wait "$startup_page_pid" 2>/dev/null
+}
+# docker stop while the page is up (bash is PID 1 and ignores SIGTERM unless
+# it traps it): stop the page and end, instead of waiting for the SIGKILL.
+trap 'stop_startup_page; exit 143' TERM INT
+
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
-# With SQLite (the unified image's default), copy the database into db/backups
-# before migrations change it, keeping DB_BACKUP_KEEP copies.
-# Nothing is migrated without that backup. With PostgreSQL the command only
-# says to use pg_dump, so it runs for every image rather than in a branch that
-# would have to repeat how the settings pick the database.
-if ! python manage.py backup_database --if-pending-migrations 2>&1 | tee "$logs_dir/command_backup_database.log"; then
-    echo "Could not back up the database before migrating it, not starting LibrePhotos. See $logs_dir/command_backup_database.log" >&2
-    exit 1
+# "[ ]" marks a migration this start applies: an update (or a first start).
+update_phase=starting
+if grep -q '\[ \]' "$logs_dir/show_migrate.log"; then
+    update_phase=updating
 fi
+
+# Back up, then migrate. On failure, failure_log names the log that says why.
+prepare_database() {
+    startup_phase "$update_phase" >/dev/null
+    # With SQLite (the unified image's default), copy the database into
+    # db/backups before migrations change it, keeping DB_BACKUP_KEEP copies.
+    # Nothing is migrated without that backup. With PostgreSQL the command only
+    # says to use pg_dump, so it runs for every image rather than in a branch
+    # that would have to repeat how the settings pick the database.
+    failure_log="$logs_dir/command_backup_database.log"
+    if ! python manage.py backup_database --if-pending-migrations 2>&1 | tee "$failure_log"; then
+        echo "Could not back up the database before migrating it, not starting LibrePhotos. See $failure_log" >&2
+        return 1
+    fi
+    failure_log="$logs_dir/command_migrate.log"
+    if ! python manage.py migrate 2>&1 | tee "$failure_log"; then
+        echo "Database migration failed, not starting LibrePhotos. See $failure_log" >&2
+        return 1
+    fi
+}
+
 # Serving on a schema the code does not match fails in ways that are hard to
-# trace back, so a failed migration stops the container before it serves.
-if ! python manage.py migrate 2>&1 | tee "$logs_dir/command_migrate.log"; then
-    echo "Database migration failed, not starting LibrePhotos. See $logs_dir/command_migrate.log" >&2
-    exit 1
-fi
+# trace back, so nothing starts after a failure. The container stays up with
+# the page saying why, rather than exiting into a restart loop (#2310). A
+# database too old (librephotos.E001) or too new (E002) for this release needs
+# the admin, so that is final; anything else (a database that came up late)
+# is tried again after 30 s, 1, 2 and 5 minutes, then every 5 minutes.
+retry_delays=(30 60 120 300)
+attempt=0
+until prepare_database; do
+    reason=$(startup_phase failed --reason-from "$failure_log")
+    if [[ "$reason" == E0?? ]]; then
+        echo "This release cannot run on this database (librephotos.$reason), not trying again. See $failure_log" >&2
+        wait "$startup_page_pid"
+        exit 1
+    fi
+    delay=${retry_delays[attempt]:-300}
+    attempt=$((attempt + 1))
+    echo "Trying again in $delay seconds" >&2
+    # In the background, so docker stop's SIGTERM does not wait for it.
+    sleep "$delay" &
+    wait $!
+done
+startup_phase starting >/dev/null
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 python manage.py collectstatic --no-input
 python manage.py start_service all
@@ -113,4 +168,9 @@ else
     echo "production backend starting"
     if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests "${WEB_MAX_REQUESTS:-50}"); fi
 fi
+# Give the port to uvicorn. The web app bridges the seconds in between: it
+# shows "not answering" for a 502 or no answer, and reloads once ready.
+stop_startup_page
+trap - TERM INT
+rm -f "$startup_status_file"
 uvicorn "${args[@]}" 2>&1 | tee "$logs_dir/uvicorn_django.log"

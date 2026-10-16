@@ -40,7 +40,18 @@ While the backend updates the database or starts up, the web app shows a page th
 
 On a failure page, **For the person who runs this server** shows the reason code, and **Copy details** (on HTTPS and `localhost`) copies the state, reason code, version and time for a support question.
 
-For now, the backend does not answer at all while it updates the database, so the web app says **LibrePhotos is not answering** during an update as well, and a failed update looks the same; the reason is in `command_migrate.log`. The texts that name the update and its failures need a backend that reports its startup phase, which follows in a later release.
+### Where the page comes from {#startup-page}
+
+From the moment the backend container or the Windows app starts until LibrePhotos serves, a small start-up page answers on the backend's port and says what is going on. With the [standard Docker setup](standard-install.md) the web app shows it as described above. The [single container](unified-deployment.md) and the [Windows app](windows-standalone.md) also show it as a plain page of its own, so opening LibrePhotos during an update shows **LibrePhotos is updating** instead of "connection refused". The Windows app opens your browser on it right away.
+
+After a failed update the backend no longer exits and restarts in a loop. It stays up and keeps showing the failure page:
+
+- **Too old** (E001) or **newer database** (E002): nothing is tried again, because the fix needs you (see the linked sections). Restart the container, or start the Windows app again, after you fixed it.
+- **Any other reason**: Docker tries the backup and the update again after 30 seconds, 1, 2 and 5 minutes, then every 5 minutes, so a database that came up late still gets there by itself. The Windows app shows the failure page until you close its message box.
+
+The page never shows error messages or file paths, only the reason code; the details are in the logs folder: `command_migrate.log`, or `command_backup_database.log` when the backup before the update failed (Docker), and `console.log` on Windows.
+
+With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `docker compose ps` shows the backend as `starting` while it updates, `healthy` once it serves, and `unhealthy` after a failed update (the healthcheck gives an update 15 minutes before it counts). `/api/healthz` answers from the first seconds on, so scripts that wait for LibrePhotos to serve should ask `/api/healthz/ready` instead.
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 

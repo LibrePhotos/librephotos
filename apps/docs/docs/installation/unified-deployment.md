@@ -40,6 +40,7 @@ Single container deployment serves both the LibrePhotos API and frontend from on
 **Notes:**
 - **Secret key**: Optional - if not provided, one will be generated and saved to `/protected_media/secret.key` (`/logs/secret.key` in 1.3.0 and older; a newer release moves it on its first start). Do not delete this file (see [Internal files](../user-guide/internal-files.md)). To supply your own, pass `-e SECRET_KEY=...`
 - **Database**: SQLite file will be created automatically in the `/db` directory. Before an update migrates it, the container copies it into `/db/backups` and keeps the newest three (not released yet; see [Automatic backups](upgrading.md#sqlite-backups))
+- **Updates**: while the container updates the database, the page says "LibrePhotos is updating" and opens LibrePhotos by itself when it is done; a failed update stays on a page that says why instead of restarting the container (not released yet; see ["LibrePhotos is updating"](upgrading.md#updating-screen))
 - **Photos**: You can mount your photo directory read-only (`-v /path/to/photos:/data:ro`), but this disables uploading, deleting photos, and writing metadata back to files — uploads are otherwise written to an `uploads/` folder inside `/data`. Uploads are on by default, so if you use `:ro`, also pass `-e ALLOW_UPLOAD=false` (or turn off "Allow Upload" in the setup wizard). See [Why is the scan directory not mounted read-only?](../user-guide/faq.md#why-is-the-scan-directory-not-mounted-read-only)
 
 ## 🗄️ Option 2: External PostgreSQL Database

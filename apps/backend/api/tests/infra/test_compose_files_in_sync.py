@@ -13,6 +13,7 @@ Checked here:
 * the backend ``environment`` sets the same variables, apart from
   ``ALLOWED_DIFFERENCES``;
 * each shared variable has the same ``${key:-default}`` expression;
+* the backend has the same healthcheck (on ``/api/healthz/ready``, #2310);
 * the ``db`` service runs the same image with the same volume target;
 * the old ``build-unified.sh`` script is gone and nothing under ``deploy/``
   points at it.
@@ -65,6 +66,13 @@ def compose_drift(standard_text: str, unified_text: str) -> list[str]:
             problems.append(
                 f"{name}: {standard_env[name]!r} (standard) != {unified_env[name]!r} (unified)"
             )
+
+    standard_check = compose_service(standard, BACKEND).get("healthcheck")
+    unified_check = compose_service(unified, BACKEND).get("healthcheck")
+    if standard_check != unified_check:
+        problems.append(
+            f"backend healthcheck: {standard_check!r} (standard) != {unified_check!r} (unified)"
+        )
 
     standard_db = compose_service(standard, DATABASE)
     unified_db = compose_service(unified, DATABASE)
@@ -129,6 +137,14 @@ services:
         """The unified file keeps its own data directory name (dbcursor)."""
         planted = self.BASE.replace("${data}/db:", "${data}/dbcursor:")
         self.assertEqual([], compose_drift(self.BASE, planted))
+
+    def test_a_different_backend_healthcheck_is_drift(self):
+        planted = self.BASE + "    healthcheck:\n      test: probe\n"
+        self.assertEqual(
+            ["backend healthcheck: None (standard) != {'test': 'probe'} (unified)"],
+            compose_drift(self.BASE, planted),
+        )
+        self.assertEqual([], compose_drift(planted, planted))
 
     def test_a_different_db_image_is_drift(self):
         planted = self.BASE.replace("18-alpine", "17-alpine")

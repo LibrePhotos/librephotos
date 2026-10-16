@@ -63,6 +63,8 @@ docker compose pull # only refreshes the container images
 docker compose up -d
 ```
 
+While the backend updates the database, the web app says "LibrePhotos is updating", and `docker compose ps` shows the backend as `starting` until it serves (`healthy`). If the update fails, the backend stays up as `unhealthy` and the web app says why; see ["LibrePhotos is updating"](upgrading.md#updating-screen). Not released yet: up to 1.3.0 the backend had no healthcheck, and a failed update restarted it in a loop.
+
 :::caution Coming from 2025w44 or older?
 
 Releases after 1.1.0 cannot upgrade a database from before 2026w10 directly. Go through 1.1.0 first, as described in [Upgrading from a release older than 2026w10](upgrading.md#old-releases).
