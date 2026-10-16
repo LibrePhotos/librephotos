@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 from django.db import OperationalError
 from django.test import TestCase, override_settings
 
+from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.photos.zip_downloads import zip_photos_task
 from api.tests.utils import create_test_user
@@ -46,8 +47,9 @@ class FakeRelated:
 class FakeFile:
     """Stands in for api.models.file.File."""
 
-    def __init__(self, path, embedded_media=None, embedded_raises=None):
+    def __init__(self, path, embedded_media=None, embedded_raises=None, type=None):
         self.path = path
+        self.type = type
         self.embedded_media = FakeRelated(embedded_media, raises=embedded_raises)
 
 
@@ -269,6 +271,78 @@ class ZipPhotosTaskDeduplicationTest(ZipPhotosTaskTestBase):
         result, _ = self.run_task([FakePhoto(main_file=f) for f in files])
 
         self.assertEqual(self.zip_names(result), ["img.jpg", "img_1.jpg", "img_2.jpg"])
+
+
+class ZipPhotosTaskSidecarTest(ZipPhotosTaskTestBase):
+    """The XMP sidecars on disk go in with their files, attached or not."""
+
+    def test_a_sidecar_the_scan_has_not_attached_is_included(self):
+        photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")))
+        self.write_source("a.jpg.xmp", b"<x:xmpmeta/>")
+
+        result, _ = self.run_task([photo])
+
+        self.assertEqual(self.zip_names(result), ["a.jpg", "a.jpg.xmp"])
+        with zipfile.ZipFile(result) as zf:
+            self.assertEqual(zf.read("a.jpg.xmp"), b"<x:xmpmeta/>")
+
+    def test_the_sidecar_of_a_raw_variant_is_included(self):
+        raw = FakeFile(self.write_source("IMG.CR2"), type=File.RAW_FILE)
+        photo = FakePhoto(main_file=FakeFile(self.write_source("IMG.jpg")), files=[raw])
+        self.write_source("IMG.CR2.xmp")
+
+        result, _ = self.run_task([photo])
+
+        self.assertEqual(self.zip_names(result), ["IMG.CR2", "IMG.CR2.xmp", "IMG.jpg"])
+
+    def test_an_attached_sidecar_goes_in_once(self):
+        sidecar = FakeFile(self.write_source("a.jpg.xmp"), type=File.METADATA_FILE)
+        # Listed before the media file it describes.
+        photo = FakePhoto(
+            main_file=FakeFile(self.write_source("a.jpg")), files=[sidecar]
+        )
+
+        result, _ = self.run_task([photo])
+
+        self.assertEqual(self.zip_names(result), ["a.jpg", "a.jpg.xmp"])
+
+    def test_an_attached_sidecar_named_after_no_file_is_included(self):
+        edit = FakeFile(self.write_source("a.edit.xmp"), type=File.METADATA_FILE)
+        photo = FakePhoto(main_file=FakeFile(self.write_source("a.jpg")), files=[edit])
+
+        result, _ = self.run_task([photo])
+
+        self.assertEqual(self.zip_names(result), ["a.edit.xmp", "a.jpg"])
+
+    def test_sidecars_follow_a_renamed_file(self):
+        first = FakeFile(self.write_source(os.path.join("one", "img.jpg"), b"one"))
+        second = FakeFile(self.write_source(os.path.join("two", "img.jpg"), b"two"))
+        for folder in ("one", "two"):
+            self.write_source(os.path.join(folder, "img.xmp"), folder.encode())
+        self.write_source(os.path.join("two", "img.jpg.xmp"), b"two, digiKam")
+
+        result, _ = self.run_task(
+            [FakePhoto(main_file=first), FakePhoto(main_file=second)]
+        )
+
+        self.assertEqual(
+            self.zip_names(result),
+            ["img.jpg", "img.xmp", "img_1.jpg", "img_1.jpg.xmp", "img_1.xmp"],
+        )
+        with zipfile.ZipFile(result) as zf:
+            self.assertEqual(zf.read("img_1.xmp"), b"two")
+            self.assertEqual(zf.read("img_1.jpg.xmp"), b"two, digiKam")
+
+    def test_a_sidecar_shared_by_two_photos_goes_in_once(self):
+        photos = [
+            FakePhoto(main_file=FakeFile(self.write_source(name)))
+            for name in ("IMG.jpg", "IMG.png")
+        ]
+        self.write_source("IMG.xmp")
+
+        result, _ = self.run_task(photos)
+
+        self.assertEqual(self.zip_names(result), ["IMG.jpg", "IMG.png", "IMG.xmp"])
 
 
 class ZipPhotosTaskSkipTest(ZipPhotosTaskTestBase):

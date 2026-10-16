@@ -16,6 +16,7 @@ from django.db import DatabaseError
 from django.utils import timezone
 
 from api.jobs.queue import enqueue_job, schedule_once
+from api.metadata.reader import existing_sidecars
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
@@ -125,21 +126,89 @@ def _zippable_path(file_obj: File | None, files_added: dict[str, str]) -> str | 
     return file_obj.path
 
 
+def _is_metadata_file(file_obj: File | None) -> bool:
+    return getattr(file_obj, "type", None) == File.METADATA_FILE
+
+
+def _sidecar_arcname(sidecar: str, media_path: str, media_arcname: str) -> str:
+    """The name of ``sidecar`` in the archive, next to its media file's.
+
+    ``IMG.jpg`` goes in as ``IMG_1.jpg`` when another folder's ``IMG.jpg``
+    came first; its ``IMG.jpg.xmp`` then goes in as ``IMG_1.jpg.xmp`` and its
+    ``IMG.xmp`` as ``IMG_1.xmp``, the names an editor looks for next to
+    ``IMG_1.jpg``.
+    """
+    name = os.path.basename(sidecar)
+    media_name = os.path.basename(media_path)
+    if name.startswith(media_name):
+        return media_arcname + name[len(media_name) :]
+    media_stem = os.path.splitext(media_name)[0]
+    return os.path.splitext(media_arcname)[0] + name[len(media_stem) :]
+
+
+def _add_sidecars_to_zip(
+    media_path: str,
+    media_arcname: str,
+    zf: zipfile.ZipFile,
+    files_added: dict[str, str],
+) -> list[str]:
+    """Add the XMP sidecars on disk of ``media_path``; returns their paths.
+
+    Read from disk rather than from the photo's files: a sidecar that
+    write-back created or another app wrote since the last scan is no File
+    of the photo yet.
+    """
+    added: list[str] = []
+    for sidecar in existing_sidecars(media_path):
+        if sidecar in files_added:
+            continue
+        file_name = _unique_arcname(
+            _sidecar_arcname(sidecar, media_path, media_arcname),
+            files_added.values(),
+        )
+        files_added[sidecar] = file_name
+        zf.write(sidecar, arcname=file_name)
+        added.append(sidecar)
+    return added
+
+
+def _is_added_sidecar(path: str, sidecars_added: Sequence[str]) -> bool:
+    # A case-insensitive file system finds the scan's ``IMG.XMP`` as
+    # ``IMG.xmp`` too: the same file under another path.
+    for sidecar in sidecars_added:
+        try:
+            if os.path.samefile(path, sidecar):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def _add_photo_files_to_zip(
     photo: Photo, zf: zipfile.ZipFile, files_added: dict[str, str]
 ) -> None:
     all_files = _photo_own_files(photo) + _stacked_variant_files(photo)
     all_files.extend(_embedded_media_files(list(all_files)))
+    # The sidecars the scan attached go last: one named after a media file is
+    # added with that file, under a name that pairs it with the file's.
+    all_files.sort(key=_is_metadata_file)
 
+    sidecars_added: list[str] = []
     for file_obj in all_files:
         path = _zippable_path(file_obj, files_added)
         if path is None:
+            continue
+        if _is_metadata_file(file_obj) and _is_added_sidecar(path, sidecars_added):
             continue
 
         file_name = _unique_arcname(os.path.basename(path), files_added.values())
         files_added[path] = file_name
 
         zf.write(path, arcname=file_name)
+        if not _is_metadata_file(file_obj):
+            sidecars_added.extend(
+                _add_sidecars_to_zip(path, file_name, zf, files_added)
+            )
 
 
 def _remove_partial_zip(path: str) -> None:

@@ -130,6 +130,15 @@ not written: the edit goes to the sidecar of the photo's main file, the JPEG.
 A photo that up to 1.3.0 got an `IMG_2.xmp` next to an existing `IMG_2.jpg.xmp` keeps both:
 LibrePhotos reads and writes `IMG_2.xmp`, and the other app keeps its own file.
 
+### Sidecars in a download
+
+<Since version="1.4.0" /> A zip download of photos also holds the XMP sidecars next to their files,
+so the edits saved to a sidecar travel with the photo and another app reads them from the
+download. That includes a sidecar LibrePhotos created after the last scan and the sidecars of a
+photo's RAW file. When two photos have the same file name, the second goes in as `IMG_2_1.jpg`
+and its sidecar as `IMG_2_1.jpg.xmp`, so each sidecar keeps the name of its file. Up to 1.3.0, a
+download held only the sidecars a scan had found, and none that write-back had just created.
+
 ## All metadata
 
 _Not released yet._ To see every tag a photo's file carries, not just the fields above, open
