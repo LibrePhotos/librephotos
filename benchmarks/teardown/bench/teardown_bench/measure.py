@@ -144,10 +144,16 @@ def export_check(app: Adapter, refs: list[PhotoRef], trips: list[dict[str, Any]]
             if "description" not in trip:
                 continue
             hits = {"rating": False, "description": False, "keyword": False}
-            for row in tags.values():
+            # Only this trip's photo and its sidecars count: the rating value is the same in every
+            # trip, so matching it anywhere in the zip would credit one photo's edit to all of them.
+            stem = Path(trip.get("target", "")).stem
+            own = [p for p in paths if p.name.startswith(stem)] if stem else paths
+            for key, row in tags.items():
+                if Path(key) not in own:
+                    continue
                 for field, keys in exif.locate(row, RATING, trip["description"], trip["keyword"]).items():
                     hits[field] = hits[field] or bool(keys)
-            for path in paths:
+            for path in own:
                 if path.suffix.lower() in (".yml", ".yaml", ".json"):
                     for field, keys in exif.text_locate(path, RATING, trip["description"],
                                                         trip["keyword"]).items():
