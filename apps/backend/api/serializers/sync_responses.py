@@ -121,7 +121,8 @@ class SyncAutoAlbumItemSerializer(serializers.Serializer[None]):
     photo_count = serializers.IntegerField()
     cover_hash = serializers.CharField(
         allow_null=True,
-        help_text="The first photo's image_hash; null for an empty album",
+        help_text="The image_hash of the cover the owner picked, else of the "
+        "first photo; null for an empty album",
     )
     last_modified = _last_modified()
     photo_ids = _photo_ids()

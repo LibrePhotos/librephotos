@@ -199,6 +199,7 @@ AUTO_ALBUM_VALUES = (
     "timestamp",
     "favorited",
     "last_modified",
+    "cover_photo__image_hash",
 )
 
 
@@ -211,7 +212,8 @@ def serialize_auto_album_row(
         "timestamp": to_ms(row["timestamp"]),
         "favorited": bool(row["favorited"]),
         "photo_count": len(photo_ids),
-        "cover_hash": cover_hash,
+        # The cover the owner picked (#429), else the first photo's.
+        "cover_hash": row["cover_photo__image_hash"] or cover_hash,
         "last_modified": to_ms(row["last_modified"]),
         "photo_ids": photo_ids,
     }

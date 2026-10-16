@@ -71,6 +71,7 @@ vi.mock("../../../api_client/albums/hooks", () => {
     useFetchUserAlbumsQuery: () => userAlbums,
     useRemovePhotoFromUserAlbumMutation: () => ({ mutate: () => {} }),
     useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
+    useSetEventCoverMutation: () => ({ mutate: () => {} }),
     useSetUserAlbumCoverMutation: () => ({ mutate: () => {} }),
   };
 });

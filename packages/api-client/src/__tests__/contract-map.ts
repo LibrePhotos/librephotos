@@ -57,6 +57,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   EventTitleParts: { schema: S.EventTitleParts, components: ["EventTitleParts"] },
   AutoAlbumInfo: { schema: S.AutoAlbumInfo, components: ["AlbumAutoList"] },
   AutoAlbum: { schema: S.AutoAlbum, components: ["AlbumAuto"] },
+  AutoAlbumEdit: { schema: S.AutoAlbumEdit, components: ["AlbumAutoEdit"] },
   PhotoSimple: { schema: S.PhotoSimple, components: ["PhotoSimple"] },
   ThingAlbumInfo: { schema: S.ThingAlbumInfo, components: ["AlbumThingList"] },
   PlaceAlbumInfo: { schema: S.PlaceAlbumInfo, components: ["AlbumPlaceList"] },

@@ -199,6 +199,21 @@ describe("user album edits", () => {
     });
   });
 
+  it("picks an event's cover and goes back to the automatic one", async () => {
+    const cover = "11111111-1111-1111-1111-111111111111";
+    const { client, requests } = fakeServer({ id: 7, cover_photo: cover });
+    await expect(endpoints.setAutoAlbumCover(client, 7, cover)).resolves.toEqual({ id: 7, cover_photo: cover });
+    const automatic = fakeServer({ id: 7, cover_photo: null });
+    await expect(endpoints.setAutoAlbumCover(automatic.client, "7", null)).resolves.toEqual({
+      id: 7,
+      cover_photo: null,
+    });
+    expect([...requests, ...automatic.requests]).toEqual([
+      { url: "https://demo.example.com/api/albums/auto/7/", method: "PATCH", body: { cover_photo: cover } },
+      { url: "https://demo.example.com/api/albums/auto/7/", method: "PATCH", body: { cover_photo: null } },
+    ]);
+  });
+
   it("deletes a user album, an event album and every event album", async () => {
     const { client, requests } = fakeServer(null);
     await endpoints.deleteUserAlbum(client, "4");
@@ -327,6 +342,7 @@ describe("places and folders", () => {
       "https://demo.example.com/api/folders/subfolders/?path=%2Fdata%2FMy+Photos&page=2",
     ]);
     expect(listing.results.map(folder => folder.name)).toEqual(["2023", "2024"]);
+    expect(defined(listing.results[1]).cover_photo).toEqual({ image_hash: "h2024", video: true });
     // The copies kept for older web bundles are not read.
     expect(listing).not.toHaveProperty("subfolders");
   });

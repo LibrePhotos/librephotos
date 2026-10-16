@@ -68,6 +68,7 @@ const userHooks = vi.hoisted(() => ({
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
+  useSetEventCoverMutation: () => ({ mutate: () => {} }),
   useSetUserAlbumCoverMutation: () => ({ mutate: () => {} }),
 }));
 vi.mock("../../api_client/auth/hooks", () => ({

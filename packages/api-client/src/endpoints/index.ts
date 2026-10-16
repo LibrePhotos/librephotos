@@ -2088,6 +2088,19 @@ export async function setUserAlbumCollections(
   return parseResponse(S.UserAlbumCollections, res, "set user album collections");
 }
 
+/**
+ * Pick an event's cover (#429): one of its photos by id, or null for the automatic cover. A photo
+ * outside the event is a 400 `not_in_event`.
+ */
+export async function setAutoAlbumCover(
+  client: ApiClient,
+  albumId: number | string,
+  coverPhoto: string | null
+): Promise<S.AutoAlbumEdit> {
+  const res = await client.patch<unknown>(`/albums/auto/${albumId}/`, { cover_photo: coverPhoto });
+  return parseResponse(S.AutoAlbumEdit, res, "set event cover");
+}
+
 /** Delete one event album. Answers 204. */
 export async function deleteAutoAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.delete(`/albums/auto/${albumId}/`);

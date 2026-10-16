@@ -7,12 +7,13 @@ import { DisabledReason } from "../common/DisabledReason";
 import { RemoveFromAlbumMenuItem } from "./RemoveFromAlbumMenuItem";
 
 /** The album pages whose own actions the selection menu offers. */
-export type AlbumPageKind = "person" | "useralbum";
+export type AlbumPageKind = "person" | "useralbum" | "event";
 
 /** The album page `pathname` is, if it is one. */
 export function albumPageKind(pathname: string): AlbumPageKind | undefined {
   if (pathname.startsWith("/album/persons/")) return "person";
   if (pathname.startsWith("/album/user/")) return "useralbum";
+  if (pathname.startsWith("/album/events/")) return "event";
   return undefined;
 }
 
@@ -28,7 +29,8 @@ type Props = Readonly<{
 }>;
 
 /**
- * The "Album Actions" section of the selection menu: the selected photo as cover, and for a user album its
+ * The "Album Actions" section of the selection menu: the selected photo as cover (a person, a user
+ * album or an event, #429), and for a user album its
  * sharing and "Remove photos", for a person "Remove from this person". Removing works on an
  * explicit selection only; "Select all" is a server-side query these endpoints do not take.
  */

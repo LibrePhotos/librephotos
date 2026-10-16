@@ -372,6 +372,8 @@
   "modalalbumcover": {
     "title": "Choose Album Cover",
     "menuitem": "Set as cover…",
+    "automatic": "Automatic",
+    "automatichint": "First photo",
     "selectphoto": "Select a photo to use as the cover for {{album}}",
     "nophotos": "No photos available in this album",
     "tip": "Tip: You can also select a single photo in the album and click \"Set album cover\" from the menu.",
@@ -1710,6 +1712,7 @@
     "subtitle": "Showing {{ autoalbumlength }} events",
     "delete": "Delete event",
     "deleteexplanation": "This will delete the event. Are you sure?",
+    "eventactions": "Event actions",
     "subtitle_one": "{{count}} event",
     "subtitle_other": "{{count}} events",
     "title": {

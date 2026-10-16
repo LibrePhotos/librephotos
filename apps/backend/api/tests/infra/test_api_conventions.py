@@ -100,7 +100,13 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/albums/user/edit": {"POST create", "PATCH partial_update"},
     "api/albums/user/shared/tome": {"GET list"},
     "api/albums/user/shared/fromme": {"GET list"},
-    "api/albums/auto": {"GET retrieve", "DELETE destroy", "POST delete_all"},
+    # PATCH sets the cover (#429).
+    "api/albums/auto": {
+        "GET retrieve",
+        "PATCH partial_update",
+        "DELETE destroy",
+        "POST delete_all",
+    },
     "api/folders": {"GET subfolders"},
     "api/albums/date": {"GET retrieve"},
     "api/albums/thing": {"GET retrieve"},
@@ -390,7 +396,6 @@ class RemovedVerbsTest(TestCase):
             ("get", "/api/albums/auto/", 404),
             ("post", "/api/albums/auto/", 404),
             ("put", f"/api/albums/auto/{ids['auto']}/", 405),
-            ("patch", f"/api/albums/auto/{ids['auto']}/", 405),
             ("get", "/api/albums/person/", 404),
             ("post", "/api/albums/person/", 404),
             ("get", f"/api/albums/person/{ids['person']}/", 404),

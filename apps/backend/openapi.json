@@ -93,6 +93,62 @@
           }
         }
       },
+      "patch": {
+        "operationId": "api_albums_auto_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this album auto.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumAutoEditRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumAutoEditRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumAutoEditRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumAutoEdit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
       "delete": {
         "operationId": "api_albums_auto_destroy",
         "parameters": [
@@ -11025,9 +11081,17 @@
             "items": {
               "$ref": "#/components/schemas/PhotoSimple"
             }
+          },
+          "cover_photo": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "The id of the cover the owner picked; null while it is automatic.",
+            "readOnly": true
           }
         },
         "required": [
+          "cover_photo",
           "created_on",
           "favorited",
           "gps_lat",
@@ -11038,6 +11102,26 @@
           "timestamp",
           "title",
           "title_parts"
+        ]
+      },
+      "AlbumAutoEdit": {
+        "type": "object",
+        "description": "``PATCH /api/albums/auto/{id}/``: the event's cover (#429).\n\nOne of the event's own visible photos, or null for the automatic cover\n(the first visible photo).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "cover_photo": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A photo id of this event; null for the automatic cover"
+          }
+        },
+        "required": [
+          "cover_photo",
+          "id"
         ]
       },
       "AlbumAutoList": {
@@ -14004,9 +14088,19 @@
             "type": "number",
             "format": "double",
             "description": "The folder's mtime, in seconds"
+          },
+          "cover_photo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoHashList"
+              }
+            ],
+            "nullable": true,
+            "description": "The caller's newest visible photo in it and below (#2233)"
           }
         },
         "required": [
+          "cover_photo",
           "modified",
           "name",
           "path",
@@ -16068,6 +16162,18 @@
           "message",
           "status"
         ]
+      },
+      "PatchedAlbumAutoEditRequest": {
+        "type": "object",
+        "description": "``PATCH /api/albums/auto/{id}/``: the event's cover (#429).\n\nOne of the event's own visible photos, or null for the automatic cover\n(the first visible photo).",
+        "properties": {
+          "cover_photo": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A photo id of this event; null for the automatic cover"
+          }
+        }
       },
       "PatchedAlbumCollectionRequest": {
         "type": "object",
@@ -21112,7 +21218,7 @@
           "cover_hash": {
             "type": "string",
             "nullable": true,
-            "description": "The first photo's image_hash; null for an empty album"
+            "description": "The image_hash of the cover the owner picked, else of the first photo; null for an empty album"
           },
           "last_modified": {
             "type": "integer",

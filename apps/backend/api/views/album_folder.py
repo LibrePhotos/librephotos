@@ -1,8 +1,10 @@
 import logging
 import os
+from typing import TypedDict
 
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Case, Count, F, IntegerField, Value, When, Window
+from django.db.models.functions import RowNumber
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -99,18 +101,76 @@ def _photo_counts(user: User, entries: list[tuple[str, str, float]]) -> list[int
     return [counts.get(f"count_{idx}", 0) or 0 for idx in range(len(entries))]
 
 
+class FolderCover(TypedDict):
+    image_hash: str
+    video: bool
+
+
+class FolderEntry(TypedDict):
+    name: str
+    path: str
+    photo_count: int
+    modified: float
+    cover_photo: FolderCover | None
+
+
+def _folder_covers(
+    user: User, entries: list[tuple[str, str, float]]
+) -> dict[int, FolderCover]:
+    """The newest photo in and below each folder (#2233), by entry index.
+
+    One query for the page: every photo row is tagged with the folder its file
+    lies in and numbered newest first per folder, and the first of each is
+    kept. The photos are the ones ``_photo_counts`` counts, the caller's own
+    visible ones, so a cover is never hidden, trashed or someone else's.
+    ``folder_path_q`` keeps a folder out of a sibling sharing its name's start.
+    """
+    folder = Case(
+        *(
+            When(folder_path_q("files__path", folder_path), then=Value(idx))
+            for idx, (_, folder_path, _) in enumerate(entries)
+        ),
+        output_field=IntegerField(),
+    )
+    newest_first = Window(
+        RowNumber(),
+        partition_by=F("folder"),
+        order_by=[
+            F("exif_timestamp").desc(nulls_last=True),
+            F("added_on").desc(),
+            F("pk").asc(),
+        ],
+    )
+    rows = (
+        Photo.visible.owned_by(user)
+        .annotate(folder=folder)
+        .filter(folder__isnull=False)
+        .annotate(rank=newest_first)
+        .filter(rank=1)
+        .values_list("folder", "image_hash", "video")
+    )
+    return {
+        idx: FolderCover(image_hash=image_hash, video=video)
+        for idx, image_hash, video in rows
+    }
+
+
 def _folder_listing(
     user: User, entries: list[tuple[str, str, float]]
-) -> list[dict[str, str | int | float]]:
+) -> list[FolderEntry]:
     counts = _photo_counts(user, entries)
+    covers = _folder_covers(user, entries)
     return [
-        {
-            "name": name,
-            "path": folder_path,
-            "photo_count": photo_count,
-            "modified": mtime,
-        }
-        for (name, folder_path, mtime), photo_count in zip(entries, counts)
+        FolderEntry(
+            name=name,
+            path=folder_path,
+            photo_count=photo_count,
+            modified=mtime,
+            cover_photo=covers.get(idx),
+        )
+        for idx, ((name, folder_path, mtime), photo_count) in enumerate(
+            zip(entries, counts)
+        )
         if photo_count > 0
     ]
 
@@ -179,7 +239,7 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
         self,
         base_path: str | None,
         parent_path: str | None,
-        subfolders: list[dict[str, str | int | float]],
+        subfolders: list[FolderEntry],
     ) -> Response:
         """The page ``paginate_queryset`` cut, with the folder's own fields.
 

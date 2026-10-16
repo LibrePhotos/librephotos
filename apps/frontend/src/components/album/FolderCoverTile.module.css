@@ -1,0 +1,48 @@
+/* A folder without a cover photo; same corners as the album covers */
+.iconTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-default-border);
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: var(--mantine-color-dimmed);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.iconTile:hover {
+  background-color: var(--mantine-color-blue-light);
+  border-color: var(--mantine-color-blue-filled);
+  color: var(--mantine-color-blue-light-color);
+}
+
+.coverTile {
+  position: relative;
+}
+
+/* The album covers' corners; a video cover fills the square as a photo does */
+.cover {
+  display: block;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  object-fit: cover;
+}
+
+/* Marks the cover as a folder's; decoration, the link is named after the folder */
+.badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-scrim-black-60);
+  color: var(--mantine-color-white);
+  pointer-events: none;
+}

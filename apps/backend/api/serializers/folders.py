@@ -4,6 +4,7 @@
 from rest_framework import serializers
 
 from api.serializers.fields import declare_fields
+from api.serializers.photos import PhotoHashListSerializer
 
 
 class FolderPathQuery(serializers.Serializer[None]):
@@ -41,6 +42,10 @@ class FolderEntrySerializer(serializers.Serializer[None]):
         help_text="The caller's photos in it and below"
     )
     modified = serializers.FloatField(help_text="The folder's mtime, in seconds")
+    cover_photo = PhotoHashListSerializer(
+        allow_null=True,
+        help_text="The caller's newest visible photo in it and below (#2233)",
+    )
 
 
 class FolderLegacyPaginationSerializer(serializers.Serializer[None]):

@@ -17,6 +17,7 @@ import { Link } from "@tanstack/react-router";
 import React, { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchFolderSubfoldersInfiniteQuery } from "../../api_client/albums/hooks";
+import { Tile } from "../Tile";
 import classes from "./FolderListModal.module.css";
 
 type FolderButtonProps = {
@@ -55,10 +56,22 @@ const FolderButton = memo(({ subfolder, folderSearch, onClose }: FolderButtonPro
     >
       <Group gap="md" justify="space-between" align="center" wrap="nowrap">
         <Group gap="md" align="center" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-          {/* Folder icon */}
-          <Avatar size="lg" radius="md" color="blue">
-            <Folder size={24} />
-          </Avatar>
+          {/* The folder's newest photo (#2233), else the folder icon; Avatar lg is 56 px */}
+          {subfolder.cover_photo?.image_hash ? (
+            <Box className={classes.coverBox}>
+              <Tile
+                className={classes.cover}
+                image_hash={subfolder.cover_photo.image_hash}
+                video={subfolder.cover_photo.video}
+                width={56}
+                height={56}
+              />
+            </Box>
+          ) : (
+            <Avatar size="lg" radius="md" color="blue">
+              <Folder size={24} />
+            </Avatar>
+          )}
 
           {/* Text content */}
           <Box style={{ flex: 1, minWidth: 0 }}>

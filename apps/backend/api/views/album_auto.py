@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from api.albums.auto_albums import generate_event_albums, regenerate_event_titles
@@ -13,28 +14,45 @@ from api.drf.request_user import request_user
 from api.jobs.start import start_job
 from api.models import AlbumAuto, LongRunningJob, Person, Photo, User
 from api.models.photo import visible_photo_q
-from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
+from api.serializers.album_auto import (
+    AlbumAutoEditSerializer,
+    AlbumAutoListSerializer,
+    AlbumAutoSerializer,
+    with_event_cover,
+)
 from api.serializers.job import JobStartedResponseSerializer
 from api.serializers.person import person_groups_prefetch
 from api.views.custom_api_view import ListViewSet
+from api.views.mixins import PartialUpdateModelMixin
 
 
 # TODO: This is a fetches with too many queries. We need to optimize this.
-# Open, delete, or delete every event album. They are made by the auto album
-# job, and the list is AlbumAutoListViewSet.
+# Open, set the cover of (#429), delete, or delete every event album. They are
+# made by the auto album job, and the list is AlbumAutoListViewSet.
 class AlbumAutoViewSet(
-    mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+    mixins.RetrieveModelMixin,
+    PartialUpdateModelMixin[AlbumAuto],
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoSerializer
+
+    def get_serializer_class(self) -> type[BaseSerializer[AlbumAuto]]:
+        if self.action == "partial_update":
+            return AlbumAutoEditSerializer
+        return AlbumAutoSerializer
 
     def get_queryset(self) -> QuerySet[AlbumAuto]:
         user = self.request.user
         if not isinstance(user, User):
             return AlbumAuto.objects.none()
+        if self.action == "partial_update":
+            # Only the owner's events; the edit serializer reads no relation.
+            return AlbumAuto.objects.owned_by(user)
 
         return (
-            AlbumAuto.objects.owned_by(user)
+            with_event_cover(AlbumAuto.objects.owned_by(user))
             .prefetch_related(
                 Prefetch("owner"),
                 # PhotoSimpleSerializer renders the square thumbnail of every
@@ -75,7 +93,6 @@ class AlbumAutoViewSet(
         return Response("success")
 
 
-# TODO: Add custom covers for auto album
 class AlbumAutoListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumAutoListSerializer
@@ -88,10 +105,10 @@ class AlbumAutoListViewSet(ListViewSet):
     ]
 
     def get_queryset(self) -> QuerySet[AlbumAuto]:
-        # Count and cover with the photos the album detail shows.
-        cover_photo_query = Photo.visible.all()
+        # Count and cover with the photos the album detail shows: the cover the
+        # owner picked (#429) while it is visible, else the first visible photo.
         return (
-            AlbumAuto.objects.owned_by(request_user(self.request))
+            with_event_cover(AlbumAuto.objects.owned_by(request_user(self.request)))
             .annotate(
                 photo_count=Count(
                     "photos", filter=visible_photo_q("photos__"), distinct=True
@@ -102,8 +119,12 @@ class AlbumAutoListViewSet(ListViewSet):
             )
             .filter(Q(photo_count__gt=0))
             .prefetch_related(
+                # The automatic cover: the first photo taken. Unordered, it
+                # was whichever row the database returned first.
                 Prefetch(
-                    "photos", queryset=cover_photo_query[:1], to_attr="cover_photo"
+                    "photos",
+                    queryset=Photo.visible.order_by("exif_timestamp", "pk")[:1],
+                    to_attr="first_photo",
                 )
             )
             .order_by("-timestamp")

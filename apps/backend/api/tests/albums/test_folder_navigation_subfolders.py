@@ -12,8 +12,12 @@ dirs and tiny files are created).  No ML, no network, no exiftool.
 import os
 import shutil
 import tempfile
+from datetime import timedelta
 
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import File
@@ -242,7 +246,8 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.assertEqual(body["pagination"]["total_pages"], 1)
         entry = body["subfolders"][0]
         self.assertEqual(
-            sorted(entry.keys()), ["modified", "name", "path", "photo_count"]
+            sorted(entry.keys()),
+            ["cover_photo", "modified", "name", "path", "photo_count"],
         )
         self.assertEqual(entry["path"], os.path.join(self.root, "alpha"))
         self.assertEqual(entry["photo_count"], 1)
@@ -478,6 +483,82 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         self.assertEqual(count("C:/data\\test\\"), 3)
         self.assertEqual(count(r"C:/data\test2"), 1)
         self.assertEqual(count("C:/data"), 4)
+
+
+class SubfolderCoverTests(SubfoldersTestBase):
+    """Each folder's newest visible photo of the caller is its cover (#2233)."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = create_test_user(is_admin=True)
+        self.now = timezone.now()
+
+    def photo_in(self, name, hours_ago, filename="pic.jpg", owner=None, **fields):
+        folder = os.path.join(self.root, name)
+        os.makedirs(folder, exist_ok=True)
+        photo = self.add_photo_in(owner or self.admin, folder, filename)
+        photo.exif_timestamp = (
+            None if hours_ago is None else self.now - timedelta(hours=hours_ago)
+        )
+        for field, value in fields.items():
+            setattr(photo, field, value)
+        photo.save()
+        return photo
+
+    def covers(self):
+        body = self.client_for(self.admin).get(URL).json()
+        return {f["name"]: f["cover_photo"] for f in body["results"]}
+
+    def test_the_newest_photo_in_or_below_the_folder_is_the_cover(self):
+        self.photo_in("trip", 5, "old.jpg")
+        newest = self.photo_in(os.path.join("trip", "day2"), 1, "new.jpg", video=True)
+
+        self.assertEqual(
+            self.covers()["trip"], {"image_hash": newest.image_hash, "video": True}
+        )
+
+    def test_a_photo_without_a_date_is_the_cover_only_without_dated_ones(self):
+        self.photo_in("mixed", None, "undated.jpg")
+        dated = self.photo_in("mixed", 100, "dated.jpg")
+        undated_only = self.photo_in("undated", None, "x.jpg")
+
+        covers = self.covers()
+        self.assertEqual(covers["mixed"]["image_hash"], dated.image_hash)
+        self.assertEqual(covers["undated"]["image_hash"], undated_only.image_hash)
+
+    def test_hidden_trashed_and_other_users_photos_are_never_the_cover(self):
+        stranger = create_test_user()
+        kept = self.photo_in("trip", 10, "kept.jpg")
+        self.photo_in("trip", 1, "hidden.jpg", hidden=True)
+        self.photo_in("trip", 2, "trashed.jpg", in_trashcan=True)
+        self.photo_in("trip", 0, "theirs.jpg", owner=stranger)
+
+        self.assertEqual(self.covers()["trip"]["image_hash"], kept.image_hash)
+
+    def test_a_sibling_sharing_the_names_start_does_not_lend_its_cover(self):
+        own = self.photo_in("test", 10, "a.jpg")
+        sibling = self.photo_in("test2", 1, "b.jpg")
+
+        covers = self.covers()
+        self.assertEqual(covers["test"]["image_hash"], own.image_hash)
+        self.assertEqual(covers["test2"]["image_hash"], sibling.image_hash)
+
+    def test_covers_cost_one_query_for_any_number_of_folders(self):
+        def count():
+            with CaptureQueriesContext(connection) as ctx:
+                self.assertEqual(self.client_for(self.admin).get(URL).status_code, 200)
+            return len(ctx.captured_queries)
+
+        for idx in range(2):
+            self.photo_in(f"f{idx}", idx)
+        count()
+        small = count()
+        for idx in range(2, 8):
+            self.photo_in(f"f{idx}", idx)
+        large = count()
+
+        self.assertEqual(len(self.covers()), 8)
+        self.assertEqual(small, large)
 
 
 class SubfoldersErrorHandlingTests(SubfoldersTestBase):
