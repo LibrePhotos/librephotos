@@ -7,11 +7,11 @@ sidebar_position: 13
 ![](../../static/img/upload-image.png)
 In the top right corner of the web interface, there is an upload button. Clicking it will open a file picker. You can select multiple files and upload them.
 
-You can also drag photos and videos from your computer onto any page of the app (not released yet; up to 1.3.0 only the upload button took dropped files). While you drag, the whole window shows where the files will go: *Drop photos and videos to upload*, or *Add to the running upload* when an upload is already in progress, in which case the new files join the end of the queue. On the profile page, dropping an image on your avatar still sets your avatar instead.
+You can also drag photos and videos from your computer onto any page of the app. <Since version="1.4.0" /> Up to 1.3.0 only the upload button took dropped files. While you drag, the whole window shows where the files will go: *Drop photos and videos to upload*, or *Add to the running upload* when an upload is already in progress, in which case the new files join the end of the queue. On the profile page, dropping an image on your avatar still sets your avatar instead.
 
 ### Uploading into an album
 
-_Not released yet._ You can upload straight into one of your own albums, so new photos land in the album without being added to it afterwards:
+<Since version="1.4.0" /> You can upload straight into one of your own albums, so new photos land in the album without being added to it afterwards:
 
 - On the album's page, open the **⋮** at the right of its header and choose **Upload to this album…**, then pick the files.
 - Or drag files onto the album's page. The overlay then says *Drop to add to* and the album's name.
@@ -29,7 +29,7 @@ We accept all files that have a mime type of image or video, plus HEIC, HEIF, JP
 
 While files upload, a card in the bottom right corner lists them with their status. Uploads run one file at a time, and the card stays while you browse other pages.
 
-_Not released yet:_
+<Since version="1.4.0" />
 
 - **Cancel** in the card stops the upload. The file being sent stops after its current 1 MB chunk, and every file that was not uploaded yet is marked *Cancelled*. Files that already finished stay in your library. **Retry** in the card uploads the cancelled and failed files again, as long as the tab is open.
 - Closing or reloading the tab while an upload runs asks first, with your browser's own *Leave site?* dialog. Moving to another page inside LibrePhotos does not stop the upload.

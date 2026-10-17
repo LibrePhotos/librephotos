@@ -13,7 +13,7 @@ The **Sharing** page (accessible from the navigation) is your central hub for al
 - **Public photos** — Other users on your instance who have made their profile public
 - **Shared with you** — Photos and albums that others have shared with you
 - **You shared** — Photos and albums you have shared with others
-- **Public Links** — Albums and photos you've shared publicly via link. An album card shows the album's title and number of photos; a photo card says **Share link** and when you made the link, or **Public photo** and the day the photo was taken. (Not released yet: up to 1.3.0, photo cards had no caption.)
+- **Public Links** — Albums and photos you've shared publicly via link. An album card shows the album's title and number of photos; a photo card says **Share link** and when you made the link, or **Public photo** and the day the photo was taken. <Since version="1.4.0" /> Up to 1.3.0, photo cards had no caption.
 
 ## Sharing Albums with Users
 
@@ -63,7 +63,7 @@ Under the album link, the dialog also shows a **Slideshow link**: the same addre
 
 Only whole albums can be shared as a slideshow: there is no slideshow link for a hand-picked selection of photos. Put the photos in an album and share that.
 
-*Not released yet: up to 1.3.0, a public album link always opened on the photo grid.*
+<Since version="1.4.0" /> Up to 1.3.0, a public album link always opened on the photo grid.
 
 ### Revoking a Public Link
 
@@ -174,7 +174,7 @@ An album someone shared with you stays in your list until you leave it. Open the
 
 Only you leave: the owner keeps the album, it stays shared with everyone else, and the owner no longer sees you under **Albums you shared** for it. They can share it with you again at any time. You cannot leave an album you own; delete it or stop sharing it instead.
 
-*Not released yet: up to 1.3.0, only the owner could take an album off your list, by unsharing it.*
+<Since version="1.4.0" /> Up to 1.3.0, only the owner could take an album off your list, by unsharing it.
 
 ### Public Links
 
@@ -182,7 +182,7 @@ Open **Sharing** and click the **Public Links** tile to see everything you've ma
 
 The **Public Links** row on the Sharing page shows your latest public photos and counts all of them.
 
-*Not released yet: up to 1.3.0, public photos rarely showed or counted on the Sharing page or the Photos tab, and the Photos tab also listed other users' public photos.*
+<Since version="1.4.0" /> Up to 1.3.0, public photos rarely showed or counted on the Sharing page or the Photos tab, and the Photos tab also listed other users' public photos.
 
 ## Public User Profiles
 

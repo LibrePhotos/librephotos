@@ -12,7 +12,7 @@ The job system gives you information about the long-running jobs, including whic
 
 Scan photos will look at all media files in your scan directory and will add them to the library.
 
-A normal scan only reads the files that are new or changed (the file or one of its sidecars) since the last successful scan of the whole scan directory started. A scan that was cancelled or failed before it reached every file does not count, and neither does a scan of a few selected files or a Nextcloud scan. A full scan reads every file again. Not released yet: up to 1.3.0, any finished scan counted, including cancelled ones and **Detect Stacks** runs, and a file edited while the last scan ran could be skipped. The first normal scan after the upgrade therefore checks every file once.
+A normal scan only reads the files that are new or changed (the file or one of its sidecars) since the last successful scan of the whole scan directory started. A scan that was cancelled or failed before it reached every file does not count, and neither does a scan of a few selected files or a Nextcloud scan. A full scan reads every file again. <Since version="1.4.0" /> Up to 1.3.0, any finished scan counted, including cancelled ones and **Detect Stacks** runs, and a file edited while the last scan ran could be skipped. The first normal scan after the upgrade therefore checks every file once.
 
 ### Generate Event Albums
 
@@ -20,7 +20,7 @@ This job will look at all media files that already exist. It tries to find commo
 
 ### Regenerate Event Titles
 
-This will create a title for the event album based on the information of the media files in the event album. Since 1.3.0, titles leave out faces in "Unknown - Other" and no longer contain a double space where a part is missing. Run this job once to fix the titles of albums made by an older version. It also stores what each title is made of, so the web app can show it in your language (not released yet; until then titles are English).
+This will create a title for the event album based on the information of the media files in the event album. Since 1.3.0, titles leave out faces in "Unknown - Other" and no longer contain a double space where a part is missing. Run this job once to fix the titles of albums made by an older version. It also stores what each title is made of, so the web app can show it in your language. <Since version="1.4.0" /> Up to 1.3.0, titles were always English.
 
 ### Train Faces
 
@@ -32,7 +32,7 @@ Finds all missing media files and removes them from the database.
 
 ### Scan Missing Photos
 
-Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete Missing Photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read. It checks every photo before it changes anything, and fails without changing anything when the scan directory looks unmounted or more than the **Missing photos limit** of your photos would be marked missing (not released yet). See [Missing Photos](./missing-photos.md).
+Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete Missing Photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read. It checks every photo before it changes anything. <Since version="1.4.0" /> It fails without changing anything when the scan directory looks unmounted or more than the **Missing photos limit** of your photos would be marked missing. See [Missing Photos](./missing-photos.md).
 
 ### Calculate Clip Embeddings
 
@@ -40,7 +40,7 @@ Calculates the OpenCLIP search embedding of every photo that has none, then rebu
 
 ### Generate Tags
 
-Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan and tags every photo that has no tags yet, including the ones an earlier run did not reach because it was cancelled or failed. Not released yet: up to 1.3.0, a normal scan only tagged photos added since the last run, so photos a cancelled run left behind stayed untagged until a full scan.
+Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan and tags every photo that has no tags yet, including the ones an earlier run did not reach because it was cancelled or failed. <Since version="1.4.0" /> Up to 1.3.0, a normal scan only tagged photos added since the last run, so photos a cancelled run left behind stayed untagged until a full scan.
 
 ### Add Geolocation
 
@@ -50,7 +50,7 @@ Looks up place names for each photo's GPS coordinates (reverse geocoding) so the
 
 Looks for faces in your photos and saves them. It runs automatically after each scan and looks at every photo whose faces have not been looked for yet: new photos, photos whose file was replaced, and photos the face recognition service failed on last time, for example because it was restarting or ran out of memory. Each such failure is listed in the job's errors, and the photo is tried again on the next run. A picture the service cannot read at all is listed once and not tried again. When the service cannot be reached for 20 photos in a row, the job stops with the error "Face service unreachable" and the remaining photos wait for the next run. **Rescan Faces** looks at every photo again.
 
-Not released yet: up to 1.3.0, a face recognition error counted as "no faces in this photo", the job reported no error, and only **Rescan Faces** found those faces later. If the face recognition service had trouble while your library was scanned, run **Rescan Faces** once after updating.
+<Since version="1.4.0" /> Up to 1.3.0, a face recognition error counted as "no faces in this photo", the job reported no error, and only **Rescan Faces** found those faces later. If the face recognition service had trouble while your library was scanned, run **Rescan Faces** once after updating.
 
 ### Generate Face Embeddings
 
@@ -84,11 +84,11 @@ Reads the text on your photos so that search can find it, and uses it to detect 
 
 ### Generate Captions
 
-_Not released yet._ Started with **Generate** (or **Generate captions again for all photos**) under **Captions** on the Library page. Writes a generated caption for each of your photos that has none, or for every photo again; a caption you wrote yourself is never changed. It never runs by itself after a scan. See [Captioning the whole library](./image-captioning.md#captioning-the-whole-library).
+<Since version="1.4.0" /> Started with **Generate** (or **Generate captions again for all photos**) under **Captions** on the Library page. Writes a generated caption for each of your photos that has none, or for every photo again; a caption you wrote yourself is never changed. It never runs by itself after a scan. See [Captioning the whole library](./image-captioning.md#captioning-the-whole-library).
 
 ### Detect Stacks
 
-Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect Stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). Not released yet: up to 1.3.0, it was listed as **Scan Photos**.
+Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect Stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). <Since version="1.4.0" /> Up to 1.3.0, it was listed as **Scan Photos**.
 
 ### Detect Duplicate Photos
 
@@ -96,7 +96,7 @@ Finds duplicate photos in your library using perceptual hashing. It detects both
 
 ### Remove Photo Details from Thumbnails
 
-Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin Area > Admin Tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. Not released yet: up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
+Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin Area > Admin Tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. <Since version="1.4.0" /> Up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
 
 ### Read Shutter Speeds Again
 
@@ -104,15 +104,15 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 ### Empty Trash
 
-_Not released yet._ Started with the **Empty trash** button on the Trash page. Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
+<Since version="1.4.0" /> Started with the **Empty trash** button on the Trash page. Permanently deletes every photo in your trash, including the original files on disk. It only touches your own photos, and a photo it cannot delete is skipped and makes the job end as failed. See [Emptying the trash](./trash.md#emptying-the-trash).
 
 ### Apply Date Rules
 
-_Not released yet._ Started with **Apply** under **Dates** on the Library page, or with **Apply to existing photos** on the date rules card after you saved changed rules. Reads the date of every photo of yours again with your current date rules and moves the photos whose date changed to their new day; a date you set by hand stays, and nothing is written to your files. A photo whose date cannot be read keeps its date and is listed in the job. See [Applying the rules](./settings/date-rules.md#applying-the-rules).
+<Since version="1.4.0" /> Started with **Apply** under **Dates** on the Library page, or with **Apply to existing photos** on the date rules card after you saved changed rules. Reads the date of every photo of yours again with your current date rules and moves the photos whose date changed to their new day; a date you set by hand stays, and nothing is written to your files. A photo whose date cannot be read keeps its date and is listed in the job. See [Applying the rules](./settings/date-rules.md#applying-the-rules).
 
 ### Write Metadata to Files
 
-_Not released yet._ Started with **Write now** under **Write edits to files** in Settings → Metadata Options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
+<Since version="1.4.0" /> Started with **Write now** under **Write edits to files** in Settings → Metadata Options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
 
 ### Look Up Place Names
 
@@ -126,13 +126,13 @@ _Not released yet._ Started with **Write now** under **Write edits to files** in
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.
 
-Click a row in the `Worker Logs` table to open that job's detail page. It shows the job's ID and status, when it was queued, started and finished, how long it ran, who started it, and the current progress step. If the job failed, an `Error Details` section shows the captured error message and the full result data. The page has the same **Cancel** (while the job is unfinished) and **Remove** buttons as its row, with the same confirmation; after **Remove** it goes back to the list. Not released yet: up to 1.3.0, the detail page had neither button.
+Click a row in the `Worker Logs` table to open that job's detail page. It shows the job's ID and status, when it was queued, started and finished, how long it ran, who started it, and the current progress step. If the job failed, an `Error Details` section shows the captured error message and the full result data. The page has the same **Cancel** (while the job is unfinished) and **Remove** buttons as its row, with the same confirmation; after **Remove** it goes back to the list. <Since version="1.4.0" /> Up to 1.3.0, the detail page had neither button.
 
 ## What to do when a job gets stuck
 
-LibrePhotos checks every hour for jobs that have made no progress for a day and marks them failed, with the error "Job made no progress for 24 hours"; the job keeps the errors it had recorded. A job that runs for days but keeps making progress, such as the first scan of a large library, is left alone. The threshold is the `STUCK_JOB_HOURS` variable (see [Environment variables](../installation/environment-variables.md#stuck-jobs)). Not released yet: up to 1.3.0, every job was marked failed 24 hours after it started, even while it was still working.
+LibrePhotos checks every hour for jobs that have made no progress for a day and marks them failed, with the error "Job made no progress for 24 hours"; the job keeps the errors it had recorded. A job that runs for days but keeps making progress, such as the first scan of a large library, is left alone. The threshold is the `STUCK_JOB_HOURS` variable (see [Environment variables](../installation/environment-variables.md#stuck-jobs)). <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started, even while it was still working.
 
-If a job is still running and you want to stop it, use the **Cancel** button in its `Worker Logs` row or on its detail page, or the one under the progress bar in the account menu. A dialog asks first; **Keep running** leaves the job alone. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs check for cancellation as they go and stop at their next checkpoint, so it can take a few seconds before a running job actually stops; photos a scan already took off the queue are skipped. A model download or a download of selected photos still runs to the end. **Find Similar Faces** is the one exception while it rebuilds the face clusters: it finishes the rebuild, so you are not left without clusters, but it does not start **Train Faces** afterwards. Cancelling frees the queue for a new job at once, so you do not need to remove the entry afterwards. Not released yet: up to 1.3.0, a cancelled scan kept importing the photos it had queued, and duplicate and stack detection, face training, search embeddings, file variant repair and event albums ran to the end. The next scan picks up what a cancelled or failed scan, tagging, geolocation or face scan left behind.
+If a job is still running and you want to stop it, use the **Cancel** button in its `Worker Logs` row or on its detail page, or the one under the progress bar in the account menu. A dialog asks first; **Keep running** leaves the job alone. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs check for cancellation as they go and stop at their next checkpoint, so it can take a few seconds before a running job actually stops; photos a scan already took off the queue are skipped. A model download or a download of selected photos still runs to the end. **Find Similar Faces** is the one exception while it rebuilds the face clusters: it finishes the rebuild, so you are not left without clusters, but it does not start **Train Faces** afterwards. Cancelling frees the queue for a new job at once, so you do not need to remove the entry afterwards. <Since version="1.4.0" /> Up to 1.3.0, a cancelled scan kept importing the photos it had queued, and duplicate and stack detection, face training, search embeddings, file variant repair and event albums ran to the end. The next scan picks up what a cancelled or failed scan, tagging, geolocation or face scan left behind.
 
 The **Remove** button only deletes the log entry from the database — it does **not** stop a running job. Use it for a job that has genuinely crashed (nothing is progressing and the logs show an ungraceful failure) so that the queue will accept new jobs again.
 
@@ -143,4 +143,4 @@ Removing a finished job deletes its record and result; nothing in your library c
 
 <Since version="1.4.0" /> Up to 1.3.0, the reference scan could be removed, and the next scan then read the whole library again. The confirmation dialog could not tell which scan was the reference, and it also warned about **Scan Faces**, which picks the photos whose faces have not been looked for whatever ran before.
 
-*Not released yet: up to 1.3.0, **Cancel** and **Remove** acted on the first click, without asking.*
+<Since version="1.4.0" /> Up to 1.3.0, **Cancel** and **Remove** acted on the first click, without asking.

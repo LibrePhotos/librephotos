@@ -41,7 +41,7 @@ Common scenarios that cause missing photos:
 
 ## When a Scan Asks "Is the Library Mounted?"
 
-(Not released yet.) If the disk, network share or Docker bind mount that holds your photos is gone but its folder still exists, the scan directory looks empty, and every photo would be marked missing. LibrePhotos refuses to do that. The scan job fails, and nothing is changed, when:
+<Since version="1.4.0" /> If the disk, network share or Docker bind mount that holds your photos is gone but its folder still exists, the scan directory looks empty, and every photo would be marked missing. LibrePhotos refuses to do that. The scan job fails, and nothing is changed, when:
 
 - the scan directory does not exist or cannot be read,
 - the scan directory is empty while you have photos in it, or

@@ -169,24 +169,24 @@ Two settings size the web API, separately from the background workers. `WEB_CONC
 
 Every part of the library scan that costs real CPU, memory or network can be switched off at deploy time with a `FEATURE_*` environment variable. All of them default to **on**, so an upgrade changes nothing until you set one.
 
-Accepted "on" values are `true`, `1`, `yes` and `on`, and "off" values `false`, `0`, `no` and `off` (any capitalisation). Anything else counts as off too, and the backend log says so with a warning that names the variable. An empty value (`FEATURE_VIDEO=`) also counts as off. Every on/off variable on this page is read the same way, `DEMO_SITE`, `NEXTCLOUD_ENABLED` and `LOG_TO_CONSOLE` included; `ALLOW_UPLOAD` too, except that an empty value leaves uploads on, as it always has. (Not released yet: up to 1.3.0, `NEXTCLOUD_ENABLED=t` also switched the Nextcloud integration on. It now counts as off, so write `true`.)
+Accepted "on" values are `true`, `1`, `yes` and `on`, and "off" values `false`, `0`, `no` and `off` (any capitalisation). Anything else counts as off too, and the backend log says so with a warning that names the variable. An empty value (`FEATURE_VIDEO=`) also counts as off. Every on/off variable on this page is read the same way, `DEMO_SITE`, `NEXTCLOUD_ENABLED` and `LOG_TO_CONSOLE` included; `ALLOW_UPLOAD` too, except that an empty value leaves uploads on, as it always has. <Since version="1.4.0" /> Up to 1.3.0, `NEXTCLOUD_ENABLED=t` also switched the Nextcloud integration on. It now counts as off, so write `true`.
 
 Number variables (worker counts, the `TRANSCODE_*` limits, `REFRESH_TOKEN_DAYS` and the like) fall back to their default when empty. A value that is not a number stops the backend at startup with a message that names the variable.
 
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |
 | `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. The motion video inside a "live photo" is not extracted either, so those stay ordinary still images. |
-| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded, and (not released yet) the model is not downloaded. |
+| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded. <Since version="1.4.0" /> The model is not downloaded either. |
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
-| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started, and (not released yet) the captioning model is not downloaded. |
+| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started. <Since version="1.4.0" /> The captioning model is not downloaded either. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no lookups run, offline or at an online map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
 | `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tags service keeps running: the same model makes the semantic-search embeddings. |
-| `FEATURE_VIDEO_PREVIEWS` | `featureVideoPreviews` | _Not released yet._ Videos get no animated preview in the photo grid. A scan makes two WebP stills from the video's first frame instead of encoding two short mp4 clips, which is the slowest step of importing a video and takes most of its thumbnail space. Videos still play in full in the photo viewer. Previews made before stay until the video is rescanned. |
+| `FEATURE_VIDEO_PREVIEWS` | `featureVideoPreviews` | <Since version="1.4.0" /> Videos get no animated preview in the photo grid. A scan makes two WebP stills from the video's first frame instead of encoding two short mp4 clips, which is the slowest step of importing a video and takes most of its thumbnail space. Videos still play in full in the photo viewer. Previews made before stay until the video is rescanned. |
 | `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
 
-Not released yet: all of these but `FEATURE_PROCESS_EMBEDDED_MEDIA` also have a switch in the Features card of the site settings that an admin can flip without a restart. A variable set to off is a hard off that the site setting cannot override; see [Feature Toggles](../user-guide/feature-toggles.md#site-settings-switches).
+<Since version="1.4.0" /> All of these but `FEATURE_PROCESS_EMBEDDED_MEDIA` also have a switch in the Features card of the site settings that an admin can flip without a restart. A variable set to off is a hard off that the site setting cannot override; see [Feature Toggles](../user-guide/feature-toggles.md#site-settings-switches).
 
 With the bundled Compose setup, set the lowerCamelCase keys in your `.env`:
 
@@ -228,7 +228,7 @@ The remaining services — `exif`, `thumbnail`, `tags` and `image_similarity` �
 
 `ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
 
-_Not released yet._ `image_captioning` follows the **Captioning Model** choice the same way: with `None` selected the service is not started and the model is not downloaded, even while `FEATURE_IMAGE_CAPTIONING` allows captioning.
+<Since version="1.4.0" /> `image_captioning` follows the **Captioning Model** choice the same way: with `None` selected the service is not started and the model is not downloaded, even while `FEATURE_IMAGE_CAPTIONING` allows captioning.
 
 A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin Area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
 
@@ -267,15 +267,15 @@ Unlike the cached copy, the live conversion is **not** niced: somebody is watchi
 
 ### Thumbnail size and quality
 
-Every photo gets three WebP thumbnails: a big one, 1080 px high by default, which the lightbox shows and the duplicate detection, face detection and search read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size. A video gets a still big thumbnail and, instead of the squares, two short silent mp4 previews of its first seconds, 500 and 250 px high, which the grids play. _Not released yet:_ with the animated previews turned off (`FEATURE_VIDEO_PREVIEWS` above, or **Animated previews** in the Features card), a video gets two WebP squares of its first frame instead.
+Every photo gets three WebP thumbnails: a big one, 1080 px high by default, which the lightbox shows and the duplicate detection, face detection and search read, and two squares of 500 and 250 px, which the timeline and album grids show by the hundreds. The big one is encoded at quality 95. The squares are encoded at 80 since 1.3.0 (95 before): they come out 60–70 % smaller and encode a third faster, so a grid loads fewer bytes and the server sends more of them per second, for a difference that is hard to see at their size. A video gets a still big thumbnail and, instead of the squares, two short silent mp4 previews of its first seconds, 500 and 250 px high, which the grids play. <Since version="1.4.0" /> With the animated previews turned off (`FEATURE_VIDEO_PREVIEWS` above, or **Animated previews** in the Features card), a video gets two WebP squares of its first frame instead.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `SQUARE_THUMBNAIL_QUALITY` | `squareThumbnailQuality` | `80` | WebP quality (1–100) of the 500 and 250 px square thumbnails. `95` brings back the old size and look. |
-| `BIG_THUMBNAIL_QUALITY` | `bigThumbnailQuality` | `95` | _Not released yet._ WebP quality (1–100) of the big thumbnail. |
-| `BIG_THUMBNAIL_HEIGHT` | `bigThumbnailHeight` | `1080` | _Not released yet._ Height in pixels (500–4320) of the big thumbnail. A photo smaller than that is never enlarged. |
-| `VIDEO_PREVIEW_SECONDS` | `videoPreviewSeconds` | `5` | _Not released yet._ Length in seconds (1–30) of the animated video previews. |
-| `VIDEO_PREVIEW_CRF` | `videoPreviewCrf` | `20` | _Not released yet._ x264 quality (CRF, 0–51) of the animated video previews. Lower looks better and takes more space; every 6 roughly doubles or halves the file size. |
+| `BIG_THUMBNAIL_QUALITY` | `bigThumbnailQuality` | `95` | <Since version="1.4.0" /> WebP quality (1–100) of the big thumbnail. |
+| `BIG_THUMBNAIL_HEIGHT` | `bigThumbnailHeight` | `1080` | <Since version="1.4.0" /> Height in pixels (500–4320) of the big thumbnail. A photo smaller than that is never enlarged. |
+| `VIDEO_PREVIEW_SECONDS` | `videoPreviewSeconds` | `5` | <Since version="1.4.0" /> Length in seconds (1–30) of the animated video previews. |
+| `VIDEO_PREVIEW_CRF` | `videoPreviewCrf` | `20` | <Since version="1.4.0" /> x264 quality (CRF, 0–51) of the animated video previews. Lower looks better and takes more space; every 6 roughly doubles or halves the file size. |
 
 A value outside its range is set to the nearest limit. The thumbnails stay WebP and the previews mp4: every client and the server's media serving rely on those formats, so there is no setting for the format beyond turning the previews off.
 
@@ -285,7 +285,7 @@ These settings apply to thumbnails rendered from then on: those of newly scanned
 
 ### Stuck jobs
 
-Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. Not released yet: up to 1.3.0, every job was marked failed 24 hours after it started.
+Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
@@ -301,7 +301,7 @@ The backend talks to its helper services (thumbnails, metadata, faces, tags, cap
 
 *Releases before 1.2.0 listen on `0.0.0.0`.*
 
-Each helper service has its own port. In Docker nothing else runs in the container, so they never need to move. On the [Windows standalone](windows-standalone.md) build and other installs without Docker, another program on the PC may already use one of them; the service then cannot start, the log and the **Services** list in the Admin area name the program holding the port, and one of these variables moves the service to a free port. Set it for the whole backend (every process reads it), not for one service alone. Not released yet.
+<Since version="1.4.0" /> Each helper service has its own port. In Docker nothing else runs in the container, so they never need to move. On the [Windows standalone](windows-standalone.md) build and other installs without Docker, another program on the PC may already use one of them; the service then cannot start, the log and the **Services** list in the Admin area name the program holding the port, and one of these variables moves the service to a free port. Set it for the whole backend (every process reads it), not for one service alone.
 
 | Variable | Default | Service |
 | --- | --- | --- |
@@ -330,7 +330,7 @@ Addresses on a private network - your LAN (`192.168.x.x`, `10.x.x.x`), a Docker 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES` | `nextcloudAllowPrivateAddresses` | `true` | Set it to `false` if users on your instance should only be able to connect to Nextcloud servers on the public internet, for example when you host LibrePhotos for people you do not know and do not want them to reach anything on your local network. |
-| `NEXTCLOUD_CA_BUNDLE` | `nextcloudCaBundle` | _(empty)_ | Path, inside the container, of a PEM file with the certificates to check Nextcloud servers against, for a Nextcloud with a self-signed certificate or one from your own certificate authority. Empty means the public certificate authorities. With a path set, only the certificates in the file are trusted for Nextcloud, and a missing or unreadable file stops browsing and scanning with a message naming this variable. Certificate checking cannot be switched off. See [Nextcloud with a self-signed certificate](../user-guide/library.md#nextcloud-with-a-self-signed-certificate). Not released yet. |
+| `NEXTCLOUD_CA_BUNDLE` | `nextcloudCaBundle` | _(empty)_ | <Since version="1.4.0" /> Path, inside the container, of a PEM file with the certificates to check Nextcloud servers against, for a Nextcloud with a self-signed certificate or one from your own certificate authority. Empty means the public certificate authorities. With a path set, only the certificates in the file are trusted for Nextcloud, and a missing or unreadable file stops browsing and scanning with a message naming this variable. Certificate checking cannot be switched off. See [Nextcloud with a self-signed certificate](../user-guide/library.md#nextcloud-with-a-self-signed-certificate). |
 
 A Nextcloud on the same machine as LibrePhotos cannot be reached as `localhost`; use its Docker service name, or `host.docker.internal` for one running directly on the host.
 
@@ -406,7 +406,7 @@ The mail server itself is set in the app, under Admin area → Site Settings →
 
 ### Sign-in rate limits
 
-Not released yet: up to 1.3.0, only the password-reset request was rate limited.
+<Since version="1.4.0" /> Up to 1.3.0, only the password-reset request was rate limited.
 
 Signing in, refreshing a token, setting a new password from a reset link and signing up are rate limited per client. A client that goes over a limit gets `429 Too Many Requests` with a `Retry-After` header until its counter runs out. Sign-in counts per client address and username together, so people who share an address (a household behind one router) only use up each other's attempts at the same account, and someone guessing passwords for one account does not lock the others out. An admin adding users in the user editor is not limited. Wrong passwords in Basic auth requests (`curl -u`) come out of the same per-address-and-username budget as sign-in; requests with the right password are not counted.
 
@@ -446,7 +446,7 @@ Releases before 1.2.0 treated the whole value as a single origin, so a comma-sep
 
 ### Secure auth cookies
 
-Not released yet: up to 1.3.0, the auth cookies were never `Secure`.
+<Since version="1.4.0" /> Up to 1.3.0, the auth cookies were never `Secure`.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
@@ -482,7 +482,7 @@ The single-container image (see [Unified deployment](unified-deployment.md)) has
 | --- | --- | --- |
 | `SERVE_FRONTEND` | _(off)_ | `true` makes the image serve the web app from Django on port 8001, with no proxy in front. Its entrypoint then uses the no-proxy settings. |
 | `DB_BACKEND` | `sqlite` | `sqlite` keeps the database in `BASE_DATA/db`; `postgresql` connects with the `DB_*` variables above. The Compose stack always uses PostgreSQL. |
-| `DB_BACKUP_KEEP` | `3` | With SQLite, how many of the database backups made before a migration stay in `BASE_DATA/db/backups`; older ones are deleted. Applies to the [Windows standalone](windows-standalone.md) build too. Not released yet; see [Automatic backups](upgrading.md#sqlite-backups). |
+| `DB_BACKUP_KEEP` | `3` | <Since version="1.4.0" /> With SQLite, how many of the database backups made before a migration stay in `BASE_DATA/db/backups`; older ones are deleted. Applies to the [Windows standalone](windows-standalone.md) build too. See [Automatic backups](upgrading.md#sqlite-backups). |
 
 ### Demo mode
 
@@ -576,7 +576,7 @@ The same settings have environment variables, which set the first-run default in
 
 ### Removed variables
 
-Not released yet: `DEFAULT_FAVORITE_MIN_RATING` no longer exists as a variable. Up to 1.3.0 it set the rating a photo needs to count as a favourite for users created afterwards (default `4`). It is now always `4`, and a value you set is ignored. Users who already exist keep their own value, which they change under Settings, in **Minimum image rating to interpret as favorite** (see [Settings](../user-guide/settings/index.md)). If your `.env` sets it, you can remove the line. A value other than `4` also made the models disagree with the database migrations; that no longer happens.
+<Since version="1.4.0" /> `DEFAULT_FAVORITE_MIN_RATING` no longer exists as a variable. Up to 1.3.0 it set the rating a photo needs to count as a favourite for users created afterwards (default `4`). It is now always `4`, and a value you set is ignored. Users who already exist keep their own value, which they change under Settings, in **Minimum image rating to interpret as favorite** (see [Settings](../user-guide/settings/index.md)). If your `.env` sets it, you can remove the line. A value other than `4` also made the models disagree with the database migrations; that no longer happens.
 
 ### Admin account variables
 

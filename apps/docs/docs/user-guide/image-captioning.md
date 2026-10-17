@@ -12,7 +12,7 @@ To use the feature, open one of your own photos and click the information icon i
 
 ## Captioning the whole library {#captioning-the-whole-library}
 
-_Not released yet._ To caption many photos at once, open **Account menu > Library**. Under the **Captions** heading is the **Generate captions** row:
+<Since version="1.4.0" /> To caption many photos at once, open **Account menu > Library**. Under the **Captions** heading is the **Generate captions** row:
 
 - **Generate** captions the photos that have no generated caption yet. The first time, that is all of your photos; after that, the photos added since. A run you cancelled continues where it stopped the next time you click **Generate**.
 - The arrow next to **Generate** opens **Generate captions again for all photos**, which writes a new generated caption for every photo. It asks first, because on a large library it runs for hours.
@@ -25,7 +25,7 @@ The **Captions** section is only shown while captioning is on: the **Image capti
 
 ## Which model writes the captions?
 
-Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. There is nothing to pick: the files (about 370 MB) are fetched with the other models while captioning is on. _Not released yet:_ with captioning turned off they are not downloaded; turning it on again downloads them when you save the site settings or ask for a caption. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.
+Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. There is nothing to pick: the files (about 370 MB) are fetched with the other models while captioning is on. <Since version="1.4.0" /> With captioning turned off they are not downloaded; turning it on again downloads them when you save the site settings or ask for a caption. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.
 
 It writes one natural sentence, for example "A rocket is taking off from a launch pad at night, with two tall metal towers flanking the launch site." Because it is a vision-language model it also takes instructions, which is what the caption context settings below use.
 

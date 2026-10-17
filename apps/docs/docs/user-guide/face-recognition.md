@@ -22,7 +22,7 @@ The switch only takes effect together with **Settings → Metadata → Write edi
 - **Save to media file**: the regions are written into the original image file itself.
 - **Off** (the default): nothing is written, and the switch is greyed out until you pick one of the other two.
 
-_Not released yet: up to 1.3.0, face tags were written into the original image file while synchronization was **Off**. If you had the switch on with synchronization **Off**, your originals may already carry face regions and person names; LibrePhotos does not remove them._
+<Since version="1.4.0" /> Up to 1.3.0, face tags were written into the original image file while synchronization was **Off**. If you had the switch on with synchronization **Off**, your originals may already carry face regions and person names; LibrePhotos does not remove them.
 
 ## Change the label of a face
 
@@ -64,13 +64,13 @@ To confirm a whole inferred group at once, click the green check-person icon nex
 
 ### Browse people
 
-_Not released yet: the faces, tiles and order of people below come with the release after 1.3._
+<Since version="1.4.0" />
 
 Each group starts with a row that shows the person's face, their name and how many faces they have. The face is the cover from the **People** page; a cluster such as "Unknown 001" uses its first face. Click the arrow next to the face to collapse the person: they shrink to a single tile with their face, name and face count, and collapsed people sit side by side. The double-arrow button in the toolbar collapses every group at once, which turns the tab into a grid of people. A collapsed person loads none of their faces apart from the cover, so a large library opens faster this way. Click a tile to open that person's faces again. The dashboard remembers which people you collapsed, per tab.
 
 Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
 
-To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there. _Not released yet: groups come with the release after 1.3.0._
+<Since version="1.4.0" /> To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there.
 
 ### Act on one face
 
@@ -87,17 +87,17 @@ On the Deleted tab the menu only offers **Restore face** and **Show photo**.
 
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
-A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again. _Not released yet: this comes with the release after 1.3._
+<Since version="1.4.0" /> A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again.
 
 ## Delete faces
 
 Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan, and so the face can be [restored](#restore-deleted-faces).
 
-If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. _Not released yet: up to 1.3.0, deleting a face left its region and name in the file._
+If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. <Since version="1.4.0" /> Up to 1.3.0, deleting a face left its region and name in the file.
 
 ## Undo a face action
 
-_Not released yet: Undo and the Deleted tab come with the release after 1.3._
+<Since version="1.4.0" />
 
 The message that confirms a delete, a label (**Label as…**, the green plus button, the check-person buttons) or a wrong match (**Not _name_**, the orange person-off button) has an **Undo** button. It stays for 8 seconds, longer while you point at it. Undo puts the faces back exactly as they were: deleted faces come back to their person, and labelled faces go back to the tab they came from, with the suggestion they had (a face you confirmed on the Inferred tab is a suggestion on the Inferred tab again). When you act on several faces one after the other, the message adds them up, and its Undo takes back all of them.
 
@@ -115,7 +115,7 @@ A restored face goes back to its person (or to the unknown faces), counts for th
 
 Re-scan faces looks through all your photos again and adds any face it finds that does not already have a face record. This will take a while, because it has to look up all the photos again.
 
-Every face scan, the one after a photo scan as well as Re-scan faces, first gives each face whose thumbnail is missing a new one, cut from the photo where the face was found. A face whose photo has no thumbnail keeps the grey person icon until the photo has one. _Not released yet: this comes with the release after 1.3._
+<Since version="1.4.0" /> Every face scan, the one after a photo scan as well as Re-scan faces, first gives each face whose thumbnail is missing a new one, cut from the photo where the face was found. A face whose photo has no thumbnail keeps the grey person icon until the photo has one.
 
 :::note
 A re-scan will not bring back faces you removed with the delete face action. Deleting a face marks it as deleted but keeps its region on record, and the re-scan skips any newly detected face that overlaps an existing record — including deleted ones. To get a deleted face back, restore it from the **Deleted** tab (see [Restore deleted faces](#restore-deleted-faces)).
@@ -144,9 +144,9 @@ Faces are detected with [InsightFace](https://github.com/deepinsight/insightface
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
 
-_Not released yet: up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them._
+<Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.
 
-*Not released yet: up to 1.3.0, the face regions of a HEIC or AVIF photo whose EXIF Orientation disagrees with the file's own rotation (for example one turned with **Save to media file** in an earlier version) were read from, and written to, the wrong part of the photo.*
+<Since version="1.4.0" /> Up to 1.3.0, the face regions of a HEIC or AVIF photo whose EXIF Orientation disagrees with the file's own rotation (for example one turned with **Save to media file** in an earlier version) were read from, and written to, the wrong part of the photo.
 
 ### Face Quality
 

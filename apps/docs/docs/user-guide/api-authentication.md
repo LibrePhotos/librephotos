@@ -60,7 +60,7 @@ No `Authorization` header is needed; the refresh token itself is the credential.
 
 The response also clears the `jwt`, `access` and `refresh` cookies, whatever the blacklist answers: a refresh token that is already blacklisted (401), expired, or missing from the body (400) still signs the browser out. The web app calls the endpoint on every logout, because the `jwt` cookie is `HttpOnly` and only the server can delete it. Clearing the cookie does not revoke the access token in it: a copy taken before logout keeps working until it expires.
 
-*Not released yet: up to 1.3.0, the endpoint only blacklisted the token and the web deleted the cookies itself.*
+<Since version="1.4.0" /> Up to 1.3.0, the endpoint only blacklisted the token and the web deleted the cookies itself.
 
 ### Call APIs using the JWT access token
 
@@ -111,7 +111,7 @@ The backend sets these cookies:
 
 The cookies are `Secure` (sent over HTTPS only) when the request reached the backend over HTTPS, or when `AUTH_COOKIE_SECURE` is on. Behind the bundled proxy the backend always sees plain HTTP, also when your own proxy in front of it terminates TLS: it does not trust a forwarded scheme (Django's `SECURE_PROXY_SSL_HEADER` is not set). If your users reach LibrePhotos only over HTTPS, set `AUTH_COOKIE_SECURE=1`; see [Secure auth cookies](../installation/environment-variables.md#secure-auth-cookies). Leave it off when the install is also reached over plain HTTP, such as on the LAN: browsers refuse a `Secure` cookie there, and media would stop loading.
 
-*Not released yet: up to 1.3.0, the cookies had no `HttpOnly`, `SameSite` or `Secure` flag.*
+<Since version="1.4.0" /> Up to 1.3.0, the cookies had no `HttpOnly`, `SameSite` or `Secure` flag.
 
 ### Call APIs using Basic auth (optional)
 
@@ -123,7 +123,7 @@ Basic auth works on the standard DRF endpoints and on the media endpoints, but n
 
 Every Basic auth request is a password check, so wrong passwords count against the same limit as sign-in (`AUTH_THROTTLE_RATE`, per address and username; see [Sign-in rate limits](../installation/environment-variables.md#sign-in-rate-limits)). Once it is used up, requests with that username from that address answer 429 Too Many Requests with a `Retry-After` header, even with the right password, until the window moves on. Requests with the right password are not counted, so a script can send its credentials on every request.
 
-*Not released yet: up to 1.3.0, wrong Basic auth passwords were not rate limited.*
+<Since version="1.4.0" /> Up to 1.3.0, wrong Basic auth passwords were not rate limited.
 
 ### Helpful endpoints
 
@@ -165,7 +165,7 @@ Every API error (a status of 400 or above) has the same JSON body:
 
 Development builds append an extra entry with `field` `auth` (code `authentication_help`) to a 401 or 403; read the first entry. Media file requests (`/media/...`) are the exception: they answer without a body, as described above.
 
-Not released yet: before the release after 1.3.0, a second start of a job that was still queued queued it again instead of answering `job_already_running`, and duplicate and stack detection (`/api/duplicates/detect`, `/api/stacks/detect/`) answered without a `job_id`. Many endpoints answered errors as `{"error": "..."}` or `{"status": false, "message": "..."}`, entries had no `code`, and three failures (face training that could not be queued, the captioning model download and a refused test email) answered with a 200.
+<Since version="1.4.0" /> Up to 1.3.0, a second start of a job that was still queued queued it again instead of answering `job_already_running`, and duplicate and stack detection (`/api/duplicates/detect`, `/api/stacks/detect/`) answered without a `job_id`. Many endpoints answered errors as `{"error": "..."}` or `{"status": false, "message": "..."}`, entries had no `code`, and three failures (face training that could not be queued, the captioning model download and a refused test email) answered with a 200.
 
 ### Troubleshooting 401/403
 

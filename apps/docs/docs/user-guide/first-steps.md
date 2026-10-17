@@ -80,4 +80,4 @@ Fill out the server address, username and app password for the Nextcloud section
 
 Click on your avatar in the top right, and go to `Profile`. Under **Public Avatar**, click **Choose image** to pick a file from your computer, or **Choose from a face** to start from the cover face of one of your people. A face you pick shows in the editor like a file would, so you can still move and zoom it. Click **Upload** to save it.
 
-*Not released yet: up to 1.3.0, an avatar could only come from a file on your computer.*
+<Since version="1.4.0" /> Up to 1.3.0, an avatar could only come from a file on your computer.

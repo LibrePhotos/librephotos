@@ -1,6 +1,53 @@
 {
-  "latest": "1.3.0",
+  "latest": "1.4.0",
   "releases": [
+    {
+      "release": "1.4.0",
+      "versions": [
+        "1.4.0"
+      ],
+      "date": "2026-10-17T12:00:00.000Z",
+      "title": "1.4.0: Edits written to your files, editing many photos at once, search filters",
+      "permalink": "/blog/1-4-0",
+      "summary": "Your edits now reach your files, you can fix the date and place of many photos at once, and search has filters. Every instance should update; multi-user instances right away, for a security fix.",
+      "highlights": [
+        {
+          "id": "write-edits-to-files",
+          "audience": "all",
+          "title": "Your edits, in your files",
+          "body": "With Write edits to files on, tags, captions, locations and rotations now go into your files too. Write now writes the edits you made before.",
+          "learn_more": "/docs/user-guide/exif-data#writing-the-edits-of-a-whole-library"
+        },
+        {
+          "id": "edit-many-photos",
+          "audience": "all",
+          "title": "Fix many photos at once",
+          "body": "Select photos and choose Change date and time or Set location to fix them all together.",
+          "learn_more": "/docs/user-guide/viewing-photos#changing-the-date-of-many-photos"
+        },
+        {
+          "id": "search-filters",
+          "audience": "all",
+          "title": "Filter your search",
+          "body": "The Filters button on the search results narrows them by people, camera, date, place, rating and file type.",
+          "learn_more": "/docs/user-guide/search#search-filters"
+        },
+        {
+          "id": "collections-archive",
+          "audience": "all",
+          "title": "Collections and Archive",
+          "body": "Group albums into collections, and archive photos to take them off the timeline while they stay in your albums.",
+          "learn_more": "/docs/user-guide/albums#grouping-albums-into-collections"
+        },
+        {
+          "id": "finish-the-upgrade",
+          "audience": "admin",
+          "title": "Finish the upgrade card",
+          "body": "The work an update leaves now runs from a card in the Admin Area, with its progress, instead of commands in a terminal.",
+          "learn_more": "/docs/installation/upgrading#finish-the-upgrade"
+        }
+      ]
+    },
     {
       "release": "1.3.0",
       "versions": [

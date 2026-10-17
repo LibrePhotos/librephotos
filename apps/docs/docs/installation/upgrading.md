@@ -27,7 +27,7 @@ The [Windows standalone](windows-standalone.md) build and the [single container 
 
 ## "LibrePhotos is updating" {#updating-screen}
 
-_Not released yet._ Up to 1.3.0, the web app showed empty pages or the login toast "No connection to backend server, try again in a few minutes." while the backend was not answering.
+<Since version="1.4.0" /> Up to 1.3.0, the web app showed empty pages or the login toast "No connection to backend server, try again in a few minutes." while the backend was not answering.
 
 While the backend updates the database or starts up, the web app shows a page that says so instead of the login or your photos. It checks every 5 seconds and goes back to where you were by itself when LibrePhotos answers again; **Check now** asks at once.
 
@@ -75,7 +75,7 @@ When a task is done, its row says so for a day, then goes; the card goes with it
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 
-Not released yet: up to 1.3.0, nothing was backed up automatically.
+<Since version="1.4.0" /> Up to 1.3.0, nothing was backed up automatically.
 
 When a start brings database migrations, the [Windows standalone](windows-standalone.md) build and the [single container deployment](unified-deployment.md) with its internal SQLite database copy the database first, before anything else opens it. Nothing is migrated without that copy. A start without migrations writes nothing.
 
@@ -105,7 +105,7 @@ Starting the release named in the backup's file name, or any newer one, on the r
 
 ## Going back to an older release {#downgrade}
 
-Not released yet: up to 1.3.0, an older release started on a newer database without a word and failed later, when it saved a change.
+<Since version="1.4.0" /> Up to 1.3.0, an older release started on a newer database without a word and failed later, when it saved a change.
 
 A release cannot run on a database that a newer release has migrated: the newer release changed tables the older one does not know about. LibrePhotos refuses to start in that case and says so (in a message box on Windows, in `command_migrate.log` in the logs folder with Docker):
 
@@ -131,7 +131,7 @@ Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS
 
 An admin can also start it in the web app: **Account menu > Admin Area > Admin Tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker Logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
 
-Not released yet: up to 1.3.0, the cleanup is only available as the command below.
+<Since version="1.4.0" /> Up to 1.3.0, the cleanup was only available as the command below.
 
 To run it from a script, or without the web app, use the management command:
 
@@ -157,7 +157,7 @@ Both only rewrite thumbnails that still carry metadata, and keep their pixels an
 
 ## After upgrading from 1.3.0 or older {#refresh-exposure-time}
 
-_Not released yet._ Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so the exposure time of those photos is read again, once.
+<Since version="1.4.0" /> Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so the exposure time of those photos is read again, once.
 
 <Since version="1.4.0" /> This runs by itself after the update, as the **Read Shutter Speeds Again** job, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Only that one value is read from each photo and only the shutter speed is stored; your files are not changed.
 
@@ -177,7 +177,7 @@ It reads only the exposure time and writes only the shutter speed, so running it
 
 ### The log file is now `librephotos.log` {#log-file-renamed}
 
-_Not released yet._ Up to 1.3.0, the backend log in the logs folder (`BASE_LOGS`, `/logs` in the container) is called `ownphotos.log`. Newer releases call it `librephotos.log`. The first start of a newer release renames `ownphotos.log` and its older parts (`ownphotos.log.1`, `ownphotos.log.2`, ...) to the new name, so the history is kept, and logs a warning saying so. The lines in it look the same as before.
+<Since version="1.4.0" /> Up to 1.3.0, the backend log in the logs folder (`BASE_LOGS`, `/logs` in the container) is called `ownphotos.log`. Newer releases call it `librephotos.log`. The first start of a newer release renames `ownphotos.log` and its older parts (`ownphotos.log.1`, `ownphotos.log.2`, ...) to the new name, so the history is kept, and logs a warning saying so. The lines in it look the same as before.
 
 Anything that reads the file by name has to be pointed at the new one: Promtail, Fluent Bit or Vector configs, fail2ban filters (`logpath`), `tail -f` aliases and scripts. The **Server Logs** download in the Admin Area follows by itself.
 

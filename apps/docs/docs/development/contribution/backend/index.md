@@ -74,7 +74,7 @@ Tests are not scanned, so code that only a test calls counts as dead. Framework 
 
 ### Pagination
 
-Every list endpoint pages the same way (from the release after 1.3; not released yet): `api.drf.pagination.DefaultPagination` in `apps/backend/api/drf/pagination.py`, which is DRF's `DEFAULT_PAGINATION_CLASS`. It reads `?page=` and `?page_size=` (100 rows by default, at most 1000; both are clamped, a value that is not a number is a 400, and a page past the end is a 404) and always answers
+<Since version="1.4.0" /> Every list endpoint pages the same way: `api.drf.pagination.DefaultPagination` in `apps/backend/api/drf/pagination.py`, which is DRF's `DEFAULT_PAGINATION_CLASS`. It reads `?page=` and `?page_size=` (100 rows by default, at most 1000; both are clamped, a value that is not a number is a 400, and a page past the end is a 404) and always answers
 
 ```json
 { "count": 2345, "next": "…?page=3", "previous": "…?page=1", "results": [], "page": 2, "page_size": 100, "num_pages": 24 }

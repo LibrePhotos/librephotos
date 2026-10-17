@@ -8,7 +8,7 @@ To enable LibrePhotos to run its machine learning features offline, you can manu
 
 ### Step 1: Download the Models Manually
 
-Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links. OpenCLIP is always needed. _Not released yet:_ the captioning and face recognition models are optional; skip the ones whose feature you turned off (see [Running with minimal machine learning](./feature-toggles.md#minimal-machine-learning)), and LibrePhotos does not ask for them either.
+Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links. OpenCLIP is always needed. <Since version="1.4.0" /> The captioning and face recognition models are optional; skip the ones whose feature you turned off (see [Running with minimal machine learning](./feature-toggles.md#minimal-machine-learning)), and LibrePhotos does not ask for them either.
 
 1. **openclip_vitb32** (Tags, semantic search and similar photos; always required)
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/visual.onnx`

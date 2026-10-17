@@ -16,7 +16,7 @@ Albums you create manually to organize photos however you like. You can add any 
 ### People Albums
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
 
-The People page shows each person as a round picture of their cover face, the same face the Albums page shows; their name and number of faces sit under it. Choosing **Set as cover…** on a person's page also makes that person's face in the photo their cover face. A person whose face has no picture yet shows the whole cover photo instead, and a person without faces shows a placeholder. (Not released yet: up to 1.3.0, the People page showed the whole cover photo for everyone.)
+The People page shows each person as a round picture of their cover face, the same face the Albums page shows; their name and number of faces sit under it. Choosing **Set as cover…** on a person's page also makes that person's face in the photo their cover face. A person whose face has no picture yet shows the whole cover photo instead, and a person without faces shows a placeholder. <Since version="1.4.0" /> Up to 1.3.0, the People page showed the whole cover photo for everyone.
 
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
@@ -38,7 +38,7 @@ Groups gather people, for example "Family", "Work" or "Climbing club", so you ca
 
 When you merge two people, the person you merge into joins every group the merged person was in. The [face dashboard](./face-recognition.md#browse-people) has the same group button to label one group at a time.
 
-*Not released yet: groups of people come with the release after 1.3.0.*
+<Since version="1.4.0" /> Up to 1.3.0, people could not be grouped.
 
 #### Merging two people
 
@@ -52,7 +52,7 @@ Before anything changes you confirm the merge. Then:
 
 A merge cannot be undone. If you write face tags to your files, the files of the moved photos are updated in the background. The face classifier picks up the merged labels the next time you run [Train faces](./face-recognition.md#train-faces).
 
-*Not released yet: up to 1.3.0, two people could not be merged, a person's page had no menu, a photo could only be taken off a person in the face dashboard, and a deleted or unknown person's page said "Loading" for good instead of "Person not found".*
+<Since version="1.4.0" /> Up to 1.3.0, two people could not be merged, a person's page had no menu, a photo could only be taken off a person in the face dashboard, and a deleted or unknown person's page said "Loading" for good instead of "Person not found".
 
 ### Events
 Albums that group your photos into events based on when they were taken. Grouping is purely chronological: a photo joins the current event if it was taken less than **1 day and 12 hours** after the previous photo already in that event, so a continuous trip stays a single event however long it runs. An event needs at least two photos — a single photo on its own produces no album. Location and recognized people are not used for the grouping itself; they only feed the album's generated title (for example "Weekend in Paris") and its position on the map.
@@ -63,7 +63,7 @@ Unlike People, Places and Things albums, event albums are **not** created during
 
 Event titles follow the language you picked for the web app: "Wednesday Afternoon with Anna in Berlin" reads "Mittwochnachmittag mit Anna in Berlin" in German, once that language has the translation. Place and person names stay as they are. An event made before this change keeps its English title until the next **Generate Event Albums** run or a **Regenerate Event Titles**; the mobile app and search still use the English title.
 
-*Not released yet: up to 1.3.0, event titles were always English.*
+<Since version="1.4.0" /> Up to 1.3.0, event titles were always English.
 
 An event's cover on the **Events** page is its first photo until you pick another one with **Event actions** (⋮) → **Set as cover…** on the event's page (see [Setting an Album Cover](#setting-an-album-cover)). Running **Generate Event Albums** again keeps your pick: events are updated in place and only gain photos, and when new photos join two events into one, the merged event keeps the older event's cover, or the other one's if the older had none. **Delete all event albums** (Admin area, **Admin Tools**) removes the picks along with the events. A cover you hide or move to the trash later is replaced by the first photo again.
 
@@ -76,7 +76,7 @@ The **Folders** page lists the folders of your scan directory. Each tile shows t
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 
-The **Places** card on the Albums page shows a small map zoomed to fit your places, or the whole world while you have none; click it to open the [Places page](./places.md#the-places-page). (Not released yet: up to 1.3.0, the card always showed the whole world.)
+The **Places** card on the Albums page shows a small map zoomed to fit your places, or the whole world while you have none; click it to open the [Places page](./places.md#the-places-page). <Since version="1.4.0" /> Up to 1.3.0, the card always showed the whole world.
 
 ### Tags
 Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
@@ -106,7 +106,7 @@ Automatically generated albums based on detected objects and scenes in your phot
 
 Each page remembers its order in your browser, so going **Back** from an album returns to the same list at the same place. The order only changes what you see in the web app; the mobile app keeps its own.
 
-*Not released yet: up to 1.3.0, the album lists could not be sorted.*
+<Since version="1.4.0" /> Up to 1.3.0, the album lists could not be sorted.
 
 ---
 
@@ -145,7 +145,7 @@ If you already know which photo you want to use:
 
 <Since version="1.4.0" /> Up to 1.3.0, an event's cover could not be changed.
 
-*Not released yet: up to 1.3.0, the cover picker was "Set album cover" in the selection toolbar's ⋮ with nothing selected.*
+<Since version="1.4.0" /> Up to 1.3.0, the cover picker was "Set album cover" in the selection toolbar's ⋮ with nothing selected.
 
 ---
 
@@ -153,7 +153,7 @@ If you already know which photo you want to use:
 
 ### An empty album
 
-_Not released yet._ On **My Albums**, click **New album** (the **+** on a phone), give it a title that none of your albums has, and click **Create album**. The new album opens right away. It is empty, and shows a drop zone: drop photos and videos on it, or click **Upload photos**, to [upload them into the album](./upload.md#uploading-into-an-album). You can also fill it from your library as below.
+<Since version="1.4.0" /> On **My Albums**, click **New album** (the **+** on a phone), give it a title that none of your albums has, and click **Create album**. The new album opens right away. It is empty, and shows a drop zone: drop photos and videos on it, or click **Upload photos**, to [upload them into the album](./upload.md#uploading-into-an-album). You can also fill it from your library as below.
 
 If **My Albums** is showing one collection (see [Grouping albums into collections](#grouping-albums-into-collections)), the new album goes into that collection, and the dialog says so. Made from **All** or **Not in a collection**, it is in no collection and shows under **Not in a collection**.
 
@@ -179,9 +179,9 @@ On the **Albums** page, every User Album card has a **three-dot menu** (⋮) in 
 - **Collections…** — put the album into collections (see [Grouping albums into collections](#grouping-albums-into-collections)).
 - **Delete** — a confirmation dialog appears before the album is removed.
 
-The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Upload to this album…** (see [Uploading into an album](./upload.md#uploading-into-an-album); not released yet), **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
+The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Upload to this album…** (see [Uploading into an album](./upload.md#uploading-into-an-album)), **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
 
-*Not released yet: up to 1.3.0, an album could only be renamed, locked or deleted from its card.*
+<Since version="1.4.0" /> Up to 1.3.0, an album could only be renamed, locked or deleted from its card.
 
 :::caution
 Deleting an album is permanent and cannot be undone, but it only removes the album itself. The photos it contained stay in your library.
@@ -219,7 +219,7 @@ Collection names are unique per user, ignoring upper and lower case: you cannot 
 Collections are private. When you share an album, the people you share it with see the album but not your collections, and they cannot put your album into collections of their own.
 :::
 
-*Not released yet: up to 1.3.0, albums could not be grouped.*
+<Since version="1.4.0" /> Up to 1.3.0, albums could not be grouped.
 
 ---
 
@@ -290,7 +290,7 @@ On the Albums page, open **Tags → View all**. The three-dot menu on any tag of
 - **Merge** — pick another tag to fold into this one; its photos move over and it is deleted.
 - **Delete** — removes the tag. Your photos are untouched.
 
-With [Write edits to files](./settings/index.md#metadata-options) on, tags are written to the files as keywords, so a rename, merge or delete also changes the keyword in the files of every photo carrying the tag, in the background. Tagging a selection or one photo writes the same way. _Not released yet._
+<Since version="1.4.0" /> With [Write edits to files](./settings/index.md#metadata-options) on, tags are written to the files as keywords, so a rename, merge or delete also changes the keyword in the files of every photo carrying the tag, in the background. Tagging a selection or one photo writes the same way.
 
 :::note
 Tags are per user: two accounts can each have a tag called `holiday` without seeing each other's.

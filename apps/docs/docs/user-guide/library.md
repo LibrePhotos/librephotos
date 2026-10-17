@@ -32,13 +32,13 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 
 The scan imports images, videos, RAW files and XMP sidecars. Any other file in your folders, such as an editor sidecar (`.pp3`, `.aae`) or `Thumbs.db`, is skipped and does not count as an error. The `.json` files of a Google Takeout export are read for the date, location and description of their photo and are not photos themselves (see [Importing a Google Takeout export](./google-takeout.md)). <Since version="1.4.0" /> Up to 1.3.0 they were skipped too. A file that looks like a photo or video but cannot be read, such as an empty `.jpg` or one whose header is damaged, is still listed in the scan job's errors (see [Job System](./job-system.md)).
 
-A **Scan** processes new and changed files, and also every photo whose metadata could not be read last time (for example because the exif service was restarting or timed out): such a photo is listed in the job's errors, and the next scan reads it again, even though the file has not changed. _Not released yet:_ before this, only a **Rescan** read those photos again; after the update, the first **Scan** also reads the photos earlier scans left without metadata.
+A **Scan** processes new and changed files, and also every photo whose metadata could not be read last time (for example because the exif service was restarting or timed out): such a photo is listed in the job's errors, and the next scan reads it again, even though the file has not changed. <Since version="1.4.0" /> Up to 1.3.0, only a **Rescan** read those photos again; after the update, the first **Scan** also reads the photos earlier scans left without metadata.
 
-A folder LibrePhotos is not allowed to read, such as a `lost+found` folder owned by root or a NAS recycle bin, is skipped and the rest of the library is still scanned (not released yet). The scan then finishes as a partial failure and its job lists the folder with the reason. Because the photos in that folder were not looked at, that scan does not check for [missing photos](./missing-photos.md). If the scan directory itself cannot be read, the scan fails.
+<Since version="1.4.0" /> A folder LibrePhotos is not allowed to read, such as a `lost+found` folder owned by root or a NAS recycle bin, is skipped and the rest of the library is still scanned. The scan then finishes as a partial failure and its job lists the folder with the reason. Because the photos in that folder were not looked at, that scan does not check for [missing photos](./missing-photos.md). If the scan directory itself cannot be read, the scan fails.
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
-Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. Point at or tab to a greyed-out button to see why it is unavailable (not released yet).
+Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. <Since version="1.4.0" /> Point at or tab to a greyed-out button to see why it is unavailable.
 
 :::note
 AI *captions* are not generated during a scan — they are created per photo on demand. Open a photo, show the details panel, and use the wand icon in the **Caption** section. See [Image Captioning](./image-captioning.md).
@@ -116,7 +116,7 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 
 ### Nextcloud with a self-signed certificate
 
-LibrePhotos checks the certificate of an `https://` Nextcloud server, and refuses a server whose certificate it does not trust. A Nextcloud with a self-signed certificate (for example the default certificate of TrueNAS) or one from your own certificate authority then shows **Disconnected**. LibrePhotos has no switch that turns this check off. Instead, an admin tells it which certificate to trust (not released yet):
+LibrePhotos checks the certificate of an `https://` Nextcloud server, and refuses a server whose certificate it does not trust. A Nextcloud with a self-signed certificate (for example the default certificate of TrueNAS) or one from your own certificate authority then shows **Disconnected**. LibrePhotos has no switch that turns this check off. <Since version="1.4.0" /> Instead, an admin tells it which certificate to trust:
 
 1. Save the certificate as a PEM file, a text file that starts with `-----BEGIN CERTIFICATE-----`. Use the certificate of the authority that signed the Nextcloud certificate, or for a self-signed certificate the certificate itself. Export it from where it was made; in TrueNAS that is **Credentials** → **Certificates**.
 2. Give LibrePhotos the file and set `NEXTCLOUD_CA_BUNDLE` to its path, as below.
@@ -154,7 +154,7 @@ Things to know:
 
 In the **Nextcloud** section, click **Scan** to download and scan photos from your configured Nextcloud directory. Files are copied to the local filesystem under `nextcloud_media/<username>/` before being processed.
 
-A repeat scan keeps the local copies in step with the server (not released yet):
+<Since version="1.4.0" /> A repeat scan keeps the local copies in step with the server:
 
 - A file that is new on the server is downloaded and imported.
 - A file that changed on the server (it is newer or has another size) is downloaded again and processed again. An XMP sidecar that changed has its photo processed again, so ratings and keywords edited in another app arrive.
@@ -170,7 +170,7 @@ Nextcloud scanning indexes the same media as a local scan: images, videos, RAW f
 :::
 
 :::info Duplicate photos from earlier Nextcloud scans
-Up to version 1.3.0, every Nextcloud scan added another copy of each photo it had already imported. The first start after upgrading merges those copies into one photo per file (not released yet). The merged photo keeps the albums, tags, faces, shares and edit history of every copy and the highest rating among them; its caption, date and location come from a single copy: one that is not in the trash, preferring the copy you edited most, then the oldest.
+<Since version="1.4.0" /> Up to version 1.3.0, every Nextcloud scan added another copy of each photo it had already imported. The first start after upgrading merges those copies into one photo per file. The merged photo keeps the albums, tags, faces, shares and edit history of every copy and the highest rating among them; its caption, date and location come from a single copy: one that is not in the trash, preferring the copy you edited most, then the oldest.
 :::
 
 ## Library Actions
@@ -188,7 +188,7 @@ The Library page provides quick access to common maintenance actions:
 | **Nextcloud** | **Scan** | Scan photos from a connected Nextcloud instance |
 | **Extract Text** | **Extract** | Read the text on photos that have not been read yet (see [Text Recognition](./text-recognition.md#extracting-text)) |
 | **Extract Text** (dropdown) | **Extract text again for all photos** | Read the text on every photo again |
-| **Apply date rules to existing photos** | **Apply** | Read the date of every photo again with your current [date rules](./settings/date-rules.md#applying-the-rules); a date you set by hand stays. Not released yet |
+| **Apply date rules to existing photos** | **Apply** | <Since version="1.4.0" /> Read the date of every photo again with your current [date rules](./settings/date-rules.md#applying-the-rules); a date you set by hand stays. |
 
 If LibrePhotos detects photos that are no longer on disk, a red **N Missing Photos** badge appears next to the **Photos** heading. Click it to open the **Remove missing photos** dialog and confirm removal of those database entries. The badge is hidden when nothing is missing.
 

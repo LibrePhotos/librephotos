@@ -26,7 +26,7 @@ A date you set by hand in a photo's info panel, or for many photos at once with
 the list, on every scan and rescan, however you order or edit your rules. The info panel says
 **Set by you** under such a date. To hand the photo back to the rules, open it, edit its date and
 click **Remove timestamp**; the rules then decide its date again, so the photo keeps a date read
-from its file if it has one. _Not released yet._ Up to version 1.3.0 a hand-set date only applied
+from its file if it has one. <Since version="1.4.0" /> Up to version 1.3.0 a hand-set date only applied
 through a rule called *Timestamp set by user*, and it stopped sticking once that rule was deleted
 or moved below another; that rule is gone from every saved list after the update.
 
@@ -61,7 +61,7 @@ Videos keep their date in other tags than photos, and the default rules read thr
 - **Other MP4 and MOV files** only have the UTC `QuickTime:CreateDate`, converted with the time zone of the video's position or, without one, your default time zone.
 - **MKV and WebM files** have a UTC `Matroska:DateTimeOriginal`, converted the same way by the two "MKV/WebM creation date" rules.
 
-_Not released yet._ After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with [Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
+<Since version="1.4.0" /> After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with [Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
 
 ### What gets stored, and why times are not converted for you
 
@@ -113,7 +113,7 @@ The top rules are applied first and the bottom rules last. To change the order, 
 
 ### Applying the rules
 
-The date rules are applied on each scan, so photos scanned after a change use the new rules. To apply them to the photos already in your library, use **Apply date rules to existing photos**. _Not released yet._
+The date rules are applied on each scan, so photos scanned after a change use the new rules. <Since version="1.4.0" /> To apply them to the photos already in your library, use **Apply date rules to existing photos**.
 
 - Right after you save changed rules, the date rules card shows **Your date rules changed** with an **Apply to existing photos** button.
 - At any time, open the **Library** page (from the profile menu in the top-right corner, choose **Library**; or press Ctrl+K and search for "Library") and click **Apply** in the **Dates** section.

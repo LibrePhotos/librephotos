@@ -141,7 +141,7 @@ download held only the sidecars a scan had found, and none that write-back had j
 
 ## All metadata
 
-_Not released yet._ To see every tag a photo's file carries, not just the fields above, open
+<Since version="1.4.0" /> To see every tag a photo's file carries, not just the fields above, open
 **All metadata**: in the lightbox's info panel it is the link in the file row (next to the size),
 on the photo page the button at the end of the **File** card. Only the photo's owner sees it.
 
