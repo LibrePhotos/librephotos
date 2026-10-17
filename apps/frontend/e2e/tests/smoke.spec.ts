@@ -34,16 +34,16 @@ test("timeline shows the seeded photos grouped by day", async ({ page }) => {
   for (const day of SEED_DAYS) {
     await expect(timeline.dayHeader(day)).toBeVisible();
   }
-  await expect(timeline.tiles).toHaveCount(SEED_PHOTO_COUNT);
+  await expect(timeline.photos).toHaveCount(SEED_PHOTO_COUNT);
   // The thumbnail has to come through the backend's media view, not just render a tile.
-  const thumbnail = timeline.tiles.first().locator("img").first();
+  const thumbnail = timeline.photos.first().locator("img").first();
   await expect.poll(() => isImageLoaded(thumbnail)).toBe(true);
 });
 
 test("clicking a photo opens it in the lightbox", async ({ page }) => {
   const timeline = new TimelinePage(page);
   await timeline.goto();
-  await timeline.tiles.first().click();
+  await timeline.photos.first().click();
 
   const lightbox = new Lightbox(page);
   await expect(lightbox.dialog).toBeVisible();
@@ -57,7 +57,7 @@ test("clicking a photo opens it in the lightbox", async ({ page }) => {
 test("the open photo is in the address: Back closes it, a reload reopens it (#2231)", async ({ page }) => {
   const timeline = new TimelinePage(page);
   await timeline.goto();
-  await timeline.tiles.first().click();
+  await timeline.photos.first().click();
 
   const lightbox = new Lightbox(page);
   await expect(lightbox.dialog).toBeVisible();
@@ -77,7 +77,7 @@ test("the open photo is in the address: Back closes it, a reload reopens it (#22
 test("favorite toggles from the lightbox and persists", async ({ page }) => {
   const timeline = new TimelinePage(page);
   await timeline.goto();
-  await timeline.tiles.first().click();
+  await timeline.photos.first().click();
 
   const lightbox = new Lightbox(page);
   await expect(lightbox.favoriteButton).toBeVisible();

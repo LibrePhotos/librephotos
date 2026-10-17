@@ -52,6 +52,10 @@ export const usePhotoListClick = ({
         return;
       }
 
+      // A placeholder for a page that has not loaded yet has a made-up id ("0", "temp-0") and
+      // nothing to open: the lightbox asked for /photos/0/, got a 404 and closed again.
+      if (item.isTemp) return;
+
       // Store image index for later scrolling
       const currentIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
       currentImageIndexRef.current = currentIndex;

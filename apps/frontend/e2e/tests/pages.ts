@@ -30,12 +30,16 @@ export class LoginPage {
 export class TimelinePage {
   readonly heading: Locator;
 
-  /** One button per photo tile in the justified grid. */
-  readonly tiles: Locator;
+  /**
+   * One button per loaded photo in the justified grid. The grid first lays out a placeholder per
+   * photo the day list counts, labelled just "Photo", and swaps in the photos when their page
+   * arrives; a placeholder opens nothing, so a test that clicks one races that page.
+   */
+  readonly photos: Locator;
 
   constructor(readonly page: Page) {
     this.heading = page.getByRole("main").getByRole("heading", { name: "Photos", level: 1 });
-    this.tiles = page.locator("main button.pig-btn");
+    this.photos = page.getByRole("main").getByRole("button", { name: /^Photo taken / });
   }
 
   async goto() {
