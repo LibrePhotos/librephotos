@@ -1041,13 +1041,13 @@
     "@tanstack/query-core" "5.104.3"
 
 "@tanstack/react-router@^1.168.10":
-  version "1.170.44"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-router/-/react-router-1.170.44.tgz#5c2388d1305cbdd68a7ad4581e7359c0fc8c31d0"
-  integrity sha512-uIIZ3CHU1yWlkMkmbnGFX3WIfZozF+tNrOMMEoM9lo+jzPInCRq80LBqW3DH9ixNHWjB3TM/cNIvr05uGIlP3A==
+  version "1.170.45"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-router/-/react-router-1.170.45.tgz#8111a3dc3aa78fa0f37f7a9346ed54ca40756f43"
+  integrity sha512-6tuiIAFb82zsk/YxveJRyGjbsm6kIfgUuoH7qCp2R2aSHveW6W0t/6j+Sn4m1iIlA2lLU4cvooqks08/YMOThw==
   dependencies:
     "@tanstack/history" "1.162.5"
     "@tanstack/react-store" "^0.11.2"
-    "@tanstack/router-core" "1.171.37"
+    "@tanstack/router-core" "1.171.38"
     isbot "^5.1.22"
 
 "@tanstack/react-store@^0.11.2":
@@ -1065,23 +1065,23 @@
   dependencies:
     "@tanstack/virtual-core" "3.19.6"
 
-"@tanstack/router-core@1.171.37":
-  version "1.171.37"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-core/-/router-core-1.171.37.tgz#dd5b3e8f0a12f5b29cda007e594696c03916f976"
-  integrity sha512-11Le36++mHNeeFIABz4C3PdTWyJ1ilOmGmANOQOypknZwC1xN674al5BUqWuimKasWane1/XSNcEx8NYNHh0+A==
+"@tanstack/router-core@1.171.38":
+  version "1.171.38"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-core/-/router-core-1.171.38.tgz#37d90d8be445b5d02593fd782c0b51e95237b55b"
+  integrity sha512-XRZVxiO6BIexICmEo3XfPmpoyyLhbjgaMJsONz4gIf5oYys0UiaG1BJGRyj9x8QZPDZcBhvAMuTYN70wSxV0gA==
   dependencies:
     "@tanstack/history" "1.162.5"
     cookie-es "^3.0.0"
     seroval "^1.6.7"
     seroval-plugins "^1.6.7"
 
-"@tanstack/router-generator@1.167.44":
-  version "1.167.44"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-generator/-/router-generator-1.167.44.tgz#a5a13aedc58e17d31618ebc497ce8d95133270b2"
-  integrity sha512-FUgkLdqXXF0ZSYsyJKmcLubqFfckMJolUM3CplsJidedGYzIcMXYm43wodAhVCU1BqlKXJldXuuCtebqxurvaA==
+"@tanstack/router-generator@1.167.45":
+  version "1.167.45"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-generator/-/router-generator-1.167.45.tgz#3c5e6bfab8c3835527dd401b7741849291451c43"
+  integrity sha512-oCtNqtsMNcBJkPIOu1O7a68jnxt4TkVJj3jHrW3VgiZdBeaj/lBJQh50yvzmNRswRcyIkRg0g30g25bbLRrAGw==
   dependencies:
     "@babel/types" "^7.29.8"
-    "@tanstack/router-core" "1.171.37"
+    "@tanstack/router-core" "1.171.38"
     "@tanstack/router-utils" "1.162.4"
     "@tanstack/virtual-file-routes" "1.162.0"
     jiti "^2.7.0"
@@ -1090,15 +1090,15 @@
     zod "^4.5.4"
 
 "@tanstack/router-plugin@^1.167.12":
-  version "1.168.46"
-  resolved "https://registry.yarnpkg.com/@tanstack/router-plugin/-/router-plugin-1.168.46.tgz#8bb9a30cc9b907357d3faf67bca208c614238853"
-  integrity sha512-nAQ/13ySmSJ8OVXJh/e4ACg0vn87NjrEIxljxj+K9tr+vdOVuScFWuciJRIXhB3CwV7LnmWt6dDZYwzd0b+tAw==
+  version "1.168.47"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-plugin/-/router-plugin-1.168.47.tgz#5f8e85eb0ad5a02a15511d1c8f2603c7d5b1fb4d"
+  integrity sha512-1qvMto2Id0Uulux4qd+WttCbOFloIEQ5x82m68T4knt6NmUDQC66P/u/5yzN0FWGSO0u2U2nbDSIQoR6g7HNmQ==
   dependencies:
     "@babel/core" "^7.29.7"
     "@babel/template" "^7.29.7"
     "@babel/types" "^7.29.8"
-    "@tanstack/router-core" "1.171.37"
-    "@tanstack/router-generator" "1.167.44"
+    "@tanstack/router-core" "1.171.38"
+    "@tanstack/router-generator" "1.167.45"
     "@tanstack/router-utils" "1.162.4"
     chokidar "^5.0.0"
     unplugin "^3.3.0"
@@ -1953,9 +1953,9 @@ balanced-match@^4.0.2:
   integrity sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==
 
 baseline-browser-mapping@^2.11.26:
-  version "2.11.28"
-  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.11.28.tgz#784efec0fa3965c28a0bbb755f40604ace1c9db0"
-  integrity sha512-br0LOmjJqr6Rt4AEkadbcNf67Zpo7EPwKsWbjnRrJIa1QYFHQBqM4C7F2WTbV8ahTEcg1Eo+Y0aWjjORInYFyA==
+  version "2.11.29"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.11.29.tgz#dbed0ed2c17943aa4427863c91300865d9d8ca23"
+  integrity sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==
 
 bidi-js@^1.1.0:
   version "1.1.0"
@@ -2431,9 +2431,9 @@ earcut@^3.2.4:
   integrity sha512-FHc6yNpnTORB0tM5kmZ03iD2mDuNakDE2lvf4Hw1XkfxtEHIGVi01B/GqUSwx+NcC1WGjidAfpTXzeALtPtfpg==
 
 electron-to-chromium@^1.5.439:
-  version "1.5.456"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.456.tgz#cfa8b3b4c44450b8a28df4a7bc8be377cae1b691"
-  integrity sha512-8hboqI6xesozteFb8aa7OGknvxUtTeRJLz0FoePysUEh/oWbddykIGdgpEJRbPRg/nIMfBf2DFos+H2MtvJl2A==
+  version "1.5.458"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.458.tgz#fdc608c8ee26eeb4fa20b3447378c6c83a806a76"
+  integrity sha512-/hIH2gRSmxrf4/X4Nw/t/Wc8PVS22l8/3HnWjWTWsTOM5dsnMUPZF/+u+yr3LqweNuTBJE1rq6qAQzKkZVwMfA==
 
 embla-carousel-react@^8.6.0:
   version "8.6.0"
@@ -3834,9 +3834,9 @@ node-exports-info@^1.6.0:
     semver "^6.3.1"
 
 node-releases@^2.0.57:
-  version "2.0.58"
-  resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.58.tgz#bc58566945248a28a1d4ba2a7deeee0a71a73fad"
-  integrity sha512-BdiKAgbfRlvfMq/XzO/AF9NPmaA8a+YpLAyAFTVFBj3gARrAIfWvNq7Q7NE4se3KgFu0KkrvQMxTS0XVnsGzHg==
+  version "2.0.59"
+  resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.59.tgz#172a7e253e3cca1ae00e8015a82b54e7fcc68fd3"
+  integrity sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==
 
 nwsapi@2.2.13:
   version "2.2.13"
@@ -4254,9 +4254,9 @@ react-dom@19.3.1:
     scheduler "^0.28.0"
 
 react-dropzone@^20.0.0:
-  version "20.1.3"
-  resolved "https://registry.yarnpkg.com/react-dropzone/-/react-dropzone-20.1.3.tgz#e4c02b80c0e751d07acd58ebfed5cb3342ef7e81"
-  integrity sha512-84ilFcyPItmPIOEU0P2u976sb8UctgcMbbQHTDmAKo7+i9m1Im2Q9swEZnv3FWNg9xdbMhGG7eUMJk1l6Ltsgw==
+  version "20.1.4"
+  resolved "https://registry.yarnpkg.com/react-dropzone/-/react-dropzone-20.1.4.tgz#253b440b4540f2ff555faee72c66622411f2f4b3"
+  integrity sha512-LyjT9iQySNkJGC6yL+XTlmfTRxHhPx0eSoTh+WlR0Ge+W35rLcRH/oH7w5bzijfPHeCFcLnO9G7i+hX+LINAAA==
   dependencies:
     attr-accept "^4.0.0"
     file-selector "^5.0.1"
