@@ -1,9 +1,9 @@
 import type { LocatedPhoto } from "@librephotos/api-client";
-import { Group, Image, Skeleton, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Group, Skeleton, Stack, Text, UnstyledButton } from "@mantine/core";
 import type { TFunction } from "i18next";
 import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { mediaUrl } from "../../api_client/media/mediaUrl";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import classes from "./NearbyLocatedStrip.module.css";
 import { formatAmount, formatTaken, offsetFromSpan, type TakenSpan } from "./nearbyTime";
 
@@ -104,14 +104,7 @@ function NearbyTile({
       onClick={() => onPick(photo)}
       w={TILE_SIZE + 8}
     >
-      <Image
-        src={mediaUrl.squareThumbnailSmall(photo.image_hash)}
-        w={TILE_SIZE}
-        h={TILE_SIZE}
-        radius="sm"
-        alt=""
-        className={classes.thumbnail}
-      />
+      <MediaThumbnail imageHash={photo.image_hash} size={TILE_SIZE} radius="sm" className={classes.thumbnail} />
       <Text size="xs" lineClamp={1} mt={4}>
         {photo.short_place || place}
       </Text>

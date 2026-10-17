@@ -55,6 +55,7 @@ const planted = {
   "menu-item-disabled": `const plantedMenuItem = <Menu.Item disabled={true}>Go</Menu.Item>;`,
   "action-icon-name": `const plantedIcon = <ActionIcon onClick={go}><IconTrash /></ActionIcon>;`,
   "menu-target-disabled": `const plantedMenuTarget = <Menu.Target><ActionIcon aria-label="Add" disabled={!ready}>+</ActionIcon></Menu.Target>;`,
+  "menu-middlewares": `const plantedMenu = <Menu middlewares={{ flip: true }}><Menu.Target>x</Menu.Target></Menu>;`,
   "poll-interval": `const plantedQuery = { refetchInterval: 2000 };`,
   "api-client-timer": `setTimeout(refresh, 1000);`,
   "page-loader-returned": `function PlantedPage() { return <Loader />; }`,
@@ -75,6 +76,8 @@ const planted = {
   "window-fetch": `const plantedWindowFetch = window.fetch("/api/photos/");`,
   "globalthis-fetch": `const plantedGlobalFetch = globalThis.fetch("/api/photos/");`,
   "window-dispatch-event": `window.dispatchEvent(new Event("resize"));`,
+  "square-thumbnail-url": `const plantedCover = <Image src={mediaUrl.squareThumbnail(hash)} alt="" />;`,
+  "square-thumbnail-small-url": `const plantedRow = <Avatar src={mediaUrl.squareThumbnailSmall(hash)} />;`,
   "style-from-handler": `event.currentTarget.style.opacity = "1";`,
 };
 const isJsx = code => /<[A-Z]/.test(code);

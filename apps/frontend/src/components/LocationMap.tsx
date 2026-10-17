@@ -1,12 +1,12 @@
 import type { Photo } from "@librephotos/api-client";
-import { Box, Image } from "@mantine/core";
+import { Box } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
 import type { MapRef } from "react-map-gl/maplibre";
-import { mediaUrl } from "../api_client/media/mediaUrl";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
+import { MediaThumbnail } from "./common/MediaThumbnail";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 import { ThemedMap } from "./map/ThemedMap";
@@ -23,6 +23,8 @@ type Props = Readonly<{
 
 // Street level: the map shows where one photo was taken
 const PHOTO_ZOOM = 16;
+// Fits maplibre's popup, which is at most 240px wide with its padding.
+const POPUP_THUMBNAIL_SIZE = 200;
 
 export function LocationMap({ photos }: Props) {
   const { t } = useTranslation();
@@ -95,7 +97,12 @@ export function LocationMap({ photos }: Props) {
               onClose={() => setPopupInfo(null)}
             >
               <div>
-                <Image src={mediaUrl.squareThumbnail(popupInfo.image_hash)} alt={t("map.photohere")} />
+                <MediaThumbnail
+                  imageHash={popupInfo.image_hash}
+                  kind="square_thumbnails"
+                  size={POPUP_THUMBNAIL_SIZE}
+                  alt={t("map.photohere")}
+                />
               </div>
             </Popup>
           )}

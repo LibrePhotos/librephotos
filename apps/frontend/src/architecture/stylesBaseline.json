@@ -65,7 +65,6 @@
   "src/components/sharing/PhotoShareLinkModal.tsx": { "inlineStyles": 1 },
   "src/components/sharing/PhotoSharesSection.tsx": { "inlineStyles": 2 },
   "src/components/sharing/PublicAlbumsGrid.tsx": { "inlineStyles": 3 },
-  "src/components/sharing/ShareThumbnail.tsx": { "inlineStyles": 2 },
   "src/components/spotlight/Spotlight.tsx": { "inlineStyles": 3 },
   "src/components/stacks-duplicates/StacksPageContent.tsx": { "inlineStyles": 3 },
   "src/components/virtual/AutoSizer.tsx": { "inlineStyles": 1 },

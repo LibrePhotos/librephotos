@@ -9,9 +9,9 @@ import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
 import { useFetchMyPublicPhotosQuery, useFetchPhotoSharesQuery } from "../../api_client/photos/hooks";
 import { parseInstant, parsePhotoTimestamp } from "../../util/dateUtils";
 import classes from "../album/AlbumSection.module.css";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import { AlbumShareButton } from "./AlbumShareButton";
 import { ModalAlbumShare } from "./ModalAlbumShare";
-import { ShareThumbnail } from "./ShareThumbnail";
 import overviewClasses from "./SharingOverview.module.css";
 import { AlbumPreviewCard, PhotoPreviewCover, SharePreviewInfo, SharingSectionHeading } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
@@ -60,7 +60,7 @@ function PublicLinksRow({ albums, photoShares, publicPhotos, onShareAlbum }: Row
       {photoShares.map(share => (
         <Link key={share.slug} to="/sharing/links" search={{ tab: "photos" }} className={classes.albumCard}>
           <div className={classes.albumCover}>
-            <ShareThumbnail
+            <MediaThumbnail
               imageHash={share.image_hash}
               size={140}
               kind="square_thumbnails"

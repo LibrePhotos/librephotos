@@ -1,11 +1,11 @@
 import type { DatedPhoto, DateSummary } from "@librephotos/api-client";
-import { Button, Group, Image, NumberInput, SegmentedControl, SimpleGrid, Stack, Table, Text } from "@mantine/core";
+import { Box, Button, Group, NumberInput, SegmentedControl, SimpleGrid, Stack, Table, Text } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { describeDuration, formatPhotoDateTime, shiftPhotoTimestamp } from "../../util/dateUtils";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import {
   SHIFT_UNITS,
   shiftSeconds,
@@ -47,14 +47,9 @@ function PreviewRow({ label, photo, seconds }: Readonly<{ label: string; photo: 
     <Table.Tr>
       <Table.Th scope="row">
         <Group gap="xs" wrap="nowrap">
-          <Image
-            src={mediaUrl.squareThumbnailSmall(photo.image_hash)}
-            alt=""
-            w={28}
-            h={28}
-            radius="sm"
-            visibleFrom="xs"
-          />
+          <Box visibleFrom="xs">
+            <MediaThumbnail imageHash={photo.image_hash} size={28} radius="sm" />
+          </Box>
           <Text size="sm">{label}</Text>
         </Group>
       </Table.Th>
