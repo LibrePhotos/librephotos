@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.72a13e3e.js" defer="defer"></script>
-<script src="/assets/js/main.5c53ed32.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7f0cb851.js" defer="defer"></script>
+<script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -44,7 +44,7 @@
 <ul>
 <li class="">Photos, Albums, My Albums, People, Places, Things, Tags, Events, Folders</li>
 <li class="">Favorites, Hidden, Videos, Trash, Recently Added, No Timestamp, No Location, Not in an Album</li>
-<li class="">Filter photos: the search page with <a href="#search-filters" class="">filters</a> and no words (not released yet)</li>
+<li class=""><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Filter photos: the search page with <a href="#search-filters" class="">filters</a> and no words</li>
 <li class="">Sharing, Faces Dashboard, Statistics — and its sub-pages Place Tree, Word Clouds, Timeline, Social Graph and Face Clusters</li>
 <li class="">Settings, Profile, Library, Admin Area</li>
 </ul>
@@ -72,11 +72,11 @@
 <li class="">Date fragments in ISO form (e.g. <code>2024</code>, <code>2024-01</code>, <code>2024-01-15</code>) — the timestamp is matched as plain text, so month or weekday names such as &quot;January&quot; or &quot;Thursday&quot; do not match</li>
 </ul>
 <p>Every word in your query must match, though not necessarily in the same field: searching <code>beach sunset</code> returns only photos where both <code>beach</code> and <code>sunset</code> appear somewhere in the indexed text (caption, person name, location, file path, camera, and so on). Commas separate words the same way spaces do. To search for an exact phrase, wrap it in quotes — <code>&quot;golden gate bridge&quot;</code> matches only photos containing that whole phrase.</p>
-<p>Accents and letter case do not matter, in either direction: <code>Zurich</code> finds photos taken in Zürich, <code>café</code> finds a caption that says &quot;cafe&quot;, and <code>Lodz</code> finds &quot;Łódź&quot;. This covers everything in the list above except the date, plus your tags. Text found in photos by OCR is still matched as written. The spotlight&#x27;s suggestions ignore accents the same way. (Not released yet: up to 1.3.0, a search had to spell every accent. The upgrade prepares existing photos once, while the database migrates.)</p>
+<p>Accents and letter case do not matter, in either direction: <code>Zurich</code> finds photos taken in Zürich, <code>café</code> finds a caption that says &quot;cafe&quot;, and <code>Lodz</code> finds &quot;Łódź&quot;. This covers everything in the list above except the date, plus your tags. Text found in photos by OCR is still matched as written. The spotlight&#x27;s suggestions ignore accents the same way. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0, a search had to spell every accent. The upgrade prepares existing photos once, while the database migrates.</p>
 <p>The search results header also has a media button in the top right for narrowing the results to photos, videos, screenshots or documents, and a <strong>Filters</strong> button for everything else (see <a href="#search-filters" class="">Search Filters</a>).</p>
 <p>Results are displayed grouped by date, similar to the main timeline view.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="search-filters">Search Filters<a href="#search-filters" class="hash-link" aria-label="Direct link to Search Filters" title="Direct link to Search Filters" translate="no">​</a></h2>
-<div class="theme-admonition theme-admonition-note admonition_xJq3 alert alert--secondary"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>note</div><div class="admonitionContent_BuS1"><p><span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span> The filters come to the web app and to the API in the same release.</p></div></div>
+<div class="theme-admonition theme-admonition-note admonition_xJq3 alert alert--secondary"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>note</div><div class="admonitionContent_BuS1"><p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> The filters come to the web app and to the API in the same release.</p></div></div>
 <p>Besides the words you type, a search can be narrowed by the people in the photo, the camera, the exposure, the rating, the day, the location and the file. On the search results page, click <strong>Filters</strong> next to the media button (on a phone, the filter icon) to open the panel:</p>
 <ul>
 <li class=""><strong>People</strong>: pick one or more people. With several, you get the photos with all of them together.</li>

@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.72a13e3e.js" defer="defer"></script>
-<script src="/assets/js/main.5c53ed32.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7f0cb851.js" defer="defer"></script>
+<script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -34,7 +34,7 @@ the rule) then that rule is considered to be not applicable.</p>
 the list, on every scan and rescan, however you order or edit your rules. The info panel says
 <strong>Set by you</strong> under such a date. To hand the photo back to the rules, open it, edit its date and
 click <strong>Remove timestamp</strong>; the rules then decide its date again, so the photo keeps a date read
-from its file if it has one. <em>Not released yet.</em> Up to version 1.3.0 a hand-set date only applied
+from its file if it has one. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to version 1.3.0 a hand-set date only applied
 through a rule called <em>Timestamp set by user</em>, and it stopped sticking once that rule was deleted
 or moved below another; that rule is gone from every saved list after the update.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="figuring-out-the-timezone">Figuring out the timezone<a href="#figuring-out-the-timezone" class="hash-link" aria-label="Direct link to Figuring out the timezone" title="Direct link to Figuring out the timezone" translate="no">​</a></h3>
@@ -62,7 +62,7 @@ should be one of the following:</p>
 <li class=""><strong>Other MP4 and MOV files</strong> only have the UTC <code>QuickTime:CreateDate</code>, converted with the time zone of the video&#x27;s position or, without one, your default time zone.</li>
 <li class=""><strong>MKV and WebM files</strong> have a UTC <code>Matroska:DateTimeOriginal</code>, converted the same way by the two &quot;MKV/WebM creation date&quot; rules.</li>
 </ul>
-<p><em>Not released yet.</em> After the update, accounts whose rules still contain both &quot;Get Video creation tag in UTC + figure out timezone using GPS coordinates&quot; (ID 2) and &quot;Video creation datetime in user default timezone&quot; (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and <strong>Reset To Defaults</strong> adds them. Videos already in your library get the new dates with <a href="#applying-the-rules" class="">Apply date rules to existing photos</a> or a <strong>Rescan</strong>.</p>
+<p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> After the update, accounts whose rules still contain both &quot;Get Video creation tag in UTC + figure out timezone using GPS coordinates&quot; (ID 2) and &quot;Video creation datetime in user default timezone&quot; (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and <strong>Reset To Defaults</strong> adds them. Videos already in your library get the new dates with <a href="#applying-the-rules" class="">Apply date rules to existing photos</a> or a <strong>Rescan</strong>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-gets-stored-and-why-times-are-not-converted-for-you">What gets stored, and why times are not converted for you<a href="#what-gets-stored-and-why-times-are-not-converted-for-you" class="hash-link" aria-label="Direct link to What gets stored, and why times are not converted for you" title="Direct link to What gets stored, and why times are not converted for you" translate="no">​</a></h3>
 <p>Once a rule succeeds, LibrePhotos stores the <strong>local time the camera recorded</strong> — the time you would have read off the camera when you took the shot.</p>
 <p>This is deliberate. A photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin are both shown as 14:00, because that is the time each one was actually taken. LibrePhotos does <strong>not</strong> re-cast your library into the timezone you happen to be browsing from; if it did, every photo would shift whenever you travelled, and photos from a holiday abroad would no longer line up with the day you remember them on.</p>
@@ -86,7 +86,7 @@ timezones they are always translated to local time using UTC.</li>
 <li class="">&quot;takeout_json&quot; - the capture time in the Google Takeout JSON next to the file
 (<code>photoTakenTime</code>). It is a UTC timestamp, so the predefined rules convert it to the time zone of
 the photo&#x27;s position (ID 20) or to your default time zone (ID 21). They sit right before the file
-name rule. See <a class="" href="/docs/user-guide/google-takeout">Importing a Google Takeout export</a>. <span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span>
+name rule. See <a class="" href="/docs/user-guide/google-takeout">Importing a Google Takeout export</a>. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a>
 After the update, an account whose rule list is still a default list (default rules only, in the
 default order) gets both rules before the file name rule; a list you changed is left as it is.</li>
 <li class="">&quot;user_defined&quot; - the old <em>Timestamp set by user</em> rule. It no longer matches anything, since a
@@ -99,7 +99,7 @@ date you set by hand always wins (see above), and the settings page no longer of
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="changing-the-order">Changing the order<a href="#changing-the-order" class="hash-link" aria-label="Direct link to Changing the order" title="Direct link to Changing the order" translate="no">​</a></h3>
 <p>The top rules are applied first and the bottom rules last. To change the order, drag and drop the rules. Adding, deleting, reordering and resetting rules only take effect once you save your settings — LibrePhotos prompts you with <strong>Save changes?</strong> and you confirm by clicking <strong>Update</strong>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="applying-the-rules">Applying the rules<a href="#applying-the-rules" class="hash-link" aria-label="Direct link to Applying the rules" title="Direct link to Applying the rules" translate="no">​</a></h3>
-<p>The date rules are applied on each scan, so photos scanned after a change use the new rules. To apply them to the photos already in your library, use <strong>Apply date rules to existing photos</strong>. <em>Not released yet.</em></p>
+<p>The date rules are applied on each scan, so photos scanned after a change use the new rules. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> To apply them to the photos already in your library, use <strong>Apply date rules to existing photos</strong>.</p>
 <ul>
 <li class="">Right after you save changed rules, the date rules card shows <strong>Your date rules changed</strong> with an <strong>Apply to existing photos</strong> button.</li>
 <li class="">At any time, open the <strong>Library</strong> page (from the profile menu in the top-right corner, choose <strong>Library</strong>; or press Ctrl+K and search for &quot;Library&quot;) and click <strong>Apply</strong> in the <strong>Dates</strong> section.</li>

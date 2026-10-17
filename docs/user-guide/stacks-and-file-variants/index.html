@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.72a13e3e.js" defer="defer"></script>
-<script src="/assets/js/main.5c53ed32.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7f0cb851.js" defer="defer"></script>
+<script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -37,14 +37,14 @@
 <p><strong>Phase 2 — Processing</strong>: Each group is processed together, creating one Photo entity with all files attached as variants. The main display file is chosen automatically by priority: JPEG → Video → RAW. Once all image groups have finished, any XMP sidecars are processed and attached to the photo they belong to.</p>
 </li>
 </ol>
-<p>Metadata is read from the main file and from the XMP sidecars of every variant. A sidecar named after the RAW file (<code>IMG_001.CR2.xmp</code>, as darktable and other RAW editors write it) counts as well, so a rating, keywords, a description or face regions set in the RAW editor reach the photo. When both exist, a sidecar named after the main file (<code>IMG_001.xmp</code> or <code>IMG_001.jpg.xmp</code>) wins over the RAW&#x27;s. <em>Not released yet:</em> before this, only sidecars named after the main file were read; a <strong>Rescan</strong> from the Library page picks up the others.</p>
+<p>Metadata is read from the main file and from the XMP sidecars of every variant. A sidecar named after the RAW file (<code>IMG_001.CR2.xmp</code>, as darktable and other RAW editors write it) counts as well, so a rating, keywords, a description or face regions set in the RAW editor reach the photo. When both exist, a sidecar named after the main file (<code>IMG_001.xmp</code> or <code>IMG_001.jpg.xmp</code>) wins over the RAW&#x27;s. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0, only sidecars named after the main file were read; a <strong>Rescan</strong> from the Library page picks up the others.</p>
 <p>After each scan, a <strong>Repair File Variants</strong> job runs automatically. It looks for RAW files that ended up as their own photo and merges them into the matching image photo (same folder, same base name — JPEG, HEIC, PNG or TIFF), and corrects the main display file when a RAW file is still marked as the main one. Live Photo videos that were already scanned as separate photos are not merged by this job.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="viewing-file-variants">Viewing File Variants<a href="#viewing-file-variants" class="hash-link" aria-label="Direct link to Viewing File Variants" title="Direct link to Viewing File Variants" translate="no">​</a></h3>
 <p>When viewing a photo that has file variants:</p>
 <ul>
 <li class="">A <strong>RAW badge</strong> appears on the thumbnail in the photo grid</li>
 <li class="">In the lightbox sidebar, next to the filename (beside the dimensions and file size), a photo with extra formats shows a <strong>+N format(s)</strong> link. Expanding it lists the non-primary variants, each with a format badge (<strong>JPG</strong>, <strong>RAW</strong>, <strong>VIDEO</strong>, <strong>META</strong>, or <strong>FILE</strong>).</li>
-<li class="">When you download photos as a zip, all file variants of each photo are included automatically. <span class="since_Hom5" data-since="1.4.0" data-released="false">Not released yet (comes after 1.3.0)</span> So are their XMP sidecars, see <a class="" href="/docs/user-guide/exif-data#sidecars-in-a-download">Sidecars in a download</a>.</li>
+<li class="">When you download photos as a zip, all file variants of each photo are included automatically. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> So are their XMP sidecars, see <a class="" href="/docs/user-guide/exif-data#sidecars-in-a-download">Sidecars in a download</a>.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="stacks">Stacks<a href="#stacks" class="hash-link" aria-label="Direct link to Stacks" title="Direct link to Stacks" translate="no">​</a></h2>
 <p>Stacks group different but related captures together. Unlike file variants (same shot, different format), stacks contain separate photos that belong together logically.</p>
@@ -59,9 +59,9 @@
 <li class=""><strong>Filename Burst Pattern</strong> — file names that say &quot;burst&quot;: Google and other Android cameras (<code>IMG_20151009_143426_BURST1</code>), Pixel (<code>00001IMG_00001_BURST20200302155220435</code>) and Samsung (<code>20200115_123456_001</code>, the cover <code>..._COVER</code>). Frames with the same burst name in one folder are one stack</li>
 </ul>
 <p>The two EXIF rules build one burst from consecutive frames of the same camera (model, and serial number when the photo has one; a frame scanned before LibrePhotos read serial numbers has none and still joins the other frames of its model when they all come from one body) taken at most 2 seconds apart, using the sub-second capture time (<code>SubSecTimeOriginal</code>). A burst that crosses a second boundary stays one stack, two cameras shooting at the same moment get one stack each, and a sequence number that starts again begins a new burst. A frame whose sequence number says &quot;single shot&quot; (0) is not a burst frame. Frames are ordered by capture time, and the stack&#x27;s cover is the middle frame.</p>
-<p><em>Not released yet:</em> before this, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made <strong>Detect Stacks</strong> fail. Run <strong>Detect Stacks</strong> again to regroup existing bursts.</p>
+<p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made <strong>Detect Stacks</strong> fail. Run <strong>Detect Stacks</strong> again to regroup existing bursts.</p>
 <p>A camera&#x27;s file counter (<code>IMG_0001</code>, <code>DSC_0815</code>) or a download copy (<code>photo (1)</code>) does not make a burst by default: every camera numbers its files. A filename rule set to a counter pattern (<code>sequence_suffix</code>, <code>bracketed_sequence</code>, <code>iphone_burst</code>) or to a custom pattern still matches them, but then its frames also have to come from the same camera, count up by one and follow each other within the rule&#x27;s interval (2 seconds by default).</p>
-<p><em>Not released yet:</em> before this, the default filename rule took every <code>IMG_xxxx</code> file of a folder for one burst. Run <strong>Detect Stacks</strong> again to regroup existing bursts.</p>
+<p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0, the default filename rule took every <code>IMG_xxxx</code> file of a folder for one burst. Run <strong>Detect Stacks</strong> again to regroup existing bursts.</p>
 <p>Available but <strong>disabled by default</strong> (soft criteria — these estimate, and can group unrelated photos):</p>
 <ul>
 <li class=""><strong>Timestamp Proximity</strong> — photos taken within a configurable interval of each other (2 seconds by default, measured to the sub-second) on the same camera</li>
