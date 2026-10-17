@@ -28,12 +28,12 @@ import {
   useScanPhotosMutation,
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
-import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { notification } from "../../service/notifications";
 import { SearchOptionType, useSearch, type SearchOption } from "../../service/useSearch";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import { buildNavigationActions, iconProps, SPOTLIGHT_ICON_SIZE } from "./navigationActions";
 
 // Also the width of every action's left section, see Spotlight.tsx
@@ -49,11 +49,6 @@ export type SpotlightAction = Omit<SpotlightActionData, "onClick"> & {
 
 /** A group of actions, as Mantine's SpotlightActionGroupData holds them. */
 type SpotlightActionGroup = { group: string; actions: SpotlightAction[] };
-
-function getThumbnailUrl(imageHash: string | undefined): string | undefined {
-  if (!imageHash) return undefined;
-  return mediaUrl.squareThumbnailSmall(imageHash);
-}
 
 function getFaceUrl(faceUrl: string | undefined): string | undefined {
   if (!faceUrl) return undefined;
@@ -74,11 +69,7 @@ function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof 
 
     // For user albums (my albums) with thumbnails, show album cover
     if (option.type === SearchOptionType.USER_ALBUM && option.thumbnail) {
-      return React.createElement(Avatar<"div">, {
-        src: getThumbnailUrl(option.thumbnail),
-        size: AVATAR_SIZE,
-        radius: "sm",
-      });
+      return React.createElement(MediaThumbnail, { imageHash: option.thumbnail, size: AVATAR_SIZE, radius: "sm" });
     }
 
     // Fallback to icons for everything else

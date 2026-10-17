@@ -1,0 +1,8 @@
+.thumbnail {
+  flex-shrink: 0;
+}
+
+.video {
+  display: block;
+  object-fit: cover;
+}

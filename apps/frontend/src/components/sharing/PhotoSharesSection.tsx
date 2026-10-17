@@ -10,8 +10,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import { ConfirmPopover } from "./ConfirmPopover";
-import { ShareThumbnail } from "./ShareThumbnail";
 
 /** One link, with its own mutation so only this row shows a spinner. */
 function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
@@ -22,7 +22,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
 
   return (
     <Group gap="xs" wrap="nowrap">
-      {share.image_hash && <ShareThumbnail imageHash={share.image_hash} size={36} />}
+      {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={36} />}
       {/* The link gives way on a phone; the buttons keep their size (Revoke was cut off). */}
       <TextInput
         readOnly

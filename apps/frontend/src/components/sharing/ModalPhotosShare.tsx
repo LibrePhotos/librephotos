@@ -15,11 +15,11 @@ import {
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { parseInstant } from "../../util/dateUtils";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import { selectionLabel } from "../photolist/selectionLabel";
 import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
@@ -43,11 +43,6 @@ export function ModalPhotosShare(props: Props) {
 
   // In selectAllMode, selectedImageHashes contains exclusions
   const excludedHashes = selectAllMode ? selectedImageHashes : [];
-
-  // Only show preview images in non-selectAll mode
-  const selectedImageSrcs = selectAllMode
-    ? []
-    : selectedImageHashes.map((image_hash: string) => mediaUrl.squareThumbnail(image_hash));
 
   const handleShare = (targetUser: (typeof users)[0], share: boolean) => {
     if (selectAllMode) {
@@ -89,8 +84,8 @@ export function ModalPhotosShare(props: Props) {
         ) : (
           <ScrollArea>
             <Group>
-              {selectedImageSrcs.slice(0, 100).map((image: string) => (
-                <Avatar key={`selected_image${image}`} size={40} src={image} />
+              {selectedImageHashes.slice(0, 100).map(imageHash => (
+                <MediaThumbnail key={imageHash} imageHash={imageHash} size={40} radius="xl" />
               ))}
             </Group>
           </ScrollArea>

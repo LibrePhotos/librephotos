@@ -94,7 +94,8 @@ export function PhotoListDialogs({
         <ModalPhotosShare
           isOpen={dialogs.sharePhotos.opened}
           onRequestClose={dialogs.sharePhotos.close}
-          selectedImageHashes={selectionState.selectedItems.map(i => i.image_hash)}
+          // Placeholder tiles that never loaded have no hash.
+          selectedImageHashes={selectionState.selectedItems.filter(i => !i.isTemp).map(i => i.image_hash)}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
           totalCount={totalCount}

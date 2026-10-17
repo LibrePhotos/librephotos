@@ -367,6 +367,16 @@ export const syntaxBans = [
     message:
       "Wrap the Menu.Target in <DisabledReason reason={...}> (components/common/DisabledReason) instead of disabling its button: it says why and keeps the menu shut.",
   },
+  {
+    // Every menu fits the window and scrolls past it through the theme's middlewares
+    // (theme/menuTheme.ts). A `middlewares` prop replaces them whole, so that menu runs off the
+    // window again and its last items cannot be reached (#2707).
+    id: "menu-middlewares",
+    selector:
+      "JSXOpeningElement:matches([name.name='Menu'], [name.object.name='Menu'][name.property.name='Sub']) > JSXAttribute[name.name='middlewares']",
+    message:
+      "Menus get their positioning from the theme (theme/menuTheme.ts), which keeps them inside the window; change it there instead of passing `middlewares` to one menu.",
+  },
 ];
 
 // Browser storage is read and written through util/storage, which owns the keys, the failure
@@ -401,6 +411,25 @@ export const globalBans = [
   { id: "fetch", name: "fetch", ...rawFetch },
 ];
 
+// A video's square thumbnail is an mp4 clip (with video previews on, the default), which an <img>
+// shows as a broken image: the share dialog and the date preview of a selection showed videos broken
+// (#2707). Square thumbnails are drawn by MediaThumbnail, or by the renderers that play the clip:
+// the cover tile, the photo grid (PhotoListView hands its URLs to react-pig's video-aware tile) and the
+// lightbox preloader, which only warms the cache.
+const squareThumbnail = {
+  files: APP_FILES,
+  object: "mediaUrl",
+  message:
+    "Draw a square thumbnail with <MediaThumbnail> (components/common/MediaThumbnail): a video's is an mp4 clip, which an <img> shows broken.",
+  allowIn: [
+    "src/components/common/MediaThumbnail.tsx",
+    "src/components/Tile.tsx",
+    "src/components/photolist/PhotoListView.tsx",
+    "src/components/lightbox/ImagePreloader.tsx",
+    ...TEST_FILES,
+  ],
+};
+
 // no-restricted-properties: `object` and/or `property`.
 export const propertyBans = [
   ...["window", "globalThis"].flatMap(object => [
@@ -427,6 +456,8 @@ export const propertyBans = [
       "Call endpoints.<name>(apiClient, ...) from @librephotos/api-client; add the endpoint and its schema there (AGENTS.md, API layer).",
     allowIn: ["src/api_client/api.ts", ...TEST_FILES],
   },
+  { id: "square-thumbnail-url", property: "squareThumbnail", ...squareThumbnail },
+  { id: "square-thumbnail-small-url", property: "squareThumbnailSmall", ...squareThumbnail },
 ];
 
 const banRules = [

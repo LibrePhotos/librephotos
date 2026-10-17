@@ -12,6 +12,7 @@ import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { photoListScrollRestorationKey } from "./components/photolist/photoSearch";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
+import { menuThemeComponents } from "./theme/menuTheme";
 import { TOP_MENU_HEIGHT } from "./uiConstants";
 import { firstDayOfWeek } from "./util/dateUtils";
 
@@ -52,6 +53,8 @@ const theme = createTheme({
     // One title look for every dialog: plain-text titles were 16px/400 next to
     // the bold ones in components/modals.
     Modal: Modal.extend({ styles: modalTitleStyles }),
+    // Every menu and submenu fits the window and scrolls past it (#2707).
+    ...menuThemeComponents,
   },
 });
 
