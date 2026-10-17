@@ -595,8 +595,11 @@ class PhotoSerializer(serializers.ModelSerializer):
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
-        # category_source="user"; category_source is server-managed.
+        # category_source="user"; category_source is server-managed. The hash
+        # names the photo's thumbnail files: the server computes it, and a
+        # written one sent thumbnail writes and deletes anywhere on disk.
         read_only_fields = (
+            "image_hash",
             "is_screenshot",
             "is_document",
             "category_source",

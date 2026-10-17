@@ -97,8 +97,11 @@ def is_enabled() -> bool:
 
 
 def final_path(image_hash: str | None) -> str | None:
+    # Here, not at the top: api.models imports this module (see above).
+    from api.models.thumbnail import is_safe_file_stem
+
     root = _root()
-    if not root or not image_hash:
+    if not root or not image_hash or not is_safe_file_stem(image_hash):
         return None
     return os.path.join(root, f"{image_hash}.mp4")
 
