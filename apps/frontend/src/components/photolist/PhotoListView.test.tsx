@@ -830,6 +830,25 @@ describe("PhotoListView lightbox in the address (#2231)", () => {
     expect(isLightboxOpen()).toBe(false);
   });
 
+  // A placeholder's id is made up ("0"): opening it asked for /photos/0/, got a 404 and closed
+  // again, so a click that beat the page's photos to the grid opened nothing (the e2e flake).
+  it("opens nothing for a placeholder that has not loaded yet, nor its photo page", async () => {
+    const placeholder = photo("0", { isTemp: true });
+    const list = [placeholder, ...items];
+    await render({ photoset: [{ date: "2024-01-01", location: null, items: list }], idx2hash: list });
+
+    await openFromGrid(placeholder);
+    const event = click({ ctrlKey: true });
+    await act(async () => defined(lastPigProps().handleClick)(event, placeholder));
+    await settle(theRouter());
+
+    expect(isLightboxOpen()).toBe(false);
+    expect(photoParam()).toBeNull();
+    expect(historyLength()).toBe(1);
+    expect(theRouter().state.location.pathname).toBe("/photos");
+    expect(details.asked).toEqual([]);
+  });
+
   it("keeps the page's other params, and leaves them when it closes", async () => {
     await render({}, "/photos?media=videos");
     await openFromGrid(defined(items[0]));
