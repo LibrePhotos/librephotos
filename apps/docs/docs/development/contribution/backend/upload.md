@@ -11,7 +11,7 @@ sidebar_position: 3
 Checks if a file exists on the server.
 The hash is calculated by `md5 + user_id`
 
-Answers `{"exists": true, "photo_id": "<uuid>"}` for a file you already have, and `{"exists": false, "photo_id": null}` otherwise; only your own photos count. The `photo_id` lets a client add a file it already has to the album it is uploading into (_not released yet_; older servers send only `exists`).
+Answers `{"exists": true, "photo_id": "<uuid>"}` for a file you already have, and `{"exists": false, "photo_id": null}` otherwise; only your own photos count. The `photo_id` lets a client add a file it already has to the album it is uploading into. <Since version="1.4.0" /> Older servers send only `exists`.
 
 #### Headers:
 
@@ -48,10 +48,10 @@ Assembles the uploaded chunks into a single file and imports it.
 - `filename` - The original filename
 - `device_created_at` (optional) - When the device says the photo was taken, used as its date only when the file carries none (screenshots, images saved from messengers). Epoch milliseconds (an integer of at least 11 digits) or ISO 8601. An ISO value keeps its wall-clock time: `2025-10-11T21:30:00-07:00` is stored as 21:30 on 11 October, like a camera's local `DateTimeOriginal`.
 - `device_modified_at` (optional) - The same, used when `device_created_at` is missing or unusable.
-- `album_id` (optional, _not released yet_) - One of your own albums to add the photo to. It is checked before the file is saved: an id that is not one of your albums (someone else's, or deleted) answers `400` with code `album_not_found`, a locked album `400` with code `album_locked`, and a value that is not an id `400` with code `invalid`, in the API's [error format](../../../user-guide/api-authentication.md#error-responses) (`field` is `album_id`). The staged upload is kept after such a refusal, so the same `upload_id` can be completed again without `album_id` to put the file in the library only.
+- `album_id` (optional) - <Since version="1.4.0" /> One of your own albums to add the photo to. It is checked before the file is saved: an id that is not one of your albums (someone else's, or deleted) answers `400` with code `album_not_found`, a locked album `400` with code `album_locked`, and a value that is not an id `400` with code `invalid`, in the API's [error format](../../../user-guide/api-authentication.md#error-responses) (`field` is `album_id`). The staged upload is kept after such a refusal, so the same `upload_id` can be completed again without `album_id` to put the file in the library only.
 - `device_tz_offset` (optional) - The device's UTC offset in minutes east of UTC at that moment (`-420` for UTC-7; the opposite sign of JavaScript's `getTimezoneOffset()`). Epoch milliseconds carry no time zone: they are shown at this offset, or in the owner's default time zone when it is not sent.
 
-A shorter number or a value that does not parse is ignored. _Not released yet:_ before this, epoch milliseconds were stored as UTC time and ISO values as their UTC instant, so these photos could land on the wrong day.
+A shorter number or a value that does not parse is ignored. <Since version="1.4.0" /> Up to 1.3.0, epoch milliseconds were stored as UTC time and ISO values as their UTC instant, so these photos could land on the wrong day.
 
 #### Headers:
 

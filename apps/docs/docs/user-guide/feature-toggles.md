@@ -40,7 +40,7 @@ Feature toggles are implemented as environment variables you would have to confi
   <tr>
     <td>Animated video previews</td>
     <td>
-      Play a short silent clip of each video in the photo grid (not released yet)
+      <Since version="1.4.0" /> Play a short silent clip of each video in the photo grid
     </td>
     <td>🟢</td>
     <td>
@@ -103,11 +103,11 @@ All of these default to on. See [Advanced docker-compose usage](../installation/
 
 Turning off face detection, image captioning or Things also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from. (Since 1.2.0; on 1.1.0 the switches stop the processing, but the services still start.)
 
-_Not released yet._ Turning off face detection or image captioning also skips their model downloads: the **Download Models** job no longer fetches the face recognition model or the captioning model, and a scan no longer waits for them. That saves the disk space, and an offline server no longer fails a download for a model it never uses. Turning the feature back on downloads the model then: saving the site settings starts the download, and so does the next scan or a click on "Generate caption". Models that were already downloaded stay on disk; delete their folder under `data_models/` by hand if you want the space back (see [Offline Usage](./offline-setup.md#step-2-place-the-models-in-the-correct-location) for where each one lives).
+<Since version="1.4.0" /> Turning off face detection or image captioning also skips their model downloads: the **Download Models** job no longer fetches the face recognition model or the captioning model, and a scan no longer waits for them. That saves the disk space, and an offline server no longer fails a download for a model it never uses. Turning the feature back on downloads the model then: saving the site settings starts the download, and so does the next scan or a click on "Generate caption". Models that were already downloaded stay on disk; delete their folder under `data_models/` by hand if you want the space back (see [Offline Usage](./offline-setup.md#step-2-place-the-models-in-the-correct-location) for where each one lives).
 
 ### Site settings switches
 
-_Not released yet._ Every feature in the table except **Embedded media** also has a switch in the **Features** card, under **Account menu > Admin Area > Site settings**, which an admin can flip without restarting anything. The two layers combine like this:
+<Since version="1.4.0" /> Every feature in the table except **Embedded media** also has a switch in the **Features** card, under **Account menu > Admin Area > Site settings**, which an admin can flip without restarting anything. The two layers combine like this:
 
 - An environment variable set to `false` is a hard off. The feature stays off whatever the site settings say, and its switch in the Features card is disabled, with a **Locked** badge and the name of the variable. To turn the feature on, change the variable in your Compose file or `.env` and restart.
 - While the environment variable allows a feature (the default), its switch decides. All of them start on.
@@ -126,7 +126,7 @@ A switch saves as soon as you flip it, like the other site settings. A change ap
 
 ### Animated video previews {#animated-video-previews}
 
-_Not released yet._ By default the photo grid plays a short silent clip of each video while you point at it, and a scan encodes two such clips per video (500 and 250 px high, `VIDEO_PREVIEW_SECONDS` long). On a large library of high-resolution videos that encoding is most of the scan time and of the thumbnail space videos take. Turn off **Animated previews**, the switch under **Videos** in the Features card, and a scan makes two WebP stills of each video's first frame instead, from the big thumbnail it makes anyway: no ffmpeg run, and tens of kilobytes per video where the clips often take hundreds. The grid then shows the still with a play icon in the middle, so a video still looks like a video, and opening it plays the whole video as before. The switch is disabled while **Videos** is off.
+<Since version="1.4.0" /> By default the photo grid plays a short silent clip of each video while you point at it, and a scan encodes two such clips per video (500 and 250 px high, `VIDEO_PREVIEW_SECONDS` long). On a large library of high-resolution videos that encoding is most of the scan time and of the thumbnail space videos take. Turn off **Animated previews**, the switch under **Videos** in the Features card, and a scan makes two WebP stills of each video's first frame instead, from the big thumbnail it makes anyway: no ffmpeg run, and tens of kilobytes per video where the clips often take hundreds. The grid then shows the still with a play icon in the middle, so a video still looks like a video, and opening it plays the whole video as before. The switch is disabled while **Videos** is off.
 
 Videos that already have an animated preview keep it: turning the switch off changes nothing on disk. **Rescan** (in the dropdown next to **Scan**) gives every video the kind of preview the switch asks for and deletes the other kind, so a rescan after turning the switch off frees the space the clips took, and one after turning it back on encodes the clips again.
 
@@ -161,7 +161,7 @@ The **Embedded media** switch is checked only the first time a file is imported.
 
 Besides the Features card [above](#site-settings-switches), some features are switched by a model choice in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
 
-- **Captioning Model**: `None` turns automatic captioning off. _Not released yet:_ it also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
+- **Captioning Model**: `None` turns automatic captioning off. <Since version="1.4.0" /> It also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
 - **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
 - **Map Tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site Settings](./settings/index.md#site-settings).
 
@@ -169,7 +169,7 @@ Single sign-on is switched on with the `OIDC_*` environment variables, which are
 
 ## Running with minimal machine learning {#minimal-machine-learning}
 
-_Not released yet._ On a small server, or one without Internet access, you can turn off the machine learning you do not need. Set these in your `.env` (or the site settings switches above):
+<Since version="1.4.0" /> On a small server, or one without Internet access, you can turn off the machine learning you do not need. Set these in your `.env` (or the site settings switches above):
 
 - `FEATURE_FACE_DETECTION=false`: no face detection, no face recognition service, no face recognition model download.
 - `FEATURE_IMAGE_CAPTIONING=false` (or **Captioning Model** `None`): no automatic captions, no captioning service, no captioning model download (about 370 MB).

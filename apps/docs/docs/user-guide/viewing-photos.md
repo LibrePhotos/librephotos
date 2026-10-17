@@ -36,7 +36,7 @@ Removing a favorite sets the photo's rating to 0, which also clears a star ratin
 
 #### Rating photos with stars
 
-Not released yet. Set **Rating style** to **Stars** in [Settings](./settings/index.md#metadata-options) to rate photos from 1 to 5 stars instead of marking favorites:
+<Since version="1.4.0" /> Set **Rating style** to **Stars** in [Settings](./settings/index.md#metadata-options) to rate photos from 1 to 5 stars instead of marking favorites:
 
 - In the photo viewer, five stars replace the favorite star in the toolbar, and on the [photo page](#photo-page) a **Rating** tile replaces **Favorite**. Click a star to set the rating, click the current rating again to clear it, or press `1` to `5` (`0` clears it). On a photo someone shared with you, the stars show the owner's rating and cannot be changed.
 - In the grid, a rated photo shows its rating, such as **4 ★**, in the top-right corner. Unrated photos show nothing.
@@ -57,7 +57,7 @@ Photos you've archived. Archiving takes a photo off the main timeline and out of
 - Open the Archive page from the Photos header dropdown (after **Hidden**) or by searching for "Archive" with `Ctrl` + `k`. It has the same [media filter](#media-filter) as the Hidden page.
 - In albums, search and the other views, an archived photo has a small archive mark in its top right corner, so you can see why it is not on your timeline.
 
-*Not released yet: Archive ships with the first release after 1.3.0.*
+<Since version="1.4.0" /> Up to 1.3.0, photos could not be archived.
 
 #### Hidden or archived? {#hidden-or-archived}
 
@@ -110,7 +110,7 @@ Selecting all photos on a filtered list selects only what it shows. In Trash, fi
 
 Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
 
-To give them a date, select them and choose **Change date and time…** from the selection actions menu, then **Set** (see [Changing the date of many photos](#changing-the-date-of-many-photos)). _Not released yet._
+<Since version="1.4.0" /> To give them a date, select them and choose **Change date and time…** from the selection actions menu, then **Set** (see [Changing the date of many photos](#changing-the-date-of-many-photos)).
 
 ### Without Location
 
@@ -140,7 +140,7 @@ Browse your photos by filesystem directory structure. The root view shows the su
 
 ## Photo Viewer (Lightbox)
 
-When you click on any photo in LibrePhotos, it opens in the photo viewer (also known as the lightbox). This provides a full-screen view of your photo with navigation controls and a details sidebar. The photo sits on a plain black background in light and dark mode, so nothing of the page behind it changes how its colours and exposure look. (Not released yet: up to 1.3.0, the page showed through a dimmed, blurred layer around the photo.)
+When you click on any photo in LibrePhotos, it opens in the photo viewer (also known as the lightbox). This provides a full-screen view of your photo with navigation controls and a details sidebar. The photo sits on a plain black background in light and dark mode, so nothing of the page behind it changes how its colours and exposure look. <Since version="1.4.0" /> Up to 1.3.0, the page showed through a dimmed, blurred layer around the photo.
 
 ### Navigation
 
@@ -150,7 +150,7 @@ When you click on any photo in LibrePhotos, it opens in the photo viewer (also k
 
 ### Linking to a photo {#photo-link}
 
-The open photo is part of the page's address, as `?photo=<id>` (for example `/favorites?photo=<id>` or `/album/user/12?photo=<id>`). (Not released yet: up to 1.3.0, opening a photo left the address as it was.) That gives you:
+The open photo is part of the page's address, as `?photo=<id>` (for example `/favorites?photo=<id>` or `/album/user/12?photo=<id>`). <Since version="1.4.0" /> Up to 1.3.0, opening a photo left the address as it was. That gives you:
 
 - **Back** in the browser, or the back gesture on a phone, closes the photo and leaves the grid where it was, scrolled to the photo you looked at last. Stepping to the next or previous photo does not add a step to the history, so one Back always closes the viewer.
 - **Reload** reopens the same photo.
@@ -199,32 +199,32 @@ Your **Write edits to files** setting (Settings → Metadata) controls whether t
 - **Save to sidecar**: the original stays untouched and the new orientation is written to the photo's XMP sidecar as `XMP-tiff:Orientation`, for every image format. Apps that take the orientation from a sidecar, such as digiKam, show the photo turned the same way (darktable ignores it). The value is relative to the image as stored in the file: for a HEIC or AVIF photo it starts from the file's own rotation (its `irot` and `imir`), not from its EXIF Orientation, which can disagree.
 - **Save to media file**: for JPEG, PNG, TIFF and WebP files, LibrePhotos writes the new EXIF Orientation into the original, so every viewer shows the rotation. HEIC, AVIF, RAW and the other formats are not rewritten: their viewers ignore that tag, so the rotation stays in LibrePhotos.
 
-_Not released yet: up to 1.3.0, a rotation never reached the sidecar, and **Save to media file** wrote a wrong EXIF Orientation into HEIC, AVIF and RAW originals (often the opposite turn), replacing the camera's own value. LibrePhotos' own thumbnails were not affected. If another app shows such a file turned the wrong way, set its orientation there or with `exiftool -Orientation=...`._
+<Since version="1.4.0" /> Up to 1.3.0, a rotation never reached the sidecar, and **Save to media file** wrote a wrong EXIF Orientation into HEIC, AVIF and RAW originals (often the opposite turn), replacing the camera's own value. LibrePhotos' own thumbnails were not affected. If another app shows such a file turned the wrong way, set its orientation there or with `exiftool -Orientation=...`.
 
 ## Photo Details Sidebar
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
 
-While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files. _Not released yet._
+<Since version="1.4.0" /> While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files.
 
 ### Unsaved changes {#unsaved-changes}
 
-An edit is kept only once you save it: the check (✓) of the date, caption and tags editors, or **Save** in the location picker. While the date, caption or tags you typed differ from what is saved, an orange **Unsaved** mark sits next to that editor's title. With such an edit, or a spot picked in the location picker and not saved yet, stepping to another photo (with the arrows, the arrow keys or a swipe), picking a stack or similar photo, closing the viewer, or going **Back** then asks **Discard unsaved changes?** first: **Keep editing** leaves you where you were with your text intact, **Discard** drops the edit and goes on. An editor you opened but did not change never asks. On the [photo page](#photo-page), leaving with an unsaved edit asks **Leave without saving?**, and reloading or closing the tab asks through the browser's own dialog in both places. _Not released yet._
+<Since version="1.4.0" /> An edit is kept only once you save it: the check (✓) of the date, caption and tags editors, or **Save** in the location picker. While the date, caption or tags you typed differ from what is saved, an orange **Unsaved** mark sits next to that editor's title. With such an edit, or a spot picked in the location picker and not saved yet, stepping to another photo (with the arrows, the arrow keys or a swipe), picking a stack or similar photo, closing the viewer, or going **Back** then asks **Discard unsaved changes?** first: **Keep editing** leaves you where you were with your text intact, **Discard** drops the edit and goes on. An editor you opened but did not change never asks. On the [photo page](#photo-page), leaving with an unsaved edit asks **Leave without saving?**, and reloading or closing the tab asks through the browser's own dialog in both places.
 
 ### Timestamp
 
 Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
 
-A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one. _Not released yet._
+<Since version="1.4.0" /> A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one.
 
 ### Changing the date of many photos
 
-A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Change date and time…**. The dialog has two tabs:
+<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Change date and time…**. The dialog has two tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
 - **Set** gives every selected photo the same date and time, picked with the same calendar and time field as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
 
-When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`. _Not released yet._
+When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
 
 ### File & Camera Info
 
@@ -237,7 +237,7 @@ When the photo carries camera EXIF, two rows follow, as on a camera's own info s
 
 A row the photo has nothing for is left out; without a lens name, the aperture and focal length join the camera row. Numbers follow your interface language, so German shows `ƒ/5,6` and `8,4 MB`. A shutter speed of a quarter second or longer is given in seconds (`2.5 s`).
 
-**Show more** reveals the rest, with labels: whether the flash fired, the white balance, the metering mode, the subject distance and the digital zoom, then the folder of the file and any duplicate file copies. The button is not shown when there is nothing more. For the full list of EXIF fields, see [EXIF Data](./exif-data.md). _Not released yet: up to 1.3.0 the camera and lens shared one line, without the exposure bias, the megapixels, the flash, white balance or metering mode._
+**Show more** reveals the rest, with labels: whether the flash fired, the white balance, the metering mode, the subject distance and the digital zoom, then the folder of the file and any duplicate file copies. The button is not shown when there is nothing more. For the full list of EXIF fields, see [EXIF Data](./exif-data.md). <Since version="1.4.0" /> Up to 1.3.0 the camera and lens shared one line, without the exposure bias, the megapixels, the flash, white balance or metering mode.
 
 ### File Variants
 
@@ -259,7 +259,7 @@ To fix many items at once, select them in the grid and choose **Mark as photo**,
 
 Displays the location where the photo was taken (if GPS data is available). An interactive map shows where the shot was made — you can pan and zoom it with the on-map navigation controls, and clicking the marker opens a small popup with the photo's thumbnail. To set or correct a location, click the pencil icon next to the place name to open the **Pick location** dialog. (The pencil is hidden on publicly shared photos.)
 
-On your own photos, the coordinates are shown under the place name (`37.08990, -8.41280`), with a button that copies them in that form for a map or a search box, and the altitude when the photo has one (`31 m above sea level`). The copy button needs HTTPS, like copying an image. People you share a photo with, and visitors of a public album, never see this line. _Not released yet._
+<Since version="1.4.0" /> On your own photos, the coordinates are shown under the place name (`37.08990, -8.41280`), with a button that copies them in that form for a map or a search box, and the altitude when the photo has one (`31 m above sea level`). The copy button needs HTTPS, like copying an image. People you share a photo with, and visitors of a public album, never see this line.
 
 ### People
 
@@ -282,7 +282,7 @@ The AI-generated or manually entered caption for the photo. You can:
 
 Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
-Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject`, IPTC `Keywords`, the `PersonInImage` names and the last level of each `HierarchicalSubject` keyword, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag. With [Write edits to files](./settings/index.md#metadata-options) set to `Off`, removing one here does not change the file, so a rescan adds it back, and the editor says so. With a sidecar or the media file chosen, your tag changes are written to the file's keywords (see [EXIF Data](./exif-data.md#what-librephotos-writes)) and a removed tag stays removed (not released yet). _Not released yet:_ earlier versions showed the file's keywords in a separate **Keywords** section below the tags.
+Tags also come from the photo file: a scan turns each keyword stored in it (XMP `Subject`, IPTC `Keywords`, the `PersonInImage` names and the last level of each `HierarchicalSubject` keyword, including `.xmp` sidecars) into a tag. Those tags carry a small file icon, and hovering or focusing one says **From the file's keywords**. You edit them like any other tag. With [Write edits to files](./settings/index.md#metadata-options) set to `Off`, removing one here does not change the file, so a rescan adds it back, and the editor says so. With a sidecar or the media file chosen, your tag changes are written to the file's keywords (see [EXIF Data](./exif-data.md#what-librephotos-writes)). <Since version="1.4.0" /> A removed tag stays removed. Up to 1.3.0, the file's keywords showed in a separate **Keywords** section below the tags.
 
 These are not the same as the **Things** list under the caption: those come from OpenCLIP and are not editable here.
 

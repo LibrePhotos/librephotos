@@ -52,8 +52,8 @@ either folder.
    then **Run anyway**.
 5. No window opens: LibrePhotos runs in the background with an icon in the notification area (the
    tray, bottom right), and your browser opens `http://localhost:8000/`. While the first start sets
-   up the database, the page says "LibrePhotos is updating" and turns into LibrePhotos by itself
-   (not released yet: up to 1.3.0 the browser only opened after the first migrations).
+   up the database, the page says "LibrePhotos is updating" and turns into LibrePhotos by itself.
+   <Since version="1.4.0" /> Up to 1.3.0 the browser only opened after the first migrations.
    Windows 11 may put a new icon behind the **^** arrow (**Show hidden icons**) next to the clock;
    drag it from there onto the taskbar to keep it in view.
 6. Create the admin account on the first-time setup screen, then set the scan directory of your user
@@ -71,7 +71,7 @@ learning processes are children of `librephotos.exe` and go down with it, also w
 from Task Manager. If it cannot start, a message box usually says why: for example that another
 program already uses port 8000 (see [Using another port](#using-another-port)).
 
-Not released yet: the icon appears right after the double-click. While LibrePhotos starts, the
+<Since version="1.4.0" /> The icon appears right after the double-click. While LibrePhotos starts, the
 first, greyed line of its menu and its tooltip say what it is doing: **Starting...**, **Updating
 the database (3 of 7)** after an update with database changes, **Starting services...**, and
 finally **Running at http://127.0.0.1:8000/**. The first start after such an update also shows a
@@ -79,15 +79,15 @@ notification, because updating the database can take a few minutes. **Quit Libre
 during the start too.
 
 Only one LibrePhotos runs per data folder. Starting it again while it runs just opens the browser
-on the running one. Not released yet: a start while the first one is still starting shows the
+on the running one. <Since version="1.4.0" /> A start while the first one is still starting shows the
 notification "LibrePhotos is already starting", waits for it and then opens the browser; nothing
 else happens. Once the first one shows its start-up page, a second start opens the browser on that
 page at once. Up to 1.3.0 a second start during the first one's database update started a second
 copy, which could show an error and stop the first copy's background services.
 
 Started from a terminal instead, it prints its log there and Ctrl-C stops it; `--no-tray` leaves the
-icon out. Without a terminal that output goes to `console.log` in the logs folder; the log of the
-start before is kept as `console.previous.log` next to it (not released yet), so a failed start can
+icon out. Without a terminal that output goes to `console.log` in the logs folder. <Since version="1.4.0" /> The log of the
+start before is kept as `console.previous.log` next to it, so a failed start can
 still be explained after you tried again. For commands, see [Running a command](#running-a-command).
 
 ### Checking your download {#checking-your-download}
@@ -163,7 +163,7 @@ process simply shows up as `librephotos.exe`. The machine learning processes onl
 | What | Where |
 |---|---|
 | Database | `db` in the data folder, `%LOCALAPPDATA%\LibrePhotos\db` (`--data-dir` to move the whole data folder) |
-| Database backups made before an update | `%LOCALAPPDATA%\LibrePhotos\db\backups` (not released yet; see [Upgrading](upgrading.md#sqlite-backups)) |
+| Database backups made before an update | <Since version="1.4.0" /> `%LOCALAPPDATA%\LibrePhotos\db\backups` (see [Upgrading](upgrading.md#sqlite-backups)) |
 | Secret key | `%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key` (1.3.0 and older: `logs\secret.key`, see below) |
 | Thumbnails, profile pictures, machine learning models | `%LOCALAPPDATA%\LibrePhotos\protected_media` |
 | Logs | `%LOCALAPPDATA%\LibrePhotos\logs` (tray: **Open logs**) |
@@ -230,7 +230,7 @@ Piping works as well: `librephotos.exe manage strip_thumbnail_metadata | more`.
 
 LibrePhotos shows its pages on port 8000. If another program already uses that port (a development
 server, another self-hosted tool), LibrePhotos does not start, and a message box names that program
-and its process ID. Not released yet: up to 1.3.0, LibrePhotos started its background processes,
+and its process ID. <Since version="1.4.0" /> Up to 1.3.0, LibrePhotos started its background processes,
 showed the tray icon for a moment and quit without a message. Either close the other program, or
 start LibrePhotos on another port:
 
@@ -264,7 +264,7 @@ set SIDECAR_PORT_EXIF=18010
 start "" "%~dp0librephotos.exe"
 ```
 
-Not released yet: up to 1.3.0, LibrePhotos started anyway, and the service failed for every photo
+<Since version="1.4.0" /> Up to 1.3.0, LibrePhotos started anyway, and the service failed for every photo
 of the next scan with the reason only in `console.log`.
 
 ## Updating {#updating}
@@ -273,8 +273,8 @@ An update replaces the program folder and keeps the data folder: your photos, al
 and settings are all still there afterwards. The steps assume the program is in
 `C:\Users\<you>\LibrePhotos-app\librephotos`; use your own folder if it is somewhere else.
 
-1. [Back up](#backing-up) the database. The new release also makes a copy of the database itself
-   before it changes it (not released yet, see below), but a copy on another drive is the safe way
+1. [Back up](#backing-up) the database. <Since version="1.4.0" /> The new release also makes a copy of the database itself
+   before it changes it (see below), but a copy on another drive is the safe way
    back.
 2. Quit LibrePhotos: right-click its icon in the tray (behind the **^** arrow if you do not see it)
    and choose **Quit LibrePhotos**. Wait until the icon disappears, which takes a few seconds.
@@ -299,8 +299,8 @@ and settings are all still there afterwards. The steps assume the program is in
 7. Check that LibrePhotos works: log in and open a few photos and albums. Then delete the
    `librephotos-old` folder. Keep it for a while if you might want to [go back](#going-back).
 
-What the first start after an update does, not released yet (up to 1.3.0 it only updates the
-database, and nothing shows until the browser opens):
+<Since version="1.4.0" /> What the first start after an update does (up to 1.3.0 it only updated the
+database, and nothing showed until the browser opened):
 
 - It copies the database into `db\backups` in the data folder before it changes anything. The copy
   is named after the new release and the time, and holds the database as the old release left it.
@@ -317,7 +317,7 @@ If the new release does not start, the message box says why, and `console.log` i
 
 ### Upgrading from 1.3.0 or older
 
-Not released yet: up to 1.3.0, LibrePhotos on Windows took the time on your PC's clock for UTC when it
+<Since version="1.4.0" /> Up to 1.3.0, LibrePhotos on Windows took the time on your PC's clock for UTC when it
 recorded when a photo was added and when it checked whether a file had changed since the last scan.
 West of Greenwich (UTC minus some hours, as in the Americas) a normal scan could therefore skip a file
 you edited within those hours after a scan, and the places and faces of photos added shortly after an
@@ -357,7 +357,7 @@ under People) and `avatars` (profile pictures).
 
 For the complete backup, copy the whole `LibrePhotos` folder in step 3 instead, and skip step 4.
 
-The automatic copies in `db\backups` (not released yet) are made on the same drive as the database,
+<Since version="1.4.0" /> The automatic copies in `db\backups` are made on the same drive as the database,
 so they help after a failed update, but not when the drive fails. See [Automatic
 backups](upgrading.md#sqlite-backups).
 
