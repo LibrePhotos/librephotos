@@ -4824,8 +4824,7 @@
                 "$ref": "#/components/schemas/PhotoRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "security": [
           {
@@ -5331,8 +5330,7 @@
                 "$ref": "#/components/schemas/PhotoRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "security": [
           {
@@ -17043,11 +17041,6 @@
           "geolocation_json": {
             "nullable": true
           },
-          "image_hash": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
           "rating": {
             "type": "integer",
             "maximum": 5,
@@ -17556,7 +17549,7 @@
           },
           "image_hash": {
             "type": "string",
-            "maxLength": 64
+            "readOnly": true
           },
           "image_path": {
             "type": "array",
@@ -18580,11 +18573,6 @@
           "geolocation_json": {
             "nullable": true
           },
-          "image_hash": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
           "rating": {
             "type": "integer",
             "maximum": 5,
@@ -18625,10 +18613,7 @@
             "minimum": -9223372036854775808,
             "format": "int64"
           }
-        },
-        "required": [
-          "image_hash"
-        ]
+        }
       },
       "PhotoSelectionRequestRequest": {
         "type": "object",

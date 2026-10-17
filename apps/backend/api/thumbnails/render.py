@@ -15,6 +15,7 @@ from api.models.thumbnail import (
     STATIC_THUMBNAIL_DIRS,
     Thumbnail,
     thumbnail_file_paths,
+    thumbnail_path,
 )
 from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
@@ -168,7 +169,7 @@ def exif_orientation_showing(exif_orientation: int, local_orientation: int) -> i
 
 
 def _media_path(output_path: str, hash: str, file_type: str) -> str:
-    return os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
+    return thumbnail_path(output_path, hash, file_type)
 
 
 def _reorient_file_in_place(complete_path: str, local_orientation: int) -> None:
@@ -209,9 +210,7 @@ def _resize_big_thumbnail(
     output_height: int, complete_path: str, hash: str, file_type: str
 ) -> str:
     # only encode raw image in worse case, smaller thumbnails can get created from the big thumbnail instead
-    big_thumbnail_path = os.path.join(
-        settings.MEDIA_ROOT, "thumbnails_big", hash + file_type
-    )
+    big_thumbnail_path = _media_path("thumbnails_big", hash, file_type)
     x = pyvips.Image.thumbnail(
         big_thumbnail_path,
         10000,
@@ -451,7 +450,7 @@ def create_animated_thumbnail(
 ) -> None:
     """Write the first VIDEO_PREVIEW_SECONDS of a video, ``output_height`` high, as an mp4."""
     try:
-        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4")
+        output = _media_path(output_path, hash, ".mp4")
         command = [
             "-y",
             "-i",
@@ -486,7 +485,7 @@ def create_thumbnail_for_video(
     transfer: str | None = None,
 ) -> None:
     try:
-        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
+        output = _media_path(output_path, hash, file_type)
         command = [
             "-y",
             "-i",
@@ -511,9 +510,7 @@ def create_thumbnail_for_video(
 
 
 def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
-    return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp")
-    )
+    return os.path.exists(_media_path(output_path, hash, ".webp"))
 
 
 def big_thumbnail_size(hash: str) -> tuple[int, int] | None:
@@ -529,7 +526,7 @@ def big_thumbnail_size(hash: str) -> tuple[int, int] | None:
 
 
 def does_video_thumbnail_exist(output_path: str, hash: str) -> bool:
-    return os.path.exists(os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4"))
+    return os.path.exists(_media_path(output_path, hash, ".mp4"))
 
 
 # ---------------------------------------------------------------------------
