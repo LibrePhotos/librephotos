@@ -24,6 +24,7 @@ import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 import { makePersonNameSchema } from "../album/personName.schema";
+import { orderPeople } from "../facedashboard/personOrder";
 import { modalTitleStyles } from "./modalTitleStyles";
 import { RecentlyTaggedGrid } from "./RecentlyTaggedGrid";
 
@@ -116,7 +117,13 @@ export function ModalPersonEdit({
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.name));
+    // The person being looked for is usually the one with the most faces (#301).
+    filteredPeopleList =
+      people &&
+      orderPeople(
+        people.filter(el => fuzzyMatch(newPersonName, el.name)),
+        "count"
+      );
   }
 
   // Once the user is searching, a fixed shortcut list is only noise.

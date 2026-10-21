@@ -1,4 +1,5 @@
 import { Avatar, Group, MultiSelect, Text } from "@mantine/core";
+import type { OptionsFilter } from "@mantine/core";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
@@ -24,6 +25,18 @@ export function PeopleFilter({ people, value, onChange, labelId }: Props) {
   const byId = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
   const data = useMemo(() => people.map(person => ({ value: person.id, label: person.name })), [people]);
 
+  // Typing a name lists the people with the most faces first, as the face dialog does (#301);
+  // without a search the list stays in name order. The sort is stable, so equal counts keep it.
+  // The match is Mantine's own: the label contains the search, case aside.
+  const matchesByFaceCount: OptionsFilter = ({ options, search }) => {
+    const query = search.trim().toLowerCase();
+    if (!query) return options;
+    const faceCount = (value: string) => byId.get(value)?.face_count ?? 0;
+    return options
+      .filter(option => "value" in option && option.label.toLowerCase().includes(query))
+      .sort((a, b) => ("value" in a && "value" in b ? faceCount(b.value) - faceCount(a.value) : 0));
+  };
+
   return (
     <MultiSelect
       aria-labelledby={labelId}
@@ -37,6 +50,7 @@ export function PeopleFilter({ people, value, onChange, labelId }: Props) {
         onChange(numbers.length > 0 ? numbers : undefined);
       }}
       searchable
+      filter={matchesByFaceCount}
       clearable
       hidePickedOptions
       // The panel focuses this first field when it opens: a list over the next sections would be in the way.
