@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0189_photo_metadata_file_rating"),
+        ("api", "0190_photo_exif_timestamp_offset"),
     ]
 
     operations = [
