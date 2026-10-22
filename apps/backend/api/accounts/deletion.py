@@ -15,6 +15,7 @@ from typing import Any, TypeAlias
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 
+from api.jobs.upload_import import seal_upload_imports
 from api.models import (
     AlbumAuto,
     AlbumDate,
@@ -22,6 +23,7 @@ from api.models import (
     AlbumThing,
     AlbumUser,
     AlbumUserShare,
+    LongRunningJob,
     Photo,
     PhotoShare,
     Tag,
@@ -163,10 +165,20 @@ def _drop_others_photos_from_albums(user: User) -> None:
     albums.filter(pk__in=album_pks).update(last_modified=now)
 
 
+def _seal_upload_imports(user: User) -> None:
+    """Close ``user``'s open upload import job before ``deleted`` takes it.
+
+    One open import job per user (``lrj_one_open_upload_import``): a second
+    deleted user's open job would collide with the first one's.
+    """
+    seal_upload_imports(LongRunningJob.objects.owned_by(user))
+
+
 def prepare_user_deletion(sender: type[User], instance: User, **kwargs: Any) -> None:
     # Not the placeholder itself: its rows would be handed to itself.
     if instance.username == "deleted":
         return
+    _seal_upload_imports(instance)
     _turn_off_public_links(instance)
     _drop_others_photos_from_albums(instance)
     _hand_over_unique_rows(instance, get_deleted_user())

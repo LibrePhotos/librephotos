@@ -311,6 +311,8 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
     ) -> HttpResponse | None:
         """
         Placeholder method to define what to do when upload is complete.
+        A response it returns is the answer instead of
+        ``get_response_data``'s.
         """
 
     def is_valid_chunked_upload(self, chunked_upload: ChunkedUpload) -> None:
@@ -371,7 +373,7 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
         chunked_upload.completed_on = timezone.now()
         self._save(chunked_upload)
         try:
-            self.on_completion(chunked_upload.get_uploaded_file(), request)
+            response = self.on_completion(chunked_upload.get_uploaded_file(), request)
         except ChunkedUploadError:
             # The upload did NOT complete. Leaving the row marked COMPLETE
             # poisons the upload_id: every retry then answers 400 "Upload has
@@ -384,6 +386,10 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
             )
             raise
 
+        # An answer of its own, such as "Photo duplicated", replaces the
+        # default one; it used to be dropped (#2737).
+        if response is not None:
+            return response
         return Response(
             self.get_response_data(chunked_upload, request),
             status=http_status.HTTP_200_OK,

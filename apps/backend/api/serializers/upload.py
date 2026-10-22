@@ -28,3 +28,23 @@ class UploadCompleteRequest(serializers.Serializer[None]):
         min_value=1,
         help_text="One of the uploader's own albums to add the photo to (#612)",
     )
+
+
+class UploadSealRequest(serializers.Serializer[None]):
+    """``POST /api/upload/seal/``: the import jobs an upload run is done with (#2737)."""
+
+    job_ids = serializers.ListField(
+        child=serializers.CharField(max_length=36),
+        max_length=100,
+        help_text="The job_id values POST /api/upload/complete/ answered in the run",
+    )
+
+
+class UploadSealResponse(serializers.Serializer[None]):
+    """``POST /api/upload/seal/``: what the call sealed."""
+
+    sealed_job_ids = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="The jobs this call sealed. A job that was sealed already, has "
+        "finished or is not the caller's is left out",
+    )

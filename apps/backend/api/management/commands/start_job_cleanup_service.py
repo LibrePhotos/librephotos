@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 
 from api.jobs.queue import ensure_schedule
+from api.jobs.upload_import import SWEEP_FUNC
 
 logger = logging.getLogger(__name__)
 
@@ -37,5 +38,9 @@ class Command(BaseCommand):
             schedule_type=Schedule.DAILY,
         ):
             logger.info("Scheduled daily expired upload cleanup")
+
+        # Seal idle upload import jobs and finish lost ones (#2737).
+        if ensure_schedule(SWEEP_FUNC, schedule_type=Schedule.MINUTES, minutes=1):
+            logger.info("Scheduled the upload import sweeper")
 
         logger.info("Job cleanup service started")
