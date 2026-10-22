@@ -7,6 +7,7 @@ import {
   firstDayOfWeek,
   formatCalendarDay,
   formatPhotoDateTime,
+  formatUtcOffset,
   fromPickerValue,
   fromUnixSeconds,
   isCalendarDay,
@@ -35,6 +36,18 @@ afterEach(() => {
 // forward, and no date rule change could correct it. These zones bracket that
 // case on both sides of UTC.
 const zones = ["UTC", "Europe/Moscow", "America/New_York", "Asia/Kolkata"];
+
+describe("formatUtcOffset (#2769)", () => {
+  test.each([
+    [-420, "UTC-07:00"],
+    [330, "UTC+05:30"],
+    [0, "UTC+00:00"],
+    [-150, "UTC-02:30"],
+    [840, "UTC+14:00"],
+  ])("%i minutes is %s", (minutes, text) => {
+    expect(formatUtcOffset(minutes)).toBe(text);
+  });
+});
 
 describe("parsePhotoTimestamp", () => {
   test("returns the recorded wall clock whatever zone the viewer is in", () => {

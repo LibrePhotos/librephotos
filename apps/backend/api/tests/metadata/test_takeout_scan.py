@@ -72,7 +72,8 @@ class TakeoutRuleTest(SimpleTestCase):
             user_default_tz="Europe/Berlin",
             takeout_taken_at=lambda: taken_at,
         )
-        return rule.apply("/export/photo.jpg", {}, context)
+        found = rule.apply("/export/photo.jpg", {}, context)
+        return found.local_time if found else None
 
     def test_the_utc_time_in_the_gps_zone(self):
         self.assertEqual(
@@ -103,7 +104,10 @@ class TakeoutRuleTest(SimpleTestCase):
         rule = TimeExtractionRule({"id": 99, "rule_type": RuleTypes.TAKEOUT_JSON})
         taken = datetime.datetime(2019, 1, 1, 12, 0, tzinfo=UTC)
         context = RuleContext(None, None, "Europe/Berlin", lambda: taken)
-        self.assertEqual(taken, rule.apply("/export/photo.jpg", {}, context))
+        found = rule.apply("/export/photo.jpg", {}, context)
+        self.assertEqual(taken, found.local_time)
+        # UTC is not where the photo was taken: no offset is known.
+        self.assertIsNone(found.utc_offset)
 
     def test_the_rules_read_no_tag(self):
         rule = TimeExtractionRule({"id": 20, "rule_type": RuleTypes.TAKEOUT_JSON})

@@ -235,6 +235,30 @@ class PhotoMetadataModelTestCase(TestCase):
         self.assertIsNotNone(metadata)
         self.assertIsNone(metadata.keywords)
 
+    def test_the_utc_offset_of_the_capture_time_is_read(self):
+        """#2766: OffsetTimeOriginal, else OffsetTime, as the file writes it."""
+        cases = [
+            ({"offset_time_original": "-07:00", "offset_time": "+02:00"}, "-07:00"),
+            ({"offset_time": "+05:30"}, "+05:30"),
+            # Cameras that do not know their zone write blanks.
+            ({"offset_time_original": "   :  ", "offset_time": "+01:00"}, "+01:00"),
+            ({"offset_time_original": "   :  "}, None),
+            ({"offset_time_original": 7}, None),
+            ({}, None),
+        ]
+        for values, offset in cases:
+            with self.subTest(values=values):
+                PhotoMetadata.objects.filter(photo=self.photo).delete()
+                metadata = self._extract(**values)
+                metadata.refresh_from_db()
+                self.assertEqual(offset, metadata.timezone_offset)
+
+    def test_a_file_without_an_offset_keeps_the_stored_one(self):
+        self._extract(offset_time_original="-07:00")
+        metadata = self._extract()
+        metadata.refresh_from_db()
+        self.assertEqual("-07:00", metadata.timezone_offset)
+
     def test_extract_exif_data_tolerates_a_short_result(self):
         """A get_metadata result shorter than the tag list must not KeyError."""
         with patch("api.metadata.photo_reader.get_metadata", return_value=[None] * 18):
@@ -756,6 +780,29 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         ).first()
         self.assertIsNotNone(revert_edit)
         self.assertEqual(revert_edit.old_value["action"], "revert_all")
+
+    def test_revert_all_reads_the_utc_offset_again(self):
+        """#2766: revert_all goes through apply_file_values, offset included."""
+        PhotoMetadata.objects.create(photo=self.photo, timezone_offset="+01:00")
+
+        def file_values(path, tags, **kwargs):
+            return [
+                "-07:00" if tag == "EXIF:OffsetTimeOriginal" else None for tag in tags
+            ]
+
+        with (
+            patch("api.metadata.photo_reader.get_metadata", side_effect=file_values),
+            patch("api.metadata.edits.get_metadata", side_effect=file_values),
+            patch("api.metadata.photo_datetime.get_metadata", side_effect=file_values),
+        ):
+            response = self.client.post(
+                f"/api/photos/{self.photo.id}/metadata/revert-all"
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            "-07:00", PhotoMetadata.objects.get(photo=self.photo).timezone_offset
+        )
 
     def test_keywords_array_update(self):
         """Test updating keywords array field."""

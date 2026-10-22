@@ -23,33 +23,10 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
-# Index of each value inside the tuple returned by get_metadata(), in the
-# order extract_exif_data unpacks it.
-IDX = {
-    "size": 0,
-    "fstop": 1,
-    "focal_length": 2,
-    "iso": 3,
-    "shutter_speed": 4,
-    "camera": 5,
-    "lens": 6,
-    "width": 7,
-    "height": 8,
-    "focal_length_35": 9,
-    "subject_distance": 10,
-    "digital_zoom_ratio": 11,
-    "video_length": 12,
-    "rating": 13,
-    "subsec_time_original": 14,
-    "image_number": 15,
-    "xmp_subject": 16,
-    "iptc_keywords": 17,
-    "xmp_description": 18,
-    "xmp_description_any_language": 19,
-    "matroska_duration": 20,
-    "gps_latitude": EXIF_VALUE_NAMES.index("gps_latitude"),
-    "gps_longitude": EXIF_VALUE_NAMES.index("gps_longitude"),
-}
+# Index of each value inside the tuple returned by get_metadata(), by its
+# name in EXIF_VALUE_NAMES, so adding a tag does not shift these.
+IDX = {name: EXIF_VALUE_NAMES.index(name) for name in EXIF_VALUE_NAMES}
+IDX["focal_length_35"] = IDX["focal_length_35mm"]
 
 
 def metadata_tuple(**overrides):
@@ -127,6 +104,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.QUICKTIME_DURATION,
                 Tags.RATING,
                 Tags.SUBSEC_TIME_ORIGINAL,
+                Tags.OFFSET_TIME_ORIGINAL,
+                Tags.OFFSET_TIME,
                 Tags.IMAGE_NUMBER,
                 Tags.SUBJECT,
                 Tags.IPTC_KEYWORDS,

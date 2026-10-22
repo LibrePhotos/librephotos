@@ -47,6 +47,9 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("video_length", Tags.QUICKTIME_DURATION),
     ("rating", Tags.RATING),
     ("subsec_time_original", Tags.SUBSEC_TIME_ORIGINAL),
+    # The UTC offset of the capture time, as the file states it (#2766).
+    ("offset_time_original", Tags.OFFSET_TIME_ORIGINAL),
+    ("offset_time", Tags.OFFSET_TIME),
     ("image_number", Tags.IMAGE_NUMBER),
     ("xmp_subject", Tags.SUBJECT),
     ("iptc_keywords", Tags.IPTC_KEYWORDS),

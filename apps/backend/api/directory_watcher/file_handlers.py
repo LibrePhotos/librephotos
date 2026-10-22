@@ -31,6 +31,7 @@ from api.duplicates.perceptual_hash import (
     calculate_perceptual_hash,
 )
 from api.metadata import photo_reader, takeout
+from api.metadata.datetime_rules import CaptureTime
 from api.metadata.photo_datetime import extract_date_time
 from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
 from api.models.file import content_hash, hash_for_owner, hash_owner_part
@@ -701,21 +702,21 @@ def create_new_image(user: User, path: str) -> Photo | None:
 
 def apply_device_timestamp_fallback(
     photo: Photo | None,
-    device_created_at: datetime.datetime | None,
+    device_time: CaptureTime | None,
 ) -> Photo | None:
     """Fallback timestamp for EXIF-less uploads (doc 04 §5, issue #614).
 
     Mobile clients know when a photo was taken even when the file carries no
     EXIF date (screenshots, images stripped by messengers, some formats). The
-    upload endpoint forwards the device's ``device_created_at``; if the normal
-    EXIF extraction found no date, adopt it as the photo's timestamp.
+    upload endpoint forwards the device's time (``device_capture_time``); if
+    the normal EXIF extraction found no date, adopt it as the photo's timestamp.
 
-    ``device_created_at`` is the local wall clock labelled UTC, like every
+    ``device_time.local_time`` is the local wall clock labelled UTC, like every
     stored capture time (``api.views.upload.parse_device_timestamp``). Runs after ``handle_new_image`` so it can see the extraction
     result; feeding the value through ``timestamp`` makes it the photo's date
     and builds the date album, exactly as a manual correction would.
     """
-    if photo is None or device_created_at is None:
+    if photo is None or device_time is None:
         return photo
     try:
         photo.refresh_from_db()
@@ -724,7 +725,9 @@ def apply_device_timestamp_fallback(
     # Only fill a gap; never override a date the file actually carried.
     if photo.exif_timestamp is not None:
         return photo
-    photo.timestamp = device_created_at
+    photo.timestamp = device_time.local_time
+    # The UTC offset the device stated with it (#2768), kept with the date.
+    photo.exif_timestamp_offset = device_time.utc_offset
     extract_date_time(photo, commit=True)
     return photo
 

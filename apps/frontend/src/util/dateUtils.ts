@@ -159,6 +159,18 @@ export function shiftPhotoTimestamp(timestamp: string, seconds: number): string 
   return parsed.isValid ? parsed.plus({ seconds }).toISO() : null;
 }
 
+/**
+ * A UTC offset in minutes east of UTC (`exif_timestamp_offset`) as "UTC-07:00", "UTC+05:30" or
+ * "UTC+00:00": the zone the wall clock of an `exif_timestamp` is in (#2769). Not translated.
+ */
+export function formatUtcOffset(minutes: number): string {
+  const sign = minutes < 0 ? "-" : "+";
+  const total = Math.abs(minutes);
+  const hours = String(Math.floor(total / 60)).padStart(2, "0");
+  const rest = String(total % 60).padStart(2, "0");
+  return `UTC${sign}${hours}:${rest}`;
+}
+
 /** An `exif_timestamp` as its wall clock to the second, in the UI language ("Oct 9, 2025, 8:14:02 AM"). */
 export function formatPhotoDateTime(timestamp: string): string {
   return parsePhotoTimestamp(timestamp).toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);

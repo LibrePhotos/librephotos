@@ -99,6 +99,21 @@ def _shown_sideways(
     return by_file != _orientation_turns_sideways(local_orientation)
 
 
+# A UTC offset as ExifTool prints EXIF:OffsetTimeOriginal ("-07:00").
+_UTC_OFFSET = re.compile(r"[+-]\d{2}:\d{2}")
+
+
+def _utc_offset_text(*values: object) -> str | None:
+    """The first of ``values`` that is a UTC offset ("+05:30"), or None.
+
+    A camera that does not know its zone writes blanks ("   :  ") (#2766).
+    """
+    for value in values:
+        if isinstance(value, str) and _UTC_OFFSET.fullmatch(value.strip()):
+            return value.strip()
+    return None
+
+
 def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
@@ -675,6 +690,11 @@ class PhotoMetadata(models.Model):
         subsec_time_original = values["subsec_time_original"]
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
+        _assign_string(
+            metadata,
+            "timezone_offset",
+            _utc_offset_text(values["offset_time_original"], values["offset_time"]),
+        )
 
         # What the file says now, also that it has no keywords any more: the
         # next scan compares with it (``keywords_to_import``).

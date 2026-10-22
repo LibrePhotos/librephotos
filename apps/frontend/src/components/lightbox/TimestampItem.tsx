@@ -3,8 +3,9 @@ import { IconArrowBackUp as ArrowBackUp, IconCalendar as Calendar, IconPencil } 
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { parsePhotoTimestamp } from "../../util/dateUtils";
+import { formatUtcOffset, parsePhotoTimestamp } from "../../util/dateUtils";
 import { TimestampForm } from "./TimestampForm";
+import classes from "./TimestampItem.module.css";
 import type { TimestampEditor as Editor, TimestampPhoto } from "./useTimestampEditor";
 import { useTimestampEditor } from "./useTimestampEditor";
 
@@ -68,6 +69,16 @@ export function TimestampEditActions({ editor }: Readonly<{ editor: Editor }>) {
   );
 }
 
+/**
+ * " (UTC-07:00)": the zone the capture time is in, when the date rules know it (#2769). A date set
+ * by hand has none.
+ */
+function UtcOffset({ photo }: Readonly<{ photo: TimestampPhoto }>) {
+  const offset = photo.exif_timestamp_offset;
+  if (typeof offset !== "number" || photo.date_set_by_user) return null;
+  return <span className={classes.offset}> ({formatUtcOffset(offset)})</span>;
+}
+
 function TimestampEditor({ photoDetail, isPublic }: Props) {
   const editor = useTimestampEditor(photoDetail);
   const { t } = useTranslation();
@@ -86,6 +97,7 @@ function TimestampEditor({ photoDetail, isPublic }: Props) {
           <Text fw={800}>{date}</Text>
           <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
+            <UtcOffset photo={photoDetail} />
           </Text>
           {/* It wins over the date rules, so say why the date ignores them (#2254). */}
           {photoDetail.date_set_by_user && (

@@ -250,7 +250,7 @@ class TransformTzIntegrationTest(TestCase):
         dt = datetime.datetime(2020, 1, 1, 12, 0, 0)
         result = rule._transform_tz(dt, None, None, "UTC")
         self.assertIsNotNone(result)
-        self.assertEqual(result.tzinfo, pytz.utc)
+        self.assertEqual(result.local_time.tzinfo, pytz.utc)
 
     def test_named_source_and_report_tz_shift(self):
         import datetime
@@ -262,5 +262,8 @@ class TransformTzIntegrationTest(TestCase):
         result = rule._transform_tz(dt, None, None, "UTC")
         # Moscow is UTC+3; the tz is then stamped as utc by _transform_tz.
         self.assertEqual(
-            result, datetime.datetime(2020, 1, 1, 15, 0, 0, tzinfo=pytz.utc)
+            result.local_time,
+            datetime.datetime(2020, 1, 1, 15, 0, 0, tzinfo=pytz.utc),
         )
+        # ... and the offset Moscow has then is kept (#2768).
+        self.assertEqual(180, result.utc_offset)

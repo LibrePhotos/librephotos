@@ -537,6 +537,10 @@ class PhotoSerializer(serializers.ModelSerializer):
             "exif_gps_lat",
             "exif_gps_lon",
             "exif_timestamp",
+            # The UTC offset of exif_timestamp in minutes east of UTC and the
+            # id of the date rule that gave it, null where not known (#2768).
+            "exif_timestamp_offset",
+            "exif_timestamp_source",
             "date_set_by_user",
             "captions_json",
             "search_captions",
@@ -605,6 +609,8 @@ class PhotoSerializer(serializers.ModelSerializer):
             "category_source",
             "video_length",
             "video_codec",
+            "exif_timestamp_offset",
+            "exif_timestamp_source",
         )
         extra_kwargs = {"rating": {"min_value": 0, "max_value": edits.MAX_RATING}}
 

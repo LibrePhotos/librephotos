@@ -17498,6 +17498,16 @@
             "format": "date-time",
             "nullable": true
           },
+          "exif_timestamp_offset": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true
+          },
+          "exif_timestamp_source": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true
+          },
           "date_set_by_user": {
             "type": "boolean",
             "readOnly": true
@@ -17770,6 +17780,8 @@
           "exif_gps_lat",
           "exif_gps_lon",
           "exif_timestamp",
+          "exif_timestamp_offset",
+          "exif_timestamp_source",
           "exposure_compensation",
           "file_variants",
           "flash_fired",
