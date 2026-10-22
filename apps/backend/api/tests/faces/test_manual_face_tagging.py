@@ -19,7 +19,7 @@ import PIL.Image
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import Face, Person
+from api.models import Face, Person, UploadFollowupState
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -89,6 +89,12 @@ class AddFaceTest(AddFaceTestBase):
         self.assertEqual(face.person.kind, Person.KIND_USER)
         self.assertEqual(face.person.cluster_owner, self.user)
         self.assertEqual(response.data["face"]["face_id"], face.id)
+
+    def test_adding_a_face_holds_back_the_follow_up_clustering(self, mock_encodings):
+        self._post()
+
+        state = UploadFollowupState.objects.get_owned(self.user, pk=self.user.pk)
+        self.assertIsNotNone(state.last_face_label_at)
 
     def test_the_normalized_box_lands_on_the_right_pixels(self, mock_encodings):
         self._post(box=a_box(top=0.25, right=0.6, bottom=0.75, left=0.4))

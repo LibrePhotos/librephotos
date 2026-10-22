@@ -244,7 +244,7 @@ class RunUploadFollowupsTest(TestCase):
 
         run_upload_followups(self.user.id)
 
-        self.faces_on.assert_called_with("FACE_DETECTION")
+        self.faces_on.assert_any_call("FACE_DETECTION")
         self.encode.assert_called_once()
         self.assertEqual(self.user, self.encode.call_args.args[0])
 

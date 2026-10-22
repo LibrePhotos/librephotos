@@ -19,6 +19,7 @@ from api.faces.birth_dates import (
     without_unborn,
 )
 from api.faces.cluster_manager import ClusterManager
+from api.faces.clustering_gate import latest_face_id, record_clustering
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
@@ -146,7 +147,9 @@ def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
 def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
     existing clusters, then regenerates them all. It will split clusters that have
-    more than one kind of labeled face.
+    more than one kind of labeled face. Every clustering, whoever started it,
+    moves the user's face watermark (``record_clustering``), so the upload
+    follow-ups do not cluster the same faces again.
     :param user: the current user running the training
     :param job_id: the background job ID; None when ``scan_faces`` calls it
     """
@@ -166,10 +169,14 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         # user without clusters. A cancel during the rebuild still skips the
         # training follow-up (complete() below).
         lrj.stop_if_cancelled()
+        # Taken before the rebuild: a face added while it runs is not in it,
+        # so the upload follow-ups count it as new (#2738).
+        watermark = latest_face_id(user)
         delete_clustered_people(user)
         delete_clusters(user)
         delete_persons_without_faces(user)
         target_count: int = create_all_clusters(user, lrj)
+        record_clustering(user, watermark)
 
         lrj.update_progress(current=target_count, target=target_count)
         if not lrj.complete():
