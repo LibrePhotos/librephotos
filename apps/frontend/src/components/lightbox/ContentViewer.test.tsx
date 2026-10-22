@@ -281,37 +281,46 @@ describe("ContentViewer swiping", () => {
 });
 
 describe("ContentViewer focus", () => {
-  // The body takes focus on open and on a click on the photo; Mantine's trap
-  // only wraps from the ends of its tab order, which the body is not.
+  // The body takes focus on open and on a click on the photo, but is not in the
+  // tab order itself; Mantine's focus trap still has to keep Tab inside from it.
   const lightboxBody = () => defined(document.querySelector<HTMLElement>("[data-autofocus]"));
+  const control = (name: string) =>
+    defined([...document.querySelectorAll("button")].find(button => button.textContent === name));
+
+  /** The viewer once the trap has given the body its opening focus, as it is when the user first presses Tab. */
+  async function renderOpenedViewer() {
+    await renderViewer();
+    await act(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+    expect(document.activeElement).toBe(lightboxBody());
+  }
 
   it("keeps Shift+Tab from the body inside the lightbox", async () => {
-    await renderViewer();
-    lightboxBody().focus();
+    await renderOpenedViewer();
 
     const event = await press("Tab", lightboxBody(), { shiftKey: true });
 
     expect(event.defaultPrevented).toBe(true);
-    expect(document.activeElement?.textContent).toBe("last");
+    expect(document.activeElement).toBe(control("last"));
   });
 
   it("starts Tab from the body at the first control", async () => {
-    await renderViewer();
-    lightboxBody().focus();
+    await renderOpenedViewer();
 
     await press("Tab", lightboxBody());
 
-    expect(document.activeElement?.textContent).toBe("first");
+    expect(document.activeElement).toBe(control("first"));
   });
 
-  it("leaves Tab between the controls to the focus trap", async () => {
-    await renderViewer();
-    const first = defined([...document.querySelectorAll("button")].find(button => button.textContent === "first"));
-    first.focus();
+  it("moves Tab on between the controls and wraps from the last one", async () => {
+    await renderOpenedViewer();
+    control("first").focus();
 
-    const event = await press("Tab", first);
+    await press("Tab", control("first"));
+    expect(document.activeElement).toBe(control("last"));
 
-    expect(event.defaultPrevented).toBe(false);
+    const event = await press("Tab", control("last"));
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(control("first"));
   });
 });
 
