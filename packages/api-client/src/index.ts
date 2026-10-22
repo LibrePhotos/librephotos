@@ -18,6 +18,7 @@ export * as endpoints from "./endpoints";
 // Endpoint parameter types that callers need at the top level.
 export type {
   AlbumMediaFilter,
+  CheckFileContentsScope,
   DateAlbumFilter,
   DateTimeChange,
   PhotoCategory,

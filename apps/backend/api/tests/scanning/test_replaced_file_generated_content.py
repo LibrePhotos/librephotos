@@ -12,6 +12,7 @@ from constance.test import override_config
 from django.utils import timezone
 
 from api.directory_watcher.processing_jobs import (
+    OCR_MAX_FAILURES,
     generate_ocr,
     photos_to_caption,
     photos_to_tag,
@@ -85,6 +86,29 @@ class ReplacedPictureGeneratedContentTest(GeneratedContentFixture):
         search_text = self._search_text(rescanned)
         self.assertNotIn("lighthouse", search_text)
         self.assertIn("our holiday", search_text)
+
+    def test_a_new_picture_gets_its_ocr_attempts_back(self):
+        """The OCR job gives up after OCR_MAX_FAILURES failed calls (#2795);
+        those were calls on the old picture."""
+        _write_image(self.path, 1)
+        photo = self._index()
+        Photo.objects.filter(pk=photo.pk).update(ocr_failures=OCR_MAX_FAILURES)
+
+        _write_image(self.path, 2)
+        rescanned = Photo.objects.get(pk=self._scan().pk)
+
+        self.assertEqual(0, rescanned.ocr_failures)
+
+    def test_a_metadata_write_keeps_the_ocr_attempts(self):
+        _write_image(self.path, 1)
+        photo = self._index()
+        Photo.objects.filter(pk=photo.pk).update(ocr_failures=2)
+
+        with open(self.path, "ab") as f:
+            f.write(b"\x00")
+        rescanned = Photo.objects.get(pk=self._scan().pk)
+
+        self.assertEqual(2, rescanned.ocr_failures)
 
     def test_what_the_user_entered_stays(self):
         _write_image(self.path, 1)

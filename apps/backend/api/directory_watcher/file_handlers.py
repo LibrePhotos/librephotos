@@ -10,6 +10,7 @@ import logging
 import os
 import tempfile
 from functools import partial
+from typing import NamedTuple
 from uuid import UUID
 
 from django.conf import settings
@@ -312,7 +313,22 @@ def _regenerate_thumbnails(photo: Photo) -> None:
         )
 
 
+class Reindexed(NamedTuple):
+    """What ``rekey_replaced_file`` made of a changed file."""
+
+    #: SAME_PICTURE, SIMILAR_PICTURE, NEW_PICTURE or UNCOMPARABLE.
+    verdict: str
+    #: The scanning user's photo the file is the main file of, if any.
+    photo: Photo | None
+
+
 def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | None:
+    """``rekey_replaced_file``, for the scan: the photo the file is the main file of."""
+    reindexed = rekey_replaced_file(user, path, hash_value)
+    return reindexed.photo if reindexed else None
+
+
+def rekey_replaced_file(user: User, path: str, hash_value: str) -> Reindexed | None:
     """Re-point the rows of ``path`` at its new content after an in-place change.
 
     ``get_or_create_file`` matches on path alone, so a file whose bytes changed under
@@ -335,7 +351,9 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
     so it can differ from the hash of its file afterwards; a lookup by content
     asks both (``PhotoQuerySet.holding_content``).
 
-    Returns the Photo the changed file is the main file of, if any.
+    Returns the verdict and the Photo the changed file is the main file of;
+    None when nothing was re-keyed (no change, another user's file, or new
+    contents that are indexed already).
     """
     existing = File.objects.filter(path=path).first()
     if existing is None or not _content_changed(existing.hash, hash_value):
@@ -415,7 +433,7 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
     if verdict == NEW_PICTURE and main_photo:
         _attach_embedded_motion_video(user, main_photo, new_file)
 
-    return main_photo
+    return Reindexed(verdict, main_photo)
 
 
 def create_file_record(user: User, path: str) -> File | None:

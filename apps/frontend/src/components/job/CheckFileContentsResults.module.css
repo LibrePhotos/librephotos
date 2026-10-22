@@ -1,0 +1,4 @@
+/* Server paths have no spaces to wrap at; break them anywhere rather than widen the card. */
+.path {
+  word-break: break-all;
+}

@@ -155,6 +155,18 @@ describe("job triggers", () => {
     expect(result).toEqual(answer);
   });
 
+  it("sends whose file contents are checked (#2040)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.checkFileContents(client, { user_id: 3, folder: "Phone/2025" });
+    await endpoints.checkFileContents(client, { user_id: null, folder: "" });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/check-file-contents/`, method: "POST" });
+    expect(requests.map(request => request.body)).toEqual([
+      { user_id: 3, folder: "Phone/2025" },
+      { user_id: null, folder: "" },
+    ]);
+    expect(answer).toEqual(started);
+  });
+
   it("follows the job already running instead of failing on a 409", async () => {
     for (const trigger of [
       endpoints.scanNextcloudPhotos,
@@ -173,6 +185,8 @@ describe("job triggers", () => {
       endpoints.detectStacks,
       endpoints.detectDuplicates,
       endpoints.writeMetadataToFiles,
+      (client: Parameters<typeof endpoints.checkFileContents>[0]) =>
+        endpoints.checkFileContents(client, { user_id: null, folder: "" }),
     ]) {
       const { client } = fakeServer(alreadyRunning, 409);
       await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "j0", already_running: true });

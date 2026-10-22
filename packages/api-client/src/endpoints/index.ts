@@ -1007,6 +1007,25 @@ export async function deduplicateFaces(client: ApiClient): Promise<S.JobStartedR
   return triggerJob(client, "/deduplicate-faces/", S.JobStartedResponse, "deduplicate faces");
 }
 
+/** Whose files Check file contents reads: every user's (`user_id` null) or one user's, optionally one folder. */
+export type CheckFileContentsScope = Readonly<{
+  user_id: number | null;
+  /** Relative to that user's scan directory; empty for the whole library. */
+  folder: string;
+}>;
+
+/**
+ * Read every indexed file again and re-index the ones replaced with their old date kept (admins only,
+ * #2040). A folder outside the user's scan directory is a 400 naming `folder`. Returns the queued (or
+ * already running) job.
+ */
+export async function checkFileContents(
+  client: ApiClient,
+  scope: CheckFileContentsScope
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/check-file-contents/", S.JobStartedResponse, "check file contents", scope);
+}
+
 /**
  * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
  * Returns the queued (or already running) job.

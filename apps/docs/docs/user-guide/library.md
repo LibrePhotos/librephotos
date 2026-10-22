@@ -54,6 +54,8 @@ A file whose bytes changed while its picture stayed the same is only re-keyed in
 
 <Since version="1.5.0" /> The same goes for a picture another app saved again, compressed again or edited lightly (a slightly brighter version, say): it keeps its faces, things, caption and place in the timeline, and only its thumbnails are made again so that they show the file as it is now. Uploading such a file again is recognised as a photo you already have. Up to 1.4.0, any change to the picture's fingerprint counted as a new picture and cost the photo its faces.
 
+<Since version="1.5.0" /> A scan only reads a file again when its modification date changed. A file replaced by a copy that kept the old date (`cp -p`, `rsync --times`, some sync apps) is not noticed; an admin finds those with **Check file contents** in the Admin Area (see [Check File Contents](./job-system.md#check-file-contents)), or with `python manage.py rehash_files` (`--user <name>` for one library, `--path <folder>` for one folder of it).
+
 For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
 
 :::note
@@ -290,6 +292,11 @@ python manage.py backup_database
 # thumbnails created by 1.2.1 and older; pixels and colour profiles are kept,
 # clean files are not touched, so it is safe to run again (--dry-run only counts)
 python manage.py strip_thumbnail_metadata
+
+# Read every indexed file again and import the ones whose contents changed while
+# their modification date stayed (cp -p, rsync --times); --user <name> for one
+# library, --path <folder inside it> for one folder. Reads every byte: slow.
+python manage.py rehash_files
 
 # Read the exposure time again where 1.3.0 and older stored the shutter speed
 # wrongly ("0" for anything faster than about 1/2000 s, "1/1000" for 1/1250 to

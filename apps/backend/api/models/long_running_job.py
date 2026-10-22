@@ -193,6 +193,7 @@ class LongRunningJob(models.Model):
     JOB_LOOK_UP_PLACES = 29
     JOB_MOVE_PHOTOS = 30
     JOB_DEDUPLICATE_FACES = 31
+    JOB_CHECK_FILE_CONTENTS = 32
     JOB_MAKE_VIDEO_POSTERS = 34
 
     JOB_TYPES = (
@@ -226,6 +227,7 @@ class LongRunningJob(models.Model):
         (JOB_LOOK_UP_PLACES, "Look Up Place Names"),
         (JOB_MOVE_PHOTOS, "Move Photos"),
         (JOB_DEDUPLICATE_FACES, "Deduplicate Faces"),
+        (JOB_CHECK_FILE_CONTENTS, "Check File Contents"),
         (JOB_MAKE_VIDEO_POSTERS, "Make Video Posters"),
     )
 

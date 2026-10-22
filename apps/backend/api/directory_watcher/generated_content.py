@@ -52,6 +52,18 @@ def _discard_search_embedding(photo: Photo) -> None:
         setattr(photo, field, None)
 
 
+def _discard_text(photo: Photo) -> None:
+    """Drop the text found in the old picture, and its failed reads.
+
+    The OCR job gives up on a photo after ``OCR_MAX_FAILURES`` failed calls;
+    those were calls on the old picture, so the new one starts at none. The
+    caller saves ``photo`` afterwards, so the instance is reset too.
+    """
+    PhotoOcr.objects.filter(photo=photo).delete()
+    Photo.objects.filter(pk=photo.pk).update(ocr_failures=0)
+    photo.ocr_failures = 0
+
+
 def _rebuild_search_row(photo: Photo) -> None:
     """Index the photo again from what is left, as the tag and caption jobs do.
 
@@ -75,5 +87,5 @@ def discard_generated_content(photo: Photo) -> None:
     _discard_generated_captions(photo)
     set_photo_album_things(photo, [], TAG_THING_TYPE)
     _discard_search_embedding(photo)
-    PhotoOcr.objects.filter(photo=photo).delete()
+    _discard_text(photo)
     _rebuild_search_row(photo)
