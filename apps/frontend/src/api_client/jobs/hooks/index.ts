@@ -17,6 +17,7 @@ export * from "./useRescanSelectedPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";
 export * from "./useStripThumbnailMetadataMutation";
+export * from "./useTrashPhotosOutsideLibraryMutation";
 export * from "./useWorkerQuery";
 export * from "./useWriteMetadataToFiles";
 export * from "./useUpgradeTasks";

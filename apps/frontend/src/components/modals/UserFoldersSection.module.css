@@ -1,0 +1,4 @@
+/* A path has no spaces to wrap at: break it anywhere. */
+.location {
+  overflow-wrap: anywhere;
+}

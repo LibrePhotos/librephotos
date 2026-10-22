@@ -1,12 +1,13 @@
 import logging
+import os
 from typing import Any
 
 from django.conf import settings
 from django.db.models import QuerySet
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import mixins, serializers, viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework import mixins, serializers, status, viewsets
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import (
     AllowAny,
     BasePermission,
@@ -25,21 +26,29 @@ from api.accounts.permissions import (
 )
 from api.accounts.throttling import AuthRateThrottle
 from api.drf.pagination import DefaultPagination
-from api.drf.params import parse_query
+from api.drf.params import parse_body, parse_query
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
+from api.photos.outside_library import photos_outside_library
 from api.photos.paths import is_valid_path
-from api.serializers.folders import DirTreeSerializer, FolderPathQuery
+from api.serializers.folders import (
+    CreatedFolderSerializer,
+    CreateFolderRequest,
+    DirTreeSerializer,
+    FolderPathQuery,
+)
 from api.serializers.user import (
     DeleteUserSerializer,
     FirstTimeSetupSerializer,
     ManageUserSerializer,
     PublicUserSerializer,
+    ScanDirectoryImpactQuery,
+    ScanDirectoryImpactSerializer,
     SignupUserSerializer,
     UserSerializer,
     with_user_relations,
 )
-from api.serving.directory_tree import path_to_dict
+from api.serving.directory_tree import create_folder, path_to_dict
 from api.stacks.burst_rules import (
     DEFAULT_RULES_JSON as BURST_DEFAULT_RULES_JSON,
 )
@@ -118,6 +127,62 @@ class RootPathTreeView(APIView):
         # Anything else that fails is a 500 from the handler, logged there,
         # without the exception text (it used to echo it, paths and all).
         return Response([path_to_dict(path)])
+
+
+class CreateFolderView(APIView):
+    """Make a folder for the folder picker, inside the data root (#2035).
+
+    For an admin giving a user a fresh, empty library without a shell on the
+    host. One folder, in an existing folder inside ``DATA_ROOT``; its name may
+    not hold a separator, ``..`` or anything Windows refuses. Answers the new
+    folder and its parent listed again (one level), for the picker's tree.
+    400 for a bad name or parent, or a folder the server cannot write to; 409
+    when the name is taken.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=CreateFolderRequest, responses=CreatedFolderSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        body = parse_body(request, CreateFolderRequest)
+        folder = create_folder(body["parent_path"], body["name"], settings.DATA_ROOT)
+        parent = path_to_dict(os.path.dirname(folder), recurse=1)
+        return Response(
+            {"absolute_path": folder, "parent": parent}, status=status.HTTP_201_CREATED
+        )
+
+
+class ScanDirectoryImpactView(APIView):
+    """How many of a user's photos another scan directory leaves outside (#2036).
+
+    Asked by the user edit dialog while the admin picks a folder, before Save:
+    photos whose files are outside the library the user would have stay the
+    user's, unless the admin moves them to the user's trash
+    (``POST /api/manage/user/<id>/trash-photos-outside-library/``). Read only.
+    Admins only; 404 for an unknown user, 400 for a folder outside the data
+    root.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(
+        parameters=[ScanDirectoryImpactQuery], responses=ScanDirectoryImpactSerializer
+    )
+    def get(
+        self, request: Request, user_id: int, format: str | None = None
+    ) -> Response:
+        query = parse_query(request, ScanDirectoryImpactQuery)
+        owner = User.objects.filter(pk=user_id, is_active=True).first()
+        if owner is None:
+            raise NotFound("No such user.")
+        if not is_valid_path(query["scan_directory"], settings.DATA_ROOT):
+            raise ValidationError(
+                {"scan_directory": "Scan directory must be inside the data root."}
+            )
+        outside = photos_outside_library(
+            owner, query["scan_directory"], query.get("upload_directory")
+        )
+        return Response({"outside_count": outside.count()})
 
 
 class IsFirstTimeSetupView(APIView):

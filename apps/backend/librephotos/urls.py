@@ -444,6 +444,7 @@ urlpatterns = [
     re_path(r"^api/email-config/?$", email_config.EmailConfigView.as_view()),
     re_path(r"^api/firsttimesetup/?$", user.IsFirstTimeSetupView.as_view()),
     re_path(r"^api/dirtree/?$", user.RootPathTreeView.as_view()),
+    path("api/dirtree/folders/", user.CreateFolderView.as_view()),
     re_path(r"^api/labelfaces/?$", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/addface/?$", faces.AddFaceView.as_view()),
     re_path(r"^api/deletefaces/?$", faces.DeleteFaces.as_view()),
@@ -473,6 +474,16 @@ urlpatterns = [
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),
     re_path(r"^api/scanphotos/?$", scan_triggers.ScanPhotosView.as_view()),
+    path(
+        "api/manage/user/<int:user_id>/scan-directory-impact/",
+        user.ScanDirectoryImpactView.as_view(),
+        name="manage_user_scan_directory_impact",
+    ),
+    path(
+        "api/manage/user/<int:user_id>/trash-photos-outside-library/",
+        scan_triggers.TrashPhotosOutsideLibraryView.as_view(),
+        name="manage_user_trash_photos_outside_library",
+    ),
     # Two URLs, one view, on purpose: #2220 keeps this alias because it is documented.
     re_path(r"^api/scanuploadedphotos/?$", scan_triggers.FullScanPhotosView.as_view()),
     re_path(r"^api/fullscanphotos/?$", scan_triggers.FullScanPhotosView.as_view()),

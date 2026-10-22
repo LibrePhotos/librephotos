@@ -723,3 +723,27 @@ declare_fields(
         help_text="True while no superuser exists"
     ),
 )
+
+
+class ScanDirectoryImpactQuery(serializers.Serializer[None]):
+    """``GET /api/manage/user/<id>/scan-directory-impact/``: a library not saved yet."""
+
+    scan_directory = serializers.CharField(
+        trim_whitespace=False, help_text="The scan directory the admin is choosing"
+    )
+    upload_directory = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="The upload folder with it; the stored one when left out, "
+        "the default ('uploads' in the scan directory) when blank",
+    )
+
+
+class ScanDirectoryImpactSerializer(serializers.Serializer[None]):
+    """How many of a user's photos a new scan directory leaves outside it (#2036)."""
+
+    outside_count = serializers.IntegerField(
+        help_text="Photos whose files lie outside the library the user would "
+        "have: they stay the user's unless moved to the trash"
+    )

@@ -535,7 +535,8 @@
       "move_photos": "Move Photos",
       "deduplicate_faces": "Remove duplicate faces",
       "make_video_posters": "Make Video Posters",
-      "check_file_contents": "Check File Contents"
+      "check_file_contents": "Check File Contents",
+      "trash_photos_outside_library": "Trash Photos Outside the Library"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -1714,7 +1715,9 @@
     "createheader": "Create User",
     "errorusernameexists": "A user with that name already exists",
     "errorusernamecannotbeblank": "User name cannot be blank",
-    "errorinvalidemail": "Enter a valid email address"
+    "errorinvalidemail": "Enter a valid email address",
+    "saveandtrash_one": "Save and move {{count}} photo to the trash",
+    "saveandtrash_other": "Save and move {{count}} photos to the trash"
   },
   "modalscandirectoryedit": {
     "header": "Set the scan directory for user",
@@ -2497,7 +2500,10 @@
     "photosmovedstayed_other": "{{count}} photos stayed where they were.",
     "photosmovednone_one": "Nothing moved: {{count}} photo stayed where it was.",
     "photosmovednone_other": "Nothing moved: {{count}} photos stayed where they were.",
-    "photosmovefailed": "The photos could not be moved."
+    "photosmovefailed": "The photos could not be moved.",
+    "trashphotosoutsidelibrary_one": "Moving {{count}} of {{username}}'s photos to their trash. Follow it in Worker Logs.",
+    "trashphotosoutsidelibrary_other": "Moving {{count}} of {{username}}'s photos to their trash. Follow it in Worker Logs.",
+    "trashphotosoutsidelibrarytitle": "Job started"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -3410,5 +3416,25 @@
     "test_unnamed": "Rule {{position}}",
     "test_edit_rules": "Edit date rules",
     "test_failed": "The rules could not be tested on this photo."
+  },
+  "directorypicker": {
+    "newfolder": "New folder",
+    "foldername": "Folder name",
+    "newfolderin": "In {{path}}",
+    "create": "Create",
+    "nameblank": "Enter a folder name.",
+    "nameinvalid": "A folder name cannot contain / or \\ and cannot be . or ..",
+    "choosefolderfirst": "Choose an existing folder first"
+  },
+  "scandirectorychange": {
+    "counting": "Counting {{username}}'s photos...",
+    "nothingoutside": "All of {{username}}'s photos are inside the new folder. Nothing changes in their library.",
+    "title_one": "{{count}} of {{username}}'s photos is outside the new folder",
+    "title_other": "{{count}} of {{username}}'s photos are outside the new folder",
+    "question": "They were scanned from another folder. What should happen to them?",
+    "keep": "Keep them in {{username}}'s library",
+    "trash": "Move them to {{username}}'s trash",
+    "trashdescription": "Files on disk are not touched, and the photos can be restored from the trash.",
+    "otheruser": "If another user's scan directory holds these files, that user's next scan adds them to their own library."
   }
 }

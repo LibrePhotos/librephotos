@@ -106,6 +106,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   User: { schema: S.User, components: ["User"] },
   PublicPhotoSample: { schema: S.PublicPhotoSample, components: ["PhotoSuperSimple"] },
   ManageUser: { schema: S.ManageUser, components: ["ManageUser"] },
+  ScanDirectoryImpact: { schema: S.ScanDirectoryImpact, components: ["ScanDirectoryImpact"] },
+  CreatedFolder: { schema: S.CreatedFolder, components: ["CreatedFolder"] },
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
   SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
   // site settings

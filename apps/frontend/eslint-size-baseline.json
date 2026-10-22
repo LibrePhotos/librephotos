@@ -4,6 +4,5 @@
   "src/components/lightbox/ContentViewer.tsx": { "lines": 438, "function": 399 },
   "src/components/lightbox/VideoPlayer.tsx": { "lines": 415, "function": 365 },
   "src/components/scrollscrubber/ScrollScrubber.tsx": { "function": 332 },
-  "src/components/react-pig/index.tsx": { "function": 318 },
-  "src/components/modals/ModalUserEdit.tsx": { "function": 251 }
+  "src/components/react-pig/index.tsx": { "function": 318 }
 }

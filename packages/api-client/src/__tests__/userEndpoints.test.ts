@@ -74,6 +74,16 @@ describe("managing users (admin)", () => {
     expect(user.username).toBe("bob");
   });
 
+  it("asks how many photos a new scan directory leaves outside (#2036)", async () => {
+    const { client, requests } = fakeServer({ outside_count: 4136 });
+    const impact = await endpoints.fetchScanDirectoryImpact(client, 2, "/data/a&b #1", "");
+    expect(defined(requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/manage/user/2/scan-directory-impact/?scan_directory=%2Fdata%2Fa%26b%20%231&upload_directory=",
+      method: "GET",
+    });
+    expect(impact.outside_count).toBe(4136);
+  });
+
   it("deletes a user (204, no body)", async () => {
     const { client, requests } = fakeServer(null);
     await expect(endpoints.deleteUser(client, 2)).resolves.toBeUndefined();

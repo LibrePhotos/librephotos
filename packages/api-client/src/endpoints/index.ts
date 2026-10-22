@@ -917,6 +917,37 @@ export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerRespons
   return triggerJob(client, "/scanphotos/", S.JobTriggerResponse, "scan photos");
 }
 
+/**
+ * Admin: how many of a user's photos the scan directory `scanDirectory` (with the upload folder
+ * `uploadDirectory`, "" for the default) would leave outside their library (#2036). Read only.
+ */
+export async function fetchScanDirectoryImpact(
+  client: ApiClient,
+  userId: number,
+  scanDirectory: string,
+  uploadDirectory: string
+): Promise<S.ScanDirectoryImpact> {
+  const query = `scan_directory=${encodeURIComponent(scanDirectory)}&upload_directory=${encodeURIComponent(uploadDirectory)}`;
+  const res = await client.get<unknown>(`/manage/user/${userId}/scan-directory-impact/?${query}`);
+  return parseResponse(S.ScanDirectoryImpact, res, "scan directory impact");
+}
+
+/**
+ * Admin: move a user's photos outside their current library to their trash, as a job started as
+ * them (#2036). Files are not touched. Returns the queued (or already running) job.
+ */
+export async function trashPhotosOutsideLibrary(
+  client: ApiClient,
+  userId: number
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    `/manage/user/${userId}/trash-photos-outside-library/`,
+    S.JobStartedResponse,
+    "trash photos outside the library"
+  );
+}
+
 /** Trigger a full library rescan. */
 export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/fullscanphotos/", S.JobTriggerResponse, "full scan photos");
@@ -1739,6 +1770,15 @@ export async function fetchDirTree(client: ApiClient, path: string): Promise<S.D
   // Always sent, blank included; encoded so "&", "#" or "+" in a folder name do not cut it short.
   const res = await client.get<unknown>(`/dirtree/?path=${encodeURIComponent(path)}`);
   return parseResponse(S.DirTreeResponse, res, "directory tree");
+}
+
+/**
+ * Admin: make the folder `name` in `parent`, a folder inside the data root (#2035). ApiError 400
+ * for a bad name or parent or a folder the server cannot write to, 409 `folder_exists`.
+ */
+export async function createFolder(client: ApiClient, parent: string, name: string): Promise<S.CreatedFolder> {
+  const res = await client.post<unknown>("/dirtree/folders/", { parent_path: parent, name });
+  return parseResponse(S.CreatedFolder, res, "create folder");
 }
 
 /** The folders at the top of the user's Nextcloud. */

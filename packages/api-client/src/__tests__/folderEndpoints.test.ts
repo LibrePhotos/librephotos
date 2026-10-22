@@ -44,6 +44,18 @@ describe("directory trees", () => {
     expect(defined(requests[0]).url).toBe(`${API}/dirtree/?path=%2Fdata%2Fa%26b%20%231%2B`);
   });
 
+  it("makes a folder and reads its parent listed again (#2035)", async () => {
+    const parent = { title: "photos", absolute_path: "/data/photos", children: [] };
+    const { client, requests } = fakeServer({ absolute_path: "/data/photos/sam", parent });
+    const created = await endpoints.createFolder(client, "/data/photos", "sam");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/dirtree/folders/`,
+      method: "POST",
+      body: { parent_path: "/data/photos", name: "sam" },
+    });
+    expect(created).toEqual({ absolute_path: "/data/photos/sam", parent });
+  });
+
   it("lists the top of the user's Nextcloud", async () => {
     const { client, requests } = fakeServer([{ title: "Photos", absolute_path: "/Photos", children: [] }]);
     const folders = await endpoints.fetchNextcloudDirs(client);
