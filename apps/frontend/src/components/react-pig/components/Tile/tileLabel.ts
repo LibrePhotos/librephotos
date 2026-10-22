@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import { DateTime } from "luxon";
 import { describeDuration, parsePhotoTimestamp } from "../../../../util/dateUtils";
+import { isPhotoSphere } from "../../../panorama/photoSphere";
 import type { ImageItem } from "../../types";
 
 function takenDate(item: Pick<ImageItem, "date">): string | null {
@@ -9,11 +10,14 @@ function takenDate(item: Pick<ImageItem, "date">): string | null {
   return taken?.isValid ? taken.toLocaleString(DateTime.DATETIME_MED) : null;
 }
 
-function mediaLabel(item: Pick<ImageItem, "date" | "is_hdr">, isVideo: boolean, t: TFunction): string {
+type LabelledItem = Pick<ImageItem, "date" | "is_hdr" | "projection_type">;
+
+function mediaLabel(item: LabelledItem, isVideo: boolean, t: TFunction): string {
   const date = takenDate(item);
-  // The HDR badge is hidden from assistive tech, so the label says it.
+  // The HDR and 360° badges are hidden from assistive tech, so the label says them.
   if (isVideo && item.is_hdr) return date ? t("phototile.hdrvideotaken", { date }) : t("phototile.hdrvideolabel");
   if (isVideo) return date ? t("phototile.videotaken", { date }) : t("phototile.video");
+  if (isPhotoSphere(item)) return date ? t("phototile.spheretaken", { date }) : t("phototile.sphere");
   return date ? t("phototile.phototaken", { date }) : t("phototile.photo");
 }
 
@@ -29,7 +33,7 @@ function spokenLength(videoLength: string | undefined): string | null {
  * duration on the tile is drawn for sighted users only).
  */
 export function tileLabel(
-  item: Pick<ImageItem, "date" | "is_hdr" | "video_length">,
+  item: LabelledItem & Pick<ImageItem, "video_length">,
   isVideo: boolean,
   t: TFunction
 ): string {

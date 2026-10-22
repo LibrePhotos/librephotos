@@ -15,14 +15,15 @@ beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-async function render(item: { type: Media; video_length: string; is_hdr?: boolean }) {
+async function render(item: { type: Media; video_length: string; is_hdr?: boolean; projection_type?: string | null }) {
   const container = document.createElement("div");
   const root = createRoot(container);
   await act(async () => root.render(<VideoOverlay item={item} />));
   const badge = [...container.querySelectorAll("span")].find(span => span.textContent === "HDR");
+  const sphere = [...container.querySelectorAll("span")].find(span => span.textContent === "360°");
   const text = container.textContent;
   await act(async () => root.unmount());
-  return { badge, text };
+  return { badge, sphere, text };
 }
 
 describe("VideoOverlay", () => {
@@ -46,5 +47,17 @@ describe("VideoOverlay", () => {
   it("does not badge a motion photo", async () => {
     const { badge } = await render({ type: Media.MOTION_PHOTO, video_length: "2", is_hdr: true });
     expect(badge).toBeUndefined();
+  });
+
+  it("badges a 360° photo sphere (#483), hidden from screen readers like HDR", async () => {
+    const { sphere } = await render({ type: Media.IMAGE, video_length: "", projection_type: "equirectangular" });
+    expect(defined(sphere).getAttribute("title")).toBe("phototile.spherebadge");
+    expect(defined(sphere).getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("leaves a flat photo alone", async () => {
+    const { sphere, text } = await render({ type: Media.IMAGE, video_length: "", projection_type: null });
+    expect(sphere).toBeUndefined();
+    expect(text).toBe("");
   });
 });

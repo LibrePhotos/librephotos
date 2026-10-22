@@ -12,7 +12,9 @@ const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize:
 type PhotoItem = ReturnType<typeof photoItem>;
 
 function photoItem(
-  overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr" | "animated_preview" | "video_length">> = {}
+  overrides: Partial<
+    Pick<ImageItem, "type" | "date" | "is_hdr" | "animated_preview" | "video_length" | "projection_type">
+  > = {}
 ) {
   return {
     id: "photo-1",
@@ -152,6 +154,18 @@ describe("react-pig Tile accessibility", () => {
     root = null;
     expect(renderTile(photoItem({ type: "video", is_hdr: false })).button.getAttribute("aria-label")).toMatch(
       /^Video taken /
+    );
+  });
+
+  it("names a 360° photo sphere, whose badge is hidden from screen readers (#483)", () => {
+    expect(
+      renderTile(photoItem({ projection_type: "equirectangular", date: null })).button.getAttribute("aria-label")
+    ).toBe("360° photo");
+    act(() => defined(root).unmount());
+    defined(container).remove();
+    root = null;
+    expect(renderTile(photoItem({ projection_type: "equirectangular" })).button.getAttribute("aria-label")).toMatch(
+      /^360° photo taken /
     );
   });
 

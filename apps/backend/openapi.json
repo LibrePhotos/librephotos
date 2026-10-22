@@ -19730,6 +19730,11 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -19771,6 +19776,7 @@
           "original_mime_type",
           "owner",
           "people",
+          "projection_type",
           "public",
           "rating",
           "removed",
@@ -20759,6 +20765,11 @@
           "video_poster": {
             "type": "boolean",
             "readOnly": true
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -20772,6 +20783,7 @@
           "id",
           "image_hash",
           "is_hdr",
+          "projection_type",
           "public",
           "rating",
           "square_thumbnail",
@@ -21139,6 +21151,11 @@
             "maximum": 9223372036854775807,
             "minimum": -9223372036854775808,
             "format": "int64"
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -21158,6 +21175,7 @@
           "local_orientation",
           "location",
           "owner",
+          "projection_type",
           "rating",
           "removed",
           "stacks",

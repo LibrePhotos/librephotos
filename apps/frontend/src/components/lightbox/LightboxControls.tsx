@@ -52,6 +52,7 @@ export function LightboxControls({
   onCopyToClipboard,
   isCopyingToClipboard = false,
   onAfterTrashToggle,
+  panorama,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
   const theme = useMantineTheme();
@@ -94,8 +95,9 @@ export function LightboxControls({
   // Copy and fullscreen join the menu on a phone too, to leave room for it.
   const actionsInMenu = !!isNarrow && !isPublic;
   const canZoom = enableZoom && type === "photo";
+  const showPanorama = !!panorama?.available;
   // A video on a phone has nothing left in this group; no group, no divider.
-  const showViewGroup = hasOcrText || canZoom || !actionsInMenu;
+  const showViewGroup = hasOcrText || canZoom || showPanorama || !actionsInMenu;
   // Details that failed to load leave the photo-actions group empty, and an
   // empty group put two dividers side by side. The phone menu still holds copy
   // and fullscreen.
@@ -192,6 +194,7 @@ export function LightboxControls({
           isFullscreen={isFullscreen}
           toggleFullscreen={toggleFullscreen}
           fullscreenLabel={fullscreenLabel}
+          panorama={showPanorama ? panorama : undefined}
         />
       )}
 

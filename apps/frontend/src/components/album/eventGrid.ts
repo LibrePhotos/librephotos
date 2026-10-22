@@ -23,6 +23,7 @@ export function eventGridPhoto(photo: PhotoSimple) {
     is_hdr: photo.is_hdr ?? false,
     animated_preview: photo.animated_preview,
     video_poster: photo.video_poster,
+    projection_type: photo.projection_type,
     // The grid fields an event photo has no source for
     shared_to: [],
     isTemp: false,

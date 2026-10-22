@@ -1,0 +1,4 @@
+/* Where the video length sits, clear of the tile's rounded corner. */
+.sphereBadge {
+  margin: 0 5px 5px 0;
+}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Media, PageFields, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { Media, PageFields, PigPhoto, ProjectionType, SimpleUser, StackTypeEnum, UuidString } from "./common";
 import { FileTypeFilter } from "./search";
 
 /** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
@@ -183,6 +183,8 @@ export const Photo = z.object({
   // can tell whether it can draw the original; null without a main file (#2742).
   // Optional: older backends do not send it.
   original_mime_type: z.string().nullish(),
+  // A 360° photo sphere opens in the panorama viewer on request (#483).
+  projection_type: ProjectionType,
 });
 export type Photo = z.infer<typeof Photo>;
 

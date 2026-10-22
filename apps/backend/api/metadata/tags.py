@@ -137,6 +137,13 @@ class Tags:
     # orientation must not rotate LibrePhotos' own thumbnails (SIDECAR_EQUIVALENTS).
     ORIENTATION_XMP = "XMP-tiff:Orientation"
 
+    # Google's Photo Sphere XMP (XMP-GPano), which phones, 360° cameras and
+    # stitchers write into a panorama (#483). ExifTool files the namespace
+    # under the family 0 group XMP. ProjectionType is "equirectangular" for a
+    # photo sphere; UsePanoramaViewer is a boolean (true/false under -n).
+    PROJECTION_TYPE = "XMP:ProjectionType"
+    USE_PANORAMA_VIEWER = "XMP:UsePanoramaViewer"
+
     # Burst/sequence detection tags
     SUBSEC_TIME_ORIGINAL = "EXIF:SubSecTimeOriginal"
     SUBSEC_TIME = "EXIF:SubSecTime"

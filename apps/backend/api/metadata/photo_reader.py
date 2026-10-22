@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from django.db.models import Q, QuerySet
 
 from api.geocode.photo_location import apply_file_position, usable_coordinates
+from api.metadata.projection import projection_type_of
 from api.metadata.reader import (
     MEDIA_FILE_ORIGIN,
     MetadataReadError,
@@ -88,6 +89,9 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("rotation", Tags.ROTATION),
     # A photo's EXIF orientation, which turns its stored size into the shown one (#2568).
     ("orientation", Tags.ORIENTATION),
+    # Photo spheres (#483): the GPano projection, see api.metadata.projection.
+    ("projection_type", Tags.PROJECTION_TYPE),
+    ("use_panorama_viewer", Tags.USE_PANORAMA_VIEWER),
 )
 
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)
@@ -109,7 +113,8 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
 
     This extracts metadata from the photo's main file and:
     1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec,
-       image_sequence_number, and the GPS position unless the user set it)
+       image_sequence_number, projection_type, and the GPS position unless
+       the user set it)
     2. Gets or creates PhotoMetadata and populates it with extracted data
 
     Args:
@@ -123,6 +128,7 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
         return None
     values = read_file_values(photo)
     apply_file_position(photo, values["gps_latitude"], values["gps_longitude"])
+    photo.projection_type = projection_type_of(values, photo.video)
     return PhotoMetadata.apply_file_values(photo, values, commit)
 
 

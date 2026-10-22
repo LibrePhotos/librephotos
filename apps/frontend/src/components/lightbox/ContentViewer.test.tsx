@@ -85,6 +85,12 @@ vi.mock("./VideoPlayer", () => ({
   SEEK_STEP_SECONDS: 10,
   SEEK_LONG_STEP_SECONDS: 60,
 }));
+// jsdom has no WebGL; the 360° toggle is usable here.
+vi.mock("../panorama/photoSphere", async importOriginal => ({
+  ...(await importOriginal<typeof import("../panorama/photoSphere")>()),
+  canShowPhotoSphere: () => true,
+}));
+vi.mock("../../service/notifications", () => ({ notification: { error: () => {} } }));
 vi.mock("../modals/ModalPersonEdit", () => ({
   ModalPersonEdit: () => <div data-testid="person-edit" />,
 }));
@@ -475,5 +481,69 @@ describe("ContentViewer after a photo leaves for the trash", () => {
     await act(async () => afterTrashToggle()());
 
     expect(onCloseRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ContentViewer 360° view", () => {
+  const SPHERE = { image_hash: "hb", projection_type: "equirectangular" };
+
+  it("offers the 360° view for a photo sphere only", async () => {
+    stubs.details = { data: { image_hash: "hb" }, isLoading: false };
+    await renderViewer();
+    expect(lastControls().panorama?.available).toBe(false);
+
+    stubs.details = { data: SPHERE, isLoading: false };
+    await renderViewer();
+    expect(lastControls().panorama?.available).toBe(true);
+  });
+
+  it("knows a sphere from the grid on a public page, which has no details", async () => {
+    await renderViewer({
+      isPublic: true,
+      gridItem: { id: "b", image_hash: "hb", projection_type: "equirectangular" },
+    });
+
+    expect(lastControls().panorama?.available).toBe(true);
+  });
+
+  it("turns on with V: the photo shows in the viewer and a drag turns it instead of swiping", async () => {
+    stubs.details = { data: SPHERE, isLoading: false };
+    await renderViewer();
+
+    await press("v");
+
+    expect(lastControls().panorama?.active).toBe(true);
+    expect(defined(stubs.media.at(-1)).panoramaActive).toBe(true);
+    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: false });
+  });
+
+  it("leaves the arrows and Z to the viewer, and Escape leaves the view before the lightbox", async () => {
+    stubs.details = { data: SPHERE, isLoading: false };
+    const { onMoveNextRequest, onMovePrevRequest, onCloseRequest } = await renderViewer();
+    await press("v");
+
+    await press("ArrowRight");
+    await press("ArrowLeft");
+    await press("z");
+    expect(onMoveNextRequest).not.toHaveBeenCalled();
+    expect(onMovePrevRequest).not.toHaveBeenCalled();
+    expect(lastControls().isZoomed).toBe(false);
+
+    await press("Escape");
+    expect(onCloseRequest).not.toHaveBeenCalled();
+    expect(lastControls().panorama?.active).toBe(false);
+
+    await press("ArrowRight");
+    expect(onMoveNextRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the next photo flat", async () => {
+    stubs.details = { data: SPHERE, isLoading: false };
+    const { rerender } = await renderViewer();
+    await press("v");
+
+    await rerender(NEXT_ITEM);
+
+    expect(lastControls().panorama?.active).toBe(false);
   });
 });
