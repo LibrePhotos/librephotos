@@ -181,7 +181,9 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         queryset = self.get_queryset()
         latest_photo = self._get_latest_photo()
         latest_date = latest_photo.added_on if latest_photo else None
-        serializer = PhotoSummarySerializer(queryset, many=True)
+        serializer = PhotoSummarySerializer(
+            queryset, many=True, context={"request": self.request}
+        )
         return Response({"date": latest_date, "results": serializer.data})
 
     def _get_latest_photo(self) -> Photo | None:
@@ -752,6 +754,11 @@ class PhotoViewSet(
         own = Photo.objects.owned_by(user).filter(
             removed=False, thumbnail__aspect_ratio__isnull=False
         )
+        if self.action == "list":
+            # Its search runs over file paths, tags, people's names, captions
+            # and places: of the requester's own photos only, never of a
+            # photo they can merely read.
+            return own.prefetch_related("stacks").order_by("-exif_timestamp")
         return (
             (Photo.visible.visible_to(user) | own)
             .distinct()

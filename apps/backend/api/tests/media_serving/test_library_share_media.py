@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import tempfile
+from unittest.mock import patch
 
 import pyvips
 from django.test import TestCase, override_settings
@@ -17,6 +18,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.runtime import binaries
+from api.sharing import copies
 from api.sharing.copies import COPIES_DIR, delete_copies
 from api.tests.utils import (
     create_test_file,
@@ -105,14 +107,38 @@ class LibraryMediaTest(TestCase):
         self.assertEqual(response["Content-Type"], "image/jpeg")
         self.assertEqual(
             response["X-Accel-Redirect"],
-            f"/protected_media/{COPIES_DIR}/{self.photo.image_hash}.jpg",
+            f"/protected_media/{COPIES_DIR}/{self.owner.pk}/{self.photo.image_hash}.jpg",
         )
         self.assertNotIn("Content-Disposition", response)
-        copy = os.path.join(self.media_root, COPIES_DIR, f"{self.photo.image_hash}.jpg")
+        copy = os.path.join(
+            self.media_root,
+            COPIES_DIR,
+            str(self.owner.pk),
+            f"{self.photo.image_hash}.jpg",
+        )
         tags = _exiftool_json(copy)
         self.assertFalse(_has_gps(tags), tags)
         self.assertNotIn("SecretCam", json.dumps(tags))
         self.assertEqual(tags.get("File:ImageWidth"), 64)
+
+    def test_a_panorama_copy_keeps_its_full_width(self):
+        source = os.path.join(self.media_root, "originals", "panorama.jpg")
+        pyvips.Image.black(12000, 40).write_to_file(source)
+        with open(source, "rb") as handle:
+            main_file = create_test_file(source, self.owner, handle.read())
+        panorama = create_test_photo(owner=self.owner, main_file=main_file)
+        self.addCleanup(delete_copies, panorama.image_hash)
+        response = client_for(self.recipient).get(
+            f"/media/photos/{panorama.image_hash}"
+        )
+        self.assertEqual(response.status_code, 200)
+        copy = os.path.join(
+            self.media_root,
+            COPIES_DIR,
+            str(self.owner.pk),
+            f"{panorama.image_hash}.jpg",
+        )
+        self.assertEqual(pyvips.Image.new_from_file(copy).width, 12000)
 
     def test_with_originals_the_original_is_served_without_its_name(self):
         self.share.share_originals = True
@@ -141,6 +167,45 @@ class LibraryMediaTest(TestCase):
             f"/media/video/{self.photo.image_hash}"
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_a_copy_being_made_by_another_request_is_waited_for(self):
+        copy_dir = os.path.join(self.media_root, COPIES_DIR, str(self.owner.pk))
+        os.makedirs(copy_dir, exist_ok=True)
+        lock = os.path.join(copy_dir, f"{self.photo.image_hash}.jpg.lock")
+        open(lock, "w").close()
+        url = f"/media/photos/{self.photo.image_hash}"
+        with patch.object(copies, "WAIT_FOR_COPY_SECONDS", 0.2):
+            response = client_for(self.recipient).get(url)
+        # Nobody finished it in time: ask again later, never the original.
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response["Retry-After"], "30")
+        os.remove(lock)
+        self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
+
+    def test_a_recipient_makes_a_bounded_number_of_new_copies(self):
+        url = f"/media/photos/{self.photo.image_hash}"
+        with patch.object(copies, "COPIES_PER_HOUR", 0):
+            self.assertEqual(client_for(self.recipient).get(url).status_code, 503)
+        self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
+        # A copy already made is served whatever the count.
+        with patch.object(copies, "COPIES_PER_HOUR", 0):
+            self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
+
+    def test_the_last_share_ending_removes_the_owners_copies(self):
+        self.assertEqual(
+            client_for(self.recipient)
+            .get(f"/media/photos/{self.photo.image_hash}")
+            .status_code,
+            200,
+        )
+        copy_dir = os.path.join(self.media_root, COPIES_DIR, str(self.owner.pk))
+        self.assertTrue(os.listdir(copy_dir))
+        api = APIClient()
+        api.force_authenticate(user=self.owner)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = api.delete(f"/api/library-shares/{self.share.pk}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(os.path.exists(copy_dir))
 
     def test_the_recipient_gets_no_embedded_motion_video_without_originals(self):
         response = client_for(self.recipient).get(
@@ -193,7 +258,12 @@ class LibraryVideoCopyTest(TestCase):
 
     def test_the_video_path_plays_the_copy_or_the_original(self):
         client = client_for(self.recipient)
-        copy = os.path.join(self.media_root, COPIES_DIR, f"{self.photo.image_hash}.mp4")
+        copy = os.path.join(
+            self.media_root,
+            COPIES_DIR,
+            str(self.owner.pk),
+            f"{self.photo.image_hash}.mp4",
+        )
         response = client.get(f"/media/video/{self.photo.image_hash}")
         self.assertEqual(response.status_code, 200)
         response.close()
@@ -217,7 +287,12 @@ class LibraryVideoCopyTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         response.close()
-        copy = os.path.join(self.media_root, COPIES_DIR, f"{self.photo.image_hash}.mp4")
+        copy = os.path.join(
+            self.media_root,
+            COPIES_DIR,
+            str(self.owner.pk),
+            f"{self.photo.image_hash}.mp4",
+        )
         self.assertTrue(os.path.exists(copy))
 
     def test_the_copy_has_no_location(self):
@@ -227,7 +302,12 @@ class LibraryVideoCopyTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         response.close()
-        copy = os.path.join(self.media_root, COPIES_DIR, f"{self.photo.image_hash}.mp4")
+        copy = os.path.join(
+            self.media_root,
+            COPIES_DIR,
+            str(self.owner.pk),
+            f"{self.photo.image_hash}.mp4",
+        )
         self.assertTrue(os.path.exists(copy))
         tags = _exiftool_json(copy)
         self.assertFalse(_has_gps(tags), tags)

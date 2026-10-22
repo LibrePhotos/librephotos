@@ -13,18 +13,19 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.db.models import Count, F, Q, QuerySet
+from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
 
 from api.models import AlbumDate, LibraryShare, Photo, User
 from api.sharing.grants import LibraryGrant, received_grants
 from api.sharing.library_photos import (
-    PLACE_HIDDEN_ATTR,
     library_photos_q,
     library_share,
     merge_days,
-    place_hidden,
     same_date_days,
+    set_shared_places,
     timeline_shares,
+    with_shared_photos,
 )
 
 
@@ -51,9 +52,7 @@ def library_day_rows(user: User, params: Mapping[str, Any]) -> list[AlbumDate]:
     if photos_q is None:
         return []
     days = list(_days(AlbumDate.objects.owned_by(share.owner), photos_q))
-    hidden = not share.share_location
-    for day in days:
-        setattr(day, PLACE_HIDDEN_ATTR, hidden)
+    set_shared_places(days, user, {share.owner_id: LibraryGrant.of(share)})
     return days
 
 
@@ -71,8 +70,9 @@ def timeline_day_rows(
         ),
         photos_q,
     )
-    days = sorted([*own_days, *others], key=_newest_first)
-    return merge_days(days, user, received_grants(user))
+    days = merge_days(sorted([*own_days, *others], key=_newest_first), user)
+    set_shared_places(days, user, received_grants(user))
+    return days
 
 
 def library_day(
@@ -80,11 +80,12 @@ def library_day(
 ) -> tuple[AlbumDate, QuerySet[Photo]]:
     """A day of the library ``params["library"]`` and the photos it shows."""
     share = library_share(user, params["library"])
-    day = get_object_or_404(AlbumDate.objects.owned_by(share.owner), pk=pk)
-    setattr(day, PLACE_HIDDEN_ATTR, not share.share_location)
     photos_q = library_photos_q(user, params, LibraryShare.objects.filter(pk=share.pk))
     if photos_q is None:
-        return day, Photo.objects.none()
+        raise NotFound("No such day in this library")
+    days = with_shared_photos(AlbumDate.objects.owned_by(share.owner), photos_q)
+    day = get_object_or_404(days, pk=pk)
+    set_shared_places([day], user, {share.owner_id: LibraryGrant.of(share)})
     return day, day.photos.filter(photos_q)
 
 
@@ -98,12 +99,14 @@ def timeline_day(
     photos_q = library_photos_q(user, params, shares)
     reachable = AlbumDate.objects.owned_by(user)
     if photos_q is not None:
-        reachable = reachable | AlbumDate.objects.filter(
-            owner__in=owners  # owner-scope: library sharers
+        # Another user's day only while it holds a photo they share.
+        reachable = reachable | with_shared_photos(
+            AlbumDate.objects.filter(owner__in=owners),  # owner-scope: sharers
+            photos_q,
         )
     day = get_object_or_404(reachable, pk=pk)
     grants: dict[int, LibraryGrant] = received_grants(user)
-    setattr(day, PLACE_HIDDEN_ATTR, place_hidden(grants, day.owner_id))
+    set_shared_places([day], user, grants)
     own_days = AlbumDate.objects.owned_by(user).filter(same_date_days(day))
     own = Photo.objects.filter(*own_photos_q, albumdate__in=own_days).values("pk")
     match = Q(pk__in=own)

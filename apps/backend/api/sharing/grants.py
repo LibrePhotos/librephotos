@@ -133,6 +133,17 @@ class GrantLookup:
         return self._grants.get(owner_id)
 
 
+class UnknownViewerLookup(GrantLookup):
+    """A serializer without a request cannot tell whose eyes a photo is for:
+    every photo is shown as to a recipient with every switch off."""
+
+    def __init__(self) -> None:
+        super().__init__(None)
+
+    def for_owner(self, owner_id: int | None) -> LibraryGrant | None:
+        return LibraryGrant()
+
+
 _LOOKUP_ATTR = "_library_grant_lookup"
 
 
@@ -140,16 +151,20 @@ def lookup_for(serializer: BaseSerializer) -> GrantLookup:
     """The ``GrantLookup`` of the user ``serializer``'s request is for.
 
     Kept on the root serializer, which a list serializer's child shares, so a
-    page of photos costs one query. Without a request there is no viewer and
-    nothing to redact: every view that can hand out another user's library
-    photo passes its request (``test_library_share_reads.py``).
+    page of photos costs one query. Without a request the viewer is unknown,
+    so it fails closed: every photo is redacted as for a recipient with every
+    switch off (``UnknownViewerLookup``). Every view passes its request.
     """
     root = serializer.root
     lookup = getattr(root, _LOOKUP_ATTR, None)
     if isinstance(lookup, GrantLookup):
         return lookup
     request = serializer.context.get("request")
-    lookup = GrantLookup(getattr(request, "user", None))
+    lookup = (
+        UnknownViewerLookup()
+        if request is None
+        else GrantLookup(getattr(request, "user", None))
+    )
     setattr(root, _LOOKUP_ATTR, lookup)
     return lookup
 
@@ -208,7 +223,8 @@ DETAIL_FIELDS: FieldRules = {
     "exif_gps_lat": ("location", None),
     "exif_gps_lon": ("location", None),
     "exif_timestamp": (ALWAYS, None),
-    "exif_timestamp_offset": (ALWAYS, None),
+    # The UTC offset names the photo's time zone: a location.
+    "exif_timestamp_offset": ("location", None),
     # Which date rule set the date, and whether the owner set it: edit history.
     "exif_timestamp_source": (NEVER, None),
     "date_set_by_user": (NEVER, False),

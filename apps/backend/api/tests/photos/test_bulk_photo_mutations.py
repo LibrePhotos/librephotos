@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory
 
 from api.metadata.jobs import write_photo_ratings
 from api.metadata.tags import Tags
@@ -473,11 +473,16 @@ class TrashedAtTest(TestCase):
     def test_the_photo_summary_carries_trashed_at(self):
         self.set_deleted({"image_hashes": self.hashes[:1], "deleted": True})
 
+        # The owner's request: without one the serializer hides as for a
+        # stranger (#2731).
+        request = APIRequestFactory().get("/")
+        request.user = self.user
         rows = PhotoSummarySerializer(
             with_photo_summary_relations(
                 Photo.objects.filter(pk__in=[p.pk for p in self.photos])
             ),
             many=True,
+            context={"request": request},
         ).data
 
         by_hash = {row["image_hash"]: row["trashed_at"] for row in rows}

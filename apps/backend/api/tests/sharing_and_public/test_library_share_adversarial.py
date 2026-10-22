@@ -50,6 +50,16 @@ class LibraryRecipientReadTest(reads.CrossTenantReadTest):
             ("/api/photos/searchlist/?search=VictimPlaceTitle", None),
             ("/api/photos/searchlist/?search=victim-tag-name", None),
             ("/api/photos/searchlist/?search=victimthingtitle", None),
+            *(
+                (f"/api/photos/?search={marker}", None)
+                for marker in (
+                    "VictimFriendName",
+                    "VictimCameraModel",
+                    "VictimPlaceTitle",
+                    "victim-tag-name",
+                    "photos",
+                )
+            ),
         ]
 
     def test_another_user_sees_none_of_the_victims_rows(self):
@@ -74,6 +84,15 @@ class LibraryRecipientReadTest(reads.CrossTenantReadTest):
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(self.v_photo.image_hash, response.content.decode())
+
+    def test_the_photo_list_never_holds_the_shared_photos(self):
+        """The list's search runs over hidden fields: a hit is an oracle."""
+        client = self.client_for(self.attacker)
+        for term in ("", "VictimFriendName", "victim-tag-name", "photos"):
+            with self.subTest(term=term):
+                body = client.get("/api/photos/", {"search": term}).content.decode()
+                for photo in self.v_photos:
+                    self.assertNotIn(str(photo.pk), body)
 
     def test_a_revoked_share_reaches_nothing(self):
         self.share.delete()

@@ -10,10 +10,14 @@ import datetime
 
 from django.test import TestCase
 from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory
 
 from api.models import Photo
-from api.serializers.photos import PhotoSerializer, PhotoSummarySerializer
+from api.serializers.photos import (
+    PhotoSerializer,
+    PhotoSummarySerializer,
+    with_photo_summary_relations,
+)
 from api.sharing.grants import DETAIL_FIELDS, SUMMARY_FIELDS
 from api.tests.utils import (
     create_test_album_date,
@@ -56,6 +60,8 @@ class LibraryShareFixture(TestCase):
             exif_gps_lon=11.34,
             search_location="Starnberg Bavaria",
             camera="SecretCam 9",
+            exif_timestamp_offset=120,
+            geolocation_json={"features": [{"text": "Starnberg"}, {"text": "Germany"}]},
             captions_json={"user_caption": "birthday cake", "im2txt": "a cake"},
             rating=5,
         )
@@ -82,6 +88,27 @@ class LibraryShareFixture(TestCase):
         for name, value in switches.items():
             setattr(self.share, name, value)
         self.share.save()
+
+
+class NoRequestTest(LibraryShareFixture):
+    def loaded(self):
+        return with_photo_summary_relations(
+            Photo.objects.filter(pk=self.photo.pk)
+        ).get()
+
+    def test_a_serializer_without_a_request_fails_closed(self):
+        """Without a request the viewer is unknown: hide as for a recipient."""
+        self.switch(share_location=True)
+        data = PhotoSummarySerializer(self.loaded()).data
+        self.assertIsNone(data["exif_gps_lat"])
+        self.assertEqual(data["location"], "")
+        self.assertEqual(data["rating"], 0)
+
+    def test_with_the_owners_request_nothing_is_hidden(self):
+        request = APIRequestFactory().get("/")
+        request.user = self.owner
+        data = PhotoSummarySerializer(self.loaded(), context={"request": request}).data
+        self.assertEqual(data["exif_gps_lat"], 47.99)
 
 
 class ScopeTest(LibraryShareFixture):
@@ -125,6 +152,8 @@ class PhotoDetailTest(LibraryShareFixture):
         self.assertIsNotNone(body["exif_timestamp"])
         self.assertIsNone(body["exif_gps_lat"])
         self.assertIsNone(body["exif_gps_lon"])
+        # The UTC offset names the time zone: a location too.
+        self.assertIsNone(body["exif_timestamp_offset"])
         self.assertEqual(body["search_location"], "")
         self.assertIsNone(body["geolocation_json"])
         self.assertIsNone(body["camera"])

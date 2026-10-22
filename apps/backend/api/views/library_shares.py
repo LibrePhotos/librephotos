@@ -6,8 +6,10 @@ sees the share in the list; anyone else gets a 404 for its id.
 """
 
 import logging
+from functools import partial
 from typing import Any
 
+from django.db import transaction
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
@@ -30,6 +32,7 @@ from api.serializers.library_share import (
     UpdateLibraryShareRequest,
     with_library_share_relations,
 )
+from api.sharing.copies import forget_owner_copies
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +128,10 @@ class LibraryShareViewSet(
         """The owner stops sharing, or the recipient leaves: access ends at once."""
         user = request_user(request)
         share = self._share(kwargs.get("pk"))
-        share_id = share.pk
+        share_id, owner = share.pk, share.owner
         share.delete()
+        if not LibraryShare.objects.owned_by(owner).exists():
+            # Nobody gets copies of their photos any more.
+            transaction.on_commit(partial(forget_owner_copies, owner.pk))
         logger.info("User %s ended library share %s", user.pk, share_id)
         return Response(status=status.HTTP_204_NO_CONTENT)

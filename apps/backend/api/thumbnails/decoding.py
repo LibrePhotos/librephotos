@@ -45,6 +45,21 @@ def thumbnail(path: str, height: int) -> pyvips.Image:
         )
 
 
+def full_size(path: str) -> pyvips.Image:
+    """The whole picture at its own size, auto-rotated, from any supported file.
+
+    ``thumbnail`` boxes the width at 10,000 pixels, which shrinks a panorama;
+    this boxes nothing (#2731: the full-size copy of a shared photo).
+    """
+    try:
+        image = pyvips.Image.thumbnail(
+            f"{path}[revalidate]", _ANY, height=_ANY, size=pyvips.enums.Size.DOWN
+        )
+        return image.copy_memory()
+    except pyvips.Error:
+        return _pillow_to_vips(path)
+
+
 # LibRaw's flip value as the EXIF orientation pyvips' autorot understands.
 _FLIP_TO_ORIENTATION = {3: 3, 5: 8, 6: 6}
 # Unconstrained side of a thumbnail box (vips wants a number).

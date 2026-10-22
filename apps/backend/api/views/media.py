@@ -42,7 +42,7 @@ from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
 from api.serializers.media import MediaQuery
 from api.serving.http_range import file_size, ranged_response
-from api.sharing.copies import COPIES_DIR, ensure_copy
+from api.sharing.copies import COPIES_DIR, CopyUnavailableError, ensure_copy
 from api.sharing.grants import LibraryGrant, library_grant
 from api.video import color, ffmpeg_budget, transcode_cache
 from api.video.no_metadata import NO_METADATA
@@ -879,7 +879,15 @@ class MediaServingView(APIView):
         """The full-size copy without metadata a recipient gets instead of the
         original when its owner does not share original files."""
         original = _original_path(photo)
-        copy = ensure_copy(photo, original)
+        requester = self._requester(self.request)
+        try:
+            copy = ensure_copy(photo, original, requester.pk if requester else 0)
+        except CopyUnavailableError:
+            # Still being made by another request, or this recipient made
+            # too many new copies this hour: ask again later.
+            response = HttpResponse(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            response["Retry-After"] = "30"
+            return response
         if copy is None:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         content_type = (
@@ -890,7 +898,7 @@ class MediaServingView(APIView):
         response = HttpResponse()
         response["Content-Type"] = content_type
         response["X-Accel-Redirect"] = self._protected_media_url(
-            COPIES_DIR, os.path.basename(copy)
+            f"{COPIES_DIR}/{photo.owner_id}", os.path.basename(copy)
         )
         return response
 

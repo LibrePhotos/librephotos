@@ -18,12 +18,14 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models import Exists, F, Model, OuterRef, Q, QuerySet, Window
+from django.db.models.functions import RowNumber
 from rest_framework.exceptions import NotFound
 
 from api.albums.timeline_filter import resolve_timeline_filter
 from api.models import AlbumDate, LibraryShare, Photo, PhotoStack, User
 from api.models.photo import shared_library_q
+from api.models.place_names import town_name
 from api.sharing.grants import LibraryGrant
 
 # Params that make a day-album read a view of the requester's own library.
@@ -38,8 +40,12 @@ OWNER_ONLY_PARAMS = (
     "last_modified",
 )
 
-# Set on a day album row whose place the requester may not see.
-PLACE_HIDDEN_ATTR = "place_hidden"
+# Set on a day album row of another user's library: the place the
+# requester sees for it ("" when the owner does not share locations).
+SHARED_PLACE_ATTR = "shared_place"
+# How many of a day's located photos are asked for its town: the first one
+# with a town name wins, as on a public day.
+PLACE_CANDIDATES = 5
 
 
 def owner_only_view(params: Mapping[str, Any]) -> bool:
@@ -101,33 +107,83 @@ def library_photos_q(
     return q
 
 
-def place_hidden(grants: Mapping[int, LibraryGrant], owner_id: int | None) -> bool:
-    """Whether a day of ``owner_id`` must not name its place."""
-    grant = grants.get(owner_id) if owner_id is not None else None
-    return grant is not None and not grant.location
+def _towns(day_ids: Iterable[int]) -> dict[int, str]:
+    """The town of each day in ``day_ids``, from its visible photos only.
+
+    ``AlbumDate.location`` collects the town of every photo of the day,
+    hidden and trashed ones included, so a shared day names the town of its
+    earliest visible located photo instead, as the public view does. One
+    query for all the days.
+    """
+    # Typed as a plain model: the stubs know no ``rank`` on the through table.
+    through: type[Model] = AlbumDate.photos.through
+    links = (
+        through._default_manager.filter(
+            albumdate_id__in=list(day_ids),
+            photo__hidden=False,
+            photo__in_trashcan=False,
+            photo__removed=False,
+            photo__geolocation_json__isnull=False,
+        )
+        .annotate(
+            rank=Window(
+                RowNumber(),
+                partition_by=[F("albumdate_id")],
+                order_by=[F("photo__exif_timestamp").asc(nulls_last=True), "photo_id"],
+            )
+        )
+        .filter(rank__lte=PLACE_CANDIDATES)
+        .order_by("albumdate_id", "rank")
+        .values_list("albumdate_id", "photo__geolocation_json")
+    )
+    towns: dict[int, str] = {}
+    for day_id, geolocation in links:
+        name = town_name(geolocation)
+        if name and day_id not in towns:
+            towns[day_id] = name
+    return towns
 
 
-def merge_days(
+def set_shared_places(
     days: Iterable[AlbumDate], user: User, grants: Mapping[int, LibraryGrant]
-) -> list[AlbumDate]:
+) -> None:
+    """Name the place of every day of another user's library in ``days``:
+    from its visible photos when the owner shares locations, else none."""
+    shared = [day for day in days if day.owner_id != user.pk]
+    located = [day.pk for day in shared if _shares_location(grants, day.owner_id)]
+    towns = _towns(located) if located else {}
+    for day in shared:
+        setattr(day, SHARED_PLACE_ATTR, towns.get(day.pk, ""))
+
+
+def _shares_location(grants: Mapping[int, LibraryGrant], owner_id: int | None) -> bool:
+    grant = grants.get(owner_id) if owner_id is not None else None
+    return grant is not None and grant.location
+
+
+def with_shared_photos(albums: QuerySet[AlbumDate], photos_q: Q) -> QuerySet[AlbumDate]:
+    """The day albums of ``albums`` holding a photo ``photos_q`` keeps: a day
+    of only hidden or trashed photos is not part of a shared library."""
+    return albums.filter(pk__in=Photo.objects.filter(photos_q).values("albumdate"))
+
+
+def merge_days(days: Iterable[AlbumDate], user: User) -> list[AlbumDate]:
     """One row per date, newest first: the requester's own day where they
     have one, with the other owners' photos of that date in its count.
 
     ``days`` is ordered by date (newest first, undated last) and annotated
     with ``photo_count``. A date only others have keeps the first of their
-    rows; it names its place only when that owner shares locations.
+    rows; ``set_shared_places`` names its place.
     """
     merged: dict[object, AlbumDate] = {}
     for day in days:
         kept = merged.get(day.date)
         if kept is None:
-            setattr(day, PLACE_HIDDEN_ATTR, place_hidden(grants, day.owner_id))
             merged[day.date] = day
             continue
         if day.owner_id == user.pk:
             # The requester's own day leads, with what was counted so far.
             setattr(day, "photo_count", day_count(day) + day_count(kept))
-            setattr(day, PLACE_HIDDEN_ATTR, False)
             merged[day.date] = day
         else:
             setattr(kept, "photo_count", day_count(kept) + day_count(day))

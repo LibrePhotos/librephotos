@@ -32,7 +32,9 @@ class GroupedThingPhotosSerializer(serializers.ModelSerializer):
         # ``.data`` of a many=True serializer is a ReturnList; build it through
         # ListSerializer so the static type matches the runtime value.
         res = serializers.ListSerializer(
-            child=GroupedPhotosSerializer(), instance=grouped_photos
+            child=GroupedPhotosSerializer(),
+            instance=grouped_photos,
+            context=self.context,
         ).data
         return res
 

@@ -1155,7 +1155,7 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
     @extend_schema_field(PhotoSummarySerializer)
     def get_photo(self, obj: Model) -> dict[str, Any]:
         # obj is an instance of the auto-created shared_to through model.
-        return PhotoSummarySerializer(getattr(obj, "photo")).data
+        return PhotoSummarySerializer(getattr(obj, "photo"), context=self.context).data
 
 
 class PublicPhotoPersonSerializer(serializers.Serializer[None]):

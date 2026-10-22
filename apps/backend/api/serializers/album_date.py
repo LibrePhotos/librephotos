@@ -6,7 +6,7 @@ from api.drf.params import TristateFlagField
 from api.models import AlbumDate, Photo
 from api.models.place_names import town_name
 from api.serializers.photos import PhotoSummarySerializer
-from api.sharing.library_photos import PLACE_HIDDEN_ATTR
+from api.sharing.library_photos import SHARED_PLACE_ATTR
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 
@@ -50,9 +50,11 @@ def _public_place(obj: AlbumDate) -> str:
 
 
 def _place(serializer: serializers.BaseSerializer, obj: AlbumDate) -> str:
-    # A day of a library whose owner does not share locations (#2731).
-    if getattr(obj, PLACE_HIDDEN_ATTR, False):
-        return ""
+    # A day of another user's library (#2731): the place of its visible
+    # photos when the owner shares locations, else none.
+    shared_place = getattr(obj, SHARED_PLACE_ATTR, None)
+    if isinstance(shared_place, str):
+        return shared_place
     if serializer.context.get("public"):
         return _public_place(obj)
     return _stored_place(obj)
