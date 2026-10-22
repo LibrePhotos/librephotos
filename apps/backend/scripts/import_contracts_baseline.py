@@ -17,9 +17,6 @@ rename detection, as in scripts/ruff_baseline.py) is compared under its old
 name, so "api.models.user -> api.date_time_extractor" at the base ref covers
 "api.models.user -> api.metadata.datetime_rules" after the move.
 
-Runs on Python 3.10 (the floor): tomllib there comes from tomli, which
-import-linter installs on 3.10.
-
 Usage (from apps/backend):
   python scripts/import_contracts_baseline.py --base-ref origin/dev
 """
@@ -28,14 +25,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tomllib
 from pathlib import Path
 
 from ruff_baseline import REPO_PREFIX, _git, renamed_paths
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover - Python 3.10 in CI
-    import tomli as tomllib
 
 PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 

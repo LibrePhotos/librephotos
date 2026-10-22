@@ -24,7 +24,7 @@ A simplified single-container deployment that serves both the API and frontend f
 - Simplified container management
 
 :::note
-The unified image is CPU-only. It is built on the CPU base image, and no GPU-enabled unified image is published. If you want NVIDIA GPU acceleration, use the [Standard Docker Setup](standard-install.md) instead, where the `backend` service is swapped to the `reallibrephotos/librephotos-gpu` image (see [Utilizing GPU Acceleration](environment-variables.md#utilizing-gpu-acceleration)).
+<Since version="1.5.0" /> The unified image runs the machine learning models on an Intel, AMD or NVIDIA GPU like the standard setup does: give its container the same settings as the `backend` service in [Utilizing GPU Acceleration](environment-variables.md#utilizing-gpu-acceleration). Up to 1.4.0 it was CPU-only, and GPU acceleration needed the standard setup with the NVIDIA-only `reallibrephotos/librephotos-gpu` image.
 :::
 
 ## 🐋 [Standard Docker Setup](standard-install.md)
@@ -33,7 +33,6 @@ The unified image is CPU-only. It is built on the CPU base image, and no GPU-ena
 The traditional multi-container setup with separate nginx proxy. Choose this if you:
 - Need nginx-specific features and optimizations
 - Run high-traffic deployments
-- Want NVIDIA GPU acceleration (see [Utilizing GPU Acceleration](environment-variables.md#utilizing-gpu-acceleration) — x86 only)
 - Prefer the original architecture
 
 ## Platform-Specific Guides

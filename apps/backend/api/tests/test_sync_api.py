@@ -127,7 +127,7 @@ class SyncPhotosCursorTest(TestCase):
         which hid them all from a timeline that orders by capture time.
         """
         photo = create_test_photo(owner=self.user)
-        taken = datetime.datetime(2019, 9, 3, 15, 11, 38, tzinfo=datetime.timezone.utc)
+        taken = datetime.datetime(2019, 9, 3, 15, 11, 38, tzinfo=datetime.UTC)
         Photo.objects.filter(pk=photo.pk).update(exif_timestamp=taken, timestamp=None)
 
         items, _t, _c = sync_pull(self.client, PHOTOS_URL)
@@ -142,7 +142,7 @@ class SyncPhotosCursorTest(TestCase):
         in which the override is the only date the photo has.
         """
         photo = create_test_photo(owner=self.user)
-        given = datetime.datetime(2021, 6, 15, 12, 0, tzinfo=datetime.timezone.utc)
+        given = datetime.datetime(2021, 6, 15, 12, 0, tzinfo=datetime.UTC)
         Photo.objects.filter(pk=photo.pk).update(exif_timestamp=None, timestamp=given)
 
         items, _t, _c = sync_pull(self.client, PHOTOS_URL)
@@ -629,9 +629,7 @@ class DeviceTimestampFallbackTest(TestCase):
         # No EXIF date extracted.
         self.assertIsNone(photo.exif_timestamp)
 
-        device_time = datetime.datetime(
-            2019, 3, 1, 10, 30, tzinfo=datetime.timezone.utc
-        )
+        device_time = datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
         # The file carries no date; the exif service is not running here.
         with patch(
             "api.metadata.photo_datetime.get_metadata",
@@ -649,14 +647,12 @@ class DeviceTimestampFallbackTest(TestCase):
         )
 
         user = create_test_user()
-        existing = datetime.datetime(2022, 8, 8, 8, 0, tzinfo=datetime.timezone.utc)
+        existing = datetime.datetime(2022, 8, 8, 8, 0, tzinfo=datetime.UTC)
         photo = create_test_photo(owner=user)
         Photo.objects.filter(pk=photo.pk).update(exif_timestamp=existing)
         photo.refresh_from_db()
 
-        device_time = datetime.datetime(
-            2019, 3, 1, 10, 30, tzinfo=datetime.timezone.utc
-        )
+        device_time = datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
         apply_device_timestamp_fallback(photo, device_time)
 
         photo.refresh_from_db()

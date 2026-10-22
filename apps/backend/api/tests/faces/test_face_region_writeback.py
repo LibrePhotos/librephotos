@@ -569,9 +569,7 @@ class TestSaveMetadataIntegration(TestCase):
         tag, and even the correct EXIF name cannot be written into a sidecar.
         """
         photo = create_test_photo(owner=self.user)
-        photo.timestamp = datetime.datetime(
-            2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc
-        )
+        photo.timestamp = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.UTC)
 
         write_photo_metadata(photo, modified_fields=["timestamp"], use_sidecar=True)
 

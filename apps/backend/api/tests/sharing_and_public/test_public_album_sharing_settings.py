@@ -22,7 +22,7 @@ from api.tests.utils import create_test_album_user, create_test_photo, create_te
 
 LAT, LON = 52.520008, 13.404954
 PLACE = "Alexanderplatz, Berlin"
-TAKEN = datetime.datetime(2021, 6, 5, 14, 30, tzinfo=datetime.timezone.utc)
+TAKEN = datetime.datetime(2021, 6, 5, 14, 30, tzinfo=datetime.UTC)
 
 
 class PublicAlbumSharingSettingsTest(TestCase):

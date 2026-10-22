@@ -11,7 +11,6 @@ from api.models.scopes import OwnedQuerySet
 from api.models.user import User
 
 if TYPE_CHECKING:
-    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
     from typing import Self
 
 

@@ -5,7 +5,7 @@ taken, over the photos the album shows. A trashed or hidden photo must not
 move the album, and an album without a dated photo has none.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -14,7 +14,7 @@ from api.tests.utils import create_test_album_user, create_test_photo, create_te
 
 
 def _at(year: int) -> datetime:
-    return datetime(year, 6, 1, 12, 0, tzinfo=timezone.utc)
+    return datetime(year, 6, 1, 12, 0, tzinfo=UTC)
 
 
 class UserAlbumFirstPhotoDateTest(TestCase):

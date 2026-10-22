@@ -32,7 +32,7 @@ from api.models.photo_caption import PhotoCaption
 from api.photos.indexed_mtimes import Observed
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 # 2019-01-01 12:00:00 UTC
 TAKEN = "1546344000"
 ZURICH = {"latitude": 47.3769, "longitude": 8.5417, "altitude": 408.0}

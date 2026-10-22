@@ -72,7 +72,7 @@ MODES = (SIDECAR, MEDIA_FILE)
 
 IMAGE_FORMATS = (".jpg", ".png", ".tif", ".heic")
 
-TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
+TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.UTC)
 
 
 def run_now(func, *args):

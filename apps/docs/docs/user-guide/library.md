@@ -220,7 +220,7 @@ Administrators can download a server-stats report from the Admin Area (**Admin T
 
 - **CPU** — Model, core count, architecture, and instruction-set flags
 - **RAM** — Total system memory
-- **GPU** — GPU model and memory (only populated when a CUDA GPU is available)
+- **GPU** — GPU model and memory (only populated when the container sees an NVIDIA GPU through `nvidia-smi`)
 - **Storage** — Total, used, and free disk space
 - **Per-user stats** — Detailed counts per user (photos, videos, albums, faces, and more)
 

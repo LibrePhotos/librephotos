@@ -40,7 +40,6 @@ from urllib3.util.retry import Retry
 from librephotos.env import EnvError, env_int
 
 if TYPE_CHECKING:
-    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
     from typing import Self
 
 SIDECAR_HOST = "http://127.0.0.1"

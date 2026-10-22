@@ -37,7 +37,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from api.mime import TAKEOUT_JSON_EXTENSION, extension
@@ -213,7 +213,7 @@ def _taken_at(data: Mapping[str, object]) -> datetime | None:
     if not seconds:
         return None
     try:
-        return datetime.fromtimestamp(seconds, tz=timezone.utc)
+        return datetime.fromtimestamp(seconds, tz=UTC)
     except (OverflowError, OSError, ValueError):
         return None
 

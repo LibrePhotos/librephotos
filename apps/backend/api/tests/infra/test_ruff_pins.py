@@ -3,7 +3,7 @@
 Ruff's findings change between releases (and ruff-baseline.toml is generated
 with one of them), so pyproject.toml's required-version, requirements.dev.txt,
 the pre-commit hook and the lint workflow move together. Regular expressions,
-not tomllib: the floor Python (3.10) has none.
+kept from when the floor Python (3.10) had no tomllib.
 """
 
 import os

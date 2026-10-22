@@ -23,7 +23,7 @@ SAN_FRANCISCO = (37.7749, -122.4194)
 
 def utc(*parts: int) -> datetime.datetime:
     """A capture time as LibrePhotos stores it: local time, tagged UTC."""
-    return datetime.datetime(*parts, tzinfo=datetime.timezone.utc)
+    return datetime.datetime(*parts, tzinfo=datetime.UTC)
 
 
 class ScanReadsVideoMetadataTest(RealExifToolTestCase):

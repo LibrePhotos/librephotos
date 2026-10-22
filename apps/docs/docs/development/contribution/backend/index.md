@@ -34,7 +34,7 @@ The baseline only shrinks. The `ruff` job of the `lint-backend` workflow fails w
 
 The baseline is per file and code, not per finding, so a file listed for `BLE001` can gain another blind `except` without failing; please do not rely on that. Do not add `# noqa` comments for baselined codes either. Permanent exceptions, such as `print()` in console scripts, and the banned APIs (ruff `TID251`, each with a message naming the replacement) live in `pyproject.toml`; exceptions go under `[tool.ruff.lint.extend-per-file-ignores]`, because a plain `per-file-ignores` table would replace the baseline instead of adding to it.
 
-The supported Python versions are `requires-python` in `apps/backend/pyproject.toml`, and ruff targets its floor, 3.10, the Python of the backend-gpu image: code must parse and run there, so ruff reports newer syntax and `datetime.UTC` is banned. The `test-backend` workflow runs the suite on 3.10 and 3.12 (the Pythons of the Docker images) for every pull request, and on 3.14 as well after merge.
+The supported Python versions are `requires-python` in `apps/backend/pyproject.toml`, and ruff targets its floor, 3.11, the Python of the Windows standalone build (its prebuilt wheels are cp311): code must parse and run there, so ruff reports newer syntax. The `test-backend` workflow runs the suite on 3.12 (the Python of the Docker images) for every pull request, and on 3.14 as well after merge.
 
 ### Type checking
 
@@ -170,7 +170,7 @@ Because these are separate processes, the `docker attach` + pdb trick above does
 
 ### Machine Learning
 
-Every model runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch in the image, which keeps the CPU image small and lets the same code run on the GPU image with `onnxruntime-gpu`. A new model has to come as an ONNX export (the `onnx-community` and `Xenova` organisations on Hugging Face publish many) with its tokenizer as a `tokenizer.json` for the `tokenizers` package.
+Every model runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch in the image, which keeps the image small. The same image runs the models on a GPU through ONNX Runtime's WebGPU plugin; `service/onnx_session.py` picks the device for every session, so a new model gets the GPU by creating its session with `inference_session()`. A new model has to come as an ONNX export (the `onnx-community` and `Xenova` organisations on Hugging Face publish many) with its tokenizer as a `tokenizer.json` for the `tokenizers` package.
 
 #### Image Captioning
 

@@ -26,7 +26,7 @@ import shutil
 import sqlite3
 from contextlib import closing
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from django.conf import settings
@@ -126,7 +126,7 @@ def ensure_free_space(source: Path, directory: Path) -> None:
 def backup_name(directory: Path, version: str, now: datetime) -> Path:
     """``librephotos-<release>-<UTC time>.sqlite3``, numbered when that name is taken."""
     release = _UNSAFE_NAME_CHARS.sub("-", version).strip("-") or "unknown"
-    stem = f"{BACKUP_PREFIX}{release}-{now.astimezone(timezone.utc):%Y%m%dT%H%M%SZ}"
+    stem = f"{BACKUP_PREFIX}{release}-{now.astimezone(UTC):%Y%m%dT%H%M%SZ}"
     candidate = directory / f"{stem}{BACKUP_SUFFIX}"
     number = 1
     while candidate.exists():
@@ -174,7 +174,7 @@ def remove_database_file(path: Path) -> None:
 def write_sidecar(backup: Path, source: Path, info: BackupInfo, now: datetime) -> None:
     record = {
         **asdict(info),
-        "created_at": now.astimezone(timezone.utc).isoformat(),
+        "created_at": now.astimezone(UTC).isoformat(),
         "source": str(source),
         "size_bytes": backup.stat().st_size,
     }
@@ -209,7 +209,7 @@ def backup_sqlite(
     Raises BackupError, leaving no partial file behind, when there is not
     enough disk space or the copy is not sound.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     directory.mkdir(parents=True, exist_ok=True)
     ensure_free_space(source, directory)
     target = backup_name(directory, info.version, now)

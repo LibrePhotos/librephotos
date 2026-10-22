@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -33,7 +32,7 @@ from api.stacks.burst_rules import (
 from api.stacks.detection import detect_burst_sequences
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-NOON = datetime(2025, 1, 1, 12, 0, 0, tzinfo=dt_timezone.utc)
+NOON = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 FILENAME_RULE = next(
     rule
     for rule in DEFAULT_HARD_RULES

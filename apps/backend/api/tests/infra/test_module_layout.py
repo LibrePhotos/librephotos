@@ -14,16 +14,12 @@ The domain packages are also a layer of the import contracts in
 new package under ``api/`` is added there, which this test checks too.
 """
 
-import sys
-import unittest
+import tomllib
 from pathlib import Path
 
 from django.test import SimpleTestCase
 
 from api.tests.stubs import BACKEND_ROOT, load_backend_file, unique_module_name
-
-if sys.version_info >= (3, 11):
-    import tomllib
 
 API = BACKEND_ROOT / "api"
 
@@ -48,9 +44,6 @@ NOT_DOMAIN_PACKAGES = {
     "management",
     "tests",
 }
-
-HAS_TOMLLIB = sys.version_info >= (3, 11)
-needs_tomllib = unittest.skipUnless(HAS_TOMLLIB, "reading pyproject.toml needs 3.11+")
 
 
 def flat_modules(api_dir: Path) -> set[str]:
@@ -97,7 +90,6 @@ class ModuleLayoutTest(SimpleTestCase):
         )
 
 
-@needs_tomllib
 class ImportContractsTest(SimpleTestCase):
     def _contracts(self) -> dict[str, dict[str, object]]:
         config = tomllib.loads(
@@ -112,7 +104,6 @@ class ImportContractsTest(SimpleTestCase):
         self.assertEqual(domain_layer, domain_packages(API))
 
 
-@needs_tomllib
 class ImportContractsBaselineTest(SimpleTestCase):
     """scripts/import_contracts_baseline.py: an ignore_imports entry is only removed."""
 

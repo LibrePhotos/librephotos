@@ -35,7 +35,7 @@ from api.tests.utils import (
 
 URL = "/api/photos/reapply-date-rules/"
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 CAMERA_DATE = datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=UTC)
 OLD_DATE = datetime.datetime(2020, 6, 7, 8, 9, 10, tzinfo=UTC)
 MANUAL_DATE = datetime.datetime(2011, 11, 11, 11, 11, tzinfo=UTC)

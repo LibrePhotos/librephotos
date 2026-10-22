@@ -12,8 +12,8 @@
       "enabled": false
     },
     {
-      "description": "Never auto-bump these. hdbscan and timezonefinder also have arm64 wheels pinned by URL in requirements.txt. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt (and requirements.dev.txt for ipython) carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: django-filter<=26.1, scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2, ipython<=8.39.0 (8.x).",
-      "matchPackageNames": ["django-filter", "django_filter", "scikit-learn", "scikit_learn", "timezonefinder", "hdbscan", "onnxruntime", "onnxruntime-gpu", "ipython"],
+      "description": "Never auto-bump these: hdbscan and timezonefinder have Windows and arm64 wheels built by prebuilt-wheels.yml and pinned by URL in apps/backend/requirements.txt next to the PyPI pin. Renovate would move the PyPI line alone. Bump every line together by hand and re-run the workflow.",
+      "matchPackageNames": ["timezonefinder", "hdbscan"],
       "enabled": false
     },
     {
@@ -32,20 +32,8 @@
       "enabled": false
     },
     {
-      "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = backend-gpu's Python 3.10, ceiling = newest Python CI runs), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
+      "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = the Windows standalone build's Python 3.11, ceiling = newest Python CI runs), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
       "matchDepTypes": ["requires-python"],
-      "enabled": false
-    },
-    {
-      "description": "Freeze the python_version < \"3.11\" fallback lines in apps/backend/requirements.dev.txt: they pin the last release that supports Python 3.10 (backend-gpu image, DEBUG=1), so a newer version can never install there. The >= \"3.11\" line of the same package keeps updating. Update matchCurrentValue if a fallback pin is ever changed by hand.",
-      "matchPackageNames": ["pre-commit"],
-      "matchCurrentValue": "==4.6.2",
-      "enabled": false
-    },
-    {
-      "description": "See the pre-commit rule above: IPython 8.39.0 is the last release supporting Python 3.10.",
-      "matchPackageNames": ["ipython"],
-      "matchCurrentValue": "==8.39.0",
       "enabled": false
     },
     {
@@ -121,11 +109,6 @@
       "enabled": false
     },
     {
-      "description": "The GPU image stays on CUDA 12.1.1 / ubuntu22.04 / Python 3.10. Bump by hand only.",
-      "matchPackageNames": ["nvidia/cuda"],
-      "enabled": false
-    },
-    {
       "description": "A new Ubuntu release swaps the distro Python under the backend base image. Move between LTS releases by hand after a test build.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ubuntu"],
@@ -159,7 +142,7 @@
       "enabled": false
     },
     {
-      "description": "Django 6 requires Python >= 3.12, which the Python 3.10 GPU image cannot install. Stay on the 5.2 LTS until the GPU image moves off 3.10.",
+      "description": "Django 6 requires Python >= 3.12, which the Windows standalone build (Python 3.11, cp311 wheels) cannot install. Stay on the 5.2 LTS until that build moves to 3.12.",
       "matchPackageNames": ["Django", "django"],
       "allowedVersions": "<6"
     },

@@ -1,8 +1,8 @@
 #!/bin/bash
-# The one entrypoint of the backend, GPU and unified images (all three
-# Dockerfiles copy this file). What differs between them is a guarded block
-# below (nvidia-smi for GPU, SERVE_FRONTEND for unified) or an ENV default in
-# the image's Dockerfile, never a second copy of the script:
+# The one entrypoint of the backend and unified images (both Dockerfiles copy
+# this file). What differs between them is a guarded block below
+# (SERVE_FRONTEND for unified) or an ENV default in the image's Dockerfile,
+# never a second copy of the script:
 # apps/backend/api/tests/infra/test_deploy_images.py fails on one.
 #
 # pipefail, not -e: a pipeline's status is its first failing command rather than
@@ -20,8 +20,9 @@ fi
 export OPENBLAS_NUM_THREADS=1
 export OPENBLAS_MAIN_FREE=1
 
-# GPU image: show the GPU the container got and default to the first one.
-# A CUDA_VISIBLE_DEVICES set on the container wins.
+# An NVIDIA GPU passed to the container: show it and default to the first one.
+# A CUDA_VISIBLE_DEVICES set on the container wins. The ML models reach any GPU
+# through the WebGPU plugin (service/onnx_session.py logs which one it found).
 if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi
     export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"

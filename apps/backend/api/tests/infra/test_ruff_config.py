@@ -67,7 +67,6 @@ def read(path):
 PLANTED = """\
 import os
 import datetime
-from datetime import UTC
 
 
 def probe():
@@ -75,7 +74,7 @@ def probe():
         os.listdir(".")
     except Exception:
         pass
-    print(datetime.datetime.now(UTC))
+    print(datetime.datetime.now(), os.environ["HOME"])
 """
 
 
@@ -87,16 +86,16 @@ def finding(path, code, row=1):
 
 @unittest.skipUnless(HAS_RUFF, "ruff is not installed (requirements.dev.txt)")
 class PythonFloorSyntaxTests(unittest.TestCase):
-    def test_backend_parses_on_python_310(self):
-        # The backend-gpu image runs Python 3.10 (CUDA 12.1.1 / ubuntu22.04).
-        # Syntax added later (PEP 646 star expressions in subscripts, PEP 701
-        # f-strings, ...) is a SyntaxError there and the module fails to import.
+    def test_backend_parses_on_python_311(self):
+        # The Windows standalone build runs Python 3.11 (its prebuilt wheels are
+        # cp311). Syntax added later (PEP 701 f-strings, PEP 695 type
+        # statements, ...) is a SyntaxError there and the module fails to import.
         result = run_ruff(
             "check",
             "--no-cache",
             "--exit-zero",
             "--target-version",
-            "py310",
+            "py311",
             "--select",
             "E9",
             "--output-format",
@@ -110,12 +109,15 @@ class PythonFloorSyntaxTests(unittest.TestCase):
             for item in json.loads(result.stdout)
             if item["code"] in (None, "invalid-syntax")
         ]
-        self.assertEqual(syntax, [], "syntax Python 3.10 rejects")
+        self.assertEqual(syntax, [], "syntax Python 3.11 rejects")
 
-    def test_config_targets_python_310(self):
-        # pyupgrade would otherwise rewrite datetime.timezone.utc to datetime.UTC.
-        source = "import datetime\n\nprint(datetime.timezone.utc)\n"
-        self.assertNotIn("UP017", lint(source, "scripts/_ruff_probe.py"))
+    def test_config_targets_python_311(self):
+        # 3.11 APIs are fine (datetime.UTC); a 3.12 `type` statement is not, so
+        # pyupgrade must not ask for one.
+        utc = "import datetime\n\nprint(datetime.timezone.utc)\n"
+        self.assertIn("UP017", lint(utc, "scripts/_ruff_probe.py"))
+        alias = "from typing import TypeAlias\n\nNumber: TypeAlias = int\n"
+        self.assertNotIn("UP040", lint(alias, "scripts/_ruff_probe.py"))
 
 
 @unittest.skipUnless(HAS_RUFF, "ruff is not installed (requirements.dev.txt)")
@@ -126,7 +128,7 @@ class NewCodeRulesTests(unittest.TestCase):
             self.assertIn(code, codes)
 
     def test_banned_api_also_catches_attribute_access(self):
-        source = "import datetime\n\nNOW = datetime.datetime.now(datetime.UTC)\n"
+        source = "import os\n\nHOME = os.environ['HOME']\n"
         self.assertIn("TID251", lint(source, "api/_ruff_probe.py"))
 
     def test_subprocess_is_banned_outside_the_tool_runner(self):
@@ -298,7 +300,7 @@ class GrowthTests(unittest.TestCase):
         # ruff derives its target version from requires-python (issue #2372).
         current = read("pyproject.toml")
         old_pyproject = current.replace(
-            'requires-python = ">=3.10', 'requires-python = ">=3.9'
+            'requires-python = ">=3.11', 'requires-python = ">=3.10'
         )
         self.assertNotEqual(old_pyproject, current)
         self.assertFalse(
