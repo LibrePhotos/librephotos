@@ -1,6 +1,7 @@
 import React, { useState, type ReactNode } from "react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 import { useColorMode } from "@docusaurus/theme-common";
+import { shotInfo } from "@site/src/components/Screenshot/manifest";
 import styles from "./landing.module.css";
 
 type Stop = { id: string; label: string; title: string; body: string; shot: string };
@@ -48,6 +49,7 @@ export default function Tour(): ReactNode {
   const { colorMode } = useColorMode();
   const base = useBaseUrl("/img/shots/");
   const src = `${base}${active.shot}-${colorMode === "dark" ? "dark" : "light"}.webp`;
+  const shot = shotInfo(active.shot);
 
   return (
     <div className={styles.tour}>
@@ -70,7 +72,7 @@ export default function Tour(): ReactNode {
       </div>
       <div id="tour-panel" role="tabpanel" aria-labelledby={`tour-tab-${active.id}`} className={styles.tourPanel}>
         <div className={styles.tourFrame}>
-          <img key={src} src={src} alt={`${active.label} view of LibrePhotos`} width={1600} height={1000} loading="lazy" />
+          <img key={src} src={src} alt={shot.alt} width={shot.width} height={shot.height} loading="lazy" />
         </div>
         <p className={styles.tourCaption}>{active.body}</p>
       </div>

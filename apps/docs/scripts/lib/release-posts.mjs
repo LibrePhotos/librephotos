@@ -119,6 +119,83 @@ export function readShots(shotsDir = SHOTS_DIR) {
   );
 }
 
+/** One entry of static/img/shots/manifest.json, read by the <Screenshot> component (src/data/shots.ts). */
+export const shotSchema = z.strictObject({
+  id: kebab,
+  alt: z.string().trim().min(1, "needs alt text that says what the shot shows"),
+  width: z.int().positive(),
+  height: z.int().positive(),
+  release: version.optional(),
+});
+
+const SHOT_FILE = /-(light|dark)\.webp$/;
+
+function manifestIssue(raw, issue) {
+  const [index, ...field] = issue.path;
+  const where = typeof index === "number" ? `entry ${index} ("${raw[index]?.id ?? "?"}")` : "(root)";
+  return `manifest.json ${[where, ...field].join(" ")}: ${issue.message}`;
+}
+
+/** The parsed manifest, or the problems that stop it from being read. */
+function readShotsManifest(file) {
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    return { errors: [`manifest.json: ${error.message}`] };
+  }
+  const parsed = z.array(shotSchema).safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.issues.map((issue) => manifestIssue(raw, issue)) };
+  }
+  return { shots: parsed.data, errors: [] };
+}
+
+function duplicateShotErrors(shots) {
+  const ids = shots.map((s) => s.id);
+  return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].map((id) => `manifest.json: "${id}" is listed twice`);
+}
+
+/** The files a manifest entry needs: `<id>-light.webp` and `<id>-dark.webp`. */
+function shotFiles(shot) {
+  return ["light", "dark"].map((theme) => `${shot.id}-${theme}.webp`);
+}
+
+function missingShotFileErrors(shots, files) {
+  return shots.flatMap((shot) =>
+    shotFiles(shot)
+      .filter((name) => !files.has(name))
+      .map((name) => `manifest.json "${shot.id}": ${name} is missing`),
+  );
+}
+
+function unlistedShotFileErrors(shots, files) {
+  const listed = new Set(shots.flatMap(shotFiles));
+  return [...files]
+    .filter((name) => SHOT_FILE.test(name) && !listed.has(name))
+    .map((name) => `${name} has no entry in manifest.json`);
+}
+
+/**
+ * Problems of static/img/shots: every manifest entry needs alt text and a light and a dark file,
+ * and every `<id>-light.webp`/`<id>-dark.webp` needs a manifest entry.
+ */
+export function shotsErrors(shotsDir = SHOTS_DIR) {
+  if (!fs.existsSync(shotsDir)) {
+    return [];
+  }
+  const manifest = path.join(shotsDir, "manifest.json");
+  if (!fs.existsSync(manifest)) {
+    return ["static/img/shots/manifest.json is missing"];
+  }
+  const { shots, errors } = readShotsManifest(manifest);
+  if (!shots) {
+    return errors;
+  }
+  const files = new Set(fs.readdirSync(shotsDir));
+  return [...duplicateShotErrors(shots), ...missingShotFileErrors(shots, files), ...unlistedShotFileErrors(shots, files)];
+}
+
 /** Shot ids a post uses: highlight `shot`s and `<Screenshot id="...">` in the body. */
 export function shotIdsInPost(post) {
   const ids = (post.data.highlights ?? []).map((h) => h.shot).filter(Boolean);

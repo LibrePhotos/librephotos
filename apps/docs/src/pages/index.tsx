@@ -4,6 +4,7 @@ import Link from "@docusaurus/Link";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 import { useColorMode } from "@docusaurus/theme-common";
 import Layout from "@theme/Layout";
+import { shotInfo } from "@site/src/components/Screenshot/manifest";
 import Tour from "@site/src/components/landing/Tour";
 import WhatsNew from "@site/src/components/landing/WhatsNew";
 import landing from "@site/src/components/landing/landing.module.css";
@@ -33,6 +34,7 @@ function DiamondMotif() {
 
 function HeroShot() {
   const shots = useBaseUrl("/img/shots/");
+  const shot = shotInfo("timeline");
   return (
     <div className={styles.heroArt}>
       <div className={styles.browserFrame}>
@@ -42,10 +44,10 @@ function HeroShot() {
           <span />
         </div>
         <img
-          src={`${shots}timeline-dark.webp`}
-          alt="The LibrePhotos timeline: photos grouped by day, with the places they were taken"
-          width={1600}
-          height={1000}
+          src={`${shots}${shot.id}-dark.webp`}
+          alt={shot.alt}
+          width={shot.width}
+          height={shot.height}
           loading="eager"
         />
       </div>
@@ -131,7 +133,7 @@ function TourSection() {
         <div className={styles.sectionHead}>
           <h2 className={styles.h2}>A look around</h2>
           <p className={styles.sectionLead}>
-            The current release with a sample library. The screenshots follow the theme you are reading in.
+            A sample library. The screenshots follow the theme you are reading in.
           </p>
         </div>
         <Tour />
