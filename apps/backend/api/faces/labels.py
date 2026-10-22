@@ -26,6 +26,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 
+from api.faces.clustering_gate import record_face_label
 from api.jobs.queue import enqueue_task
 from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.metadata.writer import MetadataWriteError, one_exiftool_process
@@ -203,8 +204,13 @@ def _finish(
     """Rebuild the search captions of the faces' photos and write their regions.
 
     ``queue_write`` writes the regions in the background once the
-    transaction commits (``queue_face_tags_write``), in one job.
+    transaction commits (``queue_face_tags_write``), in one job. A change to
+    any face holds back the upload follow-ups' clustering for a while
+    (``record_face_label``, #2738): a rebuild would renumber the clusters the
+    user is working through.
     """
+    if faces:
+        record_face_label(user)
     photos = _photos_of(faces)
     recreate_search_captions(photos)
     if queue_write:

@@ -16,14 +16,14 @@ steps, once per burst of uploads.
   the long ones), and releases it; a request that came in meanwhile makes it
   go round once more.
 - ``schedule_upload_followups(user, at)``: (re-)arm the run for ``at`` or
-  sooner, for a step that has to wait (#2738's clustering quiet period).
+  sooner, for a step that has to wait (``cluster_new_faces``' quiet periods).
 - ``backfill_upload_followups()``: once per instance, at startup, a staggered
   request for every user with photos, for the uploads made before this ran.
 
 Seam for the rest of #2191: an upload import job (#2737) calls
 ``request_upload_followups`` when it finishes, instead of the upload chain's
-last task; a new step (#2738's clustering) is a function taking a
-``FollowupRun``, appended to ``FOLLOWUP_STEPS`` (as #2736's
+last task; a new step is a function taking a ``FollowupRun``, appended to
+``FOLLOWUP_STEPS`` (as #2738's ``cluster_new_faces`` and #2736's
 ``extract_text``). Each step decides itself whether it has work and must be
 safe to repeat.
 """
@@ -45,8 +45,10 @@ from api.directory_watcher.processing_jobs import (
     ocr_has_work,
     queue_ocr_followup,
 )
-from api.jobs.queue import schedule_once_by
-from api.models import Photo, UploadFollowupState, User
+from api.faces.classify import cluster_all_faces
+from api.faces.clustering_gate import clustering_allowed_at, enough_new_faces
+from api.jobs.queue import enqueue_followup, schedule_once_by
+from api.models import LongRunningJob, Photo, UploadFollowupState, User
 from api.models.upload_followup_state import UploadFollowupStateQuerySet
 from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import (
@@ -193,6 +195,33 @@ def encode_faces(run: FollowupRun) -> None:
     generate_face_embeddings(run.user, heartbeat=run.heartbeat)
 
 
+def _clusters_faces() -> bool:
+    return feature_enabled("FACE_DETECTION") and feature_enabled("FACE_CLUSTER")
+
+
+def cluster_new_faces(run: FollowupRun) -> None:
+    """Queue Find Similar Faces once enough new faces came in (#2738).
+
+    The gates are in ``api.faces.clustering_gate``. When there are enough new
+    faces but it is too soon (the last clustering, an upload or a labelling
+    was recent, or a face job is running), the run is re-armed for the
+    earliest time it may cluster; a sooner pending run wins and looks again.
+    """
+    if not _clusters_faces():
+        return
+    state = _states(run.user).get()
+    if not enough_new_faces(run.user, state):
+        return
+    now = timezone.now()
+    allowed_at = clustering_allowed_at(run.user, state, now)
+    if allowed_at > now:
+        schedule_upload_followups(run.user, allowed_at)
+        return
+    enqueue_followup(
+        run.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces, run.user
+    )
+
+
 def extract_text(run: FollowupRun) -> None:
     """Queue Extract Text for the photos without text, while a model is selected.
 
@@ -208,11 +237,13 @@ def extract_text(run: FollowupRun) -> None:
 
 FollowupStep = Callable[[FollowupRun], None]
 
-# In order: the index first, so uploads are searchable as soon as possible.
+# In order: the index first, so uploads are searchable as soon as possible;
+# the faces are encoded before they are counted for clustering.
 FOLLOWUP_STEPS: tuple[FollowupStep, ...] = (
     embed_missing_photos,
     rebuild_similarity_index,
     encode_faces,
+    cluster_new_faces,
     extract_text,
 )
 

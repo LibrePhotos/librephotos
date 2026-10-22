@@ -64,6 +64,8 @@ Computes the numeric encoding for faces that have been detected but not yet enco
 
 Clusters the faces into known and unknown groups.
 
+<Since version="1.5.0" /> Uploads start it too, once enough new faces came in: at least 20, and at least 2% of all your faces. So that it does not renumber the "Unknown" groups while you work through them, it waits until 30 minutes after your last upload and 15 minutes after you last labelled, deleted or restored a face, runs at most once an hour, and waits while a scan, a face scan, **Train Faces** or an upload of yours is still running. Any run, also one a scan or the **Train** button started, counts as the last one. Up to 1.4.0, faces of uploaded photos stayed among the unknown faces until you trained by hand.
+
 ### Download Models
 
 This downloads the needed machine learning models to data/protected_media/data_models/.

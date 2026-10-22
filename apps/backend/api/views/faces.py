@@ -28,6 +28,7 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
+from api.faces.clustering_gate import record_face_label
 from api.faces.labels import (
     RelabelResult,
     delete_faces,
@@ -519,6 +520,8 @@ class AddFaceView(APIView):
 
         person._calculate_face_count()
         person._set_default_cover_photo()
+        # A labelling like any other: the follow-ups' clustering waits (#2738).
+        record_face_label(user)
 
         # The person's name is part of what the photo can be found by.
         photo.refresh_from_db()
