@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0188_move_photos_job_type"),
+        ("api", "0189_photo_metadata_file_rating"),
     ]
 
     operations = [
