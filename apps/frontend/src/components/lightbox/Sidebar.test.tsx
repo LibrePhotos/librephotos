@@ -37,6 +37,7 @@ vi.mock("../../api_client/settings/hooks", () => ({
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }),
   useDetectFacesReport: () => null,
+  useDrawnFaceResult: () => null,
 }));
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));

@@ -2,33 +2,36 @@ import { Alert, Button, Group, Loader, Text } from "@mantine/core";
 import { IconCircleCheck, IconFaceIdError, IconScan } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { DetectFacesOutcome } from "../../api_client/faces";
-import type { FaceDrawResult } from "./useFaceDrawing";
+import type { DetectFacesOutcome, DrawnFaceOutcome } from "../../api_client/faces";
 
 /**
  * What became of a box drawn around a face (#1117): the face is being looked for in it, or there
  * is none there, with the choice to keep the box as drawn or to draw again.
  */
-export function DrawnFaceStatus({ result }: Readonly<{ result: FaceDrawResult }>) {
+export function DrawnFaceStatus({
+  outcome,
+  onDrawAgain,
+}: Readonly<{ outcome: DrawnFaceOutcome; onDrawAgain?: () => void }>) {
   const { t } = useTranslation();
-  if (result.state === "finding") {
+  if (outcome.state === "finding") {
     return (
       <Alert mt="xs" color="blue" role="status" icon={<Loader size="xs" />}>
         <Text size="sm">{t("lightbox.addface.finding")}</Text>
       </Alert>
     );
   }
-  if (result.state === "idle") return null;
   return (
     <Alert mt="xs" color="orange" icon={<IconFaceIdError />} title={t("lightbox.addface.notfoundtitle")}>
       <Text size="sm">{t("lightbox.addface.notfound")}</Text>
       <Group mt="xs" gap="xs">
-        <Button size="xs" onClick={result.keepBox}>
+        <Button size="xs" onClick={outcome.keepBox}>
           {t("lightbox.addface.keepbox")}
         </Button>
-        <Button size="xs" variant="default" onClick={result.drawAgain}>
-          {t("lightbox.addface.drawagain")}
-        </Button>
+        {onDrawAgain && (
+          <Button size="xs" variant="default" onClick={onDrawAgain}>
+            {t("lightbox.addface.drawagain")}
+          </Button>
+        )}
       </Group>
     </Alert>
   );

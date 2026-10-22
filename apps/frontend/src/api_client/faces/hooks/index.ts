@@ -9,3 +9,4 @@ export * from "./useRescanFacesMutation";
 export * from "./useRestoreFacesMutation";
 export * from "./useDetectFacesAgainMutation";
 export * from "./useDetectFacesReport";
+export * from "./useDrawnFaceResult";

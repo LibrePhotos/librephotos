@@ -74,11 +74,7 @@ vi.mock("./Sidebar", () => ({
 vi.mock("./ImagePreloader", () => ({ ImagePreloader: () => null }));
 vi.mock("./VideoPlayer", () => ({ SEEK_STEP_SECONDS: 10, SEEK_LONG_STEP_SECONDS: 60 }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
-vi.mock("../../api_client/faces", () => {
-  // As React Query's: the same function on every render
-  const addFace = { mutate: () => {}, reset: () => {}, isPending: false, error: null };
-  return { useAddFaceMutation: () => addFace, isNoFaceInBox: () => false, useDetectFacesReport: () => null };
-});
+vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined, isLoading: false, isError: false }),
 }));

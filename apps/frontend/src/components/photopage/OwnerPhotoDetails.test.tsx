@@ -50,7 +50,11 @@ function last<Props>(rendered: Props[]): Props {
   return props;
 }
 
-vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setLabel }) }));
+vi.mock("../../api_client/faces", () => ({
+  useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setLabel }),
+  useDetectFacesReport: () => null,
+  useDrawnFaceResult: () => null,
+}));
 vi.mock("../../api_client/photos/hooks", () => ({ useFetchPhotoAlbumsQuery: () => ({ data: stubs.albums }) }));
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { tagging_model: "openclip_vitb32" } }),
@@ -106,12 +110,7 @@ afterEach(async () => {
   stubs.setLabel.mockClear();
 });
 
-const faceDrawing = {
-  isDrawing: false,
-  start: vi.fn<() => void>(),
-  cancel: vi.fn<() => void>(),
-  result: { state: "idle", keepBox: () => {}, drawAgain: () => {} } as const,
-};
+const faceDrawing = { isDrawing: false, start: vi.fn<() => void>(), cancel: vi.fn<() => void>() };
 
 async function renderDetails(photo: Photo, drawing = faceDrawing) {
   const container = document.createElement("div");

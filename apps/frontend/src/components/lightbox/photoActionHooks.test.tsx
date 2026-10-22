@@ -6,6 +6,7 @@ import type { NormalizedFaceBox, Photo, User } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { drawnFaceResults } from "../../api_client/faces/drawnFaceResults";
 import { defined } from "../../util/defined.test-utils";
 import { makePhoto } from "./photoFixture.test-utils";
 import { useFaceDrawing } from "./useFaceDrawing";
@@ -25,8 +26,6 @@ const stubs = vi.hoisted(() => ({
   deleted: vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: MutateOptions) => void>(),
   rotate: vi.fn<(variables: { image_hash: string; clockwiseDegrees: number }, options: MutateOptions) => void>(),
   addFace: vi.fn<(variables: AddFaceVariables) => void>(),
-  // The add-face mutation's state the hook reads (#1117)
-  addFaceState: { isPending: false, error: null as unknown, variables: undefined as AddFaceVariables | undefined },
   shares: [{ photo_id: "p1" }],
 }));
 
@@ -44,16 +43,7 @@ vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
-vi.mock("../../api_client/faces", () => {
-  const reset = () => {
-    stubs.addFaceState = { isPending: false, error: null, variables: undefined };
-  };
-  return {
-    useAddFaceMutation: () => ({ mutate: stubs.addFace, reset, ...stubs.addFaceState }),
-    isNoFaceInBox: (error: unknown) => error === "no face",
-    useDetectFacesReport: () => null,
-  };
-});
+vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: stubs.addFace }) }));
 
 const FAVORITE_USER = { id: 1, favorite_min_rating: 4, rating_mode: "favorite" } as const;
 
@@ -63,7 +53,6 @@ beforeAll(() => {
 
 beforeEach(() => {
   stubs.user = FAVORITE_USER;
-  stubs.addFaceState = { isPending: false, error: null, variables: undefined };
 });
 
 const unmounts: Array<() => void> = [];
@@ -246,32 +235,14 @@ describe("useFaceDrawing", () => {
     expect(hook.current().drawnBox).toBeNull();
   });
 
-  it("says it looks for the face in the box while the server does (#1117)", async () => {
-    stubs.addFaceState = {
-      isPending: true,
-      error: null,
-      variables: { photo: "h1", personName: "Anna", box, fit: true },
-    };
+  it("drawing again leaves the box no face was found in (#1117)", async () => {
+    const request = { photo: "h1", personName: "Anna", box, fit: true };
+    drawnFaceResults.set({ state: "notfound", request });
     const hook = await renderHook(useDrawing, { hash: "h1" });
 
-    expect(hook.current().result.state).toBe("finding");
-  });
+    act(() => hook.current().start());
 
-  it("keeps a box with no face in it as drawn, or draws again (#1117)", async () => {
-    const variables = { photo: "h1", personName: "Anna", box, fit: true };
-    stubs.addFaceState = { isPending: false, error: "no face", variables };
-    const hook = await renderHook(useDrawing, { hash: "h1" });
-    // The photo's first render resets the mutation; the answer came after it
-    stubs.addFaceState = { isPending: false, error: "no face", variables };
-    await hook.rerender({ hash: "h1" });
-    expect(hook.current().result.state).toBe("notfound");
-
-    act(() => hook.current().result.keepBox());
-    expect(stubs.addFace).toHaveBeenLastCalledWith({ ...variables, fit: false });
-
-    act(() => hook.current().result.drawAgain());
-    expect(hook.current().isDrawing).toBe(true);
-    expect(hook.current().result.state).toBe("idle");
+    expect(drawnFaceResults.get("h1")).toBeUndefined();
   });
 
   it("names nobody without a box, and drops a box when the photo changes or on cancel", async () => {

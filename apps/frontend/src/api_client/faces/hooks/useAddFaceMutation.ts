@@ -6,16 +6,13 @@ import {
   photoKeys,
   ResponseParseError,
   statsKeys,
-  type NormalizedFaceBox,
 } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import i18n from "../../../i18n";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { apiClient, ApiError, queryClient } from "../../api";
-
-/** `fit`: the box only says where to look, the server saves the face it finds there (#1117). */
-type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox; fit?: boolean };
+import { drawnFaceResults, type AddFaceRequest } from "../drawnFaceResults";
 
 const addFace = (data: AddFaceRequest) =>
   endpoints.addFace(apiClient, data.photo, data.personName, data.box, data.fit).then(payload => {
@@ -24,7 +21,7 @@ const addFace = (data: AddFaceRequest) =>
   });
 
 /** The server looked inside the drawn box and found no face there (#1117). */
-export function isNoFaceInBox(error: unknown): boolean {
+function isNoFaceInBox(error: unknown): boolean {
   return error instanceof ApiError && error.serverCode === "no_face_in_box";
 }
 
@@ -45,11 +42,25 @@ export function reportAddFaceError(error: unknown) {
   notification.requestFailed(i18n.t("toasts.addfacefailedtitle"), message);
 }
 
+/**
+ * Add a face drawn by hand. With `fit` (the drawing always sends it) the server looks for the face
+ * in the box (#1117): while it does, and when there is none, `drawnFaceResults` says so for the
+ * photo's People section, which offers to keep the box as drawn (the same request without `fit`).
+ */
 export const useAddFaceMutation = () =>
   useMutation({
     mutationFn: addFace,
-    onError: reportAddFaceError,
-    onSuccess: data => {
+    onMutate: request => {
+      if (request.fit) drawnFaceResults.set({ state: "finding", request });
+      else drawnFaceResults.clear(request.photo);
+    },
+    onError: (error, request) => {
+      if (isNoFaceInBox(error)) drawnFaceResults.set({ state: "notfound", request });
+      else drawnFaceResults.clear(request.photo);
+      reportAddFaceError(error);
+    },
+    onSuccess: (data, request) => {
+      drawnFaceResults.clear(request.photo);
       // Drawing a box by hand is a tagging choice like any other, so it belongs
       // in the recently-tagged shortcut list too.
       recordRecentlyTaggedPerson(data.face.person);

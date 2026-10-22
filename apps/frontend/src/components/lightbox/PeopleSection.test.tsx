@@ -10,7 +10,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DetectFacesOutcome } from "../../api_client/faces";
+import type { DetectFacesOutcome, DrawnFaceOutcome } from "../../api_client/faces";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import {
@@ -22,13 +22,22 @@ import { PeopleSection } from "./PeopleSection";
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
-const detect = vi.hoisted(() => ({ outcome: null as DetectFacesOutcome | null, photoId: "" as string | undefined }));
+const detect = vi.hoisted(() => ({
+  outcome: null as DetectFacesOutcome | null,
+  photoId: "" as string | undefined,
+  drawn: null as DrawnFaceOutcome | null,
+  imageHash: "" as string | undefined,
+}));
 vi.mock("../../api_client/faces", () => ({
   useSetFacesPersonLabelMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
   useDeleteFacesMutation: () => ({ mutate: vi.fn<(...args: unknown[]) => void>() }),
   useDetectFacesReport: (photoId: string | undefined) => {
     detect.photoId = photoId;
     return detect.outcome;
+  },
+  useDrawnFaceResult: (imageHash: string | undefined) => {
+    detect.imageHash = imageHash;
+    return detect.drawn;
   },
 }));
 vi.mock("@tanstack/react-router", () => ({
@@ -60,6 +69,7 @@ beforeEach(() => {
   onAddFaceRequest.mockReset();
   onCancelAddFace.mockReset();
   detect.outcome = null;
+  detect.drawn = null;
 });
 
 async function renderSection(
@@ -177,35 +187,51 @@ const buttonWithText = (container: HTMLElement, text: string) =>
   defined(Array.from(container.querySelectorAll("button")).find(button => button.textContent === text));
 
 describe("a rough box: the face is looked for in it (#1117)", () => {
-  const drawn = (state: "idle" | "finding" | "notfound") => ({
-    state,
-    keepBox: vi.fn<() => void>(),
-    drawAgain: vi.fn<() => void>(),
+  const drawn = (state: DrawnFaceOutcome["state"]) => ({ state, keepBox: vi.fn<() => void>() });
+
+  it("reads the boxes drawn on this photo, not on a shared one", async () => {
+    await renderSection({ photoDetail: { people: [], image_hash: "h1" } });
+    expect(detect.imageHash).toBe("h1");
+
+    await renderSection({ photoDetail: { people: [], image_hash: "h1" }, isPublic: true });
+    expect(detect.imageHash).toBeUndefined();
   });
 
   it("says it is looking for the face", async () => {
-    const container = await renderSection({ drawResult: drawn("finding") });
+    detect.drawn = drawn("finding");
+    const container = await renderSection();
 
     expect(container.querySelector('[role="status"]')?.textContent).toContain("Looking for the face in your box");
   });
 
   it("offers to keep the box or to draw again when there is no face in it", async () => {
     const result = drawn("notfound");
-    const container = await renderSection({ drawResult: result });
+    detect.drawn = result;
+    const container = await renderSection();
 
     expect(container.textContent).toContain("No face found in the box");
     await act(async () => buttonWithText(container, "Keep my box").click());
     await act(async () => buttonWithText(container, "Draw again").click());
 
     expect(result.keepBox).toHaveBeenCalledOnce();
-    expect(result.drawAgain).toHaveBeenCalledOnce();
+    expect(onAddFaceRequest).toHaveBeenCalledOnce();
   });
 
-  it("says nothing once the box is saved", async () => {
-    const container = await renderSection({ drawResult: drawn("idle") });
+  it("does not offer to draw again where a face cannot be drawn", async () => {
+    detect.drawn = drawn("notfound");
+    const container = await renderSection({ onAddFaceRequest: undefined }, [
+      {
+        name: "Anna",
+        face_id: 1,
+        face_url: "",
+        location: { top: 0, right: 1, bottom: 1, left: 0 },
+        type: "user",
+        probability: 1,
+      },
+    ]);
 
-    expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.textContent).not.toContain("No face found in the box");
+    expect(container.textContent).toContain("Keep my box");
+    expect(container.textContent).not.toContain("Draw again");
   });
 });
 
