@@ -1276,6 +1276,9 @@
       "erroremailnotverified": "Your identity provider has not verified that email address, so it cannot be used to sign in.",
       "errornotauthenticated": "The sign-in did not complete. Please try again.",
       "errorpublicurlnotconfigured": "Single sign-on is not fully configured: the administrator needs to set this server's public URL (FRONTEND_BASE_URL).",
+      "erroremailambiguous": "More than one LibrePhotos account uses this email address. Ask an administrator to fix it.",
+      "errorprovidercancelled": "Sign-in was cancelled at your identity provider.",
+      "errorprovider": "Your identity provider could not complete the sign-in. Check the server logs for details.",
       "errorunknown": "Single sign-on failed. Please try again or use your password.",
       "errortitle": "Could not sign in with single sign-on"
     },

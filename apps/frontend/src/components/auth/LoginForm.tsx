@@ -1,5 +1,4 @@
 import {
-  Alert,
   Anchor,
   Button,
   Card,
@@ -16,14 +15,14 @@ import {
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconUser as User } from "@tabler/icons-react";
 import { Navigate } from "@tanstack/react-router";
-import React, { useMemo } from "react";
+import React from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery, useLoginMutation, useSsoConfigQuery } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/settings";
 import classes from "../../routes/auth.module.css";
 import { SIGN_IN_GRADIENT, SIGN_UP_GRADIENT } from "../../theme/brandGradients";
-import { ssoErrorMessageKey } from "../../util/ssoErrors";
+import { SsoErrorAlert } from "./SsoErrorAlert";
 
 type LoginFormProps = {
   /** Back to the page that sent the visitor here; already checked by the route's validateSearch. */
@@ -38,12 +37,6 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   const { data: ssoConfig } = useSsoConfigQuery();
   const target = redirect ?? "/";
   const { mutate: login, isPending: isLoading } = useLoginMutation({ redirectTo: target });
-  // The backend redirects here with a full page load, so the query string is the
-  // source of truth; there is no router state to carry the reason.
-  const ssoErrorKey = useMemo(
-    () => ssoErrorMessageKey(new URLSearchParams(window.location.search).get("sso_error")),
-    []
-  );
   const form = useForm({
     initialValues: {
       username: "",
@@ -83,11 +76,7 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
           <Stack>
             <Title order={3}>{t("login.login")}</Title>
 
-            {ssoErrorKey && (
-              <Alert color="red" variant="light" title={t("login.sso.errortitle")}>
-                {t(ssoErrorKey)}
-              </Alert>
-            )}
+            <SsoErrorAlert />
 
             <form onSubmit={onSubmit}>
               <Stack>

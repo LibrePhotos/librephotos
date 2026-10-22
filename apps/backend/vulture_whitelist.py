@@ -22,6 +22,7 @@ _.SSOSocialAccountAdapter  # class in api/accounts/adapters.py (SOCIALACCOUNT_AD
 _.DynamicEmailBackend  # class in api/accounts/mail.py (EMAIL_BACKEND)
 _.custom_exception_handler  # function in api/views/exception_handler.py (REST_FRAMEWORK)
 _.require_page_keys  # function in api/drf/openapi.py (SPECTACULAR_SETTINGS POSTPROCESSING_HOOKS)
+_.on_authentication_error  # SSOSocialAccountAdapter hook; allauth's render_authentication_error calls it
 
 # App configs: api/__init__.py names ApiConfig, Django finds NextcloudConfig.
 _.ApiConfig  # class in api/apps.py

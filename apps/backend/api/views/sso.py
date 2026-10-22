@@ -158,7 +158,12 @@ class SSOConfigView(APIView):
         enabled = bool(site_config.OIDC_ENABLED)
         providers: list[dict[str, str]] = []
         if enabled:
-            for app in SocialApp.objects.filter(provider="openid_connect"):
+            # Only apps attached to this site: allauth looks them up per site
+            # (SocialApp.objects.on_site), so any other one would 404 on click.
+            apps = SocialApp.objects.on_site(request._request).filter(
+                provider="openid_connect"
+            )
+            for app in apps:
                 provider_id = app.provider_id or app.client_id
                 try:
                     login_url = reverse(
