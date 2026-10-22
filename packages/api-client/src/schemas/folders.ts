@@ -20,3 +20,13 @@ export const DirTree: z.ZodType<DirTree> = z.lazy(() =>
 
 export const DirTreeResponse = z.array(DirTree);
 export type DirTreeResponse = z.infer<typeof DirTreeResponse>;
+
+/**
+ * `POST /dirtree/folders/` (admin, #2035): the folder made, and its parent listed again one level
+ * deep, with the new folder among its children.
+ */
+export const CreatedFolder = z.object({
+  absolute_path: z.string(),
+  parent: DirTree,
+});
+export type CreatedFolder = z.infer<typeof CreatedFolder>;

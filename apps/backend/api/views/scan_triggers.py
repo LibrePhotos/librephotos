@@ -28,6 +28,7 @@ from api.metadata.date_rules_job import reapply_date_rules_job
 from api.models import LongRunningJob
 from api.models.user import User
 from api.photos.library_files import rescan_targets, scannable_files
+from api.photos.outside_library import trash_photos_outside_library_job
 from api.photos.retention import empty_trash_job
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
@@ -62,6 +63,14 @@ def _validate_scan_directory(user: User) -> None:
         )
 
 
+def _managed_user(user_id: int) -> User:
+    """The active user an admin acts for; 404 for an unknown or deactivated one."""
+    owner = User.objects.filter(pk=user_id, is_active=True).first()
+    if owner is None:
+        raise NotFound("No such user.")
+    return owner
+
+
 def _start_photo_scan(user: User, directory: str, full_scan: bool = False) -> Response:
     return start_job(
         user,
@@ -94,6 +103,33 @@ class ScanPhotosView(APIView):
         user = request_user(request)
         _validate_scan_directory(user)
         return _start_photo_scan(user, user.scan_directory)
+
+
+class TrashPhotosOutsideLibraryView(APIView):
+    """Move a user's photos outside their library to their trash, as a job (#2036).
+
+    The user edit dialog starts it after the admin saved another scan
+    directory and chose to move the photos left outside it. Nothing changes
+    owner and no file is touched: the photos can be restored from the user's
+    trash until it is emptied. The job is started as the user and reads their
+    library when it runs. Admins only; 404 for an unknown or deactivated user,
+    409 while one runs for them.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(
+        self, request: Request, user_id: int, format: str | None = None
+    ) -> Response:
+        owner = _managed_user(user_id)
+        return start_job(
+            owner,
+            LongRunningJob.JOB_TRASH_PHOTOS_OUTSIDE_LIBRARY,
+            trash_photos_outside_library_job,
+            owner,
+            description="moving the photos outside the library to the trash",
+        )
 
 
 class FullScanPhotosView(APIView):

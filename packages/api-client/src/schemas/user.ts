@@ -153,3 +153,9 @@ export const ManageUser = z.object({
   password: z.string().optional(),
 });
 export type ManageUser = z.infer<typeof ManageUser>;
+
+/** `GET /manage/user/<id>/scan-directory-impact/` (admin, #2036): photos a new scan directory leaves outside. */
+export const ScanDirectoryImpact = z.object({
+  outside_count: z.number(),
+});
+export type ScanDirectoryImpact = z.infer<typeof ScanDirectoryImpact>;

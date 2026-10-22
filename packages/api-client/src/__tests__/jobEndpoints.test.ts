@@ -97,6 +97,17 @@ describe("job triggers", () => {
     expect(answer.job_id).toBe("j1");
   });
 
+  it("moves a user's photos outside their library to the trash (#2036)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.trashPhotosOutsideLibrary(client, 7);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/manage/user/7/trash-photos-outside-library/`,
+      method: "POST",
+      body: {},
+    });
+    expect(answer.job_id).toBe("j1");
+  });
+
   it("sends whether OCR runs over every photo", async () => {
     const { client, requests } = fakeServer(started);
     await endpoints.generateOcr(client, true);
@@ -177,6 +188,8 @@ describe("job triggers", () => {
       endpoints.deduplicateFaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
+      (client: Parameters<typeof endpoints.trashPhotosOutsideLibrary>[0]) =>
+        endpoints.trashPhotosOutsideLibrary(client, 7),
       (client: Parameters<typeof endpoints.rescanPhotos>[0]) => endpoints.rescanPhotos(client, ["p1"]),
       (client: Parameters<typeof endpoints.scanFiles>[0]) => endpoints.scanFiles(client, ["/a.jpg"]),
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),

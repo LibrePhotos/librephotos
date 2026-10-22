@@ -24,6 +24,14 @@ function startDeduplicateFaces() {
   toast.success(i18n.t("toasts.deduplicatefaces"), { title: i18n.t("toasts.deduplicatefacestitle") });
 }
 
+/** The move of a user's photos outside their new scan directory to their trash (#2036). */
+function startTrashPhotosOutsideLibrary(username: string, count: number) {
+  toast.success(i18n.t("toasts.trashphotosoutsidelibrary", { username, count }), {
+    title: i18n.t("toasts.trashphotosoutsidelibrarytitle"),
+  });
+}
+
+/** The place name lookup an admin started from the Admin Area (#2302). */
 function startLookUpPlaces() {
   toast.success(i18n.t("toasts.lookupplaces"), { title: i18n.t("toasts.lookupplacestitle") });
 }
@@ -81,4 +89,5 @@ export const worker = {
   startCheckFileContents,
   startLookUpPlaces,
   startStripThumbnailMetadata,
+  startTrashPhotosOutsideLibrary,
 };

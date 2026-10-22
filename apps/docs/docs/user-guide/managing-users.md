@@ -17,6 +17,17 @@ In LibrePhotos, the file system acts as the definitive source of photo organizat
 
 To isolate users and their photo collections, create a subfolder for each user inside the folder you set as `scanDirectory` in your `.env` file — the folder LibrePhotos mounts as `/data`. Inside LibrePhotos these show up as `/data/user1`, `/data/user2`, etc., and that is the path you assign as each user's scan directory. Create the folders before assigning them: LibrePhotos only accepts directories that already exist under `/data`. This ensures that users only see and interact with the photos in their designated directories.
 
+<Since version="1.5.0" /> You can make such a folder in the user edit dialog: choose the folder it goes in, click **New folder** above the folder list, type its name and press Enter. The new folder is chosen as the scan directory right away. Only admins can make folders, only inside `/data`, and a name cannot hold `/` or `\`, be `.` or `..`, or be a name Windows refuses (such as `CON` or `a:b`). If LibrePhotos may not write to the folder, the dialog says so; then make the folder on the host.
+
+### Changing a user's scan directory
+
+<Since version="1.5.0" /> When you point a user at another folder, their photos from the old folder stay theirs: nothing moves to another user. The edit dialog counts the user's photos outside the new folder and asks what to do with them before you save:
+
+- **Keep them in the user's library** (the default): nothing changes, as before.
+- **Move them to the user's trash**: after the save, a job (Trash Photos Outside the Library, shown in the job list) moves them to the user's trash. The files on disk are not touched, and the user can restore the photos from the trash until it is emptied. The Save button turns red and says how many photos it moves.
+
+Photos in the user's upload folder and copies from their Nextcloud count as inside. If another user's scan directory holds the same files, that user's next scan adds them to their own library.
+
 Scan directories of different users must not overlap. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that is the same as, inside, or above another user's scan directory, and names the user it clashes with. In particular, once one user scans `/data` itself, no other user can be given any folder under `/data`, so give every user a folder of their own, the admin included. Installations that already have overlapping scan directories keep working and those users can still be edited; only changing a scan directory to one that overlaps is refused. Two users whose scan directories overlap each get their own photo of a file both scan, with its own thumbnails and face crops. <Since version="1.4.0" /> Up to 1.3.0 the second user's photo shared an internal key with the first user's, so either of them could be refused a photo of their own or see the other's rotation of it. LibrePhotos 1.4.0 repairs those photos once while it starts, copying their thumbnails and face crops, so the first start takes a little longer and the thumbnails folder grows by those copies.
 
 If your admin account already scans `/data` and you want to add more users, move the admin's photos into a subfolder such as `/data/admin`, set that as the admin's scan directory and run a scan. The moved photos are matched to their existing entries by their content, so ratings, faces and albums are kept; see [Missing Photos](./missing-photos.md) for how that relinking works.

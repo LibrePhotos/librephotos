@@ -32,6 +32,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [28, "Read Shutter Speeds Again"],
   [30, "Move Photos"],
   [31, "Remove duplicate faces"],
+  [33, "Trash Photos Outside the Library"],
   [34, "Make Video Posters"],
 ];
 

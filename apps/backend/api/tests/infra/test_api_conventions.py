@@ -581,15 +581,18 @@ STAFF_ONLY_VIEWS = {
     "api.views.scan_triggers.CheckFileContentsView",
     "api.views.scan_triggers.LookUpPlacesView",
     "api.views.scan_triggers.StripThumbnailMetadataView",
+    "api.views.scan_triggers.TrashPhotosOutsideLibraryView",
     "api.views.services.ServiceViewSet",
     "api.views.site_settings.TrashRetentionPreviewView",
     "api.views.upgrade_tasks.UpgradeTaskDismissView",
     "api.views.upgrade_tasks.UpgradeTaskListView",
     "api.views.upgrade_tasks.UpgradeTaskStartView",
     "api.views.serving_diagnostics.MediaPermissionDiagnosticsView",
+    "api.views.user.CreateFolderView",
     "api.views.user.DeleteUserViewSet",
     "api.views.user.ManageUserViewSet",
     "api.views.user.RootPathTreeView",
+    "api.views.user.ScanDirectoryImpactView",
 }
 
 # Unauthenticated endpoints that accept credentials or send mail. Each one sets

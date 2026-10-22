@@ -387,4 +387,7 @@ export const userKeys = {
   selfDetails: () => [...userRoot, "self"] as const,
   /** A user's details. The id is a string in the key, whether the caller has it as a number or not. */
   selfDetail: (userId: string | number) => [...userKeys.selfDetails(), String(userId)] as const,
+  /** Photos a scan directory not saved yet would leave outside a user's library (admin, #2036). */
+  scanDirectoryImpact: (userId: number, scanDirectory: string, uploadDirectory: string) =>
+    [...userRoot, "scanDirectoryImpact", userId, scanDirectory, uploadDirectory] as const,
 };

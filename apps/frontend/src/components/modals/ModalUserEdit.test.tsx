@@ -10,6 +10,9 @@
  *   while that folder does not exist.
  * - Saving a user that has no id yet (the dialog opened before the details
  *   loaded) sends nothing, but still says the save failed.
+ * - A changed scan directory says how many photos it leaves outside and keeps
+ *   them unless the admin moves them to the user's trash, which Save then
+ *   says in red and starts after the user is saved (#2036).
  */
 import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -30,9 +33,11 @@ type SignUpParams = { username: string; password: string; email: string; first_n
 
 const stubs = vi.hoisted(() => ({
   signUp: vi.fn<(params: SignUpParams, callbacks: unknown) => void>(),
-  updateUser: vi.fn<(user: Partial<User>, callbacks: unknown) => void>(),
+  updateUser: vi.fn<(user: Partial<User>, callbacks?: { onSuccess?: () => void }) => void>(),
   updateUserError: vi.fn<(message?: string) => void>(),
   siteSettings: { data: { allow_upload: true } } as { data?: { allow_upload: boolean } },
+  change: { changed: false, outsideCount: null as number | null, countFailed: false },
+  trashOutside: vi.fn<(username: string, count: number) => void>(),
 }));
 
 vi.mock("../../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: stubs.signUp }) }));
@@ -42,6 +47,9 @@ vi.mock("../../api_client/user/hooks", () => ({
   useManageUpdateUserMutation: () => ({ mutate: stubs.updateUser }),
 }));
 vi.mock("../../service/notifications", () => ({ notification: { updateUserError: stubs.updateUserError } }));
+vi.mock("./useScanDirectoryChange", () => ({
+  useScanDirectoryChange: () => ({ ...stubs.change, trashOutside: stubs.trashOutside }),
+}));
 vi.mock("../setup/DirectoryPicker", () => ({
   DirectoryPicker: ({ value, onChange, onValidityChange, name, hint }: PickerProps) => (
     <div data-picker={name ?? "scan_directory"}>
@@ -131,6 +139,8 @@ beforeEach(() => {
   stubs.updateUser.mockReset();
   stubs.updateUserError.mockReset();
   stubs.siteSettings = { data: { allow_upload: true } };
+  stubs.change = { changed: false, outsideCount: null, countFailed: false };
+  stubs.trashOutside.mockReset();
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -449,5 +459,79 @@ describe("ModalUserEdit password", () => {
       first_name: "",
       last_name: "",
     });
+  });
+});
+
+describe("ModalUserEdit changed scan directory (#2036)", () => {
+  const saveButton = () =>
+    found(
+      Array.from(document.querySelectorAll("button")).find(b => b.type === "submit"),
+      "the save button"
+    );
+  const radio = (label: string) =>
+    found(
+      Array.from(document.querySelectorAll<HTMLInputElement>('input[type="radio"]')).find(
+        input => document.querySelector(`label[for="${input.id}"]`)?.textContent === label
+      ),
+      `the "${label}" choice`
+    );
+  const succeed = () => {
+    act(() => defined(stubs.updateUser.mock.calls[0])[1]?.onSuccess?.());
+  };
+
+  it("says nothing while the scan directory stays", () => {
+    renderModal(bob);
+
+    expect(document.body.textContent).not.toContain("outside the new folder");
+    expect(saveButton().textContent).toBe("Save");
+  });
+
+  it("says it is counting first", () => {
+    stubs.change = { changed: true, outsideCount: null, countFailed: false };
+    renderModal(bob);
+
+    expect(document.body.textContent).toContain("Counting bob's photos...");
+  });
+
+  it("says when every photo stays inside", () => {
+    stubs.change = { changed: true, outsideCount: 0, countFailed: false };
+    renderModal(bob);
+
+    expect(document.body.textContent).toContain("All of bob's photos are inside the new folder.");
+    expect(document.querySelector('input[type="radio"]')).toBeNull();
+  });
+
+  it("keeps the photos outside by default and starts nothing", () => {
+    stubs.change = { changed: true, outsideCount: 4136, countFailed: false };
+    renderModal(bob);
+
+    expect(document.body.textContent).toContain("4136 of bob's photos are outside the new folder");
+    expect(radio("Keep them in bob's library").checked).toBe(true);
+    submit();
+    succeed();
+
+    expect(stubs.trashOutside).not.toHaveBeenCalled();
+    expect(sentUser()).not.toHaveProperty("photos_outside");
+  });
+
+  it("moves them to the user's trash after the save when chosen, and Save says so", () => {
+    stubs.change = { changed: true, outsideCount: 4136, countFailed: false };
+    renderModal(bob);
+
+    act(() => radio("Move them to bob's trash").click());
+
+    expect(saveButton().textContent).toBe("Save and move 4136 photos to the trash");
+    submit();
+    expect(stubs.trashOutside).not.toHaveBeenCalled();
+    succeed();
+    expect(stubs.trashOutside).toHaveBeenCalledWith("bob", 4136);
+  });
+
+  it("offers nothing when the count failed", () => {
+    stubs.change = { changed: true, outsideCount: null, countFailed: true };
+    renderModal(bob);
+
+    expect(document.body.textContent).not.toContain("Counting");
+    expect(document.querySelector('input[type="radio"]')).toBeNull();
   });
 });
