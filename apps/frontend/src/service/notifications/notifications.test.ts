@@ -160,6 +160,21 @@ describe("counted toasts (#599: faces confirmed one at a time)", () => {
     );
   });
 
+  it("add up the matching faces labelled along in a burst beside the faces (#2754)", () => {
+    notification.addFacesToPerson("Dora", 1, undefined, 1);
+    expect(lastShown().message).toBe(
+      "1 face(s) were labeled as the person Dora. Also labeled 1 matching face in the same burst or duplicate group"
+    );
+
+    notification.addFacesToPerson("Dora", 1, undefined, 3);
+    expect(updateNotification).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        message:
+          "2 face(s) were labeled as the person Dora. Also labeled 4 matching faces in the same burst or duplicate group",
+      })
+    );
+  });
+
   it("count each person on their own toast", () => {
     notification.addFacesToPerson("Ben", 1);
     notification.addFacesToPerson("Cleo", 1);

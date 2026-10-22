@@ -29,9 +29,9 @@ vi.mock("../../../service/notifications/toast", () => ({
     successCounted: (
       _id: string,
       count: number,
-      message: (total: number) => ReactNode,
-      options?: ToastOptions & { undo?: () => Promise<unknown> }
-    ) => toasts.success(message(count), options),
+      message: (total: number, extra: number) => ReactNode,
+      options?: ToastOptions & { undo?: () => Promise<unknown>; extra?: number }
+    ) => toasts.success(message(count, options?.extra ?? 0), options),
     error: toasts.error,
     warning: () => {},
     hide: () => {},
@@ -196,6 +196,19 @@ describe("moving faces back to unknown", () => {
 
     expect(toasts.success.mock.calls[0]?.[0]).toBe(
       "The face was moved to 'Unknown - Other'. Anna won't be suggested for this face again."
+    );
+  });
+
+  it("counts the faces labelled along in other frames of a burst on their own (#2754)", async () => {
+    answer(200, {
+      status: true,
+      results: [3, 7, 8].map(id => ({ id, person: 4, person_name: "Dave" })),
+      twin_ids: [7, 8],
+    });
+    await run(useSetFacesPersonLabelMutation, mutation => mutation.mutate({ faceIds: [3], personName: "Dave" }));
+
+    expect(toasts.success.mock.calls[0]?.[0]).toBe(
+      "1 face(s) were labeled as the person Dave. Also labeled 2 matching faces in the same burst or duplicate group"
     );
   });
 });

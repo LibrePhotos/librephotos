@@ -96,6 +96,12 @@ export const SetFacesLabelResponse = z.looseObject({
   previous: FaceLabels.array().optional(),
   /** Who is no longer suggested for these faces (#2747). Optional: older servers omit it. */
   rejected_people: RejectedPerson.array().optional(),
+  /**
+   * The faces labelled along with the ones sent: the same face in the other frames of a burst or
+   * bracket stack or a duplicate group (#2754). They are in `results` and `previous` too. Optional:
+   * older servers omit it.
+   */
+  twin_ids: z.number().array().optional(),
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 

@@ -232,6 +232,15 @@ class SetFacePersonLabelResponse(serializers.Serializer[None]):
             "/api/restore-face-labels/ to undo it"
         ),
     )
+    twin_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=(
+            "The faces labelled along with the ones sent: the same face in the "
+            "other frames of a burst or bracket stack or a duplicate group "
+            "(#2754). They are in results and previous too; empty when "
+            "the faces went back to unknown"
+        ),
+    )
     rejected_people = RejectedPerson(
         many=True,
         help_text=(

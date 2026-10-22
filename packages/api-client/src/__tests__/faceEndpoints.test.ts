@@ -238,6 +238,11 @@ describe("undoing face edits (#127)", () => {
     expect((await endpoints.labelFaces(client, [3], "Dave")).previous).toEqual([labels]);
   });
 
+  it("reads the twins a labelling took along (#2754)", async () => {
+    const { client } = fakeServer({ status: true, results: [], updated: [], not_updated: [], twin_ids: [7, 8] });
+    expect((await endpoints.labelFaces(client, [3], "Dave")).twin_ids).toEqual([7, 8]);
+  });
+
   it("restores deleted faces", async () => {
     const { client, requests } = fakeServer({ restored_ids: [3, 4], write_error: null });
     const restored = await endpoints.restoreFaces(client, [3, 4]);

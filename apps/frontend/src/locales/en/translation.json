@@ -2350,6 +2350,8 @@
     "unsharingalbumtitle": "Unshare album",
     "addfacestoperson": "{{numberOfFaces}} face(s) were labeled as the person {{personName}}",
     "addfacestopersontitle": "Add faces to person",
+    "addfacestwins_one": "Also labeled {{count}} matching face in the same burst or duplicate group",
+    "addfacestwins_other": "Also labeled {{count}} matching faces in the same burst or duplicate group",
     "deletefaces": "{{numberOfFaces}} face(s) were deleted",
     "deletefacestitle": "Delete faces",
     "undo": "Undo",

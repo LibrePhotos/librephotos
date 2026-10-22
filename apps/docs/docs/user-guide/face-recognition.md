@@ -10,6 +10,14 @@ To label a face, click on the green plus button. A pop-up titled **Label faces**
 
 Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name. While you type, the people whose names match are listed with the most faces first, then by name; with nothing typed, the list is in name order. (Not released yet: up to 1.3.0, matches stayed in name order.)
 
+### The same face in a burst or duplicate group
+
+<Since version="1.5.0" />
+
+Burst frames, exposure brackets and duplicates are separate photos, so the same face is found once in every frame. When you label one of them, LibrePhotos also labels that face in the other photos of the same [burst or bracket stack](./stacks-and-file-variants.md) or [duplicate group](./duplicate-detection.md): the message then says, for example, "Also labeled 4 matching faces in the same burst or duplicate group", and its **Undo** takes all of them back.
+
+Only a face that is clearly the same one is labelled along: one that has no name yet, at nearly the same place in the picture, and that looks nearly identical to the face you labelled. The other people in those frames, faces you already named or deleted, and a face you said is not that person (**Not _name_**) are left alone. A manual stack, and a duplicate group you dismissed as not duplicates, do not count. Sending a face to "Unknown - Other" only changes that face.
+
 ### Writing face tags to your files
 
 By default, labelling a face only updates the LibrePhotos database — your image files are not touched.

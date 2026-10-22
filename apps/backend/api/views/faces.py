@@ -43,6 +43,7 @@ from api.faces.photo_faces import (
     overlaps_existing_face,
     save_detected_face,
 )
+from api.faces.twins import twin_faces
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
 from api.models import Face, LongRunningJob, Photo, User
@@ -392,8 +393,11 @@ class SetFacePersonLabel(APIView):
         # them again): a foreign face id must not come back serialized in
         # ``not_updated`` (it carried the photo id and the face crop path of
         # someone else's photo).
+        twin_ids = _twin_ids(user, data["face_ids"], person)
         result = relabel_faces(
-            user, Face.objects.owned_by(user).filter(pk__in=data["face_ids"]), person
+            user,
+            Face.objects.owned_by(user).filter(pk__in=[*data["face_ids"], *twin_ids]),
+            person,
         )
         updated = [FaceListSerializer(face).data for face in result.faces]
         not_updated: list[dict[str, object]] = []
@@ -408,6 +412,8 @@ class SetFacePersonLabel(APIView):
                 "write_error": result.write_error,
                 # What an undo sends back to /api/restore-face-labels/ (#127).
                 "previous": result.previous,
+                # The same face in the other frames, labelled too (#2754).
+                "twin_ids": twin_ids,
                 # Who is no longer suggested for these faces (#2747).
                 "rejected_people": [
                     {"id": rejected.pk, "name": rejected.name}
@@ -415,6 +421,22 @@ class SetFacePersonLabel(APIView):
                 ],
             }
         )
+
+
+def _twin_ids(user: User, face_ids: list[int], person: Person | None) -> list[int]:
+    """The twins of the faces labelled as ``person`` (#2754); none for "unknown".
+
+    The same face in the other frames of a burst, a bracket or a duplicate
+    group: labelling one frame labels them all.
+    """
+    if person is None:
+        return []
+    faces = (
+        Face.objects.owned_by(user)
+        .filter(pk__in=face_ids)
+        .select_related("photo__metadata")
+    )
+    return [face.pk for face in twin_faces(user, faces, person)]
 
 
 class AddFaceView(APIView):
