@@ -21,6 +21,17 @@ export function monthDayOf(date: Date = new Date()): string {
 export type MemoryPhoto = PhotoTileRow & { year: number };
 
 /**
+ * The rows that are memories of `day`: taken on its month-day in an earlier
+ * year, not hidden or trashed.
+ */
+function memoriesOf(day: Date) {
+  return sql`hidden = 0 AND in_trashcan = 0 AND removed = 0
+          AND timestamp IS NOT NULL
+          AND substr(bucket_day, 6, 5) = ${monthDayOf(day)}
+          AND CAST(substr(bucket_day, 1, 4) AS INTEGER) < ${day.getFullYear()}`;
+}
+
+/**
  * Photos taken on this month-day in earlier years, favorites first. `today` is
  * injectable for tests. Excludes hidden/trashed and the current year.
  */
@@ -29,17 +40,12 @@ export function onThisDay(
   opts: { today?: Date; limit?: number } = {}
 ): MemoryPhoto[] {
   const today = opts.today ?? new Date();
-  const monthDay = monthDayOf(today);
-  const currentYear = today.getFullYear();
   const limit = opts.limit ?? 60;
 
   return db.all(
     sql`SELECT ${PHOTO_COLS}, CAST(substr(bucket_day, 1, 4) AS INTEGER) AS year
         FROM remote_photo
-        WHERE hidden = 0 AND in_trashcan = 0 AND removed = 0
-          AND timestamp IS NOT NULL
-          AND substr(bucket_day, 6, 5) = ${monthDay}
-          AND CAST(substr(bucket_day, 1, 4) AS INTEGER) < ${currentYear}
+        WHERE ${memoriesOf(today)}
         ORDER BY is_favorite DESC, timestamp DESC, id DESC
         LIMIT ${limit}`
   ) as MemoryPhoto[];
@@ -49,6 +55,35 @@ export function onThisDay(
 export function memoryYears(db: AppDatabase, opts: { today?: Date } = {}): number[] {
   const memories = onThisDay(db, { ...opts, limit: 1000 });
   return [...new Set(memories.map((m) => m.year))].sort((a, b) => b - a);
+}
+
+/** One day of `memoryDaysAhead`: local midnight, and its memories. */
+export type MemoryDay = { day: Date; photoCount: number; yearCount: number };
+
+/** Days `memoryDaysAhead` looks at by default: two weeks of reminders. */
+export const MEMORY_DAYS_AHEAD = 14;
+
+/**
+ * For `today` and each of the `days - 1` days after it, how many memory photos
+ * it has and from how many earlier years (the rules of `onThisDay`). Every day
+ * is listed, those without memories with zero counts. Feb 29 only comes up in
+ * a leap year, and a day in the new year counts the old one as earlier.
+ */
+export function memoryDaysAhead(
+  db: AppDatabase,
+  opts: { today?: Date; days?: number } = {}
+): MemoryDay[] {
+  const today = opts.today ?? new Date();
+  const days = opts.days ?? MEMORY_DAYS_AHEAD;
+  return Array.from({ length: days }, (_, offset) => {
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
+    const row = db.get(
+      sql`SELECT COUNT(*) AS photoCount, COUNT(DISTINCT substr(bucket_day, 1, 4)) AS yearCount
+          FROM remote_photo
+          WHERE ${memoriesOf(day)}`
+    ) as { photoCount: number; yearCount: number };
+    return { day, photoCount: row.photoCount, yearCount: row.yearCount };
+  });
 }
 
 /* ---- memories notification prefs (app_meta) ---------------------------- */

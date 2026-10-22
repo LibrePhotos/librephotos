@@ -148,9 +148,16 @@ mirror.
 ## Memories reminder
 
 The app can remind you about your **memories** — photos from this day in
-previous years. Enable the reminder in Settings to get a local notification;
-tapping it opens that day's memories. The reminder uses a local notification
-scheduled on the device, so it works without any push service.
+previous years. Turn on **Memories reminder** in Settings and pick a time: on
+each day that has memories you get a local notification at that time saying
+from how many earlier years they are, and tapping it opens the memories. Days
+without memories get no notification.
+
+The reminders are planned on the device two weeks ahead, from the photos the
+app has synced, so they work without any push service. They are planned again
+whenever you open the app, after each sync, and when you change the time or
+the app language. If the app is not opened or synced for two weeks, the
+reminders stop until it is.
 
 ## Share target
 
