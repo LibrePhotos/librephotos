@@ -107,6 +107,7 @@ vi.mock("../CountStats", () => ({ CountStats: () => null }));
 vi.mock("../modals/ModalNextcloudScanDirectoryEdit", () => ({ ModalNextcloudScanDirectoryEdit: () => null }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
 vi.mock("./ProcessingStatusCard", () => ({ ProcessingStatusCard: () => null }));
+vi.mock("../libraryfolders/LibraryFoldersCard", () => ({ LibraryFoldersCard: () => null }));
 // The dialog itself is covered in SaveChangesDialog.test.tsx; here only whether it is open.
 vi.mock("./SaveChangesDialog", () => ({
   SaveChangesDialog: ({ opened, onSave, onCancel }: { opened: boolean; onSave: () => void; onCancel: () => void }) =>

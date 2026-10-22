@@ -63,6 +63,14 @@ A **Scan** processes new and changed files, and also every photo whose metadata 
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
+### Library folders
+
+<Since version="1.5.0" /> A library can have more than one folder. The **Library folders** card above **Photos** lists them: the scan directory (marked **Main folder**), the further folders an admin added, and the upload folder when it lies outside them. Each row says how many of your photos are in it, and its menu (⋮) opens the folder on the Folders page. A **Scan** reads every folder of the library.
+
+Admins add a folder with **Add folder** under the list and remove one with **Remove…** in its menu; see [Several library folders per user](./managing-users.md#several-library-folders-per-user). Other users see their folders here and ask an admin for changes.
+
+A folder that cannot be read right now, such as one on a disk that is unplugged, shows **Not found**. Scans skip it and go on with the rest of the library, list it in the job's errors, and do not mark its photos [missing](./missing-photos.md): they come back as they were when the disk does.
+
 Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. <Since version="1.4.0" /> Point at or tab to a greyed-out button to see why it is unavailable.
 
 :::note
@@ -317,8 +325,8 @@ python manage.py scan
 python manage.py scan -f
 
 # Scan specific files, given by full path; each file goes to every user whose
-# scan directory contains it (normally exactly one; /data/alice2/x.jpg is not
-# in /data/alice), and a file outside every scan directory is ignored.
+# library folders contain it (normally exactly one; /data/alice2/x.jpg is not
+# in /data/alice), and a file outside every library is ignored.
 # Since 1.5.0 a folder is scanned too, with its subfolders
 python manage.py scan -s /path/to/file.jpg /path/to/folder
 

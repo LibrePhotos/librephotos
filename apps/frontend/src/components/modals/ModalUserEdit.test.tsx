@@ -47,6 +47,9 @@ vi.mock("../../api_client/user/hooks", () => ({
   useManageUpdateUserMutation: () => ({ mutate: stubs.updateUser }),
 }));
 vi.mock("../../service/notifications", () => ({ notification: { updateUserError: stubs.updateUserError } }));
+vi.mock("../libraryfolders/LibraryFolderList", () => ({
+  LibraryFolderList: ({ owner }: { owner: number | "self" }) => <div data-library-folders={owner} />,
+}));
 vi.mock("./useScanDirectoryChange", () => ({
   useScanDirectoryChange: () => ({ ...stubs.change, trashOutside: stubs.trashOutside }),
 }));
@@ -206,6 +209,14 @@ describe("ModalUserEdit", () => {
 
     expect(stubs.updateUser).not.toHaveBeenCalled();
     expect(stubs.updateUserError).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the further library folders of a user with a scan directory (#123)", () => {
+    renderModal(bob);
+    expect(document.querySelector("[data-library-folders]")?.getAttribute("data-library-folders")).toBe("2");
+
+    renderModal({ ...bob, id: 3, scan_directory: "" });
+    expect(document.querySelector("[data-library-folders]")).toBeNull();
   });
 
   it("hides the upload folder while uploads are switched off", () => {
