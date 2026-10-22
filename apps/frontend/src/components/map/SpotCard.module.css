@@ -1,0 +1,30 @@
+/* Over the top left corner of the Places map, above its canvas and controls. */
+.card {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  max-width: calc(100% - 70px);
+}
+
+/* The spot the card is about, ringed on the map. */
+.ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--mantine-primary-color-filled);
+  box-shadow: 0 0 0 2px var(--mantine-color-body);
+  pointer-events: none;
+}
+
+.thumbnail {
+  display: block;
+  padding: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.thumbnail:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}

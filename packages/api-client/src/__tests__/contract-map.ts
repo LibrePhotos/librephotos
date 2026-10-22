@@ -29,6 +29,12 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
     schema: S.PhotosNotInAlbumResponse,
     components: ["PaginatedPhotoSummaryList"],
   },
+  PhotosInBoundsResponse: {
+    schema: S.PhotosInBoundsResponse,
+    components: ["PaginatedPhotoSummaryList"],
+  },
+  PhotoMapPoints: { schema: S.PhotoMapPoints, components: ["PhotoMapPoints"] },
+  PlaceAlbumsInBounds: { schema: S.PlaceAlbumsInBounds, components: ["PlaceAlbumsInBounds"] },
   MyPublicPhotosResponse: {
     schema: S.MyPublicPhotosResponse,
     components: ["PaginatedPhotoSummaryList"],

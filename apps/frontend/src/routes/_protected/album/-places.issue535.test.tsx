@@ -39,21 +39,23 @@ type RouteStub = (options?: { component?: React.ComponentType }) => RouteStub;
 
 /** The part of a MapLibre map the page reads. */
 type MapStub = {
-  getBounds: () => {
-    getNorthEast: () => { lat: number; lng: number };
-    getSouthWest: () => { lat: number; lng: number };
-  };
+  getBounds: () => { getSouth: () => number; getWest: () => number; getNorth: () => number; getEast: () => number };
   queryRenderedFeatures: () => never[];
   getSource: () => null;
 };
 
 const stubs = vi.hoisted(() => ({
   component: null as React.ComponentType | null,
-  // [longitude, latitude, name], as /locclust/ returns it.
-  locationClusters: [
-    [2.35, 48.85, "Paris"],
-    [13.4, 52.5, "Berlin"],
-  ] as unknown[][],
+  // As /photos/map-points/ returns them: [lat, lon, photos]
+  mapPoints: {
+    points: [
+      [48.85, 2.35, 12],
+      [52.5, 13.4, 3],
+    ],
+    photo_count: 15,
+  },
+  // The place albums with a photo in the map's view; undefined until the map reports one
+  placesInView: undefined as number[] | undefined,
   albums: [
     { id: 1, title: "Paris", cover_photos: [{ image_hash: "hash1" }], photo_count: 12, geolocation_level: 2 },
     { id: 2, title: "Berlin", cover_photos: [{ image_hash: "hash2" }], photo_count: 3, geolocation_level: 2 },
@@ -93,9 +95,13 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPlacesAlbumsQuery: () => ({ data: stubs.albums, isFetching: stubs.fetching, isLoading: stubs.loading }),
-  useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: stubs.fetching, isLoading: false }),
+  useFetchPhotoMapPointsQuery: () => ({ data: stubs.mapPoints, isFetching: stubs.fetching, isLoading: false }),
+  usePlaceAlbumsInBoundsQuery: () => ({ data: stubs.placesInView }),
+  usePhotosInBoundsQuery: () => ({ data: undefined, isError: false, isFetching: false, refetch: () => {} }),
 }));
 vi.mock("../../../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
+// The lightbox and its routes are not what this page test is about
+vi.mock("../../../components/map/SpotLightbox", () => ({ SpotLightbox: () => null }));
 
 /**
  * Stands in for react-map-gl's <Map>. It reproduces the two things that matter here:
@@ -112,10 +118,7 @@ vi.mock("react-map-gl/maplibre", async () => {
       void Promise.resolve().then(() => {
         if (!mounted) return;
         setMap({
-          getBounds: () => ({
-            getNorthEast: () => ({ lat: 60, lng: 30 }),
-            getSouthWest: () => ({ lat: 40, lng: -10 }),
-          }),
+          getBounds: () => ({ getSouth: () => 40, getWest: () => -10, getNorth: () => 60, getEast: () => 30 }),
           queryRenderedFeatures: () => [],
           getSource: () => null,
         });
@@ -133,6 +136,7 @@ vi.mock("react-map-gl/maplibre", async () => {
     default: MapGL,
     Source: passthrough,
     Layer: () => null,
+    Marker: passthrough,
     NavigationControl: () => null,
     AttributionControl: () => null,
   };
@@ -161,6 +165,7 @@ beforeEach(() => {
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };
   stubs.fetching = false;
   stubs.loading = false;
+  stubs.placesInView = undefined;
   localStorage.clear();
 });
 
@@ -197,7 +202,32 @@ describe("the places page on first mount", () => {
     const page = await renderPage();
 
     expect(page.titles()).toEqual(expect.arrayContaining(["Paris", "Berlin"]));
-    expect(page.subtitle()).toContain("Showing 2 places on the map");
+    // The map counts photos, the grid places (#343)
+    expect(page.subtitle()).toContain("15 photos on the map · 2 places in view");
+    await page.unmount();
+  });
+
+  // #343: a place shows up under the map when one of its photos is in view, wherever its centre is
+  it("lists only the places with a photo in the map's view once the map reports one", async () => {
+    stubs.placesInView = [2];
+    const page = await renderPage();
+
+    expect(page.titles()).toEqual(["Berlin"]);
+    expect(page.subtitle()).toContain("1 place in view");
+    await page.unmount();
+  });
+
+  it("has a grip that makes the map taller, and remembers it", async () => {
+    const page = await renderPage();
+    const grip = page.container.querySelector<HTMLElement>('[role="separator"]');
+    expect(grip?.getAttribute("aria-valuenow")).toBe("240");
+
+    await act(async () => {
+      grip?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    });
+
+    expect(grip?.getAttribute("aria-valuenow")).toBe("260");
+    expect(localStorage.getItem(STORAGE_KEYS.placesMapHeight)).toBe("260");
     await page.unmount();
   });
 

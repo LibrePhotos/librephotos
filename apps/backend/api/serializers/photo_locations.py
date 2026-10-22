@@ -104,3 +104,47 @@ class LocatedPhotoSerializer(serializers.ModelSerializer[Photo]):
         """The town or region of the photo's place, for a small label; null
         without a place."""
         return short_place_name(obj.geolocation_json)
+
+
+class MapBoundsQuery(serializers.Serializer[None]):
+    """The part of the world a map shows (#343). ``west`` greater than
+    ``east`` is a view across the 180th meridian."""
+
+    south = serializers.FloatField(
+        min_value=-90, max_value=90, help_text="Southern edge, latitude"
+    )
+    west = serializers.FloatField(
+        min_value=-180, max_value=180, help_text="Western edge, longitude"
+    )
+    north = serializers.FloatField(
+        min_value=-90, max_value=90, help_text="Northern edge, latitude"
+    )
+    east = serializers.FloatField(
+        min_value=-180, max_value=180, help_text="Eastern edge, longitude"
+    )
+
+    def validate(self, attrs: dict[str, float]) -> dict[str, float]:
+        if attrs["south"] > attrs["north"]:
+            raise serializers.ValidationError({"north": "Must not be south of south."})
+        return attrs
+
+
+class PhotoMapPointsSerializer(serializers.Serializer[None]):
+    """Where the requester's photos were taken, for the Places map (#343)."""
+
+    points = serializers.ListField(
+        child=serializers.ListField(
+            child=serializers.FloatField(), min_length=3, max_length=3
+        ),
+        help_text="[latitude, longitude, photos taken there], one per spot; "
+        "photos within about a metre of each other are one spot",
+    )
+    photo_count = serializers.IntegerField(help_text="Photos on the map")
+
+
+class PlaceAlbumsInBoundsSerializer(serializers.Serializer[None]):
+    """The place albums with a photo inside a map's view (#343)."""
+
+    ids = serializers.ListField(
+        child=serializers.IntegerField(), help_text="Place album ids, ascending"
+    )

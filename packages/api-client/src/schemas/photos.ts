@@ -219,6 +219,10 @@ export type PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
 export const MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
 export type MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
 
+/** GET /api/photos/in-bounds/: a page of my photos taken inside a map's view (#343), newest first. */
+export const PhotosInBoundsResponse = PhotosWithoutTimestampResponse;
+export type PhotosInBoundsResponse = PhotosWithoutTimestampResponse;
+
 /** Body describing a photoset for server-side "select all" bulk operations. */
 export const BulkPhotoQuery = z.object({
   favorite: z.boolean().optional(),

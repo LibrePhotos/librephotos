@@ -2111,12 +2111,19 @@
     "emptydescription": "Open a person's menu and choose Groups… to add them."
   },
   "placealbum": {
-    "showingplaces": "Showing {{number}} places on the map",
     "maploading": "Map loading...",
-    "showingplaces_one": "Showing {{count}} place on the map",
-    "showingplaces_other": "Showing {{count}} places on the map",
     "placecount_one": "{{count}} place",
-    "placecount_other": "{{count}} places"
+    "placecount_other": "{{count}} places",
+    "photosOnMap_one": "{{count}} photo on the map",
+    "photosOnMap_other": "{{count}} photos on the map",
+    "placesInView_one": "{{count}} place in view",
+    "placesInView_other": "{{count}} places in view",
+    "photosHere_one": "{{count}} photo here",
+    "photosHere_other": "{{count}} photos here",
+    "openPhotos_one": "Open {{count}} photo",
+    "openPhotos_other": "Open {{count}} photos",
+    "openPhoto": "Open this photo",
+    "mapHeight": "Map height"
   },
   "thingalbum": {
     "showingthings": "Showing {{number}} things",

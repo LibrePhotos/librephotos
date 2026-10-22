@@ -17,6 +17,8 @@ export const STORAGE_KEYS = {
   albumSortUserAlbums: "lp:albumSort.userAlbums.v1",
   facesCollapsedPersons: "lp:faces.collapsedPersons.v1",
   facesTabScrollPositions: "lp:faces.tabScrollPositions.v1",
+  // How tall the user made the Places map (#343)
+  placesMapHeight: "lp:places.mapHeight.v1",
   recentlyTaggedPeople: "lp:people.recentlyTagged.v1",
 } as const;
 

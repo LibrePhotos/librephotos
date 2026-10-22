@@ -1,5 +1,5 @@
 import type { LocationClusters } from "@librephotos/api-client";
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, GeoJsonProperties, Point } from "geojson";
 
 /** A named place from the location cluster list. */
 export type ClusterPoint = Readonly<{ lng: number; lat: number; name: string }>;
@@ -53,8 +53,8 @@ export const WORLD_VIEW: MapView = { longitude: 0, latitude: 40, zoom: 2 };
  * Opens a map on every place in the collection, or on `world` when it has none. A single place
  * opens at `fit.maxZoom` around it.
  */
-export function initialViewForClusters(
-  collection: FeatureCollection<Point, ClusterFeatureProperties>,
+export function initialViewForClusters<P extends GeoJsonProperties>(
+  collection: FeatureCollection<Point, P>,
   fit: FitOptions,
   world: MapView = WORLD_VIEW
 ): InitialMapView {

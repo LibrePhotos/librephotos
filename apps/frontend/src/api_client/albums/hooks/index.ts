@@ -6,6 +6,7 @@ export * from "./useSetPersonBirthDateMutation";
 export * from "./useFetchPlacesAlbumsQuery";
 export * from "./useFetchPlaceAlbumQuery";
 export * from "./useFetchLocationClustersQuery";
+export * from "./usePlacesMapQueries";
 export * from "./useFetchSharedAlbumsByMeQuery";
 export * from "./useFetchSharedAlbumsWithMeQuery";
 export * from "./useShareUserAlbumMutation";
