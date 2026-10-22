@@ -23,7 +23,12 @@ from api.models.photo_metadata import (
     MetadataEdit,
     PhotoMetadata,
 )
-from api.tests.utils import api_error, create_test_photo, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 
 class PhotoMetadataModelTestCase(TestCase):
@@ -820,7 +825,13 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         metadata.refresh_from_db()
-        self.assertEqual(metadata.keywords, ["new", "keywords", "list"])
+        self.assertEqual(metadata.edited_keywords, ["new", "keywords", "list"])
+        # Still the file's keywords at the last read (#2783).
+        self.assertEqual(metadata.keywords, ["original", "tags"])
+        self.assertEqual(
+            sorted(self.photo.tags.values_list("name", flat=True)),
+            ["keywords", "list", "new"],
+        )
 
     def test_empty_keywords_update(self):
         """Test updating keywords to empty list."""
@@ -828,6 +839,9 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             photo=self.photo,
             keywords=["original", "tags"],
         )
+        # A scan made tags of them.
+        for name in ("original", "tags"):
+            create_test_tag(owner=self.user, name=name).photos.add(self.photo)
 
         response = self.client.patch(
             f"/api/photos/{self.photo.id}/metadata",
@@ -838,4 +852,6 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         metadata.refresh_from_db()
-        self.assertEqual(metadata.keywords, [])
+        self.assertEqual(metadata.edited_keywords, [])
+        self.assertEqual(metadata.keywords, ["original", "tags"])
+        self.assertFalse(self.photo.tags.exists())

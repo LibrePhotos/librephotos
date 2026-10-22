@@ -5,11 +5,19 @@ on:
     branches: [dev]
     paths:
       - 'apps/backend/**'
-      - '.github/workflows/test-backend.yml'
+      # api/tests/infra checks these too (compose keys, images, entrypoints, the
+      # environment-variables page, workflow pins); a change there alone must run it.
+      - 'deploy/**'
+      - 'apps/docs/docs/installation/environment-variables.md'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'apps/backend/**'
-      - '.github/workflows/test-backend.yml'
+      # api/tests/infra checks these too (compose keys, images, entrypoints, the
+      # environment-variables page, workflow pins); a change there alone must run it.
+      - 'deploy/**'
+      - 'apps/docs/docs/installation/environment-variables.md'
+      - '.github/workflows/**'
 
 permissions:
   contents: read

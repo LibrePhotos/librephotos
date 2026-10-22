@@ -18359,7 +18359,7 @@
       },
       "PatchedPhotoMetadataUpdateRequest": {
         "type": "object",
-        "description": "The fields the metadata API edits, single and bulk.\n\nEach goes to its one store through ``api.metadata.edits``: ``rating`` to\n``Photo.rating``, ``caption`` to the lightbox caption, ``keywords``,\n``title``, ``copyright`` and ``creator`` to ``PhotoMetadata``. The date and\nthe location are edited through ``PATCH /api/photos/edit/{image_hash}/``;\nsending them here is a 400 rather than an edit nobody sees.",
+        "description": "The fields the metadata API edits, single and bulk.\n\nEach goes to its one store through ``api.metadata.edits``: ``rating`` to\n``Photo.rating``, ``caption`` to the lightbox caption, ``keywords`` to the\nphoto's tags (a tag added by hand stays), ``title``, ``copyright`` and\n``creator`` to ``PhotoMetadata``. The ``keywords`` read back stay the\nfile's keywords at the last scan. The date and\nthe location are edited through ``PATCH /api/photos/edit/{image_hash}/``;\nsending them here is a 400 rather than an edit nobody sees.",
         "properties": {
           "title": {
             "type": "string",

@@ -69,6 +69,42 @@ A scan started this way first downloads the ML models (about 1.3 GB, once). The 
 the sample library, so run them against an account with no other photos. `E2E_USERNAME` and
 `E2E_PASSWORD` override the credentials.
 
+### Docs screenshots {#docs-screenshots}
+
+<Since version="1.5.0" /> The same package takes the screenshots of this site and of the release
+posts. `yarn screens` takes every shot listed in `e2e/screens/manifest.ts` in the light and the dark
+theme, at 1600 × 1000 and, for the shots marked `phone`, on a Pixel 7. It writes
+`<id>-<theme>.webp` and `<id>-phone-<theme>.webp` into `apps/docs/static/img/shots/` and
+regenerates `manifest.json` there, which the `<Screenshot id="..." />` component and the release
+check read. It logs in like the smoke suite, so the same variables apply:
+
+```bash
+cd apps/frontend/e2e
+E2E_BASE_URL=http://localhost:8080 yarn screens
+SHOTS=timeline,lightbox yarn screens   # only these shot ids
+SHOTS_DIR=/tmp/shots yarn screens      # somewhere else, to look before you replace the docs files
+yarn screens:unit                      # the helpers, without a running LibrePhotos
+```
+
+- Each shot waits for its screen, for the pictures and map tiles in view, and for the page to stop
+  changing. A new shot that looks like the file it would replace (at most 0.2 % of the pixels
+  changed) keeps the old file, so a second run changes nothing. The run says per file whether it
+  kept or wrote it, and how much changed.
+- A desktop shot over 200 KB or a phone shot over 120 KB fails its test.
+- The browser clock and the Memories strip are fixed to `SHOTS_DAY` (default `2026-05-12`), so the
+  memories are the same in every run.
+- The e2e stack has the eight sample photos and no machine learning, so it has no faces, places or
+  events: take `timeline`, `lightbox`, `timeline-filter` and `category-badge` there. The committed
+  landing page shots come from a bigger sample library.
+
+Commit only shots made inside the Playwright Linux container (`mcr.microsoft.com/playwright`, the
+version of `@playwright/test` in `e2e/package.json`): fonts and rendering differ between operating
+systems, so shots from your machine would change every image. The `screenshots` workflow does that:
+started by hand on a branch (default `dev`) with the shot ids to take, it builds and starts the e2e
+stack with the sidebar showing the latest release, runs `yarn screens` in that container, uploads the
+shots as an artifact, and opens a PR "docs: refresh screenshots" with the files that changed (none
+changed, no PR). A PR opened by a workflow starts no checks: close and reopen it to run them.
+
 ## 🐛 Debugging
 
 ### React Debug Tool

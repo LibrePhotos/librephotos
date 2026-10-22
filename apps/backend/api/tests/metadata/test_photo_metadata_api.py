@@ -20,7 +20,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_tag, create_test_user
 
 
 class PhotoMetadataRetrieveTestCase(APITestCase):
@@ -478,9 +478,16 @@ class PhotoMetadataRevertTestCase(APITestCase):
             created_at=now - timedelta(minutes=1)
         )
         MetadataEdit.objects.filter(pk=newer.pk).update(created_at=now)
-        self.metadata.keywords = ["beach", "sunset"]
+        # The photo as the two edits left it: the list of the last one, and
+        # its tags.
+        self.metadata.edited_keywords = ["beach", "sunset"]
         self.metadata.save()
+        for name in ("beach", "sunset"):
+            create_test_tag(owner=self.user, name=name).photos.add(self.photo)
         return older, newer
+
+    def tag_names(self) -> list[str]:
+        return sorted(self.photo.tags.values_list("name", flat=True))
 
     def test_reverting_an_edit_superseded_by_a_later_one_is_a_conflict(self):
         """Reverting the older edit would silently drop the newer one."""
@@ -493,7 +500,8 @@ class PhotoMetadataRevertTestCase(APITestCase):
 
         self.assertEqual(response.status_code, 409)
         self.metadata.refresh_from_db()
-        self.assertEqual(self.metadata.keywords, ["beach", "sunset"])
+        self.assertEqual(self.metadata.edited_keywords, ["beach", "sunset"])
+        self.assertEqual(self.tag_names(), ["beach", "sunset"])
         self.assertEqual(MetadataEdit.objects.filter(photo=self.photo).count(), before)
 
     def test_force_reverts_a_superseded_edit(self):
@@ -505,7 +513,8 @@ class PhotoMetadataRevertTestCase(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.metadata.refresh_from_db()
-        self.assertEqual(self.metadata.keywords, [])
+        self.assertEqual(self.metadata.edited_keywords, [])
+        self.assertEqual(self.tag_names(), [])
 
     def test_reverting_the_latest_edit_of_a_field_needs_no_force(self):
         _, newer = self._keyword_edits()
@@ -516,7 +525,8 @@ class PhotoMetadataRevertTestCase(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.metadata.refresh_from_db()
-        self.assertEqual(self.metadata.keywords, ["beach"])
+        self.assertEqual(self.metadata.edited_keywords, ["beach"])
+        self.assertEqual(self.tag_names(), ["beach"])
 
     def test_a_later_edit_of_another_field_is_no_conflict(self):
         older, newer = self._keyword_edits()

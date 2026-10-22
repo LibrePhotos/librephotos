@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "screens": "playwright test -c playwright.screens.config.ts --project screens",
+    "screens:unit": "playwright test -c playwright.screens.config.ts --project unit",
     "test:ui": "playwright test --ui",
     "report": "playwright show-report"
   },
