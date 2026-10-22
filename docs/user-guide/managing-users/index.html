@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.7d36b7ec.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.6ed2ee96.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -23,6 +23,7 @@
 <p>Click on your Avatar → Admin Area to navigate to your user panel.</p>
 <p>The user panel is at the bottom of the page above the worker logs.</p>
 <p>You can create, delete and manage users of your instance. You can change the scan path, password, name and e-mail of a given user.</p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> The circular arrow next to a user&#x27;s scan directory scans that user&#x27;s library now, the same scan as the <strong>Scan</strong> button on their Library page: the job is theirs and shows in their job list. While it runs, the arrow shows its progress. So after you fix a user&#x27;s scan path, you can scan it without signing in as them. On your own Library page, <strong>Change scan directories in the Admin Area</strong> under <strong>Scan library</strong> leads to this table.</p>
 <p><strong>Please note:</strong>
 In LibrePhotos, the file system acts as the definitive source of photo organization. This means that folder structure dictates how photos are grouped and accessed within the application.</p>
 <p>To isolate users and their photo collections, create a subfolder for each user inside the folder you set as <code>scanDirectory</code> in your <code>.env</code> file — the folder LibrePhotos mounts as <code>/data</code>. Inside LibrePhotos these show up as <code>/data/user1</code>, <code>/data/user2</code>, etc., and that is the path you assign as each user&#x27;s scan directory. Create the folders before assigning them: LibrePhotos only accepts directories that already exist under <code>/data</code>. This ensures that users only see and interact with the photos in their designated directories.</p>
