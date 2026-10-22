@@ -17,11 +17,12 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
+from api.faces.recipients import faces_shown_to, is_named
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
 from api.metadata.library_write import WRITE_TYPES
 from api.mime import original_mime_type
-from api.models import AlbumDate, File, Photo, User
+from api.models import AlbumDate, Face, File, Person, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
@@ -489,6 +490,40 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         )
 
 
+def _face_person(face: Face) -> tuple[Person | None, str, float]:
+    """The person a face is shown with, its kind and how sure that is."""
+    if face.person:
+        return face.person, "user", 1
+    if face.cluster_person:
+        return face.cluster_person, "cluster", face.cluster_probability
+    if face.classification_person:
+        return (
+            face.classification_person,
+            "classification",
+            face.classification_probability,
+        )
+    return None, "", 0
+
+
+def _face_entry(face: Face) -> dict[str, Any]:
+    """One face of ``PhotoSerializer.people``."""
+    person, kind, probability = _face_person(face)
+    return {
+        "name": person.name if person else "",
+        "type": kind,
+        "probability": probability,
+        "location": {
+            "top": face.location_top,
+            "bottom": face.location_bottom,
+            "left": face.location_left,
+            "right": face.location_right,
+        },
+        # A face without a crop (legacy rows) has no URL to show.
+        "face_url": face.crop_url or "",
+        "face_id": face.id,
+    }
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
@@ -855,59 +890,18 @@ class PhotoSerializer(serializers.ModelSerializer):
         return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
 
     def get_people(self, obj: Photo) -> list:
-        return [
-            {
-                "name": (
-                    f.person.name
-                    if f.person
-                    else (
-                        f.cluster_person.name
-                        if f.cluster_person
-                        else (
-                            f.classification_person.name
-                            if f.classification_person
-                            else ""
-                        )
-                    )
-                ),
-                "type": (
-                    "user"
-                    if f.person
-                    else (
-                        "cluster"
-                        if f.cluster_person
-                        else ("classification" if f.classification_person else "")
-                    )
-                ),
-                "probability": (
-                    1
-                    if f.person
-                    else (
-                        f.cluster_probability
-                        if f.cluster_person
-                        else (
-                            f.classification_probability
-                            if f.classification_person
-                            else 0
-                        )
-                    )
-                ),
-                "location": {
-                    "top": f.location_top,
-                    "bottom": f.location_bottom,
-                    "left": f.location_left,
-                    "right": f.location_right,
-                },
-                # A face without a crop (legacy rows) has no URL to show.
-                "face_url": f.crop_url or "",
-                "face_id": f.id,
-            }
-            for f in obj.faces.all()
-            # A deleted face is hidden everywhere else in LibrePhotos -- the face
-            # dashboard and the person's face list both filter it out -- so it must
-            # not come back in the photo's own face list either.
-            if not f.deleted
-        ]
+        """The faces on the photo the requester may see (``faces_shown_to``).
+
+        The owner sees every live face with its person, cluster or suggestion.
+        Anyone else sees only the people the owner named, and only where the
+        owner allows it: ``share_people_names`` for the users the photo is
+        shared with, the public link default ``share_faces`` for a public
+        photo. Without a request no viewer is known, so only what a public
+        visitor would see.
+        """
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        return [_face_entry(face) for face in faces_shown_to(obj, viewer)]
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file: File) -> dict[str, str]:
@@ -1270,14 +1264,16 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         if not self._get_sharing_settings().get("share_faces", False):
             return []
 
+        # Only the people the owner named, as for the users a photo is
+        # shared with: never a cluster or a suggestion (api/faces/recipients.py).
         return [
             {
-                "name": person.name,
+                "name": face.person.name,
                 "face_url": face.crop_url,
                 "face_id": face.id,
             }
             for face in obj.faces.all()
-            if not face.deleted and (person := face.person or face.cluster_person)
+            if is_named(face) and face.person is not None
         ]
 
 

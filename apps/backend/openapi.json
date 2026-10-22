@@ -7343,6 +7343,332 @@
         }
       }
     },
+    "/api/photos/shared/tome/people/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_people_list",
+        "description": "The named people on the photos shared with you (#2722).\n\nOne entry per owner and person, only for owners who share people's\nnames; counts and crops from the shared photos only.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedPersonList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/people/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_people_photos_list",
+        "description": "The photos shared with you that show one of the shared people.\n\nA person on none of them (or not shared, or not named) is a 404.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "A person from the shared people list",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/places/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_places_list",
+        "description": "The places of the photos shared with you, one entry per place name.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/places/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_places_photos_list",
+        "description": "The photos shared with you from one place; a 404 when there are none.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "The place or thing, as the list names it",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/things/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_things_list",
+        "description": "The things of the photos shared with you, one entry per thing.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/things/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_things_photos_list",
+        "description": "The photos shared with you that show one thing; a 404 when there are none.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "The place or thing, as the list names it",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photosedit/archive/": {
       "post": {
         "operationId": "api_photosedit_archive_create",
@@ -16972,6 +17298,102 @@
           }
         }
       },
+      "PaginatedSharedGroupList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedGroup"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedSharedPersonList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPerson"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedTagListList": {
         "type": "object",
         "required": [
@@ -17599,6 +18021,9 @@
             "type": "boolean"
           },
           "public_sharing_defaults": {},
+          "share_people_names": {
+            "type": "boolean"
+          },
           "min_cluster_size": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -17953,6 +18378,7 @@
           "people": {
             "type": "array",
             "items": {},
+            "description": "The faces on the photo the requester may see (``faces_shown_to``).\n\nThe owner sees every live face with its person, cluster or suggestion.\nAnyone else sees only the people the owner named, and only where the\nowner allows it: ``share_people_names`` for the users the photo is\nshared with, the public link default ``share_faces`` for a public\nphoto. Without a request no viewer is known, so only what a public\nvisitor would see.",
             "readOnly": true
           },
           "image_hash": {
@@ -21438,6 +21864,82 @@
           "user_id"
         ]
       },
+      "SharedGroup": {
+        "type": "object",
+        "description": "A place or thing of the photos shared with you, owners merged by title.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The photos shared with you under this title"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedGroupCover"
+            },
+            "description": "Up to four of those photos, newest first"
+          }
+        },
+        "required": [
+          "cover_photos",
+          "photo_count",
+          "title"
+        ]
+      },
+      "SharedGroupCover": {
+        "type": "object",
+        "properties": {
+          "image_hash": {
+            "type": "string"
+          },
+          "video": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image_hash",
+          "video"
+        ]
+      },
+      "SharedPerson": {
+        "type": "object",
+        "description": "A person the owner named, on photos they shared with you.\n\nOne entry per owner and person: two owners' \"Mom\" are two entries. Only\nowners who share people's names (``share_people_names``) are listed.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "description": "Who named the person and shared the photos"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The photos shared with you that show this person"
+          },
+          "face_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "A face crop from one of those photos; null without one"
+          }
+        },
+        "required": [
+          "face_url",
+          "id",
+          "name",
+          "owner",
+          "photo_count"
+        ]
+      },
       "SharedPhoto": {
         "type": "object",
         "description": "A photo behind a photo link: what ``PublicPhotoDetailSerializer`` sends,\nwithout ``HASH_DERIVED_FIELDS`` and with slug-scoped media URLs instead.\n\nWhat the owner's settings leave out is null, \"\" or 0, as in the album's\nphoto detail.",
@@ -23695,6 +24197,9 @@
             "type": "boolean"
           },
           "public_sharing_defaults": {},
+          "share_people_names": {
+            "type": "boolean"
+          },
           "min_cluster_size": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -23783,6 +24288,7 @@
           "save_metadata_to_disk",
           "scan_directory",
           "semantic_search_topk",
+          "share_people_names",
           "skip_raw_files",
           "slideshow_interval",
           "stack_raw_jpeg",

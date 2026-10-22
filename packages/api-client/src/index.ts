@@ -24,6 +24,7 @@ export type {
   PhotoCategory,
   SearchFilters,
   SelectAllPhotos,
+  SharedGroupKind,
   SyncPullParams,
   UserAlbumOptions,
 } from "./endpoints";

@@ -291,6 +291,37 @@ router.register(
     sharing.SharedToMePhotoSuperSimpleListViewSet,
     basename="shared_to_me_photo",
 )
+# Sharing > Shared with you: places, things and people (#2721, #2722).
+router.register(
+    r"api/photos/shared/tome/places",
+    sharing.SharedToMePlaceListViewSet,
+    basename="shared_to_me_places",
+)
+router.register(
+    r"api/photos/shared/tome/places/photos",
+    sharing.SharedToMePlacePhotoListViewSet,
+    basename="shared_to_me_place_photos",
+)
+router.register(
+    r"api/photos/shared/tome/things",
+    sharing.SharedToMeThingListViewSet,
+    basename="shared_to_me_things",
+)
+router.register(
+    r"api/photos/shared/tome/things/photos",
+    sharing.SharedToMeThingPhotoListViewSet,
+    basename="shared_to_me_thing_photos",
+)
+router.register(
+    r"api/photos/shared/tome/people",
+    sharing.SharedToMePersonListViewSet,
+    basename="shared_to_me_people",
+)
+router.register(
+    r"api/photos/shared/tome/people/photos",
+    sharing.SharedToMePersonPhotoListViewSet,
+    basename="shared_to_me_person_photos",
+)
 router.register(
     r"api/photos/shared/fromme",
     sharing.SharedFromMePhotoSuperSimpleListViewSet,

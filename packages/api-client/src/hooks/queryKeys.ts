@@ -51,7 +51,8 @@ type PhotoGridKind =
   | "notInAlbum"
   | "myPublicPhotos"
   | "sharedByMe"
-  | "sharedWithMe";
+  | "sharedWithMe"
+  | "sharedWithMeGroup";
 
 const gridRoot = ["photoGrid"] as const;
 const gridKind = <K extends PhotoGridKind>(kind: K) => [...gridRoot, kind] as const;
@@ -113,6 +114,9 @@ export const photoGridKeys = {
   sharedWithMe: () => gridKind("sharedWithMe"),
   /** The photos shared with me as the server sends them. */
   sharedWithMeRaw: () => [...photoGridKeys.sharedWithMe(), "raw"] as const,
+  /** The photos shared with me under one place or thing title, or showing one person (#2721, #2722). */
+  sharedWithMeGroup: (kind: "places" | "things" | "people", key: string) =>
+    [...gridKind("sharedWithMeGroup"), kind, key] as const,
 };
 
 const photoRoot = ["photos"] as const;
@@ -170,6 +174,8 @@ export const albumKeys = {
   sharedWithMe: () => [...albumRoot, "sharedWithMe"] as const,
   /** The albums shared with me as the server sends them. */
   sharedWithMeRaw: () => [...albumKeys.sharedWithMe(), "raw"] as const,
+  /** The places, things or people of the photos shared with me (#2721, #2722). */
+  sharedWithMeGroups: (kind: "places" | "things" | "people") => [...albumKeys.sharedWithMe(), "groups", kind] as const,
   /** Every folder listing, paged or not. */
   folders: () => [...albumRoot, "folders"] as const,
   /** Every subfolder of one folder, all pages read at once (the folder page). */

@@ -76,6 +76,7 @@ class UserTest(TestCase):
         "header_size",
         "save_face_tags_to_disk",
         "public_sharing_defaults",
+        "share_people_names",
     ]
 
     def setUp(self):

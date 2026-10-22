@@ -98,6 +98,9 @@ export const User = z.object({
   // each key on its own, and a settings save sends the other keys back unchanged.
   llm_settings: z.unknown(),
   public_sharing_defaults: PublicSharingDefaults.optional(),
+  // Whether the users this user shares with see the people they named (#2722). Optional: older
+  // servers do not send it, and off is what they do.
+  share_people_names: z.boolean().optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
   slideshow_interval: z.number().default(5),

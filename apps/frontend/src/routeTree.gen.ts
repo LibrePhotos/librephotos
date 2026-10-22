@@ -54,6 +54,9 @@ import { Route as ProtectedSharingIndexRouteImport } from "./routes/_protected/s
 import { Route as ProtectedSharingLinksRouteImport } from "./routes/_protected/sharing/links";
 import { Route as ProtectedSharingPublicRouteImport } from "./routes/_protected/sharing/public";
 import { Route as ProtectedSharingWithmeTabRouteImport } from "./routes/_protected/sharing/withme.$tab";
+import { Route as ProtectedSharingWithmePeoplePersonIdRouteImport } from "./routes/_protected/sharing/withme.people.$personId";
+import { Route as ProtectedSharingWithmePlacesTitleRouteImport } from "./routes/_protected/sharing/withme.places.$title";
+import { Route as ProtectedSharingWithmeThingsTitleRouteImport } from "./routes/_protected/sharing/withme.things.$title";
 import { Route as ProtectedStacksRouteImport } from "./routes/_protected/stacks";
 import { Route as ProtectedStatisticsFaceclustersRouteImport } from "./routes/_protected/statistics/faceclusters";
 import { Route as ProtectedStatisticsIndexRouteImport } from "./routes/_protected/statistics/index";
@@ -391,6 +394,21 @@ const PasswordResetConfirmUidTokenRoute = PasswordResetConfirmUidTokenRouteImpor
   path: "/password-reset/confirm/$uid/$token",
   getParentRoute: () => rootRouteImport,
 } as any);
+const ProtectedSharingWithmePeoplePersonIdRoute = ProtectedSharingWithmePeoplePersonIdRouteImport.update({
+  id: "/sharing/withme/people/$personId",
+  path: "/sharing/withme/people/$personId",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedSharingWithmePlacesTitleRoute = ProtectedSharingWithmePlacesTitleRouteImport.update({
+  id: "/sharing/withme/places/$title",
+  path: "/sharing/withme/places/$title",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedSharingWithmeThingsTitleRoute = ProtectedSharingWithmeThingsTitleRouteImport.update({
+  id: "/sharing/withme/things/$title",
+  path: "/sharing/withme/things/$title",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof ProtectedIndexRoute;
@@ -456,6 +474,9 @@ export interface FileRoutesByFullPath {
   "/album/tags/": typeof ProtectedAlbumTagsIndexRoute;
   "/album/things/": typeof ProtectedAlbumThingsIndexRoute;
   "/album/user/": typeof ProtectedAlbumUserIndexRoute;
+  "/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
+  "/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
+  "/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
@@ -519,6 +540,9 @@ export interface FileRoutesByTo {
   "/album/tags": typeof ProtectedAlbumTagsIndexRoute;
   "/album/things": typeof ProtectedAlbumThingsIndexRoute;
   "/album/user": typeof ProtectedAlbumUserIndexRoute;
+  "/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
+  "/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
+  "/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -586,6 +610,9 @@ export interface FileRoutesById {
   "/_protected/album/tags/": typeof ProtectedAlbumTagsIndexRoute;
   "/_protected/album/things/": typeof ProtectedAlbumThingsIndexRoute;
   "/_protected/album/user/": typeof ProtectedAlbumUserIndexRoute;
+  "/_protected/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
+  "/_protected/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
+  "/_protected/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -652,7 +679,10 @@ export interface FileRouteTypes {
     | "/album/places/"
     | "/album/tags/"
     | "/album/things/"
-    | "/album/user/";
+    | "/album/user/"
+    | "/sharing/withme/people/$personId"
+    | "/sharing/withme/places/$title"
+    | "/sharing/withme/things/$title";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/login"
@@ -715,7 +745,10 @@ export interface FileRouteTypes {
     | "/album/places"
     | "/album/tags"
     | "/album/things"
-    | "/album/user";
+    | "/album/user"
+    | "/sharing/withme/people/$personId"
+    | "/sharing/withme/places/$title"
+    | "/sharing/withme/things/$title";
   id:
     | "__root__"
     | "/_protected"
@@ -781,7 +814,10 @@ export interface FileRouteTypes {
     | "/_protected/album/places/"
     | "/_protected/album/tags/"
     | "/_protected/album/things/"
-    | "/_protected/album/user/";
+    | "/_protected/album/user/"
+    | "/_protected/sharing/withme/people/$personId"
+    | "/_protected/sharing/withme/places/$title"
+    | "/_protected/sharing/withme/things/$title";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -1243,6 +1279,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof PasswordResetConfirmUidTokenRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/_protected/sharing/withme/people/$personId": {
+      id: "/_protected/sharing/withme/people/$personId";
+      path: "/sharing/withme/people/$personId";
+      fullPath: "/sharing/withme/people/$personId";
+      preLoaderRoute: typeof ProtectedSharingWithmePeoplePersonIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/withme/places/$title": {
+      id: "/_protected/sharing/withme/places/$title";
+      path: "/sharing/withme/places/$title";
+      fullPath: "/sharing/withme/places/$title";
+      preLoaderRoute: typeof ProtectedSharingWithmePlacesTitleRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/withme/things/$title": {
+      id: "/_protected/sharing/withme/things/$title";
+      path: "/sharing/withme/things/$title";
+      fullPath: "/sharing/withme/things/$title";
+      preLoaderRoute: typeof ProtectedSharingWithmeThingsTitleRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
   }
 }
 
@@ -1311,6 +1368,9 @@ interface ProtectedRouteRouteChildren {
   ProtectedAlbumTagsIndexRoute: typeof ProtectedAlbumTagsIndexRoute;
   ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute;
   ProtectedAlbumUserIndexRoute: typeof ProtectedAlbumUserIndexRoute;
+  ProtectedSharingWithmePeoplePersonIdRoute: typeof ProtectedSharingWithmePeoplePersonIdRoute;
+  ProtectedSharingWithmePlacesTitleRoute: typeof ProtectedSharingWithmePlacesTitleRoute;
+  ProtectedSharingWithmeThingsTitleRoute: typeof ProtectedSharingWithmeThingsTitleRoute;
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -1366,6 +1426,9 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumTagsIndexRoute: ProtectedAlbumTagsIndexRoute,
   ProtectedAlbumThingsIndexRoute: ProtectedAlbumThingsIndexRoute,
   ProtectedAlbumUserIndexRoute: ProtectedAlbumUserIndexRoute,
+  ProtectedSharingWithmePeoplePersonIdRoute: ProtectedSharingWithmePeoplePersonIdRoute,
+  ProtectedSharingWithmePlacesTitleRoute: ProtectedSharingWithmePlacesTitleRoute,
+  ProtectedSharingWithmeThingsTitleRoute: ProtectedSharingWithmeThingsTitleRoute,
 };
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(ProtectedRouteRouteChildren);

@@ -9,6 +9,8 @@
 - ``social_graph``: who appears with whom
 - ``geometry``: how much two face boxes overlap (duplicate faces)
 - ``groups``: which of a user's person groups a person is in
+- ``recipients``: which people someone who is not a photo's owner sees on it,
+  and the people of the photos shared with a user
 
 ``api.metadata.face_regions`` writes face regions back to the file.
 """
