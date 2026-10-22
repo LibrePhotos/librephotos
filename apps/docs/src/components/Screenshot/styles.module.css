@@ -1,0 +1,24 @@
+.figure {
+  margin: 0 0 var(--ifm-paragraph-margin-bottom);
+}
+
+/* The border keeps white and near-black shots from running into the page in either theme. */
+.frame {
+  overflow: hidden;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  line-height: 0;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.caption {
+  margin-top: 0.5rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

@@ -15,6 +15,7 @@ import {
   readShots,
   releaseSlug,
   serializeReleaseIndex,
+  shotsErrors,
   sourceErrors,
   toGithubMarkdown,
   validateCollection,
@@ -230,6 +231,62 @@ describe("readShots", () => {
   });
 });
 
+describe("shotsErrors", () => {
+  const entry = (id, extra = {}) => ({ id, alt: `${id} shot`, width: 1600, height: 1000, ...extra });
+
+  function shotsDir(t, manifest, files) {
+    const dir = tempDir(t);
+    for (const name of files) {
+      fs.writeFileSync(path.join(dir, name), "");
+    }
+    if (manifest !== undefined) {
+      fs.writeFileSync(path.join(dir, "manifest.json"), typeof manifest === "string" ? manifest : JSON.stringify(manifest));
+    }
+    return dir;
+  }
+
+  it("accepts a manifest whose entries have alt text and both files", (t) => {
+    const dir = shotsDir(t, [entry("a"), entry("b", { release: "1.4.0" })], ["a-light.webp", "a-dark.webp", "b-light.webp", "b-dark.webp", "CREDITS.md"]);
+    assert.deepEqual(shotsErrors(dir), []);
+  });
+
+  it("rejects an entry without alt text, naming the entry", (t) => {
+    const files = ["a-light.webp", "a-dark.webp", "b-light.webp", "b-dark.webp"];
+    const dir = shotsDir(t, [entry("a", { alt: " " }), { id: "b", width: 1, height: 1 }, { alt: "x", width: 1, height: 1 }], files);
+    const errors = shotsErrors(dir);
+    assert.equal(errors.length, 3);
+    assert.match(errors[0], /^manifest\.json entry 0 \("a"\) alt: needs alt text/);
+    assert.match(errors[1], /^manifest\.json entry 1 \("b"\) alt:/);
+    assert.match(errors[2], /^manifest\.json entry 2 \("\?"\) id:/);
+  });
+
+  it("rejects a missing light or dark file", (t) => {
+    const dir = shotsDir(t, [entry("a"), entry("b")], ["a-light.webp", "b-dark.webp"]);
+    assert.deepEqual(shotsErrors(dir), [
+      'manifest.json "a": a-dark.webp is missing',
+      'manifest.json "b": b-light.webp is missing',
+    ]);
+  });
+
+  it("rejects a shot file without a manifest entry", (t) => {
+    const dir = shotsDir(t, [entry("a")], ["a-light.webp", "a-dark.webp", "c-light.webp", "d-dark.webp"]);
+    assert.deepEqual(shotsErrors(dir), ["c-light.webp has no entry in manifest.json", "d-dark.webp has no entry in manifest.json"]);
+  });
+
+  it("rejects duplicate ids, unknown fields and a manifest that is not a list", (t) => {
+    const files = ["a-light.webp", "a-dark.webp"];
+    assert.deepEqual(shotsErrors(shotsDir(t, [entry("a"), entry("a")], files)), ['manifest.json: "a" is listed twice']);
+    assert.match(shotsErrors(shotsDir(t, [entry("a", { zoom: true })], files)).join(), /entry 0 \("a"\): Unrecognized key/);
+    assert.match(shotsErrors(shotsDir(t, { a: entry("a") }, files)).join(), /^manifest\.json \(root\): /);
+  });
+
+  it("asks for a manifest and reports one that is not JSON", (t) => {
+    assert.deepEqual(shotsErrors(shotsDir(t, undefined, ["a-light.webp"])), ["static/img/shots/manifest.json is missing"]);
+    assert.match(shotsErrors(shotsDir(t, "{ nope", [])).join(), /^manifest\.json: /);
+    assert.deepEqual(shotsErrors(path.join(tempDir(t), "missing")), []);
+  });
+});
+
 describe("Since", () => {
   const index = buildReleaseIndex([post({ release: "1.3.0" }), post({ release: "1.0.0", covers: ["1.0.1"] })]);
 
@@ -263,6 +320,10 @@ describe("the release posts in blog/", () => {
     const shots = readShots();
     assert.deepEqual(posts.flatMap((p) => validatePost(p, shots).map((e) => `${p.file}: ${e}`)), []);
     assert.deepEqual(validateCollection(posts), []);
+  });
+
+  it("use shots that pass the shots check", () => {
+    assert.deepEqual(shotsErrors(), []);
   });
 
   it("match src/data/releases.json", () => {

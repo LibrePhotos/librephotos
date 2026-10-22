@@ -116,6 +116,31 @@ front matter, rejects em dashes, and from 1.3.0 on requires "Who should update",
 for a release that is not a patch release, "What's new for you" and `highlights`. Every `shot` must
 exist, and after the build every `learn_more` page and anchor must exist too.
 
+## Pictures in release posts
+
+Put a screenshot in a post with `<Screenshot id="timeline" />` (no import needed), or name it in a
+highlight's `shot:`. The id is an entry in `apps/docs/static/img/shots/manifest.json`, which holds its
+alt text, width and height. The docs site shows `<id>-light.webp` in the light theme and
+`<id>-dark.webp` in the dark theme; the GitHub release body gets a `<picture>` with both.
+`alt="..."` on the component replaces the manifest's alt text for that post, and `caption="..."` adds
+a visible line under the picture.
+
+| What to show | Format | Budget |
+| --- | --- | --- |
+| Any new screen, button or setting (the default) | WebP still, light and dark | about 200 KB desktop, 120 KB phone |
+| How-to with several steps | 2 to 4 numbered stills, steps written next to them | as above, each |
+| Before and after of a visual change | two stills side by side | as above, each |
+| An interaction a still cannot show (drag and drop, a slideshow, a filter changing the grid) | short MP4 clip (H.264) with a WebM source, see #2308 | 4 to 8 s, 800 px wide, 1.5 MB |
+| Terminal steps | a code block, never a recording | |
+| GIF | not used; only as a fallback where video cannot play | |
+
+- Alt text is required. It says what matters in the picture ("Timeline with the Filter popover open,
+  Hide screenshots switched on"), and the text next to the picture carries the same information, so
+  the picture is never the only source. `check-release-posts.mjs` fails on a manifest entry without
+  alt text, on a missing light or dark file, and on a shot file without a manifest entry.
+- The GitHub release body uses stills only, one per highlight.
+- Screenshots show the English UI.
+
 ## Release steps
 
 Do them in this order, so the docs and their pictures are live before the release points at them.
