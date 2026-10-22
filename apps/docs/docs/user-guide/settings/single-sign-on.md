@@ -55,15 +55,25 @@ In the Django admin (`/api/django-admin/`), under **Social applications**, add o
 | Settings | `{"server_url": "https://your-idp/realms/example"}` — the issuer URL |
 | Sites | pick your site |
 
-Then, in Site Settings:
+Then, in the app, open **Admin Area > Site Settings** and find the **Single
+sign-on** group. Each change saves at once. <Since version="1.5.0" /> Up to 1.4.0
+these switches were only on the Constance page of the Django admin, under the
+names in brackets.
 
-- **`OIDC_ENABLED`** — the on/off switch. While it is off, the login button is
-  hidden *and* the SSO endpoints are inactive, so switching it off is a real way
-  to stop SSO logins.
-- **`OIDC_BUTTON_LABEL`** — the text on the login button, e.g. "Sign in with
-  Keycloak".
-- **`OIDC_ALLOW_SIGNUP`** — whether a first-time SSO login may create a new
-  LibrePhotos account. Off by default; also requires email to be configured.
+- **Show the single sign-on button** (`OIDC_ENABLED`): the on/off switch. While
+  it is off, the login button is hidden *and* the SSO endpoints are inactive, so
+  switching it off is a real way to stop SSO logins.
+- **Button label** (`OIDC_BUTTON_LABEL`): the text on the login button, e.g.
+  "Sign in with Keycloak", at most 64 characters. With more than one provider
+  each button shows its provider's name instead.
+- **Allow sign-ups over single sign-on** (`OIDC_ALLOW_SIGNUP`): whether a
+  first-time SSO login may create a new LibrePhotos account. Off by default; also
+  requires email to be configured.
+
+The provider itself is only added and changed in the Django admin, as above. The
+group lists the providers it finds, and warns under the switches when SSO cannot
+work yet: no provider attached to this site, no public URL
+(`FRONTEND_BASE_URL`), or, for sign-ups, no email set up.
 
 ## How accounts are matched up
 

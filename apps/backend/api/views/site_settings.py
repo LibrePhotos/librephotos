@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.mail import email_is_configured
+from api.accounts.sso_setup import sso_setup
 from api.directory_watcher.scan_schedule import (
     LAST_RUN_KEY,
     SCHEDULE_KEYS,
@@ -61,6 +62,9 @@ SETTING_KEYS = (
     "AUTO_CREATE_USER_DIRECTORY",
     "SCAN_MISSING_MAX_FRACTION",
     "TRASH_RETENTION_DAYS",
+    "OIDC_ENABLED",
+    "OIDC_BUTTON_LABEL",
+    "OIDC_ALLOW_SIGNUP",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -198,11 +202,16 @@ class SiteSettingsView(APIView):
         # Not staff-only: every user's trash page says when its photos go.
         out["trash_retention_days"] = config["TRASH_RETENTION_DAYS"]
         out["email_configured"] = email_is_configured()
+        # Not secret: /api/auth/sso/config/ tells the login page as much.
+        out["oidc_enabled"] = config["OIDC_ENABLED"]
+        out["oidc_button_label"] = config["OIDC_BUTTON_LABEL"]
+        out["oidc_allow_signup"] = config["OIDC_ALLOW_SIGNUP"]
         if request.user.is_staff:
             # The Features card's state: admin-only, like the settings it shows.
             out["features"] = _features(config)
             out["model_download"] = _model_download()
             out.update(_auto_scan(config))
+            out.update(sso_setup(request._request))
         return Response(out)
 
     @extend_schema(request=SiteSettingsRequest, responses=SiteSettingsSerializer)
