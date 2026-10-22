@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.887630ce.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.49e05171.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -83,13 +83,18 @@
 <p>In dark mode every map is shown darkened: LibrePhotos inverts the light map in the browser and turns its colours back, so water stays blue and parks stay green, and the place markers keep their colours. This works for both tile sources and loads nothing extra. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0, maps stayed light in dark mode.</p>
 <p>This setting is global. Choosing <strong>None</strong> hides the map in every map view, including the Places page, album location maps, the photo-info mini-map, and the location picker. The initial value comes from the <code>MAP_TILE_PROVIDER</code> environment variable (default <code>photoprism</code>), but it is an admin-editable site setting thereafter, so you don&#x27;t need to restart to change it.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-places-page">The Places Page<a href="#the-places-page" class="hash-link" aria-label="Direct link to The Places Page" title="Direct link to The Places Page" translate="no">​</a></h2>
-<p>The Places page (<code>/album/places</code>) shows the places in your library on an interactive map. The map plots one marker per detected place name, not one per photo — reverse geocoding records several levels for each photo (country, region, city, point of interest), so a single photo can contribute several markers, and each distinct place name appears only once.</p>
+<p>The Places page (<code>/album/places</code>) shows your photos on an interactive map, each where it was taken, and under the map the places (Places albums) that have a photo in the part of the world the map shows.</p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> The map shows photos, not place names:</p>
 <ul>
-<li class=""><strong>Clustered markers</strong>: When zoomed out, nearby places are grouped into clusters; the number shown on a cluster is how many distinct places it contains, not how many photos</li>
-<li class=""><strong>Click to zoom</strong>: Click on a cluster to zoom in and see individual locations</li>
-<li class=""><strong>Filtered albums</strong>: As you pan and zoom the map, the album grid below updates to show places visible in the current view</li>
-<li class=""><strong>Navigation controls</strong>: Use the +/- buttons or scroll to zoom, drag to pan</li>
+<li class=""><strong>Photos where they were taken</strong>: every photo with a position is a point at that position. Photos taken within about a metre of each other are one point, with their number on it.</li>
+<li class=""><strong>Clusters count photos</strong>: when zoomed out, nearby points are grouped into a cluster, and the number on it is how many photos it holds. A photo counts once, whatever number of place names it has.</li>
+<li class=""><strong>Click to zoom</strong>: click a cluster to zoom in until it splits.</li>
+<li class=""><strong>Click to open</strong>: click a point, or a cluster once you are zoomed in to street level, to see how many photos were taken there and the newest few. Click a thumbnail, or <strong>Open N photos</strong>, to step through them in the photo viewer.</li>
+<li class=""><strong>Places in view</strong>: as you pan and zoom, the grid below lists the places with at least one photo inside the map. A country or a region stays in the list while one of its photos is in view. The line under the title says how many photos are on the map and how many places are in view.</li>
+<li class=""><strong>A taller map</strong>: drag the grip under the map down to make it taller (up to 560 pixels), or focus it and use the arrow keys. The page remembers the height.</li>
 </ul>
+<p>Up to 1.4.0 the map drew one marker per place name at the centre of that place: a photo showed up once for its street, once for its town and once for its region, a cluster counted place names rather than photos, and markers sat at the centre of a county where no photo was taken.</p>
+<p>The map and its counts only ever show your own photos. Hidden photos and photos in the trash are left out, and photos other users shared with you are not on it.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="setting-up-places">Setting Up Places<a href="#setting-up-places" class="hash-link" aria-label="Direct link to Setting Up Places" title="Direct link to Setting Up Places" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="step-1-configure-map-providers-optional">Step 1: Configure Map Providers (Optional)<a href="#step-1-configure-map-providers-optional" class="hash-link" aria-label="Direct link to Step 1: Configure Map Providers (Optional)" title="Direct link to Step 1: Configure Map Providers (Optional)" translate="no">​</a></h3>
 <ol>
