@@ -1,0 +1,4 @@
+/* A thing badge that searches for its word. */
+.searchable {
+  cursor: pointer;
+}

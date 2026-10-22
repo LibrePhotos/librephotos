@@ -19,7 +19,6 @@
   "src/components/job/JobProgress.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/CategoryBadge.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/ContentViewer.tsx": { "inlineStyles": 6 },
-  "src/components/lightbox/Description.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/FaceDrawLayer.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/LightboxControls.tsx": { "inlineStyles": 4 },
   "src/components/lightbox/LocationSection.tsx": { "inlineStyles": 1 },

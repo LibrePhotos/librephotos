@@ -248,6 +248,7 @@ export function Profile() {
           <Group align="end" mb={10} mt={10}>
             <Select
               label={t("settings.language")}
+              description={t("settings.languagedescription")}
               placeholder={t("settings.language")}
               onChange={value => i18n.changeLanguage(value ?? "en")}
               searchable

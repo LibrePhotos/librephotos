@@ -54,6 +54,6 @@ The documentation site is built with [Docusaurus](https://docusaurus.io/) and li
 
 ## Translations
 
-Translations are contributed through [Weblate](https://hosted.weblate.org/engage/librephotos/), not by editing `apps/frontend/src/locales/<lang>/translation.json` directly — direct edits to the non-English files are overwritten by Weblate. The web app's Weblate component, `librephotos-frontend`, translates the files matching `apps/frontend/src/locales/*/translation.json` in this repository (branch `dev`), with `apps/frontend/src/locales/en/translation.json` as the source. Change only the English strings in code, and translators will pick them up from there.
+Translations are contributed through [Weblate](https://hosted.weblate.org/engage/librephotos/), not by editing `apps/frontend/src/locales/<lang>/translation.json` directly — direct edits to the non-English files are overwritten by Weblate. The web app's Weblate component, `librephotos-frontend`, translates the files matching `apps/frontend/src/locales/*/translation.json` in this repository (branch `dev`), with `apps/frontend/src/locales/en/translation.json` as the source. Change only the English strings in code, and translators will pick them up from there. The names of things, `apps/frontend/src/locales/<lang>/tags.json`, are a second component with `apps/frontend/src/locales/en/tags.json` as the source.
 
 We appreciate your contributions and look forward to working with you!

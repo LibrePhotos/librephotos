@@ -25,6 +25,7 @@
     "email": "E-mail",
     "emailplaceholder": "E-mail",
     "language": "Select a language",
+    "languagedescription": "Also names the things LibrePhotos finds in your photos, where a translation exists. Search still finds things by their English name.",
     "german": "German",
     "english": "English",
     "catalan": "Catalan",
