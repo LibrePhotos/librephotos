@@ -470,6 +470,11 @@ class ApiTest(SimpleTestCase):
         api.session.request = MagicMock(return_value=response, side_effect=error)
         return api
 
+    def test_no_connection_is_reused(self):
+        # uvicorn drops idle keep-alive connections after 5 s; a reused one
+        # after `manage scan` failed CI with WinError 10054.
+        self.assertEqual("close", smoke.Api("http://x").session.headers["Connection"])
+
     def test_a_2xx_answer_gives_its_body(self):
         api = self.api(200, {"a": 1})
 

@@ -303,6 +303,11 @@ class Api:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
+        # A fresh connection per request. uvicorn closes a keep-alive
+        # connection after 5 idle seconds, and `manage scan` keeps the test
+        # away from the server about that long; a request on the closed socket
+        # then fails with WinError 10054 although the server is fine.
+        self.session.headers["Connection"] = "close"
 
     def authenticate(self, token: str) -> None:
         self.session.headers["Authorization"] = f"Bearer {token}"
