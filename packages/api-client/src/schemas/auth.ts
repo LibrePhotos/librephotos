@@ -4,6 +4,9 @@ import { IntegerId } from "./common";
 export const LoginPost = z.object({
   username: z.string(),
   password: z.string(),
+  // "Remember me" (#2024): a refresh token for the server's REMEMBER_ME_DAYS and a remember_until
+  // claim the web turns into persistent cookies. Older servers ignore it.
+  remember_me: z.boolean().optional(),
 });
 export type LoginPost = z.infer<typeof LoginPost>;
 

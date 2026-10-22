@@ -474,6 +474,19 @@ The backend already marks the cookies `Secure` when a request reaches it over HT
 
 The other flags are fixed: see [Cookie flags](../user-guide/api-authentication.md#cookie-flags).
 
+### Sign-in sessions
+
+How long a sign-in lasts. Every sign-in uses an access token that expires after 5 minutes and is renewed in the background with a refresh token; when the refresh token expires, the user has to sign in again.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `REFRESH_TOKEN_DAYS` | `7` | Days the refresh token of a normal sign-in lasts. In the browser such a sign-in also ends when the browser is closed. |
+| `REMEMBER_ME_DAYS` | `30` | Days a sign-in with **Remember me** ticked lasts, closing the browser included. `0` removes the checkbox from the login page. |
+
+<Since version="1.5.0" /> Up to 1.4.0 there was no **Remember me**: every browser sign-in ended when the browser was closed or after `REFRESH_TOKEN_DAYS`.
+
+Single sign-on always signs in like a normal sign-in. A sign-in does not get longer by being used: after `REMEMBER_ME_DAYS` the user signs in again. Logging out ends a remembered sign-in on that browser at once.
+
 ### Database password
 
 `DB_PASS` (`dbPass` in `.env`) is the password of the PostgreSQL user in `DB_USER`. The bundled Compose file, the unified image instructions and the Kubernetes manifests all pass it. If it is missing, the backend still falls back to the old built-in default password so existing installs keep starting, but it now logs a `librephotos.W001` warning on every start (in the `migrate` output). Set `DB_PASS` explicitly to silence it; the fallback may be removed in a future release.

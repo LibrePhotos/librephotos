@@ -9,7 +9,8 @@
  * sequence is replayed here page by page.
  */
 import { Cookies } from "react-cookie";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fromUnixSeconds } from "../util/dateUtils";
 import { authCookieOptions, clearAuthCookies, setAuthCookie } from "./authCookies";
 
 function visit(path: string) {
@@ -124,5 +125,58 @@ describe("auth cookies", () => {
     new Cookies().remove("access");
 
     expect(accessCookies()).toEqual(["access=from-login"]);
+  });
+});
+
+/** An unsigned JWT with these claims: the cookie code only decodes, it never verifies. */
+function token(claims: Record<string, unknown>): string {
+  const part = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, "");
+  return `${part({ alg: "HS256", typ: "JWT" })}.${part(claims)}.signature`;
+}
+
+describe("auth cookie lifetime (Remember me, #2024)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function optionsOfSet(name: "access" | "refresh", value: string) {
+    const set = vi.spyOn(Cookies.prototype, "set");
+    setAuthCookie(name, value);
+    expect(set).toHaveBeenCalledTimes(1);
+    return set.mock.calls[0]?.[2];
+  }
+
+  it("keeps a remembered sign-in's tokens until the sign-in ends", () => {
+    const until = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+    for (const name of ["access", "refresh"] as const) {
+      expect(optionsOfSet(name, token({ exp: until, remember_until: until }))).toEqual({
+        path: "/",
+        sameSite: "lax",
+        secure: false,
+        expires: fromUnixSeconds(until).toJSDate(),
+      });
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("leaves a plain sign-in's tokens as session cookies", () => {
+    expect(optionsOfSet("access", token({ exp: 1 }))?.expires).toBeUndefined();
+  });
+
+  it("ignores a claim that is not a number", () => {
+    expect(optionsOfSet("access", token({ remember_until: "soon" }))?.expires).toBeUndefined();
+  });
+
+  it("stores a value that is not a JWT as a session cookie", () => {
+    expect(optionsOfSet("access", "from-login")?.expires).toBeUndefined();
+  });
+
+  it("is still read back after a remembered sign-in", () => {
+    const value = token({ remember_until: Math.floor(Date.now() / 1000) + 60 });
+
+    setAuthCookie("access", value);
+
+    expect(new Cookies().get("access")).toBe(value);
   });
 });

@@ -95,6 +95,9 @@ export const SiteSettings = z.object({
   // (#2203). Sent to every user for the trash page; older backends lack it.
   trash_retention_days: z.number().optional(),
   email_configured: z.boolean().optional(),
+  // Days a "Remember me" sign-in lasts (#2024); 0 = the login page does not offer it. Sent to
+  // everyone; older backends lack it and have no such option.
+  remember_me_days: z.number().optional(),
   // Single sign-on (#2725); older backends lack them. The label is trimmed, at most 64 characters.
   oidc_enabled: z.boolean().optional(),
   oidc_button_label: z.string().optional(),

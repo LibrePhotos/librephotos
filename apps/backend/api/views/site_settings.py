@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from api.accounts.mail import email_is_configured
 from api.accounts.sso_setup import sso_setup
+from api.accounts.tokens import remember_me_days
 from api.directory_watcher.scan_schedule import (
     LAST_RUN_KEY,
     SCHEDULE_KEYS,
@@ -204,6 +205,7 @@ class SiteSettingsView(APIView):
         # Not staff-only: every user's trash page says when its photos go.
         out["trash_retention_days"] = config["TRASH_RETENTION_DAYS"]
         out["email_configured"] = email_is_configured()
+        out["remember_me_days"] = remember_me_days()
         # Not secret: /api/auth/sso/config/ tells the login page as much.
         out["oidc_enabled"] = config["OIDC_ENABLED"]
         out["oidc_button_label"] = config["OIDC_BUTTON_LABEL"]

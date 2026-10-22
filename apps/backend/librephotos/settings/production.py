@@ -190,6 +190,9 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=env_int("REFRESH_TOKEN_DAYS", 7)),
 }
+# How long a "Remember me" sign-in lasts: its refresh token and its persistent
+# auth cookies (api/accounts/tokens.py). 0 removes the option from the login page.
+REMEMBER_ME_DAYS = env_int("REMEMBER_ME_DAYS", 30)
 
 # Give the auth cookies the Secure flag even when the request looks like plain
 # HTTP, as it does behind a TLS proxy (SECURE_PROXY_SSL_HEADER is not set). Off

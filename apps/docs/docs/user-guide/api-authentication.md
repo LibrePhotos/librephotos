@@ -46,6 +46,8 @@ curl -X POST "http://<backend>/api/auth/token/refresh/" \
 
 Access tokens are short-lived and expire after 5 minutes; refresh tokens are valid for 7 days by default. Refreshing returns a new `access` token only, so keep reusing the same `refresh` token until it expires. A long-running script should refresh at least every 5 minutes, or simply retry once against `/api/auth/token/refresh/` whenever a call returns 401. The access-token lifetime is fixed; the refresh-token lifetime can be changed with the `REFRESH_TOKEN_DAYS` environment variable on the backend container.
 
+<Since version="1.5.0" /> Add `"remember_me": true` to the obtain request for a refresh token that lasts `REMEMBER_ME_DAYS` (30 by default) instead, as the **Remember me** checkbox on the login page does. Its tokens carry a `remember_until` claim with the refresh token's expiry, the obtain and refresh responses give the `jwt` cookie a matching `Max-Age`, and the web app does the same for its `access` and `refresh` cookies. With `REMEMBER_ME_DAYS=0` the flag is ignored. See [Sign-in sessions](../installation/environment-variables.md#sign-in-sessions).
+
 ### Revoke a refresh token (logout)
 
 To invalidate a refresh token — on logout, or to revoke one you think has leaked — blacklist it:
@@ -107,7 +109,7 @@ The backend sets these cookies:
 | `jwt` | `/api/auth/token/obtain/`, `/api/auth/token/refresh/`, the SSO login | `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` (see below) |
 | `access`, `refresh` | the SSO login only (the web app sets them itself after a password login) | `SameSite=Lax`, `Path=/`, `Secure` (see below); not `HttpOnly`, because the web app reads them to send them as bearer tokens |
 
-`HttpOnly` keeps the `jwt` cookie away from scripts on the page; only the server reads it. `SameSite=Lax` still sends the cookies on top-level navigations and on `<img>` and `<video>` requests from the same site, which is all the media endpoints need, and keeps them off requests other sites trigger. Ports do not count, so a web app on `localhost:3000` and a backend on `localhost:8001` are the same site.
+The cookies are session cookies, which the browser drops when it closes, except after a sign-in with `remember_me`: then they get a `Max-Age` that ends with the refresh token. `HttpOnly` keeps the `jwt` cookie away from scripts on the page; only the server reads it. `SameSite=Lax` still sends the cookies on top-level navigations and on `<img>` and `<video>` requests from the same site, which is all the media endpoints need, and keeps them off requests other sites trigger. Ports do not count, so a web app on `localhost:3000` and a backend on `localhost:8001` are the same site.
 
 The cookies are `Secure` (sent over HTTPS only) when the request reached the backend over HTTPS, or when `AUTH_COOKIE_SECURE` is on. Behind the bundled proxy the backend always sees plain HTTP, also when your own proxy in front of it terminates TLS: it does not trust a forwarded scheme (Django's `SECURE_PROXY_SSL_HEADER` is not set). If your users reach LibrePhotos only over HTTPS, set `AUTH_COOKIE_SECURE=1`; see [Secure auth cookies](../installation/environment-variables.md#secure-auth-cookies). Leave it off when the install is also reached over plain HTTP, such as on the LAN: browsers refuse a `Secure` cookie there, and media would stop loading.
 

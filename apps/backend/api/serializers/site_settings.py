@@ -308,6 +308,10 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         " when a photo goes."
     )
     email_configured = serializers.BooleanField()
+    remember_me_days = serializers.IntegerField(
+        help_text="Days a sign-in with Remember me lasts (REMEMBER_ME_DAYS); 0 means"
+        " the login page does not offer it. Sent to everyone: the login page reads it."
+    )
     oidc_enabled = serializers.BooleanField()
     oidc_button_label = serializers.CharField()
     oidc_allow_signup = serializers.BooleanField()
