@@ -156,7 +156,14 @@ class Photo(models.Model):
     # scan changed gets its place whenever the photo was added.
     geocoded_lat = models.FloatField(blank=True, null=True)
     geocoded_lon = models.FloatField(blank=True, null=True)
+    # The capture time: the wall clock where the photo was taken, tagged UTC.
     exif_timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
+    # The UTC offset of that wall clock in minutes east of UTC (-420 for
+    # UTC-07:00) and the id of the date rule that read it (#2768). NULL where
+    # no rule knew the offset, for a date set by hand, and on rows not scanned
+    # or re-dated since the columns came.
+    exif_timestamp_offset = models.SmallIntegerField(blank=True, null=True)
+    exif_timestamp_source = models.IntegerField(blank=True, null=True)
 
     exif_json = models.JSONField(blank=True, null=True)
 

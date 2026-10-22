@@ -106,6 +106,10 @@ export const Photo = z.object({
   // Whether exif_timestamp was set by hand; it then wins over the date rules
   // (#2254). Optional: backends before 1.4 do not send it.
   date_set_by_user: z.boolean().optional(),
+  // The UTC offset of exif_timestamp in minutes east of UTC (-420 for UTC-07:00) and the id of the
+  // date rule that read it, null where not known (#2768). Optional: older backends do not send them.
+  exif_timestamp_offset: z.number().int().nullable().optional(),
+  exif_timestamp_source: z.number().int().nullable().optional(),
   search_captions: z.string().nullable(),
   search_location: z.string().nullable(),
   // Never null from current servers ({"im2txt": ""} when there are no captions):

@@ -69,6 +69,15 @@ Once a rule succeeds, LibrePhotos stores the **local time the camera recorded** 
 
 This is deliberate. A photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin are both shown as 14:00, because that is the time each one was actually taken. LibrePhotos does **not** re-cast your library into the timezone you happen to be browsing from; if it did, every photo would shift whenever you travelled, and photos from a holiday abroad would no longer line up with the day you remember them on.
 
+<Since version="1.5.0" /> Next to the local time, LibrePhotos stores its UTC offset when the rule
+that read it knows one: the offset written after the time (`2024:04:03 03:00:00-07:00`), else the
+offset tag that goes with the date tag (`EXIF:OffsetTimeOriginal` for `EXIF:DateTimeOriginal` and
+`XMP:DateCreated`, `EXIF:OffsetTime` for `EXIF:ModifyDate`), or for a rule that converts a UTC
+time the offset of the time zone it converted to, on that day. The info panel shows it after the
+time, for example "Sunday, 23:30 (UTC-07:00)". A date read from a file name or a file's modified
+time, and a date you set by hand, have no offset. Photos already in your library get it with
+[Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
+
 :::note
 Under the hood the local time is tagged as UTC before it is saved. That is an internal storage detail, not a claim that the photo was taken in UTC — it is what keeps the wall-clock time stable for every viewer. If you query the database directly, read the timestamps as-is and do not convert them.
 :::
@@ -86,6 +95,14 @@ Currently, supported rule types:
   `XMP:DateCreated`, where LibrePhotos writes the dates you set when
   [Write edits to files](./index.md#metadata-options) is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
   they add it with **Add Rule** or **Reset To Defaults**.
+  <Since version="1.5.0" /> These date tags hold local time: `XMP:DateCreated`,
+  `EXIF:DateTimeOriginal`, `EXIF:ModifyDate` and `QuickTime:CreationDate`. Some apps still write
+  them in UTC, with a trailing `Z` (`2025:06:02 06:30:00Z`); such a value is turned into local time
+  with the date's offset tag (see above), else the time zone of the photo's position, else your
+  default time zone. Up to 1.4.0 the `Z` was ignored, so such a photo was off by its UTC offset and
+  could land on another day; [apply the rules again](#applying-the-rules) to fix the photos already
+  in your library. A rule with "transform_tz" says itself which zone its tag is in and is not
+  changed by this.
 - "path" - time is taken from the filename using a regular expression matching
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without

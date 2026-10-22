@@ -345,3 +345,93 @@ class ReapplyDateRulesViewTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertFalse(LongRunningJob.objects.exists())
+
+
+def _camera_metadata_with_offset(path, tags, **kwargs):
+    """The camera's date with the UTC offset it was taken at (EXIF 2.31)."""
+    values = {
+        Tags.DATE_TIME_ORIGINAL: "2005:01:02 03:04:05",
+        Tags.OFFSET_TIME_ORIGINAL: "+09:00",
+    }
+    return [values.get(tag) for tag in tags]
+
+
+class ReapplyFillsTheOffsetTest(TestCase):
+    """#2768: the job fills the UTC offset and the rule of photos dated before."""
+
+    def setUp(self):
+        self.user = create_test_user(datetime_rules=json.dumps(CAMERA_RULES))
+
+    def reapply(self, photo, metadata):
+        with mock.patch(
+            "api.metadata.photo_datetime.get_metadata", side_effect=metadata
+        ):
+            changed = reapply_date_rules(
+                Photo.objects.select_related("owner", "main_file").get(pk=photo.pk)
+            )
+        return changed, Photo.objects.get(pk=photo.pk)
+
+    def test_an_offset_alone_counts_as_a_change(self):
+        photo = create_test_photo(owner=self.user, exif_timestamp=CAMERA_DATE)
+        before = Photo.objects.get(pk=photo.pk).last_modified
+
+        changed, photo = self.reapply(photo, _camera_metadata_with_offset)
+
+        self.assertTrue(changed)
+        self.assertEqual(
+            (CAMERA_DATE, 540, 1),
+            (
+                photo.exif_timestamp,
+                photo.exif_timestamp_offset,
+                photo.exif_timestamp_source,
+            ),
+        )
+        # The mobile sync feed does not carry the offset: nothing to pull.
+        self.assertEqual(before, photo.last_modified)
+
+    def test_the_rule_alone_is_stored_but_is_no_change(self):
+        photo = create_test_photo(owner=self.user, exif_timestamp=CAMERA_DATE)
+
+        changed, photo = self.reapply(photo, _camera_metadata)
+
+        self.assertFalse(changed)
+        self.assertEqual(
+            (None, 1), (photo.exif_timestamp_offset, photo.exif_timestamp_source)
+        )
+
+    def test_a_photo_already_up_to_date_is_not_written(self):
+        photo = create_test_photo(
+            owner=self.user,
+            exif_timestamp=CAMERA_DATE,
+            exif_timestamp_offset=540,
+            exif_timestamp_source=1,
+        )
+
+        changed, photo = self.reapply(photo, _camera_metadata_with_offset)
+
+        self.assertFalse(changed)
+        self.assertEqual(
+            (540, 1), (photo.exif_timestamp_offset, photo.exif_timestamp_source)
+        )
+
+    def test_a_photo_the_rules_no_longer_date_loses_them(self):
+        photo = create_test_photo(
+            owner=self.user,
+            exif_timestamp=CAMERA_DATE,
+            exif_timestamp_offset=540,
+            exif_timestamp_source=1,
+        )
+
+        changed, photo = self.reapply(
+            photo, lambda path, tags, **kwargs: [None] * len(tags)
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(
+            (None, None, None),
+            (
+                photo.exif_timestamp,
+                photo.exif_timestamp_offset,
+                photo.exif_timestamp_source,
+            ),
+        )

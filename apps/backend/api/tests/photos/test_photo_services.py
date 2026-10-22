@@ -17,7 +17,7 @@ from django.test import TestCase
 
 from api.faces.photo_faces import DetectedFace, save_detected_face
 from api.geocode.photo_location import find_album_places
-from api.metadata.datetime_rules import DEFAULT_RULES_JSON, RuleContext
+from api.metadata.datetime_rules import DEFAULT_RULES_JSON, CaptureTime, RuleContext
 from api.metadata.photo_datetime import extract_date_time, find_album_date
 from api.metadata.reader import sidecar_files_for_photo
 from api.models import Face, Photo
@@ -33,7 +33,7 @@ JULY_4 = datetime.datetime(2021, 7, 4, 9, 30, tzinfo=datetime.UTC)
 def _extracted(value):
     return patch(
         "api.metadata.photo_datetime.datetime_rules.extract_local_date_time",
-        return_value=value,
+        return_value=CaptureTime(value) if value else None,
     )
 
 
