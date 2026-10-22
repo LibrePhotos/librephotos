@@ -13,6 +13,34 @@ export const ImageTag = z.object({
 });
 export type ImageTag = z.infer<typeof ImageTag>;
 
+/**
+ * `GET /updates/` (admin, #2311): the stored result of the daily check for a newer release, and
+ * what the Admin page and the sidebar show. `status` is a string, not an enum, so a state a newer
+ * server adds does not fail the parse: locked, off, development (no version to compare),
+ * not_checked, failed, up_to_date, available or skipped. `notice`: show the Update available card
+ * and the sidebar dot (a newer release, not skipped, the card not closed in the last week).
+ */
+export const UpdateStatus = z.object({
+  enabled: z.boolean(),
+  locked: z.boolean(),
+  status: z.string(),
+  current: z.string(),
+  latest: z.string().nullable(),
+  update_available: z.boolean(),
+  notice: z.boolean(),
+  release_url: z.string().nullable(),
+  published_at: z.string().nullable(),
+  checked_at: z.string().nullable(),
+  /** timeout, unreachable, http_<status> or bad_response; null when the last check worked. */
+  error: z.string().nullable(),
+  /** windows, docker or source. */
+  install_type: z.string(),
+  how_to_update_url: z.string(),
+  skipped_release: z.string().nullable(),
+  snoozed_until: z.string().nullable(),
+});
+export type UpdateStatus = z.infer<typeof UpdateStatus>;
+
 /** `GET /storagestats/` (bytes). */
 export const StorageStats = z.object({
   total_storage: z.number(),

@@ -53,6 +53,15 @@
   flex-grow: 2;
 }
 
+/* After the version, for admins, while a newer release is out (#2311). */
+.update_dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-blue-filled);
+}
+
 .progress {
   /* Line up with the link rows (icon edge) instead of a fixed 10px inset. */
   margin: 0 var(--mantine-spacing-sm) var(--mantine-spacing-xs);

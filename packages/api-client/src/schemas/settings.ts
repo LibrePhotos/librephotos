@@ -118,6 +118,9 @@ export const SiteSettings = z.object({
   auto_scan_time: z.string().optional(),
   auto_scan_days: z.number().array().optional(),
   auto_scan_status: SiteAutoScanStatus.optional(),
+  // The daily update check's switch (#2311), staff only; its state is GET /updates/. A 400
+  // `update_check_locked` when UPDATE_CHECK=false in the server environment refuses to turn it on.
+  update_check: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 

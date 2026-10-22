@@ -22,6 +22,7 @@ from api.directory_watcher.scan_schedule import (
 )
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
+from api.jobs.queue import enqueue_task
 from api.models import LongRunningJob, User
 from api.photos.retention import expired_trash_counts
 from api.runtime.features import (
@@ -45,6 +46,7 @@ from api.serializers.site_settings import (
     TrashRetentionPreviewSerializer,
     feature_key,
 )
+from api.updates.check import check_for_updates
 
 # The settings GET reads, in one query. The feature switches are read here,
 # not through feature_enabled, so the answer to a POST shows what it saved
@@ -67,6 +69,7 @@ SETTING_KEYS = (
     "OIDC_ENABLED",
     "OIDC_BUTTON_LABEL",
     "OIDC_ALLOW_SIGNUP",
+    "UPDATE_CHECK",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -215,6 +218,7 @@ class SiteSettingsView(APIView):
             out["features"] = _features(config)
             out["model_download"] = _model_download()
             out.update(_auto_scan(config))
+            out["update_check"] = config["UPDATE_CHECK"]
             out.update(sso_setup(request._request))
         return Response(out)
 
@@ -226,6 +230,9 @@ class SiteSettingsView(APIView):
             setattr(site_config, key.upper(), value)
         if any(key.upper() in SCHEDULE_KEYS for key in data):
             sync_scan_schedule()
+        if data.get("update_check") is True:
+            # Check at once, so the line under the switch has an answer today.
+            enqueue_task(check_for_updates)
         admin = User.objects.get(id=request_user(request).id)
         if not do_all_models_exist():
             # Not a new job per save: the settings form saves on every

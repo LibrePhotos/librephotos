@@ -1604,6 +1604,24 @@ export async function fetchImageTag(client: ApiClient): Promise<S.ImageTag> {
   return parseResponse(S.ImageTag, res, "image tag");
 }
 
+/** Admin: whether a newer release is out, from the last daily check (#2311). Asks nobody else. */
+export async function fetchUpdateStatus(client: ApiClient): Promise<S.UpdateStatus> {
+  const res = await client.get<unknown>("/updates/");
+  return parseResponse(S.UpdateStatus, res, "update status");
+}
+
+/** Admin: Skip this release; `""` shows the newest release again. Answers the new status. */
+export async function skipRelease(client: ApiClient, version: string): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/skip/", { version });
+  return parseResponse(S.UpdateStatus, res, "skip release");
+}
+
+/** Admin: close the Update available card for a week. Answers the new status. */
+export async function snoozeUpdateNotice(client: ApiClient): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/snooze/", {});
+  return parseResponse(S.UpdateStatus, res, "snooze update notice");
+}
+
 /** Disk space where the server keeps its data (bytes). */
 export async function fetchStorageStats(client: ApiClient): Promise<S.StorageStats> {
   const res = await client.get<unknown>("/storagestats/");

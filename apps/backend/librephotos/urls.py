@@ -87,6 +87,7 @@ from api.views import (
     sync,
     tags,
     timezone,
+    updates,
     upgrade_tasks,
     upload,
     user,
@@ -501,6 +502,9 @@ urlpatterns = [
     path("api/look-up-places/", scan_triggers.LookUpPlacesView.as_view()),
     path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
     path("api/check-file-contents/", scan_triggers.CheckFileContentsView.as_view()),
+    path("api/updates/", updates.UpdateStatusView.as_view()),
+    path("api/updates/skip/", updates.SkipReleaseView.as_view()),
+    path("api/updates/snooze/", updates.SnoozeUpdateNoticeView.as_view()),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(
         r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()

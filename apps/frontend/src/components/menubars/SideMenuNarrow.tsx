@@ -15,13 +15,12 @@ import {
   IconCloud as Cloud,
   IconCopy as Copy,
   IconHeart as Heart,
-  IconInfoCircle as InfoCircle,
 } from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
-import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
+import { useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
@@ -29,13 +28,13 @@ import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../uiConstants";
 import { formatFileSize } from "../../util/fileSize";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 import classes from "./SideMenuNarrow.module.css";
+import { VersionItem } from "./VersionItem";
 
 export function SideMenuNarrow(): React.JSX.Element {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
-  const { data: imageInfos } = useFetchImageTagQuery();
   // The card is a nudge, not a live counter: the duplicate pages and their
   // mutations refresh these stats when it matters.
   const { data: duplicateStats } = useDuplicateStatsQuery({ staleTime: 5 * 60 * 1000 });
@@ -213,19 +212,7 @@ export function SideMenuNarrow(): React.JSX.Element {
             />
           </Tooltip>
         )}
-        <div className={classes.link} data-hover="no">
-          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={defaultIconColor}>
-            <InfoCircle />
-          </ActionIcon>
-          <Tooltip
-            label={t("sidemenu.backendversion", { hash: imageInfos?.git_hash })}
-            disabled={!imageInfos?.git_hash}
-          >
-            <Text className={classes.link_text} size="sm">
-              {t("version", { version: imageInfos?.image_tag || "dev" })}
-            </Text>
-          </Tooltip>
-        </div>
+        <VersionItem iconColor={defaultIconColor} />
         <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
           <ActionIcon component="span" className={classes.link_icon} variant="transparent">
             <Book />
