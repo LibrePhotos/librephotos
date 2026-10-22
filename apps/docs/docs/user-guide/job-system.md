@@ -88,7 +88,7 @@ Checks the videos that were added to your library before LibrePhotos recorded ea
 
 ### Extract Text (OCR)
 
-Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
+Reads the text on your photos so that search can find it, and uses it to detect documents. It runs only while an administrator has selected a text recognition model: when you click **Extract** (or **Extract text again for all photos**) on the Library page, and <Since version="1.5.0" /> by itself after a scan or an upload, for the photos still without text. Up to 1.4.0 it never ran by itself. See [Text Recognition](./text-recognition.md).
 
 ### Generate Captions
 

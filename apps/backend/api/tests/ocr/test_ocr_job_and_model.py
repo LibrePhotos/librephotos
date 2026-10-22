@@ -506,38 +506,30 @@ class GenerateOcrJobTest(TestCase):
         self.assertEqual(job.progress_target, 1)
 
     @patch("api.runtime.sidecars.http.post")
-    def test_old_unocrd_photo_skipped_incrementally_but_full_scan_processes(
-        self, mock_post
-    ):
-        # Case 4: a photo with no OCR that predates the last productive run is
-        # outside the incremental window and stays skipped; full_scan gets it.
+    def test_a_photo_older_than_the_last_run_is_still_read(self, mock_post):
+        # #2736: photos are selected by need, not by "added since the last
+        # run", so a photo an earlier productive run did not cover (its
+        # thumbnail was not ready, the call failed) is read by the next one.
         mock_post.return_value = _ok_response()
         photo = create_test_photo(owner=self.user)
-
-        # A prior productive OCR run that finished AFTER this photo was added
-        # but did not cover it (target > 0 so it counts as a real baseline).
-        baseline_start = timezone.now() + timedelta(hours=1)
+        later = timezone.now() + timedelta(hours=1)
         create_test_job(
             started_by=self.user,
             job_id=str(uuid.uuid4()),
             job_type=LongRunningJob.JOB_GENERATE_OCR,
             queued_at=timezone.now(),
-            started_at=baseline_start,
+            started_at=later,
             finished=True,
-            finished_at=baseline_start,
+            finished_at=later,
             progress_target=5,
             progress_current=5,
         )
 
         incremental_job = self._run()
-        self.assertFalse(PhotoOcr.objects.filter(photo=photo).exists())
-        self.assertEqual(mock_post.call_count, 0)
-        job = LongRunningJob.objects.get(job_id=str(incremental_job))
-        self.assertEqual(job.progress_target, 0)
 
-        self._run(full_scan=True)
         self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
-        self.assertEqual(mock_post.call_count, 1)
+        job = LongRunningJob.objects.get(job_id=str(incremental_job))
+        self.assertEqual(job.progress_target, 1)
 
     @patch("api.runtime.sidecars.http.post")
     def test_a_cancelled_run_is_not_the_baseline(self, mock_post):

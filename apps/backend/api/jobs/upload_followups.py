@@ -4,7 +4,8 @@ An upload gets its thumbnails, tags, place and faces per photo, in its own
 chain (``api.views.upload``). What a scan's follow-ups do for the whole
 library never ran for uploads: the similarity index was not rebuilt, photos
 got no search embedding when tagging was off, and faces from XMP regions got
-no encoding. This module runs those steps, once per burst of uploads.
+no encoding; nor was OCR queued for them (#2736). This module runs those
+steps, once per burst of uploads.
 
 - ``request_upload_followups(user)``: something added photos for ``user``. It
   marks ``photos_added`` and, unless a run holds the lease (which then loops
@@ -21,9 +22,10 @@ no encoding. This module runs those steps, once per burst of uploads.
 
 Seam for the rest of #2191: an upload import job (#2737) calls
 ``request_upload_followups`` when it finishes, instead of the upload chain's
-last task; a new step (#2738's clustering, #2736's OCR) is a function taking a
-``FollowupRun``, appended to ``FOLLOWUP_STEPS``. Each step decides itself
-whether it has work and must be safe to repeat.
+last task; a new step (#2738's clustering) is a function taking a
+``FollowupRun``, appended to ``FOLLOWUP_STEPS`` (as #2736's
+``extract_text``). Each step decides itself whether it has work and must be
+safe to repeat.
 """
 
 from __future__ import annotations
@@ -38,7 +40,11 @@ from constance import config as site_config
 from django.db.models import Q
 from django.utils import timezone
 
-from api.directory_watcher.processing_jobs import generate_face_embeddings
+from api.directory_watcher.processing_jobs import (
+    generate_face_embeddings,
+    ocr_has_work,
+    queue_ocr_followup,
+)
 from api.jobs.queue import schedule_once_by
 from api.models import Photo, UploadFollowupState, User
 from api.models.upload_followup_state import UploadFollowupStateQuerySet
@@ -58,6 +64,8 @@ DEBOUNCE = timedelta(minutes=2)
 # after every step and every batch of a step, so it measures liveness, not
 # how long a run takes.
 LEASE = timedelta(minutes=15)
+# When Extract Text is still busy, look again this much later.
+OCR_RETRY = timedelta(minutes=10)
 # The backfill spreads its requests this far apart, one user after another.
 BACKFILL_SPACING = timedelta(minutes=1)
 
@@ -185,6 +193,19 @@ def encode_faces(run: FollowupRun) -> None:
     generate_face_embeddings(run.user, heartbeat=run.heartbeat)
 
 
+def extract_text(run: FollowupRun) -> None:
+    """Queue Extract Text for the photos without text, while a model is selected.
+
+    It fans out per photo, so it is queued rather than run here. When one is
+    queued or running already, its selection may predate these uploads: the
+    run is re-armed to look again later.
+    """
+    if not ocr_has_work(run.user):
+        return
+    if not queue_ocr_followup(run.user):
+        schedule_upload_followups(run.user, timezone.now() + OCR_RETRY)
+
+
 FollowupStep = Callable[[FollowupRun], None]
 
 # In order: the index first, so uploads are searchable as soon as possible.
@@ -192,6 +213,7 @@ FOLLOWUP_STEPS: tuple[FollowupStep, ...] = (
     embed_missing_photos,
     rebuild_similarity_index,
     encode_faces,
+    extract_text,
 )
 
 

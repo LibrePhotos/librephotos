@@ -45,12 +45,14 @@ Nothing is read yet at this point. Each user starts the reading from their Libra
 
 Open **Account menu > Library**. Under the **Text Recognition** heading is the **Extract Text** row:
 
-- **Extract** reads the photos that have not been read yet. The first time, that is all of your photos. After that, it reads the photos added since the last run.
+- **Extract** reads the photos that have not been read yet. The first time, that is all of your photos. After that, it reads the photos still without text: new ones, and ones an earlier run could not read. <Since version="1.5.0" /> Up to 1.4.0, it read the photos added since the last run, so a photo that failed or whose thumbnail was not ready yet could be left out for good.
 - The arrow next to **Extract** opens **Extract text again for all photos**, which reads every photo again, also the ones that already have text.
 
 Both start an **Extract Text (OCR)** job, which you can follow under **Account menu > My Jobs**. It reads photos only, not videos. Each user runs it for their own photos, so on a shared server every user clicks **Extract** for themselves.
 
-The job does not run by itself after a scan. When you have added new photos, click **Extract** again to read them.
+<Since version="1.5.0" /> While a model is selected, the job also starts by itself after a scan and a few minutes after an upload, for the photos still without text. Selecting a model therefore reads your whole library after the next scan or upload, a little at a time. Up to 1.4.0, it only ran when you clicked **Extract**.
+
+A photo the text recognition service failed on three times is no longer read by these runs or by **Extract**. **Extract text again for all photos** still tries it. When the service could not be reached at all, that does not count as a failure.
 
 If the administrator changes the model later, **Extract** also reads again the photos that were read with the previous model.
 
