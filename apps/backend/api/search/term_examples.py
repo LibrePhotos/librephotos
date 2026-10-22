@@ -6,14 +6,12 @@ places, year, OpenCLIP tags and people, alone and combined.
 
 import logging
 import random
-from typing import TypeVar
 
 from api.models import Photo, User
 from api.search.semantic import OPENCLIP
 
 logger = logging.getLogger(__name__)
 
-_T = TypeVar("_T")
 
 DEFAULT_SEARCH_TERMS = [
     "for people",
@@ -41,7 +39,7 @@ COMBINATIONS: tuple[tuple[tuple[str, ...], float], ...] = (
 )
 
 
-def shuffle(items: list[_T]) -> list[_T]:
+def shuffle[T](items: list[T]) -> list[T]:
     random.shuffle(items)
     return items
 

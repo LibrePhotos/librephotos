@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 OCR_SEARCH_CONFIG = "simple"
 
 
-def annotate_ocr_search(
-    queryset: QuerySet[_ModelT, _RowT],
-) -> QuerySet[_ModelT, _RowT]:
+def annotate_ocr_search[ModelT: Model, RowT](
+    queryset: QuerySet[ModelT, RowT],
+) -> QuerySet[ModelT, RowT]:
     """Add the ``ocr_search`` tsvector annotation used by the Postgres OCR match.
 
     Only meaningful on Postgres; other backends use the ``icontains`` fallback
@@ -48,7 +48,7 @@ def annotate_ocr_search(
     """
     # annotate keeps the model and row types; the stubs widen the model to Model.
     return cast(
-        QuerySet[_ModelT, _RowT],
+        QuerySet[ModelT, RowT],
         queryset.annotate(
             ocr_search=SearchVector("ocr__text", config=OCR_SEARCH_CONFIG)
         ),

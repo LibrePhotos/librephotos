@@ -58,7 +58,7 @@ def reconfigure_logging() -> None:
         backup_count = int(
             getattr(constance_config, "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT)
         )
-    except (DatabaseError, TypeError, ValueError):
+    except DatabaseError, TypeError, ValueError:
         # Constance is not readable yet (or holds a value that is not a
         # number); keep what the handler already has.
         return

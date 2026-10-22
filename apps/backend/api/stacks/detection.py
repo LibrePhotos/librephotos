@@ -252,7 +252,7 @@ def _first_matching_rule(
     for rule in hard_rules:
         try:
             is_burst, group_key = rule.is_burst_photo(photo, exif_tags)
-        except (AttributeError, KeyError, TypeError, ValueError, re.error):
+        except AttributeError, KeyError, TypeError, ValueError, re.error:
             logger.warning(
                 "Burst rule %s failed on photo %s; skipping the photo",
                 rule.id,

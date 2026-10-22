@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class PathNode(TypedDict):
     title: str
     absolute_path: str
-    children: list["PathNode"]
+    children: list[PathNode]
 
 
 def list_subdirectories(path: str) -> list[str]:

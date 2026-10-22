@@ -211,7 +211,7 @@ def _kill_tree(process: Process) -> None:
                 timeout=KILL_GRACE_SECONDS,
                 check=False,
             )
-        except (OSError, subprocess.SubprocessError):
+        except OSError, subprocess.SubprocessError:
             logger.warning("taskkill failed for pid %s", process.pid, exc_info=True)
     process.kill()
 

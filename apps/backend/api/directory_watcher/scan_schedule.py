@@ -225,7 +225,7 @@ class LastRun:
                 skipped=[int(user) for user in data["skipped"]],
                 failed=[int(user) for user in data["failed"]],
             )
-        except (ValueError, KeyError, TypeError, AttributeError):
+        except ValueError, KeyError, TypeError, AttributeError:
             logger.warning("Ignoring an unreadable %s", LAST_RUN_KEY)
             return None
 

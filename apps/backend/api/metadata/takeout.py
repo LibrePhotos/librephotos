@@ -214,7 +214,7 @@ def _taken_at(data: Mapping[str, object]) -> datetime | None:
         return None
     try:
         return datetime.fromtimestamp(seconds, tz=UTC)
-    except (OverflowError, OSError, ValueError):
+    except OverflowError, OSError, ValueError:
         return None
 
 

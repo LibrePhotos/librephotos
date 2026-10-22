@@ -51,7 +51,7 @@ def _make_dir_link(link_path, target_path):
     try:
         os.symlink(target_path, link_path, target_is_directory=True)
         return link_path
-    except (OSError, NotImplementedError):
+    except OSError, NotImplementedError:
         pass
 
     if os.name == "nt":

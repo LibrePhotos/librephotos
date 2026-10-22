@@ -65,7 +65,7 @@ def today_for_user(user: User) -> datetime.date:
     tzinfo: datetime.tzinfo
     try:
         tzinfo = ZoneInfo(user.default_timezone or "UTC")
-    except (ZoneInfoNotFoundError, ValueError):
+    except ZoneInfoNotFoundError, ValueError:
         tzinfo = datetime.UTC
     return timezone.now().astimezone(tzinfo).date()
 

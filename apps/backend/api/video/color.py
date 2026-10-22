@@ -183,7 +183,7 @@ def probe(path: str) -> dict[str, str] | None:
             "streams": (output.get("streams") or [{}])[0],
             "format": output.get("format") or {},
         }
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         logger.warning("could not probe %s", path, exc_info=True)
         return None
     values = {}
@@ -271,7 +271,7 @@ def transfer_characteristics(path: str) -> str:
     try:
         streams = json.loads(output).get("streams") or [{}]
         return streams[0].get("color_transfer") or ""
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         logger.warning("could not probe the colour of %s", path, exc_info=True)
         return ""
 

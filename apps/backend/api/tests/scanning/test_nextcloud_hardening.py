@@ -319,7 +319,7 @@ class LocalPathForTest(SimpleTestCase):
         os.makedirs(outside)
         try:
             os.symlink(outside, os.path.join(self.root, "link"))
-        except (OSError, NotImplementedError):
+        except OSError, NotImplementedError:
             self.skipTest("cannot create symlinks here")
         self.assertIsNone(directory_watcher.local_path_for(self.root, "/link/a.jpg"))
 

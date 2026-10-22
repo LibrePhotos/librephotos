@@ -176,7 +176,7 @@ def release_memory() -> None:
             import ctypes
 
             ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except (OSError, AttributeError):
+        except OSError, AttributeError:
             # musl or another libc without malloc_trim.
             pass
 

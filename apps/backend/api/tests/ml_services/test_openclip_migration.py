@@ -238,7 +238,7 @@ class FilesTest(TestCase):
         models.mkdir()
         try:
             os.symlink(target, models / RETIRED_TAGGER, target_is_directory=True)
-        except (OSError, NotImplementedError):
+        except OSError, NotImplementedError:
             self.skipTest("this account cannot create symlinks")
 
         removed = migration.remove_retired_model_dirs(models)

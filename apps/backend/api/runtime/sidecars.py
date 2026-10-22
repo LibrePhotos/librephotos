@@ -106,7 +106,7 @@ class _SidecarRetry(Retry):
         error: Exception | None = None,
         _pool: ConnectionPool | None = None,
         _stacktrace: TracebackType | None = None,
-    ) -> "Self":
+    ) -> Self:
         if isinstance(error, ReadTimeoutError):
             # Raised as-is, requests reports it as ReadTimeout, as it would
             # without a retry policy.

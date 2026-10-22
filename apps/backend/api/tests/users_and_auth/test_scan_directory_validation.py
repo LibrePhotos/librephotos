@@ -286,7 +286,7 @@ class OverlappingScanDirectoryTestCase(TestCase):
         link = os.path.join(settings.DATA_ROOT, "overlap-link")
         try:
             os.symlink(self.child, link, target_is_directory=True)
-        except (OSError, NotImplementedError):
+        except OSError, NotImplementedError:
             self.skipTest("cannot create symlinks here")
         response = self._patch(self.other, link)
         self.assertEqual(response.status_code, 400)

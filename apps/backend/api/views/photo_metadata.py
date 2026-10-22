@@ -295,7 +295,7 @@ class BulkMetadataView(APIView):
                 try:
                     uuid.UUID(pid)
                     uuid_ids.append(pid)
-                except (ValueError, AttributeError):
+                except ValueError, AttributeError:
                     hash_ids.append(pid)
             else:
                 hash_ids.append(pid)
@@ -363,7 +363,7 @@ class BulkMetadataView(APIView):
                 try:
                     uuid.UUID(pid)
                     uuid_ids.append(pid)
-                except (ValueError, AttributeError):
+                except ValueError, AttributeError:
                     hash_ids.append(pid)
             else:
                 hash_ids.append(pid)

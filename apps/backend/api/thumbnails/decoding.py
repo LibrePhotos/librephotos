@@ -75,7 +75,7 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
         if thumb.format != rawpy.ThumbFormat.JPEG:
             return None
         header = pyvips.Image.new_from_buffer(thumb.data, "")
-    except (rawpy.LibRawError, rawpy.NotSupportedError, pyvips.Error, OSError):
+    except rawpy.LibRawError, rawpy.NotSupportedError, pyvips.Error, OSError:
         # No readable preview: unsupported or damaged file, no thumbnail in it,
         # or a JPEG libvips cannot open. The caller renders the RAW instead.
         return None
@@ -120,6 +120,6 @@ def can_decode(path: str) -> bool:
     try:
         with Image.open(path):
             return True
-    except (OSError, ValueError, Image.DecompressionBombError):
+    except OSError, ValueError, Image.DecompressionBombError:
         # UnidentifiedImageError is an OSError; a bomb is refused from the header.
         return False

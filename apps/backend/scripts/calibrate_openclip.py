@@ -166,7 +166,7 @@ def collect(directory):
         try:
             with Image.open(path) as image:
                 image.convert("RGB")
-        except (OSError, ValueError):
+        except OSError, ValueError:
             continue
         paths.append(path)
     return paths

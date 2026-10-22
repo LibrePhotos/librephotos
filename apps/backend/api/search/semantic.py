@@ -169,7 +169,7 @@ def generate_photo_tags(caption: PhotoCaption, commit: bool = True) -> None:
 
         try:
             response_json = response.json()
-        except (ValueError, RuntimeError):
+        except ValueError, RuntimeError:
             logger.warning(
                 "Tag service returned non-JSON response for image %s", image_path
             )

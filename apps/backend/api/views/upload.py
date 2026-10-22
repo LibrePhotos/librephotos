@@ -115,7 +115,7 @@ def parse_device_timestamp(
 def _zone(name: str) -> datetime.tzinfo:
     try:
         return ZoneInfo(name or "UTC")
-    except (ZoneInfoNotFoundError, ValueError):
+    except ZoneInfoNotFoundError, ValueError:
         return datetime.UTC
 
 

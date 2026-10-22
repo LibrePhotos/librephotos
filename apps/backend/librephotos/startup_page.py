@@ -109,7 +109,7 @@ def read_phase_file(path: str) -> Phase:
     try:
         with open(path, encoding="utf-8") as handle:
             data = json.load(handle)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return phase(STARTING)
     if not isinstance(data, dict):
         return phase(STARTING)

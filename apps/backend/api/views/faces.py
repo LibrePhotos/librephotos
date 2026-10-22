@@ -549,7 +549,7 @@ class AddFaceView(APIView):
             return None
         try:
             path: str = thumbnail.thumbnail_big.path
-        except (ValueError, NotImplementedError):
+        except ValueError, NotImplementedError:
             return None
         return path
 
@@ -568,7 +568,7 @@ class AddFaceView(APIView):
         for side in ("top", "right", "bottom", "left"):
             try:
                 sides[side] = float(box[side])
-            except (KeyError, TypeError, ValueError):
+            except KeyError, TypeError, ValueError:
                 return None, f"box.{side} must be a number between 0 and 1"
             if not 0 <= sides[side] <= 1:
                 return None, f"box.{side} must be between 0 and 1"

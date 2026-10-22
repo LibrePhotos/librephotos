@@ -66,7 +66,7 @@ class ExifOrientationRenderingTest(SimpleTestCase):
             with self.subTest(name):
                 try:
                     path = self._tagged(name, image_format, 6)
-                except (KeyError, OSError, ValueError):
+                except KeyError, OSError, ValueError:
                     self.skipTest(f"cannot encode {image_format} here")
                 self.assertEqual(6, read_orientation(path))
 

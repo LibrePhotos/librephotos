@@ -279,7 +279,7 @@ class Photo(models.Model):
                 import json
 
                 return json.loads(self.clip_embeddings)
-            except (json.JSONDecodeError, TypeError):
+            except json.JSONDecodeError, TypeError:
                 return None
 
         return self.clip_embeddings

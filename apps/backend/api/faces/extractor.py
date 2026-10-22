@@ -17,10 +17,8 @@ from api.metadata.tags import Tags
 from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
-    from typing import TypeAlias
-
     # (top, right, bottom, left, person name or None, *optional encoding).
-    FaceLocation: TypeAlias = tuple[int, int, int, int, str | None, *tuple[object, ...]]
+    type FaceLocation = tuple[int, int, int, int, str | None, *tuple[object, ...]]
 
 if TYPE_CHECKING:
     import numpy as np
@@ -36,7 +34,7 @@ def _is_number(value: float | str | None) -> bool:
         return False
     try:
         float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         # TypeError: a value of another type read from the file (a list).
         return False
     return True

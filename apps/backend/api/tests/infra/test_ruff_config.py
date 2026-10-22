@@ -124,15 +124,9 @@ class PythonFloorSyntaxTests(unittest.TestCase):
         # ruff's own default target is py310, where pyupgrade never asks for a
         # 3.12 `type` statement; with the floor taken from requires-python
         # (3.14) it does.
-        utc = "import datetime
-
-print(datetime.timezone.utc)
-"
+        utc = "import datetime\n\nprint(datetime.timezone.utc)\n"
         self.assertIn("UP017", lint(utc, "scripts/_ruff_probe.py"))
-        alias = "from typing import TypeAlias
-
-Number: TypeAlias = int
-"
+        alias = "from typing import TypeAlias\n\nNumber: TypeAlias = int\n"
         self.assertIn("UP040", lint(alias, "scripts/_ruff_probe.py"))
 
 

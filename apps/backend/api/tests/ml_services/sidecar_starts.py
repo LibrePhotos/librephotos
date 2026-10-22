@@ -7,17 +7,14 @@ sidecar happens to run.
 """
 
 from collections.abc import Callable
-from typing import TypeVar
 from unittest.mock import patch
-
-Target = TypeVar("Target", bound=Callable[..., object] | type)
 
 
 def _all_up(launched: dict[str, object]) -> dict[str, bool]:
     return dict.fromkeys(launched, True)
 
 
-def fake_sidecar_starts(target: Target) -> Target:
+def fake_sidecar_starts[Target: Callable[..., object] | type](target: Target) -> Target:
     """Decorate a test (or test class): the ports are free and every sidecar
     that is started answers at once, as when Popen returning was enough.
 

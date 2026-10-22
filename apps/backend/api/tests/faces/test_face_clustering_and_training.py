@@ -60,7 +60,7 @@ class FakeMLP:
     deterministic.
     """
 
-    instances: list["FakeMLP"] = []
+    instances: list[FakeMLP] = []
     PEAK_INDEX = 0
     PEAK_VALUE = 0.9
 

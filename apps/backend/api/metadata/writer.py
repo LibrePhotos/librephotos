@@ -101,7 +101,7 @@ class MetadataWriteError(Exception):
         super().__init__(message.replace(path, "the file"))
         self.path = path
 
-    def __reduce__(self) -> tuple[type["MetadataWriteError"], tuple[str, str]]:
+    def __reduce__(self) -> tuple[type[MetadataWriteError], tuple[str, str]]:
         # Picklable (django-q, the parallel test runner) with both arguments.
         return type(self), (self.path, str(self))
 

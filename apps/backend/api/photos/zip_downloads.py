@@ -35,7 +35,7 @@ def zip_file_name(file_uuid: uuid.UUID | str, user_id: int) -> str | None:
     """
     try:
         canonical = str(uuid.UUID(str(file_uuid)))
-    except (ValueError, TypeError, AttributeError):
+    except ValueError, TypeError, AttributeError:
         return None
     if canonical != str(file_uuid).lower():
         return None

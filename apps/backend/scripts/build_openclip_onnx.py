@@ -246,7 +246,7 @@ def readable(path: Path) -> bool:
         with Image.open(path) as image:
             image.convert("RGB")
         return True
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return False
 
 

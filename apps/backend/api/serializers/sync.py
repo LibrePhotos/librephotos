@@ -48,7 +48,7 @@ def dominant_hex(raw: str | None) -> str | None:
         inner = raw[1:-1]
         r, g, b = (int(x) for x in inner.split(", "))
         return f"#{r:02x}{g:02x}{b:02x}"
-    except (ValueError, TypeError, IndexError):
+    except ValueError, TypeError, IndexError:
         return None
 
 
@@ -57,7 +57,7 @@ def _video_length_ms(raw: str | None) -> int | None:
         return None
     try:
         return int(float(raw) * 1000)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
 
 
