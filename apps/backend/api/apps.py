@@ -25,6 +25,8 @@ SIGNAL_MODULES = (
     "api.models.tag",
     # File clean-up (face crops, thumbnails), deferred to on_commit.
     "api.photos.file_cleanup",
+    # The copies of a library share's owner, when their last share goes.
+    "api.sharing.copies",
     # Delta-sync bookkeeping: last_modified bumps + tombstone writers
     # (mobile v2, doc 04).
     "api.sync_signals",

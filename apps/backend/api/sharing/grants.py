@@ -186,6 +186,8 @@ SUMMARY_FIELDS: FieldRules = {
     "is_hdr": (ALWAYS, None),
     "animated_preview": (ALWAYS, None),
     "video_poster": (ALWAYS, None),
+    # When a person is first seen in a video: who is on it (#2762).
+    "person_video_time": ("people", None),
     "rating": (NEVER, 0),
     "owner": (ALWAYS, None),
     "exif_gps_lat": ("location", None),

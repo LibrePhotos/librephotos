@@ -67,6 +67,10 @@ class LibraryShare(models.Model):
     share_captions = models.BooleanField(default=False)
     share_originals = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    # How many copies without metadata (api.sharing.copies) the recipient had
+    # made in the hour starting at copies_hour: the bound on what they cost.
+    copies_hour = models.DateTimeField(null=True, blank=True)
+    copies_made = models.PositiveIntegerField(default=0)
 
     objects = LibraryShareQuerySet.as_manager()
 

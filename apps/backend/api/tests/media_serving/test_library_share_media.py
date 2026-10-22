@@ -6,10 +6,12 @@ metadata, checked here with the real ExifTool and ffmpeg: the original's GPS
 position must not be in it. Revoking a share ends media access at once.
 """
 
+import datetime
 import json
 import os
 import shutil
 import tempfile
+import time
 from unittest.mock import patch
 
 import pyvips
@@ -168,18 +170,35 @@ class LibraryMediaTest(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_a_copy_being_made_by_another_request_is_waited_for(self):
+    def lock_path(self):
         copy_dir = os.path.join(self.media_root, COPIES_DIR, str(self.owner.pk))
         os.makedirs(copy_dir, exist_ok=True)
-        lock = os.path.join(copy_dir, f"{self.photo.image_hash}.jpg.lock")
+        return os.path.join(copy_dir, f"{self.photo.image_hash}.jpg.lock")
+
+    def test_a_copy_another_request_is_making_is_a_503_at_once(self):
+        lock = self.lock_path()
         open(lock, "w").close()
         url = f"/media/photos/{self.photo.image_hash}"
-        with patch.object(copies, "WAIT_FOR_COPY_SECONDS", 0.2):
-            response = client_for(self.recipient).get(url)
-        # Nobody finished it in time: ask again later, never the original.
+        started = time.monotonic()
+        response = client_for(self.recipient).get(url)
+        # No worker waits for another: ask again later, never the original.
+        self.assertLess(time.monotonic() - started, 5)
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response["Retry-After"], "30")
         os.remove(lock)
+        self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
+
+    def test_a_stale_lock_is_taken_over_once(self):
+        lock = self.lock_path()
+        open(lock, "w").close()
+        old = time.time() - copies.STALE_LOCK_SECONDS - 10
+        os.utime(lock, (old, old))
+        url = f"/media/photos/{self.photo.image_hash}"
+        # A stale lock that cannot be removed: one try, then 503, no loop.
+        with patch.object(copies, "_remove") as remove:
+            self.assertEqual(client_for(self.recipient).get(url).status_code, 503)
+        self.assertEqual(remove.call_count, 1)
+        # One that can be removed is taken over.
         self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
 
     def test_a_recipient_makes_a_bounded_number_of_new_copies(self):
@@ -190,6 +209,41 @@ class LibraryMediaTest(TestCase):
         # A copy already made is served whatever the count.
         with patch.object(copies, "COPIES_PER_HOUR", 0):
             self.assertEqual(client_for(self.recipient).get(url).status_code, 200)
+
+    def test_the_count_is_kept_on_the_share_for_every_worker(self):
+        source = os.path.join(self.media_root, "originals", "second.jpg")
+        pyvips.Image.black(32, 24).write_to_file(source)
+        with open(source, "rb") as handle:
+            main_file = create_test_file(source, self.owner, handle.read())
+        second = create_test_photo(owner=self.owner, main_file=main_file)
+        self.addCleanup(delete_copies, second.image_hash)
+        with patch.object(copies, "COPIES_PER_HOUR", 1):
+            self.assertEqual(
+                client_for(self.recipient)
+                .get(f"/media/photos/{self.photo.image_hash}")
+                .status_code,
+                200,
+            )
+            self.share.refresh_from_db()
+            self.assertEqual(self.share.copies_made, 1)
+            # The second new copy this hour is over the bound.
+            self.assertEqual(
+                client_for(self.recipient)
+                .get(f"/media/photos/{second.image_hash}")
+                .status_code,
+                503,
+            )
+            # A new hour starts a new count.
+            self.share.copies_hour = self.share.copies_hour - datetime.timedelta(
+                hours=1
+            )
+            self.share.save()
+            self.assertEqual(
+                client_for(self.recipient)
+                .get(f"/media/photos/{second.image_hash}")
+                .status_code,
+                200,
+            )
 
     def test_the_last_share_ending_removes_the_owners_copies(self):
         self.assertEqual(
@@ -205,6 +259,24 @@ class LibraryMediaTest(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = api.delete(f"/api/library-shares/{self.share.pk}/")
         self.assertEqual(response.status_code, 204)
+        self.assertFalse(os.path.exists(copy_dir))
+
+    def test_a_cascade_removes_the_owners_copies_too(self):
+        self.assertEqual(
+            client_for(self.recipient)
+            .get(f"/media/photos/{self.photo.image_hash}")
+            .status_code,
+            200,
+        )
+        copy_dir = os.path.join(self.media_root, COPIES_DIR, str(self.owner.pk))
+        other = create_test_user()
+        create_test_library_share(owner=self.owner, recipient=other)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.recipient.delete()
+        # Another share is left: the copies stay.
+        self.assertTrue(os.path.exists(copy_dir))
+        with self.captureOnCommitCallbacks(execute=True):
+            other.delete()
         self.assertFalse(os.path.exists(copy_dir))
 
     def test_the_recipient_gets_no_embedded_motion_video_without_originals(self):

@@ -15,26 +15,34 @@ that hash go (``api.photos.file_cleanup``) and, all of an owner's, when the
 owner's last library share ends (``forget_owner_copies``).
 
 Making one costs a decode and an encode (or a remux), so it is bounded: one
-request makes a given copy while the others wait for it (a lock file beside
-it), and each recipient makes at most ``COPIES_PER_HOUR`` new ones an hour.
+request makes a given copy (a lock file beside it) and the others are told to
+come back (503 with ``Retry-After``), and each recipient makes at most
+``COPIES_PER_HOUR`` new copies of one library an hour, counted on the share
+row. An owner's copies go when their last share is deleted, by the API or by
+a cascade (``register``).
 """
 
 from __future__ import annotations
 
+import datetime
 import glob
 import logging
 import os
 import shutil
 import time
 import uuid
+from functools import partial
 
 import pyvips
 from django.conf import settings
-from django.core.cache import cache
+from django.db import transaction
+from django.db.models import F, Q
+from django.db.models.signals import post_delete
+from django.utils import timezone
 from PIL import UnidentifiedImageError
 
 from api.mime import JPEG_EXTENSION, MP4_EXTENSION, extension
-from api.models import Photo
+from api.models import LibraryShare, Photo
 from api.runtime import binaries
 from api.thumbnails import decoding
 from api.video.no_metadata import NO_METADATA
@@ -52,9 +60,6 @@ VIDEO_NO_METADATA = (*NO_METADATA, "-map_metadata:s:v", "-1", "-map_metadata:s:a
 # New copies one recipient may have made in an hour; a copy already made is
 # served without counting.
 COPIES_PER_HOUR = 300
-# How long a request waits for the copy another request is making.
-WAIT_FOR_COPY_SECONDS = 60
-WAIT_STEP_SECONDS = 0.5
 # A lock older than the longest a copy may take was left by a dead worker.
 STALE_LOCK_SECONDS = REMUX_TIMEOUT + 60
 
@@ -118,43 +123,63 @@ def _write_video(source: str, part: str) -> None:
     )
 
 
-def _take_lock(lock: str) -> bool:
-    """Create ``lock``; False while another request holds a fresh one."""
+def _create(lock: str) -> bool:
     try:
         os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
         return True
     except FileExistsError:
-        try:
-            stale = time.time() - os.path.getmtime(lock) > STALE_LOCK_SECONDS
-        except OSError:
-            stale = True
-        if not stale:
-            return False
-        # Left by a dead worker: take it over.
-        _remove(lock)
-        return _take_lock(lock)
+        return False
 
 
-def _wait_for(final: str, lock: str) -> str | None:
-    """``final`` once the request making it is done, or None on time-out."""
-    deadline = time.monotonic() + WAIT_FOR_COPY_SECONDS
-    while time.monotonic() < deadline:
-        if os.path.exists(final):
-            return final
-        if not os.path.exists(lock):
-            return final if os.path.exists(final) else None
-        time.sleep(WAIT_STEP_SECONDS)
-    return None
-
-
-def _allow_new_copy(requester_id: int) -> bool:
-    """Count one new copy for ``requester_id``; False past the hourly bound."""
-    key = f"library_copies:{requester_id}:{int(time.time() // 3600)}"
-    cache.add(key, 0, timeout=3600)
+def _is_stale(lock: str) -> bool:
     try:
-        return cache.incr(key) <= COPIES_PER_HOUR
-    except ValueError:
+        return time.time() - os.path.getmtime(lock) > STALE_LOCK_SECONDS
+    except OSError:
         return True
+
+
+def _take_lock(lock: str) -> bool:
+    """Create ``lock``; False while another request holds it.
+
+    A lock older than any copy takes was left by a dead worker: it is taken
+    over once, and if that fails too the caller answers "try again later".
+    """
+    if _create(lock):
+        return True
+    if not _is_stale(lock):
+        return False
+    _remove(lock)
+    return _create(lock)
+
+
+def _hour() -> datetime.datetime:
+    return timezone.now().replace(minute=0, second=0, microsecond=0)
+
+
+def _allow_new_copy(owner_id: int | None, requester_id: int) -> bool:
+    """Count one new copy of ``owner_id``'s photos for ``requester_id``; False
+    past ``COPIES_PER_HOUR`` this hour.
+
+    The count lives on the share row, so every worker process sees the same
+    one. Two conditional updates, no read: one counts within the current
+    hour, the other starts a new hour at one.
+    """
+    share = LibraryShare.objects.filter(
+        owner_id=owner_id,  # owner-scope: the library the copy is of
+        recipient_id=requester_id,
+    )
+    hour = _hour()
+    counted = share.filter(copies_hour=hour, copies_made__lt=COPIES_PER_HOUR).update(
+        copies_made=F("copies_made") + 1
+    )
+    if counted:
+        return True
+    if COPIES_PER_HOUR < 1:
+        return False
+    started = share.filter(
+        Q(copies_hour__isnull=True) | Q(copies_hour__lt=hour)
+    ).update(copies_hour=hour, copies_made=1)
+    return bool(started)
 
 
 def _make(photo: Photo, original: str, final: str) -> str | None:
@@ -177,8 +202,9 @@ def ensure_copy(photo: Photo, original: str, requester_id: int) -> str | None:
 
     None when it cannot be made (an unreadable file, a codec the container
     cannot carry): the caller refuses rather than handing out the original.
-    Raises ``CopyUnavailableError`` while another request is still making it after
-    ``WAIT_FOR_COPY_SECONDS``, or when ``requester_id`` made too many.
+    Raises ``CopyUnavailableError`` while another request is making it, or
+    when ``requester_id`` made too many this hour: the view answers 503 with
+    ``Retry-After`` at once instead of holding a worker.
     """
     final = os.path.join(owner_copies_dir(photo.owner_id), copy_name(photo, original))
     if os.path.exists(final):
@@ -186,14 +212,12 @@ def ensure_copy(photo: Photo, original: str, requester_id: int) -> str | None:
     os.makedirs(os.path.dirname(final), exist_ok=True)
     lock = final + ".lock"
     if not _take_lock(lock):
-        made = _wait_for(final, lock)
-        if made is None:
-            raise CopyUnavailableError(photo.image_hash)
-        return made
+        # Another request is making it: no worker waits for it.
+        raise CopyUnavailableError(photo.image_hash)
     try:
         if os.path.exists(final):
             return final
-        if not _allow_new_copy(requester_id):
+        if not _allow_new_copy(photo.owner_id, requester_id):
             raise CopyUnavailableError(photo.image_hash)
         return _make(photo, original, final)
     finally:
@@ -219,3 +243,24 @@ def delete_copies(image_hash: str) -> None:
 def forget_owner_copies(owner_id: int) -> None:
     """Remove every copy of ``owner_id``'s photos: their last share ended."""
     shutil.rmtree(owner_copies_dir(owner_id), ignore_errors=True)
+
+
+def forget_copies_after_last_share(
+    sender: type[LibraryShare], instance: LibraryShare, using: str, **kwargs: object
+) -> None:
+    """When an owner's last library share goes, by the API or by a cascade
+    (a deleted account), their copies go once the delete commits."""
+    owner_id = instance.owner_id
+    remaining = LibraryShare.objects.using(using).filter(
+        owner_id=owner_id  # owner-scope: the deleted share's owner
+    )
+    if not remaining.exists():
+        transaction.on_commit(partial(forget_owner_copies, owner_id), using=using)
+
+
+def register() -> None:
+    post_delete.connect(
+        forget_copies_after_last_share,
+        sender=LibraryShare,
+        dispatch_uid="api.sharing.copies.forget_copies_after_last_share",
+    )

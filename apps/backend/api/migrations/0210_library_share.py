@@ -7,7 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0207_photo_projection_type"),
+        ("api", "0209_user_place"),
     ]
 
     operations = [
@@ -30,6 +30,8 @@ class Migration(migrations.Migration):
                 ("share_captions", models.BooleanField(default=False)),
                 ("share_originals", models.BooleanField(default=False)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("copies_hour", models.DateTimeField(blank=True, null=True)),
+                ("copies_made", models.PositiveIntegerField(default=0)),
                 (
                     "owner",
                     models.ForeignKey(
