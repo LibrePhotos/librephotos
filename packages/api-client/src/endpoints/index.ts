@@ -673,6 +673,16 @@ export async function setPersonCover(
   return parseResponse(S.PersonEditResponse, res, "set person cover");
 }
 
+/** Set a person's birth date (`YYYY-MM-DD`), or clear it with null (#2750). Answers the person. */
+export async function setPersonBirthDate(
+  client: ApiClient,
+  personId: number | string,
+  birthDate: string | null
+): Promise<S.Person> {
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { birth_date: birthDate });
+  return parseResponse(S.Person, res, "set person birth date");
+}
+
 /** Delete a person. Answers 204. */
 export async function deletePerson(client: ApiClient, personId: number | string): Promise<void> {
   await client.delete(`/persons/${personId}/`);

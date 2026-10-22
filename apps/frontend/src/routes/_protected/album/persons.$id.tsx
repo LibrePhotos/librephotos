@@ -6,7 +6,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchPersonQuery } from "../../../api_client/albums/hooks";
 import { personNotFoundState } from "../../../components/album/albumNotFound";
+import { PersonBirthDateLine } from "../../../components/album/PersonBirthDateLine";
+import { PersonBirthDateModal } from "../../../components/album/PersonBirthDateModal";
 import { PersonHeaderMenu } from "../../../components/album/PersonHeaderMenu";
+import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
@@ -31,6 +34,7 @@ function AlbumPersonGallery(): React.JSX.Element {
   const personQuery = useFetchPersonQuery(personId);
   const { data: person, isLoading: personLoading } = personQuery;
   const notFound = person === null || !Number.isInteger(personId) || personId <= 0;
+  const birthDate = usePersonBirthDate(person?.birth_date ?? null);
 
   const photosQuery = useFetchDateAlbumsQuery({
     photosetType: Photoset.PERSON,
@@ -71,22 +75,41 @@ function AlbumPersonGallery(): React.JSX.Element {
   };
 
   return (
-    <PhotoListView
-      // Empty while the person loads, under it the header says it is loading
-      title={person ? person.name : notFound || personFailure ? t("people") : ""}
-      loading={isLoading || personLoading}
-      icon={User}
-      headerActions={person ? <PersonHeaderMenu person={person} photos={photosFlat} /> : undefined}
-      error={photosFailure ?? personFailure}
-      emptyStateConfig={notFound ? personNotFoundState(t, <User size={40} />) : undefined}
-      photoset={photosGroupedByDate ?? []}
-      idx2hash={photosFlat}
-      updateGroups={getAlbums}
-      selectable
-      // No photo filter for a person who is not there
-      mediaType={notFound ? undefined : mediaType}
-      albumID={id}
-      photosetQuery={{ person: id ? +id : undefined, ...mediaTypeToBulkQuery(mediaType) }}
-    />
+    <>
+      <PhotoListView
+        // Empty while the person loads, under it the header says it is loading
+        title={person ? person.name : notFound || personFailure ? t("people") : ""}
+        loading={isLoading || personLoading}
+        icon={User}
+        headerActions={
+          person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
+        }
+        // The birth date and age under the name, and the age beside each day (#2751): none without one
+        additionalSubHeader={
+          person?.birth_date ? (
+            <PersonBirthDateLine name={person.name} birthDate={person.birth_date} onEdit={birthDate.openFrom} />
+          ) : undefined
+        }
+        groupNote={birthDate.groupNote}
+        error={photosFailure ?? personFailure}
+        emptyStateConfig={notFound ? personNotFoundState(t, <User size={40} />) : undefined}
+        photoset={photosGroupedByDate ?? []}
+        idx2hash={photosFlat}
+        updateGroups={getAlbums}
+        selectable
+        // No photo filter for a person who is not there
+        mediaType={notFound ? undefined : mediaType}
+        albumID={id}
+        photosetQuery={{ person: id ? +id : undefined, ...mediaTypeToBulkQuery(mediaType) }}
+      />
+      {person && (
+        <PersonBirthDateModal
+          opened={birthDate.opened}
+          onClose={birthDate.close}
+          person={person}
+          groups={photosGroupedByDate ?? []}
+        />
+      )}
+    </>
   );
 }

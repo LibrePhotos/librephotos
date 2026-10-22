@@ -137,6 +137,7 @@ class PersonViewSet(
                 "id",
                 "cover_face",
                 "cover_photo",
+                "birth_date",
             )
             .annotate(
                 first_face_image=Subquery(first_face.values("image")[:1]),

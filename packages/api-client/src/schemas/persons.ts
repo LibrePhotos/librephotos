@@ -11,6 +11,8 @@ export const Person = z.object({
   newPersonName: z.string().optional(),
   /** The ids of the owner's groups the person is in (#1126); servers before groups leave it out. */
   group_ids: z.number().array().optional(),
+  /** The birth date, `YYYY-MM-DD`, or null (#2750); only the owner gets it, and servers before it leave it out. */
+  birth_date: z.string().nullable().optional(),
 });
 export type Person = z.infer<typeof Person>;
 

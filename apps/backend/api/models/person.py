@@ -64,6 +64,11 @@ class Person(models.Model):
     )
     # The owner's groups this person is in (#1126); a deleted group keeps them.
     groups = models.ManyToManyField(PersonGroup, related_name="persons", blank=True)
+    # Optional, and personal data: only the owner's person endpoints carry it
+    # (PersonSerializer), never a photo's people or a shared or public payload.
+    # The person page shows ages from it (#2751); face training suggests nobody
+    # for a face on a photo taken before it (#2752).
+    birth_date = models.DateField(null=True, blank=True)
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 

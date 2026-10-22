@@ -16909,6 +16909,12 @@
             "minLength": 1,
             "default": "",
             "maxLength": 100
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The person's birth date, or null. Only the owner sees it: it is in no photo's people and no shared or public payload"
           }
         }
       },
@@ -17270,9 +17276,16 @@
             },
             "description": "The ids of the owner's groups the person is in",
             "readOnly": true
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The person's birth date, or null. Only the owner sees it: it is in no photo's people and no shared or public payload"
           }
         },
         "required": [
+          "birth_date",
           "face_count",
           "face_photo_url",
           "face_url",

@@ -21,6 +21,7 @@ const person = (id: string, name: string, face_count: number): Person => ({
   face_photo_url: "",
   face_url: "",
   group_ids: [],
+  birth_date: null,
 });
 
 // In the name order the server sends them.

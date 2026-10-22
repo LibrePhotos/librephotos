@@ -2,6 +2,7 @@ export * from "./useFetchPeopleAlbumsQuery";
 export * from "./useRenamePersonAlbumMutation";
 export * from "./useDeletePersonAlbumMutation";
 export * from "./useSetPersonAlbumCoverMutation";
+export * from "./useSetPersonBirthDateMutation";
 export * from "./useFetchPlacesAlbumsQuery";
 export * from "./useFetchPlaceAlbumQuery";
 export * from "./useFetchLocationClustersQuery";

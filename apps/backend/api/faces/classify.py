@@ -3,8 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Collection, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from bulk_update.helper import bulk_update
@@ -12,6 +12,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from api.dataviz.color_palettes import hex_palette
+from api.faces.birth_dates import (
+    birth_dates_of,
+    photo_dates_of_faces,
+    unborn_people,
+    without_unborn,
+)
 from api.faces.cluster_manager import ClusterManager
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
@@ -401,6 +407,25 @@ def most_probable_class(
     return highest_class, highest_probability
 
 
+def most_probable_born_class(
+    classes: Sequence[int],
+    probabilities: Sequence[float] | npt.NDArray[float64],
+    unborn: Collection[int],
+) -> tuple[int | None, float]:
+    """``most_probable_class`` among the people born by the photo's date (#2752).
+
+    None when every class left has no chance: the face gets no suggestion.
+    """
+    if not unborn:
+        return most_probable_class(classes, probabilities)
+    person_id, probability = most_probable_class(
+        classes, without_unborn(classes, probabilities, unborn)
+    )
+    if probability <= 0:
+        return None, 0.0
+    return person_id, probability
+
+
 @dataclass
 class _Classifiers:
     """What ``train_faces`` predicts the person of an unlabelled face with."""
@@ -411,6 +436,8 @@ class _Classifiers:
     cluster: _MLPClassifier
     # A face in this cluster gets no cluster person.
     unknown_cluster: Cluster
+    # The birth dates of the user's people that have one (#2752).
+    birth_dates: Mapping[int, datetime.date] = field(default_factory=dict)
 
     def predicted_persons(self) -> dict[int, Person]:
         """The people the classifiers can predict that still exist, by id.
@@ -425,10 +452,11 @@ class _Classifiers:
 
 
 def existing_prediction(
-    persons: Mapping[int, Person], person_id: int, probability: float
+    persons: Mapping[int, Person], person_id: int | None, probability: float
 ) -> tuple[Person | None, float]:
-    """``person_id`` with its probability, or no one when that person is gone"""
-    person = persons.get(int(person_id))
+    """``person_id`` with its probability, or no one when that person is gone
+    or there is no prediction"""
+    person = None if person_id is None else persons.get(int(person_id))
     if person is None:
         return None, 0.0
     return person, probability
@@ -440,23 +468,31 @@ def assign_face_predictions(
     classification_probabilities: Sequence[float] | npt.NDArray[float64],
     classifiers: _Classifiers,
     persons: Mapping[int, Person],
+    taken: datetime.datetime | None = None,
 ) -> None:
+    """Suggest a person for ``face``, whose photo was taken at ``taken``: never
+    one born after it (#2752)."""
     face.cluster_probability = 0.0
     face.classification_probability = 0.0
+    unborn = unborn_people(classifiers.birth_dates, taken)
 
     # Find the probability in the probability array corresponding to the person
     # that we currently believe the face is, even a simulated "unknown" person
     if face.cluster_id != classifiers.unknown_cluster.id:
         face.cluster_person, face.cluster_probability = existing_prediction(
             persons,
-            *most_probable_class(classifiers.cluster.classes_, cluster_probabilities),
+            *most_probable_born_class(
+                classifiers.cluster.classes_, cluster_probabilities, unborn
+            ),
         )
 
     if classifiers.person:
-        classification_person, classification_probability = most_probable_class(
-            classifiers.person.classes_, classification_probabilities
+        classification_person, classification_probability = most_probable_born_class(
+            classifiers.person.classes_, classification_probabilities, unborn
         )
-        if classification_person:
+        if classification_person is None:
+            face.classification_person = None
+        elif classification_person:
             face.classification_person, face.classification_probability = (
                 existing_prediction(
                     persons, classification_person, classification_probability
@@ -475,6 +511,7 @@ def classify_face_page(
     # predictions of the faces after it onto the wrong face.
     faces_by_id = Face.objects.in_bulk(page_id)
     persons = classifiers.predicted_persons()
+    taken_by_face = photo_dates_of_faces(page_id) if classifiers.birth_dates else {}
     face_encodings_unknown_np = classifier_input(page_encodings)
     cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
     if classifiers.person:
@@ -503,6 +540,7 @@ def classify_face_page(
             classification_probabilities,
             classifiers,
             persons,
+            taken_by_face.get(face_id),
         )
         face_stack.append(face)
         if commit_time < datetime.datetime.now():
@@ -570,6 +608,7 @@ def train_and_predict(user: User, lrj: LongRunningJob) -> bool:
         person=person_classifier,
         cluster=cluster_classifier,
         unknown_cluster=get_unknown_cluster(user=user),
+        birth_dates=birth_dates_of(user),
     )
     encodings = list(unknown_encodings)
     ids = [int(face_id) for face_id in unknown_ids]

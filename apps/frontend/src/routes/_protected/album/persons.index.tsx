@@ -56,6 +56,7 @@ function AlbumPeople() {
     face_photo_url: "",
     face_url: "",
     group_ids: [],
+    birth_date: null,
   });
   // The ⋮ button the dialogs were opened from. Their menu items are gone when they close,
   // so the Modal's own focus return dropped focus on the page body: it goes back here instead

@@ -1,0 +1,12 @@
+/* The header line under a person's name (#2751): dimmed like the counts above it. */
+.line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.line:hover {
+  text-decoration: underline;
+}

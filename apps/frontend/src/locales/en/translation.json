@@ -1802,6 +1802,38 @@
     "numberingroup_one": "{{count}} person in {{name}}",
     "numberingroup_other": "{{count}} people in {{name}}"
   },
+  "personbirthdate": {
+    "menuadd": "Add birth date…",
+    "menuedit": "Birth date…",
+    "title": "Birth date of {{name}}",
+    "label": "Birth date",
+    "placeholder": "Pick a day",
+    "description": "Only you see it. It shows ages on this page and keeps face suggestions off photos taken before it.",
+    "remove": "Remove birth date",
+    "errorfuture": "The birth date can't be in the future.",
+    "photosbefore_one": "{{count}} photo of {{name}} is older. It shows no age. Check the date, or the face on it.",
+    "photosbefore_other": "{{count}} photos of {{name}} are older. They show no age. Check the date, or the faces on them.",
+    "born": "Born {{date}}",
+    "edit": "Edit the birth date of {{name}}",
+    "note": {
+      "years_one": "Age {{count}}",
+      "years_other": "Age {{count}}",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "newborn": "Newborn"
+    },
+    "old": {
+      "years_one": "{{count}} year old",
+      "years_other": "{{count}} years old",
+      "months_one": "{{count}} month old",
+      "months_other": "{{count}} months old",
+      "days_one": "{{count}} day old",
+      "days_other": "{{count}} days old",
+      "newborn": "Newborn"
+    }
+  },
   "persongroups": {
     "title": "Groups",
     "button": "Group: {{current}}",
@@ -2136,6 +2168,9 @@
     "rescanphotosfailed": "Could not start the rescan.",
     "renameperson": "Person {{personName}} was successfully renamed to {{newPersonName}}",
     "renamepersontitle": "Rename person",
+    "personbirthdatesaved": "Saved the birth date of {{name}}.",
+    "personbirthdateremoved": "Removed the birth date of {{name}}.",
+    "personbirthdatetitle": "Birth date",
     "deleteperson": "Person deleted",
     "deletepersontitle": "Delete person",
     "createpersongroup": "Group {{name}} created.",

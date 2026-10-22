@@ -25,6 +25,7 @@ const person = (id: string, name: string, groupIds: number[]): Person => ({
   face_photo_url: "hash",
   face_url: "",
   group_ids: groupIds,
+  birth_date: null,
 });
 
 const GROUPS: PersonGroup[] = [
