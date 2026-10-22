@@ -13,6 +13,12 @@ name: standalone-windows
 # keeps serving the previous release's zip while this one builds, or when it
 # fails (#2318). A failed release build opens an issue.
 #
+# Pull requests and pushes to dev that change what goes into the build (the
+# requirements, the build script, the dispatcher, the smoke test or this file)
+# build and smoke-test it too, without a tag: the zip is a workflow artifact.
+# The first build compiles everything (50-75 min); later ones reuse Nuitka's
+# compile cache (clcache for MSVC) from the last run, also a failed one.
+#
 # Dry run on a fork or a branch: push a numeric tag that points at the commit
 # to test (git tag 0.0.1 && git push origin 0.0.1), create a release for it
 # with `gh release create 0.0.1 --latest=false --notes test`, or dispatch with
@@ -21,6 +27,29 @@ name: standalone-windows
 on:
   release:
     types: [created]
+  pull_request:
+    paths:
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.standalone.txt'
+      - 'apps/backend/requirements.unified.txt'
+      - 'apps/backend/scripts/build_standalone.py'
+      - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/librephotos_standalone.py'
+      - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/settings/standalone.py'
+      - '.github/workflows/standalone-windows.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.standalone.txt'
+      - 'apps/backend/requirements.unified.txt'
+      - 'apps/backend/scripts/build_standalone.py'
+      - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/librephotos_standalone.py'
+      - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/settings/standalone.py'
+      - '.github/workflows/standalone-windows.yml'
   workflow_dispatch:
     inputs:
       tag:
@@ -44,10 +73,11 @@ permissions:
   # The failure alert.
   issues: write
 
-# Two runs for the same release would race to upload the same assets.
+# Two runs for the same release would race to upload the same assets. A new
+# push to a pull request replaces the build of the previous one.
 concurrency:
   group: standalone-windows-${{ inputs.tag || github.event.release.tag_name || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -129,7 +159,7 @@ jobs:
           cache-dependency-path: apps/frontend/yarn.lock
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.14"
           cache: pip
           cache-dependency-path: |
             apps/backend/requirements.txt
@@ -140,17 +170,29 @@ jobs:
         run: |
           python -m pip install -U pip wheel
           pip install -r requirements.txt -r requirements.standalone.txt
-      # Nuitka caches compiled C for the dependencies it has seen before; the
-      # first run is a compile of everything, later runs mostly link.
-      - uses: actions/cache@v6
+      # Nuitka caches the C it compiled (clcache for MSVC) per module; the first
+      # run compiles everything, later runs mostly hit the cache. Restored from
+      # the newest run for this Python and saved right after the build, also
+      # when the build or a later step fails, so a retry does not start over.
+      - name: Restore the Nuitka cache
+        id: nuitka-cache
+        uses: actions/cache/restore@v6
         with:
           path: ~\AppData\Local\Nuitka\Nuitka\Cache
-          key: nuitka-${{ runner.os }}-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}
-          restore-keys: nuitka-${{ runner.os }}-
+          key: nuitka-${{ runner.os }}-py3.14-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}-${{ github.run_id }}
+          restore-keys: |
+            nuitka-${{ runner.os }}-py3.14-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}-
+            nuitka-${{ runner.os }}-py3.14-
       - name: Build
         working-directory: apps/backend
         shell: bash
         run: python scripts/build_standalone.py --zip --version "$VERSION"
+      - name: Save the Nuitka cache
+        if: ${{ !cancelled() && steps.nuitka-cache.outcome == 'success' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ~\AppData\Local\Nuitka\Nuitka\Cache
+          key: ${{ steps.nuitka-cache.outputs.cache-primary-key }}
       - name: Check the checksums
         working-directory: apps/backend/build/standalone
         shell: bash

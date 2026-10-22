@@ -2,20 +2,26 @@ name: prebuilt-wheels
 
 # Builds the wheels apps/backend/requirements.txt references by URL, for the
 # packages PyPI ships no wheel for on a platform we run on, and attaches them to
-# a GitHub release: insightface and timezonefinder for Windows, insightface as
-# manylinux wheels for the Docker images and CI, ExifTool and ffmpeg for every platform.
+# a GitHub release: insightface and timezonefinder for Windows, insightface,
+# hdbscan and timezonefinder as manylinux wheels for the Docker images and CI,
+# ExifTool and ffmpeg for every platform.
+#
+# Only the wheels requirements.txt downloads from the release named by `tag`
+# are built, so a new Python (or one new wheel) gets a new release while the
+# lines that still point at an older release keep their files. Point the new
+# lines at the new tag first, then dispatch this workflow from that branch.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create or update, e.g. windows-wheels-2026.09.16"
+        description: "Release tag to create or update, e.g. windows-wheels-2026.10.22"
         required: true
 
 permissions:
   contents: write
 
 env:
-  TAG: ${{ inputs.tag || 'windows-wheels-2026.09.16' }}
+  TAG: ${{ inputs.tag || 'windows-wheels-2026.10.22' }}
 
 jobs:
   windows:
@@ -26,15 +32,19 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          # The Python of the Windows standalone build (requires-python).
+          python-version: "3.14"
       - name: Build every win_amd64 wheel requirements.txt references by URL
         shell: python
         working-directory: apps/backend
         run: |
-          import re, subprocess, sys
-          specs = re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-[^/]*win_amd64\.whl", open("requirements.txt").read(), re.M)
-          specs += re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-any\.whl", open("requirements.txt").read(), re.M)
-          specs += re.findall(r"^(ffmpeg-bin) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-manylinux[^ ]*\.whl", open("requirements.txt").read(), re.M)
+          import os, re, subprocess, sys
+          text = open("requirements.txt").read()
+          release = re.escape(f"/download/{os.environ['TAG']}/")
+          specs = re.findall(rf"^([A-Za-z0-9_.-]+) @ \S*{release}[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-[^/]*win_amd64\.whl", text, re.M)
+          specs += re.findall(rf"^([A-Za-z0-9_.-]+) @ \S*{release}[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-any\.whl", text, re.M)
+          specs += re.findall(rf"^(ffmpeg-bin) @ \S*{release}[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-manylinux[^ ]*\.whl", text, re.M)
+          print("Building", specs)
           subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "wheel"], check=True)
           for name, version in dict.fromkeys(specs):
               if name == "exiftool-bin":
@@ -69,16 +79,14 @@ jobs:
         shell: bash
         working-directory: apps/backend
         run: |
-          specs=$(grep -oE '^[A-Za-z0-9_.-]+ @ [^ ]*-cp3[0-9]+-(cp3[0-9]+|abi3)-[^ ]*manylinux_2_28_${{ matrix.arch }}\.whl' requirements.txt \
+          specs=$(grep -oE "^[A-Za-z0-9_.-]+ @ [^ ]*/download/${TAG}/[^ ]*-cp3[0-9]+-(cp3[0-9]+|abi3)-[^ ]*manylinux_2_28_${{ matrix.arch }}\.whl" requirements.txt \
             | sed -E 's|^([A-Za-z0-9_.-]+) @ .*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-(cp3[0-9]+)-.*|\1==\2 \3|' | sort -u || true)
-          # First run, before requirements.txt points at these wheels: build the pinned
-          # insightface for every CPython the images and CI use.
+          mkdir -p wheels
           if [ -z "$specs" ]; then
-            pin=$(grep -oE '^insightface==[0-9][^ ;]*' requirements.txt | head -1)
-            specs=$(printf '%s cp310\n%s cp312\n%s cp314\n' "$pin" "$pin" "$pin")
+            echo "No manylinux_2_28_${{ matrix.arch }} wheel in requirements.txt comes from $TAG"
+            exit 0
           fi
           echo "$specs"
-          mkdir -p wheels
           while read -r spec py; do
             docker run --rm -v "$PWD/wheels:/wheels" quay.io/pypa/manylinux_2_28_${{ matrix.arch }} bash -c "
               set -e
@@ -90,6 +98,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if ! compgen -G "apps/backend/wheels/*.whl" >/dev/null; then
+            echo "Nothing to upload"
+            exit 0
+          fi
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
             --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
           gh release upload "$TAG" apps/backend/wheels/*.whl --clobber
