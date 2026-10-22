@@ -8,7 +8,6 @@ import importlib.util
 import json
 import os
 import sys
-import unittest
 from collections import Counter
 from unittest import mock
 
@@ -19,21 +18,12 @@ _SCRIPT = os.path.join(
     "scripts",
     "typecheck.py",
 )
-# The script reads pyproject.toml with tomllib (3.11+). It only runs where mypy
-# does, and requirements.dev.txt installs mypy on 3.11+ only, so on the floor
-# Python (3.10) these tests skip.
-HAS_TOMLLIB = importlib.util.find_spec("tomllib") is not None
-needs_tomllib = unittest.skipUnless(
-    HAS_TOMLLIB, "scripts/typecheck.py needs Python 3.11+ (tomllib)"
-)
-
-if HAS_TOMLLIB:
-    # A unique name: dataclasses looks the module up in sys.modules while it loads.
-    _spec = importlib.util.spec_from_file_location("_typecheck_script", _SCRIPT)
-    assert _spec is not None and _spec.loader is not None
-    typecheck = importlib.util.module_from_spec(_spec)
-    sys.modules["_typecheck_script"] = typecheck
-    _spec.loader.exec_module(typecheck)
+# A unique name: dataclasses looks the module up in sys.modules while it loads.
+_spec = importlib.util.spec_from_file_location("_typecheck_script", _SCRIPT)
+assert _spec is not None and _spec.loader is not None
+typecheck = importlib.util.module_from_spec(_spec)
+sys.modules["_typecheck_script"] = typecheck
+_spec.loader.exec_module(typecheck)
 
 
 def _line(path, line, message, code, severity="error"):
@@ -50,7 +40,6 @@ def _line(path, line, message, code, severity="error"):
     )
 
 
-@needs_tomllib
 class ParseErrorsTest(SimpleTestCase):
     def test_keys_have_no_line_numbers_and_posix_paths(self):
         out = _line(
@@ -91,7 +80,6 @@ class ParseErrorsTest(SimpleTestCase):
         )
 
 
-@needs_tomllib
 class ExcessTest(SimpleTestCase):
     def test_counts_are_compared_as_a_multiset(self):
         have = Counter(["a", "a", "b"])
@@ -100,7 +88,6 @@ class ExcessTest(SimpleTestCase):
         self.assertEqual(typecheck.excess(allowed, have), ["c"])
 
 
-@needs_tomllib
 class MainTest(SimpleTestCase):
     def _run(
         self,
@@ -162,7 +149,6 @@ class MainTest(SimpleTestCase):
         self.assertEqual(self._run("mypy: can't read file 'x'", [], status=2), 2)
 
 
-@needs_tomllib
 class StrictViolationsTest(SimpleTestCase):
     def test_matches_modules_and_package_patterns(self):
         with mock.patch.object(
@@ -193,7 +179,6 @@ class StrictViolationsTest(SimpleTestCase):
         self.assertIn("typecheck", typecheck.strict_modules())
 
 
-@needs_tomllib
 class UnmatchedStrictPatternsTest(SimpleTestCase):
     def test_a_pattern_needs_a_module_or_a_package_member(self):
         modules = {"api.a", "api.pkg", "api.pkg.mod", "api.lone.mod", "typecheck"}
@@ -222,7 +207,6 @@ class UnmatchedStrictPatternsTest(SimpleTestCase):
         )
 
 
-@needs_tomllib
 class GrowthTest(SimpleTestCase):
     def _git(self, old_baseline):
         def fake(*args):

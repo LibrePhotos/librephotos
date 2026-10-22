@@ -1,15 +1,8 @@
 ipdb==0.13.13
-# ipython: the backend-gpu image (DEBUG=1) runs Python 3.10, but IPython 9.x requires
-# Python >= 3.11. Keep the python_version < "3.11" pin on 8.x (8.39.0 is the last
-# release supporting 3.10). renovate.json freezes the < "3.11" line.
-ipython==9.16.1; python_version >= "3.11"
-ipython==8.39.0; python_version < "3.11"
+ipython==9.16.1
 Pygments==2.21.0
 prompt-toolkit==3.0.53
-# pre-commit 4.7 requires Python >= 3.11; 4.6.2 is the last release supporting 3.10
-# (backend-gpu image, DEBUG=1). renovate.json freezes the < "3.11" line.
-pre-commit==4.7.0; python_version >= "3.11"
-pre-commit==4.6.2; python_version < "3.11"
+pre-commit==4.7.0
 coverage==7.16.2
 Faker==40.43.0
 setuptools==84.0.0
@@ -19,12 +12,11 @@ ruff==0.15.22
 vulture==2.16
 # Import contracts ([tool.importlinter] in pyproject.toml); lint-backend.yml installs this pin.
 import-linter==2.15
-# Type checking (scripts/typecheck.py). django-stubs and djangorestframework-stubs
-# require Python >= 3.11, and the backend-gpu image (DEBUG=1) runs 3.10. mypy stays
-# below 2.4 because djangorestframework-stubs 3.18.1 declares mypy<2.4.
-mypy==2.3.1; python_version >= "3.11"
-django-stubs==6.1.2; python_version >= "3.11"
-djangorestframework-stubs==3.18.1; python_version >= "3.11"
-types-pytz==2026.5.0.20261006; python_version >= "3.11"
-types-psutil==7.2.2.20260906; python_version >= "3.11"
-types-gevent==26.9.0.20261006; python_version >= "3.11"
+# Type checking (scripts/typecheck.py). mypy stays below 2.4 because
+# djangorestframework-stubs 3.18.1 declares mypy<2.4.
+mypy==2.3.1
+django-stubs==6.1.2
+djangorestframework-stubs==3.18.1
+types-pytz==2026.5.0.20261006
+types-psutil==7.2.2.20260906
+types-gevent==26.9.0.20261006

@@ -21,7 +21,6 @@ from django.db.models import Q, QuerySet
 from api.models.user import User
 
 if TYPE_CHECKING:
-    # typing.Self is Python 3.11+; the backend-gpu image runs 3.10.
     from typing import Self
 
 _M = TypeVar("_M", bound=models.Model)

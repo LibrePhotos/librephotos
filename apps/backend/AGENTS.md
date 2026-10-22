@@ -37,7 +37,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   for a baselined code. Exceptions and banned APIs (TID251) go in `pyproject.toml` under
   `extend-per-file-ignores` (a `per-file-ignores` table there would drop the baseline).
 - Supported Python is `requires-python` in `pyproject.toml` (ruff targets its floor). Code must run on the
-  floor, 3.10, the backend-gpu image; `test-backend.yml` runs the suite on each image's Python, and
+  floor, 3.11, the Windows standalone build; `test-backend.yml` runs the suite on each image's Python, and
   `api/tests/infra/test_python_versions.py` fails when an image, workflow or requirements marker leaves the range.
 - Scope owned rows through the manager (`api/models/scopes.py`), never an inline `owner=`/`cluster_owner=`/
   `started_by=`/`photo__owner=` filter: `Model.objects.owned_by(user)` or `get_owned(user, id=...)` to

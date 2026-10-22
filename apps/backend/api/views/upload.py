@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 # Epoch milliseconds have at least 11 digits from 1970-04-26 on; a shorter
 # number is a compact date ("20251011") or garbage, not a 1970 timestamp.
 _EPOCH_MS = re.compile(r"-?\d{11,}")
-_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC)
 # UTC offsets in use run from -12:00 to +14:00.
 _MAX_UTC_OFFSET_MINUTES = 14 * 60
 
@@ -100,23 +100,23 @@ def parse_device_timestamp(
             local = instant + utc_offset
         else:
             local = instant.astimezone(_zone(default_timezone))
-        return local.replace(tzinfo=datetime.timezone.utc)
+        return local.replace(tzinfo=datetime.UTC)
     if text.lstrip("+-").isdigit():
-        # Too short for epoch milliseconds. Python 3.11 would read eight
-        # digits as an ISO basic date, 3.10 (the GPU image) would not.
+        # Too short for epoch milliseconds, and fromisoformat would read
+        # eight digits as an ISO basic date.
         return None
     try:
         parsed = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
         return None
-    return parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.replace(tzinfo=datetime.UTC)
 
 
 def _zone(name: str) -> datetime.tzinfo:
     try:
         return ZoneInfo(name or "UTC")
     except (ZoneInfoNotFoundError, ValueError):
-        return datetime.timezone.utc
+        return datetime.UTC
 
 
 def generate_captions_wrapper(photo: Photo, commit: bool = True) -> None:

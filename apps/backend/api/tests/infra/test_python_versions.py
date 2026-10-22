@@ -3,9 +3,8 @@
 ``requires-python`` in ``pyproject.toml`` is the only place that names the
 supported range. These tests keep everything else inside it: the distro Python
 of every backend image, every Python a workflow sets up, the test matrix and
-the ``python_version`` markers in the requirements files. The suite itself runs
-on the floor (Python 3.10), so ``pyproject.toml`` is read with a regular
-expression instead of ``tomllib``. The image and workflow checks need the
+the ``python_version`` markers in the requirements files. ``pyproject.toml`` is
+read with a regular expression. The image and workflow checks need the
 repository checkout and skip inside the backend image, which ships
 ``apps/backend`` only.
 """
@@ -35,20 +34,18 @@ TEST_WORKFLOW = WORKFLOWS_DIR / "test-backend.yml"
 # the test matrix in test-backend.yml covers it.
 DISTRO_PYTHON: dict[str, Version] = {
     "ubuntu:noble": (3, 12),
-    "nvidia/cuda:*-ubuntu22.04": (3, 10),
 }
 # Our own base images, which the application images build FROM, and the
 # Dockerfile each one is built from (image-backend-base*.yml).
 OWN_BASE_IMAGES = {
     "reallibrephotos/librephotos-base": "deploy/docker/backend/base/Dockerfile",
-    "reallibrephotos/librephotos-base-gpu": "deploy/docker/backend-gpu/base/Dockerfile",
 }
 
 _REQUIRES_PYTHON = re.compile(r'^requires-python\s*=\s*"([^"]*)"', re.MULTILINE)
 _RANGE = re.compile(r"^\s*>=\s*3\.(\d+)\s*,\s*<\s*3\.(\d+)\s*$")
 _VERSION = re.compile(r"\b(\d+)\.(\d+)\b")
-# Case-sensitive on purpose: the GPU Dockerfile has an inline Python script with
-# a "from importlib import metadata" line.
+# Case-sensitive on purpose: a Dockerfile's inline Python script can have a
+# "from importlib import metadata" line.
 _FROM = re.compile(r"^FROM\s+(?:--platform=\S+\s+)?(\S+)", re.MULTILINE)
 _MARKER = re.compile(
     r"""python_version\s*(==|!=|<=|>=|<|>|not\s+in|in)\s*["']([^"']*)["']"""
@@ -197,8 +194,8 @@ def _compare(version: Version, operator: str, named: list[Version]) -> bool:
 
 
 # Standard-library names added after 3.10, with the version that added them.
-# Importing one at run time breaks the backend-gpu image (Python 3.10) at
-# import; ruff's target version catches syntax, not missing names. Inside
+# Importing one newer than the floor at run time breaks the Windows build
+# (Python 3.11) at import; ruff's target version catches syntax, not missing names. Inside
 # `if TYPE_CHECKING:` they are fine (with `from __future__ import annotations`
 # or a quoted annotation).
 NEWER_STDLIB: dict[str, dict[str, Version]] = {
@@ -221,10 +218,7 @@ NEWER_STDLIB_MODULES: dict[str, Version] = {
     "wsgiref.types": (3, 11),
 }
 # Files that only ever run on a newer Python, with the reason.
-NEWER_STDLIB_EXEMPT = {
-    # mypy and its stubs need 3.11+; requirements.dev.txt skips them on 3.10.
-    "scripts/typecheck.py",
-}
+NEWER_STDLIB_EXEMPT: set[str] = set()
 
 
 def _is_type_checking(test: ast.expr) -> bool:
@@ -357,7 +351,7 @@ class ImagesAndWorkflowsTests(unittest.TestCase):
     def test_every_image_runs_a_supported_python(self):
         supported = supported_versions(_pyproject())
         dockerfiles = backend_dockerfiles()
-        self.assertGreaterEqual(len(dockerfiles), 3)  # backend, backend-gpu, unified
+        self.assertGreaterEqual(len(dockerfiles), 2)  # backend, unified
         for dockerfile in dockerfiles:
             with self.subTest(str(dockerfile.relative_to(REPO_ROOT))):
                 self.assertIn(image_python(dockerfile), supported)
@@ -388,8 +382,6 @@ class PlantedViolationTests(unittest.TestCase):
 
     def test_known_base_images_resolve(self):
         self.assertEqual(distro_python("ubuntu:noble"), (3, 12))
-        cuda = "nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04"
-        self.assertEqual(distro_python(cuda), (3, 10))
 
     def test_an_unsupported_workflow_python_is_found(self):
         workflow = 'steps:\n  - uses: actions/setup-python@v7\n    with:\n      python-version: "3.9"\n'

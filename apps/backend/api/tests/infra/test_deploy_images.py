@@ -1,8 +1,8 @@
 """One backend entrypoint, and every deploy image and pip package pinned (issue #2375).
 
-* The backend, GPU and unified images start through one script,
+* The backend and unified images start through one script,
   ``deploy/docker/backend/entrypoint.sh``. Image differences are guarded blocks
-  in it (``nvidia-smi`` for GPU, ``SERVE_FRONTEND`` for unified) or ``ENV``
+  in it (``SERVE_FRONTEND`` for unified) or ``ENV``
   defaults in a Dockerfile, never a second copy that drifts. Every Dockerfile
   under ``deploy/docker/`` with a ``CMD``/``ENTRYPOINT`` copies it, apart from
   the images that run no backend (``NO_BACKEND_IMAGES``). The admin account is
@@ -66,7 +66,6 @@ OWN_IMAGE = re.compile(r"^reallibrephotos/[a-z0-9-]+:\$\{[A-Za-z_]+\}$")
 # Packages a Dockerfile may name directly in `pip install`, with the reason.
 DIRECT_PIP_PACKAGES = {
     "deploy/docker/backend/base/Dockerfile": {"pip"},
-    "deploy/docker/backend-gpu/base/Dockerfile": {"pip"},
 }
 FRONTEND_BUILDERS = (
     "deploy/docker/frontend/Dockerfile",
@@ -390,11 +389,10 @@ class DeployImagesTest(SimpleTestCase):
             "NO_BACKEND_IMAGES entries for Dockerfiles that are gone",
         )
 
-    def test_the_backend_gpu_and_unified_images_use_it(self):
+    def test_the_backend_and_unified_images_use_it(self):
         dockerfiles = self.dockerfiles()
         for path in (
             "deploy/docker/backend/Dockerfile",
-            "deploy/docker/backend-gpu/Dockerfile",
             "deploy/docker/unified/Dockerfile",
         ):
             with self.subTest(path=path):

@@ -1,7 +1,7 @@
 import os
 import tempfile
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import DEFAULT, patch
 
 import numpy as np
 from django.test import SimpleTestCase
@@ -139,35 +139,56 @@ class FaceLocationsErrorStatusTest(SimpleTestCase):
 
 
 class FaceAnalysisProvidersTest(SimpleTestCase):
-    """insightface runs on the providers service.onnx_session picks."""
+    """insightface's sessions come from service.onnx_session (issue #2445).
+
+    insightface builds them in model_zoo by provider name and passes no session
+    options, so a WebGPU session would silently run on the CPU.
+    """
 
     def setUp(self):
         cache = patch.dict(face_main.face_analysis_models, clear=True)
         cache.start()
         self.addCleanup(cache.stop)
 
-    def _load(self, providers):
+    def _load(self):
+        from insightface.model_zoo import model_zoo
+
+        built = []
+
+        def construct(**kwargs):
+            # What FaceAnalysis does for each .onnx file of the model set.
+            built.append(
+                model_zoo.PickableInferenceSession(
+                    "/models/det_10g.onnx",
+                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                    provider_options=None,
+                )
+            )
+            return DEFAULT
+
         with (
-            patch.object(face_main, "execution_providers", return_value=providers),
-            patch("insightface.app.FaceAnalysis") as analysis,
+            patch.object(face_main, "inference_session") as session,
+            patch("insightface.app.FaceAnalysis", side_effect=construct) as analysis,
         ):
             face_main._get_face_analysis("buffalo_sc")
-        return analysis
+        return analysis, session, built
 
-    def test_cuda_is_used_when_available(self):
-        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+    def test_every_model_session_is_built_by_onnx_session(self):
+        from insightface.model_zoo import model_zoo
 
-        analysis = self._load(providers)
+        original = model_zoo.PickableInferenceSession
+        analysis, session, built = self._load()
 
-        self.assertEqual(analysis.call_args.kwargs["providers"], providers)
-        # A negative ctx_id would switch every model back to the CPU.
+        session.assert_called_once_with("/models/det_10g.onnx")
+        self.assertEqual(built, [session.return_value])
+        self.assertNotIn("providers", analysis.call_args.kwargs)
+        # Swapped only while the models load.
+        self.assertIs(model_zoo.PickableInferenceSession, original)
+
+    def test_the_sessions_are_never_moved_back_to_the_cpu(self):
+        # A negative ctx_id makes insightface rebuild every session on the CPU.
+        analysis, _, _ = self._load()
+
         analysis.return_value.prepare.assert_called_once_with(
             ctx_id=0, det_size=(640, 640)
-        )
-
-    def test_a_cpu_build_stays_on_the_cpu(self):
-        analysis = self._load(["CPUExecutionProvider"])
-
-        analysis.return_value.prepare.assert_called_once_with(
-            ctx_id=-1, det_size=(640, 640)
         )

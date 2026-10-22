@@ -17,14 +17,10 @@ from api.metadata.tags import Tags
 from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
-    from typing import TypeAlias, Unpack
+    from typing import TypeAlias
 
     # (top, right, bottom, left, person name or None, *optional encoding).
-    # Unpack[...] instead of `*tuple[...]`: a star expression in a subscript is
-    # Python 3.11 syntax, and the backend-gpu image runs 3.10.
-    FaceLocation: TypeAlias = tuple[
-        int, int, int, int, str | None, Unpack[tuple[object, ...]]
-    ]
+    FaceLocation: TypeAlias = tuple[int, int, int, int, str | None, *tuple[object, ...]]
 
 if TYPE_CHECKING:
     import numpy as np

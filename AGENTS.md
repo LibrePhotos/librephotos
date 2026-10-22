@@ -42,7 +42,7 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 - `deploy/compose/docker-compose.yml` and `docker-compose.unified.yml` both read `librephotos.env`: a new backend
   variable goes into both compose files and `librephotos.env`, with the same `${key:-default}`
   (`apps/backend/api/tests/infra/test_compose_files_in_sync.py` fails otherwise). Build the unified image from the repo root.
-- One entrypoint, `deploy/docker/backend/entrypoint.sh`, for the backend, GPU and unified images: an image
+- One entrypoint, `deploy/docker/backend/entrypoint.sh`, for the backend and unified images: an image
   difference is a guarded block in it or an `ENV` default in that Dockerfile, never a copy. It touches the
   admin only through `manage.py createadmin`. Every `image:`/`FROM` names a tag other than `latest` and
   `pip install` only takes `-r requirements*.txt`, so Renovate owns every bump (pgautoupgrade majors come as
