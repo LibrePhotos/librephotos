@@ -45,6 +45,7 @@ from api.search.embedding_jobs import (
     photos_with_earlier_embeddings,
 )
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
+from api.thumbnails.posters import make_video_posters_job
 from api.video import color
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,18 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
         start=_probe_each_owner,
         seeded=True,
         count=lambda: unprobed_videos().count(),
+    ),
+    # Videos scanned by 1.4.0 or older have no still poster, so their grid
+    # tiles mount a player each (#2026). Seeded by migration 0198 when there
+    # are videos; resizes each poster from the big thumbnail, no ffmpeg.
+    UpgradeTask(
+        key="make_video_posters",
+        kind="automatic",
+        job_type=LongRunningJob.JOB_MAKE_VIDEO_POSTERS,
+        check=_until_clean_run(LongRunningJob.JOB_MAKE_VIDEO_POSTERS),
+        start=_as_admin(LongRunningJob.JOB_MAKE_VIDEO_POSTERS, make_video_posters_job),
+        seeded=True,
+        autostart=True,
     ),
 )
 

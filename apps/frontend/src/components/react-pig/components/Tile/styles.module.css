@@ -160,20 +160,13 @@
   filter: drop-shadow(0 0 2px var(--app-scrim-black-75));
 }
 
-/* The centred play icon on a video whose grid square is a still frame (#649). */
-.stillPlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 36px;
-  height: 36px;
-  margin: -18px 0 0 -18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: white;
-  background: var(--app-scrim-black-50);
-  border: 1.5px solid var(--app-scrim-white-80);
-  pointer-events: none;
+/* A video's clip over its poster while the tile is pointed at (#2026): it fades
+   in once it can play, so the poster shows until then and there is no flash. */
+.previewClip {
+  opacity: 0;
+  transition: opacity 150ms linear;
+}
+
+.previewClipPlaying {
+  opacity: 1;
 }

@@ -4,6 +4,8 @@ import {
   embeddedMediaUrl,
   faceUrl,
   photoUrl,
+  squarePosterSmallUrl,
+  squarePosterUrl,
   squareThumbnailSmallUrl,
   squareThumbnailUrl,
   videoUrl,
@@ -14,6 +16,8 @@ describe("media URL builders", () => {
   it.each([
     [squareThumbnailSmallUrl, "/media/square_thumbnails_small/abc"],
     [squareThumbnailUrl, "/media/square_thumbnails/abc"],
+    [squarePosterSmallUrl, "/media/square_thumbnails_small/abc.webp"],
+    [squarePosterUrl, "/media/square_thumbnails/abc.webp"],
     [bigThumbnailUrl, "/media/thumbnails_big/abc"],
     [photoUrl, "/media/photos/abc"],
     [videoUrl, "/media/photos/abc.mp4"],

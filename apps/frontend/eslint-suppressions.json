@@ -501,11 +501,6 @@
       "count": 2
     }
   },
-  "src/components/react-pig/components/Tile/Tile.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 4
-    }
-  },
   "src/components/settings/Profile.tsx": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1

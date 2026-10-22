@@ -36,6 +36,7 @@ from api.drf.params import parse_query
 from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
+from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS
 from api.models.user import User
 from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
@@ -856,6 +857,33 @@ class MediaServingView(APIView):
     def _is_uuid_format(value: str) -> bool:
         return len(value) == 36 and value.count("-") == 4
 
+    @staticmethod
+    def _video_poster_name(photo: Photo, path: str, fname: str) -> str | None:
+        """The file a request for a video's poster asks for, else ``None``.
+
+        A video's squares are its clips, and the stored names say so; the
+        WebP still beside each one, its poster in the grid (#2026), is asked
+        for as ``<square directory>/<image_hash>.webp``.
+        """
+        if not photo.video or not fname.endswith(".webp"):
+            return None
+        if path.strip("/") not in ANIMATED_THUMBNAIL_DIRS:
+            return None
+        return photo.image_hash + ".webp"
+
+    def _video_poster_response(
+        self, path: str, name: str, use_proxy: bool
+    ) -> HttpResponseBase:
+        if not use_proxy:
+            file_path = self._safe_media_join(path, name)
+            if file_path is None:
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+            return self._serve_file_direct(file_path, "image/webp")
+        response = HttpResponse()
+        response["Content-Type"] = "image/webp"
+        response["X-Accel-Redirect"] = self._protected_media_url(path, name)
+        return response
+
     def _generate_response(
         self,
         photo: Photo,
@@ -864,6 +892,9 @@ class MediaServingView(APIView):
         transcode_videos: bool,
         use_proxy: bool,
     ) -> HttpResponseBase:
+        poster = self._video_poster_name(photo, path, fname)
+        if poster is not None:
+            return self._video_poster_response(path, poster, use_proxy)
         if use_proxy:
             return self._generate_response_proxy(photo, path, fname, transcode_videos)
         return self._generate_response_direct(photo, path, fname, transcode_videos)

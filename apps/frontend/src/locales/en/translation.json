@@ -486,7 +486,8 @@
       "look_up_places": "Look Up Place Names",
       "unknown": "Other job ({{name}})",
       "move_photos": "Move Photos",
-      "deduplicate_faces": "Remove duplicate faces"
+      "deduplicate_faces": "Remove duplicate faces",
+      "make_video_posters": "Make Video Posters"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -1254,7 +1255,8 @@
     "select": "Select {{name}}",
     "hdrvideolabel": "HDR video",
     "hdrvideotaken": "HDR video taken {{date}}",
-    "rating": "Rated {{rating}} of 5 stars"
+    "rating": "Rated {{rating}} of 5 stars",
+    "withlength": "{{label}}, {{length}}"
   },
   "trash": {
     "restorePhoto": "Restore photo",
@@ -3193,6 +3195,10 @@
       "titlecount_one": "Read colour information of {{count}} older video",
       "titlecount_other": "Read colour information of {{count}} older videos",
       "description": "So HDR videos play with the right colours and get new thumbnails. Your videos are not changed."
+    },
+    "make_video_posters": {
+      "title": "Make still pictures of older videos",
+      "description": "The photo grid shows a still picture of each video and plays it only when you point at it. Videos added before this update get theirs now. Your videos are not changed."
     }
   },
   "movephotos": {

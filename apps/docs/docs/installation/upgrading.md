@@ -71,6 +71,7 @@ When a task is done, its row says so for a day, then goes; the card goes with it
 | Update search for the new search model | Automatic | Photos still have search data from an earlier search model. Search results may be incomplete until it finishes. |
 | Remove photo details from old thumbnails | Automatic | After updating a server that already had photos: thumbnails from 1.2.1 or older carry the photo's location ([details](#strip-thumbnail-metadata)). |
 | Read shutter speeds again | Automatic | After updating from 1.3.0 or older with shutter speeds stored wrongly ([details](#refresh-exposure-time)). |
+| Make still pictures of older videos | Automatic | <Since version="1.5.0" /> After updating a server that already had videos: the photo grid shows a still picture of each video and plays it only while you point at it ([Make Video Posters](../user-guide/job-system.md#make-video-posters)). |
 | Read colour information of older videos | Optional | Videos added before LibrePhotos checked their colours when scanning, while ffprobe is available ([Probe Videos](../user-guide/job-system.md#probe-videos)). |
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}

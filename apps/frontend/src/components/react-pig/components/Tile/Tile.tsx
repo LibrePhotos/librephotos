@@ -1,31 +1,12 @@
-import { IconPlayerPlayFilled as PlayerPlayFilled } from "@tabler/icons-react";
-import { DateTime } from "luxon";
 import { motion } from "motion/react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { parsePhotoTimestamp } from "../../../../util/dateUtils";
-import type { ImageItem, LaidOutTile, PigOverlay, PigSettings, ScrollSpeed } from "../../types";
-import getImageHeight from "../../utils/getImageHeight";
+import type { ImageItem, LaidOutTile, PigOverlay, PigSettings, ScrollSpeed, TileUrl } from "../../types";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
-
-// Removing a <video> frees neither its media player nor the fetch in flight, so
-// scrolling a large video library exhausts the browser's media element budget.
-function useReleaseOnDetach() {
-  const node = useRef<HTMLVideoElement | null>(null);
-  return useCallback((element: HTMLVideoElement | null) => {
-    if (element) {
-      node.current = element;
-      return;
-    }
-    const video = node.current;
-    node.current = null;
-    if (!video) return;
-    video.pause();
-    video.removeAttribute("src");
-    video.load();
-  }, []);
-}
+import { tileLabel } from "./tileLabel";
+import { showsPoster, TileMedia } from "./TileMedia";
+import { useClipPreview } from "./useClipPreview";
 
 type TileProps<T extends ImageItem> = {
   item: LaidOutTile<T>;
@@ -33,7 +14,7 @@ type TileProps<T extends ImageItem> = {
   containerWidth: number;
   /** Null until Pig has measured its container. */
   containerOffsetTop: number | null;
-  getUrl: (imageHash: string, size: number) => string;
+  getUrl: TileUrl;
   /** The id of the tile expanded in place, if any. */
   activeTileId: ImageItem["id"] | null;
   handleClick: (event: React.MouseEvent<HTMLButtonElement>, item: T) => void;
@@ -70,21 +51,12 @@ function TileComponent<T extends ImageItem>({
 }: TileProps<T>) {
   const { t } = useTranslation();
   const isTemp = !!item.isTemp;
-  // A placeholder has no image yet; a loaded tile always has one.
-  const imageHash = item.image_hash ?? "";
   const isSelectable = selectable;
   const isSelected = selected;
   const isExpanded = activeTileId !== null && activeTileId === item.id;
   const isVideo = !isTemp && item.type !== undefined && item.type.includes("video");
-  const [videoFailed, setVideoFailed] = useState(false);
-  // A video scanned with the animated previews off (#649) has a still square, shown like a
-  // photo's. So is a clip that fails to load: a still the list did not know about yet (a rescan
-  // replaced the clip), or else the tile's colour shows through the broken image as before.
-  const isClip = isVideo && item.animated_preview !== false && !videoFailed;
-  const isStillVideo = isVideo && !isClip;
-  const [isFullSizeLoaded, setFullSizeLoaded] = useState(isClip);
-  const gridVideoRef = useReleaseOnDetach();
-  const expandedVideoRef = useReleaseOnDetach();
+  // A video with a poster mounts its clip only while it is pointed at or focused (#2026).
+  const { previewing, handlers: previewHandlers } = useClipPreview(showsPoster(item));
 
   const TopRightOverlay = toprightoverlay;
   const BottomLeftOverlay = bottomleftoverlay;
@@ -118,17 +90,7 @@ function TileComponent<T extends ImageItem>({
     return `${item.style.height}px`;
   }
 
-  // Every image in the tile is decorative (alt=""), so the button itself says
-  // what it opens: the kind of media and, when known, when it was taken.
-  const label = useMemo(() => {
-    // exif_timestamp is the camera's wall clock tagged as UTC: read it in UTC.
-    const taken = item.date ? parsePhotoTimestamp(item.date) : null;
-    const date = taken?.isValid ? taken.toLocaleString(DateTime.DATETIME_MED) : null;
-    // The HDR badge is hidden from assistive tech, so the label says it.
-    if (isVideo && item.is_hdr) return date ? t("phototile.hdrvideotaken", { date }) : t("phototile.hdrvideolabel");
-    if (isVideo) return date ? t("phototile.videotaken", { date }) : t("phototile.video");
-    return date ? t("phototile.phototaken", { date }) : t("phototile.photo");
-  }, [item.date, item.is_hdr, isVideo, t]);
+  const label = useMemo(() => tileLabel(item, isVideo, t), [item, isVideo, t]);
 
   // The wrapper carries the position and animation; the button and the
   // selection checkbox sit side by side in it, because a checkbox inside a
@@ -149,6 +111,7 @@ function TileComponent<T extends ImageItem>({
         y: isExpanded ? offsetY : item.style.translateY,
       }}
       transition={springTransition}
+      {...previewHandlers}
       style={{
         outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : undefined,
         // Videos (and placeholders) have no dominant colour: a neutral fill
@@ -165,96 +128,16 @@ function TileComponent<T extends ImageItem>({
         onClick={event => handleClick(event, item)}
         aria-label={label}
       >
-        {useLqip && !isTemp && !isClip && (
-          // LQIP
-          <img
-            className={`${styles.pigImg} ${styles.pigThumbnail}${
-              isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
-            }`}
-            src={getUrl(imageHash, settings.thumbnailSize)}
-            loading="lazy"
-            width={item.style.width}
-            height={item.style.height}
-            alt=""
-          />
-        )}
-
-        {scrollSpeed === "slow" && !isClip && !isTemp && (
-          // grid image
-          <img
-            className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
-            src={getUrl(imageHash, getImageHeight(containerWidth))}
-            alt=""
-            onLoad={() => {
-              setFullSizeLoaded(true);
-              // Force a re-render to ensure the blur filter is removed
-              setTimeout(() => {
-                // Grid videos carry the thumbnail class too.
-                const thumbnails = document.querySelectorAll(`.${styles.pigThumbnail}`);
-                const loadedClass = styles.pigThumbnailLoaded;
-                thumbnails.forEach(thumbnail => {
-                  if (
-                    (thumbnail instanceof HTMLImageElement || thumbnail instanceof HTMLMediaElement) &&
-                    thumbnail.src.includes(imageHash) &&
-                    loadedClass !== undefined
-                  ) {
-                    thumbnail.classList.add(loadedClass);
-                  }
-                });
-              }, 50);
-            }}
-          />
-        )}
-
-        {scrollSpeed === "slow" && isClip && (
-          <video
-            ref={gridVideoRef}
-            className={`${styles.pigImg} ${styles.pigThumbnail}${
-              isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
-            }`}
-            src={getUrl(imageHash, getImageHeight(containerWidth))}
-            preload="metadata"
-            onCanPlay={() => setFullSizeLoaded(true)}
-            onMouseOver={event => event.currentTarget.play()}
-            onFocus={event => event.currentTarget.play()}
-            onMouseOut={event => event.currentTarget.pause()}
-            onBlur={event => event.currentTarget.pause()}
-            onError={() => setVideoFailed(true)}
-            muted
-            loop
-            playsInline
-          />
-        )}
-
-        {isExpanded && !isClip && !isTemp && (
-          // full size expanded image
-          <img className={styles.pigImg} src={getUrl(imageHash, settings.expandedSize)} alt="" />
-        )}
-
-        {isExpanded && isClip && (
-          // full size expanded video
-          <video
-            ref={expandedVideoRef}
-            className={styles.pigImg}
-            src={getUrl(imageHash, settings.expandedSize)}
-            preload="metadata"
-            onMouseOver={event => event.currentTarget.play()}
-            onFocus={event => event.currentTarget.play()}
-            onMouseOut={event => event.currentTarget.pause()}
-            onBlur={event => event.currentTarget.pause()}
-            onError={() => setVideoFailed(true)}
-            muted
-            loop
-            playsInline
-          />
-        )}
-
-        {isStillVideo && (
-          // A still frame must not pass for a photo: the play icon says it is a video.
-          <span className={styles.stillPlay} aria-hidden="true">
-            <PlayerPlayFilled size={18} />
-          </span>
-        )}
+        <TileMedia
+          item={item}
+          getUrl={getUrl}
+          useLqip={useLqip}
+          containerWidth={containerWidth}
+          scrollSpeed={scrollSpeed}
+          settings={settings}
+          isExpanded={isExpanded}
+          previewing={previewing}
+        />
 
         <div>
           <div className={styles.overlaysTopRight}>{TopRightOverlay && <TopRightOverlay item={item} />}</div>

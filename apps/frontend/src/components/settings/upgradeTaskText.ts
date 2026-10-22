@@ -2,14 +2,20 @@ import type { UpgradeTask } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
 
 /** The keys of `api.jobs.upgrade_tasks.UPGRADE_TASKS` in the backend that this app has words for. */
-type KnownTask = "semantic_search_conversion" | "strip_thumbnail_metadata" | "refresh_exposure_times" | "probe_videos";
+type KnownTask =
+  | "semantic_search_conversion"
+  | "strip_thumbnail_metadata"
+  | "refresh_exposure_times"
+  | "probe_videos"
+  | "make_video_posters";
 
 function isKnownTask(key: string): key is KnownTask {
   return (
     key === "semantic_search_conversion" ||
     key === "strip_thumbnail_metadata" ||
     key === "refresh_exposure_times" ||
-    key === "probe_videos"
+    key === "probe_videos" ||
+    key === "make_video_posters"
   );
 }
 
@@ -22,6 +28,7 @@ function knownTitle(key: KnownTask, count: number | null, t: TFunction): string 
     case "semantic_search_conversion":
     case "strip_thumbnail_metadata":
     case "refresh_exposure_times":
+    case "make_video_posters":
       return t(`upgradetasks.${key}.title`);
   }
 }

@@ -13,6 +13,8 @@ import {
   embeddedMediaUrl,
   faceUrl,
   photoUrl,
+  squarePosterSmallUrl,
+  squarePosterUrl,
   squareThumbnailSmallUrl,
   squareThumbnailUrl,
   videoUrl,
@@ -27,6 +29,10 @@ export const mediaUrl = {
   squareThumbnailSmall: (imageHash: string) => squareThumbnailSmallUrl(serverAddress, imageHash),
   /** Standard grid thumbnail. */
   squareThumbnail: (imageHash: string) => squareThumbnailUrl(serverAddress, imageHash),
+  /** A video's still poster for small grid tiles (#2026); only for a video whose `video_poster` is true. */
+  squarePosterSmall: (imageHash: string) => squarePosterSmallUrl(serverAddress, imageHash),
+  /** A video's still poster for standard grid tiles. */
+  squarePoster: (imageHash: string) => squarePosterUrl(serverAddress, imageHash),
   /** The lightbox picture and video poster. */
   bigThumbnail: (imageHash: string) => bigThumbnailUrl(serverAddress, imageHash),
   /** The original file. */

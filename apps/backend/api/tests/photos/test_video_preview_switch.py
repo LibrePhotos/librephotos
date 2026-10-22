@@ -126,7 +126,9 @@ class VideoSquareRenderTest(_MediaRootTestCase):
             thumbnail.square_thumbnail_small.name,
             os.path.join("square_thumbnails_small", photo.image_hash + ".mp4"),
         )
-        self.assertFalse(os.path.exists(self._path(SQUARES[0], photo, ".webp")))
+        # The stills stay beside the clips: they are the grid's poster (#2026).
+        self.assertEqual(_size(self._path(SQUARES[0], photo, ".webp")), (667, 500))
+        self.assertTrue(thumbnail.video_poster)
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_a_rescan_switched_off_replaces_the_clips_and_frees_them(self):
@@ -141,7 +143,7 @@ class VideoSquareRenderTest(_MediaRootTestCase):
             self.assertTrue(os.path.exists(self._path(directory, photo, ".webp")))
             self.assertFalse(os.path.exists(self._path(directory, photo, ".mp4")))
 
-    def test_a_rescan_switched_on_again_replaces_the_stills(self):
+    def test_a_rescan_switched_on_again_keeps_the_stills_as_posters(self):
         photo = self._video()
         for directory in SQUARES:
             self._write(directory, photo, ".webp")
@@ -157,7 +159,7 @@ class VideoSquareRenderTest(_MediaRootTestCase):
         self.assertTrue(thumbnail.square_thumbnail.name.endswith(".mp4"))
         for directory in SQUARES:
             self.assertTrue(os.path.exists(self._path(directory, photo, ".mp4")))
-            self.assertFalse(os.path.exists(self._path(directory, photo, ".webp")))
+            self.assertTrue(os.path.exists(self._path(directory, photo, ".webp")))
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_stills_already_there_are_kept(self):

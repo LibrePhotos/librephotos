@@ -39,7 +39,20 @@ export type ImageItem = {
    * it as an image with a play icon. Unset counts as a clip, as older backends make for every video.
    */
   animated_preview?: boolean;
+  /**
+   * True for a video with a still poster beside its clip (#2026): Tile shows the poster and mounts
+   * the clip only while the tile is pointed at. Unset, a clip tile mounts its clip as before.
+   */
+  video_poster?: boolean;
+  /** A video's length in seconds, as a string; Tile puts it in its label. */
+  video_length?: string;
 };
+
+/**
+ * Builds a tile's address from its `image_hash` and the height it is shown at. With `poster`, the
+ * address of a video's still poster rather than its clip (#2026).
+ */
+export type TileUrl = (imageHash: string, size: number, poster?: boolean) => string;
 
 /** A date group of tiles, for `groupByDate`. */
 export type GroupedImageItem<T extends ImageItem = ImageItem> = {
