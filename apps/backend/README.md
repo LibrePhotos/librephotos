@@ -52,7 +52,7 @@ Step-by-step installation instructions are available in our [documentation](http
 
 ### Backend
 
-- **Framework:** [Django 5](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
+- **Framework:** [Django 6](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
 - **Task Queue:** [Django-Q2](https://github.com/django-q2/django-q2)
 - **RAW Conversion:** [LibRaw](https://www.libraw.org/) via [rawpy](https://github.com/letmaik/rawpy)

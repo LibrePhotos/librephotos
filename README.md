@@ -17,7 +17,7 @@ This is a monorepo that consolidates what was previously five separate repositor
 
 | Path | What it is | Previous repo |
 |---|---|---|
-| [`apps/backend/`](apps/backend/) | Django 5 API, machine-learning pipelines, background jobs | `librephotos` |
+| [`apps/backend/`](apps/backend/) | Django 6 API, machine-learning pipelines, background jobs | `librephotos` |
 | [`apps/frontend/`](apps/frontend/) | React 19 + Vite web client, i18next localization | `librephotos-frontend` |
 | [`apps/mobile/`](apps/mobile/) | Expo mobile app (Android and iOS), offline-first | `librephotos-mobile` |
 | [`apps/docs/`](apps/docs/) | Docusaurus site published to https://docs.librephotos.com | `librephotos.docs` |
@@ -66,7 +66,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 
 ### Backend
 
-- **Framework:** [Django 5](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
+- **Framework:** [Django 6](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
 - **Task Queue:** [Django-Q2](https://github.com/django-q2/django-q2)
 - **RAW Conversion:** [LibRaw](https://www.libraw.org/) via [rawpy](https://github.com/letmaik/rawpy)

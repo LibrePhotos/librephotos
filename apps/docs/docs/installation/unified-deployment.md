@@ -51,6 +51,8 @@ Single container deployment serves both the LibrePhotos API and frontend from on
 
 **Existing PostgreSQL:**
 
+<Since version="1.5.0" /> LibrePhotos needs PostgreSQL 15 or newer (Django 6.1 dropped 14). Up to 1.4.0, PostgreSQL 14 worked. Upgrade an older server before you update LibrePhotos; the bundled Compose setup already runs 18.
+
 Create the database and a user that owns it. On first start the container runs `manage.py migrate` as this user, so it must be able to create tables — and since PostgreSQL 15, `GRANT ALL PRIVILEGES ON DATABASE` no longer conveys that. Make the app user the database owner instead:
 
 ```sql

@@ -96,11 +96,11 @@ docker exec -it backend python manage.py createsuperuser
 
 ## Native Windows Setup (no Docker)
 
-Requires Python 3.11 and Node 24 (the version in `apps/frontend/.nvmrc`); everything else, ffmpeg included, comes from pip.
+Requires Python 3.14 (<Since version="1.5.0" />; 3.11 up to 1.4.0) and Node 24 (the version in `apps/frontend/.nvmrc`); everything else, ffmpeg included, comes from pip.
 
 ```powershell
 cd apps\backend
-py -3.11 -m venv .venv
+py -3.14 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
 .\scripts\dev_windows.ps1 -DataDir C:\librephotos-devdata   # API on http://localhost:8000
 ```

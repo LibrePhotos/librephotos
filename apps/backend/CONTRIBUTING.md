@@ -21,7 +21,7 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 - **Git** - for version control
 - **Docker** and **Docker Compose** - for running the development environment
 - **Node.js 24** (the version in `apps/frontend/.nvmrc`) and **Yarn** - for frontend development (optional, if developing outside Docker)
-- **Python** - for backend development (optional, if developing outside Docker): any version in `requires-python` in `pyproject.toml` (3.11 to 3.14); 3.11 on native Windows, where the prebuilt wheels are cp311
+- **Python** - for backend development (optional, if developing outside Docker): the version in `requires-python` in `pyproject.toml` (3.14), the one the images, the Windows build and the prebuilt wheels (cp314) use
 
 ### Step 1: Clone the Monorepo
 
@@ -237,9 +237,9 @@ Permanent exceptions (tests, console scripts) and the banned APIs (`TID251`) liv
 `pyproject.toml`. Put exceptions under `[tool.ruff.lint.extend-per-file-ignores]`:
 a plain `per-file-ignores` table there would replace the baseline instead of adding
 to it. Ruff takes its target from `requires-python` in `pyproject.toml`, the one
-place that names the supported Python versions. Its floor is 3.11, the Python of
-the Windows standalone build, so ruff reports syntax that Python 3.11 cannot parse,
-and CI runs the test suite on 3.12 (the images' Python) for every pull request.
+place that names the supported Python versions. Its floor is 3.14, the Python of
+the images and the Windows standalone build, so ruff reports syntax that Python
+3.14 cannot parse, and CI runs the test suite on 3.14 for every pull request.
 
 **Pre-commit Hooks:**
 
