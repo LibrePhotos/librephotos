@@ -18,55 +18,62 @@ With Postgres v18+, mounting a volume to `/var/lib/postgresql/data` can fail in 
 
 ### Utilizing GPU Acceleration
 
-To leverage GPU acceleration for neural networks and face detection, follow these steps:
+<Since version="1.5.0" /> The regular backend image, `reallibrephotos/librephotos`, runs the machine learning models (face recognition, semantic search, scene tags, captions, OCR) on a GPU from any vendor: Intel, AMD and NVIDIA. It uses the WebGPU plugin of ONNX Runtime, which talks to the GPU through Vulkan. There is no separate GPU image anymore: releases up to 1.4.0 published `reallibrephotos/librephotos-gpu` (NVIDIA only, CUDA), which is no longer built. If you use it, switch the `backend` service back to `reallibrephotos/librephotos:${tag}` and follow the steps below for your GPU.
 
-1. **Update NVIDIA GPU Driver:**
-   Ensure you have the latest NVIDIA GPU driver installed on your system. You can download and install it from the official NVIDIA website.
+Without a GPU, or without the settings below, the same image runs every model on the CPU, as before. Nothing has to be configured for that.
 
-2. **Install NVIDIA Container Toolkit:**
-   Install the NVIDIA Container Toolkit, which enables GPU support within Docker containers. You can do this by running the following command:
+**Intel and AMD:** pass the GPU's device nodes to the backend container. The image includes Mesa's Vulkan drivers.
 
-   ```shell
-   sudo apt install nvidia-container-toolkit
-   ```
+```yaml
+services:
+  backend:
+    image: reallibrephotos/librephotos:${tag}
+    devices:
+      - /dev/dri:/dev/dri
+```
 
-3. **Update Docker Compose Configuration:**
-   Modify your `docker-compose.yml` file to specify the `reallibrephotos/librephotos-gpu` image as the backend for your application. Locate the relevant service definition for your backend, and update it to use the GPU-enabled image. For example:
+**NVIDIA:** install the current NVIDIA driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host, reserve the GPU for the backend, and ask for the `graphics` capability: it is what makes the toolkit hand the container NVIDIA's Vulkan driver. With only `compute`, the models stay on the CPU.
 
-   ```yaml
-   services:
-     backend:
-       image: reallibrephotos/librephotos-gpu:${tag}
-       # ... other configuration settings ...
-   ```
+```yaml
+services:
+  backend:
+    image: reallibrephotos/librephotos:${tag}
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+```
 
-4. **Configure GPU Resources in Docker Compose:**
-   Add a `deploy` section to your Docker Compose file to allocate GPU resources to the backend service. Ensure you specify the correct GPU driver, count, and capabilities. Here's an example of how to do this:
-   ```yaml
-   services:
-     backend:
-       image: reallibrephotos/librephotos-gpu:${tag}
-       # ... other configuration settings ...
-       deploy:
-         resources:
-           reservations:
-             devices:
-               - driver: nvidia
-                 count: 1
-                 capabilities: [gpu]
-   ```
+**Check that it works:** when a machine learning service loads its first model, the backend log says which device it got, once per service:
+
+```
+ML models run on the GPU through WebGPU: NVIDIA GeForce GTX 1660 Ti
+```
+
+or, without a usable GPU:
+
+```
+No GPU found for WebGPU, ML models run on the CPU. Docker: pass /dev/dri to the container for Intel and AMD GPUs, or set NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics for NVIDIA. ...
+```
+
+The results are the same as on the CPU. On a GTX 1660 Ti, the models ran about 1.6 to 5 times faster than on a 6-core Ryzen CPU.
 
 :::note
-The GPU image is only available for x86 architecture. ARM is not supported for the GPU image.
+GPUs in Docker on Linux have not been tested on every setup yet (see [#2445](https://github.com/LibrePhotos/librephotos/issues/2445)). If the log says no GPU was found although you passed one, check that `vulkaninfo --summary` lists it on the host. Some NVIDIA Container Toolkit versions do not mount the Vulkan driver into the container even with `graphics`. Report what you see on the issue. To keep the models off the GPU, set `ONNX_PROVIDERS=CPUExecutionProvider`.
 :::
 
 #### Which device the models run on
 
-Every machine learning model (face recognition, semantic search, scene tags, captions, OCR) runs on ONNX Runtime. The models use CUDA when the installed ONNX Runtime offers it, which the GPU image does, and fall back to the CPU otherwise; the CPU image needs no configuration.
+Every machine learning model runs on ONNX Runtime. The models use CUDA when the installed ONNX Runtime is a CUDA build (`onnxruntime-gpu`, which the images do not ship), then WebGPU when it found a GPU, then the CPU.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `ONNX_PROVIDERS` | CUDA if available, then CPU | Comma-separated ONNX Runtime execution providers, most preferred first. `CPUExecutionProvider` keeps the GPU image off the GPU, for example to leave it to another application. Names the installed ONNX Runtime does not offer are skipped. |
+| `ONNX_PROVIDERS` | CUDA if available, then WebGPU if it found a GPU, then CPU | Comma-separated ONNX Runtime execution providers, most preferred first; the first one decides the device. `CPUExecutionProvider` keeps the models off the GPU, for example to leave it to another application, and skips the GPU check. Names the installed ONNX Runtime does not offer are skipped. |
 | `ONNX_INTRA_OP_THREADS` | ONNX Runtime's default (one per physical core) | How many threads one model may use at a time. See [Threads per model](#threads-per-model). |
 | `CUDA_VISIBLE_DEVICES` | `0` when the container has `nvidia-smi` | Which GPUs CUDA may use, as a comma-separated list of indices (`1`, `0,1`). The entrypoint prints `nvidia-smi` and sets `0` unless you set it; releases up to 1.3.0 always set `0` in the GPU image. |
 
@@ -143,11 +150,11 @@ services:
 
 #### Threads per model
 
-Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through.
+Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. <Since version="1.5.0" /> The face recognition models follow it too; up to 1.4.0 the library that loads them did not pass the setting through.
 
 #### Memory the models keep between photos
 
-ONNX Runtime keeps a memory arena per model: once a model has needed a buffer, it holds on to it for as long as the model stays loaded. For text recognition (OCR) and captioning, whose input sizes change from photo to photo, that kept the memory of the largest photo they ever saw, several hundred MB each. Since 1.3.0 those two run without the arena, which costs a few percent of their speed; the other models keep it. `ONNX_CPU_ARENA=1` gives every model the arena again, `ONNX_CPU_ARENA=0` takes it from every model. The face recognition models keep their default either way.
+ONNX Runtime keeps a memory arena per model: once a model has needed a buffer, it holds on to it for as long as the model stays loaded. For text recognition (OCR) and captioning, whose input sizes change from photo to photo, that kept the memory of the largest photo they ever saw, several hundred MB each. Since 1.3.0 those two run without the arena, which costs a few percent of their speed; the other models keep it. `ONNX_CPU_ARENA=1` gives every model the arena again, `ONNX_CPU_ARENA=0` takes it from every model. <Since version="1.5.0" /> That includes the face recognition models, which kept their default up to 1.4.0.
 
 The services also start with `OPENBLAS_NUM_THREADS=1` unless you set it: they do their heavy work in ONNX Runtime, and otherwise every one of them reserved buffers for a thread per core.
 
@@ -261,7 +268,7 @@ The conversion a viewer is waiting on is bounded too, and for a different reason
 
 Unlike the cached copy, the live conversion is **not** niced: somebody is watching it, so it should outrank the background work rather than yield to it.
 
-`TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The CPU image has both. **The GPU image does not**: it is built on Ubuntu 22.04, whose ffmpeg is 4.4, so on that image these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. The same goes for a host supplying its own older ffmpeg. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
+`TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The images have both. A host supplying its own older ffmpeg (or the GPU image of releases up to 1.4.0, whose ffmpeg was 4.4) does not: there these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
 
 `TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
 

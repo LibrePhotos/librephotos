@@ -83,6 +83,6 @@ Run the thumbnail cleanup once after the update, so older thumbnails stop carryi
 
 Your `.env` is not tracked by git, so `git pull` will not touch your settings. After updating, compare it against the shipped `librephotos.env` to pick up any newly documented variables.
 
-If you edited `docker-compose.yml` yourself — for instance to use the GPU image or to set resource limits, as described in the [advanced usage guide](environment-variables.md) — `git pull` may refuse to update or report a conflict. Run `git stash` before the pull and `git stash pop` afterwards, then re-apply your changes on top of the updated file.
+If you edited `docker-compose.yml` yourself — for instance to pass a GPU to the backend or to set resource limits, as described in the [advanced usage guide](environment-variables.md) — `git pull` may refuse to update or report a conflict. Run `git stash` before the pull and `git stash pop` afterwards, then re-apply your changes on top of the updated file.
 
 :::

@@ -13,9 +13,8 @@ The `deploy/` directory in the monorepo contains the Docker configuration for ru
 - `deploy/compose/docker-compose.dev.yml` - Development overrides (builds from local source, hot reload)
 - `deploy/compose/docker-compose.unified.yml` - Single-container image with PostgreSQL; reads the same `librephotos.env` as `docker-compose.yml`, and `api/tests/infra/test_compose_files_in_sync.py` keeps the backend environment of the two files equal
 - `deploy/compose/docker-compose.e2e.yml` - End-to-end test stack (builds from local source)
-- `deploy/docker/backend/` - Backend Dockerfile (app layer) and `entrypoint.sh`, the one entrypoint of the backend, GPU and unified images. Image differences are guarded blocks in it (`nvidia-smi` for GPU, `SERVE_FRONTEND` for unified) or `ENV` defaults in a Dockerfile; `api/tests/infra/test_deploy_images.py` fails on a second copy
-- `deploy/docker/backend/base/` - Backend base image Dockerfile (system dependencies), published separately
-- `deploy/docker/backend-gpu/` and `deploy/docker/backend-gpu/base/` - CUDA (GPU) equivalents of the backend and its base
+- `deploy/docker/backend/` - Backend Dockerfile (app layer) and `entrypoint.sh`, the one entrypoint of the backend and unified images. Image differences are guarded blocks in it (`SERVE_FRONTEND` for unified) or `ENV` defaults in a Dockerfile; `api/tests/infra/test_deploy_images.py` fails on a second copy
+- `deploy/docker/backend/base/` - Backend base image Dockerfile (system dependencies, including the Vulkan loader and Mesa's Vulkan drivers for the GPU), published separately
 - `deploy/docker/frontend/` - Frontend Dockerfiles (production and development)
 - `deploy/docker/proxy/` - Nginx reverse proxy configuration
 - `deploy/docker/unified/` - Single-container image ([Single Container Deployment](../../installation/unified-deployment.md)) with its own standalone Dockerfile; build it locally from the repo root with `docker build -f deploy/docker/unified/Dockerfile .`
@@ -25,7 +24,7 @@ The `deploy/` directory in the monorepo contains the Docker configuration for ru
 When modifying Docker files, please ensure:
 
 1. **Cross-platform compatibility**: Test on both Linux and macOS/Windows (WSL2)
-2. **ARM64 support**: Images should build on both AMD64 and ARM64 (Apple Silicon, Raspberry Pi). The GPU images (`deploy/docker/backend-gpu/`) are the exception — they are AMD64-only by design, because the CUDA base has no ARM64 build. CI opts them out with `amd64-only: true` (see `.github/workflows/_build-image.yml`)
+2. **ARM64 support**: Images should build on both AMD64 and ARM64 (Apple Silicon, Raspberry Pi)
 3. **Layer optimization**: Order commands to maximize Docker layer caching
 4. **Security**: Don't run services as root when avoidable; use minimal base images
 
@@ -89,7 +88,7 @@ docker build -t reallibrephotos/librephotos-base:dev deploy/docker/backend/base
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend
 ```
 
-The base image is published to Docker Hub by `.github/workflows/image-backend-base.yml`, which runs only on pushes to `dev` that touch `deploy/docker/backend/base/**`. The GPU build has the same split — `deploy/docker/backend-gpu/base/Dockerfile` produces `reallibrephotos/librephotos-base-gpu:dev` — and the unified image (`deploy/docker/unified/`) also builds `FROM` the CPU base, so a base change affects it too. A release does not rebuild either base: it promotes the current `:dev` to `:<release-tag>`, and the release builds of the backend, GPU and unified images pass `BASE_TAG=<release-tag>`, so a published release keeps the base it shipped with.
+The base image is published to Docker Hub by `.github/workflows/image-backend-base.yml`, which runs only on pushes to `dev` that touch `deploy/docker/backend/base/**`. The unified image (`deploy/docker/unified/`) also builds `FROM` this base, so a base change affects it too. A release does not rebuild the base: it promotes the current `:dev` to `:<release-tag>`, and the release builds of the backend and unified images pass `BASE_TAG=<release-tag>`, so a published release keeps the base it shipped with.
 
 ### Modifying the Frontend Dockerfile
 
@@ -135,28 +134,9 @@ On a fresh stack, uploads are **off** by default: `librephotos.env` ships withou
 
 ## GPU Support
 
-The `deploy/docker/backend-gpu/` directory contains the GPU-enabled Dockerfile for NVIDIA CUDA support. There is no compose overlay for GPU — the image is built and published separately as `reallibrephotos/librephotos-gpu` by `.github/workflows/image-backend-gpu.yml`.
+<Since version="1.5.0" /> There is no separate GPU image. The backend and unified images ship ONNX Runtime's WebGPU plugin (`onnxruntime-ep-webgpu` in `apps/backend/requirements.txt`), and their base image installs `libvulkan1` and `mesa-vulkan-drivers`. `apps/backend/service/onnx_session.py` puts every model on the GPU when the plugin finds one, and on the CPU otherwise. To try a GPU, give the `backend` service `/dev/dri` (Intel, AMD) or an NVIDIA device reservation with `NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics`, as [Utilizing GPU Acceleration](../../installation/environment-variables.md#utilizing-gpu-acceleration) shows. The base image change only reaches a local build after you rebuild the base (see [Modifying the Backend Base Image](#modifying-the-backend-base-image)).
 
-To build it locally, run from the **monorepo root** (the Dockerfile's build context is the repo root, not `deploy/compose/`):
-
-```bash
-docker build -f deploy/docker/backend-gpu/Dockerfile \
-  --build-arg IMAGE_TAG=dev \
-  -t reallibrephotos/librephotos-gpu:dev .
-```
-
-This pulls `reallibrephotos/librephotos-base-gpu:dev` as its base rather than building it.
-
-:::note
-The GPU images are built for `linux/amd64` only; ARM is not supported. Do not spend effort making these Dockerfiles ARM64-compatible.
-:::
-
-To run it, point the `backend` service in `deploy/compose/docker-compose.yml` at the GPU image and add a device reservation — see [Utilizing GPU Acceleration](../../installation/environment-variables.md#utilizing-gpu-acceleration).
-
-Ensure you have:
-- NVIDIA drivers installed
-- nvidia-container-toolkit configured
-- Docker configured to use the nvidia runtime
+Up to 1.4.0, `deploy/docker/backend-gpu/` built a separate NVIDIA-only image, `reallibrephotos/librephotos-gpu`, on CUDA 12.1.1 and Ubuntu 22.04 (Python 3.10). It is gone, and so is the Python 3.10 floor it set.
 
 ## Common Issues
 
