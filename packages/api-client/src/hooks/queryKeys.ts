@@ -403,4 +403,6 @@ export const userKeys = {
   /** Photos a scan directory not saved yet would leave outside a user's library (admin, #2036). */
   scanDirectoryImpact: (userId: number, scanDirectory: string, uploadDirectory: string) =>
     [...userRoot, "scanDirectoryImpact", userId, scanDirectory, uploadDirectory] as const,
+  /** The folders of a library (#123): the signed-in user's own ("self"), or a user's for an admin. */
+  libraryFolders: (userId: number | "self") => [...userRoot, "libraryFolders", userId] as const,
 };

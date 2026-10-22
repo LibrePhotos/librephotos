@@ -8,9 +8,10 @@ edit dialog says how many photos the change leaves outside the new library
 the trash is emptied. Files on disk are never touched.
 
 Outside means: the photo's main file is under none of the user's library
-roots (scan directory, upload folder) and is not a Nextcloud copy, which the
-Nextcloud scan keeps in a folder of its own. Photos already in the trash, and
-removed ones, are left out.
+roots (scan directory, further library folders of #123, upload folder) and is
+not a Nextcloud copy, which the Nextcloud scan keeps in a folder of its own.
+Photos already in the trash, and removed ones, are left out. Removing a
+further library folder leaves its photos outside in the same way.
 """
 
 import copy

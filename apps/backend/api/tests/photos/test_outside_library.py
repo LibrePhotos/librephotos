@@ -26,6 +26,7 @@ from api.tests.utils import (
     api_error,
     create_test_file,
     create_test_job,
+    create_test_library_folder,
     create_test_photo,
     create_test_tag,
     create_test_user,
@@ -73,6 +74,15 @@ class PhotosOutsideLibraryTest(TestCase):
         # The default upload folder is inside the scan directory.
         default_upload = photo_at(self.sam, NEW, "uploads", "e.jpg")
         self.assertNotIn(default_upload.pk, self.outside_ids(NEW, ""))
+
+    def test_a_further_library_folder_is_part_of_the_library(self):
+        extra = os.path.join(ROOT, "family")
+        in_extra = photo_at(self.sam, extra, "g.jpg")
+        self.assertIn(in_extra.pk, self.outside_ids())
+        create_test_library_folder(self.sam, extra)
+        self.assertNotIn(in_extra.pk, self.outside_ids())
+        # It stays in the library the dialog would give the user.
+        self.assertNotIn(in_extra.pk, self.outside_ids(OLD))
 
     def test_nextcloud_copies_are_never_outside(self):
         copy = photo_at(self.sam, nextcloud_media_root(), str(self.sam.id), "f.jpg")

@@ -20,7 +20,6 @@ from api.directory_watcher.missing_guard import library_root_problem, too_many_m
 from api.models import File, Photo, User
 from api.photos import paths as photo_paths
 from api.photos.files import detach_missing_files, missing_files
-from api.photos.library_files import in_library
 
 #: Photos are loaded this many named files at a time.
 _BATCH = 500
@@ -65,10 +64,11 @@ def _removed_candidates(
     user: User, paths: Iterable[str]
 ) -> tuple[list[str], list[str]]:
     """Split ``paths`` into those gone from the library, each once, and the rest."""
+    library = photo_paths.library_of(user)
     candidates: dict[str, None] = {}
     ignored: list[str] = []
     for path in paths:
-        if path in candidates or not in_library(user, path) or os.path.exists(path):
+        if path in candidates or not library.contains(path) or os.path.exists(path):
             ignored.append(path)
         else:
             candidates[path] = None
@@ -105,7 +105,8 @@ def _named_file_paths(user: User, candidates: list[str]) -> tuple[set[str], list
             unmatched.append(path)
         named |= found
     # The library check again, on what the database holds.
-    return {path for path in named if in_library(user, path)}, unmatched
+    library = photo_paths.library_of(user)
+    return {path for path in named if library.contains(path)}, unmatched
 
 
 def _gone_files(user: User, named: set[str]) -> dict[UUID, tuple[Photo, list[File]]]:

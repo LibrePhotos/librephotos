@@ -164,3 +164,23 @@ export const ScanDirectoryImpact = z.object({
   outside_count: z.number(),
 });
 export type ScanDirectoryImpact = z.infer<typeof ScanDirectoryImpact>;
+
+/**
+ * One folder of a user's library (#123): the scan directory (`main`), a further library folder an
+ * admin added (`folder`, with its id to remove it), or the upload folder when it lies outside them.
+ */
+export const LibraryFolderEntry = z.object({
+  id: z.number().nullable(),
+  path: z.string(),
+  kind: z.enum(["main", "folder", "upload"]),
+  /** The folder can be read now; a scan skips it otherwise and does not flag its photos missing. */
+  available: z.boolean(),
+  photo_count: z.number(),
+});
+export type LibraryFolderEntry = z.infer<typeof LibraryFolderEntry>;
+
+/** `GET /library-folders/` and `/manage/user/<id>/library-folders/`: every folder of a library, the main one first. */
+export const LibraryFolders = z.object({
+  folders: z.array(LibraryFolderEntry),
+});
+export type LibraryFolders = z.infer<typeof LibraryFolders>;

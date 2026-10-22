@@ -3,7 +3,8 @@
 ``is_valid_path`` keeps a requested path inside a scan root; ``folder_path_q``
 selects the files recorded below a folder without picking up its siblings;
 ``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded;
-``library_roots`` names the folders a user's library lives in.
+``library_roots`` names the folders a user's library lives in, and
+``library_of`` reads them once for a run of checks.
 """
 
 from __future__ import annotations
@@ -11,11 +12,14 @@ from __future__ import annotations
 import os
 import os.path
 import re
+from dataclasses import dataclass
 from types import ModuleType
 from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db.models import Q
+
+from api.models.library_folder import LibraryFolder
 
 if TYPE_CHECKING:
     from api.models.user import User
@@ -40,20 +44,55 @@ def is_nextcloud_copy(path: str) -> bool:
     return is_valid_path(path, root) and not is_valid_path(root, path)
 
 
+def normalised_path(path: str) -> str:
+    return os.path.normpath(os.path.abspath(path))
+
+
+def library_folder_paths(user: User) -> list[str]:
+    """The further library folders of ``user`` (#123), normalised, in path order."""
+    if user.pk is None:
+        return []
+    paths = LibraryFolder.objects.owned_by(user).order_by("path")
+    return [normalised_path(path) for path in paths.values_list("path", flat=True)]
+
+
 def library_roots(user: User) -> list[str]:
     """The folders ``user``'s library lives in, absolute and normalised.
 
-    The scan directory, and the upload folder when it is set outside it
-    (``User.upload_root``). Empty for a user without a scan directory. The
-    photos the user may move stay inside these (#352).
+    The scan directory (the main folder) first, then the further library
+    folders an admin added (#123), then the upload folder when it is set
+    outside all of them (``User.upload_root``). Empty for a user without a
+    scan directory. Scans, moves (#352) and every "is this in the library"
+    check go by these. One query, for the further folders.
     """
     if not user.scan_directory:
         return []
-    roots = [os.path.normpath(os.path.abspath(user.scan_directory))]
-    upload_root = os.path.normpath(os.path.abspath(user.upload_root()))
-    if not is_valid_path(upload_root, roots[0]):
+    roots = [normalised_path(user.scan_directory), *library_folder_paths(user)]
+    upload_root = normalised_path(user.upload_root())
+    if not any(is_valid_path(upload_root, root) for root in roots):
         roots.append(upload_root)
     return roots
+
+
+@dataclass(frozen=True)
+class Library:
+    """Where a user's library lies, read once for a run of path checks."""
+
+    #: ``library_roots``: the main folder first.
+    roots: tuple[str, ...]
+
+    def root_of(self, path: str) -> str | None:
+        """The root holding ``path`` (or equal to it), or None."""
+        return next((root for root in self.roots if is_valid_path(path, root)), None)
+
+    def contains(self, path: str) -> bool:
+        """Whether ``path`` is a root of the library or lies inside one."""
+        return self.root_of(path) is not None
+
+
+def library_of(user: User) -> Library:
+    """``user``'s library: its roots, read from the database once."""
+    return Library(tuple(library_roots(user)))
 
 
 def is_valid_path(path: str, root_path: str) -> bool:

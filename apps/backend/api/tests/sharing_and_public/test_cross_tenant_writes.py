@@ -128,6 +128,14 @@ NOT_PHOTO_SCOPED = {
         "(photos_outside_library is owner-scoped; test_outside_library)"
     ),
     "api/dirtree/folders/": "admin-only; makes a folder on disk, touches no rows",
+    "api/manage/user/<int:user_id>/library-folders/": (
+        "admin-only; adds a library folder to the named user, refusing one that "
+        "overlaps another user's folders (test_library_folders)"
+    ),
+    "api/manage/user/<int:user_id>/library-folders/<int:folder_id>/": (
+        "admin-only; removes only the named user's own library folder "
+        "(owned_by; test_library_folders)"
+    ),
     "api/autoalbumgen/": "queues a job on the requester's own photos",
     "api/autoalbumtitlegen/": "queues a job on the requester's own albums",
     "api/stacks/detect/": "queues a job on the requester's own photos",

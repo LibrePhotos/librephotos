@@ -33,6 +33,7 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
+from api.models.library_folder import LibraryFolder
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
 from api.models.photo_metadata import MetadataEdit
@@ -118,6 +119,13 @@ def create_test_person(
         face_count=face_count,
         cluster_owner=cluster_owner,
         **kwargs,
+    )
+
+
+def create_test_library_folder(owner: User, path: str) -> LibraryFolder:
+    """A further library folder of ``owner`` at ``path`` (#123), stored normalised."""
+    return LibraryFolder.objects.create(
+        owner=owner, path=os.path.normpath(os.path.abspath(path))
     )
 
 

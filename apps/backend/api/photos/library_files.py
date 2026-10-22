@@ -2,10 +2,10 @@
 
 A rescan of chosen photos (#2214), a scan of files an outside watcher names
 (#900) and face detection in one folder (#524) all take paths or photos from
-a request. Only what lies inside the user's own library (the scan directory,
-or the upload folder, which may be elsewhere) is ever read; anything else is
+a request. Only what lies inside the user's own library is ever read; anything else is
 left out, so a request cannot make the scan read a file of another user or
-of the server.
+of the server. The library is every root of ``api.photos.paths.library_roots``:
+the scan directory, the further library folders (#123) and the upload folder.
 """
 
 import os
@@ -15,28 +15,19 @@ from uuid import UUID
 
 from api.models import Photo
 from api.models.user import User
-from api.photos.paths import is_valid_path
+from api.photos.paths import Library, library_of
 
 #: The most photos or paths one request may name. A bigger set is a library
 #: scan: the Library page's Scan or Rescan.
 MAX_REQUESTED = 1000
 
 
-def library_roots(user: User) -> list[str]:
-    """The folders the user's files live in: the scan directory and the upload folder.
-
-    Empty for a user without a scan directory or upload folder, who has no
-    files a scan could read.
-    """
-    roots = [user.scan_directory] if user.scan_directory else []
-    if user.scan_directory or user.upload_directory:
-        roots.append(user.upload_root())
-    return roots
-
-
 def in_library(user: User, path: str) -> bool:
-    """Whether ``path`` is one of the user's library roots or lies inside one."""
-    return any(is_valid_path(path, root) for root in library_roots(user))
+    """Whether ``path`` is one of the user's library roots or lies inside one.
+
+    One query: a caller checking many paths reads ``library_of`` once.
+    """
+    return library_of(user).contains(path)
 
 
 def scannable_files(
@@ -49,19 +40,25 @@ def scannable_files(
     walks (#2727). Left out: anything outside it, folders unless asked for,
     and paths that do not exist (any more).
     """
+    return _split(library_of(user), paths, folders)
+
+
+def _split(
+    library: Library, paths: Iterable[str], folders: bool = False
+) -> tuple[list[str], list[str]]:
     kept: dict[str, None] = {}
     ignored: list[str] = []
     for path in paths:
-        if path not in kept and _scannable(user, path, folders):
+        if path not in kept and _scannable(library, path, folders):
             kept[path] = None
         else:
             ignored.append(path)
     return list(kept), ignored
 
 
-def _scannable(user: User, path: str, folders: bool) -> bool:
+def _scannable(library: Library, path: str, folders: bool) -> bool:
     """Whether ``path`` is an existing file (or, with ``folders``, folder) of the library."""
-    if not in_library(user, path):
+    if not library.contains(path):
         return False
     return os.path.isfile(path) or (folders and os.path.isdir(path))
 
@@ -95,11 +92,12 @@ def rescan_targets(user: User, photo_ids: Iterable[UUID]) -> RescanTargets:
         .select_related("main_file")
         .prefetch_related("files")
     )
+    library = library_of(user)
     found = photo_count = 0
     paths: dict[str, None] = {}
     for photo in photos:
         found += 1
-        kept, _ = scannable_files(user, _photo_paths(photo))
+        kept, _ = _split(library, _photo_paths(photo))
         if kept:
             photo_count += 1
             paths.update(dict.fromkeys(kept))

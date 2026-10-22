@@ -4,15 +4,18 @@ A photo has exactly one owner, so no two users may point at overlapping trees
 (#2034); ``normalize_scan_directory`` checks a directory an admin or the user
 sets, and ``auto_create_user_directory`` gives a new account its own folder
 when the ``AUTO_CREATE_USER_DIRECTORY`` site setting is on (#2038).
+``normalize_library_folder`` checks a further library folder an admin adds
+(#123): no two users' folders, nor two folders of one library, overlap.
 """
 
 import logging
 import os
+from collections.abc import Iterator
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 
-from api.models import User
+from api.models import LibraryFolder, User
 from api.photos.paths import is_valid_path
 
 logger = logging.getLogger(__name__)
@@ -70,23 +73,58 @@ def reject_overlap_with_another_user(
     if current and comparable_path(abs_scan_directory) == comparable_path(current):
         return
 
+    for username, taken, kind in _taken_by_others(user):
+        if directories_overlap(abs_scan_directory, taken):
+            raise ValidationError(
+                f"{label} overlaps the {kind} of user "
+                f"'{username}' ({taken}). Every photo has "
+                f"exactly one owner, so two users cannot scan the same files."
+            )
+
+
+def _taken_by_others(user: User | None) -> Iterator[tuple[str, str, str]]:
+    """(username, directory, kind) of every folder another user's library uses.
+
+    The scan directory, the upload folder and the further library folders
+    (#123) of every user but ``user``.
+    """
     # exclude() with two lookups drops only the users that have neither.
     others = User.objects.exclude(scan_directory="", upload_directory="")
+    folders = LibraryFolder.objects.select_related("owner")
     if user is not None and user.pk is not None:
         others = others.exclude(pk=user.pk)
+        folders = folders.exclude(LibraryFolder.objects.owner_q(user))
 
     others = others.only("pk", "username", "scan_directory", "upload_directory")
     for other in others.iterator():
-        for taken, kind in (
-            (other.scan_directory, "library"),
-            (other.upload_directory, "upload folder"),
-        ):
-            if taken and directories_overlap(abs_scan_directory, taken):
-                raise ValidationError(
-                    f"{label} overlaps the {kind} of user "
-                    f"'{other.username}' ({taken}). Every photo has "
-                    f"exactly one owner, so two users cannot scan the same files."
-                )
+        if other.scan_directory:
+            yield other.username, other.scan_directory, "library"
+        if other.upload_directory:
+            yield other.username, other.upload_directory, "upload folder"
+    for folder in folders.only("path", "owner__username").iterator():
+        yield folder.owner.username, folder.path, "library folder"
+
+
+def reject_overlap_with_own_folders(
+    abs_directory: str, user: User, label: str, folder_id: int | None = None
+) -> None:
+    """Refuse a directory that overlaps one of ``user``'s further library folders.
+
+    The roots of one library never overlap (#123): a folder inside another
+    would be walked twice and its photos counted under both. ``folder_id``
+    is the folder being set, which never conflicts with itself.
+    """
+    if user.pk is None:
+        return
+    folders = LibraryFolder.objects.owned_by(user)
+    if folder_id is not None:
+        folders = folders.exclude(pk=folder_id)
+    for path in folders.values_list("path", flat=True):
+        if directories_overlap(abs_directory, path):
+            raise ValidationError(
+                f"{label} overlaps the library folder {path} of this user."
+                " Remove that folder from the library first."
+            )
 
 
 def normalize_scan_directory(
@@ -121,8 +159,57 @@ def normalize_scan_directory(
         raise ValidationError(f"{label} does not exist")
 
     reject_overlap_with_another_user(abs_scan_directory, user, label, field)
+    if user is not None and field == "scan_directory":
+        reject_overlap_with_own_folders(abs_scan_directory, user, label)
 
     return abs_scan_directory
+
+
+#: The most further library folders one user may have (#123).
+MAX_LIBRARY_FOLDERS = 50
+
+
+def normalize_library_folder(path: str, user: User) -> str:
+    """Return ``path`` as a usable further library folder of ``user`` (#123).
+
+    It must be an existing folder inside ``settings.DATA_ROOT``, overlap no
+    folder of another user's library (#2034) and no folder of ``user``'s own
+    library: the scan directory, the upload folder or another library folder.
+    ``user`` must have a scan directory, the library's main folder. Raises
+    ``ValidationError`` naming the ``path`` field otherwise.
+    """
+    label = "The folder"
+    abs_path = os.path.normpath(os.path.abspath(path))
+    if not user.scan_directory:
+        raise ValidationError({"path": "Set the user's scan directory first."})
+    if LibraryFolder.objects.owned_by(user).count() >= MAX_LIBRARY_FOLDERS:
+        raise ValidationError(
+            {"path": f"A library has at most {MAX_LIBRARY_FOLDERS} further folders."}
+        )
+    if not is_valid_path(abs_path, settings.DATA_ROOT):
+        raise ValidationError({"path": f"{label} must be inside the data root."})
+    if not os.path.isdir(abs_path):
+        raise ValidationError({"path": f"{label} does not exist."})
+    try:
+        _reject_overlap_with_main_folders(abs_path, user)
+        reject_overlap_with_own_folders(abs_path, user, label)
+        reject_overlap_with_another_user(abs_path, user, label, field="")
+    except ValidationError as error:
+        raise ValidationError({"path": error.detail}) from error
+    return abs_path
+
+
+def _reject_overlap_with_main_folders(abs_path: str, user: User) -> None:
+    """Refuse a further folder that overlaps the scan directory or upload folder."""
+    for taken, kind in (
+        (user.scan_directory, "scan directory"),
+        (user.upload_root(), "upload folder"),
+    ):
+        if directories_overlap(abs_path, taken):
+            raise ValidationError(
+                f"The folder overlaps the {kind} of this user ({taken}),"
+                " which is already in the library."
+            )
 
 
 def auto_create_user_directory(user: User, claim_existing: bool = False) -> None:

@@ -16,7 +16,11 @@ from api.metadata import reader
 from api.metadata.reader import MetadataFileMissingError, MetadataReadError, all_tags
 from api.photos.paths import path_label
 from api.tests.metadata.exiftool_harness import RealExifToolTestCase
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_library_folder,
+    create_test_photo,
+    create_test_user,
+)
 
 
 def url_of(photo_id: object) -> str:
@@ -86,6 +90,15 @@ class RawMetadataViewTest(RealExifToolTestCase):
         files = self.get(self.owner).json()["files"]
 
         self.assertEqual(files[0]["path_label"], "IMG_1.jpg")
+
+    def test_a_file_in_a_further_library_folder_is_labelled_from_it(self):
+        self.owner.scan_directory = self.library + "-main"
+        self.owner.save()
+        create_test_library_folder(self.owner, self.library)
+
+        files = self.get(self.owner).json()["files"]
+
+        self.assertEqual(files[0]["path_label"], f"{self.folder}/IMG_1.jpg")
 
     def test_another_user_gets_a_404(self):
         response = self.get(create_test_user())

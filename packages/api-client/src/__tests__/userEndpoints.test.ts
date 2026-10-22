@@ -84,6 +84,28 @@ describe("managing users (admin)", () => {
     expect(impact.outside_count).toBe(4136);
   });
 
+  it("lists, adds and removes the folders of a library (#123)", async () => {
+    const answer = {
+      folders: [
+        { id: null, path: "/data/anna", kind: "main", available: true, photo_count: 12 },
+        { id: 3, path: "/data/family", kind: "folder", available: false, photo_count: 0 },
+      ],
+    };
+    const { client, requests } = fakeServer(answer);
+    const own = await endpoints.fetchOwnLibraryFolders(client);
+    expect(own.folders.map(folder => folder.kind)).toEqual(["main", "folder"]);
+    await endpoints.fetchLibraryFolders(client, 2);
+    await endpoints.addLibraryFolder(client, 2, "/data/family");
+    const left = await endpoints.removeLibraryFolder(client, 2, 3);
+    expect(left.folders[1]?.available).toBe(false);
+    expect(requests.map(request => [request.method, request.url, request.body])).toEqual([
+      ["GET", "https://demo.example.com/api/library-folders/", undefined],
+      ["GET", "https://demo.example.com/api/manage/user/2/library-folders/", undefined],
+      ["POST", "https://demo.example.com/api/manage/user/2/library-folders/", { path: "/data/family" }],
+      ["DELETE", "https://demo.example.com/api/manage/user/2/library-folders/3/", undefined],
+    ]);
+  });
+
   it("deletes a user (204, no body)", async () => {
     const { client, requests } = fakeServer(null);
     await expect(endpoints.deleteUser(client, 2)).resolves.toBeUndefined();

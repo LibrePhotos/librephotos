@@ -16,7 +16,7 @@ from api.metadata.reader import (
     all_tags,
     sidecar_files_for_photo,
 )
-from api.photos.paths import path_label
+from api.photos.paths import library_of, path_label
 
 if TYPE_CHECKING:
     from api.models.photo import Photo
@@ -51,7 +51,8 @@ def raw_metadata(photo: Photo) -> RawMetadata:
     if main_file is None or not os.path.isfile(main_file.path):
         logger.info("photo %s: no main file on disk for the raw metadata", photo.id)
         raise MainFileMissingError("the photo's file is not on disk")
-    root = photo.owner.scan_directory
+    # The library folder holding the photo (#123); its sidecars sit beside it.
+    root = library_of(photo.owner).root_of(main_file.path)
     try:
         main_groups = all_tags(main_file.path)
     except MetadataFileMissingError as error:
