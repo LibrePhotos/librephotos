@@ -174,6 +174,22 @@ class WaitUntilTest(SimpleTestCase):
         self.assertEqual(0.0, self.now[0])
 
 
+class MigrationsTest(SimpleTestCase):
+    def test_migrate_check_runs_against_the_data_folder(self):
+        app = MagicMock()
+
+        smoke.check_migrations(app)
+
+        app.manage.assert_called_once_with("migrate", "--check", "--no-input")
+
+    def test_unapplied_migrations_fail(self):
+        app = MagicMock()
+        app.manage.side_effect = smoke.SmokeError("manage migrate exited with 1")
+
+        with self.assertRaisesRegex(smoke.SmokeError, "unapplied migrations"):
+            smoke.check_migrations(app)
+
+
 class LogInTest(SimpleTestCase):
     def test_the_admin_is_created_from_the_environment_and_logged_in(self):
         token = access_token({"user_id": "3"})

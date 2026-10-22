@@ -32,7 +32,7 @@
       "enabled": false
     },
     {
-      "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = the Windows standalone build's Python 3.11, ceiling = newest Python CI runs), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
+      "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = the oldest Python a build runs, 3.14 for the images and the Windows standalone build; ceiling = the first Python a dependency lacks wheels for, 3.15 for onnxruntime), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
       "matchDepTypes": ["requires-python"],
       "enabled": false
     },
@@ -109,7 +109,7 @@
       "enabled": false
     },
     {
-      "description": "A new Ubuntu release swaps the distro Python under the backend base image. Move between LTS releases by hand after a test build.",
+      "description": "A new Ubuntu release swaps the distro Python under the backend base image (resolute = 26.04 ships 3.14; the prebuilt wheels are cp314). Move between LTS releases by hand after a test build.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ubuntu"],
       "enabled": false
@@ -121,7 +121,7 @@
       "allowedVersions": "/^[0-9]+\\.[0-9]*[02468](\\.|$)/"
     },
     {
-      "description": "The Python a workflow sets up is a target, not a tool to keep current: the Windows standalone build and the prebuilt win_amd64 wheels are cp311, pinned by URL in apps/backend/requirements.txt. Renovate counts 3.11 -> 3.14 as a minor update, which the github-actions group automerges. Move it by hand together with the wheels.",
+      "description": "The Python a workflow sets up is a target, not a tool to keep current: the Windows standalone build and the prebuilt wheels are cp314, pinned by URL in apps/backend/requirements.txt. Renovate counts 3.14 -> 3.15 as a minor update, which the github-actions group automerges. Move it by hand together with requires-python, the base image and the wheels.",
       "matchManagers": ["github-actions"],
       "matchDepNames": ["python"],
       "enabled": false
@@ -140,11 +140,6 @@
       "matchPackageNames": ["postgres"],
       "matchUpdateTypes": ["major"],
       "enabled": false
-    },
-    {
-      "description": "Django 6 requires Python >= 3.12, which the Windows standalone build (Python 3.11, cp311 wheels) cannot install. Stay on the 5.2 LTS until that build moves to 3.12.",
-      "matchPackageNames": ["Django", "django"],
-      "allowedVersions": "<6"
     },
     {
       "description": "nwsapi is pinned to 2.2.13 through resolutions in apps/frontend/package.json: 2.2.28 makes jsdom's selector matching 4-6x slower, and the ModalTagEdit tests time out at vitest's 5 s default. Check a newer release's test timings by hand before moving the pin.",

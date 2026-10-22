@@ -73,11 +73,12 @@ permissions:
   # The failure alert.
   issues: write
 
-# Two runs for the same release would race to upload the same assets. A new
-# push to a pull request replaces the build of the previous one.
+# Two runs for the same release would race to upload the same assets. A
+# running build is never cancelled, also on a pull request: it fills the
+# compile cache the next build starts from, and only the newest push waits.
 concurrency:
   group: standalone-windows-${{ inputs.tag || github.event.release.tag_name || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   build:

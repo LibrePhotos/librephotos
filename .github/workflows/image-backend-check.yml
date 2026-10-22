@@ -1,0 +1,63 @@
+name: image-backend-check
+
+# image-backend.yml and image-backend-base.yml build and push on dev only, and
+# the backend image builds FROM the published librephotos-base:dev. A pull
+# request that changes the base or the requirements (a new Python, a wheel
+# pinned by URL) would only fail after merge. This builds both images from the
+# pull request, base first, on amd64 and arm64, pushes nothing, and imports
+# the native packages in the result.
+on:
+  pull_request:
+    paths:
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.unified.txt'
+      - 'deploy/docker/backend/**'
+      - '.github/workflows/image-backend-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-backend-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-26.04, arch: amd64 }
+          - { runner: ubuntu-26.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # The docker driver keeps both builds in the local image store, so the
+      # backend's FROM reallibrephotos/librephotos-base:${BASE_TAG} finds the
+      # base built one step earlier instead of pulling the published one.
+      - name: Build the base image
+        run: docker build -t reallibrephotos/librephotos-base:pr deploy/docker/backend/base
+      - name: Build the backend image on it
+        run: |
+          docker build -f deploy/docker/backend/Dockerfile \
+            --build-arg BASE_TAG=pr --build-arg IMAGE_TAG=pr --build-arg GIT_HASH="$GITHUB_SHA" \
+            -t librephotos-backend:pr .
+      - name: The native packages import, Django checks pass
+        env:
+          CHECK: |
+            import sys
+            import django, onnxruntime, insightface, timezonefinder, hdbscan, faiss, rawpy, pyvips, cv2, sklearn, psycopg
+            print(sys.version)
+            print("Django", django.__version__, "onnxruntime", onnxruntime.__version__)
+            print("libvips", pyvips.version(0), pyvips.version(1), "LibRaw", rawpy.libraw_version)
+            assert sys.version_info[:2] == (3, 14), sys.version
+        run: |
+          docker run --rm -e CHECK librephotos-backend:pr python -c "$CHECK"
+          docker run --rm \
+            -e SECRET_KEY=image-check -e BASE_DATA=/tmp/librephotos -e BASE_LOGS=/tmp/librephotos/logs \
+            -e DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite \
+            librephotos-backend:pr bash -c 'mkdir -p /tmp/librephotos/logs && python manage.py check --fail-level WARNING'
