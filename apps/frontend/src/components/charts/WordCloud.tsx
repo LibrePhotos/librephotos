@@ -1,3 +1,4 @@
+import type { WordCloudResponse } from "@librephotos/api-client";
 import { Title } from "@mantine/core";
 import { IconCloud } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -5,19 +6,24 @@ import React, { useMemo, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
+import { useThingLabel } from "../../hooks/useThingLabel";
 import { WORD_CLOUD_COLORS } from "../../theme/chartColors";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 
 type WordItem = {
+  /** What the word searches for: the stored name. */
   label: string;
+  /** What the cloud shows, when that differs: a thing in the interface language. */
+  text?: string;
   y: number;
   x?: number;
 };
 
 type PositionedWord = {
   label: string;
+  text: string;
   fontSize: number;
   x: number;
   y: number;
@@ -90,11 +96,12 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
     const logScaled = normalizedValue ** 0.6; // Compress the range a bit
     // Shrink a word that would not fit the width at all: it was never placed,
     // so long names (often the top person) silently went missing.
+    const text = word.text ?? word.label;
     const fontSize = Math.min(
       minFontSize + logScaled * (maxFontSize - minFontSize),
-      (containerWidth - 4) / estimateTextWidth(word.label, 1)
+      (containerWidth - 4) / estimateTextWidth(text, 1)
     );
-    const width = estimateTextWidth(word.label, fontSize);
+    const width = estimateTextWidth(text, fontSize);
     const height = fontSize * 1.2;
 
     // Archimedean spiral placement algorithm
@@ -131,6 +138,7 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
         if (!hasCollision) {
           positionedWords.push({
             label: word.label,
+            text,
             fontSize,
             x,
             y,
@@ -145,6 +153,28 @@ function layoutWords(words: WordItem[], containerWidth: number, containerHeight:
   });
 
   return positionedWords;
+}
+
+/**
+ * The words of one cloud. Things show in the interface language (#2744) and
+ * still search for the stored English word.
+ */
+function cloudWords(
+  wordCloud: WordCloudResponse | undefined,
+  type: string,
+  thingLabel: (thing: string) => string
+): WordItem[] {
+  if (!wordCloud) return [];
+  if (type === "captions") {
+    return wordCloud.captions.map(word => ({ ...word, text: thingLabel(word.label) }));
+  }
+  if (type === "people") {
+    return wordCloud.people;
+  }
+  if (type === "location") {
+    return wordCloud.locations;
+  }
+  return [];
 }
 
 export function WordCloud(props: Props) {
@@ -178,20 +208,8 @@ export function WordCloud(props: Props) {
     navigate({ to: `/search/${encodeURIComponent(label)}` });
   };
 
-  const words = useMemo(() => {
-    if (!wordCloud) return [];
-
-    if (type === "people") {
-      return wordCloud.people;
-    }
-    if (type === "captions") {
-      return wordCloud.captions;
-    }
-    if (type === "location") {
-      return wordCloud.locations;
-    }
-    return [];
-  }, [wordCloud, type]);
+  const thingLabel = useThingLabel();
+  const words = useMemo(() => cloudWords(wordCloud, type, thingLabel), [wordCloud, type, thingLabel]);
 
   // 0 until the ResizeObserver reports a width; a negative svg width is invalid.
   const chartWidth = Math.max(0, width - 50);
@@ -250,7 +268,9 @@ export function WordCloud(props: Props) {
                   transition: "opacity 0.15s ease, transform 0.15s ease",
                 }}
               >
-                {word.label}
+                {/* The stored word a translated thing searches for (search knows only that one). */}
+                {word.text !== word.label && <title>{word.label}</title>}
+                {word.text}
               </text>
             );
           })}

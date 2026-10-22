@@ -147,5 +147,11 @@ Everything below is relative to
   adds loads without a code change. To offer it in the Profile language picker, give it an entry in
   `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
   `src/i18n.test.ts` fails until both are there.
+- The names of things (the words the tagger finds, `apps/backend/service/tags/tags.txt`) are their own
+  namespace, `locales/<lang>/tags.json`, loaded only by the pages that show things
+  (`hooks/useThingLabel.ts`). `locales/en/tags.json` names every word as itself and is the source a
+  Weblate component translates; `src/i18n.tags.test.ts` fails when it and `tags.txt` differ, so a
+  word added to `tags.txt` goes into `tags.json` in the same change. Only the display is translated:
+  links and search keep the English word.
 - In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find
   miscellaneous functions.

@@ -68,6 +68,9 @@ export const SiteSettings = z.object({
   map_api_key: z.string(),
   map_api_provider: z.string(),
   map_tile_provider: z.string(),
+  // The language online map providers name places in, e.g. "de", "pt-BR" or "de,en" (#2745);
+  // "" for the provider's default. Older backends lack it and always use that default.
+  geocode_language: z.string().optional(),
   captioning_model: z.string(),
   // Whether captions can be generated: the image captioning switch is on and a model is picked.
   // Sent to everyone (#2211); older backends lack it and have no caption job either.

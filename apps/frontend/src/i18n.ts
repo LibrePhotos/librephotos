@@ -16,14 +16,27 @@ const localeFiles = import.meta.glob<{ default: ResourceKey }>([
   "./locales/*/translation.json",
   "!./locales/en/translation.json",
 ]);
+// The names of the things the tagger finds (#2744), one chunk per language,
+// English included: an English name is the stored tag itself, so nothing waits
+// for it, and only the pages that show things load the namespace.
+const tagFiles = import.meta.glob<{ default: ResourceKey }>("./locales/*/tags.json");
+
+type LocaleLoader = () => Promise<{ default: ResourceKey }>;
+
 // "./locales/pt_BR/translation.json" -> "pt_BR"
-const localeLoaders = new Map(Object.entries(localeFiles).map(([path, load]) => [path.split("/")[2] ?? path, load]));
+const byLanguage = (files: Record<string, LocaleLoader>) =>
+  new Map(Object.entries(files).map(([path, load]) => [path.split("/")[2] ?? path, load]));
+
+const namespaceLoaders: Record<string, Map<string, LocaleLoader> | undefined> = {
+  translation: byLanguage(localeFiles),
+  tags: byLanguage(tagFiles),
+};
 
 const lazyLocaleBackend: BackendModule = {
   type: "backend",
   init: () => {},
-  read(language, _namespace, callback) {
-    const load = localeLoaders.get(language);
+  read(language, namespace, callback) {
+    const load = namespaceLoaders[namespace]?.get(language);
     if (!load) {
       // Region variants ("de-DE", "en-US") and unknown codes have no file of
       // their own; an empty bundle lets i18next fall through to "de" / "en".

@@ -40,6 +40,7 @@ from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
+from api.models.upload_followup_state import UploadFollowupState
 from api.photos.media_files import get_or_create_file
 
 fake = Faker()
@@ -264,6 +265,11 @@ def create_test_job(
 def create_test_upgrade_task_state(key: str, **kwargs: Any) -> UpgradeTaskState:
     """The row of the post-upgrade task ``key`` (``api.jobs.upgrade_tasks``), made now."""
     return UpgradeTaskState.objects.create(key=key, **kwargs)
+
+
+def create_test_upload_followup_state(user: User, **kwargs: Any) -> UploadFollowupState:
+    """The upload follow-up state of ``user`` (``api.jobs.upload_followups``): idle, nothing pending."""
+    return UploadFollowupState.objects.create(user=user, **kwargs)
 
 
 def create_test_cluster(owner: User, **kwargs: Any) -> Cluster:

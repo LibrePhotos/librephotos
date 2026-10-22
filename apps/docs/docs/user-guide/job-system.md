@@ -38,6 +38,8 @@ Goes through every photo in the database and flags the ones whose file can no lo
 
 Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Find Things** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
 
+<Since version="1.5.0" /> Uploads start it too: a few minutes after your last upload, LibrePhotos embeds the uploaded photos that have no embedding yet and rebuilds the similarity index, then runs **Generate Face Embeddings** for faces without one. A burst of uploads gets one run. Up to 1.4.0, uploaded photos only appeared in semantic search after the next scan or restart. The first start after the upgrade does this once for every user with photos.
+
 ### Find Things
 
 Finds the things in your photos (beach, dog, sunset, ...) with OpenCLIP, for the Things albums and for search. It runs automatically after each scan and covers every photo that has no things yet, including the ones an earlier run did not reach because it was cancelled or failed. <Since version="1.4.0" /> Up to 1.3.0, a normal scan only covered photos added since the last run, so photos a cancelled run left behind stayed without things until a full scan.

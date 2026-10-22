@@ -1,7 +1,8 @@
 import logging
 import os
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from typing import NamedTuple
 
 from django.db.models import Q, QuerySet
 
@@ -96,6 +97,17 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
                 logger.exception("Could not store the tags of %s", obj.image_hash)
 
 
+class _EmbedOptions(NamedTuple):
+    """How one run embeds its batches."""
+
+    # Re-embedding photos of an earlier model: rebuild the index as it goes.
+    converting: bool
+    # Store the tags of the same image-tower run for photos without any.
+    with_tags: bool
+    # Called after every batch (the upload follow-ups renew their lease).
+    heartbeat: Callable[[], object] | None = None
+
+
 def _rebuild_index_while_converting(user: User) -> None:
     try:
         build_image_similarity_index(user)
@@ -105,7 +117,10 @@ def _rebuild_index_while_converting(user: User) -> None:
 
 
 def batch_calculate_clip_embedding(
-    user: User, wait_for_tags: bool = False, job_id: str | None = None
+    user: User,
+    wait_for_tags: bool = False,
+    job_id: str | None = None,
+    heartbeat: Callable[[], object] | None = None,
 ) -> None:
     """Embed the user's photos that lack an OpenCLIP embedding.
 
@@ -114,7 +129,8 @@ def batch_calculate_clip_embedding(
     not reached yet are left to it; the tags job queues this job again when it
     finishes, to fill the gaps and rebuild the index. When tagging is on, the
     photos embedded here get the tags of the same run if they have none, so
-    re-embedding a library after an upgrade re-tags it too.
+    re-embedding a library after an upgrade re-tags it too. ``heartbeat`` is
+    called after every batch: the upload follow-ups renew their lease with it.
     """
     lrj = LongRunningJob.claim(
         user, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, job_id
@@ -140,7 +156,9 @@ def batch_calculate_clip_embedding(
         _rebuild_index_while_converting(user)
 
     try:
-        _embed_batches(user, lrj, missing, converting, with_tags)
+        _embed_batches(
+            user, lrj, missing, _EmbedOptions(converting, with_tags, heartbeat)
+        )
     except JobCancelledError:
         # What was embedded so far is stored; the next run picks up the rest
         # and rebuilds the index then. Mid-conversion the index only answers
@@ -165,8 +183,7 @@ def _embed_batches(
     user: User,
     lrj: LongRunningJob,
     missing: QuerySet[Photo],
-    converting: bool,
-    with_tags: bool,
+    options: _EmbedOptions,
 ) -> None:
     """Embed ``missing`` in batches, reporting progress on ``lrj``.
 
@@ -192,15 +209,21 @@ def _embed_batches(
         try:
             valid_objs = photos_with_existing_thumbnail(objs)
             if valid_objs:
-                store_clip_embeddings(valid_objs, with_tags=with_tags)
+                store_clip_embeddings(valid_objs, with_tags=options.with_tags)
         except Exception:
             # One failed batch (the sidecar down, a bad reply) must not end
             # the run; its photos stay missing and the next run retries them.
             logger.exception("Error calculating clip embeddings")
 
         lrj.update_progress(current=done_count, target=count)
+        if options.heartbeat is not None:
+            options.heartbeat()
         since_rebuild += len(objs)
-        if converting and since_rebuild >= INDEX_REBUILD_EVERY and done_count < count:
+        if (
+            options.converting
+            and since_rebuild >= INDEX_REBUILD_EVERY
+            and done_count < count
+        ):
             _rebuild_index_while_converting(user)
             since_rebuild = 0
 

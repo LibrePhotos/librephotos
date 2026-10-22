@@ -8,6 +8,8 @@ on:
       # The frontend compiles the shared API client from source.
       - 'packages/api-client/**'
       - 'scripts/check-shared-deps*.mjs'
+      # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
+      - 'apps/backend/service/tags/tags.txt'
       - '.github/workflows/lint-frontend.yml'
   pull_request:
     paths:
@@ -15,6 +17,8 @@ on:
       # The frontend compiles the shared API client from source.
       - 'packages/api-client/**'
       - 'scripts/check-shared-deps*.mjs'
+      # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
+      - 'apps/backend/service/tags/tags.txt'
       - '.github/workflows/lint-frontend.yml'
 
 concurrency:

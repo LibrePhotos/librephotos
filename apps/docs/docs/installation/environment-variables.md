@@ -601,6 +601,7 @@ The same settings have environment variables, which set the first-run default in
 | `MAPBOX_API_KEY` | `mapApiKey` | _(empty)_ | The key for the geocoding provider, as in the example above. |
 | `MAP_API_PROVIDER` | `mapApiProvider` | `exiftool` | The geocoding provider: `exiftool` (offline, no key needed), `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. It applies only until the setting is first stored, which happens with the first place lookup or a save in Site Settings, so changing it on an install that has already geocoded photos does nothing: change **Map Provider** in Site Settings instead. <Since version="1.4.0" /> The default was `nominatim` up to 1.3.0, and the compose files did not pass it on. |
 | `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site Settings, without a restart. |
+| `GEOCODE_LANGUAGE` | _(none)_ | _(empty)_ | <Since version="1.5.0" /> The language online map providers name places in: a code such as `de` or `pt-BR`, or for Nominatim a list in order of preference such as `de,en`. Empty asks for the provider's default, as before. Mapbox and ExifTool ignore it. You can change it afterwards in Site Settings, as **Place name language**; see [Place names in your language](../user-guide/places.md#place-names-in-your-language). |
 
 ### Removed variables
 
