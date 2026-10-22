@@ -149,8 +149,38 @@ def _detect_and_save_faces(
         local_orientation=photo.local_orientation,
     )
     _save_new_faces(scan, regions or [])
-    _save_new_faces(scan, extractor.extract_from_face_service(thumbnail_path))
+    detected = extractor.extract_from_face_service(thumbnail_path)
+    _save_new_faces(scan, big_enough_faces(scan, detected))
     logger.info("image %s: %s face(s) saved", photo.image_hash, scan.saved)
+
+
+def big_enough_faces(
+    scan: _FaceScan, face_locations: list[extractor.FaceLocation]
+) -> list[extractor.FaceLocation]:
+    """The detected faces at least the owner's ``min_face_size`` tall (#2749).
+
+    The size is a share of the big thumbnail's shorter side, so it means the
+    same for portrait and landscape photos; 0 keeps every face. Only the face
+    service's detections are filtered: face regions from the file and faces
+    drawn by hand are the user's own and always kept.
+    """
+    min_face_size = scan.photo.owner.min_face_size
+    if min_face_size <= 0:
+        return face_locations
+    height, width = scan.big_thumbnail_image.shape[:2]
+    min_height = min_face_size * min(height, width)
+    kept = [
+        location
+        for location in face_locations
+        if location[2] - location[0] >= min_height
+    ]
+    if len(kept) < len(face_locations):
+        logger.debug(
+            "image %s: %s face(s) below the minimum face size skipped",
+            scan.photo.image_hash,
+            len(face_locations) - len(kept),
+        )
+    return kept
 
 
 @dataclass

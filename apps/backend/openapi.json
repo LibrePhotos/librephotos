@@ -17519,6 +17519,12 @@
             "type": "number",
             "format": "double"
           },
+          "min_face_size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 0.5,
+            "minimum": 0
+          },
           "slideshow_interval": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -23604,6 +23610,12 @@
             "type": "number",
             "format": "double"
           },
+          "min_face_size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 0.5,
+            "minimum": 0
+          },
           "skip_raw_files": {
             "type": "boolean",
             "readOnly": true
@@ -23650,6 +23662,7 @@
           "last_name",
           "llm_settings",
           "min_cluster_size",
+          "min_face_size",
           "min_samples",
           "nextcloud_scan_directory",
           "nextcloud_server_address",

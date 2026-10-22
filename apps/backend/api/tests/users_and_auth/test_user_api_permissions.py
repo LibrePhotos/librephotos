@@ -62,6 +62,7 @@ class UserTest(TestCase):
         "min_cluster_size",
         "confidence_unknown_face",
         "min_samples",
+        "min_face_size",
         "burst_detection_rules",
         "skip_raw_files",
         "stack_raw_jpeg",

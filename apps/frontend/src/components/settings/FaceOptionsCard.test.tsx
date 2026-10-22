@@ -1,6 +1,7 @@
 /**
  * The Cluster Selection Epsilon choices of the Face Options card (#1996): they are distances
  * between unit-length face encodings, and a saved Off (0) shows as Off rather than as a fallback.
+ * The minimum face size (#2749): Off, 2, 4 and 8 %, with a drawing that marks the skipped faces.
  */
 import { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -10,10 +11,12 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { defined } from "../../util/defined.test-utils";
 import { FaceOptionsCard } from "./FaceOptionsCard";
 
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key, i18n: { resolvedLanguage: "en" } }),
+}));
 vi.mock("./SettingsSection", () => ({ SectionLink: () => null }));
 
-function userWith(cluster_selection_epsilon: number): User {
+function userWith(cluster_selection_epsilon: number, min_face_size?: number): User {
   return User.parse({
     id: 1,
     username: "admin",
@@ -36,6 +39,7 @@ function userWith(cluster_selection_epsilon: number): User {
     min_cluster_size: 0,
     min_samples: 1,
     cluster_selection_epsilon,
+    min_face_size,
     llm_settings: null,
   });
 }
@@ -72,11 +76,11 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(epsilon: number) {
+async function render(epsilon: number, minFaceSize?: number) {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <FaceOptionsCard user={userWith(epsilon)} onChange={onChange} />
+        <FaceOptionsCard user={userWith(epsilon, minFaceSize)} onChange={onChange} />
       </MantineProvider>
     );
   });
@@ -86,16 +90,21 @@ function labelOf(radio: HTMLInputElement): string | undefined {
   return container.querySelector(`label[for="${radio.id}"]`)?.textContent ?? undefined;
 }
 
-/** The radios of the group that has an Off choice: the only one on this card. */
-function epsilonRadios(): HTMLInputElement[] {
+/** The radios of the group that has a choice with this value. */
+function radiosWith(value: string): HTMLInputElement[] {
   const radios = [...container.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
-  const off = radios.find(radio => labelOf(radio) === "settings.size.off");
-  if (!off) throw new Error("no Cluster Selection Epsilon group");
-  return radios.filter(radio => radio.name === off.name);
+  const choice = radios.find(radio => radio.value === value);
+  if (!choice) throw new Error(`no group with a ${value} choice`);
+  return radios.filter(radio => radio.name === choice.name);
 }
 
-function checkedLabel(): string | undefined {
-  const checked = epsilonRadios().find(radio => radio.checked);
+/** Normal (0.95) is only a Cluster Selection Epsilon choice. */
+const epsilonRadios = () => radiosWith("0.95");
+/** 8 % (0.08) is only a minimum face size choice. */
+const minFaceSizeRadios = () => radiosWith("0.08");
+
+function checkedLabel(radios = epsilonRadios()): string | undefined {
+  const checked = radios.find(radio => radio.checked);
   return checked ? labelOf(checked) : undefined;
 }
 
@@ -122,5 +131,43 @@ describe("FaceOptionsCard: Cluster Selection Epsilon", () => {
       defined(epsilonRadios()[3]).click();
     });
     expect(onChange).toHaveBeenCalledWith({ cluster_selection_epsilon: 1 });
+  });
+});
+
+describe("FaceOptionsCard: minimum face size (#2749)", () => {
+  /** How many faces of the drawing have a dashed box. */
+  const skippedFaces = () => container.querySelectorAll('[data-kept="false"]').length;
+
+  it("offers Off, 2, 4 and 8 % and shows a saved 0 as Off", async () => {
+    await render(0.95, 0);
+    expect(minFaceSizeRadios().map(radio => radio.value)).toEqual(["0", "0.02", "0.04", "0.08"]);
+    expect(minFaceSizeRadios().map(radio => labelOf(radio))).toEqual(["settings.size.off", "2%", "4%", "8%"]);
+    expect(checkedLabel(minFaceSizeRadios())).toBe("settings.size.off");
+    expect(container.textContent).toContain("settings.min_face_size_off_caption");
+    expect(skippedFaces()).toBe(0);
+  });
+
+  it.each([
+    [0.02, 1],
+    [0.04, 2],
+    [0.08, 3],
+  ])("marks the faces %s skips in the example photo", async (minFaceSize, skipped) => {
+    await render(0.95, minFaceSize);
+    expect(skippedFaces()).toBe(skipped);
+    expect(container.textContent).toContain("settings.min_face_size_caption");
+  });
+
+  it("saves the share of the chosen option", async () => {
+    await render(0.95, 0);
+    await act(async () => {
+      defined(minFaceSizeRadios()[2]).click();
+    });
+    expect(onChange).toHaveBeenCalledWith({ min_face_size: 0.04 });
+  });
+
+  it("is hidden for a server without the setting", async () => {
+    await render(0.95);
+    expect(container.querySelector('input[value="0.08"]')).toBeNull();
+    expect(container.querySelector('[role="img"]')).toBeNull();
   });
 });

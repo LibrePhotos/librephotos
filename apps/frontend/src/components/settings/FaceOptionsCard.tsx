@@ -1,6 +1,7 @@
 import { Card, Group, Radio, Stack, Switch, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { MinFaceSizeField } from "./MinFaceSizeField";
 import { SectionLink } from "./SettingsSection";
 import { choiceOf, type UserSettingsCardProps } from "./userSettingsCard";
 
@@ -16,6 +17,13 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
         <SectionLink />
       </Title>
       <Stack gap="md">
+        {/* Servers before #2749 do not have the setting */}
+        {user.min_face_size !== undefined && (
+          <MinFaceSizeField
+            value={user.min_face_size}
+            onChange={minFaceSize => onChange({ min_face_size: minFaceSize })}
+          />
+        )}
         <Radio.Group
           label={t("settings.min_cluster_size")}
           description={t("settings.min_cluster_size_help")}

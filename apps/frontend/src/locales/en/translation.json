@@ -317,6 +317,13 @@
       "rule_pattern_type": "Pattern type: {{type}}"
     },
     "face_options": "Face Options",
+    "min_face_size": "Minimum face size",
+    "min_face_size_help": "Skips faces smaller than this share of the photo's shorter side, like strangers far in the background. Applies to photos scanned from now on: faces found already stay, and face regions saved in the file or drawn by hand are always kept.",
+    "min_face_size_off_caption": "Every face the model finds is kept.",
+    "min_face_size_caption": "Skips faces under {{percent}} of the shorter side: under {{pixels}} px on a 1080 px tall photo.",
+    "min_face_size_example": "Example photo with five faces of different sizes. The faces new scans would skip have a dashed red box.",
+    "min_face_size_kept": "Kept",
+    "min_face_size_skipped": "Skipped on new scans",
     "min_cluster_size": "Minimum Cluster Size",
     "min_cluster_size_help": "Changes how clusters form. A smaller value results in more clusters being formed.",
     "size": {

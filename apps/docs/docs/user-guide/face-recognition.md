@@ -154,6 +154,8 @@ Faces are detected with [InsightFace](https://github.com/deepinsight/insightface
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
 
+<Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face Options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
+
 <Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.
 
 <Since version="1.4.0" /> Up to 1.3.0, the face regions of a HEIC or AVIF photo whose EXIF Orientation disagrees with the file's own rotation (for example one turned with **Save to media file** in an earlier version) were read from, and written to, the wrong part of the photo.

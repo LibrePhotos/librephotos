@@ -90,6 +90,9 @@ export const User = z.object({
   min_cluster_size: z.number(),
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
+  // Detected faces lower than this share of the photo's shorter side are not saved (#2749); 0 is
+  // off. Optional: older servers do not send it, and the settings page then hides it.
+  min_face_size: z.number().optional(),
   // The caption context switches (the name is from the LLM era). The server
   // stores whatever a client saved there, so it stays `unknown`: readers narrow
   // each key on its own, and a settings save sends the other keys back unchanged.
