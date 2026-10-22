@@ -191,6 +191,25 @@ class WhenATaskIsNeededTest(UpgradeTaskTestCase):
         Photo.objects.filter(pk=photo.pk).update(clip_embeddings_model=OPENCLIP)
         self.assertEqual(rows()[SEARCH]["status"], "done")
 
+    def test_a_photo_the_conversion_cannot_read_does_not_hold_the_search_task(self):
+        """An empty thumbnail kept the task open after every run, with the
+        job reporting success each time."""
+        photo = create_test_photo(owner=self.admin)
+        Photo.objects.filter(pk=photo.pk).update(clip_embeddings=[1.0])
+        self.assertEqual(rows()[SEARCH]["status"], "pending")
+
+        with (
+            mock.patch(
+                "api.search.embedding_jobs.create_clip_embeddings",
+                return_value=([None], [None], None),
+            ),
+            mock.patch("api.search.embedding_jobs.build_image_similarity_index"),
+            mock.patch("api.search.embedding_jobs.os.path.exists", return_value=True),
+        ):
+            batch_calculate_clip_embedding(self.admin)
+
+        self.assertEqual(rows()[SEARCH]["status"], "done")
+
     def test_the_search_task_opens_again_for_a_later_model(self):
         photo = create_test_photo(owner=self.admin)
         Photo.objects.filter(pk=photo.pk).update(clip_embeddings=[1.0])
