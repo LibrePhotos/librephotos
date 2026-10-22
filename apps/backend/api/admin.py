@@ -1,11 +1,11 @@
-import uuid
-from collections import defaultdict
-
 from django.contrib import admin
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
-from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
+from api.faces.deduplicate import (
+    DEDUPLICATE_FACES_CHUNK_SIZE,
+    deduplicate_faces_of_photos,
+)
 from api.jobs.queue import enqueue_task
 
 from .models import (
@@ -23,63 +23,6 @@ from .models import (
     Thumbnail,
     User,
 )
-
-# Photo ids are handed to django_q, which pickles them into the broker
-# payload, so a selection is split into chunks of this size to keep any
-# single payload small.
-DEDUPLICATE_FACES_CHUNK_SIZE = 500
-
-
-def deduplicate_faces_function(photo_ids: list[uuid.UUID]) -> None:
-    faces_by_photo: defaultdict[uuid.UUID | None, list[Face]] = defaultdict(list)
-    # `encoding` holds a face vector per row, so it is deliberately left out.
-    for face in (
-        Face.objects.filter(photo_id__in=photo_ids)
-        .only(
-            "photo_id",
-            "person_id",
-            "location_top",
-            "location_bottom",
-            "location_left",
-            "location_right",
-        )
-        .order_by("id")
-    ):
-        faces_by_photo[face.photo_id].append(face)
-
-    to_delete: set[int] = set()
-    for faces in faces_by_photo.values():
-        for i, face_a in enumerate(faces):
-            if face_a.id in to_delete:
-                continue
-            for face_b in faces[i + 1 :]:
-                if face_b.id in to_delete:
-                    continue
-                iou = calculate_iou(
-                    (
-                        face_a.location_top,
-                        face_a.location_right,
-                        face_a.location_bottom,
-                        face_a.location_left,
-                    ),
-                    (
-                        face_b.location_top,
-                        face_b.location_right,
-                        face_b.location_bottom,
-                        face_b.location_left,
-                    ),
-                )
-                if iou >= FACE_OVERLAP_IOU_THRESHOLD:
-                    # Keep the face that has a person label; if both or
-                    # neither have one, keep the first.
-                    if face_b.person_id and not face_a.person_id:
-                        to_delete.add(face_a.id)
-                        break  # face_a is going away, skip its remaining comparisons
-                    else:
-                        to_delete.add(face_b.id)
-
-    if to_delete:
-        Face.objects.filter(id__in=to_delete).delete()
 
 
 @admin.register(Face)
@@ -113,13 +56,14 @@ class PhotoAdmin(admin.ModelAdmin):
     def deduplicate_faces(
         self, request: HttpRequest, queryset: QuerySet[Photo]
     ) -> None:
-        # Only the ids travel to the worker. Passing the queryset itself would
-        # make django_q pickle every selected row into the broker payload, in
-        # this request thread, which defeats the point of the async task.
+        # Only the ids travel to the worker, in chunks. Passing the queryset
+        # itself would make django_q pickle every selected row into the broker
+        # payload, in this request thread, which defeats the point of the
+        # async task.
         photo_ids = list(queryset.values_list("id", flat=True))
         for start in range(0, len(photo_ids), DEDUPLICATE_FACES_CHUNK_SIZE):
             enqueue_task(
-                deduplicate_faces_function,
+                deduplicate_faces_of_photos,
                 photo_ids[start : start + DEDUPLICATE_FACES_CHUNK_SIZE],
             )
         self.message_user(

@@ -20,6 +20,10 @@ function startStripThumbnailMetadata() {
 }
 
 /** The place name lookup an admin started from the Admin Area (#2302). */
+function startDeduplicateFaces() {
+  toast.success(i18n.t("toasts.deduplicatefaces"), { title: i18n.t("toasts.deduplicatefacestitle") });
+}
+
 function startLookUpPlaces() {
   toast.success(i18n.t("toasts.lookupplaces"), { title: i18n.t("toasts.lookupplacestitle") });
 }
@@ -68,6 +72,7 @@ export const worker = {
   requestFailed,
   saveFailed,
   serverError,
+  startDeduplicateFaces,
   startLookUpPlaces,
   startStripThumbnailMetadata,
 };

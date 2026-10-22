@@ -192,6 +192,7 @@ class LongRunningJob(models.Model):
     JOB_REFRESH_EXPOSURE_TIMES = 28
     JOB_LOOK_UP_PLACES = 29
     JOB_MOVE_PHOTOS = 30
+    JOB_DEDUPLICATE_FACES = 31
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -223,6 +224,7 @@ class LongRunningJob(models.Model):
         (JOB_REFRESH_EXPOSURE_TIMES, "Read Shutter Speeds Again"),
         (JOB_LOOK_UP_PLACES, "Look Up Place Names"),
         (JOB_MOVE_PHOTOS, "Move Photos"),
+        (JOB_DEDUPLICATE_FACES, "Deduplicate Faces"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

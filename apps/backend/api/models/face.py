@@ -88,6 +88,13 @@ class Face(models.Model):
     )
     cluster_probability = models.FloatField(default=0.0, db_index=True)
 
+    # The people the user said this face is not ("Not Anna", #2747): training
+    # never suggests them for it again. Labelling the face as one of them by
+    # hand takes that person off the list; deleting a person drops its rows.
+    rejected_persons = models.ManyToManyField(
+        Person, related_name="rejected_faces", blank=True
+    )
+
     deleted = models.BooleanField(default=False)
 
     cluster = models.ForeignKey(

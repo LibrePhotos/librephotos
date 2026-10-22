@@ -61,6 +61,7 @@ USER_UPDATE_FIELDS = (
     ("min_cluster_size", None),
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
+    ("min_face_size", None),
     ("llm_settings", None),
     (
         "slideshow_interval",
@@ -286,6 +287,7 @@ class UserSerializer(serializers.ModelSerializer):
             "confidence_unknown_face",
             "min_samples",
             "cluster_selection_epsilon",
+            "min_face_size",
             "skip_raw_files",
             "stack_raw_jpeg",
             "slideshow_interval",

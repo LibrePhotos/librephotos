@@ -317,6 +317,13 @@
       "rule_pattern_type": "Pattern type: {{type}}"
     },
     "face_options": "Face Options",
+    "min_face_size": "Minimum face size",
+    "min_face_size_help": "Skips faces smaller than this share of the photo's shorter side, like strangers far in the background. Applies to photos scanned from now on: faces found already stay, and face regions saved in the file or drawn by hand are always kept.",
+    "min_face_size_off_caption": "Every face the model finds is kept.",
+    "min_face_size_caption": "Skips faces under {{percent}} of the shorter side: under {{pixels}} px on a 1080 px tall photo.",
+    "min_face_size_example": "Example photo with five faces of different sizes. The faces new scans would skip have a dashed red box.",
+    "min_face_size_kept": "Kept",
+    "min_face_size_skipped": "Skipped on new scans",
     "min_cluster_size": "Minimum Cluster Size",
     "min_cluster_size_help": "Changes how clusters form. A smaller value results in more clusters being formed.",
     "size": {
@@ -478,7 +485,8 @@
       "refresh_exposure_times": "Read Shutter Speeds Again",
       "look_up_places": "Look Up Place Names",
       "unknown": "Other job ({{name}})",
-      "move_photos": "Move Photos"
+      "move_photos": "Move Photos",
+      "deduplicate_faces": "Remove duplicate faces"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -1497,6 +1505,11 @@
     "lookupplacesconfirmtitle": "Look up the place names of every photo again?",
     "lookupplacesconfirm": "Every user's photos get the names the current Map Provider gives. Places albums under the old names end up empty, favourited or shared ones included, and the day albums name their places again as the job reaches them. With an online provider this takes about a second per photo, so hours for a large library; with ExifTool it takes minutes.",
     "lookupplacesconfirmbutton": "Look up",
+    "deduplicatefaces": "Remove duplicate faces",
+    "deduplicatefacesexplanation": "Finds faces that were saved twice on the same photo, for example by an old scan and by face regions read from the file, and keeps one of each pair: the one with a name. Runs over every user's photos.",
+    "deduplicatefacesconfirmtitle": "Remove the duplicate faces of every photo?",
+    "deduplicatefacesconfirm": "Where two faces of a photo overlap, the one without a name is deleted (or the newer one, when both or neither have a name). Deleted duplicates do not go to the Deleted tab of the face dashboard and cannot be restored.",
+    "deduplicatefacesconfirmbutton": "Remove duplicates",
     "stripthumbnailmetadataexplanation": "Thumbnails made by LibrePhotos 1.2.1 or older still contain details from the original photo, such as where it was taken. This removes them. Your photos are not changed.",
     "start": "Start",
     "jobrunning": "Running",
@@ -2311,6 +2324,8 @@
     "uploadsuccess": "Upload successful",
     "removefacestoperson": "{{numberOfFaces}} face(s) were moved to 'Unknown - Other'",
     "removefacestopersontitle": "Remove faces from person",
+    "removefacesnotsuggested_one": "The face was moved to 'Unknown - Other'. {{names}} won't be suggested for this face again.",
+    "removefacesnotsuggested_other": "{{count}} faces were moved to 'Unknown - Other'. {{names}} won't be suggested for these faces again.",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
     "captionmodeldownloading": "The captioning model is being downloaded. Try again in a few minutes.",
@@ -2323,6 +2338,8 @@
     "stripthumbnailmetadatatitle": "Job started",
     "lookupplaces": "Looking up the place names of every photo again. Follow it in Worker Logs.",
     "lookupplacestitle": "Job started",
+    "deduplicatefaces": "Removing the duplicate faces of every photo. Follow it in Worker Logs.",
+    "deduplicatefacestitle": "Job started",
     "emptytrashstarted_one": "{{count}} photo is being deleted in the background. Follow it in the job list.",
     "emptytrashstarted_other": "{{count}} photos are being deleted in the background. Follow it in the job list.",
     "emptytrashstartedtitle": "Emptying the trash",

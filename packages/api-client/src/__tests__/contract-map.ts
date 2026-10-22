@@ -74,6 +74,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
   RestoreFacesResponse: { schema: S.RestoreFacesResponse, components: ["RestoreFacesResponse"] },
   FaceLabels: { schema: S.FaceLabels, components: ["FaceLabels"] },
+  RejectedPerson: { schema: S.RejectedPerson, components: ["RejectedPerson"] },
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs

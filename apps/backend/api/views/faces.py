@@ -408,6 +408,11 @@ class SetFacePersonLabel(APIView):
                 "write_error": result.write_error,
                 # What an undo sends back to /api/restore-face-labels/ (#127).
                 "previous": result.previous,
+                # Who is no longer suggested for these faces (#2747).
+                "rejected_people": [
+                    {"id": rejected.pk, "name": rejected.name}
+                    for rejected in result.rejected
+                ],
             }
         )
 

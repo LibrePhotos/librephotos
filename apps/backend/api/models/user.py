@@ -4,6 +4,7 @@ from typing import Any
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_cryptography.fields import encrypt
 
@@ -116,6 +117,11 @@ class User(AbstractUser):
     confidence_unknown_face = models.FloatField(default=0.5)
     min_samples = models.IntegerField(default=1)
     cluster_selection_epsilon = models.FloatField(default=0.95)
+    # Detected faces lower than this share of the big thumbnail's shorter side
+    # are not saved (#2749): strangers far in the background. 0 keeps all.
+    min_face_size = models.FloatField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(0.5)]
+    )
 
     class TextAlignment(models.TextChoices):
         LEFT = "left"

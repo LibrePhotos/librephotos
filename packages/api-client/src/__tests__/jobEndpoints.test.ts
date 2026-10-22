@@ -87,6 +87,7 @@ describe("job triggers", () => {
     ["regenerateEventAlbumTitles", "/autoalbumtitlegen/", endpoints.regenerateEventAlbumTitles],
     ["stripThumbnailMetadata", "/strip-thumbnail-metadata/", endpoints.stripThumbnailMetadata],
     ["lookUpPlaces", "/look-up-places/", endpoints.lookUpPlaces],
+    ["deduplicateFaces", "/deduplicate-faces/", endpoints.deduplicateFaces],
     ["emptyTrash", "/photosedit/empty-trash/", endpoints.emptyTrash],
     ["reapplyDateRules", "/photos/reapply-date-rules/", endpoints.reapplyDateRules],
   ] as const)("%s POSTs %s", async (_name, path, trigger) => {
@@ -161,6 +162,7 @@ describe("job triggers", () => {
       endpoints.regenerateEventAlbumTitles,
       endpoints.stripThumbnailMetadata,
       endpoints.lookUpPlaces,
+      endpoints.deduplicateFaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
       (client: Parameters<typeof endpoints.rescanPhotos>[0]) => endpoints.rescanPhotos(client, ["p1"]),

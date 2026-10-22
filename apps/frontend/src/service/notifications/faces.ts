@@ -51,11 +51,33 @@ function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo
   );
 }
 
+/** "Anna and Ben" in the UI language, English when the runtime does not know it. */
+function listNames(names: readonly string[]): string {
+  try {
+    return new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(names);
+  } catch {
+    return new Intl.ListFormat("en", { type: "conjunction" }).format(names);
+  }
+}
+
 function removeFacesFromPerson(numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     "faces-unlabeled",
     numberOfFaces,
     total => i18n.t("toasts.removefacestoperson", { numberOfFaces: total }),
+    { title: i18n.t("toasts.removefacestopersontitle"), undo }
+  );
+}
+
+/**
+ * "Not Anna": the faces went back to "Unknown - Other" and training no longer suggests the named
+ * people `names` for them (#2747). Adds up with `removeFacesFromPerson`, the same toast.
+ */
+function rejectFacesFromPeople(names: readonly string[], numberOfFaces: number, undo?: Undo) {
+  toast.successCounted(
+    "faces-unlabeled",
+    numberOfFaces,
+    total => i18n.t("toasts.removefacesnotsuggested", { names: listNames(names), count: total }),
     { title: i18n.t("toasts.removefacestopersontitle"), undo }
   );
 }
@@ -82,6 +104,7 @@ export const faces = {
   deleteFaces,
   detectFacesAgain,
   detectFacesAgainFailed,
+  rejectFacesFromPeople,
   removeFacesFromPerson,
   rescanFaces,
   rescanFacesFailed,

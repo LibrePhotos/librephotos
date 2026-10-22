@@ -91,6 +91,10 @@ You can also review faces one at a time, without selecting them first. Point at 
 
 On the Deleted tab the menu only offers **Restore face** and **Show photo**.
 
+#### "Not _name_" is remembered
+
+<Since version="1.5.0" /> When you send a face back with **Not _name_** (or the orange person-off button, or [**Remove from this person**](./albums.md) on a person's photos), LibrePhotos remembers that the face is not that person. **Train faces** never suggests them for that face again; it may suggest someone else, or leave the face in "Unknown - Other". The message after **Not _name_** says so, for example "Anna won't be suggested for this face again". To take it back, click **Undo** in that message, or label the face as that person yourself. When you [merge](./albums.md#merging-two-people) Anna into another person, the face is not suggested as the merged person either. Up to 1.4.0, the next training often suggested the same person again.
+
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
 <Since version="1.4.0" /> A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again.
@@ -102,6 +106,8 @@ Sometimes the face recognition might find a face that is not actually a face. To
 <Since version="1.5.0" /> Up to 1.4.0, deleted faces were still grouped by clustering, so a painting or a pattern you deleted could still merge or split the clusters of real faces.
 
 If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. <Since version="1.4.0" /> Up to 1.3.0, deleting a face left its region and name in the file.
+
+A face that was saved twice on the same photo (two overlapping boxes, for example from an old scan and from face regions read from the file) can be cleaned up for the whole instance by an admin with [Remove duplicate faces](./job-system.md#remove-duplicate-faces).
 
 ## Undo a face action
 
@@ -151,6 +157,8 @@ After the first scan finished, go to the face dashboard. Label a couple of faces
 Faces are detected with [InsightFace](https://github.com/deepinsight/insightface). Its detector (SCRFD) finds the faces in each photo and returns a bounding box for every face it sees. This replaced the older dlib detectors, so there is no longer a separate `hog` / `cnn` choice — a single detector is used for everyone.
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
+
+<Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face Options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
 
 <Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.
 

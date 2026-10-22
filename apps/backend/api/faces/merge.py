@@ -50,6 +50,7 @@ def merge_people(user: User, source: Person, target: Person) -> MergeResult:
         owned_faces.filter(classification_person=source).update(
             classification_person=target
         )
+        move_rejections(user, source, target)
         Cluster.objects.owned_by(user).filter(person=source).update(person=target)
         # The merged person's groups too (#1126): both are the user's people,
         # so the groups are the user's.
@@ -60,4 +61,24 @@ def merge_people(user: User, source: Person, target: Person) -> MergeResult:
         moved=len(result.faces),
         photo_count=len(result.photos),
         write_queued=result.write_queued,
+    )
+
+
+def move_rejections(user: User, source: Person, target: Person) -> None:
+    """Reject ``target`` for every face of the user's rejected for ``source``.
+
+    "Not Anna" still holds once Anna is merged into Anna B (#2747). The
+    source's own rows go with it when it is deleted. A face labelled as the
+    target keeps its label and gets no rejection of it.
+    """
+    rejection = Face.rejected_persons.through
+    face_ids = (
+        rejection.objects.filter(Face.objects.owner_q(user, through="face__"))
+        .filter(person=source)
+        .exclude(face__person=target)
+        .values_list("face_id", flat=True)
+    )
+    rejection.objects.bulk_create(
+        [rejection(face_id=face_id, person_id=target.pk) for face_id in face_ids],
+        ignore_conflicts=True,
     )

@@ -211,6 +211,13 @@ class FaceLabels(serializers.Serializer[None]):
     )
 
 
+class RejectedPerson(serializers.Serializer[None]):
+    """A named person a face was sent away from ("Not Anna", #2747)."""
+
+    id = serializers.IntegerField(help_text="The person's id")
+    name = serializers.CharField(help_text="The person's name")
+
+
 class SetFacePersonLabelResponse(serializers.Serializer[None]):
     """The answer of POST /api/labelfaces: the relabelled faces."""
 
@@ -223,6 +230,14 @@ class SetFacePersonLabelResponse(serializers.Serializer[None]):
         help_text=(
             "Each relabelled face's people before this request; POST them to "
             "/api/restore-face-labels/ to undo it"
+        ),
+    )
+    rejected_people = RejectedPerson(
+        many=True,
+        help_text=(
+            "The named people the faces were sent away from: training never "
+            "suggests them for these faces again (#2747). Empty unless the "
+            "faces went back to unknown"
         ),
     )
     write_error = serializers.CharField(

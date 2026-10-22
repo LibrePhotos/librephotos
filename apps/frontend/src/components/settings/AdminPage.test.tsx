@@ -74,6 +74,7 @@ vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
 vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
 vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
+vi.mock("./DeduplicateFacesTool", () => ({ DeduplicateFacesTool: () => "deduplicate-faces-tool" }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;

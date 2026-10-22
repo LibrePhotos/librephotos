@@ -17,6 +17,7 @@ from api.directory_watcher.removed_paths import detach_removed, plan_removal
 from api.drf.exceptions import Conflict
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
+from api.faces.deduplicate import deduplicate_faces_job
 from api.jobs.start import start_job
 from api.metadata.date_rules_job import reapply_date_rules_job
 from api.models import LongRunningJob
@@ -441,4 +442,27 @@ class LookUpPlacesView(APIView):
             look_up_places,
             user,
             description="looking up place names",
+        )
+
+
+class DeduplicateFacesView(APIView):
+    """Delete the duplicate faces of every photo, as a job (#2030).
+
+    Two overlapping faces of one photo are one face found twice; the
+    labelled one stays. The photos of every user are walked, so only an
+    admin may start it; ``manage.py deduplicate_faces`` does the same. A
+    second start while one runs is a 409.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        return start_job(
+            user,
+            LongRunningJob.JOB_DEDUPLICATE_FACES,
+            deduplicate_faces_job,
+            user,
+            description="face deduplication",
         )

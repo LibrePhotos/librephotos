@@ -468,6 +468,7 @@ urlpatterns = [
         upgrade_tasks.UpgradeTaskDismissView.as_view(),
     ),
     path("api/look-up-places/", scan_triggers.LookUpPlacesView.as_view()),
+    path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(
         r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()

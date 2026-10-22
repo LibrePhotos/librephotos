@@ -3,7 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Collection, Mapping, Sequence
+from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -425,6 +426,16 @@ def likeliest_class(
     return person_id, probability
 
 
+def rejected_people_of(face_ids: Iterable[int]) -> dict[int, set[int]]:
+    """The people each face was rejected for ("Not Anna", #2747), by face id"""
+    rejected: dict[int, set[int]] = defaultdict(set)
+    for face_id, person_id in Face.rejected_persons.through.objects.filter(
+        face_id__in=face_ids
+    ).values_list("face_id", "person_id"):
+        rejected[face_id].add(person_id)
+    return rejected
+
+
 @dataclass
 class _Classifiers:
     """What ``train_faces`` predicts the person of an unlabelled face with."""
@@ -457,7 +468,11 @@ class _Classifiers:
     ) -> tuple[
         Sequence[float] | npt.NDArray[float64], Sequence[float] | npt.NDArray[float64]
     ]:
-        """Both rows of probabilities with the ``unborn`` people at 0 (#2752)"""
+        """Both rows of probabilities with the ``unborn`` people at 0 (#2752).
+
+        Any person ruled out for the face goes here too: the people the user
+        said it is not (#2747) are passed along with the unborn ones.
+        """
         if not unborn:
             return cluster_probabilities, classification_probabilities
         if self.person is not None:
@@ -525,6 +540,7 @@ def classify_face_page(
     faces_by_id = Face.objects.in_bulk(page_id)
     persons = classifiers.predicted_persons()
     taken_by_face = photo_dates_of_faces(page_id) if classifiers.birth_dates else {}
+    rejected = rejected_people_of(page_id)
     face_encodings_unknown_np = classifier_input(page_encodings)
     cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
     if classifiers.person:
@@ -549,10 +565,12 @@ def classify_face_page(
             continue
         # Never a person born after the photo was taken (#2752)
         unborn = unborn_people(classifiers.birth_dates, taken_by_face.get(face_id))
+        # Nor one the user said the face is not ("Not Anna", #2747)
+        ruled_out = unborn | rejected.get(face_id, set())
         assign_face_predictions(
             face,
             *classifiers.born_only(
-                unborn, cluster_probabilities, classification_probabilities
+                ruled_out, cluster_probabilities, classification_probabilities
             ),
             classifiers,
             persons,
