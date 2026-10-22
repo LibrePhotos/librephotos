@@ -173,10 +173,16 @@ class KeywordEditQueuesTest(TestCase):
             edit()
         return [(list(call.args[1]), set(call.args[2])) for call in queued.mock_calls]
 
-    def test_a_keyword_edit_queues_the_names_that_changed(self):
+    def _scanned(self, keywords):
+        """The photo as a scan of a file with ``keywords`` leaves it."""
         PhotoMetadata.objects.update_or_create(
-            photo=self.photo, defaults={"keywords": ["a", "b"]}
+            photo=self.photo, defaults={"keywords": keywords}
         )
+        for name in keywords:
+            create_test_tag(owner=self.user, name=name).photos.add(self.photo)
+
+    def test_a_keyword_edit_queues_the_names_that_changed(self):
+        self._scanned(["a", "b"])
 
         queued = self._queued(
             lambda: edits.set_keywords(self.photo, ["b", "c"], self.user)
@@ -185,9 +191,7 @@ class KeywordEditQueuesTest(TestCase):
         self.assertEqual([([self.photo.id], {"a", "c"})], queued)
 
     def test_the_same_keywords_again_queue_nothing_to_write(self):
-        PhotoMetadata.objects.update_or_create(
-            photo=self.photo, defaults={"keywords": ["a"]}
-        )
+        self._scanned(["a"])
 
         queued = self._queued(lambda: edits.set_keywords(self.photo, ["a"], self.user))
 

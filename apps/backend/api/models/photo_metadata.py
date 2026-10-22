@@ -494,6 +494,11 @@ class PhotoMetadata(models.Model):
     # The file's keywords at the last read (a list of strings), None when it
     # had none. A rescan makes tags only of keywords not in it (#2770).
     keywords = models.JSONField(null=True, blank=True)
+    # The keyword list last set through the metadata API (``set_keywords``),
+    # None when never set since the last restore from file. With ``keywords``
+    # it tells which tags of the photo are keywords a later edit replaces
+    # (``api.metadata.edits._current_keywords``); a rescan does not read it.
+    edited_keywords = models.JSONField(null=True, blank=True)
     # The file's Rating at the last read, None when it had none or the row is
     # from before #2771. A rescan takes the file's rating only when it changed.
     file_rating = models.IntegerField(null=True, blank=True)
