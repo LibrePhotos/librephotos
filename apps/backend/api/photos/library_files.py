@@ -39,21 +39,31 @@ def in_library(user: User, path: str) -> bool:
     return any(is_valid_path(path, root) for root in library_roots(user))
 
 
-def scannable_files(user: User, paths: Iterable[str]) -> tuple[list[str], list[str]]:
+def scannable_files(
+    user: User, paths: Iterable[str], folders: bool = False
+) -> tuple[list[str], list[str]]:
     """Split ``paths`` into the files a scan may read and the rest.
 
     Kept: existing files inside the user's library, each once, in the order
-    given. Left out: anything outside it, folders, and paths that do not
-    exist (any more).
+    given; with ``folders`` also existing folders inside it, which the scan
+    walks (#2727). Left out: anything outside it, folders unless asked for,
+    and paths that do not exist (any more).
     """
     kept: dict[str, None] = {}
     ignored: list[str] = []
     for path in paths:
-        if path not in kept and in_library(user, path) and os.path.isfile(path):
+        if path not in kept and _scannable(user, path, folders):
             kept[path] = None
         else:
             ignored.append(path)
     return list(kept), ignored
+
+
+def _scannable(user: User, path: str, folders: bool) -> bool:
+    """Whether ``path`` is an existing file (or, with ``folders``, folder) of the library."""
+    if not in_library(user, path):
+        return False
+    return os.path.isfile(path) or (folders and os.path.isdir(path))
 
 
 class RescanTargets(NamedTuple):

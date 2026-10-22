@@ -2,6 +2,7 @@
 
 import os
 
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -12,6 +13,8 @@ from rest_framework.views import APIView
 from api.albums.auto_albums import delete_missing_photos
 from api.classification.captioning import captioning_available
 from api.directory_watcher import scan_photos
+from api.directory_watcher.removed_paths import detach_removed, plan_removal
+from api.drf.exceptions import Conflict
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.jobs.start import start_job
@@ -163,14 +166,24 @@ class RescanPhotosView(APIView):
 
 
 class ScanFilesView(APIView):
-    """Scan files an outside process says are new or changed (#900).
+    """Scan files an outside process says are new or changed (#900), forget gone ones.
 
     For a folder watcher (inotify, watchfiles) next to the library: it sends
     the paths, as the server sees them, with the user's credentials. Only
-    existing files inside the requester's scan directory or upload folder are
-    scanned; the answer lists the paths it left out. A file is read when it is
-    new or changed, as on an incremental scan. 400 when no path is left, 409
-    while a scan of the requester's runs (send the paths again later).
+    paths inside the requester's scan directory or upload folder are used;
+    the answer lists the paths it left out.
+
+    ``paths``: existing files, and folders whose files are walked (#2727),
+    are scanned. A file is read when it is new or changed, as on an
+    incremental scan. 409 while a scan of the requester's runs (send the
+    paths again later); nothing changes then.
+
+    ``removed_paths``: files deleted or moved away, or folders of them, are
+    detached from the requester's photos and flagged missing at once (#2728).
+    409 (``library_unavailable``) when the library looks unmounted or too
+    much of it would go missing; nothing changes then.
+
+    400 when no path of either list is left.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -178,17 +191,31 @@ class ScanFilesView(APIView):
     @extend_schema(request=ScanFilesRequest, responses=ScanFilesResponseSerializer)
     def post(self, request: Request, format: str | None = None) -> Response:
         user = request_user(request)
-        paths = parse_body(request, ScanFilesRequest)["paths"]
-        kept, ignored = scannable_files(user, paths)
-        if not kept:
-            raise ValidationError(
-                "None of the paths is a file in your library.",
-                code="no_files_to_scan",
-            )
-        response = _start_file_scan(user, kept, False, "the scan of the given files")
+        body = parse_body(request, ScanFilesRequest)
+        kept, ignored = scannable_files(user, body["paths"], folders=True)
+        # One transaction: a 409 from the scan leaves the removals undone too.
+        with transaction.atomic():
+            removal = plan_removal(user, body["removed_paths"])
+            if removal.problem is not None:
+                raise Conflict(removal.problem, code="library_unavailable")
+            if not kept and not removal.matched:
+                raise ValidationError(
+                    "None of the paths is a file or folder in your library.",
+                    code="no_files_to_scan",
+                )
+            removed_count = detach_removed(removal)
+            response = _scan_kept_files(user, kept)
         response.data["file_count"] = len(kept)
-        response.data["ignored_paths"] = ignored
+        response.data["removed_count"] = removed_count
+        response.data["ignored_paths"] = ignored + removal.ignored
         return response
+
+
+def _scan_kept_files(user: User, kept: list[str]) -> Response:
+    """Start the scan of ``kept``; an answer without a job when it is empty."""
+    if not kept:
+        return Response({"status": True, "job_id": None, "job_ids": []})
+    return _start_file_scan(user, kept, False, "the scan of the given files")
 
 
 class DeleteMissingPhotosView(APIView):

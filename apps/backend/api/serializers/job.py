@@ -186,23 +186,59 @@ class RescanPhotosResponseSerializer(JobStartedResponseSerializer):
 
 
 class ScanFilesRequest(serializers.Serializer[None]):
-    """``POST /api/scan-files/``: files an outside process says are new or changed (#900)."""
+    """``POST /api/scan-files/``: paths an outside process says are new, changed or gone.
+
+    At least one of the lists must name a path. Two lists, so a typo in
+    ``paths`` is never read as "forget this file" (#2728).
+    """
 
     paths = serializers.ListField(
         child=serializers.CharField(trim_whitespace=False),
-        min_length=1,
+        required=False,
+        default=list,
         max_length=MAX_REQUESTED,
-        help_text="Absolute paths of files in the requester's scan directory "
-        "or upload folder, as the server sees them",
+        help_text="Absolute paths of new or changed files, or folders whose files "
+        "to scan (#2727), in the requester's scan directory or upload folder, as "
+        "the server sees them",
+    )
+    removed_paths = serializers.ListField(
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        default=list,
+        max_length=MAX_REQUESTED,
+        help_text="Absolute paths of files, or folders, in the requester's "
+        "library that were deleted or moved away: their files are detached from "
+        "the requester's photos and flagged missing (#2728)",
     )
 
+    def validate(self, attrs: dict[str, list[str]]) -> dict[str, list[str]]:
+        if not attrs["paths"] and not attrs["removed_paths"]:
+            raise serializers.ValidationError(
+                {"paths": "Name a path in paths or removed_paths."}, code="min_length"
+            )
+        return attrs
 
-class ScanFilesResponseSerializer(JobStartedResponseSerializer):
-    """``POST /api/scan-files/``: the started scan and the paths it left out."""
 
-    file_count = serializers.IntegerField(help_text="The files the scan looks at")
+class ScanFilesResponseSerializer(serializers.Serializer[None]):
+    """``POST /api/scan-files/``: the started scan, the files detached, the paths left out."""
+
+    status = serializers.BooleanField()
+    job_id = serializers.CharField(
+        allow_null=True,
+        help_text="The started scan's id; null when paths named nothing to scan",
+    )
+    job_ids = serializers.ListField(
+        child=serializers.CharField(), help_text="The started scan's id, or none"
+    )
+    file_count = serializers.IntegerField(
+        help_text="The paths the scan looks at; a folder counts as one"
+    )
+    removed_count = serializers.IntegerField(
+        help_text="The files of removed_paths detached and flagged missing"
+    )
     ignored_paths = serializers.ListField(
         child=serializers.CharField(),
-        help_text="Paths left out: outside the requester's library, folders, "
-        "files that do not exist, and repeats",
+        help_text="Paths left out: outside the requester's library, repeats, "
+        "paths that do not exist, removed paths still on disk or naming no file "
+        "of the requester's photos",
     )
