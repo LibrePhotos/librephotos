@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0200_user_share_people_names"),
+        ("api", "0201_trash_photos_outside_library_job_type"),
     ]
 
     operations = [
@@ -45,6 +45,7 @@ class Migration(migrations.Migration):
                     (30, "Move Photos"),
                     (31, "Deduplicate Faces"),
                     (32, "Check File Contents"),
+                    (33, "Trash Photos Outside the Library"),
                     (34, "Make Video Posters"),
                     (35, "Rename Photos"),
                 ]
