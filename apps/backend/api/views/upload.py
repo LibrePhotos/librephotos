@@ -280,7 +280,7 @@ class UploadPhotoExists(viewsets.ViewSet):
         # hashes would tell anyone which files someone else has uploaded.
         photo_id = (
             Photo.objects.owned_by(request_user(request))
-            .filter(image_hash=pk)
+            .holding_content(pk)
             .values_list("id", flat=True)
             .first()
         )
@@ -377,7 +377,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self, user: User, device: str, filename: str, image_hash: str
     ) -> str:
         """Destination for the upload, or "" when it is a known duplicate."""
-        if Photo.objects.filter(image_hash=image_hash).exists():
+        if Photo.objects.owned_by(user).holding_content(image_hash).exists():
             logger.info("Photo %s duplicated with hash %s ", filename, image_hash)
             return ""
 
@@ -502,7 +502,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
 
     def existing_photo(self, user: User, image_hash: str) -> Photo | None:
         """The user's photo of a duplicate upload, if the library has one."""
-        return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
+        return Photo.objects.owned_by(user).holding_content(image_hash).first()
 
     def get_response_data(
         self, chunked_upload: ChunkedUpload, request: HttpRequest

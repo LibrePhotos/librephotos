@@ -28,6 +28,7 @@ from api.directory_watcher.file_grouping import (
 from api.directory_watcher.generated_content import discard_generated_content
 from api.directory_watcher.utils import is_job_cancelled, update_scan_counter
 from api.duplicates.perceptual_hash import (
+    are_duplicates,
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
@@ -83,8 +84,18 @@ def _remove_file(path: str) -> None:
 
 # What a byte change costs the photos holding the file.
 SAME_PICTURE = "same_picture"  # bookkeeping only
+SIMILAR_PICTURE = "similar_picture"  # re-encoded or retouched: as UNCOMPARABLE
 NEW_PICTURE = "new_picture"  # everything derived from the old one goes
 UNCOMPARABLE = "uncomparable"  # rebuild what is cheap, keep what was labelled
+
+# The verdicts that rebuild the thumbnails in place and keep everything else.
+_REBUILD_ONLY = (SIMILAR_PICTURE, UNCOMPARABLE)
+
+# How many of the 64 bits of the rendered perceptual hash may differ for the
+# picture to count as the one indexed (#2051). Re-saving a JPEG at any quality
+# changes none, a light exposure edit up to 4, a 5 % crop 4 to 14; two different
+# photos differ in 18 or more.
+SIMILAR_PICTURE_DISTANCE = 4
 
 
 def _rendered_perceptual_hash(
@@ -150,8 +161,23 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     # The photo may have been indexed before thumbnails were rendered the way
     # they are now, and a hash taken from that render flips a few bits.
     legacy = _rendered_perceptual_hash(path, photo.local_orientation, legacy=True)
+    return _compare_renders(stored, candidate, legacy)
+
+
+def _compare_renders(stored: str, candidate: str | None, legacy: str | None) -> str:
+    """The verdict once the current render's hash did not match exactly.
+
+    A few bits apart is the same picture saved again, by another tool or with
+    a light edit (#2051): its faces and what was found in it still apply, but
+    its thumbnails may no longer show it, so they are rebuilt.
+    """
     if legacy == stored:
         return SAME_PICTURE
+    if any(
+        are_duplicates(stored, rendered, SIMILAR_PICTURE_DISTANCE)
+        for rendered in (candidate, legacy)
+    ):
+        return SIMILAR_PICTURE
     if candidate is None or legacy is None:
         return UNCOMPARABLE
     return NEW_PICTURE
@@ -299,10 +325,15 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
     perceptual hash says the picture is the same (a metadata write, ours or
     anyone else's), this is pure bookkeeping: the File row moves onto the new
     hash and nothing else is touched. Only a picture that really changed costs
-    the photo its derived content. When the two cannot be compared at all, the
+    the photo its derived content. When the two cannot be compared at all, or
+    the picture was only saved again with a few bits of its hash flipped, the
     thumbnails and the cached transcode are rebuilt but the faces stay.
 
     The Photo rows survive with their ids, albums and shares in every case.
+    Except for a new picture, ``Photo.image_hash`` keeps naming the content the
+    photo was indexed from (its thumbnails and face crops are named after it),
+    so it can differ from the hash of its file afterwards; a lookup by content
+    asks both (``PhotoQuerySet.holding_content``).
 
     Returns the Photo the changed file is the main file of, if any.
     """
@@ -364,10 +395,11 @@ def reindex_replaced_file(user: User, path: str, hash_value: str) -> Photo | Non
             if verdict == SAME_PICTURE or _content_changed(photo.image_hash, old_hash):
                 continue
             photo_hash = photo.image_hash
-            if verdict == UNCOMPARABLE:
-                # The picture may or may not have changed, so the thumbnails
-                # are rebuilt in place, under the image hash the face crops
-                # are named after, and nothing labelled is thrown away.
+            if verdict in _REBUILD_ONLY:
+                # The picture may or may not have changed, or changed a
+                # little, so the thumbnails are rebuilt in place, under the
+                # image hash the face crops are named after, and nothing
+                # labelled is thrown away.
                 _discard_cheap_derived_content(photo, photo_hash)
                 rebuild_photo_ids.append(photo.pk)
                 continue
