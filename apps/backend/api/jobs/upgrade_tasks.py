@@ -363,7 +363,7 @@ def _refuse_while_busy(task: UpgradeTask) -> None:
     Its own job running is ``job_already_running`` with that job's id, so the
     card follows it; another job is ``queue_busy``.
     """
-    running = LongRunningJob.objects.running()
+    running = LongRunningJob.objects.holding_the_queue()
     own = running.filter(job_type=task.job_type).order_by("queued_at").first()
     if own is not None:
         raise JobAlreadyRunning(own.job_id, own.get_job_type_display())

@@ -4,8 +4,9 @@
 resolved through the owner scope before anything is written: an album that is
 not the uploader's, or a locked one, is a 400 with a ``code`` and leaves the
 staged upload in place, so the client can complete it again without the album.
-An accepted album is filed into right after the import (a task in the import
-chain), and a file the library already holds is added to it directly.
+An accepted album is filed into right after the import (a step of the
+upload's import task), and a file the library already holds is added to it
+directly.
 """
 
 import hashlib
@@ -20,7 +21,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.albums.user_albums import add_photo_to_user_album
-from api.directory_watcher import handle_new_image
+from api.jobs.upload_import import import_uploaded_photo
 from api.models import Photo
 from api.tests.utils import (
     ONE_PIXEL_PNG,
@@ -54,7 +55,7 @@ class UploadIntoAlbumTestBase(TestCase):
         self.create_new_image = patch(
             "api.views.upload.create_new_image", return_value=self.imported
         ).start()
-        self.chain = patch("api.views.upload.enqueue_task_chain").start()
+        self.enqueue = patch("api.views.upload.enqueue_task").start()
         self.addCleanup(patch.stopall)
 
     def stage(self, user=None):
@@ -80,9 +81,12 @@ class UploadIntoAlbumTestBase(TestCase):
             os.path.join(self.scan_dir.name, "uploads", "web", "one.png")
         )
 
-    def queued_tasks(self):
-        self.chain.assert_called_once()
-        return [(task.func, task.args) for task in self.chain.call_args[0][0]]
+    def queued_import(self):
+        """The arguments of the one import task the completion queued."""
+        self.enqueue.assert_called_once()
+        call = self.enqueue.call_args
+        self.assertIs(call.args[0], import_uploaded_photo)
+        return call
 
     def assert_refused(self, response, code, upload_id):
         self.assertEqual(response.status_code, 400, response.content)
@@ -90,7 +94,7 @@ class UploadIntoAlbumTestBase(TestCase):
         self.assertEqual(error["field"], "album_id")
         self.assertEqual(error["code"], code)
         self.assertFalse(self.copied())
-        self.chain.assert_not_called()
+        self.enqueue.assert_not_called()
         # The staged upload is kept for a completion without the album.
         upload = ChunkedUpload.objects.get(upload_id=upload_id)
         self.assertEqual(upload.status, UPLOADING)
@@ -101,25 +105,19 @@ class UploadIntoAlbumTest(UploadIntoAlbumTestBase):
         response = self.complete(self.stage(), album_id=str(self.album.id))
 
         self.assertEqual(response.status_code, 200, response.content)
-        tasks = self.queued_tasks()
-        self.assertIs(tasks[0][0], handle_new_image)
-        self.assertEqual(
-            tasks[1], (add_photo_to_user_album, (self.imported, self.album.id))
-        )
+        self.assertEqual(self.album.id, self.queued_import().kwargs["album_id"])
 
     def test_without_an_album_nothing_is_filed(self):
         response = self.complete(self.stage())
 
         self.assertEqual(response.status_code, 200, response.content)
-        funcs = [func for func, _args in self.queued_tasks()]
-        self.assertNotIn(add_photo_to_user_album, funcs)
+        self.assertIsNone(self.queued_import().kwargs["album_id"])
 
     def test_a_blank_album_id_is_no_album(self):
         response = self.complete(self.stage(), album_id="")
 
         self.assertEqual(response.status_code, 200, response.content)
-        funcs = [func for func, _args in self.queued_tasks()]
-        self.assertNotIn(add_photo_to_user_album, funcs)
+        self.assertIsNone(self.queued_import().kwargs["album_id"])
 
     def test_a_locked_album_is_refused(self):
         self.album.locked = True
@@ -166,7 +164,7 @@ class UploadIntoAlbumTest(UploadIntoAlbumTestBase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(list(self.album.photos.all()), [existing])
-        self.chain.assert_not_called()
+        self.enqueue.assert_not_called()
 
 
 class ExistsAnswersThePhotoIdTest(TestCase):
@@ -197,7 +195,7 @@ class ExistsAnswersThePhotoIdTest(TestCase):
 
 
 class AddPhotoToUserAlbumTest(TestCase):
-    """The chain task resolves the album again when it runs."""
+    """The import task's album step resolves the album again when it runs."""
 
     def setUp(self):
         self.user = create_test_user()

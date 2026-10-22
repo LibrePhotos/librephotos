@@ -63,9 +63,25 @@ A shorter number or a value that does not parse is ignored. <Since version="1.4.
 On success the server:
 
 - Writes the assembled file to `<upload root>/web/<sanitized filename>`. The upload root is the user's upload folder when an admin set one, otherwise `<scan_directory>/uploads` (`User.upload_root()`). The `web/` subfolder is created if missing; `web` is currently hardcoded as the origin device, so mobile backups land there too.
-- Queues a background task chain (django-q) that imports the photo — `create_new_image` + `handle_new_image`, then `add_photo_to_user_album` when `album_id` was sent (it checks again that the album is still yours and unlocked, and skips it otherwise), caption generation, geolocation, album-date location and face extraction. Because of this, **clients do not need to call `/api/scanuploadedphotos/` afterwards**; the upload is already imported.
-- Ends that chain by requesting the user's upload follow-ups (`api/jobs/upload_followups.py`). <Since version="1.5.0" /> They run the library-level steps a scan's follow-ups run: search embeddings for photos that have none (with tagging off the per-photo chain stores none), a rebuild of the similarity index so new photos show up in semantic and similar-photo search, and encodings for faces that have none (faces read from XMP regions). Requests are debounced per user: the run starts at most two minutes after the first request, so a burst of uploads gets one run, and an upload during a run makes it go round once more. The run takes a per-user lease (`UploadFollowupState`), so two workers never run it at once. Up to 1.4.0, uploaded photos stayed out of semantic search until the next scan or restart.
+- Creates the photo (`create_new_image`) and queues one background task (django-q), `import_uploaded_photo` in `api/jobs/upload_import.py`, that processes it: thumbnails and metadata, then `add_photo_to_user_album` when `album_id` was sent (it checks again that the album is still yours and unlocked, and skips it otherwise), the device date fallback, tags, geolocation with the day album's place, and face extraction. A step that fails does not stop the others. Because of this, **clients do not need to call `/api/scanuploadedphotos/` afterwards**; the upload is already imported.
+- <Since version="1.5.0" /> Counts the upload in your **Import Uploads** job (job type 20), opening one when you have none. You have at most one open import job: every upload adds one to its `progress_target`, and the task adds one to its `progress_current` once all its steps ran. The job finishes when it is sealed (see `POST /api/upload/seal/` below) and every counted upload was processed. A file that makes no photo (a sidecar, embedded media) is not counted, and neither is a duplicate.
+- When the import job finishes, requests your upload follow-ups (`api/jobs/upload_followups.py`). <Since version="1.5.0" /> They run the library-level steps a scan's follow-ups run: search embeddings for photos that have none (with tagging off the per-photo steps store none), a rebuild of the similarity index so new photos show up in semantic and similar-photo search, and encodings for faces that have none (faces read from XMP regions). Requests are debounced per user: the run starts at most two minutes after the first request, so several import jobs in a row get one run, and a request during a run makes it go round once more. The run takes a per-user lease (`UploadFollowupState`), so two workers never run it at once. Up to 1.4.0, uploaded photos stayed out of semantic search until the next scan or restart.
 - Deduplicates by hash: if a `Photo` with the same hash already exists, or a same-named file in the upload folder has the same hash, the file is not copied and no new import is performed (the endpoint still returns `200`); with `album_id`, the photo you already have is added to that album. If a same-named file exists with a *different* hash, the image hash is appended to the basename.
+
+#### Response:
+
+<Since version="1.5.0" /> `{"job_id": "<uuid>", "photo_id": "<uuid>"}`: the import job counting the upload and the photo it made, both `null` when the file made no photo. A duplicate answers `{"detail": "Photo duplicated. No new import performed.", "photo_id": "<uuid>"}`, with the photo you already have (`null` when the identical file is in the upload folder but not in your library yet). Up to 1.4.0, every completion answered `{}`.
+
+The job is a normal job row (`GET /api/jobs/`), so a client can follow the processing:
+
+- `progress_target`: the uploads counted so far, `progress_current`: those processed, done or failed. Show at most the target: a task that runs after the job was finished as lost can count past it.
+- `result.stages`: per step (`media`, `album`, `date`, `tags`, `places`, `faces`), how many photos went through it without an error; a step with nothing to do counts as done.
+- `result.failed_files`: the last 100 photos with an error, `{"photo_id", "file", "stage", "error"}`, where `stage` is the first step that failed and `photo_id` is what this endpoint answered.
+- `result.error_count`, `result.errors`, `result.status`: as for every job.
+- `result.lost`: uploads that were never processed, when the job was finished as lost (below).
+- `result.followups_requested`: `true` once the job finished and requested the follow-ups.
+
+The job counts every upload of the user, from the web app, the mobile app or another client, so a client shows it as "your uploads", not as its own files. It does not mark the job queue busy (`GET /api/rqavailable/` ignores it), and it cannot be cancelled or removed while it runs (`409`, code `upload_import_running`).
 
 Error responses:
 
@@ -75,6 +91,22 @@ Error responses:
 :::note Authentication for the upload endpoints
 Unlike the other endpoints, `/api/upload/` and `/api/upload/complete/` are plain Django views rather than DRF views, so DRF's authentication never runs. They call `JWTCookieAuthentication.authenticate_strict` themselves (`authenticate_upload_request`), which reads an `Authorization: Bearer <access token>` header first and falls back to the `jwt` cookie, whose value is the access token set on the response of `POST /api/auth/token/obtain/` and `POST /api/auth/token/refresh/`. Browser clients send the cookie automatically with `credentials: "include"`; other clients should send the header. A request without credentials returns `403 {"detail": "Authentication credentials were not provided"}`, and one with an expired or otherwise invalid token `403 {"detail": "Authentication credentials were invalid"}`. A malformed header, or a token for an account that is gone or deactivated, also answers `403 {"detail": "Authentication credentials were not provided"}`. Uploads must also be enabled: the endpoints check the `ALLOW_UPLOAD` site setting first and return `403 "Uploading is not allowed"` when it is off, so that 403 is not always an authentication problem.
 :::
+
+### `POST /api/upload/seal/`
+
+<Since version="1.5.0" /> Tells the server an upload run is over: the import jobs it names take no more files, and finish once their uploads are processed. A file uploaded after that opens a new job.
+
+#### Body (JSON):
+
+- `job_ids` - The `job_id` values `POST /api/upload/complete/` answered during the run (at most 100).
+
+Answers `{"sealed_job_ids": ["<uuid>"]}`, the jobs this call sealed. A job that was sealed already, has finished or is not yours is left out, not refused.
+
+#### Headers:
+
+- `Authorization` - `Bearer <access token>`
+
+A client does not have to call it: a job that takes no file for 3 minutes is sealed by a sweeper that runs every minute, the path of the mobile app's backup, which uploads one file at a time with no end. The sweeper also finishes a sealed job whose uploads made no progress for 30 minutes while the job queue is empty (a worker stopped while it held them): the missing uploads count as failed (`result.lost`) and the follow-ups still run.
 
 ### `POST /api/scanuploadedphotos/`
 

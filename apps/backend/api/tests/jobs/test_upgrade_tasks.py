@@ -419,6 +419,20 @@ class UpgradeTaskApiTest(UpgradeTaskTestCase):
         self.assertEqual(api_error(response)["code"], "queue_busy")
         self.assertEqual(LongRunningJob.objects.count(), 1)
 
+    def test_an_upload_import_does_not_hold_the_start(self):
+        # A phone backing up keeps one open all day (#2737).
+        create_test_upgrade_task_state(STRIP)
+        create_test_job(
+            create_test_user(), LongRunningJob.JOB_IMPORT_UPLOADS, sealed=False
+        )
+        with (
+            mock.patch("api.jobs.queue.AsyncTask"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(start_url(STRIP))
+
+        self.assertEqual(response.status_code, 200, response.content)
+
     def test_start_while_its_own_job_runs_names_that_job(self):
         create_test_upgrade_task_state(STRIP)
         running = create_test_job(

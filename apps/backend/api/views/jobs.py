@@ -28,6 +28,20 @@ from api.serializers.job import (
 logger = logging.getLogger(__name__)
 
 
+def _refuse_unfinished_import(job: LongRunningJob) -> None:
+    """An upload import job runs until its files are processed (#2737).
+
+    Its target counts uploads still arriving and queued, so removing or
+    cancelling it would drop their progress and the follow-ups that its end
+    starts. It finishes by itself, at the latest when the sweeper finds it lost.
+    """
+    if job.job_type == LongRunningJob.JOB_IMPORT_UPLOADS and not job.finished:
+        raise Conflict(
+            "Uploads are still being imported; the job finishes by itself.",
+            code="upload_import_running",
+        )
+
+
 # Jobs are written by the workers only: the API lists, opens, deletes and
 # cancels them. A PATCH used to let the caller rewrite their own job row.
 class LongRunningJobViewSet(
@@ -68,6 +82,7 @@ class LongRunningJobViewSet(
         return qs
 
     def perform_destroy(self, instance: LongRunningJob) -> None:
+        _refuse_unfinished_import(instance)
         # Without its baseline the next incremental scan would read the whole
         # library again (#1104); the row goes once a newer library scan is in.
         if loaded(instance, "is_scan_baseline"):
@@ -86,6 +101,7 @@ class LongRunningJobViewSet(
 
         if job.finished:
             raise ValidationError("Job is already finished", code="job_finished")
+        _refuse_unfinished_import(job)
 
         job.cancel()
 
@@ -110,9 +126,10 @@ class QueueAvailabilityView(APIView):
 
         # Queued jobs count: their rows are written when they are queued. The
         # one shown is the job actually running, else the oldest queued one.
-        # running() leaves out rows past the stuck-job threshold (#1919).
+        # Rows past the stuck-job threshold (#1919) and upload imports (#2737)
+        # are left out.
         running_job = (
-            with_job_relations(LongRunningJob.objects.running())
+            with_job_relations(LongRunningJob.objects.holding_the_queue())
             .order_by(F("started_at").asc(nulls_last=True), "queued_at")
             .first()
         )

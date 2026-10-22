@@ -321,7 +321,7 @@ def record_skipped_directories(
     update_job_result(job_id, add_skipped)
 
 
-def _record_error(result: dict[str, Any], error: str | None, target: int) -> bool:
+def record_item_error(result: dict[str, Any], error: str | None, target: int) -> bool:
     """Add one failed item to ``result``; return whether the job counts as failed.
 
     ``error_count`` tracks the aggregate (uncapped); the ``errors`` list itself
@@ -357,12 +357,15 @@ def finish_job_if_complete(job_id: UUID | str) -> bool:
     The conditional UPDATE is the whole transition, so it happens exactly once:
     of any number of callers racing past the target, only the one whose UPDATE
     flips ``finished`` gets a row back, and only that one runs the job's
-    completion hook. Returns whether this call finished the job.
+    completion hook. An upload import job that still takes files (not
+    ``sealed``) is left running: its target is still growing. Returns whether
+    this call finished the job.
     """
     finished = LongRunningJob.objects.filter(
         job_id=job_id,
         finished=False,
         cancelled=False,
+        sealed=True,
         progress_current__gte=F("progress_target"),
     ).update(finished=True, finished_at=timezone.now())
     if not finished:
@@ -380,12 +383,13 @@ def _on_job_finished(job_id: UUID | str) -> None:
     )
     if job is None:
         return
-    job_type = job["job_type"]
-    if job_type == LongRunningJob.JOB_GENERATE_TAGS:
-        _queue_embeddings_after_tags(job_id, job["started_by_id"])
-        return
-    if job_type != LongRunningJob.JOB_SCAN_PHOTOS:
-        return
+    hook = _FINISH_HOOKS.get(job["job_type"])
+    if hook is not None:
+        hook(job_id, job["started_by_id"])
+
+
+def _queue_scan_followups(job_id: UUID | str, user_id: int | None) -> None:
+    """The library-level jobs a photo scan queues when it is done."""
     # Imported here because scan_jobs imports this module.
     from api.directory_watcher.scan_jobs import queue_scan_followups
 
@@ -393,6 +397,17 @@ def _on_job_finished(job_id: UUID | str) -> None:
         queue_scan_followups(job_id)
     except Exception:
         logger.exception("job %s: could not queue the scan follow-ups", job_id)
+
+
+def _request_upload_followups(job_id: UUID | str, user_id: int | None) -> None:
+    """The user's upload follow-ups, once an upload import job is done (#2737)."""
+    # Imported here because api.jobs.upload_import imports this module.
+    from api.jobs.upload_import import on_import_finished
+
+    try:
+        on_import_finished(job_id, user_id)
+    except Exception:
+        logger.exception("job %s: could not request the upload follow-ups", job_id)
 
 
 def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> None:
@@ -425,6 +440,14 @@ def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> Non
         logger.exception("job %s: could not queue the search embeddings", job_id)
 
 
+# What runs when a job of the type finishes, given its id and its starter's id.
+_FINISH_HOOKS: dict[int, Callable[[UUID | str, int | None], None]] = {
+    LongRunningJob.JOB_GENERATE_TAGS: _queue_embeddings_after_tags,
+    LongRunningJob.JOB_SCAN_PHOTOS: _queue_scan_followups,
+    LongRunningJob.JOB_IMPORT_UPLOADS: _request_upload_followups,
+}
+
+
 def update_scan_counter(
     job_id: UUID | str, failed: bool = False, error: str | None = None
 ) -> None:
@@ -446,7 +469,7 @@ def update_scan_counter(
     if failed or error:
 
         def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, bool]:
-            return {"failed": _record_error(result, error, job.progress_target)}
+            return {"failed": record_item_error(result, error, job.progress_target)}
 
         if update_job_result(job_id, add_error) is None:
             # Gone, or cancelled: a cancelled job keeps its "cancelled" result.
@@ -477,7 +500,7 @@ def update_batch_counter(
             "last_progress_at": timezone.now(),
         }
         for error in errors:
-            fields["failed"] = _record_error(result, error, job.progress_target)
+            fields["failed"] = record_item_error(result, error, job.progress_target)
         return fields
 
     if update_job_result(job_id, add_batch) is None:

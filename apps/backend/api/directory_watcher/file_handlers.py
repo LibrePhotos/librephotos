@@ -791,6 +791,18 @@ def handle_new_image(
         update_scan_counter(job_id, failed=error is not None, error=error)
 
 
+def process_uploaded_photo(photo: Photo, path: str, job_id: UUID | str) -> None:
+    """``handle_new_image``'s work on an uploaded photo, without counting it.
+
+    The upload import task (``api.jobs.upload_import``) counts the photo on
+    its job once every step after this one ran too. Raises what the work
+    raised.
+    """
+    observed = _observe_media([path])
+    _process_photo(photo, path, job_id, datetime.datetime.now())
+    _record_read(observed)
+
+
 def _collect_file_records(user: User, file_paths: list[str]) -> list[File]:
     """Create File records for every valid path in a group."""
     files: list[File] = []
