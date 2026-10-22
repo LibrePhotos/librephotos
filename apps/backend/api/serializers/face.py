@@ -302,6 +302,16 @@ class AddFaceRequest(serializers.Serializer[None]):
         required=False,
         help_text="top, right, bottom and left as fractions of the displayed image",
     )
+    fit = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=(
+            "Look for the face inside the box and save the face found there, "
+            "with its own box and encoding (#1117). No face in the box is a 400 "
+            "with code no_face_in_box; send the box again without fit to keep "
+            "it as drawn. With the face service off or failing, the box is kept"
+        ),
+    )
 
 
 class FaceBoxPixels(serializers.Serializer[None]):
@@ -331,6 +341,12 @@ class AddFaceResponse(serializers.Serializer[None]):
             "Why the edit, saved in LibrePhotos, was not written to the file or "
             "its sidecar; null when it was written or writing is off (#2294)"
         ),
+    )
+    fitted = serializers.BooleanField(
+        help_text=(
+            "The face was found in the drawn box: its location is the found "
+            "face's box (#1117). False when the box is saved as drawn"
+        )
     )
     face = AddedFace()
 

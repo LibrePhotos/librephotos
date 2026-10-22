@@ -6,11 +6,14 @@ import type { NormalizedFaceBox, Photo, User } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { drawnFaceResults } from "../../api_client/faces/drawnFaceResults";
 import { defined } from "../../util/defined.test-utils";
 import { makePhoto } from "./photoFixture.test-utils";
 import { useFaceDrawing } from "./useFaceDrawing";
 import { usePhotoActions } from "./usePhotoActions";
 import { usePhotoRotation } from "./usePhotoRotation";
+
+type AddFaceVariables = { photo: string; personName: string; box: NormalizedFaceBox; fit?: boolean };
 
 type MutateOptions = { onSuccess?: () => void; onError?: () => void };
 
@@ -22,7 +25,7 @@ const stubs = vi.hoisted(() => ({
   archived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   deleted: vi.fn<(variables: { image_hashes: string[]; deleted: boolean }, options: MutateOptions) => void>(),
   rotate: vi.fn<(variables: { image_hash: string; clockwiseDegrees: number }, options: MutateOptions) => void>(),
-  addFace: vi.fn<(variables: { photo: string; personName: string; box: NormalizedFaceBox }) => void>(),
+  addFace: vi.fn<(variables: AddFaceVariables) => void>(),
   shares: [{ photo_id: "p1" }],
 }));
 
@@ -228,8 +231,18 @@ describe("useFaceDrawing", () => {
     expect(hook.current().isDrawing).toBe(false);
     expect(hook.current().drawnBox).toEqual(box);
     act(() => hook.current().onPersonChosen("Anna"));
-    expect(stubs.addFace).toHaveBeenCalledWith({ photo: "h1", personName: "Anna", box });
+    expect(stubs.addFace).toHaveBeenCalledWith({ photo: "h1", personName: "Anna", box, fit: true });
     expect(hook.current().drawnBox).toBeNull();
+  });
+
+  it("drawing again leaves the box no face was found in (#1117)", async () => {
+    const request = { photo: "h1", personName: "Anna", box, fit: true };
+    drawnFaceResults.set({ state: "notfound", request });
+    const hook = await renderHook(useDrawing, { hash: "h1" });
+
+    act(() => hook.current().start());
+
+    expect(drawnFaceResults.get("h1")).toBeUndefined();
   });
 
   it("names nobody without a box, and drops a box when the photo changes or on cancel", async () => {

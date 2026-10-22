@@ -34,7 +34,11 @@ vi.mock("../../api_client/auth", () => ({ useIsAuthenticatedQuery: () => ({ data
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
 }));
-vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/faces", () => ({
+  useSetFacesPersonLabelMutation: () => ({ mutate: () => {} }),
+  useDetectFacesReport: () => null,
+  useDrawnFaceResult: () => null,
+}));
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 // The owner's sections have hooks of their own; only which sections render matters here.

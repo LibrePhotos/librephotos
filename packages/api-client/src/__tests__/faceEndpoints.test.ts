@@ -163,6 +163,18 @@ describe("face writes", () => {
     expect(added.face.location.right).toBe(480);
   });
 
+  it("asks the server to find the face in a rough box (#1117)", async () => {
+    const face = { face_id: 11, face_url: "/f.jpg", person: 4, person_name: "Dave" };
+    const location = { top: 160, right: 470, bottom: 430, left: 330 };
+    const { client, requests } = fakeServer({ status: true, fitted: true, face: { ...face, location } }, 201);
+    const box = { top: 0.25, right: 0.6, bottom: 0.75, left: 0.4 };
+
+    const added = await endpoints.addFace(client, "h1", "Dave", box, true);
+
+    expect(defined(requests[0]).body).toEqual({ photo: "h1", person_name: "Dave", box, fit: true });
+    expect(added.fitted).toBe(true);
+  });
+
   it("keeps why a face edit did not reach the file (#2564)", async () => {
     const reason = "the folder /photos is read-only";
     const face = { id: 3, person: 4, person_name: "Dave" };

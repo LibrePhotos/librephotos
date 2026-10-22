@@ -1,14 +1,20 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Alert, Button, Group, Text, Title } from "@mantine/core";
 import { IconUserPlus, IconUsers } from "@tabler/icons-react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useDetectFacesReport, useDrawnFaceResult } from "../../api_client/faces";
 import { DisabledReason } from "../common/DisabledReason";
+import { DetectFacesStatus, DrawnFaceStatus } from "./FaceSearchStatus";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 
 type PeopleSectionProps = {
-  photoDetail: Pick<PhotoType, "people">;
+  /**
+   * `id` follows a Detect faces again of this photo, `image_hash` what became of a box drawn on it
+   * (#1117); without them neither is shown.
+   */
+  photoDetail: Pick<PhotoType, "people"> & Partial<Pick<PhotoType, "id" | "image_hash">>;
   isPublic: boolean;
   showTitle?: boolean;
   /**
@@ -42,8 +48,14 @@ export function PeopleSection({
 }: PeopleSectionProps) {
   const { t } = useTranslation();
 
-  const people = photoDetail.people ?? [];
+  const people = useMemo(() => photoDetail.people ?? [], [photoDetail.people]);
   const canAddFace = !isPublic && !!onAddFaceRequest;
+  const faceIds = useMemo(() => people.map(person => person.face_id), [people]);
+  // Detect faces again on this photo answers here (#1117); its new faces are marked
+  const detected = useDetectFacesReport(isPublic ? undefined : photoDetail.id, faceIds);
+  const newFaceIds = new Set(detected?.newFaceIds);
+  // A box drawn here: the face is looked for in it, or is not there (#1117)
+  const drawn = useDrawnFaceResult(isPublic ? undefined : photoDetail.image_hash);
 
   // Without the add button there is nothing to show for a photo with no faces,
   // but with it this section is the way to record a face the detector missed --
@@ -82,7 +94,9 @@ export function PeopleSection({
           </Button>
         </Alert>
       )}
-      {people.length === 0 && !isDrawingFace && (
+      {drawn && <DrawnFaceStatus outcome={drawn} onDrawAgain={canAddFace ? onAddFaceRequest : undefined} />}
+      {detected && <DetectFacesStatus outcome={detected} onDrawFace={canAddFace ? onAddFaceRequest : undefined} />}
+      {people.length === 0 && !isDrawingFace && !drawn && !detected && (
         <Text mt="xs" size="sm" c="dimmed">
           {t("lightbox.addface.nofaces")}
         </Text>
@@ -96,6 +110,7 @@ export function PeopleSection({
             setFaceLocation={setFaceLocation}
             onPersonEdit={onPersonEdit}
             notThisPerson={notThisPerson}
+            isNew={newFaceIds.has(person.face_id)}
           />
         ))}
       </Group>

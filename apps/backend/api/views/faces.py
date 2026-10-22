@@ -29,6 +29,12 @@ from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.clustering_gate import record_face_label
+from api.faces.drawn_faces import (
+    FaceServiceError,
+    FoundFace,
+    PixelBox,
+    find_face_in_box,
+)
 from api.faces.labels import (
     RelabelResult,
     delete_faces,
@@ -466,6 +472,10 @@ class AddFaceView(APIView):
     A manually added face is a user label: it gets ``person`` set with
     ``KIND_USER`` and no cluster, so classification trains on it like any other
     face the user named, but it never seeds a cluster of its own.
+
+    With ``fit`` the box only says where to look (#1117): the face service
+    looks at that part of the photo alone, and the face it finds there is
+    saved with its own box and encoding, so a rough box is enough.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -519,6 +529,9 @@ class AddFaceView(APIView):
                 raise self._error(error)
             # _box_in_pixels returns a box whenever it reports no error.
             assert box is not None
+            found = _face_in_drawn_box(big_thumbnail, box, data["fit"])
+            if found is not None:
+                box = found.box
             top, right, bottom, left = box
 
             existing = photo.faces.filter(deleted=False).values_list(
@@ -536,24 +549,16 @@ class AddFaceView(APIView):
             )
             face = save_detected_face(
                 photo,
-                DetectedFace(face_image, (top, right, bottom, left)),
+                DetectedFace(
+                    face_image, box, found.encoding if found is not None else None
+                ),
                 f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
                 person,
                 None,
             )
 
-        # Without an encoding the face is still a valid label -- it just cannot be
-        # compared to anything yet. "Train faces" encodes faces that have none, so
-        # a face service that is down or disabled delays recognition rather than
-        # losing the user's work.
-        try:
-            photo_faces.generate_face_encoding(face)
-        except Exception:
-            logger.exception(
-                "Could not encode manually added face %s; "
-                "it will be encoded by the next face training run",
-                face.id,
-            )
+        if not face.encoding:
+            _encode_drawn_face(face)
 
         person._calculate_face_count()
         person._set_default_cover_photo()
@@ -570,6 +575,7 @@ class AddFaceView(APIView):
             {
                 "status": True,
                 "write_error": write_error,
+                "fitted": found is not None,
                 "face": {
                     "face_id": face.id,
                     "face_url": face.image.url,
@@ -643,6 +649,48 @@ class AddFaceView(APIView):
             )
 
         return (top, right, bottom, left), None
+
+
+def _face_in_drawn_box(
+    thumbnail: PIL.Image.Image, box: PixelBox, fit: bool
+) -> FoundFace | None:
+    """The face found in a box drawn by hand, when the client asked for it (#1117).
+
+    None keeps the box as drawn: the client did not ask, face detection is
+    off, or the face service could not look (it is down or failing), as
+    before. Looking and finding nothing is a 400 ``no_face_in_box``: the
+    client offers to keep the box as drawn or to draw again.
+    """
+    if not fit or not feature_enabled("FACE_DETECTION"):
+        return None
+    try:
+        found = find_face_in_box(thumbnail, box)
+    except FaceServiceError as error:
+        logger.warning("Kept a drawn face box as drawn: %s", error)
+        return None
+    if found is None:
+        raise ValidationError(
+            {"box": "No face was found in this box."}, code="no_face_in_box"
+        )
+    return found
+
+
+def _encode_drawn_face(face: Face) -> None:
+    """Ask the face service for the encoding of a face drawn by hand.
+
+    Without an encoding the face is still a valid label -- it just cannot be
+    compared to anything yet. "Train faces" encodes faces that have none, so
+    a face service that is down or disabled delays recognition rather than
+    losing the user's work.
+    """
+    try:
+        photo_faces.generate_face_encoding(face)
+    except Exception:
+        logger.exception(
+            "Could not encode manually added face %s; "
+            "it will be encoded by the next face training run",
+            face.id,
+        )
 
 
 class DeleteFaces(APIView):

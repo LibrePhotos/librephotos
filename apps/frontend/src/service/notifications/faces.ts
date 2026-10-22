@@ -58,6 +58,11 @@ function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo
   );
 }
 
+/** A box drawn by hand: the face was found in it and labelled as `personName` (#1117). */
+function faceFoundInBox(personName: string) {
+  toast.success(i18n.t("toasts.facefoundinbox", { personName }), { title: i18n.t("toasts.addfacestopersontitle") });
+}
+
 /** "Anna and Ben" in the UI language, English when the runtime does not know it. */
 function listNames(names: readonly string[]): string {
   try {
@@ -111,6 +116,7 @@ export const faces = {
   deleteFaces,
   detectFacesAgain,
   detectFacesAgainFailed,
+  faceFoundInBox,
   rejectFacesFromPeople,
   removeFacesFromPerson,
   rescanFaces,
