@@ -24,6 +24,11 @@ function startDeduplicateFaces() {
   toast.success(i18n.t("toasts.deduplicatefaces"), { title: i18n.t("toasts.deduplicatefacestitle") });
 }
 
+/** The scan of another user's library an admin started from the Admin Area (#2037). */
+function startUserPhotoScan(username: string) {
+  toast.success(i18n.t("toasts.scanuserphotos", { username }), { title: i18n.t("toasts.scanphotostitle") });
+}
+
 /** The move of a user's photos outside their new scan directory to their trash (#2036). */
 function startTrashPhotosOutsideLibrary(username: string, count: number) {
   toast.success(i18n.t("toasts.trashphotosoutsidelibrary", { username, count }), {
@@ -90,4 +95,5 @@ export const worker = {
   startLookUpPlaces,
   startStripThumbnailMetadata,
   startTrashPhotosOutsideLibrary,
+  startUserPhotoScan,
 };

@@ -580,6 +580,7 @@ STAFF_ONLY_VIEWS = {
     "api.views.scan_triggers.DeduplicateFacesView",
     "api.views.scan_triggers.CheckFileContentsView",
     "api.views.scan_triggers.LookUpPlacesView",
+    "api.views.scan_triggers.ScanUserPhotosView",
     "api.views.scan_triggers.StripThumbnailMetadataView",
     "api.views.scan_triggers.TrashPhotosOutsideLibraryView",
     "api.views.services.ServiceViewSet",

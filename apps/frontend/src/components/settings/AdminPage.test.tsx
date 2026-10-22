@@ -7,6 +7,7 @@
  *   user's own scene confidence, and a long scan directory stays on one line (#2244).
  * - The Finish the upgrade card heads the page only while an update left work (#2322).
  * - The Update available card heads it while a newer release is out, for admins only (#2311).
+ * - Scan now sits next to every user's scan directory (#2037).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -89,6 +90,9 @@ vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () 
 vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
 vi.mock("./DeduplicateFacesTool", () => ({ DeduplicateFacesTool: () => "deduplicate-faces-tool" }));
 vi.mock("./CheckFileContentsTool", () => ({ CheckFileContentsTool: () => "check-file-contents-tool" }));
+vi.mock("./ScanUserButton", () => ({
+  ScanUserButton: ({ username }: { username: string }) => <button type="button" data-scan-user={username} />,
+}));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -350,6 +354,17 @@ describe("AdminPage", () => {
       });
       const tooltip = defined(document.body.querySelector('[role="tooltip"]'), "the tooltip");
       expect(tooltip.textContent).toBe(longPath);
+    });
+
+    it("offers Scan now next to a user's scan directory, not where none is set (#2037)", async () => {
+      await render();
+
+      const rows = [...usersTable().querySelectorAll("tbody tr")];
+      expect(
+        rows.map(row =>
+          row.querySelectorAll("td")[1]?.querySelector("[data-scan-user]")?.getAttribute("data-scan-user")
+        )
+      ).toEqual(["admin", undefined]);
     });
 
     it("says not set only for a user without a scan directory", async () => {

@@ -97,6 +97,13 @@ describe("job triggers", () => {
     expect(answer.job_id).toBe("j1");
   });
 
+  it("scans another user's library through the admin route (#2037)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.scanUserPhotos(client, 7);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/manage/user/7/scan/`, method: "POST", body: {} });
+    expect(answer.job_id).toBe("j1");
+  });
+
   it("moves a user's photos outside their library to the trash (#2036)", async () => {
     const { client, requests } = fakeServer(started);
     const answer = await endpoints.trashPhotosOutsideLibrary(client, 7);
@@ -188,6 +195,7 @@ describe("job triggers", () => {
       endpoints.deduplicateFaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
+      (client: Parameters<typeof endpoints.scanUserPhotos>[0]) => endpoints.scanUserPhotos(client, 7),
       (client: Parameters<typeof endpoints.trashPhotosOutsideLibrary>[0]) =>
         endpoints.trashPhotosOutsideLibrary(client, 7),
       (client: Parameters<typeof endpoints.rescanPhotos>[0]) => endpoints.rescanPhotos(client, ["p1"]),

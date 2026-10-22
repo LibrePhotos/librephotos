@@ -1,0 +1,8 @@
+/* The hint after `g` (#2037): above the content, clear of the phone footer and the upload card. */
+.hint {
+  position: fixed;
+  bottom: calc(var(--app-shell-footer-offset, 0rem) + var(--mantine-spacing-lg));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+}

@@ -372,7 +372,8 @@
     "usersharing": "Sharing with users",
     "usersharingdesc": "What the users you share photos and albums with see. They always see each photo's date, place and things.",
     "sharepeoplenames": "Show the names of people on photos you share",
-    "sharepeoplenamesdesc": "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public Sharing Defaults."
+    "sharepeoplenamesdesc": "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public Sharing Defaults.",
+    "changescandirectories": "Change scan directories in the Admin Area"
   },
   "checkfilecontents": {
     "title": "Check file contents",
@@ -501,7 +502,8 @@
     "workerstatusbusy": "Worker status: busy",
     "workerstatusimporting": "Importing your uploads",
     "upgradetasks_one": "{{count}} upgrade task left",
-    "upgradetasks_other": "{{count}} upgrade tasks left"
+    "upgradetasks_other": "{{count}} upgrade tasks left",
+    "shortcuts": "Keyboard shortcuts"
   },
   "jobs": {
     "header": "My Jobs",
@@ -1561,8 +1563,8 @@
     "sitesettings": "Site settings",
     "users": "Users",
     "username": "Username",
-    "scandirectory": "Scan Directory",
-    "photocount": "Photo Count",
+    "scandirectory": "Scan directory",
+    "photocount": "Photo count",
     "joined": "Joined",
     "notset": "Not set",
     "remove": "Remove",
@@ -1602,7 +1604,10 @@
     "actions": "Actions",
     "unauthorized": "Admins only",
     "unauthorizeddescription": "Only administrators can open the admin area. Ask your administrator if you need access.",
-    "deleteallautoalbumsexplanation": "This deletes all of your event albums, including their favorites and sharing. Your photos are not deleted. You can create event albums again with Generate Event Albums on the Library page, but favorites and sharing are lost."
+    "deleteallautoalbumsexplanation": "This deletes all of your event albums, including their favorites and sharing. Your photos are not deleted. You can create event albums again with Generate Event Albums on the Library page, but favorites and sharing are lost.",
+    "scannow": "Scan {{username}}'s photos now",
+    "scanning": "Scanning",
+    "scanningpercent": "Scanning {{percent}} %"
   },
   "confirmdialog": {
     "cannotbeundone": "This action cannot be undone.",
@@ -2529,7 +2534,8 @@
     "photosrenamedkept_other": "{{count}} photos kept their names.",
     "photosrenamedfailed_one": "{{count}} photo could not be renamed: its files kept their old name.",
     "photosrenamedfailed_other": "{{count}} photos could not be renamed: their files kept their old names.",
-    "photosrenamefailed": "The photos could not be renamed."
+    "photosrenamefailed": "The photos could not be renamed.",
+    "scanuserphotos": "Scanning {{username}}'s photos. Follow it in Worker Logs."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -3582,5 +3588,14 @@
     "trash": "Move them to {{username}}'s trash",
     "trashdescription": "Files on disk are not touched, and the photos can be restored from the trash.",
     "otheruser": "If another user's scan directory holds these files, that user's next scan adds them to their own library."
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "goto": "Go to",
+    "everywhere": "Everywhere",
+    "then": "then",
+    "adminsonly": "Admins",
+    "thislist": "This list",
+    "note": "Shortcuts are ignored while you type in a field or a dialog is open. The photo viewer has its own keys, shown in its tooltips."
   }
 }

@@ -18,6 +18,8 @@ import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { CancelJobModal } from "../job/CancelJobModal";
+import { ShortcutHint } from "../shortcuts/ShortcutHint";
+import { ShortcutsMenuItem } from "../shortcuts/ShortcutsMenuItem";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
 import { ImportJobMenuSection, importPercent } from "./ImportJobMenuSection";
 import { jobPercent, WorkerJobMenuSection } from "./WorkerJobMenuSection";
@@ -93,7 +95,11 @@ export function ProfileButton(): React.ReactNode {
             <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
           </Menu.Label>
 
-          <Menu.Item leftSection={<Book size={14} />} onClick={() => navigate({ to: "/library" })}>
+          <Menu.Item
+            leftSection={<Book size={14} />}
+            rightSection={<ShortcutHint to="/library" />}
+            onClick={() => navigate({ to: "/library" })}
+          >
             {t("topmenu.library")}
           </Menu.Item>
 
@@ -101,11 +107,19 @@ export function ProfileButton(): React.ReactNode {
             {t("topmenu.profile")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<Settings size={14} />} onClick={() => navigate({ to: "/settings" })}>
+          <Menu.Item
+            leftSection={<Settings size={14} />}
+            rightSection={<ShortcutHint to="/settings" />}
+            onClick={() => navigate({ to: "/settings" })}
+          >
             {t("topmenu.settings")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<ListDetails size={14} />} onClick={() => navigate({ to: "/jobs" })}>
+          <Menu.Item
+            leftSection={<ListDetails size={14} />}
+            rightSection={<ShortcutHint to="/jobs" />}
+            onClick={() => navigate({ to: "/jobs" })}
+          >
             {t("topmenu.jobs")}
           </Menu.Item>
 
@@ -120,13 +134,17 @@ export function ProfileButton(): React.ReactNode {
                     <span aria-hidden>{upgradeTasksLeft}</span>
                     <VisuallyHidden>{upgradeTasksLabel}</VisuallyHidden>
                   </Badge>
-                ) : undefined
+                ) : (
+                  <ShortcutHint to="/admin" />
+                )
               }
               onClick={() => navigate({ to: "/admin" })}
             >
               {t("topmenu.adminarea")}
             </Menu.Item>
           )}
+
+          <ShortcutsMenuItem />
 
           <Menu.Item leftSection={<Logout size={14} />} onClick={requestLogout}>
             {t("topmenu.logout")}
