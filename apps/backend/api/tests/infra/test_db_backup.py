@@ -8,7 +8,7 @@ import tempfile
 import threading
 from collections import namedtuple
 from contextlib import closing
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -21,7 +21,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from api.runtime import db_backup
 from api.runtime.db_backup import BackupError, BackupInfo
 
-NOW = datetime(2026, 10, 13, 8, 30, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 13, 8, 30, 0, tzinfo=UTC)
 INFO = BackupInfo(
     version="1.3.0",
     git_hash="abc1234",

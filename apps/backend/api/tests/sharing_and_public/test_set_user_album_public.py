@@ -296,7 +296,7 @@ class SetUserAlbumPublicExpiresAtTest(SetUserAlbumPublicTestBase):
         self.assertEqual(200, response.status_code)
         share = AlbumUserShare.objects.get(album=self.album)
         self.assertEqual(
-            datetime.datetime(2030, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2030, 1, 2, 3, 4, 5, tzinfo=datetime.UTC),
             share.expires_at,
         )
 

@@ -26,8 +26,8 @@ from api.models.album_place import get_album_place
 from api.photos.files import detach_missing_files
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-JUNE_1 = datetime.datetime(2020, 6, 1, 12, 0, tzinfo=datetime.timezone.utc)
-JULY_4 = datetime.datetime(2021, 7, 4, 9, 30, tzinfo=datetime.timezone.utc)
+JUNE_1 = datetime.datetime(2020, 6, 1, 12, 0, tzinfo=datetime.UTC)
+JULY_4 = datetime.datetime(2021, 7, 4, 9, 30, tzinfo=datetime.UTC)
 
 
 def _extracted(value):

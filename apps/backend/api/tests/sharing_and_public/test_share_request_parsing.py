@@ -56,7 +56,7 @@ class SetUserAlbumPublicRequestTest(TestCase):
         share = self.stored()
         self.assertEqual("summer", share.slug)
         self.assertEqual(
-            datetime.datetime(2030, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2030, 1, 2, 3, 4, 5, tzinfo=datetime.UTC),
             share.expires_at,
         )
         self.assertIs(False, share.share_location)

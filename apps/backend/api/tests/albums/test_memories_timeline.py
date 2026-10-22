@@ -24,7 +24,7 @@ from api.views.memories import (
     today_for_user,
 )
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 
 
 def add_photo_on(user, day, **kwargs):

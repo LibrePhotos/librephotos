@@ -28,8 +28,8 @@ from api.models import File, LongRunningJob, Photo, User
 from api.tests.utils import create_test_photo, create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
 
-JAN_2019 = datetime.datetime(2019, 1, 15, 12, 0, tzinfo=datetime.timezone.utc)
-MAR_2020 = datetime.datetime(2020, 3, 1, 9, 30, tzinfo=datetime.timezone.utc)
+JAN_2019 = datetime.datetime(2019, 1, 15, 12, 0, tzinfo=datetime.UTC)
+MAR_2020 = datetime.datetime(2020, 3, 1, 9, 30, tzinfo=datetime.UTC)
 XMP = (
     '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF '
     'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'

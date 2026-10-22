@@ -23,7 +23,7 @@ from api.models import User
 from api.tests.metadata.test_library_write import MockWriters
 from api.tests.utils import create_test_face, create_test_photo, create_test_user
 
-DATE = datetime.datetime(2011, 11, 11, 11, 11, tzinfo=datetime.timezone.utc)
+DATE = datetime.datetime(2011, 11, 11, 11, 11, tzinfo=datetime.UTC)
 
 
 def run_command(*args, fail=None):

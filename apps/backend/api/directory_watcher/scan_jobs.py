@@ -101,7 +101,7 @@ def _modified_after(mtime: float, time: datetime.datetime | None) -> bool:
     assert time is not None
     # An aware UTC moment: without ``tz``, fromtimestamp gives the host's local
     # wall-clock time, which is not UTC on Windows (#2193).
-    return datetime.datetime.fromtimestamp(mtime, tz=datetime.timezone.utc) > time
+    return datetime.datetime.fromtimestamp(mtime, tz=datetime.UTC) > time
 
 
 def _file_was_modified_after(filepath: str, time: datetime.datetime | None) -> bool:

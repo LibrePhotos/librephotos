@@ -57,7 +57,7 @@ class _LibraryTestCase(TestCase):
             pk=pk or uuid.uuid4(),
             owner=user or self.user,
             image_hash=files[0].hash,
-            added_on=datetime.datetime.now(datetime.timezone.utc),
+            added_on=datetime.datetime.now(datetime.UTC),
             geolocation_json={},
         )
         photo.save()

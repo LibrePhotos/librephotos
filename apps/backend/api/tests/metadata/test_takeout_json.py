@@ -11,7 +11,7 @@ moved to the end, and the JSON of an edited copy shared with the original.
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest import mock
 
 from django.test import SimpleTestCase
@@ -25,8 +25,6 @@ from api.metadata.takeout import (
     parse_takeout_json,
     read_takeout_json,
 )
-
-UTC = timezone.utc
 
 # A Takeout JSON as Google writes it (2024 export, trimmed of the fields
 # LibrePhotos does not read).

@@ -16,7 +16,7 @@ from api.tests.utils import create_test_photo, create_test_user
 
 URL = "/api/photosedit/datetime/"
 SUMMARY_URL = "/api/photos/date-summary/"
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 
 
 def at(hour, minute=0, second=0, day=9):

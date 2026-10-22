@@ -36,7 +36,7 @@ from api.tests.utils import (
     create_test_user,
 )
 
-WHEN = datetime.datetime(2021, 6, 5, 4, 3, 2, tzinfo=datetime.timezone.utc)
+WHEN = datetime.datetime(2021, 6, 5, 4, 3, 2, tzinfo=datetime.UTC)
 GEOCODED = {
     "features": [{"text": "Lisbon", "center": [38.7, -9.1]}],
     "places": ["Lisbon"],

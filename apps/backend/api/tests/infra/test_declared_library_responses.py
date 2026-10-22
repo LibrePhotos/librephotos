@@ -33,7 +33,7 @@ from api.tests.utils import (
     create_test_user,
 )
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 BINARY = {"type": "string", "format": "binary"}
 NAS_MOUNT: permissions.MountSummary = {
     "point": "/photos",

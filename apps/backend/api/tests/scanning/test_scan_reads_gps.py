@@ -61,7 +61,7 @@ class ScanReadsGpsTest(RealExifToolTestCase):
         photo = self.scan(photo)
 
         self.assertEqual(
-            datetime.datetime(2024, 4, 3, 3, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2024, 4, 3, 3, 0, tzinfo=datetime.UTC),
             photo.exif_timestamp,
         )
         self.assertEqual(SAN_FRANCISCO, (photo.exif_gps_lat, photo.exif_gps_lon))

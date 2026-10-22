@@ -30,7 +30,7 @@ from api.tests.utils import create_test_photo, create_test_user
 EXIFTOOL = shutil.which("exiftool")
 FFMPEG = shutil.which("ffmpeg")
 
-TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc)
+TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.UTC)
 TIMESTAMP_EXIFTOOL = "2019:08:15 07:45:00"
 
 

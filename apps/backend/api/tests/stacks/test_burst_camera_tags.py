@@ -13,8 +13,7 @@ import json
 import os
 import struct
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import PIL.Image
@@ -35,7 +34,7 @@ from api.stacks.detection import detect_burst_sequences
 from api.tests.metadata.exiftool_harness import RealExifToolTestCase
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-NOON = datetime(2025, 1, 1, 12, 0, 0, tzinfo=dt_timezone.utc)
+NOON = datetime(2025, 1, 1, 12, 0, 0, tzinfo=UTC)
 BURST_MODE_RULE = {
     "id": 1,
     "rule_type": BurstRuleTypes.EXIF_BURST_MODE,

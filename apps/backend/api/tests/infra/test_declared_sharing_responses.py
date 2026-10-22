@@ -25,7 +25,7 @@ from api.tests.utils import (
     create_test_user,
 )
 
-TAKEN = datetime.datetime(2021, 6, 5, 14, 30, tzinfo=datetime.timezone.utc)
+TAKEN = datetime.datetime(2021, 6, 5, 14, 30, tzinfo=datetime.UTC)
 SETTINGS = (
     "share_location",
     "share_camera_info",

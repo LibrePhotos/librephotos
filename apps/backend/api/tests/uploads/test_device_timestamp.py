@@ -27,7 +27,7 @@ from api.views.upload import (
     parse_utc_offset,
 )
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 # A screenshot taken 2025-10-11 21:30 in Los Angeles (UTC-7).
 EPOCH_MS = "1760243400000"
 LOCAL_WALL_CLOCK = datetime.datetime(2025, 10, 11, 21, 30, tzinfo=UTC)

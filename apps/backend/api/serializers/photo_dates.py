@@ -1,7 +1,7 @@
 """Request input and answers of the bulk date views (#2278,
 ``api/views/photo_dates.py``)."""
 
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
 from rest_framework import serializers
@@ -35,7 +35,7 @@ class SetPhotosDateTimeRequest(PhotoSelectionRequest):
     )
     datetime = serializers.DateTimeField(
         required=False,
-        default_timezone=timezone.utc,
+        default_timezone=UTC,
         help_text="With set: the photos' local wall-clock time, without an "
         "offset (as the lightbox's date editor sends it)",
     )

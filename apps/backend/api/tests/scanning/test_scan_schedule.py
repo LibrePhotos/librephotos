@@ -43,7 +43,7 @@ from api.tests.utils import (
     patch_nextcloud_dns,
 )
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 # A Wednesday.
 WEDNESDAY_NOON = datetime.datetime(2026, 10, 14, 12, 30, tzinfo=UTC)
 

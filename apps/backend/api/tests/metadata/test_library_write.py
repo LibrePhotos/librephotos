@@ -40,7 +40,7 @@ MEDIA_FILE = User.SaveMetadata.MEDIA_FILE
 OFF = User.SaveMetadata.OFF
 EVERY_TYPE = list(WRITE_TYPES)
 WITHOUT_FACES = [name for name in WRITE_TYPES if name != "face_tags"]
-DATE = datetime.datetime(2011, 11, 11, 11, 11, tzinfo=datetime.timezone.utc)
+DATE = datetime.datetime(2011, 11, 11, 11, 11, tzinfo=datetime.UTC)
 
 
 def _run_now(func, *args, **kwargs):
