@@ -9,7 +9,9 @@ describe the owner's whole library.
 A recipient sees the same place and thing names here as on each shared
 photo itself; the public link switches (``share_location`` and the others)
 only govern public links. An owner who also shares their library with the
-recipient with Location off (#2731) adds no places.
+recipient with Location off (#2731) adds no places, and an album whose
+owner keeps locations (or captions, for things) from its members (#464)
+adds none of its photos.
 """
 
 from __future__ import annotations
@@ -46,11 +48,14 @@ class AlbumKind:
 
     model: type[AlbumPlace] | type[AlbumThing]
     field: str
+    # What a group's title tells about its photos: the album switch that
+    # must let members see it (#464).
+    album_switch: str
 
     def links(self, user: User | None) -> QuerySet[Model]:
         """The (album, photo) rows of the photos shared with ``user``."""
         through: type[Model] = self.model.photos.through
-        shared = Photo.visible.shared_with_me(user)
+        shared = Photo.visible.shared_with_me(user, self.album_switch)
         if self.model is AlbumPlace:
             # A library share with the location switch off wins (#2731).
             shared = shared.exclude(
@@ -59,8 +64,9 @@ class AlbumKind:
         return through._default_manager.filter(photo__in=shared)
 
 
-PLACES = AlbumKind(AlbumPlace, "albumplace")
-THINGS = AlbumKind(AlbumThing, "albumthing")
+PLACES = AlbumKind(AlbumPlace, "albumplace", "location")
+# Things come from the photos' captions (the OpenCLIP tags).
+THINGS = AlbumKind(AlbumThing, "albumthing", "captions")
 
 
 def place_links(user: User | None) -> QuerySet[Model]:

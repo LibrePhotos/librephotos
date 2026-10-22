@@ -81,6 +81,70 @@ describe("user album sharing", () => {
     expect(album.shared_to.map(user => user.username)).toEqual(["bob"]);
   });
 
+  it("shares an album with a role (#464), and reads back the requester's role", async () => {
+    const { client, requests } = fakeServer({ ...card, my_role: "owner" });
+    const album = await endpoints.setUserAlbumShared(client, 4, 2, true, "contributor");
+    expect(defined(requests[0]).body).toEqual({
+      album_id: "4",
+      target_user_id: "2",
+      shared: true,
+      role: "contributor",
+    });
+    expect(album.my_role).toBe("owner");
+  });
+
+  it("adds my photos to an album I contribute to, by id and by select-all", async () => {
+    const { client, requests } = fakeServer({ count: 2 });
+    const changed = await endpoints.addPhotosToAlbum(client, 4, ["p1", "p2"]);
+    expect(changed).toEqual({ count: 2 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/photos/add/",
+      method: "POST",
+      body: { photos: ["p1", "p2"] },
+    });
+    const all = fakeServer({ count: 9 });
+    await endpoints.addPhotosToAlbum(all.client, 4, [], { query: { favorite: true }, excludedHashes: ["h"] });
+    expect(defined(all.requests[0]).body).toEqual({
+      select_all: true,
+      query: { favorite: true },
+      excluded_hashes: ["h"],
+    });
+  });
+
+  it("takes photos out of an album", async () => {
+    const { client, requests } = fakeServer({ count: 1 });
+    await expect(endpoints.removePhotosFromAlbum(client, 4, ["p1"])).resolves.toEqual({ count: 1 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/photos/remove/",
+      method: "POST",
+      body: { photos: ["p1"] },
+    });
+  });
+
+  it("sets my own switches in an album shared with me, and the owner's ceiling", async () => {
+    const switches = {
+      share_location: true,
+      share_faces: false,
+      share_camera_info: false,
+      share_captions: false,
+      share_originals: false,
+    };
+    const mine = fakeServer(switches);
+    await expect(endpoints.setAlbumMembership(mine.client, 4, { share_location: true })).resolves.toEqual(switches);
+    expect(defined(mine.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/membership/",
+      method: "PATCH",
+      body: { share_location: true },
+    });
+    const ceiling = fakeServer({ id: 4, title: "Berlin 2024" });
+    await endpoints.setAlbumMemberCeiling(ceiling.client, 4, { members_share_location: false });
+    expect(defined(ceiling.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/",
+      method: "PATCH",
+      body: { members_share_location: false },
+    });
+  });
+
   it("leaves an album shared with me", async () => {
     const { client, requests } = fakeServer(null);
     await expect(endpoints.leaveSharedAlbum(client, 4)).resolves.toBeUndefined();

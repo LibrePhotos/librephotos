@@ -68,6 +68,36 @@ export const PublicSharingSettings = z.object({
 });
 export type PublicSharingSettings = z.infer<typeof PublicSharingSettings>;
 
+/** A member's role in a shared album (#464): sees it, or also adds their own photos. */
+export const AlbumRole = z.enum(["viewer", "contributor"]);
+export type AlbumRole = z.infer<typeof AlbumRole>;
+
+/** What the requester may do in an album: own it, add to it, only look, or nothing (a public link). */
+export const AlbumMyRole = z.enum(["owner", "contributor", "viewer", "none"]);
+export type AlbumMyRole = z.infer<typeof AlbumMyRole>;
+
+/** Someone a user album is shared with, their role and how many photos they added. */
+export const AlbumMember = z.object({
+  user: SimpleUser,
+  role: AlbumRole,
+  photo_count: z.number(),
+});
+export type AlbumMember = z.infer<typeof AlbumMember>;
+
+/** A member's own switches: what the other members see of the photos they add (#464). */
+export const AlbumMemberSwitches = z.object({
+  share_location: z.boolean(),
+  share_faces: z.boolean(),
+  share_camera_info: z.boolean(),
+  share_captions: z.boolean(),
+  share_originals: z.boolean(),
+});
+export type AlbumMemberSwitches = z.infer<typeof AlbumMemberSwitches>;
+
+/** POST /albums/user/{id}/photos/add/ and .../remove/: how many photos the request changed. */
+export const AlbumPhotosChanged = z.object({ count: z.number() });
+export type AlbumPhotosChanged = z.infer<typeof AlbumPhotosChanged>;
+
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
@@ -91,6 +121,8 @@ export const UserAlbumInfo = z.object({
   // The owner's collections holding the album (#1009); empty on someone else's album. Optional:
   // older servers do not send it.
   collection_ids: z.number().array().optional().default([]),
+  // What the requester may do in it (#464); absent from older servers.
+  my_role: AlbumMyRole.optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 
@@ -119,11 +151,44 @@ export const UserAlbum = UserAlbumDetails.extend({
   // The owner's collections holding the album (#1009). Absent from a public album and from older
   // servers.
   collection_ids: z.number().array().optional().default([]),
+  // Collaborative albums (#464): the members and their roles, the requester's role and own
+  // switches, and the owner's ceiling of what members see. Absent from a public album and from
+  // older servers.
+  members: AlbumMember.array().optional().default([]),
+  my_role: AlbumMyRole.optional(),
+  my_switches: AlbumMemberSwitches.nullable().optional(),
+  members_share_location: z.boolean().optional(),
+  members_share_faces: z.boolean().optional(),
+  members_share_camera_info: z.boolean().optional(),
+  members_share_captions: z.boolean().optional(),
+  members_share_originals: z.boolean().optional(),
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
 
+/** What the album's owner lets members see; each field shows only where the photo's owner agrees. */
+export type AlbumMemberCeiling = Partial<
+  Pick<
+    UserAlbum,
+    | "members_share_location"
+    | "members_share_faces"
+    | "members_share_camera_info"
+    | "members_share_captions"
+    | "members_share_originals"
+  >
+>;
+
 /** A public album: the owner's UserAlbum shape without the owner's collections, which stay private. */
-export const PublicAlbum = UserAlbum.omit({ collection_ids: true });
+export const PublicAlbum = UserAlbum.omit({
+  collection_ids: true,
+  members: true,
+  my_role: true,
+  my_switches: true,
+  members_share_location: true,
+  members_share_faces: true,
+  members_share_camera_info: true,
+  members_share_captions: true,
+  members_share_originals: true,
+});
 export type PublicAlbum = z.infer<typeof PublicAlbum>;
 
 /**

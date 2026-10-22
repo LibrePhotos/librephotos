@@ -26,6 +26,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.albums.member_grants import photos_seen_through_albums, seen_links
 from api.albums.timeline_filter import timeline_filter_q
 from api.classification import captioning
 from api.drf.exceptions import ServiceUnavailable
@@ -707,23 +708,19 @@ class PhotoViewSet(
         filter_kwargs = _get_photo_filter_kwargs(pk)
         user = request.user
         # Only resolve photos the requester may see -- their own, shared to
-        # them, public, or in one of their own or shared-to-them albums. An
-        # unscoped lookup answered 200 for anyone's hash and 404 for an unknown
-        # one, telling strangers which files others have (GHSA-hq2w-x39h-8wmp).
-        if isinstance(user, User):
-            user_albums = AlbumUser.objects.owned_or_shared_to(user)
-            candidates = Photo.objects.visible_to(user) | Photo.objects.filter(
-                albumuser__in=user_albums
-            )
-        else:
-            user_albums = AlbumUser.objects.none()
-            candidates = Photo.objects.visible_to(None)
+        # them, public, or shown in one of their own or shared-to-them albums
+        # (along a vouched link, #464). An unscoped lookup answered 200 for
+        # anyone's hash and 404 for an unknown one, telling strangers which
+        # files others have (GHSA-hq2w-x39h-8wmp).
+        candidates = Photo.objects.visible_to(user) | photos_seen_through_albums(user)
         photo = candidates.filter(**filter_kwargs).distinct().first()
 
         if not photo:
             raise NotFound()
+        # The albums of the requester's that show the photo.
+        showing = seen_links(user).filter(photo=photo).values("albumuser_id")
         albums = with_album_user_list_relations(
-            user_albums.filter(photos=photo).distinct()
+            AlbumUser.objects.filter(pk__in=showing)
         )
         serializer = AlbumUserListSerializer(
             albums, many=True, context={"request": request}
@@ -747,7 +744,6 @@ class PhotoViewSet(
         return [permission() for permission in permission_classes]
 
     def get_queryset(self) -> QuerySet[Photo]:
-        # Photos in shared albums are handled by the permission class.
         user = scope_user(self.request)
         # Others see only what the library lists; the owner also opens their
         # own hidden and trashed photos, from the Hidden and Trash pages.
@@ -759,8 +755,11 @@ class PhotoViewSet(
             # and places: of the requester's own photos only, never of a
             # photo they can merely read.
             return own.prefetch_related("stacks").order_by("-exif_timestamp")
+        # The photos of the albums the requester owns or is a member of
+        # (#464); PhotoSerializer redacts them by the album's rules.
+        in_albums = Photo.visible.filter(pk__in=seen_links(user).values("photo_id"))
         return (
-            (Photo.visible.visible_to(user) | own)
+            (Photo.visible.visible_to(user) | own | in_albums)
             .distinct()
             .prefetch_related("stacks")
             .order_by("-exif_timestamp")

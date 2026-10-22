@@ -75,14 +75,6 @@
       "count": 1
     }
   },
-  "src/api_client/albums/hooks/useShareUserAlbumMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 4
-    },
-    "ban/query-client-singleton": {
-      "count": 1
-    }
-  },
   "src/api_client/albums/hooks/useToggleUserAlbumLockedMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 2

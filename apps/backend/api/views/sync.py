@@ -44,6 +44,8 @@ from api.models import (
     AlbumPlace,
     AlbumThing,
     AlbumUser,
+    AlbumUserMember,
+    AlbumUserPhoto,
     DeletionLog,
     File,
     Person,
@@ -277,15 +279,13 @@ class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
         membership: defaultdict[int, list[str]] = defaultdict(list)
-        through = AlbumUser.photos.through
-        for aid, pid in through.objects.filter(albumuser_id__in=ids).values_list(
-            "albumuser_id", "photo_id"
-        ):
+        links = AlbumUserPhoto.objects.listed().filter(albumuser_id__in=ids)
+        for aid, pid in links.values_list("albumuser_id", "photo_id"):
             membership[aid].append(str(pid))
         shared_ids = set(
-            AlbumUser.shared_to.through.objects.filter(
-                albumuser_id__in=ids
-            ).values_list("albumuser_id", flat=True)
+            AlbumUserMember.objects.filter(albumuser_id__in=ids).values_list(
+                "albumuser_id", flat=True
+            )
         )
         return [
             serialize_user_album_row(r, membership[r["id"]], r["id"] in shared_ids)
@@ -422,7 +422,7 @@ class SyncSharingView(BaseSyncView[User]):
             ).values_list("user_id", flat=True)
         )
         for through, owner_lookup in (
-            (AlbumUser.shared_to.through, "albumuser__owner"),
+            (AlbumUserMember, "albumuser__owner"),
             (AlbumAuto.shared_to.through, "albumauto__owner"),
             (AlbumThing.shared_to.through, "albumthing__owner"),
             (AlbumPlace.shared_to.through, "albumplace__owner"),

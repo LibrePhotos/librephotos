@@ -25,6 +25,8 @@ type ViewerProps = Pick<
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined }),
 }));
+// Who is looking: the lightbox opens a photo someone else owns read-only (#464).
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1, isAuthenticated: true }) }));
 
 // The lightbox's unsaved-edits guard (#2284) waits on the router for Back; nothing is edited here.
 vi.mock("@tanstack/react-router", () => ({ useBlocker: () => ({ status: "idle" }) }));

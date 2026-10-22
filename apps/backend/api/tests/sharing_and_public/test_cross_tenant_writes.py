@@ -650,6 +650,28 @@ class CrossTenantWriteTest(TestCase):
             ),
             # leaving an album that is not shared with the attacker
             ("post", "/api/useralbum/leave/", {"album_id": self.v_album.pk}),
+            # collaborative albums (#464): adding to, taking out of and setting
+            # one's switches in an album the attacker is not a member of, and
+            # adding the victim's photos to the attacker's own album
+            *(
+                ("post", f"/api/albums/user/{album.pk}/photos/add/", body)
+                for album in (self.v_album, self.a_album)
+                for body in (
+                    {"photos": self._ids()},
+                    {"photos": [str(self.a_photo.pk)]},
+                    {"select_all": True, "query": public_query},
+                )
+            ),
+            (
+                "post",
+                f"/api/albums/user/{self.v_album.pk}/photos/remove/",
+                {"photos": self._ids()},
+            ),
+            (
+                "patch",
+                f"/api/albums/user/{self.v_album.pk}/membership/",
+                {"share_location": True},
+            ),
             # per-photo share links, by id and by hash, for every action
             *(
                 ("post", "/api/photo/share", {"photo_id": ref, "action": action})

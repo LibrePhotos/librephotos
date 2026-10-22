@@ -40,3 +40,4 @@ export * from "./useRemovePhotosFromPersonMutation";
 export * from "./useMergePersonMutation";
 export * from "./useAlbumCollections";
 export * from "./usePersonGroups";
+export * from "./useCollaborativeAlbumMutations";

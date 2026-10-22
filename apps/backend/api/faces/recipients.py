@@ -37,7 +37,7 @@ def is_named(face: Face) -> bool:
 def _owner_shares_with_recipients(photo: Photo, viewer: User) -> bool:
     return (
         photo.owner.share_people_names
-        and Photo.objects.shared_with_me(viewer).filter(pk=photo.pk).exists()
+        and Photo.objects.shared_with_me(viewer, "faces").filter(pk=photo.pk).exists()
     )
 
 
@@ -83,7 +83,7 @@ def shared_named_faces(user: User | None) -> QuerySet[Face]:
     person that owner named, on a photo the lists show.
     """
     shared = (
-        Photo.visible.shared_with_me(user)
+        Photo.visible.shared_with_me(user, "faces")
         .filter(owner__share_people_names=True)
         # A library share with the names switch off wins (#2731).
         .exclude(

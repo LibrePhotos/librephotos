@@ -75,6 +75,8 @@ vi.mock("./ImagePreloader", () => ({ ImagePreloader: () => null }));
 vi.mock("./VideoPlayer", () => ({ SEEK_STEP_SECONDS: 10, SEEK_LONG_STEP_SECONDS: 60 }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
+// The viewer: user 1 (the photo details below are theirs unless a test says otherwise).
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1, isAuthenticated: true }) }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined, isLoading: false, isError: false }),
 }));

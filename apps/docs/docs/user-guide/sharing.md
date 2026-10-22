@@ -23,11 +23,58 @@ You can share any user album with other users on your LibrePhotos instance:
 
 1. Navigate to the album you want to share
 2. Open the **⋮** (**Album actions**) at the right of the album's header and choose **Sharing**
-3. Search for users and toggle sharing on or off for each
+3. Search for users and pick a role for each: **No access**, **Can view** or **Can add photos**
 
 You can also open the same dialog from the share action on the album's card under **Albums**, or, while selecting photos, from the selection bar's **three-dot menu** (⋮) under **Album Actions**.
 
 Shared albums show up in the recipient's sharing area: they open **Sharing**, click the **Shared with you** tile, then the **Albums** tab (the page is titled *Albums others shared*).
+
+<Since version="1.5.0" /> Up to 1.4.0, each user had an on/off switch instead of a role, and everyone you shared an album with could only view it.
+
+## Albums others can add to
+
+<Since version="1.5.0" />
+
+A user you give **Can add photos** becomes a contributor: they add photos from their own library to your album, for example when you both photograph the dog. Their photos stay theirs. The album only links them, so nothing is copied or moved, and taking a photo out of the album never deletes it.
+
+**Adding photos.** A contributor selects photos anywhere in their library, opens the **+** menu and chooses **Album**. Under **Shared with you, you can add** they pick your album. The next step says who will see the photos and what of them (see below), and **Add to** adds them. Hidden photos cannot be added, and nobody adds photos while the album is [locked](./albums.md).
+
+**What each person can do**
+
+| | Owner | Can add photos | Can view |
+|---|---|---|---|
+| See the album and its photos | ✓ | ✓ | ✓ |
+| Add their own photos | ✓ | ✓ | |
+| Take photos out of the album | any photo | only the photos they added | |
+| Rename, set the cover, lock, delete the album | ✓ | | |
+| Share it with others, change roles, public link | ✓ | | |
+
+On the album page a contributor clicks **Select**, selects the photos they added and chooses **Remove from album**. A photo someone else added says why it cannot be removed.
+
+**Leaving and roles.** When a contributor leaves the album, or you set them to **Can view** or **No access**, the photos they added leave the album at once. They stay in their library. The share dialog asks first and says how many photos leave.
+
+### What members see of each photo
+
+Members always see the photos and their dates. Each of these details shows only where **both** sides allow it:
+
+- **Location**, **Names of people**, **Camera information**, **Captions** and **Original files**.
+- The album's owner sets what members may see under **What members see** in the share dialog. All are on by default, so your own photos look to members as they did before.
+- A contributor sets what the others see of the photos they add: in the step before adding, or later with **What others see of my photos** in the album's **⋮**. All are off until they turn them on. The table shows the album's choice, theirs and the result.
+- Names of people on the owner's photos also need [Show the names of people on photos you share](#what-the-users-you-share-with-see).
+
+Some things are never shared through an album: the file name and folder, ratings and favourites, whether the photo is hidden or in the trash, the photo's other albums and its edit history. A photo its owner hides or moves to the trash disappears from the album for everyone else.
+
+Without **Original files**, a member who downloads a photo, or plays a video, gets a full-size copy without the file's metadata instead of the original, as with a [shared library](#sharing-your-whole-library): the original carries everything the camera recorded, including where it was taken.
+
+The same choices hold under **Shared with you**: the album's photos appear under its members' places only with **Location** on, under their things only with **Captions** on and under their people only with **Names of people** on, and each photo there shows only what the album allows. A photo the owner also shared with you on its own shows what that share shows.
+
+When the photo's owner also shares their whole library with you, that share's choices decide what you see of their photos, in albums too.
+
+### Where a contributor's photos show
+
+Only in the album itself. They are not in the album owner's timeline, search, places or downloads, not in anyone's **Shared with you** places, things and people, and never on the album's **public link**, which shows only the owner's own photos.
+
+An album only holds photos its owner or a current contributor added. Since 1.5.0, old links in an album to other users' photos are removed when you upgrade.
 
 ## Sharing Photos with Users
 
@@ -257,6 +304,8 @@ An album someone shared with you stays in your list until you leave it. Open the
 
 Only you leave: the owner keeps the album, it stays shared with everyone else, and the owner no longer sees you under **Albums you shared** for it. They can share it with you again at any time. You cannot leave an album you own; delete it or stop sharing it instead.
 
+<Since version="1.5.0" /> If you could add photos, the photos you added leave the album with you. They stay in your library.
+
 <Since version="1.4.0" /> Up to 1.3.0, only the owner could take an album off your list, by unsharing it.
 
 ### Public Links
@@ -289,7 +338,7 @@ Each person scans their own folder and shares albums or single photos with the o
 
 - Each person keeps their own favourites, faces and private photos.
 - Under **Shared with you**, everyone sees the others' places and things merged, and their people per owner.
-- A trip both partners photographed stays in two libraries. Each shares their own half.
+- A trip both partners photographed stays in two libraries. One makes an album and gives the other **Can add photos**, so both halves end up in [one album](#albums-others-can-add-to).
 
 ### Setup 3: share your libraries with each other
 
@@ -308,5 +357,4 @@ Everyone signs in with the same account. It is the simplest setup, but nobody ha
 ### What is not possible yet
 
 - Owning photos together, or one library that several users scan and change: [#395](https://github.com/LibrePhotos/librephotos/issues/395). [Sharing your whole library](#sharing-your-whole-library) shares it read-only.
-- Letting the people you share an album with add their own photos to it: [#464](https://github.com/LibrePhotos/librephotos/issues/464).
 - Adding the people someone shared with you to your own People page: [#632](https://github.com/LibrePhotos/librephotos/issues/632).

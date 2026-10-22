@@ -7,7 +7,8 @@ import os
 import re
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from functools import partial
 from urllib.parse import quote
 
 from django.conf import settings
@@ -32,9 +33,10 @@ from api.accounts.authentication import (
     JWTCookieAuthentication,
     ThrottledBasicAuthentication,
 )
+from api.albums.member_grants import album_grants
 from api.drf.params import parse_query
 from api.mime import mime_type, still_content_type
-from api.models import AlbumUser, Photo
+from api.models import AlbumUser, AlbumUserPhoto, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS
 from api.models.user import User
@@ -42,7 +44,12 @@ from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
 from api.serializers.media import MediaQuery
 from api.serving.http_range import file_size, ranged_response
-from api.sharing.copies import COPIES_DIR, CopyUnavailableError, ensure_copy
+from api.sharing.copies import (
+    COPIES_DIR,
+    CopyUnavailableError,
+    allow_album_copy,
+    ensure_copy,
+)
 from api.sharing.grants import LibraryGrant, library_grant
 from api.video import color, ffmpeg_budget, transcode_cache
 from api.video.no_metadata import NO_METADATA
@@ -758,26 +765,25 @@ class MediaServingView(APIView):
             return response
         return self._serve_file_direct(_original_path(photo), content_type)
 
-    def _public_album_active_q(self) -> Q:
-        return Q(share__enabled=True) & (
-            Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
-        )
-
-    @staticmethod
-    def _vouching_albums(photo: Photo) -> QuerySet[AlbumUser]:
-        """Albums whose shares may grant access to ``photo``: its owner's only.
-
-        A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
-        not be served on the strength of that album's share.
-        """
-        return photo.albumuser_set.filter(
-            owner_id=photo.owner_id  # owner-scope: same owner as the photo
+    def _public_album_active_q(self, prefix: str = "") -> Q:
+        return Q(**{f"{prefix}share__enabled": True}) & (
+            Q(**{f"{prefix}share__expires_at__isnull": True})
+            | Q(**{f"{prefix}share__expires_at__gte": timezone.now()})
         )
 
     def _in_public_album(self, photo: Photo) -> bool:
-        """Whether an active public share of one of its owner's albums vouches."""
+        """Whether an active public link of one of its owner's albums vouches.
+
+        A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
+        not be served on the strength of that album's link, and a public
+        link shows the album owner's photos only: a contributor's photo in a
+        collaborative album (#464) is never in it.
+        """
         return (
-            self._vouching_albums(photo).filter(self._public_album_active_q()).exists()
+            AlbumUserPhoto.objects.of_album_owner()
+            .filter(photo=photo)
+            .filter(self._public_album_active_q("albumuser__"))
+            .exists()
         )
 
     @staticmethod
@@ -847,20 +853,52 @@ class MediaServingView(APIView):
                 return p
         return candidates[0]
 
-    def _may_access(self, photo: Photo, user: User | None) -> bool:
+    def _may_access(
+        self, photo: Photo, user: User | None, original: bool = False
+    ) -> bool:
         """Whether `user` may fetch `photo`: owner, direct share, via album, or
-        as a photo of a library shared with them (#2731)."""
+        as a photo of a library shared with them (#2731).
+
+        Through an album only along a vouched link (``AlbumUserPhoto.vouched``)
+        of an album ``user`` owns or is a member of, and the bytes of the
+        original file (``original``) only where the album's grant allows
+        them: a contributor's original carries every field of its metadata
+        (``_album_copy`` serves the metadata-free copy instead).
+        """
         if user is None:
             return False
         if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
             return True
-        if (
-            self._vouching_albums(photo)
-            .filter(self._public_album_active_q() | Q(shared_to=user))
-            .exists()
-        ):
+        grant = album_grants(user, [photo.pk]).get(photo.pk)
+        if grant is not None and (grant.originals or not original):
             return True
-        return Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists()
+        if Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists():
+            return True
+        return self._in_public_album(photo)
+
+    def _album_copy(
+        self, photo: Photo, user: User | None, use_proxy: bool
+    ) -> HttpResponseBase | None:
+        """The metadata-free copy of a photo ``user`` reads through an album
+        whose grant leaves its original out (#464), so a member's video plays
+        and a download works without the file's metadata; None otherwise."""
+        if user is None:
+            return None
+        grant = album_grants(user, [photo.pk]).get(photo.pk)
+        if grant is None or grant.originals:
+            return None
+        return self._library_copy_response(
+            photo, use_proxy, partial(allow_album_copy, user.pk)
+        )
+
+    @staticmethod
+    def _carries_original(path: str) -> bool:
+        """Whether a derived-media request is answered from the original file.
+
+        Thumbnails and face crops are made by LibrePhotos and carry no
+        metadata; anything else (a video, a legacy path) is the file itself.
+        """
+        return not ("thumbnail" in path or "faces" in path)
 
     def _library_grant(self, photo: Photo, user: User | None) -> LibraryGrant | None:
         """The grant of a library share ``user`` may fetch ``photo`` under.
@@ -875,13 +913,21 @@ class MediaServingView(APIView):
             return None
         return grant
 
-    def _library_copy_response(self, photo: Photo, use_proxy: bool) -> HttpResponseBase:
+    def _library_copy_response(
+        self,
+        photo: Photo,
+        use_proxy: bool,
+        allow_new: Callable[[], bool] | None = None,
+    ) -> HttpResponseBase:
         """The full-size copy without metadata a recipient gets instead of the
-        original when its owner does not share original files."""
+        original when its owner does not share original files (also a member
+        of a collaborative album, counted by ``allow_new``)."""
         original = _original_path(photo)
         requester = self._requester(self.request)
         try:
-            copy = ensure_copy(photo, original, requester.pk if requester else 0)
+            copy = ensure_copy(
+                photo, original, requester.pk if requester else 0, allow_new
+            )
         except CopyUnavailableError:
             # Still being made by another request, or this recipient made
             # too many new copies this hour: ask again later.
@@ -1038,7 +1084,7 @@ class MediaServingView(APIView):
         user = self._requester(request)
         photo = self._lookup_photo(fname, user, allow_uuid=True)
         if photo is None or not (
-            self._may_access(photo, user)
+            self._may_access(photo, user, original=True)
             or self._in_public_album(photo)
             or self._is_public_photo(photo)
         ):
@@ -1077,11 +1123,12 @@ class MediaServingView(APIView):
         )
         if album is None:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        # The link's own photos only: never a contributor's (#464), never a
+        # hidden or trashed one.
+        own_links = AlbumUserPhoto.objects.of_album_owner().filter(albumuser=album)
         try:
             photo = (
-                album.photos.filter(
-                    owner_id=album.owner_id  # owner-scope: same owner as the album
-                )
+                Photo.objects.filter(pk__in=own_links.values("photo_id"))
                 .only(
                     "image_hash",
                     "video",
@@ -1150,10 +1197,17 @@ class MediaServingView(APIView):
         if self._in_public_album(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        if user is not None and self._may_access(photo, user):
+        if user is not None and self._may_access(
+            photo, user, original=self._carries_original(path)
+        ):
             return self._generate_response(
                 photo, path, fname, user.transcode_videos, use_proxy
             )
+        # A member's original the album keeps back: its copy without metadata.
+        if self._carries_original(path):
+            copy = self._album_copy(photo, user, use_proxy)
+            if copy is not None:
+                return copy
 
         # The lightbox's "Make public and copy link" action sets
         # ``Photo.public`` and copies a link to this route, which used to
@@ -1198,8 +1252,11 @@ class MediaServingView(APIView):
                 return self._generate_response_original(
                     photo, use_proxy, transcode, inline=True
                 )
-            if self._may_access(photo, user):
+            if self._may_access(photo, user, original=True):
                 return self._generate_response_original(photo, use_proxy, transcode)
+            copy = self._album_copy(photo, user, use_proxy)
+            if copy is not None:
+                return copy
 
         if self._in_public_album(photo):
             return self._generate_response_original(photo, use_proxy, False)

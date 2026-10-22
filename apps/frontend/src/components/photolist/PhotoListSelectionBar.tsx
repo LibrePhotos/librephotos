@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SelectionState } from "../../api_client/photos/types";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { ContributorSelectionActions } from "./ContributorSelectionActions";
 import classes from "./PhotoListSelectionBar.module.css";
 import { SelectionActions } from "./SelectionActions";
 import type { AlbumCoverType } from "./SelectionActions";
@@ -22,6 +23,8 @@ type Props = Readonly<{
   albumID?: string;
   ownerUsername?: string;
   albumLocked: boolean;
+  /** Only the contributor's action (#464): remove the photos they added. */
+  contributor: boolean;
   title: string;
   setAlbumCover: (actionType: AlbumCoverType) => void;
   dialogs: PhotoListDialogState;
@@ -42,6 +45,7 @@ export function PhotoListSelectionBar({
   albumID,
   ownerUsername,
   albumLocked,
+  contributor,
   title,
   setAlbumCover,
   dialogs,
@@ -77,7 +81,17 @@ export function PhotoListSelectionBar({
           />
         </Group>
         <Group justify="flex-end">
-          {!location.pathname.startsWith("/deleted") && (
+          {contributor && (
+            <ContributorSelectionActions
+              selectedItems={selectionState.selectedItems}
+              selectAllMode={selectionState.selectAllMode}
+              albumID={albumID ?? ""}
+              albumLocked={albumLocked}
+              title={title}
+              updateSelectionState={updateSelectionState}
+            />
+          )}
+          {!contributor && !location.pathname.startsWith("/deleted") && (
             <SelectionActions
               selectedItems={selectionState.selectedItems}
               selectAllMode={selectionState.selectAllMode}
@@ -95,13 +109,15 @@ export function PhotoListSelectionBar({
               updateSelectionState={updateSelectionState}
             />
           )}
-          <TrashcanActions
-            selectedItems={selectionState.selectedItems}
-            selectAllMode={selectionState.selectAllMode}
-            selectAllQuery={selectionState.selectAllQuery}
-            totalCount={totalCount}
-            updateSelectionState={updateSelectionState}
-          />
+          {!contributor && (
+            <TrashcanActions
+              selectedItems={selectionState.selectedItems}
+              selectAllMode={selectionState.selectAllMode}
+              selectAllQuery={selectionState.selectAllQuery}
+              totalCount={totalCount}
+              updateSelectionState={updateSelectionState}
+            />
+          )}
         </Group>
       </Group>
     </Box>

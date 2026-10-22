@@ -21,7 +21,9 @@ const viewer = vi.fn<(props: ContentViewerProps) => void>();
 /** The motion setting the viewer's photo transitions run under. */
 const motionSetting: { reducedMotion: string | undefined } = { reducedMotion: undefined };
 /** What the stubbed details query answers: only the fields the media type is read from. */
-const details: { current: Pick<Photo, "video" | "embedded_media"> | undefined } = { current: undefined };
+const details: { current: (Pick<Photo, "video" | "embedded_media"> & Partial<Pick<Photo, "owner">>) | undefined } = {
+  current: undefined,
+};
 
 vi.mock("./ContentViewer", () => ({
   ContentViewer: (props: ContentViewerProps) => {
@@ -31,6 +33,8 @@ vi.mock("./ContentViewer", () => ({
   },
 }));
 
+// The viewer: user 1 (the photo details below are theirs unless a test says otherwise).
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1, isAuthenticated: true }) }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: details.current }),
 }));
@@ -153,6 +157,18 @@ describe("Lightbox grid item for the details panel", () => {
     const props = await open(items, "b");
 
     expect(props.gridItem).toBeUndefined();
+  });
+
+  it("shows a photo a member added to your album as theirs, read only (#464)", async () => {
+    details.current = {
+      video: false,
+      embedded_media: [],
+      owner: { id: 9, username: "ben", first_name: "Ben", last_name: "Okafor" },
+    };
+    const props = await open(items, "b");
+
+    expect(props.isPublic).toBe(true);
+    expect(props.gridItem).toEqual(items[1]);
   });
 });
 

@@ -3,7 +3,7 @@ from rest_framework import permissions
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from api.models import Photo, User
+from api.models import AlbumUser, AlbumUserPhoto, Photo, User
 
 
 class IsAdminOrSelf(permissions.BasePermission):
@@ -60,9 +60,16 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
         if obj.owner == request.user or request.user in obj.shared_to.all():
             return True
 
-        for album in obj.albumuser_set.only("shared_to"):
-            if request.user in album.shared_to.all():
-                return True
+        # Through an album only along a vouched link (the album owner's photo,
+        # or a current contributor's, #464) of an album the requester owns
+        # or is a member of.
+        if (
+            AlbumUserPhoto.objects.vouched()
+            .filter(photo=obj)
+            .filter(albumuser__in=AlbumUser.objects.owned_or_shared_to(request.user))
+            .exists()
+        ):
+            return True
 
         # A photo of a library shared with the requester (#2731); never a
         # hidden, trashed or removed one.

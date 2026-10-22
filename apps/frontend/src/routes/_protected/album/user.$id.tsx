@@ -58,7 +58,10 @@ function AlbumUserGallery() {
   // Only for an album someone shared with you; it sits on its own line under the photo count.
   function getSubheader(showHeader: boolean) {
     if (showHeader && album) {
-      return <Text c="dimmed">{t("useralbum.ownedby", { name: album.owner.first_name || album.owner.username })}</Text>;
+      const owner = t("useralbum.ownedby", { name: album.owner.first_name || album.owner.username });
+      // A contributor (#464) adds from the timeline's "Add to album".
+      const canAdd = album.my_role === "contributor" ? ` · ${t("collab.youCanAdd")}` : "";
+      return <Text c="dimmed">{`${owner}${canAdd}`}</Text>;
     }
     return null;
   }
@@ -88,6 +91,8 @@ function AlbumUserGallery() {
         albumID={albumID}
         ownerUsername={album?.owner.username}
         albumLocked={album?.locked ?? false}
+        // A contributor selects to take out the photos they added (#464)
+        contributor={album?.my_role === "contributor"}
         // No photo filter for an album that is not there
         mediaType={notFound ? undefined : mediaType}
         selectable

@@ -112,6 +112,8 @@ type Props = Readonly<{
   albumID?: string;
   ownerUsername?: string;
   albumLocked?: boolean;
+  /** A contributor in an album shared with them (#464): selects to take out their own photos. */
+  contributor?: boolean;
   emptyStateConfig?: EmptyStateConfig;
   // The photo list's request failed before any photos arrived (`useListFailure`):
   // shown instead of the empty state, which would claim the library is empty.
@@ -150,6 +152,16 @@ function isFirstTimeSetupView(
   return !userSelfDetails?.scan_directory;
 }
 
+/** Whether the list can be selected: not a read-only view, except a contributor's album (#464). */
+function canSelectPhotos(isPublic: boolean, contributor: boolean | undefined): boolean {
+  return !isPublic || contributor === true;
+}
+
+/** Still loading: the parent's data, or (outside public pages) who is looking. */
+function isListLoading(loading: boolean, isPublic: boolean, userDetailsLoading: boolean): boolean {
+  return loading || (!isPublic && userDetailsLoading);
+}
+
 function PhotoListViewComponent({
   title,
   loading,
@@ -173,6 +185,7 @@ function PhotoListViewComponent({
   albumID,
   ownerUsername,
   albumLocked = false,
+  contributor,
   emptyStateConfig,
   error,
   photosetQuery,
@@ -192,7 +205,7 @@ function PhotoListViewComponent({
   const { data: auth } = useAccessToken();
 
   // Combined loading state - wait for both parent loading and user details (skip on public pages)
-  const isLoading = loading || (!isPublic && userDetailsLoading);
+  const isLoading = isListLoading(loading, isPublic, userDetailsLoading);
   const { dataForScrollIndicator, gridHeight } = usePhotoListScrollScrubber(isLoading, pigRef);
 
   const isFirstTimeSetup = isFirstTimeSetupView(isLoading, location.pathname, auth, userSelfDetails);
@@ -244,6 +257,8 @@ function PhotoListViewComponent({
 
   // Use live prop length so UI reflects data availability immediately on load
   const getNumPhotos = () => idx2hash.length;
+  // Read-only views select nothing, except a contributor's album, where they remove their own.
+  const canSelect = canSelectPhotos(isPublic, contributor);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
 
   return (
@@ -277,7 +292,7 @@ function PhotoListViewComponent({
               {!isFirstTimeSetup && (
                 <PhotoListToolbar
                   headerActions={headerActions}
-                  listControls={!isLoading && !isPublic}
+                  listControls={!isLoading && canSelect}
                   hasPhotos={getNumPhotos() > 0}
                   mediaFilter={mediaType !== undefined}
                   publicLink={isAlbumPubliclyShared && isUserAlbum}
@@ -297,7 +312,7 @@ function PhotoListViewComponent({
             </Flex>
           )}
           {header === undefined && filterBar}
-          {!isLoading && !isPublic && getNumPhotos() > 0 && selectMode.selecting && (
+          {!isLoading && canSelect && getNumPhotos() > 0 && selectMode.selecting && (
             <PhotoListSelectionBar
               selectionState={selectionState}
               idx2hash={idx2hash}
@@ -307,6 +322,7 @@ function PhotoListViewComponent({
               albumID={albumID}
               ownerUsername={ownerUsername}
               albumLocked={albumLocked}
+              contributor={contributor === true}
               title={title}
               setAlbumCover={setAlbumCover}
               dialogs={dialogs}

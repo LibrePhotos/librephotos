@@ -3,9 +3,15 @@ from api.models.album_collection import AlbumCollection
 from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
-from api.models.album_user import AlbumUser
+from api.models.album_user import (
+    AlbumRole,
+    AlbumUser,
+    AlbumUserMember,
+    AlbumUserPhoto,
+)
 from api.models.album_user_share import AlbumUserShare
 from api.models.cluster import Cluster
+from api.models.copy_budget import CopyBudget
 from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
@@ -36,9 +42,13 @@ __all__ = [
     "AlbumDate",
     "AlbumPlace",
     "AlbumThing",
+    "AlbumRole",
     "AlbumUser",
+    "AlbumUserMember",
+    "AlbumUserPhoto",
     "AlbumUserShare",
     "Cluster",
+    "CopyBudget",
     "DeletionLog",
     "Duplicate",
     "EmailConfig",

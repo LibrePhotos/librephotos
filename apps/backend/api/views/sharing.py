@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from api.albums import members
 from api.albums.shared_with_me import (
     PLACES,
     THINGS,
@@ -31,7 +32,7 @@ from api.faces.recipients import (
     shared_person_entries,
     shared_person_photos,
 )
-from api.models import AlbumUser, Photo, User
+from api.models import AlbumRole, AlbumUser, Photo, User
 from api.search.semantic import TAG_THING_TYPE
 from api.serializers.album_user import (
     AlbumUserListSerializer,
@@ -51,6 +52,7 @@ from api.serializers.shared_with_me import (
     SharedPersonPhotosQuery,
     SharedPersonSerializer,
 )
+from api.sharing.indirect import redact_indirect_rows
 from api.views.custom_api_view import ListViewSet
 
 logger = logging.getLogger(__name__)
@@ -142,6 +144,13 @@ class _SharedGroupPhotoListViewSet(ListViewSet):
         if not photos.exists():
             raise NotFound("Nothing shared with you has this title")
         return with_photo_summary_relations(photos)
+
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        response = super().list(request, *args, **kwargs)
+        # Photos the requester reads through an album (#464) show only what
+        # its "What members see" allows.
+        redact_indirect_rows(response.data["results"], request_user(request))
+        return response
 
 
 class SharedToMePlacePhotoListViewSet(_SharedGroupPhotoListViewSet):
@@ -264,6 +273,12 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
 
 
 class SetUserAlbumShared(APIView):
+    """Share your album with a user as a viewer or contributor, or unshare it.
+
+    Unsharing, or making a contributor a viewer, takes the photos they added
+    out of the album (#464); they stay in their library.
+    """
+
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(request=SetUserAlbumSharedRequest, responses=AlbumUserListSerializer)
@@ -300,33 +315,34 @@ class SetUserAlbumShared(APIView):
             )
             raise ValidationError("You cannot share an album you don't own")
 
-        if shared:
-            user_album_to_share.shared_to.add(target_user)
-            logger.info(
-                "Shared user %s's album %s to user %s",
-                user.id,
-                user_album_id,
-                target_user_id,
-            )
-        else:
-            user_album_to_share.shared_to.remove(target_user)
-            logger.info(
-                "Unshared user %s's album %s to user %s",
-                user.id,
-                user_album_id,
-                target_user_id,
-            )
-
+        role = _shared_role(user_album_to_share, target_user, data) if shared else None
+        members.set_member_role(user_album_to_share, target_user, role)
+        logger.info(
+            "User %s set user %s's role in album %s to %s",
+            user.id,
+            target_user_id,
+            user_album_id,
+            role,
+        )
         user_album_to_share.save()
         return Response(album_user_card(user_album_to_share, request))
+
+
+def _shared_role(album: AlbumUser, user: User, data: dict[str, Any]) -> str:
+    """The role a share request gives ``user``: the one it names, else the
+    member's current role, else viewer."""
+    if "role" in data:
+        return str(data["role"])
+    return members.role_of(album, user) or AlbumRole.VIEWER
 
 
 class LeaveSharedAlbum(APIView):
     """A recipient takes an album someone shared with them off their list (#2210).
 
     Only the caller leaves: the owner and the other recipients keep the album.
-    An album that is not shared with the caller, their own included, is a 404,
-    so the answer does not tell whether the id exists.
+    The photos the caller added leave with them (#464); they stay in their
+    library. An album that is not shared with the caller, their own included,
+    is a 404, so the answer does not tell whether the id exists.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -339,9 +355,12 @@ class LeaveSharedAlbum(APIView):
             album = AlbumUser.objects.shared_with(user).get(id=album_id)
         except AlbumUser.DoesNotExist:
             raise NotFound("No such album shared with you")
-        # Through the related manager, so the m2m_changed receiver in
-        # api/sync_signals.py bumps the album and writes the tombstone that
-        # takes it off the caller's phone, as an unshare by the owner does.
-        album.shared_to.remove(user)
-        logger.info("User %s left album %s", user.id, album.id)
+        # Through the related manager (members.leave), so the m2m_changed
+        # receiver in api/sync_signals.py bumps the album and writes the
+        # tombstone that takes it off the caller's phone, as an unshare by
+        # the owner does.
+        taken_out = members.leave(album, user)
+        logger.info(
+            "User %s left album %s with %s photos", user.id, album.id, taken_out
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)

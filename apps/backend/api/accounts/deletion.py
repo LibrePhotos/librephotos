@@ -22,6 +22,7 @@ from api.models import (
     AlbumPlace,
     AlbumThing,
     AlbumUser,
+    AlbumUserPhoto,
     AlbumUserShare,
     LongRunningJob,
     Photo,
@@ -150,9 +151,9 @@ def _drop_others_photos_from_albums(user: User) -> None:
     never shared with them. They could not open it through the album before,
     so nobody loses anything.
     """
-    memberships = AlbumUser.photos.through.objects.filter(
-        albumuser__owner=user
-    ).exclude(photo__owner=user)
+    memberships = AlbumUserPhoto.objects.filter(albumuser__owner=user).exclude(
+        photo__owner=user
+    )
     album_pks = set(memberships.values_list("albumuser_id", flat=True))
     memberships.delete()
     # last_modified: a through-table delete fires no m2m_changed, and synced

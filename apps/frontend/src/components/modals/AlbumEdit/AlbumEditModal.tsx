@@ -1,7 +1,7 @@
-import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
+import type { BulkPhotoQuery, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
 import { Badge, Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useAddPhotoToUserAlbumMutation,
@@ -9,6 +9,7 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
+import { useAuth } from "../../../hooks/useAuth";
 import { fuzzyMatch } from "../../../util/util";
 import { AlbumListItem } from "../../album/AlbumListItem";
 import { selectionLabel } from "../../photolist/selectionLabel";
@@ -16,6 +17,8 @@ import { Tile } from "../../Tile";
 import { modalTitleStyles } from "../modalTitleStyles";
 import classes from "./AlbumEditModal.module.css";
 import { makeNewAlbumSchema } from "./AlbumEditModal.schema";
+import { ContributeStep } from "./ContributeStep";
+import { SharedAlbumsYouCanAdd } from "./SharedAlbumsYouCanAdd";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -33,6 +36,10 @@ export function AlbumEditModal(props: Props) {
   const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
   const createUserAlbum = useCreateUserAlbumMutation();
   const addPhotoToUserAlbum = useAddPhotoToUserAlbumMutation();
+  const { userId } = useAuth();
+  // An album someone shared with you as a contributor (#464): the second step says who will see
+  // the photos and what of them before anything is added.
+  const [contributeTo, setContributeTo] = useState<UserAlbumInfo | null>(null);
   // The new album's title, which also filters the list of albums below it. The server refuses a
   // blank title (400) and the modal closes before the request settles, so an empty or duplicate
   // name must not be submittable.
@@ -67,7 +74,24 @@ export function AlbumEditModal(props: Props) {
   const close = () => {
     onRequestClose();
     form.reset();
+    setContributeTo(null);
   };
+
+  if (contributeTo) {
+    return (
+      <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
+        <ContributeStep
+          album={contributeTo}
+          photoIds={selectAllMode ? [] : selectedImages.map(i => i.id)}
+          selectAll={selectAllMode ? { query: selectAllQuery ?? {}, excludedHashes } : undefined}
+          count={effectiveCount}
+          myId={userId}
+          onBack={() => setContributeTo(null)}
+          onDone={close}
+        />
+      </Modal>
+    );
+  }
 
   return (
     <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
@@ -145,6 +169,7 @@ export function AlbumEditModal(props: Props) {
                 </UnstyledButton>
               </div>
             ))}
+          <SharedAlbumsYouCanAdd filter={trimmedTitle} onPick={setContributeTo} />
         </Stack>
       </Stack>
     </Modal>

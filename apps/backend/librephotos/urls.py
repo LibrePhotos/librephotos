@@ -55,6 +55,7 @@ from api.views import (
     album_auto,
     album_collections,
     album_folder,
+    album_members,
     albums,
     dataviz,
     date_rules,
@@ -513,6 +514,18 @@ urlpatterns = [
     path("api/photosedit/location/", photo_locations.SetPhotosLocationView.as_view()),
     re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
     path("api/useralbum/leave/", sharing.LeaveSharedAlbum.as_view()),
+    path(
+        "api/albums/user/<int:album_id>/photos/add/",
+        album_members.AlbumPhotosAddView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/remove/",
+        album_members.AlbumPhotosRemoveView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/membership/",
+        album_members.AlbumMembershipView.as_view(),
+    ),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),

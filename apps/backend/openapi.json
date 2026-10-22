@@ -1176,6 +1176,181 @@
         }
       }
     },
+    "/api/albums/user/{album_id}/membership/": {
+      "patch": {
+        "operationId": "api_albums_user_membership_partial_update",
+        "description": "Your own switches in an album shared with you.\n\nWhat the other members may see of the photos you add: each field shows\nonly where the album's owner allows it too. A 404 for an album that is\nnot shared with you, your own included.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumMemberSwitches"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/add/": {
+      "post": {
+        "operationId": "api_albums_user_photos_add_create",
+        "description": "Add photos of your own to an album you own or contribute to.\n\nThe photos stay yours: the album only links them, and its members see\nthem with the fields both you and the album's owner allow. Refused for a\nviewer and while the album is locked; an album you are not in is a 404.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumPhotosChanged"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/remove/": {
+      "post": {
+        "operationId": "api_albums_user_photos_remove_create",
+        "description": "Take photos out of an album; they stay in their owner's library.\n\nThe owner takes out any photo, a contributor only the photos they added.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumPhotosChanged"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/albums/user/{id}/": {
       "get": {
         "operationId": "api_albums_user_retrieve",
@@ -13165,7 +13340,7 @@
     "/api/useralbum/leave/": {
       "post": {
         "operationId": "api_useralbum_leave_create",
-        "description": "A recipient takes an album someone shared with them off their list (#2210).\n\nOnly the caller leaves: the owner and the other recipients keep the album.\nAn album that is not shared with the caller, their own included, is a 404,\nso the answer does not tell whether the id exists.",
+        "description": "A recipient takes an album someone shared with them off their list (#2210).\n\nOnly the caller leaves: the owner and the other recipients keep the album.\nThe photos the caller added leave with them (#464); they stay in their\nlibrary. An album that is not shared with the caller, their own included,\nis a 404, so the answer does not tell whether the id exists.",
         "tags": [
           "api"
         ],
@@ -13255,6 +13430,7 @@
     "/api/useralbum/share/": {
       "post": {
         "operationId": "api_useralbum_share_create",
+        "description": "Share your album with a user as a viewer or contributor, or unshare it.\n\nUnsharing, or making a contributor a viewer, takes the photos they added\nout of the album (#464); they stay in their library.",
         "tags": [
           "api"
         ],
@@ -13788,6 +13964,114 @@
           "numberOfItems"
         ]
       },
+      "AlbumMember": {
+        "type": "object",
+        "description": "A member of a shared album, their role and how many photos they added.",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SimpleUser"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleEnum"
+          },
+          "photo_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "photo_count",
+          "role",
+          "user"
+        ]
+      },
+      "AlbumMemberSwitches": {
+        "type": "object",
+        "description": "A contributor's own switches: what members see of the photos they add.",
+        "properties": {
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_faces": {
+            "type": "boolean"
+          },
+          "share_camera_info": {
+            "type": "boolean"
+          },
+          "share_captions": {
+            "type": "boolean"
+          },
+          "share_originals": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "share_camera_info",
+          "share_captions",
+          "share_faces",
+          "share_location",
+          "share_originals"
+        ]
+      },
+      "AlbumPhotosAddRequestRequest": {
+        "type": "object",
+        "description": "Photos of your own to add to an album you own or contribute to (#464).",
+        "properties": {
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Ids of your own photos; any other id is refused",
+            "maxItems": 10000
+          },
+          "select_all": {
+            "type": "boolean",
+            "default": false
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        }
+      },
+      "AlbumPhotosChanged": {
+        "type": "object",
+        "description": "How many photos a request added to or took out of an album.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "AlbumPhotosRemoveRequestRequest": {
+        "type": "object",
+        "description": "Photos to take out of an album (#464). They stay in their owner's library.",
+        "properties": {
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "photos"
+        ]
+      },
       "AlbumPlace": {
         "type": "object",
         "properties": {
@@ -13981,6 +14265,7 @@
           },
           "location": {
             "type": "string",
+            "description": "Where the album owner's photos were taken, if members may see it.",
             "readOnly": true
           },
           "grouped_photos": {
@@ -14018,6 +14303,45 @@
             },
             "description": "The ids of the owner's collections holding the album (#1009); one\nquery, as this serializer renders a single album.",
             "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumMember"
+            },
+            "readOnly": true
+          },
+          "my_role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyRoleEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "my_switches": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AlbumMemberSwitches"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "members_share_location": {
+            "type": "boolean"
+          },
+          "members_share_faces": {
+            "type": "boolean"
+          },
+          "members_share_camera_info": {
+            "type": "boolean"
+          },
+          "members_share_captions": {
+            "type": "boolean"
+          },
+          "members_share_originals": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -14027,6 +14351,14 @@
           "id",
           "location",
           "locked",
+          "members",
+          "members_share_camera_info",
+          "members_share_captions",
+          "members_share_faces",
+          "members_share_location",
+          "members_share_originals",
+          "my_role",
+          "my_switches",
           "owner",
           "public",
           "public_expires_at",
@@ -14226,6 +14558,14 @@
             },
             "description": "The ids of the owner's collections holding the album (#1009), for\nthe owner only (``_viewer_owns``).",
             "readOnly": true
+          },
+          "my_role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyRoleEnum"
+              }
+            ],
+            "readOnly": true
           }
         },
         "required": [
@@ -14236,6 +14576,7 @@
           "first_photo_date",
           "id",
           "locked",
+          "my_role",
           "owner",
           "photo_count",
           "public",
@@ -18617,6 +18958,16 @@
         "type": "string",
         "description": "* `nextcloud` - nextcloud\n* `shared_file` - shared_file\n* `not_on_disk` - not_on_disk"
       },
+      "MyRoleEnum": {
+        "enum": [
+          "owner",
+          "contributor",
+          "viewer",
+          "none"
+        ],
+        "type": "string",
+        "description": "* `owner` - owner\n* `contributor` - contributor\n* `viewer` - viewer\n* `none` - none"
+      },
       "NullEnum": {
         "enum": [
           null
@@ -19665,6 +20016,27 @@
           }
         }
       },
+      "PatchedAlbumMembershipRequestRequest": {
+        "type": "object",
+        "description": "Your own switches in an album shared with you (#464): what the other\nmembers see of the photos you add. Absent ones are kept.",
+        "properties": {
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_faces": {
+            "type": "boolean"
+          },
+          "share_camera_info": {
+            "type": "boolean"
+          },
+          "share_captions": {
+            "type": "boolean"
+          },
+          "share_originals": {
+            "type": "boolean"
+          }
+        }
+      },
       "PatchedAlbumUserEditRequest": {
         "type": "object",
         "properties": {
@@ -19731,6 +20103,21 @@
             "maxLength": 512
           },
           "locked": {
+            "type": "boolean"
+          },
+          "members_share_location": {
+            "type": "boolean"
+          },
+          "members_share_faces": {
+            "type": "boolean"
+          },
+          "members_share_camera_info": {
+            "type": "boolean"
+          },
+          "members_share_captions": {
+            "type": "boolean"
+          },
+          "members_share_originals": {
             "type": "boolean"
           }
         }
@@ -23373,6 +23760,14 @@
         "type": "string",
         "description": "* `pending` - Pending Review\n* `resolved` - Resolved\n* `dismissed` - Dismissed"
       },
+      "RoleEnum": {
+        "enum": [
+          "viewer",
+          "contributor"
+        ],
+        "type": "string",
+        "description": "* `viewer` - Can view\n* `contributor` - Can add photos"
+      },
       "RotatePhotoRequestRequest": {
         "type": "object",
         "properties": {
@@ -24525,6 +24920,14 @@
           },
           "album_id": {
             "type": "integer"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RoleEnum"
+              }
+            ],
+            "description": "With shared: what the user may do (#464). Absent keeps a member's role and makes a new one a viewer. Leaving the contributors takes the photos they added out of the album.\n\n* `viewer` - Can view\n* `contributor` - Can add photos"
           }
         },
         "required": [

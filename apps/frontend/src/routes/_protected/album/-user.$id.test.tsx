@@ -83,6 +83,7 @@ const lisbon: UserAlbum = {
   collection_ids: [],
   owner,
   shared_to: [],
+  members: [],
   locked: false,
   date: "2026-10-01",
   location: null,

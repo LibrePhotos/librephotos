@@ -31,6 +31,7 @@ import os
 import shutil
 import time
 import uuid
+from collections.abc import Callable
 from functools import partial
 
 import pyvips
@@ -42,7 +43,7 @@ from django.utils import timezone
 from PIL import UnidentifiedImageError
 
 from api.mime import JPEG_EXTENSION, MP4_EXTENSION, extension
-from api.models import LibraryShare, Photo
+from api.models import CopyBudget, LibraryShare, Photo
 from api.runtime import binaries
 from api.thumbnails import decoding
 from api.video.no_metadata import NO_METADATA
@@ -182,6 +183,32 @@ def _allow_new_copy(owner_id: int | None, requester_id: int) -> bool:
     return bool(started)
 
 
+def allow_album_copy(requester_id: int) -> bool:
+    """Count one new copy for a reader through an album or a shared person
+    (#464, #668); False past ``COPIES_PER_HOUR`` this hour.
+
+    They have no library share row to count on, so the count is on their
+    ``CopyBudget`` row, with the same two conditional updates as
+    ``_allow_new_copy``: every worker process sees one count.
+    """
+    CopyBudget.objects.bulk_create(
+        [CopyBudget(user_id=requester_id)], ignore_conflicts=True
+    )
+    budget = CopyBudget.objects.filter(user_id=requester_id)
+    hour = _hour()
+    counted = budget.filter(hour=hour, made__lt=COPIES_PER_HOUR).update(
+        made=F("made") + 1
+    )
+    if counted:
+        return True
+    if COPIES_PER_HOUR < 1:
+        return False
+    started = budget.filter(Q(hour__isnull=True) | Q(hour__lt=hour)).update(
+        hour=hour, made=1
+    )
+    return bool(started)
+
+
 def _make(photo: Photo, original: str, final: str) -> str | None:
     part = _part_path(final)
     try:
@@ -197,14 +224,20 @@ def _make(photo: Photo, original: str, final: str) -> str | None:
     return final
 
 
-def ensure_copy(photo: Photo, original: str, requester_id: int) -> str | None:
+def ensure_copy(
+    photo: Photo,
+    original: str,
+    requester_id: int,
+    allow_new: Callable[[], bool] | None = None,
+) -> str | None:
     """The path of ``photo``'s copy without metadata, made now if missing.
 
     None when it cannot be made (an unreadable file, a codec the container
     cannot carry): the caller refuses rather than handing out the original.
     Raises ``CopyUnavailableError`` while another request is making it, or
     when ``requester_id`` made too many this hour: the view answers 503 with
-    ``Retry-After`` at once instead of holding a worker.
+    ``Retry-After`` at once instead of holding a worker. ``allow_new`` counts
+    a new copy; by default on the library share of ``photo``'s owner.
     """
     final = os.path.join(owner_copies_dir(photo.owner_id), copy_name(photo, original))
     if os.path.exists(final):
@@ -217,7 +250,12 @@ def ensure_copy(photo: Photo, original: str, requester_id: int) -> str | None:
     try:
         if os.path.exists(final):
             return final
-        if not _allow_new_copy(photo.owner_id, requester_id):
+        allowed = (
+            allow_new()
+            if allow_new is not None
+            else _allow_new_copy(photo.owner_id, requester_id)
+        )
+        if not allowed:
             raise CopyUnavailableError(photo.image_hash)
         return _make(photo, original, final)
     finally:
