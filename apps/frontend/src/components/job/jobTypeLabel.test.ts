@@ -15,7 +15,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [9, "Download Selected Photos"],
   [10, "Download Models"],
   [11, "Add Geolocation"],
-  [12, "Generate Tags"],
+  [12, "Find Things"],
   [13, "Generate Face Embeddings"],
   [14, "Scan Missing Photos"],
   [15, "Detect Duplicate Photos"],
