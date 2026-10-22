@@ -52,6 +52,8 @@ If you overwrite a file with a different picture but keep the same name, the nex
 
 A file whose bytes changed while its picture stayed the same is only re-keyed internally. That covers a rating or a face tag LibrePhotos wrote into the original, and metadata another tool edited in place: nothing is regenerated and nothing you corrected by hand is lost.
 
+<Since version="1.5.0" /> The same goes for a picture another app saved again, compressed again or edited lightly (a slightly brighter version, say): it keeps its faces, things, caption and place in the timeline, and only its thumbnails are made again so that they show the file as it is now. Uploading such a file again is recognised as a photo you already have. Up to 1.4.0, any change to the picture's fingerprint counted as a new picture and cost the photo its faces.
+
 For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
 
 :::note

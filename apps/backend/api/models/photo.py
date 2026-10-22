@@ -36,6 +36,19 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
             q |= self.owner_q(user) | Q(shared_to=user)
         return self.filter(q)
 
+    def holding_content(self, file_hash: str) -> Self:
+        """Photos indexed from ``file_hash`` or holding a file with that hash.
+
+        ``image_hash`` names the content a photo was indexed from and stays
+        when a metadata write or a re-encode only re-keys its File (#2051), so
+        the file's current hash has to be asked as well.
+        """
+        return self.filter(
+            pk__in=self.filter(
+                Q(image_hash=file_hash) | Q(files__hash=file_hash)
+            ).values("pk")
+        )
+
 
 def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:
     """``photos`` with the largest ``width * height`` first, unknown sizes last.
