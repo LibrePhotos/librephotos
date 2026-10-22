@@ -21,6 +21,7 @@ export type {
   CheckFileContentsScope,
   DateAlbumFilter,
   DateTimeChange,
+  MapBounds,
   PhotoCategory,
   SearchFilters,
   SelectAllPhotos,

@@ -50,3 +50,19 @@ export type LocatedPhoto = z.infer<typeof LocatedPhoto>;
 /** `GET /photos/located-nearby-in-time/?from=&to=`: at most 20, nearest to the window's middle first. */
 export const LocatedPhotosResponse = LocatedPhoto.array();
 export type LocatedPhotosResponse = z.infer<typeof LocatedPhotosResponse>;
+
+/**
+ * `GET /photos/map-points/` (#343): where my photos were taken, one `[lat, lon, photos]` row per
+ * spot (photos within about a metre are one spot), and how many photos that is.
+ */
+export const PhotoMapPoints = z.object({
+  points: z.array(z.array(z.number()).length(3)),
+  photo_count: z.number(),
+});
+export type PhotoMapPoints = z.infer<typeof PhotoMapPoints>;
+
+/** `GET /albums/place/in-bounds/` (#343): my place albums with a photo inside a map's view. */
+export const PlaceAlbumsInBounds = z.object({
+  ids: z.array(z.number()),
+});
+export type PlaceAlbumsInBounds = z.infer<typeof PlaceAlbumsInBounds>;

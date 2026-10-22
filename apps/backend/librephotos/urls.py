@@ -75,6 +75,7 @@ from api.views import (
     photo_moves,
     photo_renames,
     photos,
+    places_map,
     processing_status,
     public_albums,
     public_photos,
@@ -379,7 +380,9 @@ urlpatterns = [
         name="media",
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
-    # "public", "date-summary", "reapply-date-rules", "rescan", "move", "rename" and the two location routes below them.
+    # "public", "date-summary", "map-points", "in-bounds", "reapply-date-rules",
+    # "rescan", "move", "rename" and the two location routes below them, and
+    # its api/albums/place/<pk>/ route "in-bounds".
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
@@ -399,6 +402,21 @@ urlpatterns = [
         "api/photos/located-nearby-in-time/",
         photo_locations.LocatedNearbyInTimeView.as_view(),
         name="photos_located_nearby_in_time",
+    ),
+    path(
+        "api/photos/map-points/",
+        places_map.PhotoMapPointsView.as_view(),
+        name="photos_map_points",
+    ),
+    path(
+        "api/photos/in-bounds/",
+        places_map.PhotosInBoundsViewSet.as_view({"get": "list"}),
+        name="photos_in_bounds",
+    ),
+    path(
+        "api/albums/place/in-bounds/",
+        places_map.PlaceAlbumsInBoundsView.as_view(),
+        name="place_albums_in_bounds",
     ),
     path(
         "api/photos/location-summary/",

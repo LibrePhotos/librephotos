@@ -53,6 +53,8 @@ from api.tests.utils import (
 )
 
 THING_TYPE = "openclip_vitb32_tag"
+# A map view around v_photo2 (Porto)
+PORTO_VIEW = "south=41&west=-9&north=42&east=-8"
 
 
 class CrossTenantReadTest(TestCase):
@@ -143,6 +145,9 @@ class CrossTenantReadTest(TestCase):
             "VictimEventTitle",
             "victimthingtitle",
             "VictimPlaceTitle",
+            # v_photo2's position as the Places map sends it
+            "41.1,-8.6",
+            f'"ids":[{self.v_place.pk}]',
             str(self.v_stack.pk),
             str(self.v_dup.pk),
             self.v_job.job_id,
@@ -233,6 +238,10 @@ class CrossTenantReadTest(TestCase):
                 ),
                 v.v_photo2.image_hash,
             ),
+            # The Places map (#343): positions, never another user's.
+            ("/api/photos/map-points/", "41.1,-8.6"),
+            (f"/api/photos/in-bounds/?{PORTO_VIEW}", v.v_photo2.image_hash),
+            (f"/api/albums/place/in-bounds/?{PORTO_VIEW}", f'"ids":[{v.v_place.pk}]'),
             # The victim's photos are all in their album, so the owner sees none.
             ("/api/photos/no-album/", None),
             # The victim's photos are private: the owner's public list is empty.

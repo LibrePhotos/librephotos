@@ -305,6 +305,13 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/photos/public/": (
         ListFixture(lambda user, index: _tile_photo(user, public=True)),
     ),
+    # The photos inside a view of the Places map (#343).
+    "api/photos/in-bounds/": (
+        ListFixture(
+            lambda user, index: _tile_photo(user, exif_gps_lat=48.1, exif_gps_lon=11.5),
+            params={"south": "48", "west": "11", "north": "49", "east": "12"},
+        ),
+    ),
     "api/photos/edit/": (ListFixture(lambda user, index: _visible_photo(user)),),
     "api/photos/recentlyadded/": (ListFixture(lambda user, index: _tile_photo(user)),),
     "api/photos/searchlist/": (

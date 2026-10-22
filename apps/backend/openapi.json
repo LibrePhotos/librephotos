@@ -908,6 +908,85 @@
         }
       }
     },
+    "/api/albums/place/in-bounds/": {
+      "get": {
+        "operationId": "api_albums_place_in_bounds_retrieve",
+        "description": "The requester's place albums with a photo inside a map's view: the\nPlaces grid lists those under the map.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "east",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Eastern edge, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "north",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Northern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "south",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Southern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "west",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Western edge, longitude",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceAlbumsInBounds"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/albums/place/list/": {
       "get": {
         "operationId": "api_albums_place_list_list",
@@ -6727,6 +6806,103 @@
         }
       }
     },
+    "/api/photos/in-bounds/": {
+      "get": {
+        "operationId": "api_photos_in_bounds_list",
+        "description": "The requester's photos taken inside a map's view, newest first, a page\nat a time: what a point or a cluster of the Places map opens.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "east",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Eastern edge, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "north",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Northern edge, latitude",
+            "required": true
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "south",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Southern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "west",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Western edge, longitude",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/located-nearby-in-time/": {
       "get": {
         "operationId": "api_photos_located_nearby_in_time_list",
@@ -6821,6 +6997,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LocationSummaryResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/map-points/": {
+      "get": {
+        "operationId": "api_photos_map_points_retrieve",
+        "description": "Where the requester's photos were taken: one point per spot with the\nnumber of photos there. Hidden, trashed and removed photos are left out.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoMapPoints"
                 }
               }
             },
@@ -20081,6 +20286,33 @@
           "video"
         ]
       },
+      "PhotoMapPoints": {
+        "type": "object",
+        "description": "Where the requester's photos were taken, for the Places map (#343).",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "description": "[latitude, longitude, photos taken there], one per spot; photos within about a metre of each other are one spot"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos on the map"
+          }
+        },
+        "required": [
+          "photo_count",
+          "points"
+        ]
+      },
       "PhotoMetadata": {
         "type": "object",
         "description": "Full metadata of one photo, for ``GET``/``PATCH /api/photos/{id}/metadata``.\n\nRead-only: edits go through ``PhotoMetadataUpdateSerializer`` and\n``api.metadata.edits``.",
@@ -21221,6 +21453,22 @@
           "public",
           "rating",
           "video"
+        ]
+      },
+      "PlaceAlbumsInBounds": {
+        "type": "object",
+        "description": "The place albums with a photo inside a map's view (#343).",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Place album ids, ascending"
+          }
+        },
+        "required": [
+          "ids"
         ]
       },
       "PlaceCount": {

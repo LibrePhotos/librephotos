@@ -1,4 +1,4 @@
-import type { SearchFilters, SelectAllPhotos } from "../endpoints";
+import type { MapBounds, SearchFilters, SelectAllPhotos } from "../endpoints";
 import type {
   DuplicateType,
   FaceAnalysisMethod,
@@ -50,6 +50,7 @@ type PhotoGridKind =
   | "withoutTimestamp"
   | "withoutLocation"
   | "notInAlbum"
+  | "inBounds"
   | "myPublicPhotos"
   | "sharedByMe"
   | "sharedWithMe"
@@ -103,6 +104,8 @@ export const photoGridKeys = {
     [...photoGridKeys.search(term, mediaType, mode), filters] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
+  /** My photos inside a view of the Places map (#343). */
+  inBounds: (bounds: MapBounds) => [...gridKind("inBounds"), bounds] as const,
   /** One page of the photos in none of my albums. */
   notInAlbum: (page: number, mediaType: MediaType) => [...gridKind("notInAlbum"), page, mediaType] as const,
   /** The first `pageSize` of my own public photos and their count (the Sharing overview). */
@@ -173,6 +176,10 @@ export const albumKeys = {
   /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */
   personGroups: () => [...albumKeys.peopleAlbums(), "groups"] as const,
   locationClusters: () => [...albumRoot, "locationClusters"] as const,
+  /** Where my photos were taken, for the Places map (#343). */
+  mapPoints: () => [...albumRoot, "mapPoints"] as const,
+  /** The place albums with a photo inside a map's view, under the places list so it refreshes with it. */
+  placesInBounds: (bounds: MapBounds) => [...albumKeys.placesAlbums(), "inBounds", bounds] as const,
   /** The albums I shared, grouped by recipient (web). */
   sharedByMe: () => [...albumRoot, "sharedByMe"] as const,
   /** The albums I shared as the server sends them. */

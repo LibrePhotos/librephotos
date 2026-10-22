@@ -1,41 +1,46 @@
-import type { CircleLayerSpecification, SymbolLayerSpecification } from "maplibre-gl";
+import type { CircleLayerSpecification, ExpressionSpecification, SymbolLayerSpecification } from "maplibre-gl";
 import type { MapLayerColors } from "../../theme/mapColors";
 
-/** The layers of the Places page's clustered "locations" source. */
+/** The layers of the Places page's clustered "locations" source of photo points (#343). */
 type ClusterLayers = Readonly<{
   clusters: CircleLayerSpecification;
   clusterCount: SymbolLayerSpecification;
   unclusteredPoint: CircleLayerSpecification;
 }>;
 
-/** Clusters sized and coloured by photo count, their count, and single places. */
+/** The photos a point or a cluster stands for: each point's `photos`, which a cluster sums. */
+const PHOTOS: ExpressionSpecification = ["get", "photos"];
+/** More than one photo: a cluster, or a spot where several were taken. */
+const SEVERAL: ExpressionSpecification = [">", PHOTOS, 1];
+
+/** "7", "512", "3.2k": the count on a circle. */
+const PHOTOS_LABEL: ExpressionSpecification = [
+  "case",
+  [">=", PHOTOS, 1000],
+  ["concat", ["to-string", ["/", ["round", ["/", PHOTOS, 100]], 10]], "k"],
+  ["to-string", PHOTOS],
+];
+
+/** Circles sized and coloured by photo count with their count, and single photos as dots. */
 export function clusterLayers(colors: MapLayerColors): ClusterLayers {
   return {
     clusters: {
       id: "clusters",
       type: "circle",
       source: "locations",
-      filter: ["has", "point_count"],
+      filter: SEVERAL,
       paint: {
-        "circle-color": [
-          "step",
-          ["get", "point_count"],
-          colors.clusters.small,
-          10,
-          colors.clusters.medium,
-          50,
-          colors.clusters.large,
-        ],
-        "circle-radius": ["step", ["get", "point_count"], 15, 10, 20, 50, 25],
+        "circle-color": ["step", PHOTOS, colors.clusters.small, 10, colors.clusters.medium, 50, colors.clusters.large],
+        "circle-radius": ["step", PHOTOS, 15, 10, 20, 50, 25],
       },
     },
     clusterCount: {
       id: "cluster-count",
       type: "symbol",
       source: "locations",
-      filter: ["has", "point_count"],
+      filter: SEVERAL,
       layout: {
-        "text-field": "{point_count_abbreviated}",
+        "text-field": PHOTOS_LABEL,
         "text-font": ["Open Sans Bold"],
         "text-size": 12,
       },
@@ -45,7 +50,7 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
       id: "unclustered-point",
       type: "circle",
       source: "locations",
-      filter: ["!", ["has", "point_count"]],
+      filter: ["!", SEVERAL],
       paint: {
         "circle-color": colors.point,
         "circle-radius": 8,

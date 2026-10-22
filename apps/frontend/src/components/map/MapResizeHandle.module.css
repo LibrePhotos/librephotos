@@ -1,0 +1,27 @@
+/* A grip under the map: drag it, or focus it and use the arrow keys. */
+.handle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 14px;
+  cursor: row-resize;
+  touch-action: none;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mantine-color-default-border);
+}
+
+.handle:hover .grip,
+.handle:focus-visible .grip {
+  background: var(--mantine-color-dimmed);
+}

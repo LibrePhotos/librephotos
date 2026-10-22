@@ -1977,6 +1977,32 @@ export async function fetchLocatedNearbyInTime(
   return parseResponse(S.LocatedPhotosResponse, res, "photos located nearby in time");
 }
 
+/* ---- the Places map (#343) ---------------------------------------------- */
+
+/** A map's view in degrees. `west` greater than `east` is a view across the 180th meridian. */
+export type MapBounds = { south: number; west: number; north: number; east: number };
+
+const boundsQuery = ({ south, west, north, east }: MapBounds) =>
+  new URLSearchParams({ south: String(south), west: String(west), north: String(north), east: String(east) });
+
+/** Where my photos were taken: one point per spot with the number of photos there. */
+export async function fetchPhotoMapPoints(client: ApiClient): Promise<S.PhotoMapPoints> {
+  const res = await client.get<unknown>("/photos/map-points/");
+  return parseResponse(S.PhotoMapPoints, res, "photo map points");
+}
+
+/** Every one of my photos taken inside `bounds`, newest first (all pages). */
+export async function fetchPhotosInBounds(client: ApiClient, bounds: MapBounds): Promise<S.PigPhoto[]> {
+  const results = await fetchAllPages(client, `/photos/in-bounds/?${boundsQuery(bounds).toString()}`);
+  return parseResponse(S.PigPhoto.array(), results, "photos in bounds");
+}
+
+/** The ids of my place albums with a photo inside `bounds`. */
+export async function fetchPlaceAlbumsInBounds(client: ApiClient, bounds: MapBounds): Promise<number[]> {
+  const res = await client.get<unknown>(`/albums/place/in-bounds/?${boundsQuery(bounds).toString()}`);
+  return parseResponse(S.PlaceAlbumsInBounds, res, "place albums in bounds").ids;
+}
+
 /* ---- moving photos (#352) ----------------------------------------------- */
 
 /**

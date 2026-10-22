@@ -1,86 +1,72 @@
-import type { LocationClusters } from "@librephotos/api-client";
+import type { MapBounds, PhotoMapPoints } from "@librephotos/api-client";
 import { useViewportSize } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
-import type { PlaceAlbumList } from "../../api_client/albums/hooks";
-import { zoomIntoCluster } from "./clusterZoom";
-import { clusterFeatureCollection, clusterPoints, initialViewForClusters } from "./locationClusters";
+import { initialViewForClusters } from "./locationClusters";
 import { ignoreMissingStyleImages } from "./mapImages";
+import { spotForClick, type MapSpot } from "./mapSpot";
+import { mapBoundsOf, photoPointCollection } from "./photoPoints";
 import { clusterLayers } from "./placesLayers";
 import { useMapLayerColors } from "./useMapLayerColors";
 
 // The padding keeps edge points strictly inside the bounds the grid filters by
 const FIT_PLACES = { padding: 40, maxZoom: 10 };
 
+/** The last zoom the "locations" source clusters at; a click on a cluster there opens it. */
+export const CLUSTER_MAX_ZOOM = 14;
+
 /**
- * The Places page's map: its clustered source and layers, the zoom into a clicked cluster, and the
- * place albums inside its bounds, which the grid under it lists.
+ * The Places page's map (#343): a clustered source of the photos where they were taken, its
+ * layers, the view it shows (which the place grid under it filters by), and the point or cluster
+ * a click opened. A click on a cluster zooms in until it splits; on a single spot, or on a cluster
+ * at the last clustering zoom, it opens that spot's photos.
  */
-export function usePlacesMap(
-  albums: PlaceAlbumList | undefined,
-  locationClusters: LocationClusters | undefined,
-  height: number
-) {
+export function usePlacesMap(points: PhotoMapPoints | undefined, height: number) {
   const { width } = useViewportSize();
   const mapRef = useRef<MapRef | null>(null);
   const setMapRef = useCallback((map: MapRef | null) => {
     mapRef.current = map;
     ignoreMissingStyleImages(map);
   }, []);
-  // `null` means the map has not reported any bounds yet: it is still being created, its
-  // style never loaded, or map display is turned off altogether. Falling back to the full
-  // album list keeps the page from sitting empty until the user pans or zooms.
-  const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList | null>(null);
+  // Null until the map reports a view: it is still being created, its style never loaded, or
+  // maps are turned off. The page lists every place until then.
+  const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [spot, setSpot] = useState<MapSpot | null>(null);
 
-  // Convert locationClusters to GeoJSON FeatureCollection
-  const geojsonData = useMemo(() => clusterFeatureCollection(locationClusters), [locationClusters]);
-
-  // Open on every place rather than a fixed view of Europe: the grid lists only
-  // what the map shows, so places outside that view were missing until a pan.
+  const geojsonData = useMemo(() => photoPointCollection(points?.points), [points]);
+  // Open on every photo rather than a fixed view: the grid lists only what the map shows.
   const initialViewState = useMemo(() => initialViewForClusters(geojsonData, FIT_PLACES), [geojsonData]);
   const layerColors = useMapLayerColors();
   const layers = useMemo(() => clusterLayers(layerColors), [layerColors]);
 
-  const updateVisibleAlbums = useCallback(
-    (map: MapRef) => {
-      if (!locationClusters || !albums) return;
-
-      const bounds = map.getBounds();
-      if (!bounds) return;
-
-      const ne = bounds.getNorthEast();
-      const sw = bounds.getSouthWest();
-
-      const markers = clusterPoints(locationClusters).filter(
-        ({ lng, lat }) => lat < ne.lat && lat > sw.lat && lng < ne.lng && lng > sw.lng
-      );
-
-      const visiblePlaceNames = markers.map(el => el.name);
-      const visiblePlaceAlbums = albums.filter(el => visiblePlaceNames.includes(el.title));
-      setVisibleAlbums(visiblePlaceAlbums);
-    },
-    [albums, locationClusters]
-  );
-
-  const onMoveEnd = useCallback(() => {
-    if (!mapRef.current) return;
-    updateVisibleAlbums(mapRef.current);
-  }, [updateVisibleAlbums]);
-
-  const onMapLoad = useCallback(() => {
-    if (!mapRef.current) return;
-    updateVisibleAlbums(mapRef.current);
-  }, [updateVisibleAlbums]);
-
-  // A click on a cluster zooms in until it splits
-  const onClick = useCallback((event: MapLayerMouseEvent) => {
-    if (mapRef.current) void zoomIntoCluster(mapRef.current, [event.point.x, event.point.y]);
+  const readBounds = useCallback(() => {
+    const view = mapRef.current?.getBounds();
+    if (view) setBounds(mapBoundsOf(view));
   }, []);
 
-  useEffect(() => {
-    if (!mapRef.current || !albums || !locationClusters) return;
-    updateVisibleAlbums(mapRef.current);
-  }, [width, height, albums, locationClusters, updateVisibleAlbums]);
+  // Each click starts afresh: a zoom or a click beside every point closes the open spot
+  const onClick = useCallback((event: MapLayerMouseEvent) => {
+    setSpot(null);
+    if (mapRef.current) void spotForClick(mapRef.current, event, CLUSTER_MAX_ZOOM).then(setSpot);
+  }, []);
 
-  return { setMapRef, visibleAlbums, geojsonData, initialViewState, layers, onMoveEnd, onLoad: onMapLoad, onClick };
+  const closeSpot = useCallback(() => setSpot(null), []);
+
+  // A resized map or window shows another part of the world
+  useEffect(() => {
+    readBounds();
+  }, [width, height, points, readBounds]);
+
+  return {
+    setMapRef,
+    bounds,
+    spot,
+    closeSpot,
+    geojsonData,
+    initialViewState,
+    layers,
+    onMoveEnd: readBounds,
+    onLoad: readBounds,
+    onClick,
+  };
 }

@@ -10,6 +10,8 @@ export function invalidatePlaces() {
     albumKeys.placesAlbums(),
     photoGridKeys.kind("placeAlbum"),
     albumKeys.locationClusters(),
+    albumKeys.mapPoints(),
+    photoGridKeys.kind("inBounds"),
     photoGridKeys.kind("withoutLocation"),
   ].forEach(queryKey => {
     queryClient.invalidateQueries({ queryKey });

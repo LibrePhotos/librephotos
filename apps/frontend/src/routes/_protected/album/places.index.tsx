@@ -1,11 +1,15 @@
 import { Flex, Text } from "@mantine/core";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { AttributionControl, Layer, NavigationControl, Source } from "react-map-gl/maplibre";
+import { z } from "zod";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
-import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
+import {
+  useFetchPhotoMapPointsQuery,
+  useFetchPlacesAlbumsQuery,
+  usePlaceAlbumsInBoundsQuery,
+} from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { PLACE_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
@@ -15,13 +19,14 @@ import { ErrorState } from "../../../components/common/ErrorState";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
-import { ThemedMap } from "../../../components/map/ThemedMap";
+import { PLACES_MAP_HEIGHTS, PlacesPhotoMap } from "../../../components/map/PlacesPhotoMap";
 import { usePlacesMap } from "../../../components/map/usePlacesMap";
 import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { useMapStyle } from "../../../util/mapStyle";
+import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
 export const Route = createFileRoute("/_protected/album/places/")({
   component: AlbumPlace,
@@ -34,9 +39,16 @@ type Props = Readonly<{
 // One empty list while loading, so the sorted list is not recomputed on every render
 const NO_PLACES: PlaceAlbumList = [];
 
-// The map (or its placeholder) above the grid, and the padding under it
-const MAP_HEIGHT = 240;
-const MAP_BLOCK_HEIGHT = MAP_HEIGHT + 10;
+// What the page reserves under the map (or its placeholder): its grip and the padding
+const MAP_EXTRA_HEIGHT = 24;
+const MapHeight = z.number().int().min(PLACES_MAP_HEIGHTS.min).max(PLACES_MAP_HEIGHTS.max);
+
+/** The place albums the map's view holds a photo of, or all of them before it reports a view. */
+function placesInView(albums: PlaceAlbumList | undefined, ids: readonly number[] | undefined) {
+  if (!albums || !ids) return albums;
+  const inView = new Set(ids);
+  return albums.filter(album => inView.has(album.id));
+}
 
 function AlbumPlace({ height = 0 }: Props) {
   const { t } = useTranslation();
@@ -45,22 +57,21 @@ function AlbumPlace({ height = 0 }: Props) {
   const albumsQuery = useFetchPlacesAlbumsQuery();
   const { data: albums, isFetching: isFetchingAlbums, isLoading: isLoadingAlbums } = albumsQuery;
   const listFailure = useListFailure(albumsQuery);
-  const {
-    data: locationClusters,
-    isFetching: isFetchingLocationClusters,
-    isLoading: isLoadingLocationClusters,
-  } = useFetchLocationClustersQuery();
+  // The map shows photos where they were taken, and the grid the places with a photo in view (#343)
+  const { data: mapPoints, isFetching: isFetchingPoints, isLoading: isLoadingPoints } = useFetchPhotoMapPointsQuery();
   const { mapStyle, mapsDisabled } = useMapStyle();
-  const placesMap = usePlacesMap(albums, locationClusters, height);
-  const { visibleAlbums } = placesMap;
+  const [mapHeight, setMapHeight] = useStoredState(STORAGE_KEYS.placesMapHeight, MapHeight, PLACES_MAP_HEIGHTS.min);
+  const placesMap = usePlacesMap(mapPoints, height + mapHeight);
+  const { data: idsInView } = usePlaceAlbumsInBoundsQuery(mapStyle === null ? null : placesMap.bounds);
+  const visibleAlbums = useMemo(() => placesInView(albums, idsInView), [albums, idsInView]);
   // In the order the user picked (#620); by default countries first, then the most photos
-  const placeSort = useAlbumSort(PLACE_SORT, visibleAlbums ?? albums ?? NO_PLACES);
+  const placeSort = useAlbumSort(PLACE_SORT, visibleAlbums ?? NO_PLACES);
   const shownAlbums = placeSort.sorted;
   // The hook leaves room for the header only. Less the map, so the page does not scroll
   // as well as the grid, but always tall enough for one row on a short screen.
-  const sizing = useAlbumListGridConfig({ reservedHeight: MAP_BLOCK_HEIGHT });
+  const sizing = useAlbumListGridConfig({ reservedHeight: mapHeight + MAP_EXTRA_HEIGHT });
 
-  if (isLoadingAlbums || isLoadingLocationClusters) {
+  if (isLoadingAlbums || isLoadingPoints) {
     return <PageLoader label={t("placealbum.maploading")} />;
   }
 
@@ -71,12 +82,13 @@ function AlbumPlace({ height = 0 }: Props) {
       <PageHeader
         icon={Map2}
         title={t("places")}
-        loading={isFetchingLocationClusters || isFetchingAlbums}
+        loading={isFetchingPoints || isFetchingAlbums}
         // Without a map nothing filters the list, so there is no "on the map" to speak of
-        subtitle={t(mapsDisabled ? "placealbum.placecount" : "placealbum.showingplaces", {
-          count: shownAlbums.length,
-          number: shownAlbums.length,
-        })}
+        subtitle={
+          mapsDisabled
+            ? t("placealbum.placecount", { count: shownAlbums.length })
+            : `${t("placealbum.photosOnMap", { count: mapPoints?.photo_count ?? 0 })} · ${t("placealbum.placesInView", { count: shownAlbums.length })}`
+        }
         actions={hasPlaces ? <AlbumSortMenu {...placeSort.menu} /> : null}
       />
       {listFailure ? (
@@ -92,36 +104,16 @@ function AlbumPlace({ height = 0 }: Props) {
       ) : (
         <>
           {/* Inset like the header above it, rather than pulled into the menu's edge */}
-          <div style={{ padding: "0 10px 10px" }}>
+          <div style={{ padding: "0 10px 4px" }}>
             {mapStyle === null ? (
-              <MapDisabledPlaceholder height={MAP_HEIGHT} />
+              <MapDisabledPlaceholder height={mapHeight} />
             ) : (
-              <ThemedMap
-                ref={placesMap.setMapRef}
-                h={MAP_HEIGHT}
-                initialViewState={placesMap.initialViewState}
+              <PlacesPhotoMap
+                placesMap={placesMap}
                 mapStyle={mapStyle}
-                onMoveEnd={placesMap.onMoveEnd}
-                onLoad={placesMap.onLoad}
-                onClick={placesMap.onClick}
-                interactiveLayerIds={["clusters"]}
-                attributionControl={false}
-              >
-                <NavigationControl position="top-right" />
-                <AttributionControl compact={true} />
-                <Source
-                  id="locations"
-                  type="geojson"
-                  data={placesMap.geojsonData}
-                  cluster={true}
-                  clusterMaxZoom={14}
-                  clusterRadius={50}
-                >
-                  <Layer {...placesMap.layers.clusters} />
-                  <Layer {...placesMap.layers.clusterCount} />
-                  <Layer {...placesMap.layers.unclusteredPoint} />
-                </Source>
-              </ThemedMap>
+                height={mapHeight}
+                onHeightChange={next => setMapHeight(() => next)}
+              />
             )}
           </div>
           {/* Only the places inside the map bounds; laid out like the other album grids:

@@ -102,12 +102,20 @@ This setting is global. Choosing **None** hides the map in every map view, inclu
 
 ## The Places Page
 
-The Places page (`/album/places`) shows the places in your library on an interactive map. The map plots one marker per detected place name, not one per photo — reverse geocoding records several levels for each photo (country, region, city, point of interest), so a single photo can contribute several markers, and each distinct place name appears only once.
+The Places page (`/album/places`) shows your photos on an interactive map, each where it was taken, and under the map the places (Places albums) that have a photo in the part of the world the map shows.
 
-- **Clustered markers**: When zoomed out, nearby places are grouped into clusters; the number shown on a cluster is how many distinct places it contains, not how many photos
-- **Click to zoom**: Click on a cluster to zoom in and see individual locations
-- **Filtered albums**: As you pan and zoom the map, the album grid below updates to show places visible in the current view
-- **Navigation controls**: Use the +/- buttons or scroll to zoom, drag to pan
+<Since version="1.5.0" /> The map shows photos, not place names:
+
+- **Photos where they were taken**: every photo with a position is a point at that position. Photos taken within about a metre of each other are one point, with their number on it.
+- **Clusters count photos**: when zoomed out, nearby points are grouped into a cluster, and the number on it is how many photos it holds. A photo counts once, whatever number of place names it has.
+- **Click to zoom**: click a cluster to zoom in until it splits.
+- **Click to open**: click a point, or a cluster once you are zoomed in to street level, to see how many photos were taken there and the newest few. Click a thumbnail, or **Open N photos**, to step through them in the photo viewer.
+- **Places in view**: as you pan and zoom, the grid below lists the places with at least one photo inside the map. A country or a region stays in the list while one of its photos is in view. The line under the title says how many photos are on the map and how many places are in view.
+- **A taller map**: drag the grip under the map down to make it taller (up to 560 pixels), or focus it and use the arrow keys. The page remembers the height.
+
+Up to 1.4.0 the map drew one marker per place name at the centre of that place: a photo showed up once for its street, once for its town and once for its region, a cluster counted place names rather than photos, and markers sat at the centre of a county where no photo was taken.
+
+The map and its counts only ever show your own photos. Hidden photos and photos in the trash are left out, and photos other users shared with you are not on it.
 
 ## Setting Up Places
 
