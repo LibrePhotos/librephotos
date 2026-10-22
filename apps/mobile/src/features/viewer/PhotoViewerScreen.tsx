@@ -13,21 +13,14 @@ import {
   photoUrl,
   squareThumbnailUrl,
   useApiClient,
-  useSiteSettingsQuery,
   videoUrl,
   type People,
 } from "@librephotos/api-client";
-import { useDb, useReactiveQuery } from "@/db/provider";
+import { useDb } from "@/db/provider";
 import {
-  albumsContainingPhoto,
-  localAssetById,
   personIdByName,
-  photoFlagsByHash,
-  photoSummaryByHash,
   remotePhotoIdByHash,
   type PhotoAlbumRow,
-  type PhotoFlags,
-  type PhotoSummary,
   type ViewerSlide,
 } from "@/db/queries/detail";
 import { useMutations } from "@/mutations/useMutations";
@@ -40,16 +33,17 @@ import { serverAddress } from "@/lib/apiClient";
 import { goBackOr } from "@/lib/navigation";
 import { formatFullDate } from "@/lib/format";
 import { useToastStore } from "@/stores/toasts";
-import { usePhotoDetail } from "./usePhotoDetail";
+import { useViewerData } from "./useViewerData";
 import { useAfterFirstPaint } from "./useAfterFirstPaint";
 import { useViewerWindow } from "./useViewerWindow";
 import { seedSlideFromParams } from "./route";
 import { PhotoInfoSheet } from "./PhotoInfoSheet";
-import { ViewerActionBar } from "./ViewerActionBar";
-import { ThumbnailStrip, ViewerTopBar } from "./ViewerChrome";
+import { ViewerChromeLayer } from "./ViewerChromeLayer";
 import { ZoomableImage } from "./ZoomableImage";
 import { VideoSlide } from "./VideoSlide";
 import { FaceOverlay } from "./FaceOverlay";
+import { slideSource, type SlideSource } from "./originalSource";
+import { useOriginalOnZoom } from "./useOriginalOnZoom";
 import { parseEditableTimestamp, toEditableTimestamp } from "./timestamp";
 
 /**
@@ -120,7 +114,6 @@ export function PhotoViewerScreen() {
     () => slides.find((s) => s.key === currentKey) ?? slides[currentIndex] ?? slides[0],
     [slides, currentKey, currentIndex]
   );
-  const hash = current?.image_hash ?? null;
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: { key?: string | number | null; index?: number | null }[] }) => {
@@ -154,34 +147,10 @@ export function PhotoViewerScreen() {
 
   /* ---- data ------------------------------------------------------------ */
 
-  // Server-side rows exist only for photos the server knows about; a local-only
-  // asset gets its metadata from the camera roll instead.
-  const flags = useReactiveQuery<PhotoFlags | null>(
-    (d) => (hash ? photoFlagsByHash(d, hash) : null),
-    [hash]
-  );
-  const summary = useReactiveQuery<PhotoSummary | null>(
-    (d) => (hash ? photoSummaryByHash(d, hash) : null),
-    [hash]
-  );
-  const local = useReactiveQuery(
-    (d) => (current?.local_id ? localAssetById(d, current.local_id) : null),
-    [current?.local_id]
-  );
-  // Album membership is sheet content, never first-frame content: a two-table
-  // UNION for a surface the user has not opened yet.
-  const albums = useReactiveQuery<PhotoAlbumRow[]>(
-    (d) => (ready && summary ? albumsContainingPhoto(d, summary.id) : []),
-    [ready, summary?.id]
-  );
-
-  // Deferred: this reads the cached payload off disk and runs it through zod,
-  // then fetches over the network. None of that belongs in a mount render.
-  const detail = usePhotoDetail(ready && flags ? (hash ?? undefined) : undefined);
-  // Site settings decide whether the server wants maps shown at all — the same
-  // `map_tile_provider === "none"` switch the web frontend honours.
-  const settings = useSiteSettingsQuery();
-  const mapsDisabled = settings.data?.map_tile_provider === "none";
+  const { hash, flags, summary, local, albums, detail, mapsDisabled, timestamp } = useViewerData(current, ready);
+  // Zooming into the active slide loads its original (#2743).
+  const zoom = useOriginalOnZoom(current?.key);
+  const { zoomedOnce, attempt, onZoomChange, onProgress, onLoad, onError } = zoom;
 
   /* ---- neighbour preloading -------------------------------------------- */
 
@@ -323,10 +292,8 @@ export function PhotoViewerScreen() {
 
   /* ---- render ---------------------------------------------------------- */
 
-  const timestamp = summary?.timestamp ?? local?.created_at ?? null;
   const title = formatFullDate(timestamp, { locale: i18n.language }) || t("viewer.withoutTimestamp");
   const sheetOpen = detent !== "hidden";
-  const actionBarHeight = 96 + insets.bottom;
 
   const renderSlide = useCallback(
     ({ item }: { item: ViewerSlide }) => {
@@ -348,6 +315,9 @@ export function PhotoViewerScreen() {
         );
       }
 
+      const source = slideSource(item, active, zoomedOnce, detail.detail);
+      // Only the load of an original the user zoomed in for feeds the chip.
+      const zoomOriginal = source.kind === "original" && source.zoom;
       const face =
         active && highlightedFace != null
           ? detail.detail?.people?.find((p) => p.face_id === highlightedFace)
@@ -359,8 +329,12 @@ export function PhotoViewerScreen() {
           width={width}
           height={height}
           onTap={toggleChrome}
-          source={sourceFor(item, base, headers, active && isAnimated(detail.detail?.image_path))}
-          placeholder={placeholderFor(item, base, headers)}
+          source={sourceFor(item, base, headers, source, attempt)}
+          placeholder={placeholderFor(item, base, headers, source)}
+          onZoomChange={active ? (zoomed) => onZoomChange(item.key, zoomed) : undefined}
+          onProgress={zoomOriginal ? (event) => onProgress(item.key, event) : undefined}
+          onLoad={zoomOriginal ? (event) => onLoad(item.key, event) : undefined}
+          onError={zoomOriginal ? () => onError(item.key) : undefined}
           overlay={
             face && item.image_hash ? (
               <FaceOverlay
@@ -375,7 +349,21 @@ export function PhotoViewerScreen() {
         />
       );
     },
-    [current?.key, base, headers, width, height, highlightedFace, detail.detail]
+    [
+      current?.key,
+      base,
+      headers,
+      width,
+      height,
+      highlightedFace,
+      detail.detail,
+      zoomedOnce,
+      attempt,
+      onZoomChange,
+      onProgress,
+      onLoad,
+      onError,
+    ]
   );
 
   return (
@@ -396,50 +384,39 @@ export function PhotoViewerScreen() {
         renderItem={renderSlide}
       />
 
-      {chromeVisible ? (
-        <ViewerTopBar
-          title={title}
-          subtitle={summary?.search_location ?? null}
-          topInset={insets.top}
-          infoOpen={sheetOpen}
-          onClose={() => goBackOr(router, "/(tabs)/photos")}
-          onToggleInfo={() => setDetent(sheetOpen ? "hidden" : "peek")}
-        />
-      ) : null}
-
-      {chromeVisible && !sheetOpen ? (
-        <ThumbnailStrip
-          slides={slides}
-          activeKey={current?.key}
-          serverAddress={base}
-          headers={headers}
-          bottomOffset={flags ? actionBarHeight : insets.bottom}
-          onSelect={(index) => {
-            listRef.current?.scrollToIndex({ index, animated: true });
-            setCurrentKey(slides[index].key);
-            setCurrentIndex(index);
-          }}
-        />
-      ) : null}
-
-      {/* No server row means no server-side flags to toggle — a bar full of
-          no-ops is worse than no bar (doc 07 §1.4). */}
-      {chromeVisible && !sheetOpen && flags ? (
-        <ViewerActionBar
-          isFavorite={flags.is_favorite === 1}
-          hidden={flags.hidden === 1}
-          inTrashcan={flags.in_trashcan === 1}
-          isPublic={flags.is_public === 1}
-          rating={flags.rating}
-          isOnline={isOnline}
-          bottomInset={insets.bottom}
-          onToggleFavorite={toggleFavorite}
-          onToggleHide={toggleHide}
-          onToggleTrash={toggleTrash}
-          onTogglePublic={() => void togglePublic()}
-          onRate={rate}
-        />
-      ) : null}
+      <ViewerChromeLayer
+        chromeVisible={chromeVisible}
+        sheetOpen={sheetOpen}
+        title={title}
+        subtitle={summary?.search_location ?? null}
+        insets={insets}
+        slides={slides}
+        activeKey={current?.key}
+        serverAddress={base}
+        headers={headers}
+        flags={flags}
+        isOnline={isOnline}
+        zoom={{
+          source: current ? slideSource(current, true, zoomedOnce, detail.detail) : null,
+          load: zoom.load,
+          zoomed: zoom.zoomed,
+          onRetry: () => current && zoom.retry(current.key),
+        }}
+        onClose={() => goBackOr(router, "/(tabs)/photos")}
+        onToggleInfo={() => setDetent(sheetOpen ? "hidden" : "peek")}
+        onSelectSlide={(index) => {
+          listRef.current?.scrollToIndex({ index, animated: true });
+          setCurrentKey(slides[index].key);
+          setCurrentIndex(index);
+        }}
+        actions={{
+          onToggleFavorite: toggleFavorite,
+          onToggleHide: toggleHide,
+          onToggleTrash: toggleTrash,
+          onTogglePublic: () => void togglePublic(),
+          onRate: rate,
+        }}
+      />
 
       <PhotoInfoSheet
         detent={detent}
@@ -512,34 +489,28 @@ export function PhotoViewerScreen() {
   );
 }
 
-/** Does this photo's file animate? Its big thumbnail would be a still frame. */
-function isAnimated(paths: readonly string[] | undefined): boolean {
-  return !!paths?.some((path) => path.toLowerCase().endsWith(".gif"));
-}
-
 /**
  * Local-first image source: the camera-roll file when we have it (instant, no
  * network, and the only option for a photo not yet uploaded), the server's big
  * thumbnail otherwise.
  *
- * `original` switches to the originals endpoint, which is how an animated GIF
- * actually animates — the big thumbnail is one frame. Only ever set for the
- * active slide, because originals are full-size files and a pager window holds
- * hundreds of them.
+ * An `original` source (see `slideSource`) switches to the originals endpoint:
+ * how an animated GIF actually animates (the big thumbnail is one frame), and
+ * what a zoomed-in photo shows. Try again (`attempt`) changes the address, so
+ * expo-image asks the server again instead of keeping the failure.
  */
 function sourceFor(
   slide: ViewerSlide,
   base: string,
   headers: Record<string, string>,
-  original = false
+  source: SlideSource,
+  attempt: number
 ) {
   if (slide.local_uri) return { uri: slide.local_uri };
   if (!slide.image_hash) return { uri: "" };
-  const wantsOriginal = original || slide.type === "motion_photo";
-  const url = wantsOriginal
-    ? photoUrl(base, slide.image_hash)
-    : bigThumbnailUrl(base, slide.image_hash);
-  return { uri: url, headers };
+  if (source.kind !== "original") return { uri: bigThumbnailUrl(base, slide.image_hash), headers };
+  const retry = source.zoom && attempt > 0 ? `?retry=${attempt}` : "";
+  return { uri: `${photoUrl(base, slide.image_hash)}${retry}`, headers };
 }
 
 /**
@@ -548,7 +519,15 @@ function sourceFor(
  * big thumbnail loads. A camera-roll slide already renders from its own file and
  * has nothing to wait for.
  */
-function placeholderFor(slide: ViewerSlide, base: string, headers: Record<string, string>) {
+function placeholderFor(
+  slide: ViewerSlide,
+  base: string,
+  headers: Record<string, string>,
+  source: SlideSource
+) {
   if (slide.local_uri || !slide.image_hash) return undefined;
+  // Zoomed into the original: the big thumbnail that was on screen stays until
+  // the original has loaded, so nothing goes soft or blank in between.
+  if (source.kind === "original" && source.zoom) return { uri: bigThumbnailUrl(base, slide.image_hash), headers };
   return { uri: squareThumbnailUrl(base, slide.image_hash), headers };
 }

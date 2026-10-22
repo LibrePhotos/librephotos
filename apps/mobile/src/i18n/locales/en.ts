@@ -83,6 +83,21 @@ export const en = {
     // Similar photos
     similarPhotos: "Similar Photos",
     noSimilarPhotos: "No similar photos",
+    // Zooming into the original (the chip on the photo while zoomed in)
+    originalLoading: "Loading original",
+    originalLoadingBytes: "Loading original · {{loaded}} of {{total}}",
+    original: "Original",
+    originalSize: "Original · {{width}} × {{height}}",
+    originalFailed: "The original did not load",
+    originalRetry: "Try again",
+    originalPreview: "Preview",
+    originalReason: {
+      raw: "RAW files can't be shown here",
+      tiff: "TIFF files can't be shown here",
+      jxl: "JPEG XL files can't be shown here",
+      other: "This file type can't be shown here",
+      rotated: "Rotated photos zoom in on the preview",
+    },
     // File
     fileInfo: "File",
     filename: "Filename",
