@@ -36,6 +36,7 @@ from api.drf.request_user import request_user
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import Task, enqueue_task_chain
+from api.jobs.upload_followups import request_upload_followups
 from api.metadata.datetime_rules import CaptureTime
 from api.models import Photo
 from api.models.album_user import AlbumUser
@@ -395,6 +396,9 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
                 Task(geolocate_photo, (photo,)),
                 Task(add_location_to_album_dates, (photo,)),
                 Task(extract_faces, (photo,)),
+                # Last, so the library-level steps (search index, face
+                # encodings) see this photo done; one run per burst (#2735).
+                Task(request_upload_followups, (user,)),
             ]
         )
 
