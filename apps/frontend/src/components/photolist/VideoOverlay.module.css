@@ -2,3 +2,12 @@
 .sphereBadge {
   margin: 0 5px 5px 0;
 }
+
+/* In a person's photos, where in the video the person is (#2762). */
+.moment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 5px;
+  flex-shrink: 0;
+}

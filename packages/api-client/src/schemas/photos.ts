@@ -10,6 +10,8 @@ export const PhotoPerson = z.object({
   location: z.object({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number() }),
   face_url: z.string(),
   face_id: z.number(),
+  // The second of the video the face is at (#2762); null on the first frame. Older servers omit it.
+  video_time: z.number().nullable().optional(),
 });
 export type PhotoPerson = z.infer<typeof PhotoPerson>;
 /** @deprecated Use `PhotoPerson`; kept for one release while apps/mobile moves. */

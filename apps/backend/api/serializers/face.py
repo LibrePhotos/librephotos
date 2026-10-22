@@ -21,6 +21,9 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
             "photo_image_hash",
             "timestamp",
             "person_label_probability",
+            # The second of the video the face was found at; null for a photo's
+            # faces and a video's first frame (#2762).
+            "video_time",
         ]
         read_only_fields = ["photo"]
 
@@ -88,6 +91,7 @@ class FaceListSerializer(serializers.ModelSerializer):
             "person",
             "person_label_probability",
             "person_name",
+            "video_time",
         )
         read_only_fields = ("photo", "person")
 

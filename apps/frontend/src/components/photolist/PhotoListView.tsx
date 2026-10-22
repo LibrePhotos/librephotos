@@ -375,6 +375,7 @@ function PhotoListViewComponent({
         isUserAlbum={isUserAlbum}
         albumID={albumID}
         idx2hash={idx2hash}
+        title={title}
         totalCount={totalCount}
         selectionState={selectionState}
         updateSelectionState={updateSelectionState}

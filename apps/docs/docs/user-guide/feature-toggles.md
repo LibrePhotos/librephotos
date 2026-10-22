@@ -58,6 +58,16 @@ Feature toggles are implemented as environment variables you would have to confi
     </td>
   </tr>
   <tr>
+    <td>Faces in videos</td>
+    <td>
+      <Since version="1.5.0" /> Find faces in a few frames across each video, not only in its first frame
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_FACE_DETECTION_IN_VIDEOS=true
+    </td>
+  </tr>
+  <tr>
     <td>Face clustering</td>
     <td>
       Group the faces that were found into people you can label
@@ -117,6 +127,7 @@ Turning off face detection, image captioning or Things also keeps the matching m
 | Video | Videos | `VIDEO_ENABLED` |
 | Animated video previews | Animated previews, under Videos | `VIDEO_PREVIEWS_ENABLED` |
 | Face detection | Face detection | `FACE_DETECTION_ENABLED` |
+| Faces in videos | Faces in videos, under Face detection | `FACE_DETECTION_IN_VIDEOS_ENABLED` |
 | Face clustering | Face clustering | `FACE_CLUSTER_ENABLED` |
 | Image captioning | Image captioning | `IMAGE_CAPTIONING_ENABLED` |
 | Reverse geocoding | Place names | `REVERSE_GEOCODING_ENABLED` |

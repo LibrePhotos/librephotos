@@ -153,7 +153,7 @@ class GenerateEncodingTest(SimpleTestCase):
     """generate_face_encoding stores nothing for a region with no face in it."""
 
     def test_an_unmatched_region_raises_and_saves_nothing(self):
-        face = MagicMock(id=7, encoding="")
+        face = MagicMock(id=7, encoding="", video_time=None)
 
         with patch("api.faces.photo_faces.get_face_encodings", return_value=[None]):
             with self.assertRaisesRegex(ValueError, "no face"):

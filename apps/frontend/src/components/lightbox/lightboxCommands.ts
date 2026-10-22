@@ -16,6 +16,8 @@ type LightboxCommandArgs = {
   delete: [];
   /** Seconds to move the playhead; negative goes back. */
   seek: [seconds: number];
+  /** Play from the moment a face appears (#2762); `name` is its person's, empty when unnamed. */
+  seekTo: [seconds: number, name: string];
 };
 
 type LightboxCommand = keyof LightboxCommandArgs;
@@ -37,6 +39,7 @@ export function createLightboxCommands(): LightboxCommands {
     public: new Set(),
     delete: new Set(),
     seek: new Set(),
+    seekTo: new Set(),
   };
   return {
     emit(command, ...args) {

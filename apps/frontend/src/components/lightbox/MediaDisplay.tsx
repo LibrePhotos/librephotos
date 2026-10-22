@@ -1,5 +1,5 @@
 import type { NormalizedFaceBox, Photo, PhotoOcrBlock } from "@librephotos/api-client";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
@@ -14,6 +14,7 @@ import type { OriginalZoomDetails, PixelSize } from "./originalZoom";
 import { ResolutionChip } from "./ResolutionChip";
 import { useZoomOriginal } from "./useZoomOriginal";
 import { VideoPlayer } from "./VideoPlayer";
+import { VideoStartContext } from "./videoStart";
 
 /** How tall the lightbox's media box is; the carousel arrows centre on it. */
 export const LIGHTBOX_PHOTO_HEIGHT = "82vh";
@@ -111,6 +112,7 @@ function VideoMedia({
   // transcode videos" on, otherwise when asked with ?transcode=1 -- which is
   // done up front for a video this browser says it cannot play, and as a
   // fallback for one it turns out not to.
+  const videoStart = useContext(VideoStartContext);
   const originalUrl = mediaUrl.video(mediaHash);
   const converted = !embedded && needsConversion(photoDetails?.video_playback_type);
   const videoUrl = embedded ? mediaUrl.embedded(mediaHash) : converted ? convertedUrl(originalUrl) : originalUrl;
@@ -136,6 +138,8 @@ function VideoMedia({
       onEnded={isMainContent ? onEnded : undefined}
       // A motion photo's clip is served as it is, never converted.
       convertible={!embedded}
+      // Opened from a face in a later frame: the main video starts there (#2762).
+      start={isMainContent ? videoStart : undefined}
     />
   );
 }

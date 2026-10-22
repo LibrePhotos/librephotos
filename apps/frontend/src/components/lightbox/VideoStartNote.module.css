@@ -1,0 +1,30 @@
+/* Centred over the top of the video; as wide as its text, never wider than the video. */
+.note {
+  position: absolute;
+  top: var(--mantine-spacing-sm);
+  left: var(--mantine-spacing-sm);
+  right: var(--mantine-spacing-sm);
+  z-index: 3;
+  width: fit-content;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: 4px 6px 4px 12px;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-scrim-black-75);
+  backdrop-filter: blur(6px);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--mantine-color-white);
+}
+
+.text {
+  line-height: 1.3;
+}
+
+.button {
+  flex-shrink: 0;
+}

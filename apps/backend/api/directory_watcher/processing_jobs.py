@@ -61,8 +61,14 @@ def _encode_face(face: Face, job_id: UUID | str) -> None:
 
 
 def faces_missing_encoding(user: User) -> QuerySet[Face]:
-    """Faces on ``user``'s photos that have no encoding yet."""
-    return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
+    """Faces on ``user``'s photos that have no encoding yet.
+
+    Not a face from a video's later frames: the scan saves it with its
+    encoding, and its frame is gone to make one again from (#2761).
+    """
+    return Face.objects.filter(
+        photo__in=Photo.objects.owned_by(user), encoding="", video_time__isnull=True
+    )
 
 
 def generate_face_embeddings(

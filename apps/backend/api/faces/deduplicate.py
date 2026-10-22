@@ -45,8 +45,12 @@ def _duplicate_of(face_a: Face, face_b: Face) -> int | None:
     """The id of the face to delete when ``face_a`` and ``face_b`` are one face.
 
     The labelled face stays; when both or neither are labelled, ``face_a``
-    (the older one) does.
+    (the older one) does. Faces from two frames of a video are never one
+    face, however their boxes overlap (#2761): the scan keeps one face per
+    person and video already.
     """
+    if face_a.video_time != face_b.video_time:
+        return None
     if calculate_iou(_box(face_a), _box(face_b)) < FACE_OVERLAP_IOU_THRESHOLD:
         return None
     if face_b.person_id and not face_a.person_id:
@@ -88,6 +92,7 @@ def deduplicate_faces_of_photos(photo_ids: list[uuid.UUID]) -> int:
             "location_bottom",
             "location_left",
             "location_right",
+            "video_time",
         )
         .order_by("id")
     ):

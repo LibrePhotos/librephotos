@@ -1,5 +1,6 @@
 import type { Photo } from "@librephotos/api-client";
 import type { PanoramaMode } from "../panorama/usePanoramaMode";
+import type { VideoStart } from "./videoStart";
 
 export type FaceLocationType = {
   top: number;
@@ -46,6 +47,8 @@ export type LightboxItem = {
   location?: string;
   /** A 360° photo sphere (#483): a public page has no details to say so. */
   projection_type?: string | null;
+  /** Opened from a face found in a later frame of the video: play from there (#2762). */
+  videoStart?: VideoStart;
 };
 
 export type LightBoxProps = {

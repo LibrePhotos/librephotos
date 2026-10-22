@@ -93,6 +93,7 @@ from api.serializers.person import (
 from api.serializers.person_group import PersonGroupsRequest, PersonGroupsSerializer
 from api.serializers.photos import (
     PhotoSummarySerializer,
+    with_person_video_time,
 )
 from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
@@ -649,6 +650,9 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
             .order_by("-exif_timestamp", "main_file__path")
         )
+        if "person" in self._query:
+            # A person's video opens where the person is (#2762).
+            photo_qs = with_person_video_time(photo_qs, self._query["person"])
 
         photos = self.paginate_queryset(photo_qs)
         return album_date, photos or []

@@ -81,7 +81,7 @@ const cleared = { selectedItems: [], selectMode: false, selectAllMode: false, se
 
 let unmount: (() => void) | undefined;
 
-function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lightbox } = {}) {
+function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lightbox, items = [photo] } = {}) {
   const updateSelectionState = vi.fn<(state: Partial<SelectionState>) => void>();
   const closeSlideshow = vi.fn<() => void>();
   const root = createRoot(document.createElement("div"));
@@ -94,7 +94,8 @@ function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lig
         isPublic={isPublic}
         isUserAlbum
         albumID="7"
-        idx2hash={[photo]}
+        idx2hash={items}
+        title="Anna"
         totalCount={1}
         selectionState={selection}
         updateSelectionState={updateSelectionState}
@@ -133,6 +134,15 @@ describe("PhotoListDialogs", () => {
     render({ lightboxState: { ...lightbox, lightboxImageId: "z", lightboxAloneItem: alone } });
 
     expect(defined(rendered.lightbox, "the lightbox")).toMatchObject({ selectedImage: "z", idx2hash: [alone] });
+  });
+
+  // A person's video opens where the person is (#2762); only a person's photos carry the time.
+  it("hands the lightbox where a person's video starts, named after the list", () => {
+    const video: PigPhoto = { ...photo, id: "v", type: Media.VIDEO, person_video_time: 42 };
+    render({ items: [photo, video] });
+
+    const items = defined(rendered.lightbox, "the lightbox").idx2hash;
+    expect(items.map(item => item.videoStart)).toEqual([undefined, { seconds: 42, name: "Anna" }]);
   });
 
   it("mounts none of the owner's modals on a public list", () => {

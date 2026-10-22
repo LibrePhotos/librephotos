@@ -1,0 +1,4 @@
+/* Next to a long name, the time keeps its width; the name is the one cut short. */
+.button {
+  flex-shrink: 0;
+}

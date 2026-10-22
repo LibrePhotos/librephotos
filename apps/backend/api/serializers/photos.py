@@ -82,6 +82,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     animated_preview = serializers.SerializerMethodField()
     # Whether the grid shows a still poster until the clip plays (#2026).
     video_poster = serializers.SerializerMethodField()
+    # In a person's photos: the second of the video where that person is (#2762).
+    person_video_time = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -105,6 +107,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "is_hdr",
             "animated_preview",
             "video_poster",
+            "person_video_time",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -160,6 +163,15 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def get_video_poster(self, obj: Photo) -> bool:
         return has_video_poster(obj)
+
+    def get_person_video_time(self, obj: Photo) -> float | None:
+        """The second the person of a person's photo list is first seen at (#2762).
+
+        Annotated by ``with_person_video_time`` on that list only; None
+        everywhere else, for a photo, and for a video where the person is on
+        the first frame.
+        """
+        return getattr(obj, "person_video_time", None)
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -495,6 +507,28 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         )
 
 
+def with_person_video_time(
+    queryset: QuerySet[Photo], person_id: int
+) -> QuerySet[Photo]:
+    """``queryset`` with ``person_video_time``: when the person is first seen in each video.
+
+    The earliest ``Face.video_time`` of the person's live faces on the photo
+    (#2761), for ``PhotoSummarySerializer.person_video_time``. A subquery, so
+    a ``distinct()`` on the list is not changed by it.
+    """
+    first_seen = (
+        Face.objects.filter(
+            photo=OuterRef("pk"),
+            person_id=person_id,
+            deleted=False,
+            video_time__isnull=False,
+        )
+        .order_by("video_time")
+        .values("video_time")[:1]
+    )
+    return queryset.annotate(person_video_time=Subquery(first_seen))
+
+
 def _face_person(face: Face) -> tuple[Person | None, str, float]:
     """The person a face is shown with, its kind and how sure that is."""
     if face.person:
@@ -526,6 +560,8 @@ def _face_entry(face: Face) -> dict[str, Any]:
         # A face without a crop (legacy rows) has no URL to show.
         "face_url": face.crop_url or "",
         "face_id": face.id,
+        # The second of the video the face is at; None on the first frame (#2762).
+        "video_time": face.video_time,
     }
 
 
