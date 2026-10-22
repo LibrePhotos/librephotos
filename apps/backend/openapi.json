@@ -21424,6 +21424,10 @@
           "map_tile_provider": {
             "type": "string"
           },
+          "geocode_language": {
+            "type": "string",
+            "description": "The language online map providers name places in; empty for the provider's default."
+          },
           "captioning_model": {
             "type": "string"
           },
@@ -21522,6 +21526,7 @@
           "captioning_model",
           "email_configured",
           "face_recognition_model",
+          "geocode_language",
           "heavyweight_process",
           "llm_model",
           "map_api_key",
@@ -21560,6 +21565,10 @@
           },
           "map_tile_provider": {
             "type": "string"
+          },
+          "geocode_language": {
+            "type": "string",
+            "description": "The language online map providers name places in: a code such as de or pt-BR, or a list such as de,en (Nominatim); empty for the provider's default."
           },
           "captioning_model": {
             "type": "string"

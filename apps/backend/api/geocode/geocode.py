@@ -8,7 +8,7 @@ from api.models.photo_search import place_label
 from api.runtime.features import feature_enabled
 
 from . import exiftool_provider
-from .config import get_provider_config, get_provider_parser
+from .config import get_provider_config, get_provider_parser, language_args
 from .rate_limit import wait as wait_for_provider
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,8 @@ class Geocode:
         self._geocoder = geopy.get_geocoder_for_service(provider)(
             **self._provider_config
         )
+        # The place-name language (#2745); nothing for the provider's default.
+        self._language_args = language_args(provider, site_config.GEOCODE_LANGUAGE)
 
     def _missing_api_key(self) -> bool:
         """True (and warn) when the provider needs a key and MAP_API_KEY is unset.
@@ -49,7 +51,7 @@ class Geocode:
     def reverse(self, lat: float, lon: float) -> dict:
         if self._missing_api_key():
             return {}
-        location = self._geocoder.reverse(f"{lat},{lon}")
+        location = self._geocoder.reverse(f"{lat},{lon}", **self._language_args)
         # geopy answers None when the provider has no place there, and raises
         # when the lookup fails.
         if location is None:
@@ -60,7 +62,9 @@ class Geocode:
         """Forward geocoding: search for locations by name/address."""
         if self._missing_api_key():
             return []
-        locations = self._geocoder.geocode(query, exactly_one=False, limit=limit)
+        locations = self._geocoder.geocode(
+            query, exactly_one=False, limit=limit, **self._language_args
+        )
         if not locations:
             return []
         return [

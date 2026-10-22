@@ -423,6 +423,13 @@ CONSTANCE_CONFIG = {
         "map_api_provider",
     ),
     "MAP_API_KEY": (env_str("MAPBOX_API_KEY", ""), "Map Box API Key", str),
+    "GEOCODE_LANGUAGE": (
+        env_str("GEOCODE_LANGUAGE", ""),
+        "The language online map providers name places in: a code such as de or"
+        " pt-BR (Nominatim also takes a list such as de,en). Empty for the"
+        " provider's default. Mapbox and ExifTool ignore it.",
+        str,
+    ),
     "MAP_TILE_PROVIDER": (
         env_str("MAP_TILE_PROVIDER", "photoprism"),
         "Map tile provider (map background shown behind photo pins)",

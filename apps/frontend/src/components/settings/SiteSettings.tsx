@@ -8,6 +8,7 @@ import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { AutoScanSetting } from "./AutoScanSetting";
+import { PlaceNameLanguageSetting } from "./PlaceNameLanguageSetting";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SectionLink } from "./SettingsSection";
 import { SsoSettingsGroup } from "./SsoSettings";
@@ -19,7 +20,8 @@ type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate
 
 type ModelOption = { value: string; label: string; hint?: OptionHint };
 
-type MapApiProvider = ModelOption & { data: { use_api_key: boolean; url: string } };
+/** `place_language`: it can be asked to name places in a language (GEOCODE_LANGUAGE, #2745). */
+type MapApiProvider = ModelOption & { data: { use_api_key: boolean; url: string; place_language: boolean } };
 
 const MAP_API_PROVIDERS: MapApiProvider[] = [
   // ExifTool's own Geolocation database (#2302): no network, no API key.
@@ -27,17 +29,33 @@ const MAP_API_PROVIDERS: MapApiProvider[] = [
     value: "exiftool",
     label: "ExifTool",
     hint: "offline",
-    data: { use_api_key: false, url: "https://exiftool.org/geolocation.html" },
+    data: { use_api_key: false, url: "https://exiftool.org/geolocation.html", place_language: false },
   },
   {
     value: "nominatim",
     label: "Nominatim (OpenStreetMap)",
-    data: { use_api_key: false, url: "https://nominatim.org/" },
+    data: { use_api_key: false, url: "https://nominatim.org/", place_language: true },
   },
-  { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
-  { value: "maptiler", label: "MapTiler", data: { use_api_key: true, url: "https://www.maptiler.com/" } },
-  { value: "opencage", label: "OpenCage", data: { use_api_key: true, url: "https://opencagedata.com/" } },
-  { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
+  {
+    value: "mapbox",
+    label: "Mapbox",
+    data: { use_api_key: true, url: "https://www.mapbox.com/", place_language: false },
+  },
+  {
+    value: "maptiler",
+    label: "MapTiler",
+    data: { use_api_key: true, url: "https://www.maptiler.com/", place_language: true },
+  },
+  {
+    value: "opencage",
+    label: "OpenCage",
+    data: { use_api_key: true, url: "https://opencagedata.com/", place_language: true },
+  },
+  {
+    value: "tomtom",
+    label: "TomTom",
+    data: { use_api_key: true, url: "https://www.tomtom.com/", place_language: true },
+  },
 ];
 
 const MAP_TILE_PROVIDERS: ModelOption[] = [
@@ -134,6 +152,7 @@ function SiteSettingsForm() {
   const { data: settings, isLoading, dataUpdatedAt } = useGetSettingsQuery();
   const save = useSaveSiteSettings();
   const [opened, { open, close }] = useDisclosure(false);
+  const mapProvider = MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider);
 
   // The text fields save on blur and on Enter; only send what actually changed.
   const saveMapApiKey = () => {
@@ -237,9 +256,7 @@ function SiteSettingsForm() {
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>
                 <Text fz="sm" c="dimmed">
-                  {t("sitesettings.map_api_provider_description", {
-                    url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
-                  })}
+                  {t("sitesettings.map_api_provider_description", { url: mapProvider?.data.url })}
                 </Text>
               </Stack>
             </Grid.Col>
@@ -258,15 +275,14 @@ function SiteSettingsForm() {
                 }}
               />
             </Grid.Col>
-            {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
+            <PlaceNameLanguageSetting provider={mapProvider} />
+            {mapProvider?.data.use_api_key && (
               <>
                 <Grid.Col span={LABEL_SPAN}>
                   <Stack gap={0}>
                     <Text>{t("sitesettings.map_api_key_header")}</Text>
                     <Text fz="sm" c="dimmed">
-                      {t("sitesettings.map_api_key_description", {
-                        url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
-                      })}
+                      {t("sitesettings.map_api_key_description", { url: mapProvider?.data.url })}
                     </Text>
                   </Stack>
                 </Grid.Col>

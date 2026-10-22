@@ -1,5 +1,6 @@
 """The body and the answer of /api/sitesettings."""
 
+import re
 from collections.abc import Mapping
 
 from rest_framework import serializers
@@ -35,6 +36,17 @@ def feature_key(feature: Feature) -> str:
     return feature.lower()
 
 
+# One language tag ("de", "pt-BR", "zh-Hans"), or a list of them in order of
+# preference ("de,en"), as GEOCODE_LANGUAGE holds it (#2745).
+_LANGUAGE_TAG = r"[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*"
+GEOCODE_LANGUAGE_RE = re.compile(rf"{_LANGUAGE_TAG}(?:,{_LANGUAGE_TAG})*")
+
+
+def normalize_geocode_language(value: str) -> str:
+    """*value* without the spaces around it and its commas; "" stays ""."""
+    return ",".join(part.strip() for part in value.split(",")) if value.strip() else ""
+
+
 # A hundred years: far past any real retention, well inside what a timedelta
 # can subtract from today.
 MAX_TRASH_RETENTION_DAYS = 36500
@@ -57,6 +69,12 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     map_api_provider = JsonStringField(required=False)
     map_api_key = JsonStringField(required=False)
     map_tile_provider = JsonStringField(required=False)
+    geocode_language = JsonStringField(
+        required=False,
+        help_text="The language online map providers name places in: a code such as"
+        " de or pt-BR, or a list such as de,en (Nominatim); empty for the provider's"
+        " default.",
+    )
     captioning_model = JsonStringField(required=False)
     ocr_model = JsonStringField(required=False)
     face_recognition_model = JsonStringField(required=False)
@@ -134,6 +152,16 @@ class SiteSettingsRequest(serializers.Serializer[None]):
                 code="unknown_map_api_provider",
             )
         return value
+
+    def validate_geocode_language(self, value: str) -> str:
+        language = normalize_geocode_language(value)
+        if language and not GEOCODE_LANGUAGE_RE.fullmatch(language):
+            raise serializers.ValidationError(
+                "Use a language code like de or pt-BR, or a list like de,en;"
+                " leave it empty for the provider's default.",
+                code="invalid_geocode_language",
+            )
+        return language
 
     def validate_auto_scan_time(self, value: str) -> str:
         if not is_valid_time(value):
@@ -254,6 +282,10 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     map_api_provider = serializers.CharField()
     map_api_key = serializers.CharField(help_text="Blank unless the caller is staff.")
     map_tile_provider = serializers.CharField()
+    geocode_language = serializers.CharField(
+        help_text="The language online map providers name places in; empty for the"
+        " provider's default."
+    )
     captioning_model = serializers.CharField()
     captioning_available = serializers.BooleanField(
         help_text="Captions can be generated: the image captioning switch is on"
