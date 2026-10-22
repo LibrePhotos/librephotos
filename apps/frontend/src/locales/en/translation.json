@@ -913,6 +913,23 @@
         "location": "location"
       }
     },
+    "original": {
+      "loading": "Loading original",
+      "shown": "Original",
+      "shownsize": "Original · {{width}} × {{height}}",
+      "failed": "The original did not load",
+      "retry": "Try again",
+      "preview": "Preview",
+      "download": "Download the original",
+      "reason": {
+        "raw": "RAW files can't be shown in the browser",
+        "heic": "HEIC files can't be shown in the browser",
+        "tiff": "TIFF files can't be shown in the browser",
+        "jxl": "JPEG XL files can't be shown in the browser",
+        "other": "This file type can't be shown in the browser",
+        "rotated": "Rotated photos zoom in on the preview"
+      }
+    },
     "controls": {
       "fullscreen": "Fullscreen (G)",
       "exitfullscreen": "Exit fullscreen (G)",

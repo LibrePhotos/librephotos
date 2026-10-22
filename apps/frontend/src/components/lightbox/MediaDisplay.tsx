@@ -1,5 +1,5 @@
 import type { NormalizedFaceBox, Photo, PhotoOcrBlock } from "@librephotos/api-client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
@@ -8,6 +8,9 @@ import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
 import { OcrTextOverlay } from "./OcrTextOverlay";
+import type { OriginalZoomDetails, PixelSize } from "./originalZoom";
+import { ResolutionChip } from "./ResolutionChip";
+import { useZoomOriginal } from "./useZoomOriginal";
 import { VideoPlayer } from "./VideoPlayer";
 
 /** How tall the lightbox's media box is; the carousel arrows centre on it. */
@@ -30,7 +33,8 @@ const PHOTO_MAX_HEIGHT = "var(--page-media-max-height, 82vh)";
  * What MediaDisplay reads from the photo's details. The neighbouring slides and
  * public pages have none, and a test may give only the part it is about.
  */
-export type MediaDisplayDetails = Partial<Pick<Photo, "captions_json" | "image_path" | "video_playback_type">>;
+export type MediaDisplayDetails = Partial<Pick<Photo, "captions_json" | "image_path" | "video_playback_type">> &
+  OriginalZoomDetails;
 
 /** What a screen reader says for the photo: its caption, else its file name. */
 function describePhoto(photoDetails: MediaDisplayDetails | null | undefined): string {
@@ -70,197 +74,184 @@ export type MediaDisplayProps = {
   onCancelDrawFace?: () => void;
 };
 
-export function MediaDisplay({
-  id,
-  image_hash,
+/** What a video or photo needs once the dispatcher has resolved the hash. */
+type ResolvedProps = MediaDisplayProps & { mediaHash: string };
+
+export function MediaDisplay(props: MediaDisplayProps) {
+  // Use image_hash for media URLs (files are stored by hash), fallback to id
+  const mediaHash = props.image_hash || props.id;
+  if (!props.id || !mediaHash) return null;
+  const currentType = props.isMainContent ? props.type : "photo";
+  if (currentType === "video" || currentType === "embedded") {
+    return <VideoMedia {...props} mediaHash={mediaHash} embedded={currentType === "embedded"} />;
+  }
+  return <PhotoMedia {...props} mediaHash={mediaHash} />;
+}
+
+function VideoMedia({
+  mediaHash,
+  embedded,
   isMainContent = false,
-  type,
-  bind,
-  faceLocation,
-  toggleZoom,
-  scale = 1,
-  offset = { x: 0, y: 0 },
-  handleDragStart,
   fullHeight = false,
   playing = false,
   photoDetails,
   isPublic = false,
   onEnded,
-  rotationAngle = 0,
-  imageCacheKey = 0,
-  suppressRotationTransition = false,
-  onImageLoad,
-  ocrBlocks,
-  showOcrText = false,
-  drawingFace = false,
-  onFaceDrawn,
-  onCancelDrawFace,
-}: MediaDisplayProps) {
-  const { t } = useTranslation();
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  // Natural pixel size of the loaded image; drives the OCR overlay's aspect
-  // ratio and is reset while a different image is loading.
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+}: ResolvedProps & { embedded: boolean }) {
+  // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
+  // and helps the browser identify the content type for native playback.
+  // The backend serves either the original file (via X-Accel-Redirect / FileResponse)
+  // or a transcoded stream (StreamingHttpResponse): always with "Always
+  // transcode videos" on, otherwise when asked with ?transcode=1 -- which is
+  // done up front for a video this browser says it cannot play, and as a
+  // fallback for one it turns out not to.
+  const originalUrl = mediaUrl.video(mediaHash);
+  const converted = !embedded && needsConversion(photoDetails?.video_playback_type);
+  const videoUrl = embedded ? mediaUrl.embedded(mediaHash) : converted ? convertedUrl(originalUrl) : originalUrl;
+  // Not on a public page: the server answers ?transcode=1 there with the same
+  // original, so the retry could only fail again and blame a conversion that
+  // never ran.
+  const fallbackUrl = embedded || converted || isPublic ? undefined : convertedUrl(originalUrl);
 
-  const mediaKey = `${image_hash || id}-${imageCacheKey}`;
+  return (
+    <VideoPlayer
+      url={videoUrl}
+      fallbackUrl={fallbackUrl}
+      posterUrl={mediaUrl.bigThumbnail(mediaHash)}
+      mediaHash={mediaHash}
+      // Outside the lightbox (the photo page) there is no box to fill: the video
+      // keeps its own shape within the page's width, capped like the photo there. A
+      // fixed box left bands around a landscape clip, and the stored width and
+      // height cannot shape one, since they ignore a phone video's rotation.
+      height={fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT}
+      maxHeight={fullHeight ? PAGE_MEDIA_MAX_HEIGHT : undefined}
+      controls={isMainContent}
+      playing={isMainContent && playing}
+      onEnded={isMainContent ? onEnded : undefined}
+      // A motion photo's clip is served as it is, never converted.
+      convertible={!embedded}
+    />
+  );
+}
+
+/** The CSS that zooms, pans and turns the main photo; the overlays share it so they track it exactly. */
+function mainMotion(props: ResolvedProps): { transition: string; transform: string } {
+  if (!props.isMainContent) return { transition: "none", transform: "none" };
+  const { offset = { x: 0, y: 0 }, scale = 1, rotationAngle = 0 } = props;
+  return {
+    transition: props.suppressRotationTransition ? "none" : "transform 0.3s ease-out",
+    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`,
+  };
+}
+
+function imageStyle(isMainContent: boolean, motion: { transition: string; transform: string }): React.CSSProperties {
+  return {
+    ...motion,
+    // Block display so the wrapper matches the image exactly — the
+    // inline baseline gap would offset the overlays a few pixels.
+    display: "block",
+    // The photo page's mat sets the variable; the lightbox, a portal outside it, never has it.
+    maxHeight: PHOTO_MAX_HEIGHT,
+    maxWidth: "100%",
+    borderRadius: 8,
+    opacity: isMainContent ? 1 : 0.9,
+    willChange: isMainContent ? "transform" : "auto",
+    WebkitTapHighlightColor: "transparent",
+    boxShadow: isMainContent ? "0 4px 16px var(--app-scrim-black-10)" : "none",
+  };
+}
+
+function PhotoMedia(props: ResolvedProps) {
+  const { mediaHash, isMainContent = false, scale = 1, imageCacheKey = 0, photoDetails } = props;
+  const { t } = useTranslation();
+  // Natural pixel size of the loaded thumbnail: the face boxes are in its
+  // pixels, it shapes the OCR overlay, and the original is loaded only when it
+  // is bigger. Reset while a different image is loading; a swapped-in original
+  // does not change it.
+  const [naturalSize, setNaturalSize] = useState<PixelSize | null>(null);
+  const mediaKey = `${mediaHash}-${imageCacheKey}`;
   useEffect(() => {
     setNaturalSize(null);
   }, [mediaKey]);
 
-  if (!id) return null;
-
-  // Use image_hash for media URLs (files are stored by hash), fallback to id
-  const mediaHash = image_hash || id;
-
-  const imageDimensions = {
-    width: imgRef.current?.naturalWidth ?? 1080,
-    height: imgRef.current?.naturalHeight ?? 810,
-  };
-
-  const isGif = () => {
-    if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
-      return false;
-    }
-    return photoDetails.image_path.some(path => path.toLowerCase().endsWith(".gif"));
-  };
-
-  const currentType = isMainContent ? type : "photo";
-  // Outside the lightbox (the photo page) there is no box to fill: the video
-  // keeps its own shape within the page's width, capped like the photo there. A
-  // fixed box left bands around a landscape clip, and the stored width and
-  // height cannot shape one, since they ignore a phone video's rotation.
-  const videoContainerHeight = fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT;
-  const videoMaxHeight = fullHeight ? PAGE_MEDIA_MAX_HEIGHT : undefined;
-  const thumbnailUrl = mediaUrl.bigThumbnail(mediaHash);
-
-  if (currentType === "video" || currentType === "embedded") {
-    // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
-    // and helps the browser identify the content type for native playback.
-    // The backend serves either the original file (via X-Accel-Redirect / FileResponse)
-    // or a transcoded stream (StreamingHttpResponse): always with "Always
-    // transcode videos" on, otherwise when asked with ?transcode=1 -- which is
-    // done up front for a video this browser says it cannot play, and as a
-    // fallback for one it turns out not to.
-    const originalUrl = mediaUrl.video(mediaHash);
-    const videoUrl =
-      currentType === "video"
-        ? needsConversion(photoDetails?.video_playback_type)
-          ? convertedUrl(originalUrl)
-          : originalUrl
-        : mediaUrl.embedded(mediaHash);
-    // Not on a public page: the server answers ?transcode=1 there with the same
-    // original, so the retry could only fail again and blame a conversion that
-    // never ran.
-    const fallbackUrl =
-      currentType === "video" && videoUrl === originalUrl && !isPublic ? convertedUrl(originalUrl) : undefined;
-
-    return (
-      <VideoPlayer
-        url={videoUrl}
-        fallbackUrl={fallbackUrl}
-        posterUrl={thumbnailUrl}
-        mediaHash={mediaHash}
-        height={videoContainerHeight}
-        maxHeight={videoMaxHeight}
-        controls={isMainContent}
-        playing={isMainContent && playing}
-        onEnded={isMainContent ? onEnded : undefined}
-        // A motion photo's clip is served as it is, never converted.
-        convertible={currentType === "video"}
-      />
-    );
-  }
-
-  // For GIFs, use the original photo endpoint to get the animated file
-  // For regular photos, use the big thumbnail
-  // Append a version param after rotation so the browser discards its cached copy
-  const cacheBustingParam = imageCacheKey ? `?v=${imageCacheKey}` : "";
-  const imageUrl =
-    isGif() && isMainContent
-      ? `${mediaUrl.photo(mediaHash)}${cacheBustingParam}`
-      : `${mediaUrl.bigThumbnail(mediaHash)}${cacheBustingParam}`;
+  const zoom = useZoomOriginal({
+    mediaHash,
+    imageCacheKey,
+    details: photoDetails,
+    isMainContent,
+    isPublic: props.isPublic ?? false,
+    thumbnailSize: naturalSize,
+    magnified: scale > 1,
+  });
 
   const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
-    setNaturalSize({ width: naturalWidth, height: naturalHeight });
-    if (isMainContent) onImageLoad?.();
+    if (!zoom.swapped) setNaturalSize({ width: naturalWidth, height: naturalHeight });
+    if (isMainContent) props.onImageLoad?.();
   };
 
-  // Shared by the image and the OCR overlay so the selectable text tracks
-  // zoom, pan and rotation exactly.
-  const mainTransition = isMainContent && !suppressRotationTransition ? "transform 0.3s ease-out" : "none";
-  const mainTransform = isMainContent
-    ? `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`
-    : "none";
+  const motion = mainMotion(props);
   return (
     <div
-      {...(isMainContent && bind ? bind() : {})}
+      {...(isMainContent && props.bind ? props.bind() : {})}
       style={{
         position: "relative",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        height: fullHeight ? "100%" : LIGHTBOX_PHOTO_HEIGHT,
+        height: props.fullHeight ? "100%" : LIGHTBOX_PHOTO_HEIGHT,
         borderRadius: "8px",
       }}
     >
       <div style={{ position: "relative" }}>
         <img
-          ref={imgRef}
-          src={imageUrl}
+          src={zoom.src}
           // The neighbouring slides get no details, so they are just "Photo".
           alt={describePhoto(photoDetails) || t("phototile.photo")}
           loading="eager"
-          onDragStart={handleDragStart}
-          onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}
+          onDragStart={props.handleDragStart}
+          onDoubleClick={isMainContent ? props.toggleZoom : undefined}
           onLoad={handleLoad}
-          style={{
-            transition: mainTransition,
-            transform: mainTransform,
-            // Block display so the wrapper matches the image exactly — the
-            // inline baseline gap would offset the overlays a few pixels.
-            display: "block",
-            // The photo page's mat sets the variable; the lightbox, a portal outside it, never has it.
-            maxHeight: PHOTO_MAX_HEIGHT,
-            maxWidth: "100%",
-            borderRadius: 8,
-            opacity: isMainContent ? 1 : 0.9,
-            willChange: isMainContent ? "transform" : "auto",
-            WebkitTapHighlightColor: "transparent",
-            boxShadow: isMainContent ? "0 4px 16px var(--app-scrim-black-10)" : "none",
-          }}
+          style={imageStyle(isMainContent, motion)}
         />
-        {isMainContent && showOcrText && ocrBlocks && ocrBlocks.length > 0 && naturalSize && naturalSize.width > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              transition: mainTransition,
-              transform: mainTransform,
-              willChange: "transform",
-            }}
-          >
-            <OcrTextOverlay blocks={ocrBlocks} aspectRatio={naturalSize.height / naturalSize.width} />
-          </div>
-        )}
-        {isMainContent && faceLocation && !drawingFace && (
-          <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />
-        )}
-        {isMainContent && drawingFace && onFaceDrawn && onCancelDrawFace && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              transition: mainTransition,
-              transform: mainTransform,
-              willChange: "transform",
-            }}
-          >
-            <FaceDrawLayer onCommit={onFaceDrawn} onCancel={onCancelDrawFace} />
-          </div>
+        {isMainContent && <PhotoOverlays {...props} motion={motion} naturalSize={naturalSize} />}
+        {zoom.chip && (
+          <ResolutionChip state={zoom.chip} visible={scale > 1} onRetry={zoom.retry} downloadUrl={zoom.originalUrl} />
         )}
       </div>
     </div>
+  );
+}
+
+/** What lies on the main photo: live text, the hovered face's box, or the face-drawing layer. */
+function PhotoOverlays({
+  ocrBlocks,
+  showOcrText,
+  faceLocation,
+  drawingFace = false,
+  onFaceDrawn,
+  onCancelDrawFace,
+  motion,
+  naturalSize,
+}: ResolvedProps & { motion: { transition: string; transform: string }; naturalSize: PixelSize | null }) {
+  const layerStyle = { position: "absolute", inset: 0, ...motion, willChange: "transform" } as const;
+  const ocrShown = showOcrText && ocrBlocks && ocrBlocks.length > 0 && naturalSize && naturalSize.width > 0;
+  return (
+    <>
+      {ocrShown && (
+        <div style={layerStyle}>
+          <OcrTextOverlay blocks={ocrBlocks} aspectRatio={naturalSize.height / naturalSize.width} />
+        </div>
+      )}
+      {faceLocation && !drawingFace && (
+        <FaceOverlay faceLocation={faceLocation} imageDimensions={naturalSize ?? { width: 1080, height: 810 }} />
+      )}
+      {drawingFace && onFaceDrawn && onCancelDrawFace && (
+        <div style={layerStyle}>
+          <FaceDrawLayer onCommit={onFaceDrawn} onCancel={onCancelDrawFace} />
+        </div>
+      )}
+    </>
   );
 }

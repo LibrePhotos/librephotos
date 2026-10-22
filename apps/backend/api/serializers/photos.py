@@ -20,6 +20,7 @@ from api.drf.request_user import request_user
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
 from api.metadata.library_write import WRITE_TYPES
+from api.mime import original_mime_type
 from api.models import AlbumDate, File, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
@@ -507,6 +508,9 @@ class PhotoSerializer(serializers.ModelSerializer):
     # Whether exif_timestamp is a date the user set by hand, which overrides
     # the date rules until the user removes it (#2254, #2280).
     date_set_by_user = serializers.SerializerMethodField()
+    # What the main file is (``image/jpeg``, ``image/x-dcraw`` for RAW), so a
+    # client can tell whether it can draw the original; null without one (#2742).
+    original_mime_type = serializers.SerializerMethodField()
 
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
@@ -596,6 +600,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "metadata",
             "ocr",
             "local_orientation",
+            "original_mime_type",
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
@@ -641,6 +646,11 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_date_set_by_user(self, obj: Photo) -> bool:
         return obj.timestamp is not None
+
+    def get_original_mime_type(self, obj: Photo) -> str | None:
+        if obj.main_file is None:
+            return None
+        return original_mime_type(obj.main_file.path)
 
     def get_height(self, obj: Photo) -> int | None:
         metadata = self._get_metadata(obj)
