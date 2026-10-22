@@ -569,9 +569,9 @@ def _current_keywords(photo: Photo, metadata: PhotoMetadata) -> list[str] | None
     (``edited_keywords``). A tag added by hand is none of them, and a keyword
     whose tag the user removed is gone. Sorted; None for none."""
     names = tag_names(metadata.keywords) | tag_names(metadata.edited_keywords)
-    if not names or photo.owner_id is None:
+    if not names or photo.owner is None:
         return None
-    tagged = Tag.objects.filter(owner_id=photo.owner_id, photos=photo, name__in=names)
+    tagged = Tag.objects.owned_by(photo.owner).filter(photos=photo, name__in=names)
     return sorted(tagged.values_list("name", flat=True)) or None
 
 
