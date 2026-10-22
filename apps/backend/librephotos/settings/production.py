@@ -417,6 +417,13 @@ CONSTANCE_CONFIG = {
         " which libraries it scanned, skipped or could not start (JSON).",
         str,
     ),
+    "UPLOAD_FOLLOWUPS_BACKFILL_DONE": (
+        False,
+        "Written at startup, not a setting: whether the upload follow-ups (search"
+        " index, embeddings, face encodings) were requested once for every user"
+        " with photos.",
+        bool,
+    ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "exiftool"),
         "Map Provider",

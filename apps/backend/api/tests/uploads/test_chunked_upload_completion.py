@@ -298,8 +298,8 @@ class OnCompletionBodyTest(OnCompletionTestBase):
 
         chain = chain_cls.return_value
         # import, device-timestamp fallback, captions, geolocate, album
-        # dates, faces
-        self.assertEqual(6, chain.append.call_count)
+        # dates, faces, the user's follow-ups
+        self.assertEqual(7, chain.append.call_count)
         chain.run.assert_called_once_with()
         first_call = chain.append.call_args_list[0][0]
         self.assertEqual(self.user, first_call[1])

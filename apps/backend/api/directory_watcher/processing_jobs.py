@@ -64,14 +64,21 @@ def _faces_missing_encoding(user: User) -> QuerySet[Face]:
     return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
 
 
-def generate_face_embeddings(user: User, job_id: UUID | str | None = None) -> None:
+def generate_face_embeddings(
+    user: User,
+    job_id: UUID | str | None = None,
+    heartbeat: Callable[[], object] | None = None,
+) -> None:
     """
     Generate face embeddings for faces that don't have them yet.
 
     Args:
         user: The user whose faces to process
-        job_id: The job queued for this run; None when ``scan_faces`` calls it
-            directly, and a row is written only when there is work
+        job_id: The job queued for this run; None when ``scan_faces`` or the
+            upload follow-ups call it directly, and a row is written only
+            when there is work
+        heartbeat: Called after every face; the upload follow-ups renew
+            their lease with it
     """
     if not _faces_missing_encoding(user).exists():
         LongRunningJob.complete_unclaimed(job_id)
@@ -93,6 +100,8 @@ def generate_face_embeddings(user: User, job_id: UUID | str | None = None) -> No
             if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
                 return
             _encode_face(face, job_id)
+            if heartbeat is not None:
+                heartbeat()
 
         lrj.complete()
 

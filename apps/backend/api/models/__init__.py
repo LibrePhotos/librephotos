@@ -24,6 +24,7 @@ from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
+from api.models.upload_followup_state import UploadFollowupState
 from api.models.user import User
 
 __all__ = [
@@ -53,6 +54,7 @@ __all__ = [
     "Tag",
     "Thumbnail",
     "UpgradeTaskState",
+    "UploadFollowupState",
     "User",
     "File",
     "FileCopy",

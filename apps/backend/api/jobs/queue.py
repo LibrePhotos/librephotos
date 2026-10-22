@@ -16,7 +16,7 @@ receives the row's id as ``job_id`` and claims the row when it starts
 - ``enqueue_task`` / ``enqueue_task_chain``: work without a row of its own,
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
-- ``schedule_once`` / ``ensure_schedule`` / ``replace_schedule`` /
+- ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
   ``remove_schedule``: django-q schedules.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
@@ -32,7 +32,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import NamedTuple
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
@@ -240,6 +240,28 @@ def enqueue_task_chain(tasks: Sequence[Task]) -> None:
 def schedule_once(func: str, *args: object, at: datetime) -> None:
     """Run the function at dotted path ``func`` once, at ``at``."""
     schedule(func, *args, schedule_type=Schedule.ONCE, next_run=at)
+
+
+def schedule_once_by(name: str, func: str, *args: object, at: datetime) -> None:
+    """Run the function at dotted path ``func`` once, at ``at`` at the latest.
+
+    One pending run per ``name``: an existing schedule of that name is moved
+    to ``at`` when that is sooner, never later, so steady requests cannot
+    starve it; otherwise one is created. django-q deletes a ONCE schedule when
+    it fires, so a request after that creates the next one. ``Schedule.name``
+    is not unique: two concurrent first requests can create two schedules,
+    and the scheduled function has to make the second run a no-op. ``args``
+    go through ``ast.literal_eval``: pass ids, not model instances.
+    """
+    pending = Schedule.objects.filter(name=name, func=func)
+    pending.filter(next_run__gt=at).update(next_run=at)
+    if pending.exists():
+        return
+    try:
+        schedule(func, *args, name=name, schedule_type=Schedule.ONCE, next_run=at)
+    except IntegrityError:
+        # django-q's own name check: a concurrent request created it.
+        logger.info("schedule %s was created concurrently", name)
 
 
 def ensure_schedule(
