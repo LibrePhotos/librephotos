@@ -15,6 +15,31 @@ At the top of the Library page, you'll see quick stats about your library:
 - **Faces** — Total faces detected
 - **Events** — Number of events (photos grouped by when they were taken)
 
+## Processing status
+
+<Since version="1.5.0" />
+
+After a scan or an upload, LibrePhotos keeps working on the new photos for a while: it makes their thumbnails, finds the things in them, gets them ready for search, looks up their places and finds the faces. The **Processing status** card under the overview stats says how far it got, one row per stage that is turned on. Photos in the trash and [missing photos](./missing-photos.md) are not counted.
+
+| Stage | What is left |
+| --- | --- |
+| **Thumbnails** | Photos without a thumbnail; they show a grey square. **Run now** reads their files again (as a [rescan](#rescan-some-photos)). |
+| **Things** | Photos not checked for things yet (only while [Things](./feature-toggles.md) are on). |
+| **Search** | Photos without search data for the current search model. |
+| **Places** | Photos with a GPS position whose place name was not looked up yet (only while reverse geocoding is on). |
+| **Face detection** | Photos not checked for faces yet (only while face detection is on). |
+| **Face recognition data** | Faces that cannot be grouped into people yet. **Run now** prepares them and, while face grouping is on, groups them. |
+| **Text in photos** | Photos the selected [text recognition](./text-recognition.md) model has not read yet. A photo it failed on three times is left out. |
+| **Captions** | Photos without a generated caption (only while [captions](./image-captioning.md) are on). |
+
+The header says how many stages are done. **Run now** starts the job that does what is left of that stage, for your photos only: the same job the scan runs afterwards, never one that starts over. While the stage's job runs, its row shows the progress and a **View job** link instead. When the last run of a stage could not process some photos, the row says how many and links to the [job list](./job-system.md), where the job lists them. Like every job button, **Run now** waits while another job runs.
+
+When every stage is done, the card is a single line, "All N photos are processed"; **Show details** opens the rows again. A library without photos has no card.
+
+If your photos only come from uploads (you have no scan directory), photos uploaded before LibrePhotos 1.4.0 that have no faces count as not checked for faces until a face scan has looked at them once: press **Run now** on **Face detection**. The row says so.
+
+For scripts: the card reads `GET /api/library/processing-status/`, and **Run now** is `POST /api/library/processing-status/run/` with the stage's key, for example `{"stage": "places"}` (keys: `thumbnails`, `things`, `search`, `places`, `face_detection`, `face_recognition`, `text`, `captions`). A stage that is off is a 403; its job already running is a 409 that names the job.
+
 ## Scanning
 
 ### Scan Photos (File System)

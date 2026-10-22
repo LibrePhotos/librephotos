@@ -358,3 +358,54 @@ describe("upgrade tasks (#2322)", () => {
     expect(answer.tasks).toEqual([]);
   });
 });
+
+describe("library processing status (#2741)", () => {
+  const status = {
+    photo_count: 12,
+    stages: [
+      {
+        key: "things",
+        remaining: 4,
+        running_job: { job_id: "j1", progress_current: 2, progress_target: 4 },
+        last_run: null,
+      },
+      {
+        key: "text",
+        remaining: 7,
+        running_job: null,
+        last_run: { job_id: "j2", finished_at: "2026-10-22T10:00:00Z", failed: false, error_count: 3 },
+      },
+    ],
+  };
+
+  it("reads what each stage has left, a stage this client does not know included", async () => {
+    const newer = { ...status, stages: [...status.stages, { ...defined(status.stages[0]), key: "music" }] };
+    const { client, requests } = fakeServer(newer);
+    const answer = await endpoints.fetchProcessingStatus(client);
+    expect(defined(requests[0]).url).toBe(`${API}/library/processing-status/`);
+    expect(answer.stages.map(stage => stage.key)).toEqual(["things", "text", "music"]);
+  });
+
+  it("refuses an answer without its counts", async () => {
+    const { client } = fakeServer({ stages: [] });
+    await expect(endpoints.fetchProcessingStatus(client)).rejects.toBeInstanceOf(ResponseParseError);
+  });
+
+  it("runs a stage, and follows its job when it already runs", async () => {
+    const { client, requests } = fakeServer({ status: true, job_id: "j3", job_ids: ["j3"] });
+    const answer = await endpoints.runProcessingStage(client, "places");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/library/processing-status/run/`,
+      method: "POST",
+      body: { stage: "places" },
+    });
+    expect(answer.job_id).toBe("j3");
+
+    const running = fakeServer(alreadyRunning, 409);
+    await expect(endpoints.runProcessingStage(running.client, "places")).resolves.toEqual({
+      status: true,
+      job_id: "j0",
+      already_running: true,
+    });
+  });
+});

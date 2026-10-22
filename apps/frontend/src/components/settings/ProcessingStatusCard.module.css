@@ -1,0 +1,74 @@
+/* The Processing status card (#2741): one row per stage, the count right-aligned next to Run now. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto 7rem;
+  grid-template-areas: "icon text status action";
+  column-gap: var(--mantine-spacing-sm);
+  row-gap: 2px;
+  align-items: center;
+  padding-block: var(--mantine-spacing-xs);
+}
+
+.row + .row {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.icon {
+  grid-area: icon;
+  display: flex;
+  align-self: start;
+  padding-top: 2px;
+  color: var(--mantine-color-dimmed);
+}
+
+.text {
+  grid-area: text;
+  min-width: 0;
+}
+
+.status {
+  grid-area: status;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  justify-self: end;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  width: 11rem;
+}
+
+.action {
+  grid-area: action;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Phones: the count goes under the stage's name, Run now stays on the right. */
+@media (max-width: 35.99em) {
+  .row {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon text action"
+      "icon status action";
+  }
+
+  .status {
+    align-items: flex-start;
+    justify-self: start;
+    text-align: start;
+  }
+
+  .progress {
+    width: 100%;
+  }
+}

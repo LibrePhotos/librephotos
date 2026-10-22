@@ -202,6 +202,12 @@ CLIENT_PATHS = {
     "/api/jobs/1/": "api.views.jobs.LongRunningJobViewSet delete=destroy,get=retrieve",
     "/api/jobs/1/cancel/": "api.views.jobs.LongRunningJobViewSet post=cancel",
     "/api/labelfaces": "api.views.faces.SetFacePersonLabel",
+    "/api/library/processing-status/": (
+        "api.views.processing_status.ProcessingStatusView"
+    ),
+    "/api/library/processing-status/run/": (
+        "api.views.processing_status.RunProcessingStageView"
+    ),
     "/api/locationsunburst/": "api.views.dataviz.LocationSunburst",
     "/api/locationtimeline/": "api.views.dataviz.LocationTimeline",
     "/api/locclust/": "api.views.dataviz.LocationClustersView",

@@ -38,6 +38,8 @@ USER_ENDPOINTS = [
     # scan_triggers.py
     ("post", "/api/generateocr"),
     ("post", "/api/generate-captions/"),
+    # processing_status.py
+    ("post", "/api/library/processing-status/run/"),
     # stacks.py
     ("post", "/api/stacks/manual/"),
     ("post", "/api/stacks/detect/"),

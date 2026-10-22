@@ -3306,6 +3306,78 @@
     "sidebar": "Update available: {{version}}",
     "versionlabel": "Version {{version}}, update available"
   },
+  "processingstatus": {
+    "title": "Processing status",
+    "stagesdone": "{{done}} of {{total}} stages done",
+    "intro_one": "What LibrePhotos still has to do for your photo. New photos are handled after each scan; use Run now to catch up.",
+    "intro_other": "What LibrePhotos still has to do for your {{formatted}} photos. New photos are handled after each scan; use Run now to catch up.",
+    "alldone_one": "Your photo is processed",
+    "alldone_other": "All {{formatted}} photos are processed",
+    "alldonedescription": "Every stage that is turned on is up to date.",
+    "showdetails": "Show details",
+    "hidedetails": "Hide details",
+    "runnow": "Run now",
+    "runnowlabel": "Run now: {{stage}}",
+    "done": "Done",
+    "starting": "Starting",
+    "running": "Running · {{done}} of {{total}}",
+    "progressvalue": "{{done}} of {{total}}",
+    "viewjob": "View job",
+    "failedcount_one": "{{formatted}} failed in the last run",
+    "failedcount_other": "{{formatted}} failed in the last run",
+    "lastrunfailed": "The last run failed",
+    "uploadfacenote": "Includes older uploads with no faces: they count until a face scan has checked them once.",
+    "stage": {
+      "thumbnails": {
+        "title": "Thumbnails",
+        "description": "Photos without a thumbnail show a grey square.",
+        "left_one": "{{formatted}} missing",
+        "left_other": "{{formatted}} missing"
+      },
+      "things": {
+        "title": "Things",
+        "description": "What is in a photo, for the Things albums.",
+        "left_one": "{{formatted}} not checked",
+        "left_other": "{{formatted}} not checked"
+      },
+      "search": {
+        "title": "Search",
+        "description": "Lets you find photos by describing them.",
+        "left_one": "{{formatted}} missing",
+        "left_other": "{{formatted}} missing"
+      },
+      "places": {
+        "title": "Places",
+        "description": "Photos with GPS but no place name.",
+        "left_one": "{{formatted}} missing",
+        "left_other": "{{formatted}} missing"
+      },
+      "face_detection": {
+        "title": "Face detection",
+        "description": "Photos not yet checked for faces.",
+        "left_one": "{{formatted}} not checked",
+        "left_other": "{{formatted}} not checked"
+      },
+      "face_recognition": {
+        "title": "Face recognition data",
+        "description": "Faces that cannot be grouped into people yet.",
+        "left_one": "{{formatted}} face",
+        "left_other": "{{formatted}} faces"
+      },
+      "text": {
+        "title": "Text in photos",
+        "description": "Text read from photos, so search finds it.",
+        "left_one": "{{formatted}} not read",
+        "left_other": "{{formatted}} not read"
+      },
+      "captions": {
+        "title": "Captions",
+        "description": "Generated descriptions of your photos.",
+        "left_one": "{{formatted}} missing",
+        "left_other": "{{formatted}} missing"
+      }
+    }
+  },
   "upgradetasks": {
     "header": "Finish the upgrade",
     "finishedheader": "The upgrade is finished",

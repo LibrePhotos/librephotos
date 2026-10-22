@@ -3967,6 +3967,84 @@
         }
       }
     },
+    "/api/library/processing-status/": {
+      "get": {
+        "operationId": "api_library_processing_status_retrieve",
+        "description": "What each processing stage that is turned on still has to do in the\ncaller's library: photos without a big thumbnail, things, search\nembedding, place (with a position), face scan or text, faces without\nrecognition data, photos without a generated caption. Only the caller's\nown photos and jobs, staff included.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library/processing-status/run/": {
+      "post": {
+        "operationId": "api_library_processing_status_run_create",
+        "description": "Start the job that catches a processing stage up, on the caller's photos.\n\nThe same job its own trigger or the scan's follow-ups start, for what is\nleft only. 403 (``stage_off``) while the stage is turned off, 400\n(``no_files_to_scan``) when no photo without a thumbnail has a file to\nread, 409 ``job_already_running`` with the running job's ``job_id``.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/locationsunburst/": {
       "get": {
         "operationId": "api_locationsunburst_retrieve",
@@ -20665,6 +20743,124 @@
           "place"
         ]
       },
+      "ProcessingStage": {
+        "type": "object",
+        "description": "One processing stage that is turned on.",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ProcessingStageEnum"
+          },
+          "remaining": {
+            "type": "integer",
+            "description": "What the stage still has to do: photos, or faces for face_recognition. Photos in the trash or whose file is gone are not counted"
+          },
+          "running_job": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageRunningJob"
+              }
+            ],
+            "nullable": true
+          },
+          "last_run": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageLastRun"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "last_run",
+          "remaining",
+          "running_job"
+        ]
+      },
+      "ProcessingStageEnum": {
+        "enum": [
+          "thumbnails",
+          "things",
+          "search",
+          "places",
+          "face_detection",
+          "face_recognition",
+          "text",
+          "captions"
+        ],
+        "type": "string",
+        "description": "* `thumbnails` - thumbnails\n* `things` - things\n* `search` - search\n* `places` - places\n* `face_detection` - face_detection\n* `face_recognition` - face_recognition\n* `text` - text\n* `captions` - captions"
+      },
+      "ProcessingStageLastRun": {
+        "type": "object",
+        "description": "The newest finished run of the stage's job the caller started.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failed": {
+            "type": "boolean",
+            "description": "The run failed as a whole"
+          },
+          "error_count": {
+            "type": "integer",
+            "description": "Items (photos, files, faces) the run could not process"
+          }
+        },
+        "required": [
+          "error_count",
+          "failed",
+          "finished_at",
+          "job_id"
+        ]
+      },
+      "ProcessingStageRunningJob": {
+        "type": "object",
+        "description": "The stage's job while it is queued or running.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "progress_current": {
+            "type": "integer"
+          },
+          "progress_target": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id",
+          "progress_current",
+          "progress_target"
+        ]
+      },
+      "ProcessingStatus": {
+        "type": "object",
+        "description": "``GET /api/library/processing-status/``: what is left per stage.",
+        "properties": {
+          "photo_count": {
+            "type": "integer",
+            "description": "The caller's photos, not counting removed or trashed ones"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProcessingStage"
+            },
+            "description": "The stages that are turned on, in pipeline order; a stage that is off is left out"
+          }
+        },
+        "required": [
+          "photo_count",
+          "stages"
+        ]
+      },
       "ProviderEnum": {
         "enum": [
           "disabled",
@@ -21593,6 +21789,23 @@
           "outcome",
           "rule_id",
           "utc_offset"
+        ]
+      },
+      "RunProcessingStageRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/library/processing-status/run/``.",
+        "properties": {
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageEnum"
+              }
+            ],
+            "description": "The stage to catch up\n\n* `thumbnails` - thumbnails\n* `things` - things\n* `search` - search\n* `places` - places\n* `face_detection` - face_detection\n* `face_recognition` - face_recognition\n* `text` - text\n* `captions` - captions"
+          }
+        },
+        "required": [
+          "stage"
         ]
       },
       "SSOConfig": {

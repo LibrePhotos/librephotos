@@ -60,7 +60,7 @@ def _encode_face(face: Face, job_id: UUID | str) -> None:
     update_scan_counter(job_id, failed, error)
 
 
-def _faces_missing_encoding(user: User) -> QuerySet[Face]:
+def faces_missing_encoding(user: User) -> QuerySet[Face]:
     """Faces on ``user``'s photos that have no encoding yet."""
     return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
 
@@ -81,7 +81,7 @@ def generate_face_embeddings(
         heartbeat: Called after every face; the upload follow-ups renew
             their lease with it
     """
-    if not _faces_missing_encoding(user).exists():
+    if not faces_missing_encoding(user).exists():
         LongRunningJob.complete_unclaimed(job_id)
         return
 
@@ -93,7 +93,7 @@ def generate_face_embeddings(
     job_id = lrj.job_id
 
     try:
-        faces = _faces_missing_encoding(user)
+        faces = faces_missing_encoding(user)
         lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
@@ -193,13 +193,26 @@ def _record_photo_error(photo: Photo, err: Exception) -> str:
     return f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
 
 
-def _untagged_photos(user: User) -> QuerySet[Photo]:
-    """Photos of ``user`` that carry no OpenCLIP tags."""
-    return Photo.objects.owned_by(user).filter(
+# A photo without a big thumbnail (no Thumbnail row, or its file never made).
+MISSING_BIG_THUMBNAIL = Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
+
+
+def needs_things() -> Q:
+    """Photos that carry no OpenCLIP tags: what an incremental Things run reads.
+
+    Over one-to-one relations only, so the library processing status can
+    count it in one aggregate with the other stages (#2741).
+    """
+    return (
         Q(caption_instance__isnull=True)
         | Q(caption_instance__captions_json__isnull=True)
         | Q(**{f"caption_instance__captions_json__{OPENCLIP}__isnull": True})
     )
+
+
+def _untagged_photos(user: User) -> QuerySet[Photo]:
+    """Photos of ``user`` that carry no OpenCLIP tags."""
+    return Photo.objects.owned_by(user).filter(needs_things())
 
 
 def photos_to_tag(user: User, full_scan: bool) -> QuerySet[Photo]:
@@ -210,9 +223,7 @@ def photos_to_tag(user: User, full_scan: bool) -> QuerySet[Photo]:
     """
     if not full_scan:
         return _untagged_photos(user)
-    return Photo.objects.owned_by(user).exclude(
-        Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
-    )
+    return Photo.objects.owned_by(user).exclude(MISSING_BIG_THUMBNAIL)
 
 
 def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
@@ -284,14 +295,18 @@ def photos_to_caption(user: User, full_scan: bool) -> QuerySet[Photo]:
     in the trash. Without ``full_scan`` only the ones without a generated
     caption; a caption the user wrote does not count, it is never replaced.
     """
-    photos = (
-        Photo.objects.owned_by(user)
-        .filter(video=False, in_trashcan=False, removed=False)
-        .exclude(Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big=""))
+    return Photo.objects.owned_by(user).filter(
+        _CAPTIONABLE if full_scan else needs_caption()
     )
-    if full_scan:
-        return photos
-    return photos.filter(
+
+
+# Photos the captioner can read: a big thumbnail, no video, not in the trash.
+_CAPTIONABLE = Q(video=False, in_trashcan=False, removed=False) & ~MISSING_BIG_THUMBNAIL
+
+
+def needs_caption() -> Q:
+    """Photos an incremental caption run reads: captionable, no generated caption."""
+    return _CAPTIONABLE & (
         Q(caption_instance__isnull=True)
         | Q(caption_instance__captions_json__isnull=True)
         | Q(caption_instance__captions_json__im2txt__isnull=True)
@@ -393,7 +408,7 @@ def ocr_image_source(photo: Photo) -> str | None:
 OCR_MAX_FAILURES = 3
 
 
-def _active_ocr_model() -> str | None:
+def active_ocr_model() -> str | None:
     """The selected OCR model, or None while OCR is off.
 
     The same semantics as ml_models ("", None and any-case "none" are off), so
@@ -418,18 +433,21 @@ def photos_needing_ocr(user: User, ocr_model: str) -> QuerySet[Photo]:
     read (a photo whose thumbnail is not ready waits for a later run), and
     fewer than ``OCR_MAX_FAILURES`` failed calls.
     """
+    return Photo.objects.owned_by(user).filter(needs_ocr(ocr_model))
+
+
+def needs_ocr(ocr_model: str) -> Q:
+    """``photos_needing_ocr`` as a ``Q`` (one-to-one relations only, #2741)."""
     return (
-        Photo.objects.owned_by(user)
-        .filter(video=False, ocr_failures__lt=OCR_MAX_FAILURES)
-        .filter(thumbnail__thumbnail_big__isnull=False)
-        .exclude(thumbnail__thumbnail_big="")
-        .exclude(ocr__engine=ocr_model)
+        Q(video=False, ocr_failures__lt=OCR_MAX_FAILURES)
+        & ~MISSING_BIG_THUMBNAIL
+        & ~Q(ocr__engine=ocr_model)
     )
 
 
 def ocr_has_work(user: User) -> bool:
     """Whether an OCR model is selected and some photo of ``user`` needs it."""
-    ocr_model = _active_ocr_model()
+    ocr_model = active_ocr_model()
     return ocr_model is not None and photos_needing_ocr(user, ocr_model).exists()
 
 
@@ -464,7 +482,7 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         return
 
     try:
-        ocr_model = _active_ocr_model()
+        ocr_model = active_ocr_model()
         if ocr_model is None:
             # OCR disabled: finish cleanly with nothing to do.
             lrj.update_progress(current=0, target=0)
@@ -604,7 +622,7 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     """
     from api.runtime.http_timeouts import OCR
 
-    ocr_model = _active_ocr_model()
+    ocr_model = active_ocr_model()
     if ocr_model is None:
         return
 
@@ -986,7 +1004,7 @@ def _faces_to_scan(
     last two. ``path`` narrows them to the photos with a file in that folder
     or below it, ``photo_ids`` to those photos (#524).
     """
-    photos = Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False)
+    photos = Photo.objects.owned_by(user).filter(_FACE_SCANNABLE)
     if path:
         photos = photos.filter(
             pk__in=Photo.objects.owned_by(user)
@@ -997,7 +1015,17 @@ def _faces_to_scan(
         photos = photos.filter(pk__in=photo_ids)
     if full_scan:
         return photos
-    return photos.filter(faces_scanned_at__isnull=True)
+    return photos.filter(_FACES_NOT_SCANNED)
+
+
+# Photos Scan Faces can read (a Thumbnail row), and those it has not read yet.
+_FACE_SCANNABLE = Q(thumbnail__thumbnail_big__isnull=False)
+_FACES_NOT_SCANNED = Q(faces_scanned_at__isnull=True)
+
+
+def needs_face_scan() -> Q:
+    """The photos an incremental Scan Faces reads, as a ``Q`` (#2741)."""
+    return _FACE_SCANNABLE & _FACES_NOT_SCANNED
 
 
 def scan_faces(

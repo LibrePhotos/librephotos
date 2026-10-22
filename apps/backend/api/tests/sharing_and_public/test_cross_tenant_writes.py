@@ -109,6 +109,7 @@ NOT_PHOTO_SCOPED = {
     "api/generateocr/": "queues a job on the requester's own photos",
     "api/generate-captions/": "queues a job on the requester's own photos",
     "api/find-things/": "queues a job on the requester's own photos",
+    "api/library/processing-status/run/": "queues a job on the requester's own photos",
     "api/photos/reapply-date-rules/": "queues a job on the requester's own photos",
     "api/datetime-rules/check/": "checks the rule in the body; reads and writes no rows",
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
