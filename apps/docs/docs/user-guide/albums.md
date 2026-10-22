@@ -84,6 +84,20 @@ Albums for **your own tags** — the labels you type yourself, as opposed to the
 ### Things Albums
 Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty. To generate them, run a full **Rescan** from **Settings → Library** (in the *Scan Library* section, open the dropdown next to **Scan** and choose **Rescan**), which detects the things in your existing photos again. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
 
+#### Teaching LibrePhotos new things
+
+<Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 940 words that ships with it (beach, dog, birthday cake, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":
+
+1. Create a text file named `custom_tags.txt` in the OpenCLIP model folder: `protected_media/data_models/openclip_vitb32/` in your data volume (`/protected_media/data_models/openclip_vitb32/custom_tags.txt` inside the Docker containers). To keep it somewhere else, point `OPENCLIP_CUSTOM_TAGS` at it (see [Environment variables](../installation/environment-variables.md#your-own-words-for-things)).
+2. Write one word or short phrase per line. Empty lines and lines starting with `#` are skipped, and so is a word the list already has (in any capitalisation).
+3. Restart the backend, or wait until nobody has scanned or searched for a couple of minutes: the `tags` service reads the file each time it loads its model, and it unloads the model when it sits idle. The backend log then says how many of your words were added.
+
+Things to know:
+
+- Only photos tagged from then on can get your words. Photos that already have things keep them.
+- Every photo gets the words that fit it best out of the whole list. A specific word ("tortoise") works well; a very generic one ("thing", "photo", "outdoors") competes with the built-in words and can push them out of photos where they fit better.
+- The file stays when you update LibrePhotos, as it lives in your data volume next to the downloaded model.
+
 ---
 
 ## Sorting album lists

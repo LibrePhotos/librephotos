@@ -63,6 +63,12 @@ PREPROCESS_PATH = os.path.join(MODEL_DIR, "preprocess.json")
 EMBEDDINGS_CACHE = os.path.join(MODEL_DIR, "tag_embeddings.npy")
 
 TAGS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tags.txt")
+# The admin's own words, appended to tags.txt (#2764): custom_tags.txt in the
+# model folder, or the file OPENCLIP_CUSTOM_TAGS names. Read on every load, so
+# a change applies when the sidecar loads the model again.
+CUSTOM_TAGS_ENV = "OPENCLIP_CUSTOM_TAGS"
+DEFAULT_CUSTOM_TAGS_FILE = os.path.join(MODEL_DIR, "custom_tags.txt")
+CUSTOM_TAGS_FILE = env_str(CUSTOM_TAGS_ENV) or DEFAULT_CUSTOM_TAGS_FILE
 
 PROMPT_TEMPLATE = "a photo of {tag}"
 TEXT_BATCH_SIZE = 64
@@ -183,6 +189,45 @@ def _softmax(scores: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
     return exp / exp.sum(axis=-1, keepdims=True)
 
 
+def read_tag_file(path: str) -> list[str]:
+    """The tags of a tag file: one per line, blank lines and ``#`` lines skipped."""
+    with open(path, encoding="utf-8") as f:
+        lines = [line.strip() for line in f]
+    return [line for line in lines if line and not line.startswith("#")]
+
+
+def read_custom_tags(path: str) -> list[str]:
+    """The admin's own tags; none when the file is missing or unreadable.
+
+    A broken custom file must not stop tagging with the built-in list, so it
+    is logged and skipped rather than raised.
+    """
+    try:
+        return read_tag_file(path)
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeDecodeError) as error:
+        logger.warning(
+            "%s: cannot read custom tags from %s: %s", MODEL_NAME, path, error
+        )
+        return []
+
+
+def merge_tags(builtin: Sequence[str], custom: Sequence[str]) -> list[str]:
+    """The built-in tags, then each custom tag the list does not have yet.
+
+    Duplicates are found case-insensitively, so "Dog" next to the built-in
+    "dog" is dropped; the first spelling wins.
+    """
+    merged = list(builtin)
+    seen = {tag.casefold() for tag in merged}
+    for tag in custom:
+        if tag.casefold() not in seen:
+            seen.add(tag.casefold())
+            merged.append(tag)
+    return merged
+
+
 def tag_list_hash(tags: Sequence[str]) -> str:
     """The sha256 of the prompts the tag embeddings are built from, in order.
 
@@ -232,7 +277,7 @@ def _stale_cache_reason(
     if cache.ndim != 2:
         return f"cache has wrong shape {cache.shape}"
     if cache.shape[0] != tag_count:
-        return f"cache has {cache.shape[0]} tags but tags.txt has {tag_count}"
+        return f"cache has {cache.shape[0]} tags but the tag list has {tag_count}"
     if cache.shape[1] != EMBEDDING_DIM:
         return f"cache has dim={cache.shape[1]}, not {EMBEDDING_DIM}"
     return _hash_mismatch_reason(cached_hash, tags_hash)
@@ -291,11 +336,26 @@ class OpenCLIP:
     def load(self) -> None:
         """Load the image tower, the tag list and the (cached) tag embeddings."""
         self._load_vision()
-        with open(TAGS_FILE, encoding="utf-8") as f:
-            tags = [line.strip() for line in f if line.strip()]
+        tags = self._load_tags()
         self.tags = tags
         self._load_or_build_tag_embeddings(tags)
         self.is_loaded = True
+
+    @staticmethod
+    def _load_tags() -> list[str]:
+        """tags.txt, then the admin's custom tags it does not have yet."""
+        builtin = read_tag_file(TAGS_FILE)
+        custom = read_custom_tags(CUSTOM_TAGS_FILE)
+        tags = merge_tags(builtin, custom)
+        if custom:
+            logger.info(
+                "%s: added %s of %s custom tags from %s (the rest were already listed)",
+                MODEL_NAME,
+                len(tags) - len(builtin),
+                len(custom),
+                CUSTOM_TAGS_FILE,
+            )
+        return tags
 
     def unload(self) -> None:
         self.vision_session = None

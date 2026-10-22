@@ -290,6 +290,14 @@ A larger or higher-quality big thumbnail looks sharper in the lightbox, especial
 
 These settings apply to thumbnails rendered from then on: those of newly scanned photos, and of a photo you rotate or whose file changed on disk. Existing thumbnails keep their size and quality until they are rendered again; there is no job that renders every thumbnail again. When a big thumbnail is rendered again at a new height, the face boxes found on the old one are scaled with it. Do not delete thumbnail files by hand to have them rendered again: a face box is stored in pixels of the big thumbnail its face was found on, and it would no longer line up with the face.
 
+### Your own words for Things
+
+<Since version="1.5.0" /> The words LibrePhotos can find in a photo for the Things albums come from a list that ships with it. An admin can add more in a text file, one word or short phrase per line; see [Teaching LibrePhotos new things](../user-guide/albums.md#teaching-librephotos-new-things).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `OPENCLIP_CUSTOM_TAGS` | `$BASE_DATA/protected_media/data_models/openclip_vitb32/custom_tags.txt` | Where that file is. Without the variable LibrePhotos reads `custom_tags.txt` in the OpenCLIP model folder; in the Docker images that is `/protected_media/data_models/openclip_vitb32/custom_tags.txt`. A missing file adds nothing. |
+
 ### Stuck jobs
 
 Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started.

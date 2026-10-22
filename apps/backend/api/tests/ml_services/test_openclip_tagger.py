@@ -20,6 +20,8 @@ What is pinned:
     ``preprocess.json``, most likely first, at most ``max_tags``.
   * The tag-embedding cache is rebuilt when its tag count or dimension is off,
     or when it was built for another tag list (its sha256 hash, #2763).
+  * The admin's ``custom_tags.txt`` adds its words after the built-in ones,
+    without blanks, ``#`` lines or case-insensitive duplicates (#2764).
   * The text tower is its own session, loaded with the first query.
 """
 
@@ -39,6 +41,7 @@ from service.tags.openclip.openclip import (
     Preprocess,
     PreprocessError,
     crop_box,
+    merge_tags,
     prepare_image,
     resized_size,
     tag_list_hash,
@@ -245,11 +248,14 @@ class OpenCLIPTaggerTest(SimpleTestCase):
             json.dump(PREPROCESS, f)
         self.cache = os.path.join(self.tmp.name, "cache", "tag_embeddings.npy")
         self.cache_hash = os.path.join(self.tmp.name, "cache", "tag_embeddings.sha256")
+        # Absent unless a test writes it.
+        self.custom_tags = os.path.join(self.tmp.name, "custom_tags.txt")
 
         patches = [
             patch.object(openclip_module, "TAGS_FILE", tags_file),
             patch.object(openclip_module, "PREPROCESS_PATH", preprocess_file),
             patch.object(openclip_module, "EMBEDDINGS_CACHE", self.cache),
+            patch.object(openclip_module, "CUSTOM_TAGS_FILE", self.custom_tags),
             patch.object(
                 openclip_module,
                 "Tokenizer",
@@ -382,6 +388,57 @@ class OpenCLIPTaggerTest(SimpleTestCase):
 
                 self.assertEqual(len(self.text_session.calls), 1)
                 self.assertEqual(tagger.tag_embeddings.shape, (3, DIM))
+
+    def _write_custom_tags(self, text):
+        with open(self.custom_tags, "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def test_custom_tags_are_added_after_the_built_in_ones(self):
+        self._write_custom_tags(
+            "# my own words\ntortoise\n\n  sourdough  \nDOG\nclimbing wall\nTortoise\n"
+        )
+        tagger = OpenCLIP()
+        with self.assertLogs("tags", "INFO") as logs:
+            tagger.load()
+
+        self.assertEqual(
+            tagger.tags,
+            ["beach", "dog", "cat", "tortoise", "sourdough", "climbing wall"],
+        )
+        self.assertEqual(tagger.tag_embeddings.shape, (6, DIM))
+        self.assertTrue(any("added 3 of 5 custom tags" in line for line in logs.output))
+
+    def test_without_a_custom_file_the_built_in_list_is_used(self):
+        tagger = OpenCLIP()
+        tagger.load()
+        self.assertEqual(tagger.tags, ["beach", "dog", "cat"])
+
+    def test_a_changed_custom_file_rebuilds_the_cache(self):
+        OpenCLIP().load()
+        self._write_custom_tags("tortoise\n")
+        self.text_session.calls.clear()
+
+        OpenCLIP().load()
+
+        self.assertEqual(len(self.text_session.calls), 1)
+        with open(self.cache_hash, encoding="utf-8") as f:
+            self.assertEqual(
+                f.read(), tag_list_hash(["beach", "dog", "cat", "tortoise"])
+            )
+
+    def test_an_unreadable_custom_file_is_skipped(self):
+        with open(self.custom_tags, "wb") as f:
+            f.write(b"\xff\xfe not utf-8")
+        tagger = OpenCLIP()
+        with self.assertLogs("tags", "WARNING"):
+            tagger.load()
+        self.assertEqual(tagger.tags, ["beach", "dog", "cat"])
+
+    def test_merge_tags_keeps_the_first_spelling(self):
+        self.assertEqual(
+            merge_tags(["Dog", "cat"], ["dog", "fox", "FOX", "Cat", "owl"]),
+            ["Dog", "cat", "fox", "owl"],
+        )
 
     def test_predict_cuts_on_probability_at_the_bundles_logit_scale(self):
         tagger = OpenCLIP()

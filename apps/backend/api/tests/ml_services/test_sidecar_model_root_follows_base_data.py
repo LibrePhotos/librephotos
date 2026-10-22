@@ -41,6 +41,7 @@ def _load_fresh(relative_path, environ):
     with patch.dict(os.environ, environ, clear=False):
         os.environ.pop("BASE_DATA", None)
         os.environ.pop("OPENCLIP_MODEL_DIR", None)
+        os.environ.pop("OPENCLIP_CUSTOM_TAGS", None)
         os.environ.update(environ)
         return load_backend_file(
             f"service/{relative_path}",
@@ -90,6 +91,19 @@ class SidecarModelRootFollowsBaseDataTest(SimpleTestCase):
         )
         self.assertEqual(
             module.EMBEDDINGS_CACHE, os.path.join(expected, "tag_embeddings.npy")
+        )
+        self.assertEqual(
+            module.CUSTOM_TAGS_FILE, os.path.join(expected, "custom_tags.txt")
+        )
+
+    def test_openclip_custom_tags_override_wins(self):
+        module = _load_fresh(
+            "tags/openclip/openclip.py",
+            {"BASE_DATA": self.base_data, "OPENCLIP_CUSTOM_TAGS": "/config/words.txt"},
+        )
+        self.assertEqual(module.CUSTOM_TAGS_FILE, "/config/words.txt")
+        self.assertEqual(
+            module.MODEL_DIR, os.path.join(self.models_root, "openclip_vitb32")
         )
 
     def test_openclip_defaults_to_docker_layout(self):
