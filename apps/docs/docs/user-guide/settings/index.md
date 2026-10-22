@@ -108,6 +108,8 @@ These switches decide what public links show. Photo links always use them, inclu
 - `Share captions`: show photo descriptions.
 - `Share detected faces`: show the people recognised in photos.
 
+<Since version="1.5.0" /> Up to 1.4.0, these switches were not saved: after **Save Changes** they were off again on the next visit, and public links shared none of these details unless an album link turned them on.
+
 ### Duplicate Detection
 
 These are your personal defaults for the **Detection Options** dropdown on the Duplicates page — they pre-fill that dropdown before you click **Detect Duplicates**, rather than running anything on their own. See [Duplicate Detection](../duplicate-detection.md) for the review workflow.

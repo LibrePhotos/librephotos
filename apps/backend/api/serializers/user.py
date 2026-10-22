@@ -22,6 +22,7 @@ from api.jobs.queue import enqueue_job
 from api.metadata.date_rule_checks import changed_rule_problem
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
+from api.models.user import get_default_public_sharing_settings
 from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import declare_fields, loaded_count, loaded_list
@@ -59,6 +60,10 @@ USER_UPDATE_FIELDS = (
     ("default_timezone", "Updated default_timezone for user {value}"),
     ("public_sharing", None),
     (
+        "public_sharing_defaults",
+        "Updated public_sharing_defaults to {value} for user {username}",
+    ),
+    (
         "share_people_names",
         "Updated share_people_names to {value} for user {username}",
     ),
@@ -84,6 +89,27 @@ USER_UPDATE_FIELDS = (
         "Updated default_timeline_filter to {value} for user {username}",
     ),
 )
+
+
+def merged_public_sharing_defaults(value: object, saved: object) -> dict[str, bool]:
+    """``value``, a Public Sharing Defaults update, on top of ``saved``.
+
+    Only the known switches, each a boolean; a switch ``value`` leaves out
+    keeps its saved value (or its default). Raises ``ValueError`` otherwise.
+    """
+    if not isinstance(value, Mapping):
+        raise ValueError("must be an object")
+    defaults = get_default_public_sharing_settings()
+    unknown = sorted(set(value) - set(defaults))
+    if unknown:
+        raise ValueError(f"has unknown switches: {', '.join(map(str, unknown))}")
+    if not all(isinstance(on, bool) for on in value.values()):
+        raise ValueError("switches must be true or false")
+    current = saved if isinstance(saved, Mapping) else {}
+    return {
+        key: bool(value.get(key, current.get(key, default)))
+        for key, default in defaults.items()
+    }
 
 
 def validate_rule_exif_tag_names(value: object, field_label: str) -> object:
@@ -336,6 +362,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_burst_detection_rules(self, value: object) -> object:
         return validate_rule_exif_tag_names(value, "burst_detection_rules")
+
+    def validate_public_sharing_defaults(self, value: object) -> dict[str, bool]:
+        saved = (
+            self.instance.public_sharing_defaults if self.instance is not None else None
+        )
+        try:
+            return merged_public_sharing_defaults(value, saved)
+        except ValueError as error:
+            raise ValidationError(f"public_sharing_defaults {error}.") from error
 
     def validate_default_timeline_filter(self, value: object) -> dict[str, object]:
         try:
