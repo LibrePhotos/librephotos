@@ -113,6 +113,15 @@ describe("job triggers", () => {
     expect(answer).toEqual({ ...started, downloads_model: true });
   });
 
+  it("sends whether things are found again in every photo (#2765)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.findThings(client, true);
+    await endpoints.findThings(client, false);
+    expect(requests.map(request => request.body)).toEqual([{ full_scan: true }, { full_scan: false }]);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/find-things/`, method: "POST" });
+    expect(answer).toEqual(started);
+  });
+
   it("rescans chosen photos by id and reads how many it covers (#2214)", async () => {
     const { client, requests } = fakeServer({ ...started, photo_count: 2, file_count: 3 });
     const answer = await endpoints.rescanPhotos(client, ["p1", "p2"]);
@@ -158,6 +167,7 @@ describe("job triggers", () => {
       (client: Parameters<typeof endpoints.scanFiles>[0]) => endpoints.scanFiles(client, ["/a.jpg"]),
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
       (client: Parameters<typeof endpoints.generateCaptions>[0]) => endpoints.generateCaptions(client, false),
+      (client: Parameters<typeof endpoints.findThings>[0]) => endpoints.findThings(client, false),
       endpoints.detectStacks,
       endpoints.detectDuplicates,
       endpoints.writeMetadataToFiles,

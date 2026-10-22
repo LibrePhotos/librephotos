@@ -17,6 +17,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { ApplyDateRulesRow } from "./ApplyDateRulesRow";
 import { CaptionsActions } from "./CaptionsActions";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
+import { ThingsActions } from "./ThingsActions";
 
 type LibraryActionsProps = {
   /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
@@ -25,10 +26,18 @@ type LibraryActionsProps = {
   isOcrEnabled: boolean;
   /** Captions can be generated: the server has captioning on and a model picked (#2211). */
   isCaptioningAvailable: boolean;
+  /** Things can be found: the server's Things switch is on (#2765). */
+  isThingsAvailable: boolean;
 };
 
-/** The library jobs after a scan: event albums, faces, text recognition, captions and dates. */
-export function LibraryActions({ busyReason, isAdmin, isOcrEnabled, isCaptioningAvailable }: LibraryActionsProps) {
+/** The library jobs after a scan: event albums, faces, text recognition, captions, things and dates. */
+export function LibraryActions({
+  busyReason,
+  isAdmin,
+  isOcrEnabled,
+  isCaptioningAvailable,
+  isThingsAvailable,
+}: LibraryActionsProps) {
   const { t } = useTranslation();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const trainFaces = useTrainFacesMutation();
@@ -177,6 +186,7 @@ export function LibraryActions({ busyReason, isAdmin, isOcrEnabled, isCaptioning
         </Grid.Col>
       </Grid>
       {isCaptioningAvailable && <CaptionsActions busyReason={busyReason} />}
+      <ThingsActions busyReason={busyReason} isAdmin={isAdmin} isThingsAvailable={isThingsAvailable} />
       <ApplyDateRulesRow busyReason={busyReason} />
     </>
   );

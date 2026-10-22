@@ -64,6 +64,9 @@ export const SiteSettings = z.object({
   // Whether captions can be generated: the image captioning switch is on and a model is picked.
   // Sent to everyone (#2211); older backends lack it and have no caption job either.
   captioning_available: z.boolean().optional(),
+  // Whether things can be found: the Things switch is on (#2765). Sent to everyone; older backends
+  // lack it and have no Find things job either.
+  things_available: z.boolean().optional(),
   // Gone with the LLM; the server still sends "None" for older clients.
   llm_model: z.string().optional(),
   // The captions_json key the tags live under: the one tagging model's name.

@@ -30,6 +30,7 @@ from api.runtime.ml_models import (
 )
 from api.serializers.job import (
     CaptionsJobStartedResponseSerializer,
+    FindThingsRequest,
     GenerateCaptionsRequest,
     GenerateOcrRequest,
     JobStartedResponseSerializer,
@@ -315,6 +316,37 @@ class GenerateCaptionsView(APIView):
         )
         response.data["downloads_model"] = bool(prerequisites)
         return response
+
+
+class FindThingsView(APIView):
+    """Find the things in the requester's photos with OpenCLIP, as a job (#2765).
+
+    Without ``full_scan`` the photos that have no things yet; with it every
+    photo again, after the list of things (``custom_tags.txt``) or the
+    confidence changed. Only the things and their albums are replaced, never
+    the user's own tags. Refused (403) while Things are turned off; a second
+    start while one runs is a 409.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=FindThingsRequest, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        from api.directory_watcher.processing_jobs import generate_tags
+
+        if not feature_enabled("SCENE_CLASSIFICATION"):
+            raise PermissionDenied("Things are turned off")
+        user = request_user(request)
+        full_scan = parse_body(request, FindThingsRequest)["full_scan"]
+        return start_job(
+            user,
+            LongRunningJob.JOB_GENERATE_TAGS,
+            generate_tags,
+            user,
+            full_scan=full_scan,
+            description="finding things",
+            prerequisites=missing_models_prerequisites(user),
+        )
 
 
 class StripThumbnailMetadataView(APIView):

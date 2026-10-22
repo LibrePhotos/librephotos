@@ -2944,6 +2944,54 @@
         }
       }
     },
+    "/api/find-things/": {
+      "post": {
+        "operationId": "api_find_things_create",
+        "description": "Find the things in the requester's photos with OpenCLIP, as a job (#2765).\n\nWithout ``full_scan`` the photos that have no things yet; with it every\nphoto again, after the list of things (``custom_tags.txt``) or the\nconfidence changed. Only the things and their albums are replaced, never\nthe user's own tags. Refused (403) while Things are turned off; a second\nstart while one runs is a 409.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/firsttimesetup/": {
       "get": {
         "operationId": "api_firsttimesetup_retrieve",
@@ -14299,6 +14347,16 @@
           "timestamp"
         ]
       },
+      "FindThingsRequestRequest": {
+        "type": "object",
+        "properties": {
+          "full_scan": {
+            "type": "boolean",
+            "default": false,
+            "description": "Find things again in the photos that have them (#2765)"
+          }
+        }
+      },
       "FirstTimeSetup": {
         "type": "object",
         "description": "``GET /api/firsttimesetup/``: whether the instance still has no admin\n(the login page then offers to create one).",
@@ -21348,6 +21406,10 @@
             "type": "boolean",
             "description": "Captions can be generated: the image captioning switch is on and a captioning model is picked. Sent to everyone."
           },
+          "things_available": {
+            "type": "boolean",
+            "description": "Things can be found: the Things switch is on and the environment does not lock it off. Sent to everyone."
+          },
           "llm_model": {
             "type": "string"
           },
@@ -21425,6 +21487,7 @@
           "scan_missing_max_fraction",
           "skip_patterns",
           "tagging_model",
+          "things_available",
           "trash_retention_days"
         ]
       },

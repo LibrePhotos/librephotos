@@ -109,6 +109,13 @@ class GenerateCaptionsRequest(serializers.Serializer[None]):
     )
 
 
+class FindThingsRequest(serializers.Serializer[None]):
+    full_scan = serializers.BooleanField(
+        default=False,
+        help_text="Find things again in the photos that have them (#2765)",
+    )
+
+
 class CaptionsJobStartedResponseSerializer(JobStartedResponseSerializer):
     """``POST /api/generate-captions/``: the started job, and whether it waits for the model."""
 
