@@ -15,6 +15,7 @@ import { LocationSection } from "../lightbox/LocationSection";
 import { PeopleSection } from "../lightbox/PeopleSection";
 import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
 import { TagsSection } from "../lightbox/TagsSection";
+import type { FaceDrawing } from "../lightbox/useFaceDrawing";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import type { AddableDetail } from "./AddDetailsCard";
 import { AddDetailsCard } from "./AddDetailsCard";
@@ -30,7 +31,7 @@ const SIMILAR_PHOTOS_SHOWN = 12;
 type Props = Readonly<{
   photo: Photo;
   setFaceLocation: (location: FaceLocationType) => void;
-  faceDrawing: { isDrawing: boolean; start: () => void; cancel: () => void };
+  faceDrawing: Pick<FaceDrawing, "isDrawing" | "start" | "cancel" | "result">;
   /** Why a face cannot be drawn right now (a rotation in progress), if it cannot. */
   addFaceBlockedReason?: string;
 }>;
@@ -80,7 +81,7 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
 
   return (
     <>
-      {(shows("face") || faceDrawing.isDrawing) && (
+      {(shows("face") || faceDrawing.isDrawing || faceDrawing.result.state !== "idle") && (
         <PhotoCard icon={IconUsers} color="blue" title={t("lightbox.sidebar.people")} count={photo.people.length}>
           {heading => (
             <PeopleSection
@@ -94,6 +95,7 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
               onAddFaceRequest={canMarkFace ? faceDrawing.start : undefined}
               onCancelAddFace={faceDrawing.cancel}
               isDrawingFace={faceDrawing.isDrawing}
+              drawResult={faceDrawing.result}
               addFaceBlockedReason={addFaceBlockedReason}
             />
           )}

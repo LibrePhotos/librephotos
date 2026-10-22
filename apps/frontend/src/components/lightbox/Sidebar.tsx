@@ -32,6 +32,7 @@ import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { TrashedItem } from "./TrashedItem";
+import type { FaceDrawing } from "./useFaceDrawing";
 import { VersionComponent } from "./VersionComponent";
 import { WhyThisDate } from "./WhyThisDate";
 
@@ -47,8 +48,8 @@ type SidebarProps = {
   onPhotoSelect?: (photoId: string) => void;
   /** Marking a face the detector missed happens on the photo, which the viewer owns. */
   onAddFaceRequest?: () => void;
-  onCancelAddFace?: () => void;
-  isDrawingFace?: boolean;
+  /** The viewer's face drawing: under way, cancelled here, and what became of the box (#1117). */
+  faceDrawing?: Pick<FaceDrawing, "isDrawing" | "cancel" | "result">;
   addFaceBlockedReason?: string;
 };
 
@@ -281,8 +282,7 @@ function OwnerSidebar({
   id,
   onPhotoSelect,
   onAddFaceRequest,
-  onCancelAddFace,
-  isDrawingFace,
+  faceDrawing,
   addFaceBlockedReason,
 }: Omit<SidebarProps, "isPublic" | "publicAlbumSlug">) {
   const { t } = useTranslation();
@@ -347,8 +347,9 @@ function OwnerSidebar({
           onPersonEdit={handlePersonEdit}
           notThisPerson={notThisPerson}
           onAddFaceRequest={onAddFaceRequest}
-          onCancelAddFace={onCancelAddFace}
-          isDrawingFace={isDrawingFace}
+          onCancelAddFace={faceDrawing?.cancel}
+          isDrawingFace={faceDrawing?.isDrawing}
+          drawResult={faceDrawing?.result}
           addFaceBlockedReason={addFaceBlockedReason}
         />
         <Description photoDetail={photoDetail} isPublic={false} />

@@ -14,13 +14,19 @@ import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { apiClient, ApiError, queryClient } from "../../api";
 
-type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox };
+/** `fit`: the box only says where to look, the server saves the face it finds there (#1117). */
+type AddFaceRequest = { photo: string; personName: string; box: NormalizedFaceBox; fit?: boolean };
 
 const addFace = (data: AddFaceRequest) =>
-  endpoints.addFace(apiClient, data.photo, data.personName, data.box).then(payload => {
+  endpoints.addFace(apiClient, data.photo, data.personName, data.box, data.fit).then(payload => {
     notification.addFacesToPerson(payload.face.person_name, 1);
     return payload;
   });
+
+/** The server looked inside the drawn box and found no face there (#1117). */
+export function isNoFaceInBox(error: unknown): boolean {
+  return error instanceof ApiError && error.serverCode === "no_face_in_box";
+}
 
 /**
  * The server refuses a box with a 4xx and a plain `{status, message}` body
@@ -30,6 +36,8 @@ const addFace = (data: AddFaceRequest) =>
 export function reportAddFaceError(error: unknown) {
   if (error instanceof ResponseParseError) return;
   if (error instanceof ApiError && (error.status === 401 || error.status === 500)) return;
+  // The drawing offers to keep the box as drawn or to draw again instead
+  if (isNoFaceInBox(error)) return;
   const status = error instanceof ApiError ? error.status : undefined;
   let message = i18n.t("toasts.addfacefailed");
   if (status === 409) message = i18n.t("toasts.addfaceoverlap");

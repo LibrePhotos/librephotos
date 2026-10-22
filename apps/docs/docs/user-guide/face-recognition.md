@@ -50,6 +50,8 @@ The detector does not find every face. Someone turned away from the camera, a ch
 
 Open the photo, then click the green person-plus button at the top of the **People** section of the sidebar. The photo dims and the pointer becomes a crosshair: drag a box around the face, and the **Label faces** dialog opens so you can pick an existing person or type a new name. Press **Escape**, or use the **Cancel** button in the sidebar, to leave without adding anything.
 
+<Since version="1.5.0" /> The box only has to be rough. While the **People** section says "Looking for the face in your box…", the face recognition service looks at that part of the photo on its own, enlarged, where it finds faces that are too small or too turned to be found in the whole photo. The face it finds is saved with its own, exact box, and with an encoding like any detected face, so it is grouped with that person's other faces. Only a face whose middle is inside your box is taken. If there is no face in the box, the section says **No face found in the box** and offers **Keep my box** (the face is saved with your box and the name you chose, as before) or **Draw again**. When the face recognition service is off or not answering, your box is saved as you drew it. Up to 1.4.0, the box you drew was saved as it was.
+
 A few things worth knowing:
 
 - **The face you add counts as your own labelling.** It is stored exactly like a face you named on the dashboard, and classification trains on it, so adding a few faces the detector missed also helps it recognise that person elsewhere. It never starts a cluster of its own.
@@ -155,6 +157,8 @@ Re-scan faces on the Library page looks at every photo, which takes hours on a l
 
 - **Some photos**: select them, open the **⋮** (Photo Actions) and choose **Detect faces again** in the **Files** group (up to 1,000 photos). In the photo viewer it is in the **⋮** after the rotate buttons, and on a photo's page under **More**.
 - **A folder**: on the folder's page (open it from **Folders**), open the **⋮** (Folder actions) and choose **Detect faces again in this folder**. It covers the folder and its subfolders and asks first, saying how many photos that is.
+
+<Since version="1.5.0" /> For a single photo (from the photo viewer or the photo's page), the photo's **People** section follows the scan: it says "Looking for faces again…" while the scan runs, then marks the faces it found with **New**, or says **No new face found**. The scan uses the same detector as before, so a face it missed stays missed: use **Draw the face** there to draw a box around it (see [Add a face the scan missed](#add-a-face-the-scan-missed)).
 
 It works like Re-scan faces for those photos: faces already found and named stay as they are, and a face you deleted is not found again; restore it from the **Deleted** tab instead. The other photos are not touched, and the next face scan after a photo scan still looks at every photo whose faces have not been looked for yet. Only your own photos can be scanned, and a folder must be inside your scan directory or upload folder.
 

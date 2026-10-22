@@ -1669,15 +1669,18 @@ export async function scanFaces(client: ApiClient, scope: FaceScanScope = {}): P
 /**
  * Add a face from a box drawn on a photo (by id or image hash) and name its person, who is created
  * when new. ApiError 409 for a box over an existing face, 404 for a photo that is not the user's,
- * 400 for a box the server cannot use.
+ * 400 for a box the server cannot use. With `fit` the box only says where to look: the server
+ * saves the face it finds there (#1117), and answers 400 `no_face_in_box` when there is none.
  */
 export async function addFace(
   client: ApiClient,
   photo: string,
   personName: string,
-  box: S.NormalizedFaceBox
+  box: S.NormalizedFaceBox,
+  fit?: boolean
 ): Promise<S.AddFaceResponse> {
-  const res = await client.post<unknown>("/addface", { photo, person_name: personName, box });
+  const body = { photo, person_name: personName, box, ...(fit === undefined ? {} : { fit }) };
+  const res = await client.post<unknown>("/addface", body);
   return parseResponse(S.AddFaceResponse, res, "add face");
 }
 

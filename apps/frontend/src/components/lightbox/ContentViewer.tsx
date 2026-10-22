@@ -451,8 +451,7 @@ export function ContentViewer({
                 setFaceLocation={setFaceLocation}
                 onPhotoSelect={onPhotoSelect}
                 onAddFaceRequest={type === "photo" ? faceDrawing.start : undefined}
-                onCancelAddFace={faceDrawing.cancel}
-                isDrawingFace={faceDrawing.isDrawing}
+                faceDrawing={faceDrawing}
                 addFaceBlockedReason={addFaceBlockedReason}
               />
             )}

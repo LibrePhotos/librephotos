@@ -9,7 +9,7 @@
     "/api/addface/": {
       "post": {
         "operationId": "api_addface_create",
-        "description": "Create a face from a box the user drew on a photo.\n\nUntil now every Face row came from the detector or from an XMP region already\nwritten into the file, so a face the detector missed could not be recorded at\nall -- someone turned away from the camera, a child, a face behind a hat. This\nis the manual way in.\n\nThe box arrives normalized to the displayed image (each side a fraction of the\nwidth or height) because fractions are what the browser can measure. Face rows\nstore pixels in big-thumbnail space, and the big thumbnail is the image the\nlightbox displays, so converting is a multiplication by the thumbnail's own\nsize -- no separate coordinate mapping is involved.\n\nA manually added face is a user label: it gets ``person`` set with\n``KIND_USER`` and no cluster, so classification trains on it like any other\nface the user named, but it never seeds a cluster of its own.",
+        "description": "Create a face from a box the user drew on a photo.\n\nUntil now every Face row came from the detector or from an XMP region already\nwritten into the file, so a face the detector missed could not be recorded at\nall -- someone turned away from the camera, a child, a face behind a hat. This\nis the manual way in.\n\nThe box arrives normalized to the displayed image (each side a fraction of the\nwidth or height) because fractions are what the browser can measure. Face rows\nstore pixels in big-thumbnail space, and the big thumbnail is the image the\nlightbox displays, so converting is a multiplication by the thumbnail's own\nsize -- no separate coordinate mapping is involved.\n\nA manually added face is a user label: it gets ``person`` set with\n``KIND_USER`` and no cluster, so classification trains on it like any other\nface the user named, but it never seeds a cluster of its own.\n\nWith ``fit`` the box only says where to look (#1117): the face service\nlooks at that part of the photo alone, and the face it finds there is\nsaved with its own box and encoding, so a rough box is enough.",
         "tags": [
           "api"
         ],
@@ -12643,6 +12643,11 @@
           },
           "box": {
             "description": "top, right, bottom and left as fractions of the displayed image"
+          },
+          "fit": {
+            "type": "boolean",
+            "default": false,
+            "description": "Look for the face inside the box and save the face found there, with its own box and encoding (#1117). No face in the box is a 400 with code no_face_in_box; send the box again without fit to keep it as drawn. With the face service off or failing, the box is kept"
           }
         },
         "required": [
@@ -12662,12 +12667,17 @@
             "nullable": true,
             "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
           },
+          "fitted": {
+            "type": "boolean",
+            "description": "The face was found in the drawn box: its location is the found face's box (#1117). False when the box is saved as drawn"
+          },
           "face": {
             "$ref": "#/components/schemas/AddedFace"
           }
         },
         "required": [
           "face",
+          "fitted",
           "status",
           "write_error"
         ]

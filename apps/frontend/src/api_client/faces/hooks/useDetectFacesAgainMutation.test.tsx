@@ -4,6 +4,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { settledMutationWith } from "../../../util/hookHarness.test-utils";
+import { detectFacesReports } from "../detectFacesReports";
 import { useDetectFacesAgainMutation } from "./useDetectFacesAgainMutation";
 
 const toasts = vi.hoisted(() => ({
@@ -36,6 +37,23 @@ describe("useDetectFacesAgainMutation", () => {
 
     expect(fetchMock.mock.calls[0]?.[1]?.body).toBe(JSON.stringify({ photo_ids: ["p1", "p2"] }));
     expect(toasts.detectFacesAgain).toHaveBeenCalledWith(2);
+  });
+
+  it("follows the scan of one photo for its People section (#1117)", async () => {
+    respond(200, started);
+
+    await settledMutationWith(useDetectFacesAgainMutation, { photo_ids: ["p1"] });
+
+    expect(detectFacesReports.get("p1")).toEqual({ jobId: "j1", before: null, state: "running" });
+    detectFacesReports.dismiss("p1");
+  });
+
+  it("does not follow a scan of several photos", async () => {
+    respond(200, started);
+
+    await settledMutationWith(useDetectFacesAgainMutation, { photo_ids: ["p2", "p3"] });
+
+    expect(detectFacesReports.get("p2")).toBeUndefined();
   });
 
   it("sends a folder", async () => {

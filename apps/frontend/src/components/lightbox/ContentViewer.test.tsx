@@ -94,7 +94,11 @@ vi.mock("../../service/notifications", () => ({ notification: { error: () => {} 
 vi.mock("../modals/ModalPersonEdit", () => ({
   ModalPersonEdit: () => <div data-testid="person-edit" />,
 }));
-vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/faces", () => {
+  // As React Query's: the same function on every render
+  const addFace = { mutate: () => {}, reset: () => {}, isPending: false, error: null };
+  return { useAddFaceMutation: () => addFace, isNoFaceInBox: () => false, useDetectFacesReport: () => null };
+});
 vi.mock("../../api_client/photos/hooks", () => ({ useFetchPhotoDetailsQuery: () => stubs.details }));
 vi.mock("../../api_client/photos/hooks/useRotatePhotosMutation", () => ({
   useRotatePhotosMutation: () => ({

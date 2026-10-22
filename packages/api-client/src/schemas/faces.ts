@@ -188,6 +188,8 @@ export const AddFaceResponse = z.object({
    * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
    */
   write_error: z.string().nullable().optional(),
+  /** The face was found in the drawn box and saved with its own box (#1117). Optional: older servers omit it. */
+  fitted: z.boolean().optional(),
   face: z.object({
     face_id: z.number(),
     face_url: z.string(),

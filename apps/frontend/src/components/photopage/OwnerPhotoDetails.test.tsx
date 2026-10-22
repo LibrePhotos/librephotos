@@ -106,7 +106,12 @@ afterEach(async () => {
   stubs.setLabel.mockClear();
 });
 
-const faceDrawing = { isDrawing: false, start: vi.fn<() => void>(), cancel: vi.fn<() => void>() };
+const faceDrawing = {
+  isDrawing: false,
+  start: vi.fn<() => void>(),
+  cancel: vi.fn<() => void>(),
+  result: { state: "idle", keepBox: () => {}, drawAgain: () => {} } as const,
+};
 
 async function renderDetails(photo: Photo, drawing = faceDrawing) {
   const container = document.createElement("div");

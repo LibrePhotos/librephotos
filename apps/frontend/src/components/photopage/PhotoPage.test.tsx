@@ -79,7 +79,11 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
 }));
-vi.mock("../../api_client/faces", () => ({ useAddFaceMutation: () => ({ mutate: () => {} }) }));
+vi.mock("../../api_client/faces", () => {
+  // As React Query's: the same function on every render
+  const addFace = { mutate: () => {}, reset: () => {}, isPending: false, error: null };
+  return { useAddFaceMutation: () => addFace, isNoFaceInBox: () => false, useDetectFacesReport: () => null };
+});
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: true, userId: stubs.userId }) }));
 vi.mock("../../hooks/useCopyPhotoToClipboard", () => ({
   useCopyPhotoToClipboard: () => ({ supported: true, isCopying: false, copy: () => {} }),
