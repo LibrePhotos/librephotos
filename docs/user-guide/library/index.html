@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.a9d1d5cb.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.497f4481.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -93,6 +93,7 @@
 <li class="">Save your changes when the <strong>Save Changes</strong> dialog appears (click <strong>Update</strong>). The <strong>Status</strong> row at the top of the Nextcloud section then shows a green <strong>Connected</strong> badge. It reads <strong>Missing credentials</strong>, <strong>Connecting</strong>, or <strong>Disconnected</strong> while the connection is unset, in progress, or failing.</li>
 <li class="">Click <strong>Browse</strong> (folder icon) to select your Nextcloud photo directory</li>
 </ol>
+<p>A Nextcloud scan shows up as a <strong>Scan Photos</strong> job that counts the new and changed files it imports. When it finishes, it starts the same follow-up jobs as a local scan: tags, places, search embeddings and faces. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Up to 1.4.0, the job showed as finished after its first photo, and the imported photos only got tags, places and faces from the next local scan.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="nextcloud-with-a-self-signed-certificate">Nextcloud with a self-signed certificate<a href="#nextcloud-with-a-self-signed-certificate" class="hash-link" aria-label="Direct link to Nextcloud with a self-signed certificate" title="Direct link to Nextcloud with a self-signed certificate" translate="no">​</a></h3>
 <p>LibrePhotos checks the certificate of an <code>https://</code> Nextcloud server, and refuses a server whose certificate it does not trust. A Nextcloud with a self-signed certificate (for example the default certificate of TrueNAS) or one from your own certificate authority then shows <strong>Disconnected</strong>. LibrePhotos has no switch that turns this check off. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Instead, an admin tells it which certificate to trust:</p>
 <ol>
