@@ -55,6 +55,7 @@ SETTING_KEYS = (
     "MAP_API_PROVIDER",
     "MAP_API_KEY",
     "MAP_TILE_PROVIDER",
+    "GEOCODE_LANGUAGE",
     "CAPTIONING_MODEL",
     "OCR_MODEL",
     "FACE_RECOGNITION_MODEL",
@@ -186,6 +187,7 @@ class SiteSettingsView(APIView):
         # absent so clients that require the field keep parsing.
         out["map_api_key"] = config["MAP_API_KEY"] if request.user.is_staff else ""
         out["map_tile_provider"] = config["MAP_TILE_PROVIDER"]
+        out["geocode_language"] = config["GEOCODE_LANGUAGE"]
         out["captioning_model"] = config["CAPTIONING_MODEL"]
         out["captioning_available"] = _captioning_available(config)
         out["things_available"] = _things_available(config)

@@ -107,6 +107,37 @@ class SiteSettingsRequestTest(TestCase):
                 self.assert_rejected({"map_api_provider": value}, "map_api_provider")
         self.assertEqual(config.MAP_API_PROVIDER, "nominatim")
 
+    def test_the_place_name_language_is_stored_tidied(self, _models):
+        # #2745: a code, a list for Nominatim, or empty for the provider's default
+        for value, stored in (
+            ("de", "de"),
+            ("pt-BR", "pt-BR"),
+            ("zh-Hans", "zh-Hans"),
+            (" de , en ", "de,en"),
+            ("", ""),
+            ("  ", ""),
+        ):
+            with self.subTest(value=value):
+                response = self.post({"geocode_language": value})
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(config.GEOCODE_LANGUAGE, stored)
+                self.assertEqual(response.json()["geocode_language"], stored)
+
+    @override_config(GEOCODE_LANGUAGE="de")
+    def test_a_place_name_language_that_is_no_code_is_refused(self, _models):
+        for value in ("german", "d", "de,", "de;en", "pt_BR", "de en", 5, None):
+            with self.subTest(value=value):
+                self.assert_rejected({"geocode_language": value}, "geocode_language")
+        response = self.post({"geocode_language": "german"})
+        self.assertIn("language code", response.json()["errors"][0]["message"])
+        self.assertEqual(config.GEOCODE_LANGUAGE, "de")
+
+    def test_the_place_name_language_is_empty_by_default(self, _models):
+        self.assertEqual(config.GEOCODE_LANGUAGE, "")
+        self.assertEqual(
+            self.client.get("/api/sitesettings").json()["geocode_language"], ""
+        )
+
     def test_strings_must_be_json_strings(self, _models):
         for value in (5, True, None, ["a"], {"a": 1}):
             with self.subTest(value=value):

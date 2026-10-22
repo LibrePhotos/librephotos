@@ -68,6 +68,15 @@ Switching the **Map Provider** does not rename photos that already have a place:
 - With ExifTool it takes minutes for a large library. With an online provider it takes about a second per photo (Nominatim's limit), so hours for tens of thousands of photos.
 - A photo whose lookup fails keeps its old place, and the next run tries it again.
 
+#### Place names in your language
+
+<Since version="1.5.0" /> Online providers name places in their own default language: English for some, the local name for Nominatim (*Wien* for Vienna, *Москва* for Moscow). To ask for another language, an admin picks it under **Admin Area → Site Settings → Place name language**, right below the Map Provider. **Provider default**, the default, asks for no language, as before.
+
+- Nominatim, OpenCage, TomTom and MapTiler answer in the language you pick. Nominatim also takes a list in order of preference: type `de,en` into the field for German names, or English where a place has no German one.
+- Mapbox and the offline ExifTool provider always answer in their own language; the field is disabled while one of them is the Map Provider, and it keeps your choice for when you switch.
+- The language applies to new lookups. Photos named already keep their names until you look them up again: after a change, the setting offers **Look up place names again**, the same job as in Admin Tools (see [Switching the provider](#switching-the-provider)).
+- It is one language for the whole server. The `GEOCODE_LANGUAGE` environment variable sets it on the first set-up.
+
 #### Which name a photo is filed under
 
 Every provider answers several names, from the street or town up to the country. The day albums, memories, event titles and the map button of an event ("Zermatt on map") use the town (Zermatt, not the canton Valais); the place tree uses the country, the region and the town; the location timeline uses the country. <Since version="1.4.0" /> These read the level each name has. Up to 1.3.0 they took the name at a fixed position in the list, which named the region for some providers, and the place tree left out places with fewer than three names (*Lisbon, Portugal*). Photos geocoded before 1.4.0 keep the names they showed until you look the place names up again.

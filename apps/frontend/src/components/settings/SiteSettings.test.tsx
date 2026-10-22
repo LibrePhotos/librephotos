@@ -36,6 +36,12 @@ vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => m
 vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save }));
 // Its own test: TrashRetentionSetting.test.tsx.
 vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
+// Its own test: PlaceNameLanguageSetting.test.tsx. The card tells it which provider is set.
+vi.mock("./PlaceNameLanguageSetting", () => ({
+  PlaceNameLanguageSetting: ({ providerLabel, supported }: { providerLabel: string; supported: boolean }) => (
+    <span data-place-language={`${providerLabel} ${supported}`} />
+  ),
+}));
 vi.mock("./ScanSettings", () => ({
   LABEL_SPAN: { base: 12, sm: 8 },
   CONTROL_SPAN: { base: 12, sm: 4 },
@@ -133,6 +139,15 @@ describe("SiteSettings", () => {
     await renderWithMapProvider("mapbox");
     expect(inputShowing("Mapbox")).toBeDefined();
     expect(container.textContent).toContain("sitesettings.map_api_key_header");
+  });
+
+  it("tells the place-name language whether the provider can be asked for one", async () => {
+    const placeLanguage = () => container.querySelector("[data-place-language]")?.getAttribute("data-place-language");
+    expect(placeLanguage()).toBe("Nominatim (OpenStreetMap) true");
+    await renderWithMapProvider("mapbox");
+    expect(placeLanguage()).toBe("Mapbox false");
+    await renderWithMapProvider("exiftool");
+    expect(placeLanguage()).toBe("ExifTool false");
   });
 
   it("renders the model settings without saving anything", () => {
