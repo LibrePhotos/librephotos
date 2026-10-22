@@ -21,3 +21,4 @@ export * from "./useTrashPhotosOutsideLibraryMutation";
 export * from "./useWorkerQuery";
 export * from "./useWriteMetadataToFiles";
 export * from "./useUpgradeTasks";
+export * from "./useProcessingStatus";

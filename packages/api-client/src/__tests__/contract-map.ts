@@ -90,6 +90,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   WriteMetadataPreview: { schema: S.WriteMetadataPreview, components: ["WriteMetadataPreview"] },
   WriteTypeCount: { schema: S.WriteTypeCount, components: ["WriteTypeCount"] },
   UpgradeTask: { schema: S.UpgradeTask, components: ["UpgradeTask"] },
+  ProcessingStage: { schema: S.ProcessingStage, components: ["ProcessingStage"] },
+  ProcessingStatus: { schema: S.ProcessingStatus, components: ["ProcessingStatus"] },
   UpgradeTaskList: { schema: S.UpgradeTaskList, components: ["UpgradeTaskList"] },
   RescanPhotosResponse: { schema: S.RescanPhotosResponse, components: ["RescanPhotosResponse"] },
   ScanFilesResponse: { schema: S.ScanFilesResponse, components: ["ScanFilesResponse"] },

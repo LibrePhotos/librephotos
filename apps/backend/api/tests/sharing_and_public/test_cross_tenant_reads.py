@@ -255,6 +255,7 @@ class CrossTenantReadTest(TestCase):
             ("/api/duplicates/stats/", None),
             ("/api/jobs/", v.v_job.job_id),
             ("/api/upload/status/", v.v_import.job_id),
+            ("/api/library/processing-status/", v.v_job.job_id),
             (f"/api/jobs/{v.v_job.pk}/", v.v_job.job_id),
             (f"/api/photos/download?job_id={v.v_job.job_id}", None),
             ("/api/memories/?fallback=true&window=30", v.v_photo.image_hash),

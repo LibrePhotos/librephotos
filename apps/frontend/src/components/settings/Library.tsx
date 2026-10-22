@@ -24,6 +24,7 @@ import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
 import { NextcloudSettings } from "./NextcloudSettings";
+import { ProcessingStatusCard } from "./ProcessingStatusCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanLibraryRow } from "./ScanLibraryRow";
 
@@ -140,6 +141,7 @@ export function Library() {
 
       <Stack>
         <CountStats />
+        <ProcessingStatusCard busyReason={busyReason} uploadOnly={!hasScanDirectory} />
         <Card shadow="md">
           <Stack>
             <Title order={4}>

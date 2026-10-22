@@ -74,6 +74,7 @@ from api.views import (
     photo_moves,
     photo_renames,
     photos,
+    processing_status,
     public_albums,
     public_photos,
     scan_triggers,
@@ -522,6 +523,14 @@ urlpatterns = [
         upgrade_tasks.UpgradeTaskDismissView.as_view(),
     ),
     path("api/look-up-places/", scan_triggers.LookUpPlacesView.as_view()),
+    path(
+        "api/library/processing-status/",
+        processing_status.ProcessingStatusView.as_view(),
+    ),
+    path(
+        "api/library/processing-status/run/",
+        processing_status.RunProcessingStageView.as_view(),
+    ),
     path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
     path("api/check-file-contents/", scan_triggers.CheckFileContentsView.as_view()),
     path("api/updates/", updates.UpdateStatusView.as_view()),

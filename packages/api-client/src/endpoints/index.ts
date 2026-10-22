@@ -1002,6 +1002,25 @@ export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobSt
   return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
 }
 
+/** What each processing stage still has to do in the caller's library (#2741). */
+export async function fetchProcessingStatus(client: ApiClient): Promise<S.ProcessingStatus> {
+  const res = await client.get<unknown>("/library/processing-status/");
+  return parseResponse(S.ProcessingStatus, res, "processing status");
+}
+
+/**
+ * Run now: start the job that catches a processing stage up on the caller's photos (#2741). A 403
+ * while the stage is off; its job already running resolves as that job.
+ */
+export async function runProcessingStage(
+  client: ApiClient,
+  stage: S.ProcessingStageKey
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/library/processing-status/run/", S.JobStartedResponse, "run processing stage", {
+    stage,
+  });
+}
+
 /** The post-upgrade tasks this instance still has, and those done in the last day (admins only, #2322). */
 export async function fetchUpgradeTasks(client: ApiClient): Promise<S.UpgradeTaskList> {
   const res = await client.get<unknown>("/upgrade-tasks/");

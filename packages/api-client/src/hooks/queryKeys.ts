@@ -284,6 +284,8 @@ export const jobKeys = {
   all: jobRoot,
   list: (request: JobListParams) => [...jobRoot, "list", request] as const,
   detail: (id: number) => [...jobRoot, "detail", id] as const,
+  /** The Library page's processing status (#2741): under `all`, so a job change refreshes it. */
+  processingStatus: () => [...jobRoot, "processingStatus"] as const,
   /** The Finish the upgrade card's tasks (#2322): under `all`, so a job change refreshes them. */
   upgradeTasks: () => [...jobRoot, "upgradeTasks"] as const,
   /** The caller's upload imports and follow-ups (#2739), with the jobs and photos the upload card follows. */

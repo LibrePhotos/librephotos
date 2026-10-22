@@ -661,6 +661,8 @@ SPECTACULAR_SETTINGS = {
         "MoveRefusalReasonEnum": "api.serializers.photo_moves.MOVE_REFUSAL_REASONS",
         # Renaming photos after their date (#2773): what happens to one photo.
         "RenameStatusEnum": "api.serializers.photo_renames.RENAME_STATUS_CHOICES",
+        # A stage of the library processing status (#2741).
+        "ProcessingStageEnum": "api.serializers.processing_status.PROCESSING_STAGES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

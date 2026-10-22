@@ -34,9 +34,12 @@ def photos_missing_clip_embeddings(user: User) -> QuerySet[Photo]:
     That includes photos embedded by an earlier model: they are re-embedded in
     place, never cleared first.
     """
-    return Photo.objects.owned_by(user).filter(
-        Q(clip_embeddings__isnull=True) | ~produced_by_openclip()
-    )
+    return Photo.objects.owned_by(user).filter(needs_search_embedding())
+
+
+def needs_search_embedding() -> Q:
+    """``photos_missing_clip_embeddings`` as a ``Q`` (no relations, #2741)."""
+    return Q(clip_embeddings__isnull=True) | ~produced_by_openclip()
 
 
 def photos_with_existing_thumbnail(objs: Iterable[Photo]) -> list[Photo]:
