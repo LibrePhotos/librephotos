@@ -7,6 +7,13 @@ function renamePerson(oldName: string, newName: string) {
   });
 }
 
+/** A person's birth date was saved, or removed (#2750). */
+function personBirthDate(name: string, saved: boolean) {
+  toast.success(i18n.t(saved ? "toasts.personbirthdatesaved" : "toasts.personbirthdateremoved", { name }), {
+    title: i18n.t("toasts.personbirthdatetitle"),
+  });
+}
+
 function deletePerson() {
   toast.success(i18n.t("toasts.deleteperson"), { title: i18n.t("toasts.deletepersontitle") });
 }
@@ -50,6 +57,7 @@ export const people = {
   deletePersonGroup,
   faceTagsNotWritten,
   mergePerson,
+  personBirthDate,
   removePhotosFromPerson,
   renamePerson,
   renamePersonGroup,

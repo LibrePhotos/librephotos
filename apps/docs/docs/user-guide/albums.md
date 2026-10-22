@@ -21,12 +21,21 @@ The People page shows each person as a round picture of their cover face, the sa
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
 - **Rename** renames the person. A name another person already has offers **Merge into** that person instead (see below).
+- **Add birth date…** (**Birth date…** once there is one) sets, changes or removes the person's birth date (see below).
 - **Groups…** puts the person in your groups of people (see below).
 - **Merge into…** merges this person into another one you pick from your people, then shows that person's page.
 - **Manage faces** opens the face dashboard.
 - **Delete person** removes the person from People and takes you back there. The photos stay in your library; the faces labelled with that person go back to the unknown faces, where you can label them again.
 
 A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album Actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
+
+#### Birth date and age
+
+<Since version="1.5.0" /> A person can have a birth date. Set it with **Add birth date…** in the person's **⋮** menu, or click the line under their name once there is one; the dialog also has **Remove birth date**. A date in the future is refused, and the dialog warns when some of the person's photos are older than the date, because those are often a wrong date or a wrong face.
+
+With a birth date, the person's page shows "Born _date_ · _N_ years old" under their name, and their age on each day beside the day's date ("Age 6", "4 months", "Newborn"). Photos without a date, or from before the birth, show no age. A person without a birth date looks as before.
+
+Only you see a birth date: it is not part of shared albums, public links or what other users see of a photo. [Face training](./face-recognition.md#train-faces) also uses it: it never suggests a person for a face on a photo taken before their birth date.
 
 #### Groups of people
 

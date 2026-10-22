@@ -1,6 +1,7 @@
 /**
  * The person page (#2207): its title comes from the person itself, its header has the person's
- * menu, and an unknown person says so instead of "Loading" for good.
+ * menu, and an unknown person says so instead of "Loading" for good. With a birth date, the
+ * header says it and the age, and each day heading the age on that day (#2751).
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
@@ -10,6 +11,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Person } from "../../../api_client/albums/hooks";
 import type { PhotoListView } from "../../../components/photolist/PhotoListView";
 import i18n from "../../../i18n";
+import { parsePhotoTimestamp } from "../../../util/dateUtils";
 
 type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
 
@@ -51,6 +53,8 @@ vi.mock("../../../api_client/albums/hooks", () => ({
 }));
 // The menu has its own test; here it only matters that the page passes it the person.
 vi.mock("../../../components/album/PersonHeaderMenu", () => ({ PersonHeaderMenu: () => null }));
+// The dialog has its own test
+vi.mock("../../../components/album/PersonBirthDateModal", () => ({ PersonBirthDateModal: () => null }));
 vi.mock("../../../components/photolist/PhotoListView", () => ({
   PhotoListView: (props: PhotoListViewProps) => {
     stubs.listProps = props;
@@ -71,6 +75,7 @@ const anna: Person = {
   face_photo_url: "hash",
   face_url: "/media/faces/1.jpg",
   group_ids: [],
+  birth_date: null,
 };
 
 beforeAll(async () => {
@@ -136,5 +141,27 @@ describe("the person page", () => {
     expect(props.title).toBe("People");
     expect(props.headerActions).toBeUndefined();
     expect(props.mediaType).toBeUndefined();
+  });
+
+  it("shows the birth date under the name and the age beside each day (#2751)", async () => {
+    stubs.person = { ...anna, birth_date: "2019-05-03" };
+
+    const props = await render();
+
+    const line = props.additionalSubHeader;
+    if (!React.isValidElement<{ birthDate: string; name: string }>(line)) throw new Error("no birth date line");
+    expect(line.props).toMatchObject({ birthDate: "2019-05-03", name: "Anna Becker" });
+    const note = props.groupNote;
+    if (!note) throw new Error("no age beside the days");
+    expect(note(parsePhotoTimestamp("2025-06-14T10:00:00Z"))).toBe("Age 6");
+    expect(note(parsePhotoTimestamp("2019-09-07T10:00:00Z"))).toBe("4 months");
+    expect(note(parsePhotoTimestamp("2018-02-12T10:00:00Z"))).toBeNull();
+  });
+
+  it("looks as before without a birth date", async () => {
+    const props = await render();
+
+    expect(props.additionalSubHeader).toBeUndefined();
+    expect(props.groupNote).toBeUndefined();
   });
 });

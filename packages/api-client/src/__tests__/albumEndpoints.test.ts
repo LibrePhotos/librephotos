@@ -268,6 +268,21 @@ describe("people", () => {
   });
 });
 
+describe("person birth date", () => {
+  it("sets and clears it, answering the person", async () => {
+    const answer = { name: "Ann", face_url: "", face_count: 3, face_photo_url: "", id: 5, birth_date: "2019-05-03" };
+    const { client, requests } = fakeServer(answer);
+    await expect(endpoints.setPersonBirthDate(client, 5, "2019-05-03")).resolves.toMatchObject({
+      birth_date: "2019-05-03",
+    });
+    await endpoints.setPersonBirthDate(client, "5", null);
+    expect(requests.map(({ url, method, body }) => ({ url, method, body }))).toEqual([
+      { url: "https://demo.example.com/api/persons/5/", method: "PATCH", body: { birth_date: "2019-05-03" } },
+      { url: "https://demo.example.com/api/persons/5/", method: "PATCH", body: { birth_date: null } },
+    ]);
+  });
+});
+
 describe("person page", () => {
   it("reads one person", async () => {
     const { client, requests } = fakeServer({

@@ -56,6 +56,8 @@ export type GroupedImageItem<T extends ImageItem = ImageItem> = {
   groupTranslateY?: number;
   height?: number;
   location?: string | null;
+  /** Dimmed beside the date: a person's age on that day (#2751). */
+  note?: string | null;
   /** Pig ignores these; the scroll scrubber reads them back from the handle. */
   year?: number | null;
   month?: number | null;

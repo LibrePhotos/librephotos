@@ -41,6 +41,7 @@ const stubs = vi.hoisted(() => ({
   merge: vi.fn<Merge>(),
   setGroups: vi.fn<SetGroups>(),
   setCover: vi.fn<SetCover>(),
+  birthDate: vi.fn<(from: HTMLElement | null) => void>(),
   cover: undefined as CoverProps | undefined,
 }));
 
@@ -82,6 +83,7 @@ const anna: Person = {
   face_photo_url: "hash",
   face_url: "",
   group_ids: [3],
+  birth_date: null,
 };
 
 const tile = (id: string, isTemp = false): PigPhoto => ({
@@ -130,6 +132,7 @@ beforeEach(async () => {
   stubs.merge.mockReset();
   stubs.setGroups.mockReset();
   stubs.setCover.mockReset();
+  stubs.birthDate.mockReset();
   stubs.cover = undefined;
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -138,7 +141,7 @@ beforeEach(async () => {
     defined(root).render(
       <MantineProvider env="test">
         {/* A loaded photo and the placeholder of a day that has not loaded */}
-        <PersonHeaderMenu person={anna} photos={[tile("h1"), tile("0", true)]} />
+        <PersonHeaderMenu person={anna} photos={[tile("h1"), tile("0", true)]} onBirthDate={stubs.birthDate} />
       </MantineProvider>
     )
   );
@@ -166,7 +169,21 @@ describe("PersonHeaderMenu", () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Set as cover…", "Groups…", "Merge into…", "Manage Faces", "Delete Person"]);
+    expect(items).toEqual([
+      "Rename",
+      "Add birth date…",
+      "Set as cover…",
+      "Groups…",
+      "Merge into…",
+      "Manage Faces",
+      "Delete Person",
+    ]);
+  });
+
+  it("opens the birth date dialog, handing over the ⋮ button for the focus (#2750)", async () => {
+    await pick("personbirthdate.menuadd");
+
+    expect(stubs.birthDate).toHaveBeenCalledWith(button("Person actions"));
   });
 
   it("puts the person in a group on a tick, keeping the groups they are in", async () => {

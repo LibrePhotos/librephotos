@@ -198,6 +198,11 @@ export function isCalendarDay(value: string): boolean {
   return DateTime.fromFormat(value, CALENDAR_DAY_FORMAT).isValid;
 }
 
+/** A `YYYY-MM-DD` day with no time or zone (a person's birth date); invalid when it is no day. */
+export function parseCalendarDay(day: string): DateTime {
+  return DateTime.fromFormat(day, CALENDAR_DAY_FORMAT);
+}
+
 /** A `YYYY-MM-DD` day for people, in the UI language ("Mar 1, 2024"); the value itself if it is no day. */
 export function formatCalendarDay(day: string): string {
   const parsed = DateTime.fromFormat(day, CALENDAR_DAY_FORMAT);

@@ -23,6 +23,7 @@ export const useFetchPersonQuery = (id: number) =>
           face_photo_url: person.face_photo_url ?? "",
           face_url: person.face_url ?? "",
           group_ids: person.group_ids ?? [],
+          birth_date: person.birth_date ?? null,
         };
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) return null;

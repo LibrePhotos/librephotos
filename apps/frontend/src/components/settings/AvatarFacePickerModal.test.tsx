@@ -37,6 +37,7 @@ const person = (id: string, name: string, face_url: string): Person => ({
   face_photo_url: "",
   face_url,
   group_ids: [],
+  birth_date: null,
 });
 
 let container: HTMLDivElement;
