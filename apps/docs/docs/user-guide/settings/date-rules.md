@@ -49,7 +49,7 @@ should be one of the following:
 - "server_local" - the local timezone of the machine running LibrePhotos (in Docker this is normally UTC unless you set a `TZ` for the container)
 - "name:&lt;timezone_name&gt;" - the timezone with the name &lt;timezone_name&gt;, e.g. "name:Europe/Berlin"
 
-The predefined rules use "utc" for "source_tz" and "gps_timezonefinder" or "user_default" for "report_tz". The settings page shows a rule's settings but cannot change them: it only adds the predefined rules. The other values work in a rule list saved through the API (the `datetime_rules` of your user).
+The predefined rules use "utc" for "source_tz" and "gps_timezonefinder" or "user_default" for "report_tz". <Since version="1.5.0" /> A rule you write yourself (see [Writing your own rules](#writing-your-own-rules)) can also convert to a time zone you pick; "server_local" only works in a rule list saved through the API (the `datetime_rules` of your user). Up to 1.4.0 the settings page could not change a rule at all.
 
 If either "source_tz" or "report_tz" could not be obtained, the rule is considered to be not applicable.
 
@@ -103,7 +103,12 @@ Currently, supported rule types:
   could land on another day; [apply the rules again](#applying-the-rules) to fix the photos already
   in your library. A rule with "transform_tz" says itself which zone its tag is in and is not
   changed by this.
-- "path" - time is taken from the filename using a regular expression matching
+- "path" - time is taken from the filename using a regular expression matching. With
+  "path_part" set to "full_path" the whole path is searched instead of the file name.
+  <Since version="1.5.0" /> A rule you write yourself names where the date is with a
+  "date_pattern" such as `YYYY-MM-DD HH.mm.ss` (see [Writing your own rules](#writing-your-own-rules)).
+  An older rule saved through the API with its own regular expression ("custom_regexp") keeps
+  working, but a new or changed rule cannot set one any more.
 - "filesystem" - time is taken from a file property. params["file_property"] must be "mtime"
   (file modified time) or "ctime" (file created time). Since these are UNIX timestamps without
   timezones they are always translated to local time using UTC.
@@ -123,6 +128,44 @@ Currently, supported rule types:
 To add a new rule, go to settings and navigate to the date time parsing rules. Click on the **Add Rule** button. You can now add optional rules, such as using the file's modified or created time.
 
 To remove a rule again, click the X (**Delete rule**) at the right-hand end of its row. The **Reset To Defaults** button next to **Add Rule** puts the list back to the rules LibrePhotos ships with; it is greyed out while your list already matches the default rules in their default order.
+
+### Writing your own rules
+
+<Since version="1.5.0" /> When no predefined rule reads your files' dates, write your own. Click
+**New Rule** next to **Add Rule**, or **Duplicate and edit** (the copy icon) on a predefined rule to
+start from it. A rule you wrote has an **Edit rule** pencil instead; the predefined rules stay as
+they are. In the form:
+
+- **Read the date from**: a **Metadata tag**, the **File name** or the **File time**.
+- **Tag**: one of the date tags LibrePhotos can read, such as `EXIF:CreateDate`,
+  `QuickTime:MediaCreateDate` or `Composite:SubSecDateTimeOriginal`. Tags that usually hold the time
+  in UTC say so. Other tags cannot be picked: a tag name ExifTool does not know reads nothing, and a
+  rule on it would never apply.
+- **Where the date is** (file name): anywhere in the name, a WhatsApp name, or **My own pattern**,
+  written with `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minute), `ss` (second) and
+  `?` (any one character); every other character stands for itself. For files named
+  `2023-01-01 12.00.00 (2).jpg` that is `YYYY-MM-DD HH.mm.ss`, and `DD.MM.YYYY` reads a day-first
+  date. The year, month and day are required. **Try it on a file name** shows the date the pattern
+  reads. **Match the full path** searches the folders too, for example `YYYY/MM/DD`.
+- **Time zone**: **As recorded** keeps the time as the local time it is, **Recorded in UTC** converts
+  it to the time zone at the photo's location, your default time zone or one you pick.
+- **Only when...**: apply the rule only when the folder path, the file name or a tag (the camera
+  model, for example) contains a text.
+- **Name**: filled in from your choices until you write your own.
+
+**Save Rule** checks the rule with the server first and shows anything it refuses next to the field;
+the rule is then added at the end of the list. Like every change to the list, it is stored once you
+confirm **Save changes?**, and photos already in your library get its dates with
+[Apply date rules to existing photos](#applying-the-rules).
+
+### Seeing why a photo has its date
+
+<Since version="1.5.0" /> Open a photo of yours and click **Why this date?** under its date in the
+info panel. It lists every saved rule in order with what it reads from that photo (a date,
+**Does not apply**, or why it cannot run), and marks the one a scan takes the date from with
+**Used**. It also says when the photo shows another date now, which applying the rules or a rescan
+would change, and when the date was set by hand, which wins over every rule. Nothing is changed;
+save the rules first to test a change.
 
 ### Changing the order
 
@@ -147,7 +190,7 @@ If your whole library is shifted by a constant amount — and that amount happen
 
 **A rule change had no effect at all.**
 
-Check that you applied the rules to the photos already in your library with **Apply date rules to existing photos** or **Rescan**, not a normal scan (see above), and that the rule you expect to win is above the one currently matching — the first rule that can produce a time is the one that is used. A rule that names an EXIF tag your files do not carry is silently skipped, so it is worth confirming the tag actually exists in your photos.
+Check that you applied the rules to the photos already in your library with **Apply date rules to existing photos** or **Rescan**, not a normal scan (see above), and that the rule you expect to win is above the one currently matching — the first rule that can produce a time is the one that is used. A rule that names an EXIF tag your files do not carry is silently skipped, so it is worth confirming the tag actually exists in your photos: **Why this date?** on one of them shows what each rule reads.
 
 **One particular photo ignores every rule.**
 

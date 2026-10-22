@@ -32,6 +32,7 @@ import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { TrashedItem } from "./TrashedItem";
 import { VersionComponent } from "./VersionComponent";
+import { WhyThisDate } from "./WhyThisDate";
 
 type SidebarProps = {
   isPublic: boolean;
@@ -320,7 +321,7 @@ function OwnerSidebar({
     <SidebarPanel>
       <Stack>
         <SidebarHeader closeSidepanel={closeSidepanel} />
-        <TimestampItem photoDetail={photoDetail} isPublic={false} />
+        <TimestampItem photoDetail={photoDetail} isPublic={false} extra={<WhyThisDate photo={photoDetail} />} />
         {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
         <VersionComponent
           photoDetail={photoDetail}

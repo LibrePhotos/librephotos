@@ -13,6 +13,7 @@ from typing import Any
 
 import pytz
 
+from api.metadata.date_patterns import compile_date_pattern
 from api.metadata.tags import LOCAL_TIME_TAG_OFFSETS, Tags
 
 logger = logging.getLogger(__name__)
@@ -262,8 +263,11 @@ class TimeExtractionRule:
       - "path" - time is taken from the filename using a regular expression matching
         - if params["path_part"] is set to "full_path" then full path (as seen by backend container)
           is used for regexp matching instead of just fileanme.
-        - if params["custom_regexp"] is specified - that regexp is used instead of default one
+        - if params["date_pattern"] is specified ("YYYY-MM-DD HH.mm.ss", ``api.metadata.date_patterns``)
+          the date is read where that pattern matches. Custom rules made in the settings use it (#2272).
+        - else if params["custom_regexp"] is specified - that regexp is used instead of default one
           (it is still expecting 6 groups to be matched: year, month, day, hour, minute, second).
+          New and changed rules cannot set it any more (``api.metadata.date_rule_checks``).
       - "fs" - time is taken from file property. Since these are unix timestamps without timezones
         they are always translated to local time using UTC.
         - params["file_property"] must be specified and equal to one of the following:
@@ -561,17 +565,26 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unknown path_part {path_part}")
 
-        group_mapping: list[str] | None = None
-        regexp = self.params.get("custom_regexp")
-        if not regexp:
-            predefined_regexp_type = self.params.get("predefined_regexp", "default")
-            if predefined_regexp_type not in PREDEFINED_REGEXPS:
-                raise ValueError(
-                    f"Unknown predefined regexp type {predefined_regexp_type}"
-                )
-            regexp, group_mapping = PREDEFINED_REGEXPS[predefined_regexp_type]
+        regexp, group_mapping = self._path_regexp()
         dt = _extract_no_tz_datetime_from_str(source, regexp, group_mapping)
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
+
+    def _path_regexp(self) -> tuple[str | re.Pattern[str], list[str] | None]:
+        """What a ``path`` rule matches the name against, and the date part of
+        each group: its ``date_pattern`` (a custom rule, #2272), else its
+        ``custom_regexp`` (older rules saved through the API), else a
+        predefined expression."""
+        date_pattern = self.params.get("date_pattern")
+        if date_pattern:
+            compiled = compile_date_pattern(date_pattern)
+            return compiled.regexp, compiled.group_mapping
+        regexp = self.params.get("custom_regexp")
+        if regexp:
+            return regexp, None
+        predefined_regexp_type = self.params.get("predefined_regexp", "default")
+        if predefined_regexp_type not in PREDEFINED_REGEXPS:
+            raise ValueError(f"Unknown predefined regexp type {predefined_regexp_type}")
+        return PREDEFINED_REGEXPS[predefined_regexp_type]
 
     def _apply_filesystem(
         self,
@@ -853,21 +866,69 @@ def as_rules(configs: list[dict[str, Any]]) -> list[TimeExtractionRule]:
     return list(map(TimeExtractionRule, configs))
 
 
-def extract_local_date_time(
-    path: str,
-    rules: list[TimeExtractionRule],
-    exif_getter: Callable[[list[str]], Sequence[object]],
-    context: RuleContext,
-) -> CaptureTime | None:
-    """The capture time the first rule that applies reads, or None."""
+ExifGetter = Callable[[list[str]], Sequence[object]]
+
+
+def _read_tags(
+    rules: list[TimeExtractionRule], exif_getter: ExifGetter
+) -> dict[str, object]:
+    """Every tag any of ``rules`` reads, in one read."""
     required_tags: set[str] = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())
     tag_names = list(required_tags)
     exif_values = exif_getter(tag_names)
-    exif_tags = {k: v for k, v in zip(tag_names, exif_values)}
+    return {k: v for k, v in zip(tag_names, exif_values)}
+
+
+def extract_local_date_time(
+    path: str,
+    rules: list[TimeExtractionRule],
+    exif_getter: ExifGetter,
+    context: RuleContext,
+) -> CaptureTime | None:
+    """The capture time the first rule that applies reads, or None."""
+    exif_tags = _read_tags(rules, exif_getter)
     for rule in rules:
         res = rule.apply(path, exif_tags, context)
         if res:
             return res
     return None
+
+
+@dataclass(frozen=True)
+class RuleOutcome:
+    """What one rule reads from a file: ``found`` when the rule applies,
+    ``error`` when it cannot run at all (a time zone it names is unknown, the
+    file is gone), else neither."""
+
+    params: dict[str, Any]
+    found: CaptureTime | None = None
+    error: str | None = None
+
+
+# What a rule saved through the API can raise while it runs: an unknown time
+# zone (pytz.UnknownTimeZoneError is a KeyError), a broken expression, a
+# missing file for a file time rule.
+_RULE_ERRORS = (ValueError, KeyError, re.error, OSError)
+
+
+def evaluate_rules(
+    path: str,
+    rules: list[TimeExtractionRule],
+    exif_getter: ExifGetter,
+    context: RuleContext,
+) -> list[RuleOutcome]:
+    """What each of ``rules`` reads from the file, from one read of its tags:
+    the "Why this date?" view (#2272). The first one with ``found`` is the one
+    a scan uses (``extract_local_date_time``)."""
+    exif_tags = _read_tags(rules, exif_getter)
+    outcomes: list[RuleOutcome] = []
+    for rule in rules:
+        try:
+            found = rule.apply(path, exif_tags, context)
+        except _RULE_ERRORS as error:
+            outcomes.append(RuleOutcome(rule.params, error=str(error)))
+            continue
+        outcomes.append(RuleOutcome(rule.params, found))
+    return outcomes

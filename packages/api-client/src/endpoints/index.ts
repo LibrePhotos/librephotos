@@ -808,6 +808,27 @@ export async function fetchPredefinedRules(client: ApiClient): Promise<ParsedEnt
   return parseEachResponse(S.DateTimeRule, decodeJsonString(res, context), context);
 }
 
+/** The tags a custom date rule may read and check, and where custom rule ids start (#2272). */
+export async function fetchDateRuleOptions(client: ApiClient): Promise<S.DateRuleOptions> {
+  const res = await client.get<unknown>("/datetime-rules/options/");
+  return parseResponse(S.DateRuleOptions, res, "date rule options");
+}
+
+/**
+ * Ask whether one date rule can be saved, as the settings save checks it. A 400 (`ApiError`) has an
+ * entry per param that cannot, with the param as its `field`.
+ */
+export async function checkDateRule(client: ApiClient, rule: S.DateTimeRule): Promise<S.DateRuleCheck> {
+  const res = await client.post<unknown>("/datetime-rules/check/", { rule });
+  return parseResponse(S.DateRuleCheck, res, "date rule check");
+}
+
+/** What each of the signed-in user's saved date rules reads from one of their photos; changes nothing. */
+export async function fetchDateRulesTest(client: ApiClient, photoId: string): Promise<S.DateRulesTest> {
+  const res = await client.get<unknown>(`/datetime-rules/test/${buildQuery({ photo_id: photoId })}`);
+  return parseResponse(S.DateRulesTest, res, "date rules test");
+}
+
 /** The predefined burst detection rules, parsed rule by rule (see fetchPredefinedRules). */
 export async function fetchPredefinedBurstRules(client: ApiClient): Promise<ParsedEntries<S.BurstDetectionRule>> {
   const res = await client.get<unknown>("/predefinedburstrules/");

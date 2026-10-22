@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { decodeJwtExp, isExpiryClose } from "./jwt";
 import type { ApiClient, ApiClientConfig, RequestOptions, ResponseType, TokenSupplier } from "./types";
 
@@ -72,6 +73,22 @@ export function runningJobId(error: unknown): string | null {
   const [first] = errorEntries(error.body);
   const jobId = typeof first === "object" && first !== null && "job_id" in first ? first.job_id : undefined;
   return typeof jobId === "string" && jobId ? jobId : null;
+}
+
+/** One entry of a 400: the request field at fault and why. */
+const ServerFieldError = z.object({ field: z.string(), message: z.string() });
+export type ServerFieldError = z.infer<typeof ServerFieldError>;
+
+/**
+ * Every field the server refused in a 400, so a form can show each message next to its field. Empty
+ * for any other failure, and entries without a field or message are left out.
+ */
+export function serverFieldErrors(error: unknown): ServerFieldError[] {
+  if (!(error instanceof ApiError) || error.status !== 400) return [];
+  return errorEntries(error.body).flatMap(entry => {
+    const parsed = ServerFieldError.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 /**
