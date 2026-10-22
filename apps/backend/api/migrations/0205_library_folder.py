@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0203_photometadata_edited_keywords'),
+        ('api', '0204_user_whats_new'),
     ]
 
     operations = [
