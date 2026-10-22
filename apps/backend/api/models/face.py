@@ -105,11 +105,19 @@ class Face(models.Model):
         null=True,
     )
 
+    # The box in pixels of the big thumbnail, or of the video frame at
+    # ``video_time`` for a face found in a video's later frames.
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
     location_left = models.IntegerField()
     location_right = models.IntegerField()
     encoding = models.TextField()
+
+    # The second of the video the face was found at (#2761); None for a
+    # photo's faces and a video's faces on its first frame (the big thumbnail).
+    # That frame is not kept, so such a face's crop and encoding cannot be
+    # made again from the big thumbnail: the scan saves both.
+    video_time = models.FloatField(null=True, blank=True)
 
     objects = FaceQuerySet.as_manager()
 

@@ -27,6 +27,14 @@ export const FEATURE_ROWS: readonly FeatureRow[] = [
     update: enabled => ({ face_detection_enabled: enabled }),
   },
   {
+    name: "face_detection_in_videos",
+    label: "sitesettings.feature_face_detection_in_videos",
+    description: "sitesettings.feature_face_detection_in_videos_description",
+    off: "sitesettings.feature_face_detection_in_videos_off",
+    parent: "face_detection",
+    update: enabled => ({ face_detection_in_videos_enabled: enabled }),
+  },
+  {
     name: "face_cluster",
     label: "sitesettings.feature_face_cluster",
     description: "sitesettings.feature_face_cluster_description",

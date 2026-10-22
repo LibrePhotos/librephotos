@@ -534,7 +534,10 @@ class AddFaceView(APIView):
                 box = found.box
             top, right, bottom, left = box
 
-            existing = photo.faces.filter(deleted=False).values_list(
+            # A face from a later video frame is in another picture (#2761).
+            existing = photo.faces.filter(
+                deleted=False, video_time__isnull=True
+            ).values_list(
                 "location_top", "location_right", "location_bottom", "location_left"
             )
             if overlaps_existing_face(existing, top, right, bottom, left):

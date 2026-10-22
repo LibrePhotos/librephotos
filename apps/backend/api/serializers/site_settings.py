@@ -119,6 +119,7 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     reverse_geocoding_enabled = JsonBooleanField(required=False)
     scene_classification_enabled = JsonBooleanField(required=False)
     video_previews_enabled = JsonBooleanField(required=False)
+    face_detection_in_videos_enabled = JsonBooleanField(required=False)
     # Single sign-on (#2725). The providers themselves live in the Django admin.
     oidc_enabled = JsonBooleanField(
         required=False,
@@ -237,6 +238,7 @@ class SiteFeaturesSerializer(serializers.Serializer[None]):
     reverse_geocoding = SiteFeatureStateSerializer()
     scene_classification = SiteFeatureStateSerializer()
     video_previews = SiteFeatureStateSerializer()
+    face_detection_in_videos = SiteFeatureStateSerializer()
 
 
 class SiteModelDownloadSerializer(serializers.Serializer[None]):

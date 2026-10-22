@@ -36,3 +36,16 @@ def calculate_iou(box1: Box, box2: Box) -> float:
         return 0.0
 
     return intersection / union
+
+
+def min_face_height(image_shape: tuple[int, ...], min_face_size: float) -> float:
+    """The lowest face, in pixels, a user's ``min_face_size`` keeps (#2749).
+
+    ``min_face_size`` is a share of the picture's shorter side, so it means
+    the same for portrait and landscape pictures; ``image_shape`` is the
+    picture's (height, width, ...) as numpy gives it. 0 keeps every face.
+    """
+    if min_face_size <= 0:
+        return 0.0
+    height, width = image_shape[:2]
+    return min_face_size * min(height, width)
