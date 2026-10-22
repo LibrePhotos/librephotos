@@ -8,13 +8,16 @@ like bugs (see the comments on
 """
 
 import numpy as np
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from api.faces.cluster_manager import ClusterManager
 from api.models.cluster import (
     UNKNOWN_CLUSTER_ID,
     UNKNOWN_CLUSTER_NAME,
     Cluster,
+    get_unknown_cluster,
     unit_length,
 )
 from api.models.face import Face
@@ -90,6 +93,47 @@ class TryAddClusterTestCase(TestCase):
         stale.refresh_from_db()
         self.assertIsNone(stale.person)
         self.assertEqual(stale.name, UNKNOWN_CLUSTER_NAME)
+
+    def test_unknown_cluster_id_does_not_recreate_a_deleted_face(self):
+        """A face deleted after clustering loaded it (its photo was trashed and
+        emptied, say) stays deleted: a full save() of the stale copy finds no
+        row to update and inserts it again."""
+        face = self._face(6)
+        Face.objects.filter(pk=face.pk).delete()
+
+        ClusterManager.try_add_cluster(self.user, UNKNOWN_CLUSTER_ID, [face])
+
+        self.assertFalse(Face.objects.filter(pk=face.pk).exists())
+
+    def test_unknown_cluster_id_keeps_a_label_set_while_clustering(self):
+        """Only the cluster columns are written, so a person the user gave the
+        face after clustering loaded it is not overwritten by the stale copy."""
+        face = self._face(7)
+        alice = create_test_person(name="Alice", cluster_owner=self.user)
+        Face.objects.filter(pk=face.pk).update(person=alice)
+
+        ClusterManager.try_add_cluster(self.user, UNKNOWN_CLUSTER_ID, [face])
+
+        face.refresh_from_db()
+        self.assertEqual(face.person_id, alice.id)
+        self.assertEqual(
+            face.cluster_id,
+            Cluster.objects.get(owner=self.user, cluster_id=UNKNOWN_CLUSTER_ID).id,
+        )
+
+    def test_unknown_cluster_id_queries_do_not_grow_with_faces(self):
+        alice = create_test_person(name="Alice", cluster_owner=self.user)
+        # Created up front, so neither measured call pays for creating it.
+        get_unknown_cluster(user=self.user)
+
+        def queries_for(count):
+            faces = [self._face(200 + i) for i in range(count)]
+            faces += [self._face(300 + i, person=alice) for i in range(count)]
+            with CaptureQueriesContext(connection) as ctx:
+                ClusterManager.try_add_cluster(self.user, UNKNOWN_CLUSTER_ID, faces)
+            return len(ctx.captured_queries)
+
+        self.assertEqual(queries_for(2), queries_for(8))
 
     def test_unknown_cluster_id_with_no_faces(self):
         result = ClusterManager.try_add_cluster(self.user, UNKNOWN_CLUSTER_ID, [])
