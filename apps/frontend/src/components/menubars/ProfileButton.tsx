@@ -7,6 +7,7 @@ import {
   IconListDetails as ListDetails,
   IconLogout as Logout,
   IconSettings as Settings,
+  IconSparkles as Sparkles,
   IconUser as User,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -21,6 +22,7 @@ import { CancelJobModal } from "../job/CancelJobModal";
 import { ShortcutHint } from "../shortcuts/ShortcutHint";
 import { ShortcutsMenuItem } from "../shortcuts/ShortcutsMenuItem";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
+import { useWhatsNew } from "../whatsnew/whatsNewContext";
 import { ImportJobMenuSection, importPercent } from "./ImportJobMenuSection";
 import { jobPercent, WorkerJobMenuSection } from "./WorkerJobMenuSection";
 import { WorkerProgressRing } from "./WorkerProgressRing";
@@ -31,6 +33,7 @@ export function ProfileButton(): React.ReactNode {
   const { mutate: logout } = useLogoutMutation();
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
   const navigate = useNavigate();
+  const whatsNew = useWhatsNew();
   const { workerRunningJob, currentData } = useWorkerStatus();
   // Busy only once the worker has answered; no ring while the first poll is in flight.
   const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
@@ -121,6 +124,11 @@ export function ProfileButton(): React.ReactNode {
             onClick={() => navigate({ to: "/jobs" })}
           >
             {t("topmenu.jobs")}
+          </Menu.Item>
+
+          {/* The highlights of this release, also after the What's new card was closed (#2305). */}
+          <Menu.Item leftSection={<Sparkles size={14} />} onClick={() => whatsNew.open()}>
+            {t("whatsnew.menu")}
           </Menu.Item>
 
           {user && user.is_superuser && <Menu.Divider />}

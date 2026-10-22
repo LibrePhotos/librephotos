@@ -1,4 +1,4 @@
-import { Card, Flex, Select, Title } from "@mantine/core";
+import { Card, Flex, Select, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { SectionLink } from "./SettingsSection";
@@ -27,6 +27,15 @@ export function InterfaceCard({ user, onChange }: UserSettingsCardProps) {
             label: t("settings.slideshowseconds", { count: seconds }),
           }))}
         />
+        {/* The What's new card after an update (#2305); an older server does not have the switch. */}
+        {user.show_whats_new === undefined ? null : (
+          <Switch
+            label={t("settings.showwhatsnew")}
+            description={t("settings.showwhatsnewdesc")}
+            checked={user.show_whats_new}
+            onChange={event => onChange({ show_whats_new: event.currentTarget.checked })}
+          />
+        )}
       </Flex>
     </Card>
   );

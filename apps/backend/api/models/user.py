@@ -153,6 +153,11 @@ class User(AbstractUser):
     # "media" ("all"/"photos"/"videos"), "hide_screenshots", "hide_documents"
     # and "favorites". Empty shows everything. See api.albums.timeline_filter.
     default_timeline_filter = models.JSONField(default=dict, blank=True)
+    # The "What's new" card (#2305): the release whose card this user last
+    # closed or opened ("" before the first one), and whether the card shows
+    # after an update at all. The account menu opens it either way.
+    last_seen_release = models.CharField(max_length=32, blank=True, default="")
+    show_whats_new = models.BooleanField(default=True)
 
     # Duplicate detection settings
     class DuplicateSensitivity(models.TextChoices):

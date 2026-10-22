@@ -107,6 +107,11 @@ export const User = z.object({
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),
   default_timeline_filter: TimelineFilterDefault.optional().default({}),
+  // The What's new card (#2305): the release whose card the user last closed or opened ("" before
+  // the first), and whether the card shows after an update. Optional: an older server has neither,
+  // and the web app then shows no card, since it could not remember that it was closed.
+  last_seen_release: z.string().optional(),
+  show_whats_new: z.boolean().optional(),
 });
 export type User = z.infer<typeof User>;
 

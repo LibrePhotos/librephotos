@@ -64,6 +64,18 @@ With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `do
 
 Only admins see it. The card comes from a daily check that can be turned off; see [Checking for new releases](environment-variables.md#update-check). Docker installs that run the `dev` image, and installs from source, have no release to compare and never show it.
 
+## The What's new card {#whats-new}
+
+<Since version="1.5.0" /> After an update, each user sees a small **What's new** card once, in the bottom left corner of the first page they open (on a phone, above the menu at the bottom). It lists the highlights of the new version, the same ones as the "What's new for you" part of the release notes. When you skipped a few updates, it shows the highlights of up to three of them.
+
+- **See what's new** opens every highlight with a **Learn more** link to these docs and, where it fits, **Open** to go to the place in the app. Several versions have a switch at the top.
+- **Release notes** opens the release post on this site.
+- The close button hides the card.
+
+Closing the card or opening **See what's new** counts as seen, on every browser and device of that user, so the card does not come back until the next update. **Account menu > What's new** and the version line at the bottom of the sidebar show the highlights again at any time (while a newer release is out, the version line takes admins to the [Update available card](#update-available) instead). Admins also see how many tasks the [Finish the upgrade card](#finish-the-upgrade) still has.
+
+The highlights are part of the app, so nothing is downloaded and nothing about your server is sent. They are in English for now. Someone who joins after an update does not get the card for that version, and installs that run the `dev` image never show it. Each user can turn the card off under **Settings** > **Interface**, and admins can turn it off for everyone under **Site Settings** with **Show users what's new after an update**.
+
 ## The Finish the upgrade card {#finish-the-upgrade}
 
 <Since version="1.4.0" /> Up to 1.3.0, the work an update left was only described in the release notes, and some of it needed a terminal.

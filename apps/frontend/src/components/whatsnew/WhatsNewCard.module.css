@@ -1,0 +1,11 @@
+/* Above the page content and the phone footer, like the upload card (which it waits for). */
+.card {
+  z-index: 150;
+}
+
+/* The highlights: a plain list, without bullets or indent. */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

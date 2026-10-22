@@ -6,6 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { ShortcutsOverlayContext } from "../shortcuts/shortcutsOverlay";
 import type { UploadProcessing } from "../upload/useUploadProcessing";
+import { WhatsNewContext } from "../whatsnew/whatsNewContext";
 import { ProfileButton } from "./ProfileButton";
 import { jobPercent } from "./WorkerJobMenuSection";
 
@@ -17,6 +18,7 @@ const stubs = vi.hoisted(() => ({
   upgradeTasksLeft: 0,
   cancelJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),
   openImports: [] as ImportJob[],
+  openWhatsNew: vi.fn<(releases?: readonly string[]) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
@@ -64,7 +66,9 @@ const render = async (worker: Worker) => {
     root.render(
       // env="test" renders the menu inline and without transitions.
       <MantineProvider env="test">
-        <ProfileButton />
+        <WhatsNewContext.Provider value={{ open: stubs.openWhatsNew }}>
+          <ProfileButton />
+        </WhatsNewContext.Provider>
       </MantineProvider>
     );
   });
@@ -280,6 +284,19 @@ describe("ProfileButton keyboard shortcuts (#2037)", () => {
     await openMenu();
 
     expect(shortcutsItem()).toBeUndefined();
+  });
+});
+
+describe("ProfileButton What's new", () => {
+  it("opens the What's new dialog from the account menu (#2305)", async () => {
+    await render({ queue_can_accept_job: true, job_detail: null });
+    await openMenu();
+    const item = [...container.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      candidate => candidate.textContent === i18n.t("whatsnew.menu")
+    );
+    expect(item).toBeDefined();
+    await act(async () => item?.click());
+    expect(stubs.openWhatsNew).toHaveBeenCalledWith();
   });
 });
 

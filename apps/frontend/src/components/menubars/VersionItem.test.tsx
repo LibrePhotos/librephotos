@@ -9,6 +9,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { click, renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
+import { WhatsNewContext } from "../whatsnew/whatsNewContext";
 import { VersionItem } from "./VersionItem";
 
 const stubs = vi.hoisted(() => ({
@@ -17,6 +18,7 @@ const stubs = vi.hoisted(() => ({
   notice: null as Pick<UpdateStatus, "latest"> | null,
   asked: [] as boolean[],
   navigate: vi.fn<(options: { to: string; hash: string }) => Promise<void>>(),
+  openWhatsNew: vi.fn<(releases?: readonly string[]) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -76,6 +78,19 @@ describe("VersionItem", () => {
     const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
     const line = defined(container.querySelector("a"), "the version link");
     line.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
+    expect(stubs.navigate).not.toHaveBeenCalled();
+  });
+
+  it("opens What's new when there is no update notice (#2305)", async () => {
+    const { container } = await renderInMantine(
+      <WhatsNewContext.Provider value={{ open: stubs.openWhatsNew }}>
+        <VersionItem iconColor="gray" />
+      </WhatsNewContext.Provider>
+    );
+    const line = defined(container.querySelector("button"), "the version button");
+    expect(line.getAttribute("aria-label")).toBe("Version 1.4.0, what's new");
+    await click(line);
+    expect(stubs.openWhatsNew).toHaveBeenCalledWith();
     expect(stubs.navigate).not.toHaveBeenCalled();
   });
 

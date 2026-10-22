@@ -151,9 +151,10 @@ Do them in this order, so the docs and their pictures are live before the releas
    of #2306 exists it runs on the e2e stack, whose eight photos have no faces, places or events, so
    leave the landing page tour (`timeline`, `lightbox`, `faces`, `places`, `events`) out of it.
 2. Write the post and its front matter as above, in a PR against `dev`.
-3. In `apps/docs`, run `node scripts/build-releases.mjs` and commit `src/data/releases.json`. This is
-   what flips the `<Since version="<tag>" />` markers and the "New in" block. If the app's "What's new"
-   card (#2305) has its own generated file, regenerate and commit it in the same PR.
+3. In `apps/docs`, run `node scripts/build-releases.mjs` and commit `src/data/releases.json` and
+   `apps/frontend/src/components/whatsnew/releases.json`. The first is what flips the
+   `<Since version="<tag>" />` markers and the "New in" block; the second is what the app's
+   **What's new** card shows after the update (`summary` and the `highlights`, the 5 newest releases).
 4. Run `node scripts/check-release-posts.mjs`, `yarn build` and `node scripts/check-release-posts.mjs --build build`.
 5. Merge the PR. The docs deploy from that push to `dev`.
 6. Generate the body and check how GitHub renders it, without creating anything:

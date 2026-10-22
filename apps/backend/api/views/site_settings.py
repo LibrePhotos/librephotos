@@ -70,6 +70,7 @@ SETTING_KEYS = (
     "OIDC_BUTTON_LABEL",
     "OIDC_ALLOW_SIGNUP",
     "UPDATE_CHECK",
+    "WHATS_NEW_ENABLED",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -213,6 +214,9 @@ class SiteSettingsView(APIView):
         out["oidc_enabled"] = config["OIDC_ENABLED"]
         out["oidc_button_label"] = config["OIDC_BUTTON_LABEL"]
         out["oidc_allow_signup"] = config["OIDC_ALLOW_SIGNUP"]
+        # Sent to everyone: every user's app decides whether to show the
+        # What's new card after an update (#2305).
+        out["whats_new_enabled"] = config["WHATS_NEW_ENABLED"]
         if request.user.is_staff:
             # The Features card's state: admin-only, like the settings it shows.
             out["features"] = _features(config)

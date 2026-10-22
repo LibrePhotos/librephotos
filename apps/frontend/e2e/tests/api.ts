@@ -59,3 +59,20 @@ export async function startScan(request: APIRequestContext, token: string) {
     `scan did not start: ${typeof message === "string" ? message : response.status()}`
   ).toBeTruthy();
 }
+
+/** The tag the server runs (`IMAGE_TAG`), as the What's new card reads it. */
+export async function imageTag(request: APIRequestContext, token: string): Promise<string> {
+  const response = await request.get("/api/imagetag/", { headers: { Authorization: `Bearer ${token}` } });
+  expect(response.ok(), `GET /api/imagetag/ failed: ${response.status()}`).toBeTruthy();
+  const tag = field(await response.json(), "image_tag");
+  return typeof tag === "string" ? tag : "";
+}
+
+/** Set which release's What's new card the user saw last (#2305), and turn the card on. */
+export async function setLastSeenRelease(request: APIRequestContext, token: string, userId: number, release: string) {
+  const response = await request.patch(`/api/user/${userId}/`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { last_seen_release: release, show_whats_new: true },
+  });
+  expect(response.ok(), `setting last_seen_release failed: ${await response.text()}`).toBeTruthy();
+}
