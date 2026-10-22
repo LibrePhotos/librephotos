@@ -18,13 +18,17 @@ from typing import TYPE_CHECKING
 import PIL.Image
 import requests
 from django.core.files.base import ContentFile
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
 import api.models
-from api.faces import extractor
-from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
+from api.faces import extractor, video_faces
+from api.faces.geometry import (
+    FACE_OVERLAP_IOU_THRESHOLD,
+    calculate_iou,
+    min_face_height,
+)
 from api.faces.recognition import get_face_encodings
 from api.lazy_import import LazyModule
 from api.metadata.reader import sidecar_files_for_photo
@@ -135,7 +139,7 @@ def _detect_and_save_faces(
         unknown_cluster,
         # Fetched once to avoid repeated DB queries; grows with every saved face.
         list(
-            api.models.face.Face.objects.filter(photo=photo).values_list(
+            _first_frame_faces(photo).values_list(
                 "location_top", "location_right", "location_bottom", "location_left"
             )
         ),
@@ -151,7 +155,42 @@ def _detect_and_save_faces(
     _save_new_faces(scan, regions or [])
     detected = extractor.extract_from_face_service(thumbnail_path)
     _save_new_faces(scan, big_enough_faces(scan, detected))
+    if photo.video and feature_enabled("FACE_DETECTION_IN_VIDEOS"):
+        _save_frame_faces(scan)
     logger.info("image %s: %s face(s) saved", photo.image_hash, scan.saved)
+
+
+def _first_frame_faces(photo: Photo) -> QuerySet[api.models.face.Face]:
+    """The faces whose box is in the big thumbnail: all of a photo's.
+
+    A video's faces from its later frames (``Face.video_time``) are in the
+    pixels of another frame: overlapping one of them says nothing.
+    """
+    return api.models.face.Face.objects.filter(photo=photo, video_time__isnull=True)
+
+
+def _save_frame_faces(scan: _FaceScan) -> None:
+    """Save the people of a video's later frames that it has no face of (#2761).
+
+    A person is matched by encoding against every face the video has, the
+    deleted ones too: a face the user deleted is not found again.
+    """
+    photo = scan.photo
+    known = [
+        face.get_encoding_array()
+        for face in api.models.face.Face.objects.filter(photo=photo).exclude(
+            encoding=""
+        )
+    ]
+    for face in video_faces.frame_faces(photo, known):
+        save_detected_face(
+            photo,
+            DetectedFace(face.image, face.location, face.encoding, face.video_time),
+            photo.image_hash + "_" + str(scan.saved) + ".jpg",
+            None,
+            scan.unknown_cluster,
+        )
+        scan.saved += 1
 
 
 def big_enough_faces(
@@ -164,11 +203,9 @@ def big_enough_faces(
     service's detections are filtered: face regions from the file and faces
     drawn by hand are the user's own and always kept.
     """
-    min_face_size = scan.photo.owner.min_face_size
-    if min_face_size <= 0:
-        return face_locations
-    height, width = scan.big_thumbnail_image.shape[:2]
-    min_height = min_face_size * min(height, width)
+    min_height = min_face_height(
+        scan.big_thumbnail_image.shape, scan.photo.owner.min_face_size
+    )
     kept = [
         location
         for location in face_locations
@@ -246,7 +283,7 @@ def _give_encoding_to_overlapping_face(
     """
     best_face = None
     best_iou = FACE_OVERLAP_IOU_THRESHOLD
-    for face in api.models.face.Face.objects.filter(photo=photo):
+    for face in _first_frame_faces(photo):
         iou = calculate_iou(
             location,
             (
@@ -286,7 +323,7 @@ def _reconcile_xmp_face_name(
     location: tuple[int, int, int, int],
 ) -> None:
     top, right, bottom, left = location
-    for existing_face in api.models.face.Face.objects.filter(photo=photo):
+    for existing_face in _first_frame_faces(photo):
         existing_location = (
             existing_face.location_top,
             existing_face.location_right,
@@ -317,6 +354,9 @@ class DetectedFace:
     location: tuple[int, int, int, int]
     # None until the face service encodes it (generate_face_encoding).
     encoding: npt.NDArray[float64] | None = None
+    # The second of the video frame it was found in (#2761); None for the
+    # big thumbnail, where ``location`` is then.
+    video_time: float | None = None
 
 
 def save_detected_face(
@@ -340,6 +380,7 @@ def save_detected_face(
         encoding="" if encoding is None else encoding.tobytes().hex(),
         person=person,
         cluster=cluster,
+        video_time=detected.video_time,
     )
     face.image.save(image_path, _jpeg(face_image))
     face.save()
@@ -363,11 +404,15 @@ def restore_missing_crops(user: User) -> int:
     and ``AddFace`` cut it), so its crop comes from the big thumbnail again,
     without the face service. A face that cannot be cut (no thumbnail, an
     unreadable one, a box outside it) keeps no crop and is tried again on the
-    next run. Deleted faces are left alone. Returns how many crops were saved.
+    next run. Deleted faces are left alone, and so are faces from a video's
+    later frames (#2761): their frame is gone, and the scan saved their crop.
+    Returns how many crops were saved.
     """
     faces = (
         api.models.face.Face.objects.owned_by(user)
-        .filter(Q(image="") | Q(image__isnull=True), deleted=False)
+        .filter(
+            Q(image="") | Q(image__isnull=True), deleted=False, video_time__isnull=True
+        )
         .select_related("photo__thumbnail")
     )
     restored = 0
@@ -424,8 +469,13 @@ def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
 def generate_face_encoding(face: api.models.face.Face) -> None:
     """Ask the face service for the encoding of ``face``'s region and save it.
 
-    Moved out of ``Face`` so the model makes no sidecar calls (#2336).
+    Moved out of ``Face`` so the model makes no sidecar calls (#2336). A
+    face from a video's later frames is left as it is: its box is not in the
+    big thumbnail, and the scan saved its encoding with it (#2761).
     """
+    if face.video_time is not None:
+        logger.debug("face %s: from a video frame, not encoded again", face.id)
+        return
     photo = face.photo
     assert photo is not None
     encodings = get_face_encodings(

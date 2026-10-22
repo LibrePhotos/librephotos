@@ -172,6 +172,14 @@ Photos that already carry XMP `RegionInfo` face regions in the file or its XMP s
 
 <Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face Options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
 
+### Faces in videos {#faces-in-videos}
+
+<Since version="1.5.0" /> A video is not read only on its first frame, the one its thumbnail shows. The face scan also reads up to 8 frames spread from 5% to 95% of the video (one per second at most, so a short clip gets fewer) and looks for faces in each. A person seen in several frames gets one face for the video, the largest one found: a face that looks like a face the video already has (its first frame's, or one an earlier scan found) is the same person and is not added again. The video then shows up in that person's album once the face is labelled or recognised. Videos shorter than 2 seconds, or whose length the scan could not read, are read on their first frame only, as before.
+
+Up to 1.4.0, only the first frame of a video was read. After updating, the next face scan (after a photo scan, or **Scan faces** on the Library page) reads the other frames of every video once; the faces the videos have already stay as they are. Reading the frames costs a few seconds per video, and at most two minutes for a long one. To scan videos on their first frame only, turn off **Faces in videos** under **Face detection** in the Features card (see [Feature Toggles](./feature-toggles.md#site-settings-switches)).
+
+A face from a later frame has its thumbnail and embedding from the scan, since the frame itself is not kept: **Train faces** does not encode it again, a thumbnail that went missing is not cut again, and **Write face tags to image files** does not write it into the video as a face region, because its box is in another frame than the one other apps would show.
+
 <Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.
 
 <Since version="1.4.0" /> Up to 1.3.0, the face regions of a HEIC or AVIF photo whose EXIF Orientation disagrees with the file's own rotation (for example one turned with **Save to media file** in an earlier version) were read from, and written to, the wrong part of the photo.

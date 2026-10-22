@@ -27,6 +27,8 @@ from api.models.tag import Tag
 from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
     from api.models.photo import Photo
 
 logger = logging.getLogger(__name__)
@@ -247,9 +249,7 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     Returns:
         dict: e.g. {"XMP-mwg-rs:RegionInfo": "{RegionList=[...]}"}  or {}
     """
-    faces = list(
-        Face.objects.filter(photo=photo, deleted=False).select_related("person")
-    )
+    faces = list(_region_faces(photo).filter(deleted=False).select_related("person"))
     if not faces:
         return _cleared_region_tags(photo, use_sidecar)
 
@@ -283,6 +283,15 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     )
 
 
+def _region_faces(photo: Photo) -> QuerySet[Face]:
+    """The faces that are regions of the file: a video's later frames' are not.
+
+    Their boxes are in the pixels of a frame of the video (#2761), which no
+    region of the file can say.
+    """
+    return Face.objects.filter(photo=photo, video_time__isnull=True)
+
+
 def _cleared_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]:
     """The tags that take every face region out of the target (#1531), or none.
 
@@ -292,7 +301,7 @@ def _cleared_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     ``RegionInfo``; a sidecar gets ``NO_REGIONS``. The names of the regions
     go from the keywords too, as on a relabel (``_person_keyword_tags``).
     """
-    if not Face.objects.filter(photo=photo, deleted=True).exists():
+    if not _region_faces(photo).filter(deleted=True).exists():
         return {}
     region_info = _region_info(photo, sidecar_files_for_photo(photo))
     if not _face_regions(region_info):

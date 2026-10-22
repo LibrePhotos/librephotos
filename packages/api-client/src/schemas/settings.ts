@@ -20,6 +20,8 @@ export const SiteFeatures = z.object({
   scene_classification: SiteFeatureState,
   // Animated grid previews of videos (#649). Optional: older backends do not have the switch.
   video_previews: SiteFeatureState.optional(),
+  // Faces in a video's later frames, not only its first (#2761). Optional: older backends do not have the switch.
+  face_detection_in_videos: SiteFeatureState.optional(),
 });
 export type SiteFeatures = z.infer<typeof SiteFeatures>;
 export type SiteFeatureName = keyof SiteFeatures;

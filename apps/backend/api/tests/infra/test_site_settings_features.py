@@ -28,6 +28,7 @@ FEATURE_KEYS = {
     "reverse_geocoding",
     "scene_classification",
     "video_previews",
+    "face_detection_in_videos",
 }
 
 

@@ -51,6 +51,7 @@ function features(overrides: Partial<SiteFeatures> = {}): SiteFeatures {
     reverse_geocoding: on,
     scene_classification: { ...on, model_ready: true },
     video_previews: on,
+    face_detection_in_videos: on,
     ...overrides,
   };
 }
@@ -132,6 +133,7 @@ describe("FeaturesCard", () => {
       "reverse_geocoding",
       "video",
       "video_previews",
+      "face_detection_in_videos",
     ]) {
       expect(switchOf(name).checked).toBe(true);
     }
@@ -206,6 +208,15 @@ describe("FeaturesCard", () => {
     expect(switchOf("video_previews").disabled).toBe(true);
     expect(container.textContent).toContain("FEATURE_VIDEO_PREVIEWS");
     expect(container.textContent).not.toContain("sitesettings.feature_video_previews_existing");
+  });
+
+  it("turns the faces in videos off and disables them while face detection is off", async () => {
+    await render();
+    await toggle("face_detection_in_videos");
+    expect(defined(mocks.save.mock.calls[0])[0]).toEqual({ face_detection_in_videos_enabled: false });
+    expect(container.textContent).toContain("sitesettings.feature_face_detection_in_videos_off");
+    await toggle("face_detection");
+    expect(switchOf("face_detection_in_videos").disabled).toBe(true);
   });
 
   it("leaves out a switch an older backend does not have", async () => {

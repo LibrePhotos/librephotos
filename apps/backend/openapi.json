@@ -23868,11 +23868,15 @@
           },
           "video_previews": {
             "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "face_detection_in_videos": {
+            "$ref": "#/components/schemas/SiteFeatureState"
           }
         },
         "required": [
           "face_cluster",
           "face_detection",
+          "face_detection_in_videos",
           "image_captioning",
           "reverse_geocoding",
           "scene_classification",
@@ -24159,6 +24163,9 @@
             "type": "boolean"
           },
           "video_previews_enabled": {
+            "type": "boolean"
+          },
+          "face_detection_in_videos_enabled": {
             "type": "boolean"
           },
           "oidc_enabled": {
