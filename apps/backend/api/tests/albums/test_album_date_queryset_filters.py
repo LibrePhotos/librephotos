@@ -319,9 +319,9 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
 
         self.assertEqual([str(p.pk) for p in photos], [str(p.pk) for p in self.photos])
 
-    def test_size_and_page_slice_the_result_while_count_stays_total(self):
+    def test_page_size_and_page_slice_the_result_while_count_stays_total(self):
         _, page_two, count = self.run_queryset(
-            self.user, self.album, size="2", page="2"
+            self.user, self.album, page_size="2", page="2"
         )
 
         self.assertEqual(
@@ -332,7 +332,7 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
 
     def test_non_integer_page_falls_back_to_the_first_page(self):
         _, photos, _ = self.run_queryset(
-            self.user, self.album, size="2", page="not-a-number"
+            self.user, self.album, page_size="2", page="not-a-number"
         )
 
         self.assertEqual(
@@ -341,7 +341,9 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
         )
 
     def test_page_beyond_the_end_falls_back_to_the_last_page(self):
-        _, photos, _ = self.run_queryset(self.user, self.album, size="2", page="99")
+        _, photos, _ = self.run_queryset(
+            self.user, self.album, page_size="2", page="99"
+        )
 
         self.assertEqual([str(p.pk) for p in photos], [str(self.photos[4].pk)])
 

@@ -636,15 +636,6 @@
           },
           {
             "in": "query",
-            "name": "size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Deprecated alias of page_size.",
-            "deprecated": true
-          },
-          {
-            "in": "query",
             "name": "username",
             "schema": {
               "type": "string",
@@ -13758,14 +13749,6 @@
           "num_pages": {
             "type": "integer"
           },
-          "has_next": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: next is not null"
-          },
-          "has_previous": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: previous is not null"
-          },
           "results": {
             "type": "array",
             "items": {
@@ -13775,8 +13758,6 @@
         },
         "required": [
           "count",
-          "has_next",
-          "has_previous",
           "next",
           "num_pages",
           "page",
@@ -14370,42 +14351,9 @@
           "photo_count"
         ]
       },
-      "FolderLegacyPagination": {
-        "type": "object",
-        "description": "The page fields as ``GET /api/folders/subfolders/`` sent them before #2327.",
-        "properties": {
-          "page": {
-            "type": "integer"
-          },
-          "page_size": {
-            "type": "integer"
-          },
-          "total_folders": {
-            "type": "integer",
-            "description": "Directory entries, also those without photos"
-          },
-          "total_pages": {
-            "type": "integer"
-          },
-          "has_next": {
-            "type": "boolean"
-          },
-          "has_previous": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "has_next",
-          "has_previous",
-          "page",
-          "page_size",
-          "total_folders",
-          "total_pages"
-        ]
-      },
       "FolderSubfoldersPage": {
         "type": "object",
-        "description": "``GET /api/folders/subfolders/``: one page of a folder's subfolders.\n\nThe page envelope (``api/drf/pagination.py``), with the folder's own paths.\nA page holds 100 directory entries, and those without photos are dropped\nafter paging, so a page can hold fewer, or none, while ``next`` says more\nfollow. ``subfolders`` and ``pagination`` repeat the page for web bundles\nup to 1.3.",
+        "description": "``GET /api/folders/subfolders/``: one page of a folder's subfolders.\n\nThe page envelope (``api/drf/pagination.py``), with the folder's own paths.\nA page holds 100 directory entries, and those without photos are dropped\nafter paging, so a page can hold fewer, or none, while ``next`` says more\nfollow.",
         "properties": {
           "count": {
             "type": "integer",
@@ -14445,21 +14393,6 @@
             "type": "string",
             "nullable": true,
             "description": "null at the top the caller may see"
-          },
-          "subfolders": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FolderEntry"
-            },
-            "description": "Deprecated, for web bundles up to 1.3: results"
-          },
-          "pagination": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/FolderLegacyPagination"
-              }
-            ],
-            "description": "Deprecated, for web bundles up to 1.3: the page fields"
           }
         },
         "required": [
@@ -14469,11 +14402,9 @@
           "num_pages",
           "page",
           "page_size",
-          "pagination",
           "parent_path",
           "previous",
-          "results",
-          "subfolders"
+          "results"
         ]
       },
       "GenerateCaptionsRequestRequest": {
@@ -18997,14 +18928,6 @@
           "num_pages": {
             "type": "integer"
           },
-          "has_next": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: next is not null"
-          },
-          "has_previous": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: previous is not null"
-          },
           "results": {
             "type": "array",
             "items": {
@@ -19014,8 +18937,6 @@
         },
         "required": [
           "count",
-          "has_next",
-          "has_previous",
           "next",
           "num_pages",
           "page",

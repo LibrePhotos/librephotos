@@ -56,8 +56,7 @@ export const DuplicateListItem = z.object({
 export type DuplicateListItem = z.infer<typeof DuplicateListItem>;
 
 /**
- * One page of duplicate groups: the shared page envelope (backend api/drf/pagination.py). The
- * server still adds `has_next`/`has_previous` for bundles up to 1.3; `next`/`previous` say the same.
+ * One page of duplicate groups: the shared page envelope (backend api/drf/pagination.py).
  */
 export const DuplicateListResponse = z.object({
   ...PageFields,

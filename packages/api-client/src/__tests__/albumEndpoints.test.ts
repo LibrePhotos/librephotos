@@ -343,8 +343,6 @@ describe("places and folders", () => {
     ]);
     expect(listing.results.map(folder => folder.name)).toEqual(["2023", "2024"]);
     expect(defined(listing.results[1]).cover_photo).toEqual({ image_hash: "h2024", video: true });
-    // The copies kept for older web bundles are not read.
-    expect(listing).not.toHaveProperty("subfolders");
   });
 
   it("reads every subfolder of a path, following next, with the folder's paths", async () => {
@@ -355,7 +353,7 @@ describe("places and folders", () => {
       num_pages: 2,
     };
     const later = { name: "2025", path: "/data/photos/2025", photo_count: 3, modified: 1737373737 };
-    const pageTwo = { ...folderSubfolders, results: [later], subfolders: [later], previous: "x", page: 2, count: 3 };
+    const pageTwo = { ...folderSubfolders, results: [later], previous: "x", page: 2, count: 3 };
     const { client, requests } = fakeServerByUrl(url => (url.includes("page=2") ? pageTwo : pageOne));
     const listing = await endpoints.fetchAllFolderSubfolders(client, { path: "/data/photos" });
     // The server's host in `next` is not followed, only its query

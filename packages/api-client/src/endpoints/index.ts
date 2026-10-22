@@ -1222,13 +1222,19 @@ export async function detectDuplicates(
 
 /* ---- sharing ----------------------------------------------------------- */
 
+/**
+ * The shared photo lists render as one grid that can hold thousands of photos: read them in the
+ * largest pages the server allows (1000, backend api/drf/pagination.py) rather than its default 100.
+ */
+const SHARED_PHOTOS_PAGE = buildQuery({ page_size: 1000 });
+
 export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
-  const results = await fetchAllPages(client, "/photos/shared/fromme/");
+  const results = await fetchAllPages(client, `/photos/shared/fromme/${SHARED_PHOTOS_PAGE}`);
   return parseResponse(S.SharedPhotosResponse, { results }, "shared photos by me").results;
 }
 
 export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.SharedToMePhotosResponse["results"]> {
-  const results = await fetchAllPages(client, "/photos/shared/tome/");
+  const results = await fetchAllPages(client, `/photos/shared/tome/${SHARED_PHOTOS_PAGE}`);
   return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 

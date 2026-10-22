@@ -2,7 +2,7 @@
 
 Both lists render PhotoSummarySerializer over a queryset that only loaded a
 few columns, so every other field and relation it reads was a query per photo
-(about 15 each, at up to 2500 photos a page).
+(about 15 each, at up to 100 photos a page).
 """
 
 from django.db import connection

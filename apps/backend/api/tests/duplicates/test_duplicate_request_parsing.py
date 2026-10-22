@@ -57,7 +57,9 @@ class DuplicateListQueryTest(TestCase):
         self.assertEqual(len(data["results"]), 1)
         self.assertIsNone(data["next"])
         self.assertIn("page_size=2", data["previous"])
-        self.assertEqual((data["has_next"], data["has_previous"]), (False, True))
+        # The pre-#2327 flags were dropped after 1.4.0 (#2500).
+        self.assertNotIn("has_next", data)
+        self.assertNotIn("has_previous", data)
 
     def test_filters(self):
         data = self.client.get(

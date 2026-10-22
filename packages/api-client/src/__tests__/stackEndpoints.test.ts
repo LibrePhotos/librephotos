@@ -17,8 +17,8 @@ import { fakeServer } from "./harness";
 const API = "https://demo.example.com/api";
 
 describe("stack reads", () => {
-  it("reads a page of stacks, legacy has_next/has_previous included", async () => {
-    const { client, requests } = fakeServer({ ...stackList, has_next: false, has_previous: false });
+  it("reads a page of stacks", async () => {
+    const { client, requests } = fakeServer(stackList);
     const page = await endpoints.fetchStacks(client, { page: 1, pageSize: 20, stackType: "burst" });
     expect(defined(requests[0]).url).toBe(`${API}/stacks?page=1&page_size=20&stack_type=burst`);
     expect(page.results.map(stack => stack.stack_type)).toEqual(["burst", "manual"]);
