@@ -140,27 +140,24 @@ class DefaultPagination(PageNumberPagination):
 
 
 class WholeListPagination(DefaultPagination):
-    """1000 a page, for the lists every client released so far reads whole.
+    """1000 a page, for the lists that released clients read only the first page of.
 
-    Albums, people, tags and users (and the photo edit list, which had the
-    same class): the web and the mobile app up to 1.3 read only the first page
-    of these, so their page stays at the 1000 it always had. Move a view to
-    ``DefaultPagination`` once a web and a mobile release that follow ``next``
-    (``fetchAllPages``) have shipped.
+    The web app and the mobile app follow ``next`` (``fetchAllPages``), so
+    every other list pages by 100. These keep 1000 for clients that read one
+    page as the whole list, so a library with more than 100 of them would lose
+    the rest:
+
+    - people (``/api/persons/``): UhuruPhotos and the old React Native app
+      (1.1.1);
+    - user albums (``/api/albums/user/list/``): the same two;
+    - auto albums (``/api/albums/auto/list/``): UhuruPhotos;
+    - thing albums (``/api/albums/thing/list/``): the old React Native app.
+
+    Move a view to ``DefaultPagination`` once those clients follow ``next``
+    or are no longer used.
     """
 
     page_size = MAX_PAGE_SIZE
-
-
-class PhotoGridPagination(DefaultPagination):
-    """2500 a page (and at most that), for photo lists that render as one grid.
-
-    The shared-photo and shared-album lists, which clients up to 1.3 also read
-    whole, and the photo list.
-    """
-
-    page_size = 2500
-    max_page_size = 2500
 
 
 class DayAlbumPagination(DefaultPagination):
@@ -169,22 +166,8 @@ class DayAlbumPagination(DefaultPagination):
     Clients work the page numbers out from the day's ``numberOfItems``, which
     may be stale by the time they ask: a page past the end answers the last
     page and one that is not a number the first, as Django's ``Paginator`` did
-    here before. ``size`` is read as a deprecated alias of ``page_size`` (the
-    web and the mobile app never send it, scripts may); remove it after the
-    next release.
+    here before.
     """
-
-    legacy_page_size_param = "size"
-
-    def get_page_size(self, request: Request) -> int:
-        if PAGE_SIZE_PARAM not in request.query_params:
-            return query_page_number(
-                request,
-                self.legacy_page_size_param,
-                default=self.default_page_size(),
-                highest=self.max_page_size,
-            )
-        return super().get_page_size(request)
 
     def get_page_number(
         self, request: Request, paginator: DjangoPaginator[object]
@@ -205,16 +188,6 @@ PAGE_PARAMETERS = [
         OpenApiTypes.INT,
         description=f"Rows per page (default {DEFAULT_PAGE_SIZE}, "
         f"at most {MAX_PAGE_SIZE}).",
-    ),
-]
-
-DAY_ALBUM_PAGE_PARAMETERS = [
-    *PAGE_PARAMETERS,
-    OpenApiParameter(
-        "size",
-        OpenApiTypes.INT,
-        description="Deprecated alias of page_size.",
-        deprecated=True,
     ),
 ]
 
@@ -243,16 +216,3 @@ class PaginatedViewMixin(APIView):
 
     def get_paginated_response(self, data: object) -> Response:
         return self.paginator.get_paginated_response(data)
-
-
-def with_legacy_page_flags(response: Response) -> Response:
-    """A page ``response`` plus ``has_next``/``has_previous``.
-
-    The duplicates and stacks lists sent them before they moved to the shared
-    envelope, and the web app up to 1.3 requires them (an open tab keeps its
-    bundle across a server upgrade). Remove after the next release; ``next``
-    and ``previous`` say the same.
-    """
-    response.data["has_next"] = response.data["next"] is not None
-    response.data["has_previous"] = response.data["previous"] is not None
-    return response

@@ -32,7 +32,7 @@ insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windo
 insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
 insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 # stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
-stringzilla==5.2.0; sys_platform == "win32"
+stringzilla==5.3.1; sys_platform == "win32"
 # ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
 # the Perl distribution elsewhere (needs a perl on PATH).
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
@@ -56,7 +56,7 @@ pyvips[binary]==3.2.0
 pyvips-binary==8.18.7
 pillow-heif==1.8.1
 pillow-jxl-plugin==1.3.8
-scikit-learn==1.9.0
+scikit-learn==1.9.1
 # timezonefinder has no Windows or aarch64 wheel on PyPI: prebuilt-wheels.yml builds them
 # and the lines below pin them by URL. Bump every line together (Renovate is off for it).
 timezonefinder==8.2.4; sys_platform != "win32" and (sys_platform != "linux" or platform_machine != "aarch64")
@@ -70,7 +70,7 @@ django-q2==1.11.1
 diskcache==5.6.3
 py-cpuinfo==9.0.0
 psutil==7.2.2
-concurrent-log-handler==0.9.30
+concurrent-log-handler==0.9.31
 
 # Tokenizers for the ONNX models: CLIP BPE (OpenCLIP tags and search) and the
 # LFM2 tokenizer (captions). The Rust package alone, no transformers.

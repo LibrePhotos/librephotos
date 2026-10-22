@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from api.drf.pagination import WholeListPagination
+from api.drf.pagination import DefaultPagination
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.metadata import edits
@@ -53,7 +53,7 @@ class TagViewSet(
     """
 
     serializer_class = TagSerializer
-    pagination_class = WholeListPagination
+    pagination_class = DefaultPagination
     permission_classes = [IsAuthenticated]
     filter_backends = (filters.SearchFilter,)
     search_fields = ["name"]

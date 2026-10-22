@@ -6,10 +6,15 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toasts";
+import { getMemoriesNotifPrefs, setMemoriesNotifPrefs } from "@/db/queries/memories";
+import { rescheduleMemoriesReminders } from "@/features/memories/reminders";
 import SELF_USER from "../../../../../packages/api-client/src/__tests__/fixtures/user.json";
 
 // Avoid pulling the expo-native sync chain (and real network) into the test.
 jest.mock("@/sync/run", () => ({ runSync: jest.fn<void, unknown[]>() }));
+jest.mock("@/features/memories/reminders", () => ({
+  rescheduleMemoriesReminders: jest.fn(async () => true),
+}));
 
 function client(onPatch?: (body: unknown) => void) {
   return makeMockClient(async (url, init) => {
@@ -82,5 +87,42 @@ describe("SettingsScreen", () => {
     fireEvent.changeText(getByTestId("password-prompt-input"), "newsecret");
     fireEvent.press(getByTestId("password-prompt-submit"));
     await waitFor(() => expect(body).toEqual({ password: "newsecret" }));
+  });
+
+  describe("memories reminder (#2746)", () => {
+    beforeEach(() => jest.mocked(rescheduleMemoriesReminders).mockClear());
+
+    it("turning it on plans the reminders, asking for the permission", async () => {
+      const { getByTestId } = renderWithDb(<SettingsScreen />, t.db, client());
+      fireEvent(getByTestId("toggle-memories-notif"), "valueChange", true);
+      await waitFor(() =>
+        expect(rescheduleMemoriesReminders).toHaveBeenCalledWith(t.db, { requestPermission: true })
+      );
+      expect(getMemoriesNotifPrefs(t.db).enabled).toBe(true);
+    });
+
+    it("turns it back off when the permission is refused", async () => {
+      jest.mocked(rescheduleMemoriesReminders).mockResolvedValueOnce(false);
+      const { getByTestId } = renderWithDb(<SettingsScreen />, t.db, client());
+      fireEvent(getByTestId("toggle-memories-notif"), "valueChange", true);
+      await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(1));
+      expect(getMemoriesNotifPrefs(t.db).enabled).toBe(false);
+    });
+
+    it("plans again for a new time and a new language", async () => {
+      setMemoriesNotifPrefs(t.db, { enabled: true });
+      const { getByTestId } = renderWithDb(<SettingsScreen />, t.db, client());
+      fireEvent.press(getByTestId("memories-notif-time"));
+      fireEvent.changeText(getByTestId("reminder-time-prompt-input"), "18:30");
+      fireEvent.press(getByTestId("reminder-time-prompt-submit"));
+      await waitFor(() => expect(rescheduleMemoriesReminders).toHaveBeenCalledWith(t.db));
+      expect(getMemoriesNotifPrefs(t.db)).toMatchObject({ hour: 18, minute: 30 });
+
+      jest.mocked(rescheduleMemoriesReminders).mockClear();
+      fireEvent.press(getByTestId("settings-language"));
+      await waitFor(() => expect(getByTestId("language-de")).toBeTruthy());
+      fireEvent.press(getByTestId("language-de"));
+      await waitFor(() => expect(rescheduleMemoriesReminders).toHaveBeenCalledWith(t.db));
+    });
   });
 });

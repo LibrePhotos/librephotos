@@ -241,27 +241,7 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
         parent_path: str | None,
         subfolders: list[FolderEntry],
     ) -> Response:
-        """The page ``paginate_queryset`` cut, with the folder's own fields.
-
-        ``subfolders`` and ``pagination`` repeat ``results`` and the page
-        fields in the shape this endpoint had before #2327, for web bundles up
-        to 1.3; remove them after the next release.
-        """
+        """The page ``paginate_queryset`` cut, with the folder's own fields."""
         response = self.get_paginated_response(subfolders)
-        page = self.paginator.current_page()
-        response.data.update(
-            {
-                "current_path": base_path,
-                "parent_path": parent_path,
-                "subfolders": subfolders,
-                "pagination": {
-                    "page": page.number,
-                    "page_size": page.paginator.per_page,
-                    "total_folders": page.paginator.count,
-                    "total_pages": page.paginator.num_pages,
-                    "has_next": page.has_next(),
-                    "has_previous": page.has_previous(),
-                },
-            }
-        )
+        response.data.update({"current_path": base_path, "parent_path": parent_path})
         return response

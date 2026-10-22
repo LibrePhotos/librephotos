@@ -173,6 +173,13 @@ class _DirectoryWalk:
             return
         self.walk_entries(directory, listing)
 
+    def walk_named_directory(self, directory: str) -> None:
+        """Walk a folder a scan of chosen paths names, as the library walk would."""
+        if is_hidden(directory) or should_skip(directory, self.skip_list):
+            logger.info("not walking a hidden or skipped folder a scan names")
+            return
+        self.walk_subdirectory(directory)
+
     def walk_entries(
         self, directory: str, listing: tuple[_DirectoryIdentity, list[str]]
     ) -> None:
@@ -201,17 +208,31 @@ class _DirectoryWalk:
             self.ancestors.discard(identity)
 
 
-def walk_files(scan_files: list[str], callback: list[str]) -> None:
-    """
-    Walk a list of specific files.
+def walk_files(scan_files: list[str], callback: list[str]) -> list[SkippedDirectory]:
+    """Collect the files of a scan of chosen paths, each once.
+
+    A file is taken as it is. A folder is walked as a folder of the library
+    is (``walk_directory``), unless it is hidden or matches a skip pattern, as
+    the library walk would leave it out (#2727). A folder that cannot be
+    listed, or a subfolder of it, is skipped and returned: it does not fail
+    the scan.
 
     Args:
-        scan_files: List of file paths to check
-        callback: List to append valid file paths to
+        scan_files: The paths to scan, files and folders
+        callback: List to append the file paths to
+
+    Returns:
+        The folders that were skipped because they could not be listed.
     """
+    walk = _DirectoryWalk([], skip_patterns())
     for fpath in scan_files:
-        if os.path.isfile(fpath):
-            callback.append(fpath)
+        if os.path.isdir(fpath):
+            walk.walk_named_directory(fpath)
+        elif os.path.isfile(fpath):
+            walk.callback.append(fpath)
+    # A file named on its own and inside a named folder is read once.
+    callback.extend(dict.fromkeys(walk.callback))
+    return walk.skipped
 
 
 def is_job_cancelled(job_id: UUID | str) -> bool:

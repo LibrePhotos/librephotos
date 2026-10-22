@@ -9,7 +9,7 @@ from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import BaseSerializer
 
-from api.drf.pagination import WholeListPagination
+from api.drf.pagination import DefaultPagination
 from api.drf.request_user import request_user
 from api.models import AlbumCollection, User
 from api.serializers.album_collection import AlbumCollectionSerializer
@@ -29,7 +29,7 @@ class AlbumCollectionViewSet(
     """
 
     serializer_class = AlbumCollectionSerializer
-    pagination_class = WholeListPagination
+    pagination_class = DefaultPagination
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self) -> QuerySet[AlbumCollection]:

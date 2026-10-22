@@ -25,8 +25,9 @@ from rest_framework.response import Response
 from api.albums.collections import set_album_collections
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.pagination import (
-    DAY_ALBUM_PAGE_PARAMETERS,
+    PAGE_PARAMETERS,
     DayAlbumPagination,
+    DefaultPagination,
     WholeListPagination,
 )
 from api.drf.params import parse_body, parse_query
@@ -387,7 +388,7 @@ class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 class AlbumPlaceListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceListSerializer
-    pagination_class = WholeListPagination
+    pagination_class = DefaultPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["title"]
 
@@ -663,7 +664,7 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
                 description="The day album's id (from /api/albums/date/list/)",
             ),
             DateAlbumFilterQuery,
-            *DAY_ALBUM_PAGE_PARAMETERS,
+            *PAGE_PARAMETERS,
         ],
         description=(
             "Returns the actual images, for a given day in chunks of 100 images. "

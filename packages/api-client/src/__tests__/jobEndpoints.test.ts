@@ -125,13 +125,24 @@ describe("job triggers", () => {
   });
 
   it("scans files by path and reads the paths it left out (#900)", async () => {
-    const { client, requests } = fakeServer({ ...started, file_count: 1, ignored_paths: ["/etc/passwd"] });
-    const answer = await endpoints.scanFiles(client, ["/data/alice/a.jpg", "/etc/passwd"]);
+    const answer = { ...started, file_count: 1, removed_count: 0, ignored_paths: ["/etc/passwd"] };
+    const { client, requests } = fakeServer(answer);
+    const result = await endpoints.scanFiles(client, ["/data/alice/a.jpg", "/etc/passwd"]);
     expect(defined(requests[0])).toMatchObject({
       url: `${API}/scan-files/`,
-      body: { paths: ["/data/alice/a.jpg", "/etc/passwd"] },
+      body: { paths: ["/data/alice/a.jpg", "/etc/passwd"], removed_paths: [] },
     });
-    expect(answer).toEqual({ ...started, file_count: 1, ignored_paths: ["/etc/passwd"] });
+    expect(result).toEqual(answer);
+  });
+
+  it("sends removed paths and reads an answer without a scan (#2728)", async () => {
+    const answer = { status: true, job_id: null, job_ids: [], file_count: 0, removed_count: 2, ignored_paths: [] };
+    const { client, requests } = fakeServer(answer);
+    const result = await endpoints.scanFiles(client, [], ["/data/alice/old.jpg", "/data/alice/trip"]);
+    expect(defined(requests[0])).toMatchObject({
+      body: { paths: [], removed_paths: ["/data/alice/old.jpg", "/data/alice/trip"] },
+    });
+    expect(result).toEqual(answer);
   });
 
   it("follows the job already running instead of failing on a 409", async () => {

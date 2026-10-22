@@ -25,11 +25,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.drf.pagination import (
-    PAGE_PARAMETERS,
-    PaginatedViewMixin,
-    with_legacy_page_flags,
-)
+from api.drf.pagination import PAGE_PARAMETERS, PaginatedViewMixin
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import JobStep
@@ -140,7 +136,7 @@ class PhotoStackListView(PaginatedViewMixin, APIView):
                 }
             )
 
-        return with_legacy_page_flags(self.get_paginated_response(results))
+        return self.get_paginated_response(results)
 
 
 class PhotoStackDetailView(APIView):

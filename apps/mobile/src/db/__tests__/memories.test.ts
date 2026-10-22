@@ -3,6 +3,7 @@ import { seedRemotePhotos, remotePhoto } from "./fixtures";
 import {
   formatTime,
   getMemoriesNotifPrefs,
+  memoryDaysAhead,
   memoryYears,
   monthDayOf,
   onThisDay,
@@ -59,6 +60,68 @@ describe("memories (on this day)", () => {
       remotePhoto({ id: "p3", imageHash: "c", timestamp: jun15(2021) }),
     ]);
     expect(memoryYears(t.db, { today })).toEqual([2023, 2021]);
+  });
+});
+
+/** Local noon of a day, so the bucket day is that day in every time zone. */
+function noon(year: number, month: number, day: number): number {
+  return new Date(year, month, day, 12).getTime();
+}
+
+describe("memoryDaysAhead (#2746)", () => {
+  let t: TestDb;
+  beforeEach(() => {
+    t = createTestDb();
+  });
+  afterEach(() => t.close());
+
+  it("lists 14 days from today at local midnight, empty ones with zero counts", () => {
+    const days = memoryDaysAhead(t.db, { today: new Date(2025, 5, 15, 18, 30) });
+    expect(days).toHaveLength(14);
+    expect(defined(days[0]).day).toEqual(new Date(2025, 5, 15));
+    expect(defined(days[13]).day).toEqual(new Date(2025, 5, 28));
+    expect(days.every((d) => d.photoCount === 0 && d.yearCount === 0)).toBe(true);
+  });
+
+  it("counts the photos and the distinct earlier years of each day", () => {
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "a", imageHash: "a", timestamp: noon(2020, 5, 16) }),
+      remotePhoto({ id: "b", imageHash: "b", timestamp: noon(2021, 5, 16) }),
+      remotePhoto({ id: "c", imageHash: "c", timestamp: noon(2021, 5, 16) }),
+      remotePhoto({ id: "d", imageHash: "d", timestamp: noon(2025, 5, 16) }), // this year
+      remotePhoto({ id: "e", imageHash: "e", timestamp: noon(2019, 5, 16), hidden: true }),
+      remotePhoto({ id: "f", imageHash: "f", timestamp: noon(2018, 5, 17), inTrashcan: true }),
+    ]);
+    const days = memoryDaysAhead(t.db, { today: new Date(2025, 5, 15, 8), days: 3 });
+    expect(days.map((d) => [d.photoCount, d.yearCount])).toEqual([
+      [0, 0],
+      [3, 2],
+      [0, 0],
+    ]);
+  });
+
+  it("counts last year's photos on a day in the new year", () => {
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "a", imageHash: "a", timestamp: noon(2025, 0, 1) }),
+      remotePhoto({ id: "b", imageHash: "b", timestamp: noon(2025, 11, 31) }), // today, this year
+    ]);
+    const days = memoryDaysAhead(t.db, { today: new Date(2025, 11, 31, 9), days: 2 });
+    expect(days.map((d) => d.day)).toEqual([new Date(2025, 11, 31), new Date(2026, 0, 1)]);
+    expect(days.map((d) => d.photoCount)).toEqual([0, 1]);
+  });
+
+  it("finds Feb 29 memories only in a leap year", () => {
+    seedRemotePhotos(t.db, [remotePhoto({ id: "a", imageHash: "a", timestamp: noon(2024, 1, 29) })]);
+    const leap = memoryDaysAhead(t.db, { today: new Date(2028, 1, 28), days: 2 });
+    expect(leap.map((d) => [d.day.getDate(), d.photoCount])).toEqual([
+      [28, 0],
+      [29, 1],
+    ]);
+    const common = memoryDaysAhead(t.db, { today: new Date(2027, 1, 28), days: 2 });
+    expect(common.map((d) => [d.day.getMonth(), d.day.getDate(), d.photoCount])).toEqual([
+      [1, 28, 0],
+      [2, 1, 0],
+    ]);
   });
 });
 

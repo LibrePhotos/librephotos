@@ -1083,9 +1083,9 @@ class StackListPaginationEdgeCasesTestCase(TestCase):
         self.assertEqual(len(response.data["results"]), 2)
         self.assertIsNone(response.data["next"])
         self.assertEqual(response.data["num_pages"], 2)
-        # The pre-#2327 flags, kept for web bundles up to 1.3.
-        self.assertFalse(response.data["has_next"])
-        self.assertTrue(response.data["has_previous"])
+        # The pre-#2327 flags were dropped after 1.4.0 (#2500).
+        self.assertNotIn("has_next", response.data)
+        self.assertNotIn("has_previous", response.data)
 
     def test_page_zero(self):
         """Test requesting page 0 (should default to 1)."""

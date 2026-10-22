@@ -636,15 +636,6 @@
           },
           {
             "in": "query",
-            "name": "size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Deprecated alias of page_size.",
-            "deprecated": true
-          },
-          {
-            "in": "query",
             "name": "username",
             "schema": {
               "type": "string",
@@ -8287,7 +8278,7 @@
     "/api/scan-files/": {
       "post": {
         "operationId": "api_scan_files_create",
-        "description": "Scan files an outside process says are new or changed (#900).\n\nFor a folder watcher (inotify, watchfiles) next to the library: it sends\nthe paths, as the server sees them, with the user's credentials. Only\nexisting files inside the requester's scan directory or upload folder are\nscanned; the answer lists the paths it left out. A file is read when it is\nnew or changed, as on an incremental scan. 400 when no path is left, 409\nwhile a scan of the requester's runs (send the paths again later).",
+        "description": "Scan files an outside process says are new or changed (#900), forget gone ones.\n\nFor a folder watcher (inotify, watchfiles) next to the library: it sends\nthe paths, as the server sees them, with the user's credentials. Only\npaths inside the requester's scan directory or upload folder are used;\nthe answer lists the paths it left out.\n\n``paths``: existing files, and folders whose files are walked (#2727),\nare scanned. A file is read when it is new or changed, as on an\nincremental scan. 409 while a scan of the requester's runs (send the\npaths again later); nothing changes then.\n\n``removed_paths``: files deleted or moved away, or folders of them, are\ndetached from the requester's photos and flagged missing at once (#2728).\n409 (``library_unavailable``) when the library looks unmounted or too\nmuch of it would go missing; nothing changes then.\n\n400 when no path of either list is left.",
         "tags": [
           "api"
         ],
@@ -8308,8 +8299,7 @@
                 "$ref": "#/components/schemas/ScanFilesRequestRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "security": [
           {
@@ -13758,14 +13748,6 @@
           "num_pages": {
             "type": "integer"
           },
-          "has_next": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: next is not null"
-          },
-          "has_previous": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: previous is not null"
-          },
           "results": {
             "type": "array",
             "items": {
@@ -13775,8 +13757,6 @@
         },
         "required": [
           "count",
-          "has_next",
-          "has_previous",
           "next",
           "num_pages",
           "page",
@@ -14370,42 +14350,9 @@
           "photo_count"
         ]
       },
-      "FolderLegacyPagination": {
-        "type": "object",
-        "description": "The page fields as ``GET /api/folders/subfolders/`` sent them before #2327.",
-        "properties": {
-          "page": {
-            "type": "integer"
-          },
-          "page_size": {
-            "type": "integer"
-          },
-          "total_folders": {
-            "type": "integer",
-            "description": "Directory entries, also those without photos"
-          },
-          "total_pages": {
-            "type": "integer"
-          },
-          "has_next": {
-            "type": "boolean"
-          },
-          "has_previous": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "has_next",
-          "has_previous",
-          "page",
-          "page_size",
-          "total_folders",
-          "total_pages"
-        ]
-      },
       "FolderSubfoldersPage": {
         "type": "object",
-        "description": "``GET /api/folders/subfolders/``: one page of a folder's subfolders.\n\nThe page envelope (``api/drf/pagination.py``), with the folder's own paths.\nA page holds 100 directory entries, and those without photos are dropped\nafter paging, so a page can hold fewer, or none, while ``next`` says more\nfollow. ``subfolders`` and ``pagination`` repeat the page for web bundles\nup to 1.3.",
+        "description": "``GET /api/folders/subfolders/``: one page of a folder's subfolders.\n\nThe page envelope (``api/drf/pagination.py``), with the folder's own paths.\nA page holds 100 directory entries, and those without photos are dropped\nafter paging, so a page can hold fewer, or none, while ``next`` says more\nfollow.",
         "properties": {
           "count": {
             "type": "integer",
@@ -14445,21 +14392,6 @@
             "type": "string",
             "nullable": true,
             "description": "null at the top the caller may see"
-          },
-          "subfolders": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FolderEntry"
-            },
-            "description": "Deprecated, for web bundles up to 1.3: results"
-          },
-          "pagination": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/FolderLegacyPagination"
-              }
-            ],
-            "description": "Deprecated, for web bundles up to 1.3: the page fields"
           }
         },
         "required": [
@@ -14469,11 +14401,9 @@
           "num_pages",
           "page",
           "page_size",
-          "pagination",
           "parent_path",
           "previous",
-          "results",
-          "subfolders"
+          "results"
         ]
       },
       "GenerateCaptionsRequestRequest": {
@@ -18997,14 +18927,6 @@
           "num_pages": {
             "type": "integer"
           },
-          "has_next": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: next is not null"
-          },
-          "has_previous": {
-            "type": "boolean",
-            "description": "Deprecated, for web bundles up to 1.3: previous is not null"
-          },
           "results": {
             "type": "array",
             "items": {
@@ -19014,8 +18936,6 @@
         },
         "required": [
           "count",
-          "has_next",
-          "has_previous",
           "next",
           "num_pages",
           "page",
@@ -20013,7 +19933,7 @@
       },
       "ScanFilesRequestRequest": {
         "type": "object",
-        "description": "``POST /api/scan-files/``: files an outside process says are new or changed (#900).",
+        "description": "``POST /api/scan-files/``: paths an outside process says are new, changed or gone.\n\nAt least one of the lists must name a path. Two lists, so a typo in\n``paths`` is never read as \"forget this file\" (#2728).",
         "properties": {
           "paths": {
             "type": "array",
@@ -20021,43 +19941,53 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "Absolute paths of files in the requester's scan directory or upload folder, as the server sees them",
-            "maxItems": 1000,
-            "minItems": 1
+            "description": "Absolute paths of new or changed files, or folders whose files to scan (#2727), in the requester's scan directory or upload folder, as the server sees them",
+            "maxItems": 1000
+          },
+          "removed_paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Absolute paths of files, or folders, in the requester's library that were deleted or moved away: their files are detached from the requester's photos and flagged missing (#2728)",
+            "maxItems": 1000
           }
-        },
-        "required": [
-          "paths"
-        ]
+        }
       },
       "ScanFilesResponse": {
         "type": "object",
-        "description": "``POST /api/scan-files/``: the started scan and the paths it left out.",
+        "description": "``POST /api/scan-files/``: the started scan, the files detached, the paths left out.",
         "properties": {
           "status": {
             "type": "boolean"
           },
           "job_id": {
             "type": "string",
-            "description": "The started job's id (its last step's)"
+            "nullable": true,
+            "description": "The started scan's id; null when paths named nothing to scan"
           },
           "job_ids": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Every step's job id, in order"
+            "description": "The started scan's id, or none"
           },
           "file_count": {
             "type": "integer",
-            "description": "The files the scan looks at"
+            "description": "The paths the scan looks at; a folder counts as one"
+          },
+          "removed_count": {
+            "type": "integer",
+            "description": "The files of removed_paths detached and flagged missing"
           },
           "ignored_paths": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Paths left out: outside the requester's library, folders, files that do not exist, and repeats"
+            "description": "Paths left out: outside the requester's library, repeats, paths that do not exist, removed paths still on disk or naming no file of the requester's photos"
           }
         },
         "required": [
@@ -20065,6 +19995,7 @@
           "ignored_paths",
           "job_id",
           "job_ids",
+          "removed_count",
           "status"
         ]
       },

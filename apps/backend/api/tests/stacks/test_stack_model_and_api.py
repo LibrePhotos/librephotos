@@ -279,8 +279,8 @@ class PhotoStackAPITestCase(TestCase):
         data = response.json()
         self.assertIn("page", data)
         self.assertIn("page_size", data)
-        self.assertIn("has_next", data)
-        self.assertIn("has_previous", data)
+        self.assertIn("next", data)
+        self.assertIn("previous", data)
         self.assertEqual(data["page"], 1)
         self.assertEqual(data["page_size"], 10)
 

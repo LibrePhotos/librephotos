@@ -277,8 +277,9 @@ export const en = {
     seeAll: "See all",
     empty: "No memories yet — check back another day.",
     notificationTitle: "On this day",
-    notificationBody: "You have memories from previous years. Tap to look back.",
-    enableNotification: "Daily memories reminder",
+    notificationBody: "Photos from {{count}} earlier year on this day. Tap to look back.",
+    notificationBody_other: "Photos from {{count}} earlier years on this day. Tap to look back.",
+    enableNotification: "Memories reminder",
     notificationTime: "Reminder time",
   },
   sharing: {

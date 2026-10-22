@@ -338,8 +338,7 @@ export type FolderSubfolder = z.infer<typeof FolderSubfolder>;
 
 /**
  * GET /folders/subfolders/: one page of a folder's subfolders, the shared page envelope (backend
- * api/drf/pagination.py) plus the folder's own paths. The server still repeats the page as
- * `subfolders` and `pagination` for older web bundles; read `results` and `next`.
+ * api/drf/pagination.py) plus the folder's own paths.
  */
 export const FolderSubfoldersResponse = z.object({
   /** null, with an empty listing, for a user without a scan directory. */

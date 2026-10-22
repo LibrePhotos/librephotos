@@ -12,6 +12,8 @@ training data (see ``TrainFacesEmptyDataTest``).
 
 Several assertions below encode quirks/bugs of the current implementation;
 each is called out in a comment so the refactorer knows what is intentional.
+Deleted faces no longer reach HDBSCAN (#2748), and training with nothing to
+learn completes instead of failing (#2733).
 """
 
 import datetime
@@ -262,12 +264,12 @@ class CreateAllClustersTest(TestCase):
         seen = sorted(f.id for call in try_add.call_args_list for f in call.args[2])
         self.assertEqual(seen, face_ids)
 
-    def test_deleted_faces_count_toward_the_total_but_are_not_clustered(self):
+    def test_deleted_faces_are_neither_fitted_nor_clustered(self):
         keep = self.make_face(1)
         gone = self.make_face(2)
         Face.objects.filter(pk=gone.pk).update(deleted=True)
 
-        cls, _ = fake_hdbscan([0, 0])
+        cls, instance = fake_hdbscan([0])
         with (
             patch.object(classify, "make_hdbscan", cls),
             patch.object(
@@ -276,10 +278,9 @@ class CreateAllClustersTest(TestCase):
         ):
             target = create_all_clusters(self.user)
 
-        # BUG-ish (pinned): deleted faces are still fed to HDBSCAN and counted
-        # in the returned target, but the queryset handed to ClusterManager
-        # filters them out again.
-        self.assertEqual(target, 2)
+        # A deleted face does not shape the clusters of the real ones (#2748).
+        self.assertEqual(target, 1)
+        self.assertEqual(instance.fit.call_args[0][0].shape, (1, 128))
         seen = [f.id for call in try_add.call_args_list for f in call.args[2]]
         self.assertEqual(seen, [keep.id])
 
@@ -474,23 +475,21 @@ class TrainFacesTestBase(TestCase):
 
 
 class TrainFacesEmptyDataTest(TrainFacesTestBase):
-    """The real MLPClassifier is used here to pin the failure path."""
+    """The real MLPClassifier: with no class to learn, it is not fitted (#2733)."""
 
-    def test_no_faces_at_all_fails_the_job(self):
-        # BUG-ish (pinned): with nothing to train on, the cluster classifier is
-        # still fitted on an empty array, which raises and fails the job.
-        self.assertFalse(train_faces(self.user, self.job_id))
+    def test_no_faces_at_all_completes_with_nothing_to_train(self):
+        self.assertTrue(train_faces(self.user, self.job_id))
         job = self.job()
-        self.assertTrue(job.failed)
+        self.assertFalse(job.failed)
         self.assertTrue(job.finished)
-        self.assertEqual(job.result["status"], "failed")
+        self.assertEqual(job.result, {"status": "completed", "nothing_to_train": True})
         self.assertEqual(job.job_type, LongRunningJob.JOB_TRAIN_FACES)
 
-    def test_only_unknown_faces_fails_the_job(self):
+    def test_only_unknown_faces_completes_with_nothing_to_train(self):
         self.make_face(1)
         self.make_face(2)
-        self.assertFalse(train_faces(self.user, self.job_id))
-        self.assertTrue(self.job().failed)
+        self.assertTrue(train_faces(self.user, self.job_id))
+        self.assertFalse(self.job().failed)
 
 
 class TrainFacesTest(TrainFacesTestBase):

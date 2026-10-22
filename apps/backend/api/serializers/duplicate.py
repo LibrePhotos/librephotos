@@ -9,7 +9,7 @@ from api.drf.params import ClampedIntegerField
 from api.models.duplicate import Duplicate
 from api.serializers.photo_groups import (
     GroupPhotoSerializer,
-    LegacyFlagsPageSerializer,
+    PhotoGroupPageSerializer,
     PhotoGroupThumbnailSerializer,
 )
 
@@ -82,7 +82,7 @@ class DuplicateListItemSerializer(serializers.Serializer[None]):
     )
 
 
-class DuplicatePageSerializer(LegacyFlagsPageSerializer):
+class DuplicatePageSerializer(PhotoGroupPageSerializer):
     """A page of ``GET /api/duplicates/``: groups with at least 2 photos, newest first."""
 
     results = DuplicateListItemSerializer(many=True)

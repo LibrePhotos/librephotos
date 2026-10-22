@@ -42,6 +42,9 @@ _.JWTCookieScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension
 _.get_security_requirement  # method in api/drf/openapi.py (JWTCookieScheme, drf-spectacular calls it)
 _.get_security_definition  # method in api/drf/openapi.py (JWTCookieScheme, drf-spectacular calls it)
 
+# DRF pagination hooks: PageNumberPagination.paginate_queryset calls them.
+_.get_page_size  # method in api/drf/pagination.py (DefaultPagination)
+
 # Named by string.
 _.deduplicate_faces  # method in api/admin.py (PhotoAdmin.actions)
 

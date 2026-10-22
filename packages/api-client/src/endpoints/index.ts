@@ -1014,14 +1014,19 @@ export async function rescanPhotos(
 }
 
 /**
- * Scan files an outside process says are new or changed (#900): paths as the server sees them,
- * at most 1,000. Only files in the user's library are scanned; the answer lists the paths left out.
+ * Scan files an outside process says are new or changed (#900), or folders of them (#2727), and
+ * forget the ones it says were deleted or moved away (#2728): paths as the server sees them, at
+ * most 1,000 per list. Only paths in the user's library are used; the answer lists the paths left out.
  */
 export async function scanFiles(
   client: ApiClient,
-  paths: readonly string[]
+  paths: readonly string[],
+  removedPaths: readonly string[] = []
 ): Promise<S.ScanFilesResponse | S.JobAlreadyRunning> {
-  return triggerJob(client, "/scan-files/", S.ScanFilesResponse, "scan files", { paths });
+  return triggerJob(client, "/scan-files/", S.ScanFilesResponse, "scan files", {
+    paths,
+    removed_paths: removedPaths,
+  });
 }
 
 /** Make event albums from the photos added or changed since the last run, and title them. */
@@ -1222,13 +1227,19 @@ export async function detectDuplicates(
 
 /* ---- sharing ----------------------------------------------------------- */
 
+/**
+ * The shared photo lists render as one grid that can hold thousands of photos: read them in the
+ * largest pages the server allows (1000, backend api/drf/pagination.py) rather than its default 100.
+ */
+const SHARED_PHOTOS_PAGE = buildQuery({ page_size: 1000 });
+
 export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
-  const results = await fetchAllPages(client, "/photos/shared/fromme/");
+  const results = await fetchAllPages(client, `/photos/shared/fromme/${SHARED_PHOTOS_PAGE}`);
   return parseResponse(S.SharedPhotosResponse, { results }, "shared photos by me").results;
 }
 
 export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.SharedToMePhotosResponse["results"]> {
-  const results = await fetchAllPages(client, "/photos/shared/tome/");
+  const results = await fetchAllPages(client, `/photos/shared/tome/${SHARED_PHOTOS_PAGE}`);
   return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 

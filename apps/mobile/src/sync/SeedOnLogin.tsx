@@ -13,6 +13,7 @@ import { needsInitialSeed } from "./orchestrator";
 import { runSync, registerDeviceMediaListener } from "./run";
 import { registerSyncTriggers } from "./triggers";
 import { registerBackgroundTasks } from "./background/tasks";
+import { registerMemoriesReminderTriggers } from "@/features/memories/reminders";
 
 export function SeedOnLogin() {
   const db = useDb();
@@ -32,9 +33,12 @@ export function SeedOnLogin() {
     const unsubscribeMedia = registerDeviceMediaListener(db, () => useAuthStore.getState().userId);
     // Register the OS background task (idempotent; a top-up, not the main path).
     void registerBackgroundTasks();
+    // The memories reminders: planned now and on every return to the app.
+    const unsubscribeReminders = registerMemoriesReminderTriggers(db);
     return () => {
       unsubscribe();
       unsubscribeMedia();
+      unsubscribeReminders();
     };
   }, [db, userId]);
 

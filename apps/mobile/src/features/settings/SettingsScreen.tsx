@@ -9,7 +9,7 @@ import { TextPromptModal } from "@/components/TextPromptModal";
 import { useDb, useReactiveQuery } from "@/db/provider";
 import { getBackupConfig, setBackupConfig } from "@/db/queries/backup";
 import { formatTime, getMemoriesNotifPrefs, setMemoriesNotifPrefs } from "@/db/queries/memories";
-import { cancelMemoriesReminder, scheduleMemoriesReminder } from "@/features/memories/notifications";
+import { rescheduleMemoriesReminders } from "@/features/memories/reminders";
 import { clearThumbCache, thumbCacheTotalBytes } from "@/sync/thumbs";
 import { runSync } from "@/sync/run";
 import { useAuthStore } from "@/stores/auth";
@@ -56,21 +56,13 @@ export function SettingsScreen() {
   const [editingTime, setEditingTime] = useState(false);
   const [ratingBusy, setRatingBusy] = useState(false);
 
-  const reminderContent = {
-    title: t("memories.notificationTitle"),
-    body: t("memories.notificationBody"),
-  };
-
   const toggleMemoriesNotif = async (enabled: boolean) => {
     setMemoriesNotifPrefs(db, { enabled });
-    if (enabled) {
-      const ok = await scheduleMemoriesReminder(memoriesNotif.hour, memoriesNotif.minute, reminderContent);
-      if (!ok) {
-        setMemoriesNotifPrefs(db, { enabled: false });
-        pushToast({ level: "error", message: t("common.error") });
-      }
-    } else {
-      await cancelMemoriesReminder();
+    // Turning it on asks for the permission; without it nothing is scheduled.
+    const ok = await rescheduleMemoriesReminders(db, { requestPermission: enabled });
+    if (!ok) {
+      setMemoriesNotifPrefs(db, { enabled: false });
+      pushToast({ level: "error", message: t("common.error") });
     }
   };
 
@@ -81,7 +73,7 @@ export function SettingsScreen() {
     const hour = Math.min(23, Number(m[1]));
     const minute = Math.min(59, Number(m[2]));
     setMemoriesNotifPrefs(db, { hour, minute });
-    if (memoriesNotif.enabled) await scheduleMemoriesReminder(hour, minute, reminderContent);
+    await rescheduleMemoriesReminders(db);
   };
 
   const favoriteMinRating = user.data?.favorite_min_rating ?? 4;
@@ -131,7 +123,8 @@ export function SettingsScreen() {
   const pickLanguage = (code: string) => {
     setLangOpen(false);
     setLocale(code);
-    void changeAppLanguage(code);
+    // The reminders already scheduled carry their text: write it in the new language.
+    void changeAppLanguage(code).then(() => rescheduleMemoriesReminders(db));
   };
 
   const localeLabel = useMemo(

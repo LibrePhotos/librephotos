@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.drf.pagination import PhotoGridPagination
+from api.drf.pagination import DefaultPagination
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.models import AlbumUser, Photo, User
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoSummarySerializer
-    pagination_class = PhotoGridPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[Photo]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.
@@ -49,7 +49,7 @@ class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = SharedFromMePhotoThroughSerializer
-    pagination_class = PhotoGridPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[Model]:
         ThroughModel = Photo.shared_to.through
@@ -81,7 +81,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
 class SharedToMeAlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
-    pagination_class = PhotoGridPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.
@@ -97,7 +97,7 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
 class SharedFromMeAlbumUserListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumUserListSerializer
-    pagination_class = PhotoGridPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[AlbumUser]:
         # drf-spectacular asks with an anonymous request; request_user rejects it.

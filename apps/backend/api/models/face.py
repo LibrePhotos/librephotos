@@ -4,14 +4,17 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from django.db import models
+from django.db.models import Q
 
 from api.lazy_import import LazyModule
 from api.models.cluster import Cluster, unit_length
 from api.models.person import Person
-from api.models.photo import Photo
+from api.models.photo import Photo, visible_photo_q
 from api.models.scopes import OwnedQuerySet
 
 if TYPE_CHECKING:
+    from typing import Self
+
     import numpy.typing as npt
     from numpy import float64
 
@@ -21,10 +24,40 @@ else:
     np = LazyModule("numpy")
 
 
+def face_photo_shown_q(through: str = "") -> Q:
+    """Faces whose photo the photo lists show (``visible_photo_q``), as a ``Q``.
+
+    A face on a hidden, trashed or removed photo is left out, as it is from
+    ``Person.face_count``; an archived photo's faces stay. The condition is
+    evaluated per query, so restoring a photo brings its faces back.
+    ``through`` is the path from the queried model to the face, e.g.
+    ``"faces__"`` for a per-person count.
+    """
+    return visible_photo_q(f"{through}photo__")
+
+
 class FaceQuerySet(OwnedQuerySet["Face"]):
     """A face has no owner column: it belongs to its photo's owner."""
 
     owner_lookup = "photo__owner"
+
+    def on_shown_photos(self) -> Self:
+        """The faces of photos the photo lists show (``face_photo_shown_q``)."""
+        return self.filter(face_photo_shown_q())
+
+    def for_recognition(self) -> Self:
+        """The faces clustering and training learn from and predict.
+
+        Not deleted (a deleted crop is often no face at all), with an
+        encoding, and on a photo the lists show. Ordered by id, so a run sees
+        the faces in the same order every time.
+        """
+        return (
+            self.on_shown_photos()
+            .filter(deleted=False, encoding__isnull=False)
+            .exclude(encoding="")
+            .order_by("id")
+        )
 
 
 class Face(models.Model):

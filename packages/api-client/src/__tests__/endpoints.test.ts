@@ -160,6 +160,16 @@ describe("sharing endpoints", () => {
     const photos = await endpoints.fetchSharedPhotosWithMe(client);
     expect(photos).toHaveLength(1);
   });
+
+  it("reads the shared photo lists in pages of 1000", async () => {
+    const { client, calls } = harness({ results: [] });
+    await endpoints.fetchSharedPhotosByMe(client);
+    await endpoints.fetchSharedPhotosWithMe(client);
+    expect(calls.map(call => call.url)).toEqual([
+      "https://demo.example.com/api/photos/shared/fromme/?page_size=1000",
+      "https://demo.example.com/api/photos/shared/tome/?page_size=1000",
+    ]);
+  });
 });
 
 describe("public link endpoints", () => {

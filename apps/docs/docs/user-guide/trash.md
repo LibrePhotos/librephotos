@@ -13,6 +13,8 @@ sidebar_position: 17
 
 You can also restore a photo instead of deleting it: select it in Trash and click the blue undo-arrow icon (tooltip *Restore photo*) to remove the "deleted" status.
 
+<Since version="1.5.0" /> While a photo is in the trash, its faces are not on the [face dashboard](./face-recognition.md#train-faces) and face training does not use them. Restoring the photo brings them back.
+
 Deleting the images from the file system only works, if LibrePhotos has the access to the images. If it is read only, files will not be deleted.
 
 :::info

@@ -29,11 +29,7 @@ from api.accounts.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.albums.timeline_filter import timeline_filter_q
 from api.classification import captioning
 from api.drf.exceptions import ServiceUnavailable
-from api.drf.pagination import (
-    DefaultPagination,
-    PhotoGridPagination,
-    WholeListPagination,
-)
+from api.drf.pagination import DefaultPagination
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user, scope_user
 from api.jobs.queue import JobStep
@@ -638,7 +634,7 @@ class PhotoViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = PhotoSerializer
-    pagination_class = PhotoGridPagination
+    pagination_class = DefaultPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
         "search_instance__search_captions",
@@ -813,7 +809,7 @@ class PhotoEditViewSet(
 ):
     permission_classes = (IsAuthenticated,)
     serializer_class = PhotoEditSerializer
-    pagination_class = WholeListPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[Photo]:
         # Hidden and trashed photos keep an editable date and location.
