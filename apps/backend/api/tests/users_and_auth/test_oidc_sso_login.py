@@ -11,12 +11,11 @@ Three things are worth guarding here, in rising order of consequence:
   privileged user.
 """
 
-import time
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
+from urllib.parse import parse_qs, urlsplit
 
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
-from allauth.socialaccount.internal import statekit
 from allauth.socialaccount.models import SocialAccount, SocialApp, SocialLogin
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from constance.test import override_config
@@ -209,14 +208,26 @@ class ProviderErrorRedirectTest(TestCase):
     def setUp(self):
         _make_social_app()
 
-    def _stash_state(self, state_id="good-state"):
-        """What the login view leaves in the session before the IdP round trip."""
-        session = self.client.session
-        session[statekit.STATES_SESSION_KEY] = {
-            state_id: ({"process": "login", "data": None}, time.time())
-        }
-        session.save()
-        return state_id
+    def _stash_state(self):
+        """Start a real login, which stashes the state in the session, and
+        return the state the provider would echo back.
+
+        Goes through the login view rather than writing the session, because
+        how allauth stores states changes between releases.
+        """
+        with patch.object(
+            LibrePhotosOIDCAdapter,
+            "openid_config",
+            new_callable=PropertyMock,
+            return_value={
+                "authorization_endpoint": "https://idp.example.com/auth",
+                "token_endpoint": "https://idp.example.com/token",
+                "userinfo_endpoint": "https://idp.example.com/userinfo",
+            },
+        ):
+            resp = self.client.get("/api/accounts/oidc/keycloak/login/")
+        self.assertEqual(resp.status_code, 302)
+        return parse_qs(urlsplit(resp["Location"]).query)["state"][0]
 
     def test_cancel_at_the_provider_redirects_with_provider_cancelled(self):
         state = self._stash_state()
