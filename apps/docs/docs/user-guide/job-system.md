@@ -143,6 +143,10 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 
 `--chunk-size` (default 500) is how many photos are compared at a time. Up to 1.4.0, only the **Deduplicate faces** action on selected photos in the Django admin did this.
 
+### Make Video Posters
+
+<Since version="1.5.0" /> Gives the videos added before 1.5.0 the still picture the photo grid shows until you point at a video, across every user's library. It runs by itself once after the update and shows on the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade). Each picture is made from the video's big thumbnail, so it is quick and no video is decoded or changed. A video without a big thumbnail is skipped, and one whose picture cannot be made is listed in the job; both keep playing their clip in the grid as before. See [Video previews in the grid](./feature-toggles.md#animated-video-previews).
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

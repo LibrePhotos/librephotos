@@ -34,6 +34,19 @@ export function squareThumbnailUrl(serverAddress: string, imageHash: string): st
   return join(serverAddress, MEDIA.squareThumbnail, imageHash);
 }
 
+/**
+ * A video's still poster at the small grid size: a WebP of its first frame beside the clip (#2026).
+ * Only for a video whose `video_poster` is true; older servers answer the clip here.
+ */
+export function squarePosterSmallUrl(serverAddress: string, imageHash: string): string {
+  return join(serverAddress, MEDIA.squareThumbnailSmall, `${imageHash}.webp`);
+}
+
+/** A video's still poster at the standard grid size; see `squarePosterSmallUrl`. */
+export function squarePosterUrl(serverAddress: string, imageHash: string): string {
+  return join(serverAddress, MEDIA.squareThumbnail, `${imageHash}.webp`);
+}
+
 /** Big thumbnail for the lightbox / detail view / video poster. */
 export function bigThumbnailUrl(serverAddress: string, imageHash: string): string {
   return join(serverAddress, MEDIA.bigThumbnail, imageHash);

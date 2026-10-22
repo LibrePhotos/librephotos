@@ -36,7 +36,11 @@ from api.serializers.fields import (
 )
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
-from api.serializers.simple import SimpleUserSerializer, has_animated_preview
+from api.serializers.simple import (
+    SimpleUserSerializer,
+    has_animated_preview,
+    has_video_poster,
+)
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -75,6 +79,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     is_hdr = serializers.SerializerMethodField()
     # Whether the grid square is a clip to play or a still (#649).
     animated_preview = serializers.SerializerMethodField()
+    # Whether the grid shows a still poster until the clip plays (#2026).
+    video_poster = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -97,6 +103,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "video_length",
             "is_hdr",
             "animated_preview",
+            "video_poster",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -145,6 +152,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def get_animated_preview(self, obj: Photo) -> bool:
         return has_animated_preview(obj)
+
+    def get_video_poster(self, obj: Photo) -> bool:
+        return has_video_poster(obj)
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -302,6 +312,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "thumbnail__dominant_color",
             # Its name says whether a video's square is a clip (animated_preview).
             "thumbnail__square_thumbnail",
+            "thumbnail__video_poster",
             "video",
             "main_file",
             "search_instance__search_location",

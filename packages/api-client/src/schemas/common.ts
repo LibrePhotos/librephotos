@@ -101,6 +101,9 @@ export const PigPhoto = z.object({
   // Whether a video's grid square is an animated clip (true) or a still frame, scanned with the
   // animated previews off (#649). Absent from older backends, where every video square is a clip.
   animated_preview: z.boolean().optional(),
+  // A video with a still poster beside its clip (#2026): the grid shows it and plays the clip only
+  // while the tile is pointed at. Absent from older backends; false until the poster job has run.
+  video_poster: z.boolean().optional(),
   rating: z.number().default(0),
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),

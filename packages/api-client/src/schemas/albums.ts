@@ -230,6 +230,8 @@ export const PhotoSimple = z.object({
   is_hdr: z.boolean().optional(),
   // A video whose grid square is an animated clip, not a still (#649); older backends lack it.
   animated_preview: z.boolean().optional(),
+  // A video with a still poster beside its clip (#2026); older backends lack it.
+  video_poster: z.boolean().optional(),
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

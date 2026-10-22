@@ -15145,10 +15145,11 @@
           28,
           29,
           30,
-          31
+          31,
+          34
         ],
         "type": "integer",
-        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `20` - Import Uploads\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names\n* `30` - Move Photos\n* `31` - Deduplicate Faces"
+        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `20` - Import Uploads\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names\n* `30` - Move Photos\n* `31` - Deduplicate Faces\n* `34` - Make Video Posters"
       },
       "KindEnum": {
         "enum": [
@@ -19140,6 +19141,10 @@
           "animated_preview": {
             "type": "boolean",
             "readOnly": true
+          },
+          "video_poster": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "required": [
@@ -19157,7 +19162,8 @@
           "rating",
           "square_thumbnail",
           "video",
-          "video_length"
+          "video_length",
+          "video_poster"
         ]
       },
       "PhotoSimpleRequest": {
@@ -19465,6 +19471,10 @@
             "type": "boolean",
             "readOnly": true
           },
+          "video_poster": {
+            "type": "boolean",
+            "readOnly": true
+          },
           "rating": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -19540,7 +19550,8 @@
           "trashed_at",
           "type",
           "url",
-          "video_length"
+          "video_length",
+          "video_poster"
         ]
       },
       "PhotoSuperSimple": {
