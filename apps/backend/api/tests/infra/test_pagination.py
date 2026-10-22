@@ -3,8 +3,30 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.drf.pagination import PhotoGridPagination, WholeListPagination
-from api.tests.utils import create_test_job, create_test_tag, create_test_user
+from api.drf.pagination import DefaultPagination, WholeListPagination
+from api.tests.utils import (
+    create_test_album_user,
+    create_test_job,
+    create_test_tag,
+    create_test_user,
+)
+from api.views.album_auto import AlbumAutoListViewSet
+from api.views.album_collections import AlbumCollectionViewSet
+from api.views.albums import (
+    AlbumPlaceListViewSet,
+    AlbumThingListViewSet,
+    AlbumUserListViewSet,
+    PersonViewSet,
+)
+from api.views.photos import PhotoEditViewSet, PhotoViewSet
+from api.views.sharing import (
+    SharedFromMeAlbumUserListViewSet,
+    SharedFromMePhotoSuperSimpleListViewSet,
+    SharedToMeAlbumUserListViewSet,
+    SharedToMePhotoSuperSimpleListViewSet,
+)
+from api.views.tags import TagViewSet
+from api.views.user import UserViewSet
 
 
 class DefaultPaginationTest(TestCase):
@@ -68,34 +90,67 @@ class DefaultPaginationTest(TestCase):
 
 
 class PresetTest(TestCase):
+    """Only the lists released first-page-only clients read keep 1000 (#2500)."""
+
     def setUp(self):
         self.user = create_test_user()
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-    def test_presets_keep_the_page_sizes_clients_read_whole(self):
+    def test_the_whole_list_preset_is_kept_only_where_a_client_needs_it(self):
         self.assertEqual(WholeListPagination.page_size, 1000)
         self.assertEqual(WholeListPagination.max_page_size, 1000)
-        self.assertEqual(PhotoGridPagination.page_size, 2500)
-        self.assertEqual(PhotoGridPagination.max_page_size, 2500)
+        whole = (
+            AlbumAutoListViewSet,
+            AlbumThingListViewSet,
+            AlbumUserListViewSet,
+            PersonViewSet,
+        )
+        for view in whole:
+            with self.subTest(view=view.__name__):
+                self.assertIs(view.pagination_class, WholeListPagination)
+
+    def test_the_lists_the_apps_read_whole_page_by_100(self):
+        """The web and mobile apps follow ``next`` (``fetchAllPages``)."""
+        default = (
+            AlbumCollectionViewSet,
+            AlbumPlaceListViewSet,
+            TagViewSet,
+            UserViewSet,
+            PhotoViewSet,
+            PhotoEditViewSet,
+            SharedToMePhotoSuperSimpleListViewSet,
+            SharedFromMePhotoSuperSimpleListViewSet,
+            SharedToMeAlbumUserListViewSet,
+            SharedFromMeAlbumUserListViewSet,
+        )
+        for view in default:
+            with self.subTest(view=view.__name__):
+                self.assertIs(view.pagination_class, DefaultPagination)
 
     def test_a_whole_list_answers_1000_a_page_and_still_pages(self):
         for _ in range(3):
-            create_test_tag(owner=self.user)
+            create_test_album_user(owner=self.user)
 
-        data = self.client.get("/api/tags/").json()
+        data = self.client.get("/api/albums/user/list/").json()
         self.assertEqual((data["count"], data["page_size"]), (3, 1000))
 
-        data = self.client.get("/api/tags/?page_size=2").json()
+        data = self.client.get("/api/albums/user/list/?page_size=2").json()
         self.assertEqual(len(data["results"]), 2)
         self.assertIn("page=2", data["next"])
+
+    def test_the_tag_list_pages_by_100(self):
+        create_test_tag(owner=self.user)
+
+        data = self.client.get("/api/tags/").json()
+        self.assertEqual((data["count"], data["page_size"]), (1, 100))
 
     def test_the_user_list_pages_by_number_now(self):
         """It was the 20000-row limit/offset default; old ?limit is ignored."""
         create_test_user()
 
         data = self.client.get("/api/user/?limit=1").json()
-        self.assertEqual((data["count"], data["page_size"]), (2, 1000))
+        self.assertEqual((data["count"], data["page_size"]), (2, 100))
         self.assertEqual(len(data["results"]), 2)
 
         data = self.client.get("/api/user/?page_size=1").json()

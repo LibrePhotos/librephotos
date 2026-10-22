@@ -9,7 +9,7 @@ from api.drf.params import JsonStringField, required_string
 from api.models.photo_stack import PhotoStack
 from api.serializers.photo_groups import (
     GroupPhotoSerializer,
-    LegacyFlagsPageSerializer,
+    PhotoGroupPageSerializer,
     PhotoGroupThumbnailSerializer,
 )
 
@@ -84,7 +84,7 @@ class PhotoStackListItemSerializer(serializers.Serializer[None]):
     )
 
 
-class PhotoStackPageSerializer(LegacyFlagsPageSerializer):
+class PhotoStackPageSerializer(PhotoGroupPageSerializer):
     """A page of ``GET /api/stacks/``: stacks with at least 2 photos, newest first."""
 
     results = PhotoStackListItemSerializer(many=True)

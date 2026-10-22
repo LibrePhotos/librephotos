@@ -71,11 +71,11 @@ class SubfoldersAuthTests(SubfoldersTestBase):
         resp = self.client_for(user).get(URL)
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
-        self.assertEqual(body["subfolders"], [])
+        self.assertEqual(body["results"], [])
         self.assertIsNone(body["current_path"])
         self.assertIsNone(body["parent_path"])
-        self.assertEqual(body["pagination"]["total_folders"], 0)
-        self.assertFalse(body["pagination"]["has_next"])
+        self.assertEqual(body["count"], 0)
+        self.assertIsNone(body["next"])
 
     def test_regular_user_without_scan_directory_rejected_even_with_path(self):
         # An explicit (valid) path does not help a user with no scan directory.
@@ -195,7 +195,7 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.assertEqual(
             resp.json(),
             {
-                # The shared page envelope (api/drf/pagination.py, #2327) ...
+                # The shared page envelope (api/drf/pagination.py, #2327)
                 "count": 0,
                 "next": None,
                 "previous": None,
@@ -205,16 +205,6 @@ class SubfoldersListingTests(SubfoldersTestBase):
                 "num_pages": 1,
                 "current_path": self.root,
                 "parent_path": None,  # base_path == DATA_ROOT
-                # ... and the shape before it, for web bundles up to 1.3.
-                "subfolders": [],
-                "pagination": {
-                    "page": 1,
-                    "page_size": 100,
-                    "total_folders": 0,
-                    "total_pages": 1,
-                    "has_next": False,
-                    "has_previous": False,
-                },
             },
         )
 
@@ -225,9 +215,9 @@ class SubfoldersListingTests(SubfoldersTestBase):
         resp = self.client_for(admin).get(URL, {"path": sub})
         body = resp.json()
         self.assertEqual(body["parent_path"], self.root)
-        self.assertEqual(body["pagination"]["page"], 1)
-        self.assertFalse(body["pagination"]["has_previous"])
-        self.assertFalse(body["pagination"]["has_next"])
+        self.assertEqual(body["page"], 1)
+        self.assertIsNone(body["previous"])
+        self.assertIsNone(body["next"])
 
     def test_only_folders_with_photos_are_listed_and_sorted(self):
         admin = create_test_user(is_admin=True)
@@ -238,13 +228,13 @@ class SubfoldersListingTests(SubfoldersTestBase):
         resp = self.client_for(admin).get(URL)
         body = resp.json()
         self.assertEqual(
-            [f["name"] for f in body["subfolders"]], ["alpha", "Beta", "Gamma"]
+            [f["name"] for f in body["results"]], ["alpha", "Beta", "Gamma"]
         )
         # "empty" is scanned (counted in total_folders) but filtered out of the
         # subfolders list because its photo_count is 0.
-        self.assertEqual(body["pagination"]["total_folders"], 4)
-        self.assertEqual(body["pagination"]["total_pages"], 1)
-        entry = body["subfolders"][0]
+        self.assertEqual(body["count"], 4)
+        self.assertEqual(body["num_pages"], 1)
+        entry = body["results"][0]
         self.assertEqual(
             sorted(entry.keys()),
             ["cover_photo", "modified", "name", "path", "photo_count"],
@@ -266,9 +256,9 @@ class SubfoldersListingTests(SubfoldersTestBase):
 
         body = self.client_for(admin).get(URL).json()
         self.assertEqual(
-            [(f["name"], f["photo_count"]) for f in body["subfolders"]], [("a", 1)]
+            [(f["name"], f["photo_count"]) for f in body["results"]], [("a", 1)]
         )
-        self.assertEqual(body["pagination"]["total_folders"], 2)
+        self.assertEqual(body["count"], 2)
 
     def test_hidden_folders_and_files_are_ignored(self):
         admin = create_test_user(is_admin=True)
@@ -279,8 +269,8 @@ class SubfoldersListingTests(SubfoldersTestBase):
             fh.write("x")
 
         body = self.client_for(admin).get(URL).json()
-        self.assertEqual([f["name"] for f in body["subfolders"]], ["visible"])
-        self.assertEqual(body["pagination"]["total_folders"], 1)
+        self.assertEqual([f["name"] for f in body["results"]], ["visible"])
+        self.assertEqual(body["count"], 1)
 
     def test_photos_of_other_users_are_not_counted(self):
         admin = create_test_user(is_admin=True)
@@ -289,8 +279,8 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.add_photo_in(stranger, os.path.join(self.root, "shared"))
 
         body = self.client_for(admin).get(URL).json()
-        self.assertEqual(body["subfolders"], [])
-        self.assertEqual(body["pagination"]["total_folders"], 1)
+        self.assertEqual(body["results"], [])
+        self.assertEqual(body["count"], 1)
 
     def test_multiple_files_in_one_folder_count_photos_distinctly(self):
         admin = create_test_user(is_admin=True)
@@ -307,7 +297,7 @@ class SubfoldersListingTests(SubfoldersTestBase):
         self.add_photo_in(admin, folder, "b.jpg")
 
         body = self.client_for(admin).get(URL).json()
-        self.assertEqual(body["subfolders"][0]["photo_count"], 2)
+        self.assertEqual(body["results"][0]["photo_count"], 2)
 
     def test_regular_user_at_scan_directory_root_has_no_parent(self):
         scan_dir = os.path.join(self.root, "scan")
@@ -319,7 +309,7 @@ class SubfoldersListingTests(SubfoldersTestBase):
         body = self.client_for(user).get(URL).json()
         self.assertEqual(body["current_path"], scan_dir)
         self.assertIsNone(body["parent_path"])
-        self.assertEqual([f["name"] for f in body["subfolders"]], ["holiday"])
+        self.assertEqual([f["name"] for f in body["results"]], ["holiday"])
 
     def test_regular_user_below_scan_directory_has_parent(self):
         scan_dir = os.path.join(self.root, "scan")
@@ -350,7 +340,7 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
         admin = create_test_user(is_admin=True)
         for value in ("0", "-5"):
             body = self.client_for(admin).get(URL, {"page": value}).json()
-            self.assertEqual(body["pagination"]["page"], 1)
+            self.assertEqual(body["page"], 1)
 
     def test_page_size_defaults_to_100_and_slices_entries(self):
         admin = create_test_user(is_admin=True)
@@ -359,20 +349,16 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
             self.add_photo_in(admin, os.path.join(self.root, name))
 
         page1 = self.client_for(admin).get(URL).json()
-        self.assertEqual(len(page1["subfolders"]), 100)
-        self.assertEqual(page1["subfolders"][0]["name"], "f000")
-        self.assertEqual(page1["pagination"]["total_folders"], 101)
-        self.assertEqual(page1["pagination"]["total_pages"], 2)
-        self.assertTrue(page1["pagination"]["has_next"])
-        self.assertFalse(page1["pagination"]["has_previous"])
-
-        self.assertEqual(page1["results"], page1["subfolders"])
+        self.assertEqual(len(page1["results"]), 100)
+        self.assertEqual(page1["results"][0]["name"], "f000")
+        self.assertEqual(page1["count"], 101)
+        self.assertEqual(page1["num_pages"], 2)
+        self.assertIsNone(page1["previous"])
         self.assertIn("page=2", page1["next"])
 
         page2 = self.client_for(admin).get(URL, {"page": 2}).json()
-        self.assertEqual([f["name"] for f in page2["subfolders"]], ["f100"])
-        self.assertFalse(page2["pagination"]["has_next"])
-        self.assertTrue(page2["pagination"]["has_previous"])
+        self.assertEqual([f["name"] for f in page2["results"]], ["f100"])
+        self.assertIsNotNone(page2["previous"])
         self.assertIsNone(page2["next"])
 
     def test_page_size_is_read_like_every_list(self):
@@ -411,7 +397,7 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         self.add_photo_in(admin, os.path.join(self.root, "Karneval"), "c.jpg")
 
         body = self.client_for(admin).get(URL).json()
-        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+        counts = {f["name"]: f["photo_count"] for f in body["results"]}
 
         self.assertEqual(counts, {"test": 3, "test2": 2, "Karneval": 1})
 
@@ -424,7 +410,7 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         self.add_photo_in(admin, os.path.join(self.root, "test2"), "other.jpg")
 
         body = self.client_for(admin).get(URL).json()
-        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+        counts = {f["name"]: f["photo_count"] for f in body["results"]}
 
         self.assertEqual(counts["test"], 2)
         self.assertEqual(counts["test2"], 1)

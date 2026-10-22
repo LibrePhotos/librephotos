@@ -64,8 +64,7 @@ export const PhotoStackListItem = z.object({
 export type PhotoStackListItem = z.infer<typeof PhotoStackListItem>;
 
 /**
- * One page of stacks: the shared page envelope (backend api/drf/pagination.py). The server
- * still adds `has_next`/`has_previous` for bundles up to 1.3; `next`/`previous` say the same.
+ * One page of stacks: the shared page envelope (backend api/drf/pagination.py).
  */
 export const PhotoStackListResponse = z.object({
   ...PageFields,

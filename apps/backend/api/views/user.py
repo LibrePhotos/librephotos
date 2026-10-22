@@ -24,7 +24,7 @@ from api.accounts.permissions import (
     IsSuperUser,
 )
 from api.accounts.throttling import AuthRateThrottle
-from api.drf.pagination import WholeListPagination
+from api.drf.pagination import DefaultPagination
 from api.drf.params import parse_query
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, PREDEFINED_RULES_JSON
 from api.models import User
@@ -143,9 +143,7 @@ class UserViewSet(
     PartialUpdateModelMixin[User],
     viewsets.GenericViewSet,
 ):
-    # Was the 20000-row limit/offset default; 1000 a page is more accounts
-    # than any server has, so clients that read one page still see them all.
-    pagination_class = WholeListPagination
+    pagination_class = DefaultPagination
 
     def get_queryset(self) -> QuerySet[User]:
         queryset = with_user_relations(

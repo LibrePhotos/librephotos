@@ -553,13 +553,13 @@ class DuplicateEdgeCasesTest(TestCase):
         data = response.json()
         self.assertEqual(len(data["results"]), 10)
         self.assertEqual(data["count"], 25)
-        self.assertTrue(data["has_next"])
+        self.assertIsNotNone(data["next"])
 
         # Get second page
         response = self.client.get("/api/duplicates?page=2&page_size=10")
         data = response.json()
         self.assertEqual(len(data["results"]), 10)
-        self.assertTrue(data["has_previous"])
+        self.assertIsNotNone(data["previous"])
 
     def test_invalid_uuid_format(self):
         """A non-UUID id under /api/duplicates/ is not a route.

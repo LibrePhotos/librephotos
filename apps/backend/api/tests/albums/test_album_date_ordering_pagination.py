@@ -28,7 +28,7 @@ class AlbumDatePhotoOrderingTest(TestCase):
     def _page_hashes(self, page):
         response = self.client.get(
             f"/api/albums/date/{self.album.id}/",
-            {"page": page, "size": 2},
+            {"page": page, "page_size": 2},
         )
         self.assertEqual(response.status_code, 200)
         return [item["image_hash"] for item in response.json()["results"]["items"]]
@@ -46,7 +46,7 @@ class AlbumDatePhotoOrderingTest(TestCase):
 
 
 class AlbumDatePageQueryTest(AlbumDatePhotoOrderingTest):
-    """?size and ?page on a day album (#2326): ?size=x was int() and a 500."""
+    """?page_size and ?page on a day album (#2326): ?size=x was int() and a 500."""
 
     def get(self, query: dict[str, str]):
         return self.client.get(f"/api/albums/date/{self.album.id}/", query)
@@ -56,26 +56,28 @@ class AlbumDatePageQueryTest(AlbumDatePhotoOrderingTest):
         self.assertEqual(response.status_code, 200)
         return len(response.json()["results"]["items"])
 
-    def test_size_defaults_to_one_hundred_and_is_at_least_one(self):
+    def test_page_size_defaults_to_one_hundred_and_is_at_least_one(self):
         self.assertEqual(self.items({}), 4)
-        self.assertEqual(self.items({"size": ""}), 4)
-        self.assertEqual(self.items({"size": "0"}), 1)
-        self.assertEqual(self.items({"size": "-3"}), 1)
+        self.assertEqual(self.items({"page_size": ""}), 4)
+        self.assertEqual(self.items({"page_size": "0"}), 1)
+        self.assertEqual(self.items({"page_size": "-3"}), 1)
 
     def test_a_non_numeric_page_is_still_the_first(self):
-        self.assertEqual(self.items({"size": "3", "page": "x"}), 3)
-        self.assertEqual(self.items({"size": "3", "page": "9"}), 1)
+        self.assertEqual(self.items({"page_size": "3", "page": "x"}), 3)
+        self.assertEqual(self.items({"page_size": "3", "page": "9"}), 1)
 
-    def test_a_non_numeric_size_is_a_400(self):
-        response = self.get({"size": "x"})
+    def test_a_non_numeric_page_size_is_a_400(self):
+        response = self.get({"page_size": "x"})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["errors"][0]["field"], "size")
+        self.assertEqual(response.json()["errors"][0]["field"], "page_size")
 
-    def test_page_size_wins_over_the_deprecated_size(self):
-        self.assertEqual(self.items({"page_size": "2", "size": "3"}), 2)
+    def test_the_old_size_alias_is_ignored(self):
+        """``size`` was a deprecated alias of ``page_size`` up to 1.4.0 (#2500)."""
+        self.assertEqual(self.items({"size": "3"}), 4)
+        self.assertEqual(self.get({"size": "x"}).status_code, 200)
 
-    def test_size_has_the_page_size_bound(self):
-        self.assertEqual(self.get({"size": "50000"}).json()["page_size"], 1000)
+    def test_page_size_has_the_shared_bound(self):
+        self.assertEqual(self.get({"page_size": "50000"}).json()["page_size"], 1000)
 
     def test_the_page_fields_sit_next_to_the_day(self):
         data = self.get({"page_size": "3", "page": "2"}).json()
