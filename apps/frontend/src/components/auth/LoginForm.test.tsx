@@ -129,7 +129,7 @@ describe("LoginForm: Remember me", () => {
 
       expect(checkbox(host)).toBeNull();
       expect(host.textContent).toContain("Forgot your password?");
-      expect(submit(host).remember_me).toBe(false);
+      expect(submit(host)).not.toHaveProperty("remember_me");
       act(() => root?.unmount());
       host.remove();
     }

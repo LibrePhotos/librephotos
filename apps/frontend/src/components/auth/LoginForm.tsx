@@ -52,7 +52,8 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
     login({
       username: form.values.username.toLowerCase(),
       password: form.values.password,
-      remember_me: rememberMeDays > 0 && form.values.rememberMe,
+      // Only where the server offers it, so the body stays as it was elsewhere.
+      ...(rememberMeDays > 0 ? { remember_me: form.values.rememberMe } : {}),
     });
   }
 
