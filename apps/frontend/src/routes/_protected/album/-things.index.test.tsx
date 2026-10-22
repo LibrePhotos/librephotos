@@ -27,9 +27,9 @@ type LinkStubProps = { children?: React.ReactNode; to: string; params?: { id: st
 const stubs = vi.hoisted(() => ({
   component: null as React.ComponentType | null,
   albums: [
-    { id: 1, title: "beach", thing_type: "hashtag_attribute", photo_count: 12, cover_photos: [{ image_hash: "h1" }] },
+    { id: 1, title: "beach", thing_type: "openclip_vitb32_tag", photo_count: 12, cover_photos: [{ image_hash: "h1" }] },
     // Every stored cover hidden or trashed
-    { id: 2, title: "harbour", thing_type: "hashtag_attribute", photo_count: 6, cover_photos: [] },
+    { id: 2, title: "harbour", thing_type: "openclip_vitb32_tag", photo_count: 6, cover_photos: [] },
   ],
 }));
 
@@ -100,6 +100,25 @@ describe("the things page", () => {
     expect(links).toHaveLength(2);
     expect(links.some(link => link.textContent?.includes("harbour"))).toBe(true);
     await page.unmount();
+  });
+
+  it("names things in the interface language and sorts them by that name (#2744)", async () => {
+    i18n.addResourceBundle("de", "tags", { beach: "Strand", harbour: "Hafen" });
+    await i18n.changeLanguage("de");
+    try {
+      const page = await renderPage();
+
+      const titles = [...page.links("/album/things/1"), ...page.links("/album/things/2")].map(link => link.textContent);
+      expect(titles.join(" ")).toContain("Strand");
+      expect(titles.join(" ")).toContain("Hafen");
+      // "Hafen" before "Strand", where English has "beach" before "harbour"
+      const text = document.body.textContent ?? "";
+      expect(text.indexOf("Hafen")).toBeLessThan(text.indexOf("Strand"));
+      await page.unmount();
+    } finally {
+      i18n.removeResourceBundle("de", "tags");
+      await i18n.changeLanguage("en");
+    }
   });
 
   it("links an album with a cover from its cover and its title", async () => {

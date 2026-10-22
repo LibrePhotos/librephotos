@@ -2,7 +2,7 @@ import type { ThingAlbumInfo } from "@librephotos/api-client";
 import { Flex, Group, Text } from "@mantine/core";
 import { IconTags as Tags } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
 import gridClasses from "../../../components/album/AlbumGridCell.module.css";
@@ -16,6 +16,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { useThingLabel } from "../../../hooks/useThingLabel";
 
 export const Route = createFileRoute("/_protected/album/things/")({
   component: AlbumThing,
@@ -31,7 +32,14 @@ function AlbumThing() {
   const listFailure = useListFailure(albumsQuery);
   const sizing = useAlbumListGridConfig();
   const hasAlbums = albums && albums.length > 0;
-  const albumSort = useAlbumSort(THING_SORT, albums ?? NO_THINGS);
+  const thingLabel = useThingLabel();
+  // Named in the interface language (#2744) before sorting, so the order is the one on screen.
+  // An album opens by its id; a hashtag album's "#word" is never a translated thing.
+  const namedAlbums = useMemo(
+    () => (albums ?? NO_THINGS).map(album => ({ ...album, title: thingLabel(album.title) })),
+    [albums, thingLabel]
+  );
+  const albumSort = useAlbumSort(THING_SORT, namedAlbums);
 
   return (
     <div>

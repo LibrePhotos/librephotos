@@ -95,6 +95,8 @@ Automatically generated albums based on detected objects and scenes in your phot
 
 <Since version="1.5.0" /> To find the things in your photos again, open **Account menu > Library** and, under the **Things** heading, click the arrow next to **Find** and choose **Find things again for all photos**. It asks first, because on a large library it runs for hours. Every photo is labelled again with the current list of things, and the Things albums follow; your own tags, keywords and captions stay as they are. **Find** alone covers only the photos that have no things yet, which a scan also does by itself. Each user runs it for their own photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
 
+<Since version="1.5.0" /> Things show in the language you picked under **Settings > Profile > Language**, in the Things albums, the photo's info panel and the statistics word cloud, as far as that language has been translated; a thing without a translation shows in English. Hover over a translated thing in the info panel or the word cloud to see its English word. Search still finds things by their English word only: searching *Strand* finds nothing, *beach* does. Clicking a thing searches for its English word for you. Your own words (below) and hashtag albums show as you wrote them.
+
 #### Teaching LibrePhotos new things
 
 <Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 940 words that ships with it (beach, dog, birthday cake, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":

@@ -67,6 +67,19 @@ describe("i18n lazy locale loading", () => {
     expect(i18n.t("settings.language")).toBe(translationEn.settings.language);
   });
 
+  it("loads the things' names only when a page asks for them (#2744)", async () => {
+    window.localStorage.setItem("i18nextLng", "de");
+    const i18n = await loadI18n();
+    expect(i18n.hasResourceBundle("en", "tags")).toBe(false);
+    expect(i18n.hasResourceBundle("de", "tags")).toBe(false);
+
+    await i18n.loadNamespaces("tags");
+
+    expect(i18n.getResource("en", "tags", "beach")).toBe("beach");
+    // No German file yet (Weblate adds it): an empty bundle, so English shows
+    expect(i18n.getResourceBundle("de", "tags")).toEqual({});
+  });
+
   it("fetches a locale when the user switches language", async () => {
     window.localStorage.setItem("i18nextLng", "en");
     const i18n = await loadI18n();
