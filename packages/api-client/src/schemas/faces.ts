@@ -38,6 +38,11 @@ export const IncompletePersonFace = z.looseObject({
   name: z.string(),
   kind: z.string().optional(),
   face_count: z.number(),
+  /**
+   * The group's place when groups that look alike sit together (#622); null without a cluster
+   * centroid chain (too many groups, "Unknown - Other"). Optional: older servers omit it.
+   */
+  similarity_rank: z.number().nullable().optional(),
 });
 export type IncompletePersonFace = z.infer<typeof IncompletePersonFace>;
 

@@ -16394,13 +16394,20 @@
           "face_count": {
             "type": "integer",
             "readOnly": true
+          },
+          "similarity_rank": {
+            "type": "integer",
+            "nullable": true,
+            "readOnly": true,
+            "description": "The group's place when groups that look alike sit together (#622): a chain from the group with the most faces to each next closest one; groups without a cluster come after it. Null above 3000 groups and for Unknown - Other"
           }
         },
         "required": [
           "face_count",
           "id",
           "kind",
-          "name"
+          "name",
+          "similarity_rank"
         ]
       },
       "JobStartedResponse": {

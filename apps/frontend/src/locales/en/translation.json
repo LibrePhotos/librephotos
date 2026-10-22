@@ -2202,6 +2202,7 @@
     "personorder": "Order people",
     "personorderbyname": "A–Z",
     "personorderbycount": "Most faces",
+    "personorderbysimilarity": "Similar faces together",
     "show": "Show",
     "clusters": "Clusters",
     "classifications": "Classifications",

@@ -43,6 +43,7 @@ from api.faces.photo_faces import (
     overlaps_existing_face,
     save_detected_face,
 )
+from api.faces.similarity import similarity_ranks
 from api.faces.twins import twin_faces
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
@@ -262,9 +263,17 @@ class FaceIncompleteListViewSet(ListViewSet):
     def list(self, *args: Any, **kwargs: Any) -> Response:
         user = request_user(self.request)
         params = parse_query(self.request, FaceIncompleteListQuery)
-        queryset = self.get_queryset()
-
-        serializer = self.get_serializer(queryset, many=True)
+        people = list(self.get_queryset())
+        # Where each group goes when groups that look alike sit together (#622).
+        ranks = similarity_ranks(
+            user,
+            [(person.pk, getattr(person, "viewable_face_count")) for person in people],
+        )
+        serializer = self.get_serializer(
+            people,
+            many=True,
+            context={**self.get_serializer_context(), "similarity_ranks": ranks},
+        )
         real_persons = serializer.data
 
         unknown_faces_count = (
@@ -279,6 +288,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                 "name": "Unknown - Other",
                 "face_count": unknown_faces_count,
                 "kind": Person.UNKNOWN_PERSON_NAME,
+                "similarity_rank": None,
             }
             real_persons.append(unknown_person)
 

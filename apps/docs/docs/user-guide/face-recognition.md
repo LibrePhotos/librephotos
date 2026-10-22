@@ -86,6 +86,8 @@ Each group starts with a row that shows the person's face, their name and how ma
 
 Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
 
+<Since version="1.5.0" /> The third button, **Similar faces together** (the joining arrows), puts groups whose faces look alike next to each other. It starts with the group with the most faces and then always takes the group that looks most like the last one, so the clusters of one person ("Unknown 014", "Unknown 087") usually end up in a row on the **Inferred** tab, often right after that person's name if they are already named. Label them in one pass, or select several groups' faces at once. Groups without a cluster (for example faces that only training suggested) come after the others, by name. A library with more than 3,000 groups keeps name order in this view.
+
 <Since version="1.4.0" /> To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there.
 
 ### Act on one face
