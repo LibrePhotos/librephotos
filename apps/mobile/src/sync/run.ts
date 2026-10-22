@@ -16,6 +16,7 @@ import { tokenStorage } from "@/lib/tokenStorage";
 import { useSettingsStore } from "@/stores/settings";
 import { useSyncStore } from "@/stores/sync";
 import { getBackupConfig } from "@/db/queries/backup";
+import { refreshMemoriesReminders } from "@/features/memories/reminders";
 import {
   repairSync,
   syncAll,
@@ -247,6 +248,9 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
       onWorkerProgress: () => publishQueue(db),
     });
     useSyncStore.getState().setResult(result);
+    // New or removed photos change which days have memories. Awaited, so a
+    // background pass plans them before the OS suspends it.
+    await refreshMemoriesReminders(db);
     return result;
   } catch (err) {
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
@@ -294,6 +298,9 @@ export async function repair(db: AppDatabase, userId?: number | null): Promise<S
       onWorkerProgress: () => publishQueue(db),
     });
     useSyncStore.getState().setResult(result);
+    // New or removed photos change which days have memories. Awaited, so a
+    // background pass plans them before the OS suspends it.
+    await refreshMemoriesReminders(db);
     return result;
   } catch (err) {
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
