@@ -244,12 +244,13 @@ describe("Settings public sharing (#2273)", () => {
     );
   });
 
-  it("describes each of the five switches", () => {
+  it("describes each switch, the one for users first (#2722)", () => {
     const card = document.getElementById("settings-sharing");
     const descriptions = Array.from(card?.querySelectorAll(".mantine-Switch-description") ?? []).map(
       element => element.textContent
     );
     expect(descriptions).toEqual([
+      "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public Sharing Defaults.",
       "Show when photos were taken",
       "Show where photos were taken",
       "Show camera make, model, and settings",

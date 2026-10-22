@@ -85,13 +85,19 @@ class GetPeopleNameResolutionTestCase(TestCase):
 
         self.assertEqual([p["name"] for p in result], ["Alice"])
 
-    def test_cluster_person_used_when_person_is_null(self):
-        cluster_person = create_test_person(name="Cluster 7")
+    def test_a_face_with_only_a_cluster_is_not_shown(self):
+        """Only the people the owner named reach a visitor (#2722), never a
+        cluster's name such as "Unknown 012"."""
+        cluster_person = create_test_person(name="Cluster 7", kind="CLUSTER")
         create_test_face(photo=self.photo, person=None, cluster_person=cluster_person)
 
-        result = _people(self.photo, self.settings_on)
+        self.assertEqual(_people(self.photo, self.settings_on), [])
 
-        self.assertEqual([p["name"] for p in result], ["Cluster 7"])
+    def test_a_face_of_the_unknown_person_is_not_shown(self):
+        unknown = create_test_person(name="Unknown - Other", kind="UNKNOWN")
+        create_test_face(photo=self.photo, person=unknown)
+
+        self.assertEqual(_people(self.photo, self.settings_on), [])
 
     def test_face_without_person_or_cluster_person_is_filtered_out(self):
         create_test_face(photo=self.photo, person=None, cluster_person=None)

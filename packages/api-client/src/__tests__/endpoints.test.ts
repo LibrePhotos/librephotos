@@ -170,6 +170,45 @@ describe("sharing endpoints", () => {
       "https://demo.example.com/api/photos/shared/tome/?page_size=1000",
     ]);
   });
+
+  it("reads the places and things of the photos shared with me (#2721)", async () => {
+    const group = { title: "Lisbon", photo_count: 2, cover_photos: [{ image_hash: "h", video: false }] };
+    const { client, calls } = harness({ results: [group] });
+    expect(await endpoints.fetchSharedGroupsWithMe(client, "places")).toEqual([group]);
+    await endpoints.fetchSharedGroupsWithMe(client, "things");
+    expect(calls.map(call => call.url)).toEqual([
+      "https://demo.example.com/api/photos/shared/tome/places/",
+      "https://demo.example.com/api/photos/shared/tome/things/",
+    ]);
+  });
+
+  it("reads the photos of one shared place by its title", async () => {
+    const { client, calls } = harness({ results: [] });
+    await endpoints.fetchSharedGroupPhotos(client, "places", "São Paulo & co");
+    expect(defined(calls[0]).url).toBe(
+      "https://demo.example.com/api/photos/shared/tome/places/photos/?title=S%C3%A3o+Paulo+%26+co&page_size=1000"
+    );
+  });
+
+  it("reads the people of the photos shared with me and their photos (#2722)", async () => {
+    const person = {
+      id: "7",
+      name: "Mom",
+      owner: { id: 2, username: "alice", first_name: "Alice", last_name: "Lang" },
+      photo_count: 3,
+      face_url: null,
+    };
+    const people = harness({ results: [person] });
+    const [parsed] = await endpoints.fetchSharedPeopleWithMe(people.client);
+    expect(defined(parsed).id).toBe(7);
+    expect(defined(people.calls[0]).url).toBe("https://demo.example.com/api/photos/shared/tome/people/");
+
+    const photos = harness({ results: [] });
+    await endpoints.fetchSharedPersonPhotos(photos.client, 7);
+    expect(defined(photos.calls[0]).url).toBe(
+      "https://demo.example.com/api/photos/shared/tome/people/photos/?person=7&page_size=1000"
+    );
+  });
 });
 
 describe("public link endpoints", () => {

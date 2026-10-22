@@ -25,6 +25,7 @@ import { ScanOptionsCard } from "./ScanOptionsCard";
 import { SETTINGS_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { SettingsSection } from "./SettingsSection";
+import { UserSharingCard } from "./UserSharingCard";
 
 export function Settings() {
   const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
@@ -74,7 +75,7 @@ export function Settings() {
     { id: SETTINGS_SECTIONS.burst, label: t("settings.burst.title") },
     { id: SETTINGS_SECTIONS.experimental, label: t("settings.experimentaloptions") },
     { id: SETTINGS_SECTIONS.captions, label: t("settings.captioncontext") },
-    { id: SETTINGS_SECTIONS.sharing, label: t("settings.publicsharingdefaults") },
+    { id: SETTINGS_SECTIONS.sharing, label: t("sidemenu.sharing") },
     { id: SETTINGS_SECTIONS.interface, label: t("settings.interface") },
     { id: SETTINGS_SECTIONS.duplicates, label: t("settings.duplicatedetection") },
   ];
@@ -121,6 +122,7 @@ export function Settings() {
             <CaptionContextCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.sharing}>
+            <UserSharingCard {...cardProps} />
             <PublicSharingDefaultsCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.interface}>

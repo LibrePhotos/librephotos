@@ -29,6 +29,8 @@ vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPublicPhotoDetailQuery: () => ({ data: stubs.publicAlbumPhoto, isLoading: false }),
   useUpdatePhotoMutation: () => ({ mutate: () => {} }),
 }));
+// Signed in: a recipient's panel asks for the photo's people and things (#2721, #2722).
+vi.mock("../../api_client/auth", () => ({ useIsAuthenticatedQuery: () => ({ data: true }) }));
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
 }));
@@ -133,6 +135,34 @@ describe("Sidebar for a viewer who is not the owner", () => {
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.withouttimestamp"));
     expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.no_location"));
     expect(container.textContent).toContain(i18n.t("lightbox.sidebar.ownerOnlyDetails"));
+  });
+});
+
+describe("Sidebar for a user the photo is shared with (#2721, #2722)", () => {
+  it("shows the people and things the server gives them, and whose photo it is", async () => {
+    stubs.ownPhoto = makePhoto({
+      id: "p1",
+      image_hash: "h1",
+      owner: { id: 2, username: "alice", first_name: "Alice", last_name: "Lang" },
+      captions_json: { openclip_vitb32: { tags: ["tram", "sunset"] } },
+      people: [
+        {
+          name: "Mom",
+          type: "user",
+          probability: 1,
+          location: { top: 0, bottom: 1, left: 0, right: 1 },
+          face_url: "",
+          face_id: 3,
+        },
+      ],
+    });
+    const container = await renderSidebar({ id: "p1", image_hash: "h1", date: "", location: "Lisbon" });
+
+    expect(stubs.people).toEqual(["Mom"]);
+    expect(container.textContent).toContain("tram");
+    expect(container.textContent).toContain("Shared by Alice Lang");
+    // Read only: the things are labels, not search buttons.
+    expect(container.querySelector("button.mantine-Badge-root")).toBeNull();
   });
 });
 

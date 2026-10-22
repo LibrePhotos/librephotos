@@ -49,6 +49,25 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
             ).values("pk")
         )
 
+    def shared_with_me(self, user: User | AnonymousUser | None) -> Self:
+        """Photos someone else shared with ``user``, directly or in an album.
+
+        Directly through ``shared_to``, or as a photo of a user album shared
+        to ``user``. Not public photos, and never ``user``'s own. The
+        "Shared with you" places, things and people (#2721, #2722) are built
+        from it; call it on ``Photo.visible`` to leave out hidden, trashed
+        and removed photos. Subqueries rather than joins, so a photo shared
+        both ways is one row without ``distinct()``.
+        """
+        if not (isinstance(user, User) and user.is_authenticated):
+            return self.none()
+        through_share = self.model.shared_to.through.objects.filter(user=user)
+        in_shared_album = self.model.objects.filter(albumuser__shared_to=user)
+        return self.filter(
+            Q(pk__in=through_share.values("photo_id"))
+            | Q(pk__in=in_shared_album.values("pk"))
+        ).exclude(self.owner_q(user))
+
 
 def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:
     """``photos`` with the largest ``width * height`` first, unknown sizes last.

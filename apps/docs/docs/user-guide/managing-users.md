@@ -21,7 +21,7 @@ Scan directories of different users must not overlap. Every photo belongs to exa
 
 If your admin account already scans `/data` and you want to add more users, move the admin's photos into a subfolder such as `/data/admin`, set that as the admin's scan directory and run a scan. The moved photos are matched to their existing entries by their content, so ratings, faces and albums are kept; see [Missing Photos](./missing-photos.md) for how that relinking works.
 
-To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md).
+To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md). [Sharing photos in a family](./sharing.md#sharing-photos-in-a-family) compares the setups a household can use.
 
 While the application saves metadata (e.g., tags, albums, facial recognition data) on a per-user basis in its database, it doesn’t inherently restrict access to the photos themselves. Access permissions must be managed through the file system / paths.
 

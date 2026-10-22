@@ -1310,6 +1310,45 @@ export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.Shar
   return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 
+/** What "Shared with you" groups the shared photos by (#2721, #2722). */
+export type SharedGroupKind = "places" | "things";
+
+/** The places or things of the photos shared with me, one entry per title. */
+export async function fetchSharedGroupsWithMe(
+  client: ApiClient,
+  kind: SharedGroupKind
+): Promise<S.SharedGroupsResponse["results"]> {
+  const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/`);
+  return parseResponse(S.SharedGroupsResponse, { results }, `shared ${kind} with me`).results;
+}
+
+/** The photos shared with me under one place or thing title; a 404 once none are left. */
+export async function fetchSharedGroupPhotos(
+  client: ApiClient,
+  kind: SharedGroupKind,
+  title: string
+): Promise<S.SharedToMePhotosResponse["results"]> {
+  const query = buildQuery({ title, page_size: 1000 });
+  const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, `shared ${kind} photos`).results;
+}
+
+/** The named people on the photos shared with me, one entry per owner and person. */
+export async function fetchSharedPeopleWithMe(client: ApiClient): Promise<S.SharedPeopleResponse["results"]> {
+  const results = await fetchAllPages(client, "/photos/shared/tome/people/");
+  return parseResponse(S.SharedPeopleResponse, { results }, "shared people with me").results;
+}
+
+/** The photos shared with me that show one of those people; a 404 once none are left. */
+export async function fetchSharedPersonPhotos(
+  client: ApiClient,
+  personId: number
+): Promise<S.SharedToMePhotosResponse["results"]> {
+  const query = buildQuery({ person: personId, page_size: 1000 });
+  const results = await fetchAllPages(client, `/photos/shared/tome/people/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, "shared person photos").results;
+}
+
 export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/shared/fromme/");
   return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;

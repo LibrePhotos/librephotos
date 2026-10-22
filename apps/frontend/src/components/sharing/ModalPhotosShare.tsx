@@ -92,6 +92,9 @@ export function ModalPhotosShare(props: Props) {
         )}
         <Divider />
         <Title order={4}>{t("modalphotosshare.search")}</Title>
+        <Text size="xs" c="dimmed">
+          {t("sharing.whatRecipientsSee")}
+        </Text>
         <TextInput
           onChange={event => {
             setUserNameFilter(event.currentTarget.value);

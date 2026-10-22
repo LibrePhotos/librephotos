@@ -37,6 +37,22 @@ You can share individual photos (or a selection of photos) with other users:
 
 Shared photos show up in the recipient's sharing area, grouped by the person who shared them: they open **Sharing**, click the **Shared with you** tile, then the **Photos** tab (the page is titled *Photos others shared*).
 
+## What the users you share with see
+
+<Since version="1.5.0" />
+
+When you share an album or a photo with another user, they see each shared photo with its date, its place and its things (what the photo shows, such as *beach* or *tram*). They find the shared photos under the places and things in their [Shared with you](#shared-with-me) area, counted from the photos you shared with them only: your other photos of the same place never show, not even in a count.
+
+The people on a photo are different, because a name is personal. The users you share with see people only if you allow it:
+
+- Open **Settings** and, under **Sharing with users**, turn on **Show the names of people on photos you share**. It is off by default.
+- Even then, they only see the people you named. Faces you have not named, face groups such as *Unknown 012* and the suggestions face recognition makes are never shown to them.
+- The setting applies to everything you share with other users, albums and single photos alike.
+
+The sharing dialogs say the same in one sentence under the list of users.
+
+Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo Details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
+
 ## Public Album Sharing via Link
 
 You can create a public link for any user album, making it accessible to anyone — even people without an account on your LibrePhotos instance.
@@ -91,7 +107,7 @@ The **Photo Details** panel fine-tunes what information visitors can see when th
 | **Share location information** | Whether GPS coordinates and place names are shown |
 | **Share camera information** | Whether camera model, lens, focal length, aperture, ISO, and shutter speed are shown |
 | **Share captions** | Whether AI-generated or manual captions are visible |
-| **Share detected faces** | Whether recognized people's names are displayed |
+| **Share detected faces** | Whether the names of the people you named are displayed. Faces you have not named and face groups are never shown. |
 
 Each of these settings can be toggled independently per album. When left unset, the **user-level defaults** from your settings are used; you can configure those in **Settings → Public Sharing Defaults**.
 
@@ -167,6 +183,15 @@ Open **Sharing** and click the **Shared with you** tile (the pages are titled *P
 
 - **Photos tab** — Photos others have shared with you, grouped by sender
 - **Albums tab** — Albums others have shared with you, grouped by sender
+- **Places tab**: the places of the photos shared with you, directly or in an album. A place several people shared photos of is one tile, so *Lisbon* holds everyone's Lisbon photos. Its count only covers the photos shared with you.
+- **Things tab**: the things the shared photos show, the same way.
+- **People tab**: the people their owners named on the photos shared with you, each with whose person it is (*Mom, shared by Alice*). Two people's *Mom* stay two tiles. You only see someone's people if they [allow it](#what-the-users-you-share-with-see).
+
+Click a place, thing or person to see the photos shared with you under it, grouped by sender. When nothing is shared with you under it any more, the page says so.
+
+In the details panel of a photo someone shared with you directly, you see its people (if the owner shares their names), its things and who shared it. You cannot change them; that is for the owner.
+
+<Since version="1.5.0" /> Up to 1.4.0, there were no Places, Things and People tabs, and the details panel of a photo shared with you showed only its date and place.
 
 ### Leaving an album shared with you
 
@@ -187,3 +212,33 @@ The **Public Links** row on the Sharing page shows your latest public photos and
 ## Public User Profiles
 
 Users can make their profile publicly accessible by enabling **Public Sharing** in their profile settings. Other users on the instance can then find them in the **Public photos** section of the **Sharing** page, which lists every user with public sharing enabled along with their public photo count. A user's public photos are browsable at `https://your-instance/public/<username>`.
+
+## Sharing photos in a family
+
+LibrePhotos has no shared library yet, where several people own the same photos together ([#395](https://github.com/LibrePhotos/librephotos/issues/395)). Every photo belongs to exactly one user, with its own faces, albums, ratings and edits. That is why two users cannot scan the same folder: LibrePhotos refuses a scan directory that overlaps another user's (see [Manage multiple users](./managing-users.md)). A household can still share its photos today, in one of these setups.
+
+### Setup 1: a family account
+
+Create one account for the shared family archive and give it the family folder as its scan directory. Everyone also gets a personal account for their own photos.
+
+- The family account names the people, makes albums and shares them with each person's account.
+- Everyone sees the family photos under **Shared with you**, with their places, things and, if the family account [shares names](#what-the-users-you-share-with-see), their people.
+- Only the family account can edit the family photos, name people or change albums. Someone has to sign in as it to do that.
+
+### Setup 2: everyone shares their own photos
+
+Each person scans their own folder and shares albums or single photos with the others.
+
+- Each person keeps their own favourites, faces and private photos.
+- Under **Shared with you**, everyone sees the others' places and things merged, and their people per owner.
+- A trip both partners photographed stays in two libraries. Each shares their own half.
+
+### Setup 3: one shared login
+
+Everyone signs in with the same account. It is the simplest setup, but nobody has favourites, ratings or private photos of their own, and everyone sees everything, including what someone meant to keep to themselves.
+
+### What is not possible yet
+
+- Owning photos together, or one library that several users scan: [#395](https://github.com/LibrePhotos/librephotos/issues/395).
+- Letting the people you share an album with add their own photos to it: [#464](https://github.com/LibrePhotos/librephotos/issues/464).
+- Adding the people someone shared with you to your own People page: [#632](https://github.com/LibrePhotos/librephotos/issues/632).

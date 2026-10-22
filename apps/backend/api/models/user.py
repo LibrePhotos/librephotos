@@ -112,6 +112,11 @@ class User(AbstractUser):
     public_sharing_defaults = models.JSONField(
         default=get_default_public_sharing_settings
     )
+    # Whether the users this user shares photos or albums with see the names
+    # of the people the user named on those photos (#2722). Off by default:
+    # recipients then see no people at all. Public links follow
+    # ``public_sharing_defaults["share_faces"]`` instead.
+    share_people_names = models.BooleanField(default=False)
 
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)

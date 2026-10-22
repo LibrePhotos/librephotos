@@ -58,6 +58,10 @@ USER_UPDATE_FIELDS = (
     ("burst_detection_rules", "Updated burst_detection_rules for user {username}"),
     ("default_timezone", "Updated default_timezone for user {value}"),
     ("public_sharing", None),
+    (
+        "share_people_names",
+        "Updated share_people_names to {value} for user {username}",
+    ),
     ("min_cluster_size", None),
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
@@ -245,6 +249,7 @@ class UserSerializer(serializers.ModelSerializer):
             "duplicate_sensitivity": {"required": False},
             "duplicate_clear_existing": {"required": False},
             "default_timeline_filter": {"required": False},
+            "share_people_names": {"required": False},
         }
         fields = (
             "id",
@@ -283,6 +288,9 @@ class UserSerializer(serializers.ModelSerializer):
             "default_timezone",
             "public_sharing",
             "public_sharing_defaults",
+            # Whether the users this user shares with see the people they
+            # named (#2722); public links follow public_sharing_defaults.
+            "share_people_names",
             "min_cluster_size",
             "confidence_unknown_face",
             "min_samples",

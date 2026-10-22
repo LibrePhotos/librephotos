@@ -203,6 +203,13 @@ class CrossTenantReadTest(TestCase):
             ),
             ("/api/photos/shared/tome/", None),
             ("/api/photos/shared/fromme/", None),
+            # Shared with you (#2721, #2722): never the requester's own photos.
+            ("/api/photos/shared/tome/places/", None),
+            ("/api/photos/shared/tome/things/", None),
+            ("/api/photos/shared/tome/people/", None),
+            ("/api/photos/shared/tome/places/photos/?title=VictimPlaceTitle", None),
+            ("/api/photos/shared/tome/things/photos/?title=victimthingtitle", None),
+            (f"/api/photos/shared/tome/people/photos/?person={v.v_person.pk}", None),
             ("/api/photos/nolocation/", v.v_photo.image_hash),
             ("/api/search/metadata-values/?field=camera", "VictimCameraModel"),
             (
@@ -332,6 +339,19 @@ class SharedReadTest(TestCase):
             title="SharedPlaceTitle", geolocation_level=1, owner=self.sharer
         )
         self.place.shared_to.add(self.recipient)
+        # The places, things and people of the shared photo (#2721, #2722).
+        self.sharer.share_people_names = True
+        self.sharer.save()
+        create_test_album_place(title="PhotoPlaceTitle", owner=self.sharer).photos.add(
+            self.photo
+        )
+        create_test_album_thing(
+            title="photothingtitle", thing_type=THING_TYPE, owner=self.sharer
+        ).photos.add(self.album_photo)
+        self.person = create_test_person(
+            name="SharedPersonName", cluster_owner=self.sharer
+        )
+        create_test_face(photo=self.photo, person=self.person)
 
     def get(self, user, url):
         client = APIClient()
@@ -352,6 +372,22 @@ class SharedReadTest(TestCase):
             ("/api/sync/albums/thing/", "sharedthingtitle"),
             ("/api/sync/albums/place/", "SharedPlaceTitle"),
             ("/api/sync/sharing/", self.sharer.username),
+            ("/api/photos/shared/tome/places/", "PhotoPlaceTitle"),
+            (
+                "/api/photos/shared/tome/places/photos/?title=PhotoPlaceTitle",
+                self.photo.image_hash,
+            ),
+            ("/api/photos/shared/tome/things/", "photothingtitle"),
+            (
+                "/api/photos/shared/tome/things/photos/?title=photothingtitle",
+                self.album_photo.image_hash,
+            ),
+            ("/api/photos/shared/tome/people/", "SharedPersonName"),
+            (
+                f"/api/photos/shared/tome/people/photos/?person={self.person.pk}",
+                self.photo.image_hash,
+            ),
+            (f"/api/photos/{self.photo.pk}/", "SharedPersonName"),
         ]:
             with self.subTest(url=url):
                 status, body = self.get(self.recipient, url)

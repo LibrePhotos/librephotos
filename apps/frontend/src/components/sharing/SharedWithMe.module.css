@@ -1,0 +1,11 @@
+/* Five tabs do not fit a phone: they scroll sideways in one row instead of wrapping onto a second
+   one, which the grids below do not leave room for. */
+.tabList {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList > * {
+  flex-shrink: 0;
+}

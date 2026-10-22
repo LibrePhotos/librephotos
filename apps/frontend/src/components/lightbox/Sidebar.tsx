@@ -26,6 +26,7 @@ import { Description } from "./Description";
 import type { FaceLocationType, LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
+import { SharedPhotoDetails } from "./SharedPhotoDetails";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
@@ -225,10 +226,11 @@ type SharedViewerSidebarProps = {
   id: string;
   gridItem?: LightboxItem;
   closeSidepanel: () => void;
+  setFaceLocation: (location: FaceLocationType) => void;
 };
 
 /** Public pages without a slug, and shared albums: anyone who is not the owner. */
-function SharedViewerSidebar({ id, gridItem, closeSidepanel }: SharedViewerSidebarProps) {
+function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: SharedViewerSidebarProps) {
   const { t } = useTranslation();
   // The grid already shows these viewers the date and place (the server
   // leaves out what it may not share), so the panel does too.
@@ -246,6 +248,7 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel }: SharedViewerSideb
             isPublic
           />
         )}
+        <SharedPhotoDetails id={id} setFaceLocation={setFaceLocation} />
         <Text size="sm" c="dimmed">
           {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
         </Text>
@@ -259,7 +262,14 @@ export function Sidebar({ isPublic, publicAlbumSlug, ...props }: SidebarProps) {
     return <PublicAlbumSidebar slug={publicAlbumSlug} id={props.id} closeSidepanel={props.closeSidepanel} />;
   }
   if (isPublic) {
-    return <SharedViewerSidebar id={props.id} gridItem={props.gridItem} closeSidepanel={props.closeSidepanel} />;
+    return (
+      <SharedViewerSidebar
+        id={props.id}
+        gridItem={props.gridItem}
+        closeSidepanel={props.closeSidepanel}
+        setFaceLocation={props.setFaceLocation}
+      />
+    );
   }
   return <OwnerSidebar {...props} />;
 }

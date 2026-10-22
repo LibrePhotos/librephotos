@@ -368,7 +368,11 @@
     "sceneconfidencedescription": "How sure the tagging model has to be before it adds a tag. Lower values add more tags, and more wrong ones.",
     "scandirectoryreadonly": "Change it in the user list of the Admin Area.",
     "danish": "Danish",
-    "nextcloudaddressfirst": "Enter the Nextcloud server address first"
+    "nextcloudaddressfirst": "Enter the Nextcloud server address first",
+    "usersharing": "Sharing with users",
+    "usersharingdesc": "What the users you share photos and albums with see. They always see each photo's date, place and things.",
+    "sharepeoplenames": "Show the names of people on photos you share",
+    "sharepeoplenamesdesc": "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public Sharing Defaults."
   },
   "checkfilecontents": {
     "title": "Check file contents",
@@ -731,7 +735,27 @@
     "noPhotosSharedByYou": "You have not shared any photos with other users yet.",
     "noPhotosSharedWithYou": "No one has shared any photos with you yet.",
     "rotateLinkConfirm": "The current link stops working right away. Anyone you sent it to will need the new one.",
-    "revokeLinkConfirm": "The link stops working right away and cannot be restored."
+    "revokeLinkConfirm": "The link stops working right away and cannot be restored.",
+    "placesOthersShared": "Places of photos others shared",
+    "thingsOthersShared": "Things on photos others shared",
+    "peopleOthersShared": "People on photos others shared",
+    "placesSharedWithYouDesc": "Where the photos shared with you were taken",
+    "thingsSharedWithYouDesc": "What the photos shared with you show",
+    "peopleSharedWithYouDesc": "The people their owners named on the photos shared with you",
+    "loadingPlaces": "Loading places...",
+    "loadingThings": "Loading things...",
+    "loadingPeople": "Loading people...",
+    "noPlacesSharedWithYou": "None of the photos shared with you has a place yet. A photo gets one from its GPS position on its owner's server.",
+    "noThingsSharedWithYou": "None of the photos shared with you has things yet.",
+    "noPeopleSharedWithYou": "Nobody on the photos shared with you has a name you can see yet.",
+    "sharedPeopleHint": "You see the people the owners named on the photos they shared with you, if they share people's names.",
+    "sharedBy": "shared by {{name}}",
+    "sharedPersonTitle": "{{name}}, {{owner}}",
+    "backToSharedWithYou": "Back to Shared with you",
+    "sharedGroupGoneTitle": "Nothing shared with you here",
+    "sharedGroupGoneDescription": "The photos may no longer be shared with you.",
+    "whatRecipientsSee": "People you share with see each photo's date, place and things. They see the names of the people on it only if you turn on \"Show the names of people on photos you share\" in Settings.",
+    "sharedByLine": "Shared by {{name}}"
   },
   "selectionbar": {
     "toggle": "Toggle select mode",
