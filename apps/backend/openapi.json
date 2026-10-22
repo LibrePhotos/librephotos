@@ -21387,7 +21387,7 @@
       },
       "SiteSettings": {
         "type": "object",
-        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download`` and the ``auto_scan`` fields are sent to\nstaff only; the GET is anonymous (the login page reads it).",
+        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
         "properties": {
           "allow_registration": {
             "type": "boolean"
@@ -21451,6 +21451,26 @@
           "email_configured": {
             "type": "boolean"
           },
+          "oidc_enabled": {
+            "type": "boolean"
+          },
+          "oidc_button_label": {
+            "type": "string"
+          },
+          "oidc_allow_signup": {
+            "type": "boolean"
+          },
+          "sso_providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteSsoProvider"
+            },
+            "description": "The OpenID Connect providers, by name. Staff only."
+          },
+          "public_url_configured": {
+            "type": "boolean",
+            "description": "Whether the public URL single sign-on needs is known (FRONTEND_BASE_URL). Staff only."
+          },
           "features": {
             "$ref": "#/components/schemas/SiteFeatures"
           },
@@ -21496,6 +21516,9 @@
           "map_tile_provider",
           "nextcloud_enabled",
           "ocr_model",
+          "oidc_allow_signup",
+          "oidc_button_label",
+          "oidc_enabled",
           "scan_missing_max_fraction",
           "skip_patterns",
           "tagging_model",
@@ -21594,8 +21617,37 @@
           },
           "video_previews_enabled": {
             "type": "boolean"
+          },
+          "oidc_enabled": {
+            "type": "boolean",
+            "description": "Show the single sign-on button; off also stops SSO logins."
+          },
+          "oidc_button_label": {
+            "type": "string",
+            "description": "The text on the login page's single sign-on button, trimmed, at most 64 characters."
+          },
+          "oidc_allow_signup": {
+            "type": "boolean",
+            "description": "Let a first SSO login with an unknown email create an account; needs email to be set up as well."
           }
         }
+      },
+      "SiteSsoProvider": {
+        "type": "object",
+        "description": "One OpenID Connect provider configured in the Django admin.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "on_this_site": {
+            "type": "boolean",
+            "description": "Attached to this site; the login page offers only those."
+          }
+        },
+        "required": [
+          "name",
+          "on_this_site"
+        ]
       },
       "SocialGraph": {
         "type": "object",

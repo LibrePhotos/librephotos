@@ -165,7 +165,7 @@ Besides the Features card [above](#site-settings-switches), some features are sw
 - **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
 - **Map Tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site Settings](./settings/index.md#site-settings).
 
-Single sign-on is switched on with the `OIDC_*` environment variables, which are not feature toggles. See [Single Sign-On](./settings/single-sign-on.md).
+Single sign-on is not a feature toggle: it is switched on in the **Single sign-on** group of the same Site Settings card, once an identity provider is set up. See [Single Sign-On](./settings/single-sign-on.md).
 
 ## Running with minimal machine learning {#minimal-machine-learning}
 

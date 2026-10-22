@@ -10,6 +10,7 @@ import { useListFailure } from "../common/useListFailure";
 import { AutoScanSetting } from "./AutoScanSetting";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SectionLink } from "./SettingsSection";
+import { SsoSettingsGroup } from "./SsoSettings";
 import { TrashRetentionSetting } from "./TrashRetentionSetting";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
@@ -225,6 +226,7 @@ function SiteSettingsForm() {
             onChange={() => save({ auto_create_user_directory: !autoCreateUserDirectory })}
             checked={autoCreateUserDirectory}
           />
+          <SsoSettingsGroup />
 
           <Grid justify="flex-end">
             <SkipPatternsSetting />
