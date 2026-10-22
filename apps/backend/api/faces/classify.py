@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -18,7 +18,7 @@ from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.long_running_job import JobCancelledError
-from api.models.user import User, get_deleted_user
+from api.models.user import User
 from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
@@ -64,20 +64,24 @@ def make_mlp_classifier(*args: Any, **kwargs: Any) -> _MLPClassifier:
     return MLPClassifier(*args, **kwargs)
 
 
-FACE_CLASSIFY_COLUMNS = [
-    "person",
+# What training writes back: only its predictions. The label (``person``)
+# and the cluster belong to the user and to clustering, and either can change
+# while training runs; writing the loaded values back would undo that.
+FACE_PREDICTION_COLUMNS = [
     "classification_person",
     "classification_probability",
     "cluster_person",
     "cluster_probability",
-    "id",
-    "cluster",
 ]
 
 
 def build_person_color_map(user: User) -> dict[int, str]:
     """Map each person appearing in the user's faces to a palette color"""
-    persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
+    persons = list(
+        Person.objects.filter(Face.objects.owner_q(user, through="faces__"))
+        .values_list("id", flat=True)
+        .distinct()
+    )
     return dict(zip(persons, hex_palette(n_colors=len(persons))))
 
 
@@ -89,7 +93,7 @@ def collect_visualizable_faces(
     wanted. A face without a crop (legacy rows) has nothing to show on the chart."""
     face_encoding = []
     faces_with_encoding = []
-    faces = Face.objects.filter(Q(photo__owner=user) & Q(deleted=False))
+    faces = Face.objects.owned_by(user).on_shown_photos().filter(deleted=False)
     paginator = Paginator(faces, 5000)
 
     for page in range(1, paginator.num_pages + 1):
@@ -158,7 +162,7 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         lrj.stop_if_cancelled()
         delete_clustered_people(user)
         delete_clusters(user)
-        delete_persons_without_faces()
+        delete_persons_without_faces(user)
         target_count: int = create_all_clusters(user, lrj)
 
         lrj.update_progress(current=target_count, target=target_count)
@@ -178,17 +182,14 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         return False
 
 
-def collect_face_encodings(user: User) -> dict:
-    """Gather every usable encoding of the user's faces, keyed alongside its face id"""
-    encodings: list = []
+def collect_face_encodings(user: User) -> _FaceData:
+    """The encoding of every face of the user's that clustering learns from
+    (``FaceQuerySet.for_recognition``), alongside its face id"""
+    encodings: list[npt.NDArray[float64]] = []
     ids: list[int] = []
     encoding_length: int | None = None
     face: Face
-    for face in Face.objects.filter(
-        photo__owner=user, encoding__isnull=False
-    ).prefetch_related("person"):
-        if not face.encoding:
-            continue
+    for face in Face.objects.owned_by(user).for_recognition():
         enc = face.get_encoding_array()
         if encoding_length is None:
             encoding_length = len(enc)
@@ -287,27 +288,29 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     return target_count
 
 
-def delete_persons_without_faces() -> None:
-    """Delete all existing Person records that have no associated Face records"""
-    logger.info("Deleting all people without faces")
-    Person.objects.filter(faces=None, kind=Person.KIND_USER).delete()
+# Clustering one user rebuilds only that user's rows: each delete below is
+# scoped to ``user``, so another user's people and clusters, even a person
+# just created with no faces yet, survive it (#2732).
+
+
+def delete_persons_without_faces(user: User) -> None:
+    """Delete the user's named people that have no face left"""
+    logger.info("Deleting the people without faces of user %s", user.id)
+    Person.objects.owned_by(user).filter(faces=None, kind=Person.KIND_USER).delete()
 
 
 def delete_clusters(user: User) -> None:
-    """Delete all existing Cluster records"""
-    logger.info("Deleting all clusters")
-    Cluster.objects.filter(Q(owner=user)).delete()
-    Cluster.objects.filter(Q(owner=None)).delete()
-    Cluster.objects.filter(Q(owner=get_deleted_user())).delete()
+    """Delete the user's clusters"""
+    logger.info("Deleting the clusters of user %s", user.id)
+    Cluster.objects.owned_by(user).delete()
 
 
 def delete_clustered_people(user: User) -> None:
-    """Delete all existing Person records of type CLUSTER"""
-    logger.info("Deleting all clustered people")
-    Person.objects.filter(kind=Person.KIND_CLUSTER, cluster_owner=user).delete()
-    Person.objects.filter(kind=Person.KIND_UNKNOWN, cluster_owner=user).delete()
-    Person.objects.filter(cluster_owner=None).delete()
-    Person.objects.filter(cluster_owner=get_deleted_user()).delete()
+    """Delete the user's cluster people ("Unknown NNN" and "Unknown - Other")"""
+    logger.info("Deleting the clustered people of user %s", user.id)
+    Person.objects.owned_by(user).filter(
+        kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN)
+    ).delete()
 
 
 # Function to filter data based on a desired shape
@@ -355,23 +358,20 @@ def fit_mlp(encodings: npt.NDArray[float64], ids: npt.NDArray[intp]) -> _MLPClas
 
 
 def split_faces_by_label(user: User) -> tuple[_FaceData, _FaceData]:
-    """Sort the user's faces into person-labeled ones and unlabeled ones. Two dicts,
-    so that the known one can be thrown out once it is no longer used."""
+    """Sort the user's faces that training learns from
+    (``FaceQuerySet.for_recognition``) into person-labeled ones, keyed by their
+    person, and unlabeled ones, keyed by their face. Two dicts, so that the known
+    one can be thrown out once it is no longer used."""
     data_known: _FaceData = {"encoding": [], "id": []}
     data_unknown: _FaceData = {"encoding": [], "id": []}
     face: Face
-    for face in Face.objects.filter(
-        Q(photo__owner=user)
-        & Q(encoding__isnull=False)
-        & ~Q(encoding="")
-        & Q(deleted=False)
-    ).prefetch_related("person"):
-        if not face.person:
+    for face in Face.objects.owned_by(user).for_recognition():
+        if face.person_id is None:
             data_unknown["encoding"].append(face.get_encoding_array())
             data_unknown["id"].append(face.id)
         else:
             data_known["encoding"].append(face.get_encoding_array())
-            data_known["id"].append(face.person.id)
+            data_known["id"].append(face.person_id)
     return data_known, data_unknown
 
 
@@ -382,7 +382,7 @@ def add_cluster_centroids(user: User, data_known: _FaceData) -> None:
     predict the probability that the face can't be classified into another group,
     i.e. that it should be classified that way"""
     cluster: Cluster
-    for cluster in Cluster.objects.filter(owner=user):
+    for cluster in Cluster.objects.owned_by(user).select_related("person"):
         if cluster.person and cluster.person.kind == Person.KIND_CLUSTER:
             logger.debug("Adding the centroid of person %s", cluster.person.id)
             data_known["encoding"].append(cluster.get_mean_encoding_array())
@@ -412,36 +412,56 @@ class _Classifiers:
     # A face in this cluster gets no cluster person.
     unknown_cluster: Cluster
 
+    def predicted_persons(self) -> dict[int, Person]:
+        """The people the classifiers can predict that still exist, by id.
+
+        A recluster running meanwhile deletes the cluster people, and the user
+        can delete a person: a prediction of one of them is left empty.
+        """
+        classes = {int(class_id) for class_id in self.cluster.classes_}
+        if self.person is not None:
+            classes.update(int(class_id) for class_id in self.person.classes_)
+        return Person.objects.in_bulk(classes)
+
+
+def existing_prediction(
+    persons: Mapping[int, Person], person_id: int, probability: float
+) -> tuple[Person | None, float]:
+    """``person_id`` with its probability, or no one when that person is gone"""
+    person = persons.get(int(person_id))
+    if person is None:
+        return None, 0.0
+    return person, probability
+
 
 def assign_face_predictions(
     face: Face,
     cluster_probabilities: Sequence[float] | npt.NDArray[float64],
     classification_probabilities: Sequence[float] | npt.NDArray[float64],
     classifiers: _Classifiers,
+    persons: Mapping[int, Person],
 ) -> None:
     face.cluster_probability = 0.0
     face.classification_probability = 0.0
 
-    classification_person = None
-    classification_probability = 0.0
+    # Find the probability in the probability array corresponding to the person
+    # that we currently believe the face is, even a simulated "unknown" person
+    if face.cluster_id != classifiers.unknown_cluster.id:
+        face.cluster_person, face.cluster_probability = existing_prediction(
+            persons,
+            *most_probable_class(classifiers.cluster.classes_, cluster_probabilities),
+        )
+
     if classifiers.person:
         classification_person, classification_probability = most_probable_class(
             classifiers.person.classes_, classification_probabilities
         )
-
-    # Find the probability in the probability array corresponding to the person
-    # that we currently believe the face is, even a simulated "unknown" person
-    highest_probability_person, highest_probability = most_probable_class(
-        classifiers.cluster.classes_, cluster_probabilities
-    )
-
-    if face.cluster != classifiers.unknown_cluster:
-        face.cluster_person = Person.objects.get(id=highest_probability_person)
-        face.cluster_probability = highest_probability
-
-    if classification_person:
-        face.classification_person = Person.objects.get(id=classification_person)
-        face.classification_probability = classification_probability
+        if classification_person:
+            face.classification_person, face.classification_probability = (
+                existing_prediction(
+                    persons, classification_person, classification_probability
+                )
+            )
 
 
 def classify_face_page(
@@ -451,9 +471,10 @@ def classify_face_page(
     lrj: LongRunningJob,
     target_count: int,
 ) -> None:
-    pages_of_faces: list[Face] = sorted(
-        Face.objects.filter(id__in=page_id).all(), key=lambda x: page_id.index(x.id)
-    )
+    # By id, so a face deleted meanwhile is skipped instead of shifting the
+    # predictions of the faces after it onto the wrong face.
+    faces_by_id = Face.objects.in_bulk(page_id)
+    persons = classifiers.predicted_persons()
     face_encodings_unknown_np = classifier_input(page_encodings)
     cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
     if classifiers.person:
@@ -468,24 +489,102 @@ def classify_face_page(
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     face_stack = []
 
-    for idx, (face, cluster_probabilities, classification_probabilities) in enumerate(
-        zip(pages_of_faces, cluster_probs, classification_probs)
-    ):
+    for idx, (
+        face_id,
+        cluster_probabilities,
+        classification_probabilities,
+    ) in enumerate(zip(page_id, cluster_probs, classification_probs)):
+        face = faces_by_id.get(face_id)
+        if face is None:
+            continue
         assign_face_predictions(
             face,
             cluster_probabilities,
             classification_probabilities,
             classifiers,
+            persons,
         )
         face_stack.append(face)
         if commit_time < datetime.datetime.now():
             lrj.update_progress(current=idx + 1, target=target_count)
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
         if len(face_stack) > 200:
-            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+            bulk_update(face_stack, update_fields=FACE_PREDICTION_COLUMNS)
             face_stack = []
 
-    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+    bulk_update(face_stack, update_fields=FACE_PREDICTION_COLUMNS)
+
+
+def fit_person_classifier(data_known: _FaceData) -> _MLPClassifier | None:
+    """The classifier of the labelled faces; None when no face is labelled"""
+    if not data_known["id"]:
+        return None
+    logger.info("Before fitting")
+    classifier = fit_mlp(np.array(data_known["encoding"]), np.array(data_known["id"]))
+    logger.info("After fitting")
+    return classifier
+
+
+def finish_without_predictions(
+    lrj: LongRunningJob, result: dict[str, object] | None = None
+) -> bool:
+    lrj.update_progress(current=2, target=2)
+    return lrj.complete(result=result)
+
+
+def train_and_predict(user: User, lrj: LongRunningJob) -> bool:
+    """The work of ``train_faces``; returns whether the job completed."""
+    data_known, data_unknown = split_faces_by_label(user)
+    lrj.stop_if_cancelled()
+    person_classifier = fit_person_classifier(data_known)
+
+    add_cluster_centroids(user, data_known)
+    if not data_known["id"]:
+        # No labelled person and no cluster: there is no class to learn.
+        logger.info("Nothing to train for user %s", user.id)
+        return finish_without_predictions(
+            lrj, {"status": "completed", "nothing_to_train": True}
+        )
+    filtered_encodings, filtered_ids = filter_data(
+        data_known["encoding"], data_known["id"]
+    )
+
+    # Fit the classifier based on the "known" faces, including the simulated clusters
+    lrj.stop_if_cancelled()
+    logger.info("Before cluster fitting")
+    cluster_classifier = fit_mlp(filtered_encodings, filtered_ids)
+    logger.info("After cluster fitting")
+
+    # Collect the probabilities for each unknown face. The probabilities returned
+    # are arrays in the same order as the people IDs in the original training set
+    unknown_encodings, unknown_ids = filter_data(
+        data_unknown["encoding"], data_unknown["id"]
+    )
+    target_count = len(unknown_ids)
+    if target_count == 0:
+        logger.info("No unlabelled faces to predict")
+        return finish_without_predictions(lrj)
+    logger.info("Number of unlabelled faces: %s", target_count)
+
+    classifiers = _Classifiers(
+        person=person_classifier,
+        cluster=cluster_classifier,
+        unknown_cluster=get_unknown_cluster(user=user),
+    )
+    encodings = list(unknown_encodings)
+    ids = [int(face_id) for face_id in unknown_ids]
+    for start in range(0, target_count, 100):
+        lrj.stop_if_cancelled()
+        classify_face_page(
+            classifiers,
+            encodings[start : start + 100],
+            ids[start : start + 100],
+            lrj,
+            target_count,
+        )
+
+    lrj.update_progress(current=target_count, target=target_count)
+    return lrj.complete()
 
 
 def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
@@ -502,63 +601,7 @@ def train_faces(user: User, job_id: uuid.UUID | str) -> bool:
         return False
     lrj.update_progress(current=1, target=2)
     try:
-        data_known, data_unknown = split_faces_by_label(user)
-        lrj.stop_if_cancelled()
-
-        if len(data_known["id"]) == 0:
-            classifier = None
-        else:
-            logger.info("Before fitting")
-            classifier = fit_mlp(
-                np.array(data_known["encoding"]), np.array(data_known["id"])
-            )
-            logger.info("After fitting")
-
-        add_cluster_centroids(user, data_known)
-        filtered_encodings, filtered_ids = filter_data(
-            data_known["encoding"], data_known["id"]
-        )
-
-        # Fit the classifier based on the "known" faces, including the simulated clusters
-        lrj.stop_if_cancelled()
-        logger.info("Before cluster fitting")
-        cluster_classifier = fit_mlp(filtered_encodings, filtered_ids)
-        logger.info("After cluster fitting")
-
-        # Collect the probabilities for each unknown face. The probabilities returned
-        # are arrays in the same order as the people IDs in the original training set
-        if data_unknown["encoding"]:
-            filtered_unknown_encodings, filtered_unknown_ids = filter_data(
-                data_unknown["encoding"], data_unknown["id"]
-            )
-            data_unknown["encoding"] = list(filtered_unknown_encodings)
-            data_unknown["id"] = [int(face_id) for face_id in filtered_unknown_ids]
-
-        target_count = len(data_unknown["id"])
-        if target_count == 0:
-            logger.info("No clusters found")
-            lrj.update_progress(current=2, target=2)
-            return lrj.complete()
-        logger.info("Number of Cluster: %s", target_count)
-
-        classifiers = _Classifiers(
-            person=classifier,
-            cluster=cluster_classifier,
-            unknown_cluster=get_unknown_cluster(user=user),
-        )
-        for start in range(0, len(data_unknown["encoding"]), 100):
-            lrj.stop_if_cancelled()
-            classify_face_page(
-                classifiers,
-                data_unknown["encoding"][start : start + 100],
-                data_unknown["id"][start : start + 100],
-                lrj,
-                target_count,
-            )
-
-        lrj.update_progress(current=target_count, target=target_count)
-        return lrj.complete()
-
+        return train_and_predict(user, lrj)
     except JobCancelledError:
         logger.info("Face training job %s was cancelled", lrj.job_id)
         return False

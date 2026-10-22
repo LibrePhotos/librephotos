@@ -275,7 +275,9 @@ class FaceJobsCancelTest(CancelTestCase):
             patch.object(
                 classify,
                 "split_faces_by_label",
-                return_value=({"encoding": [], "id": []}, unknown),
+                # One labelled face: with no class at all, there is nothing
+                # to train and no page to classify.
+                return_value=({"encoding": [[0.0]], "id": [1]}, unknown),
             ),
             patch.object(classify, "add_cluster_centroids"),
             patch.object(classify, "fit_mlp"),

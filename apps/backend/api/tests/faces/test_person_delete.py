@@ -94,7 +94,7 @@ class PersonDeleteTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        delete_persons_without_faces()
+        delete_persons_without_faces(self.user)
 
         self.assertFalse(Person.objects.filter(pk=self.person.pk).exists())
         self.assertEqual(

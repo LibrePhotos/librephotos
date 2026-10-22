@@ -60,6 +60,8 @@ The dashboard has four tabs: **Inferred** (the matches training produced), **Unk
 
 Each tab shows how many faces it holds. Hover over a tab to see how many people (and, on the Inferred tab, groups) those faces belong to. The numbers follow the sort, Clusters/Classifications and confidence settings, so they always match the faces on screen.
 
+<Since version="1.5.0" /> The dashboard leaves out the faces of photos the photo lists leave out: photos in the [trash](./trash.md), hidden photos and [missing photos](./missing-photos.md). They are not counted in the tabs either, and training does not use them. Restoring a photo from the trash brings its faces back. Up to 1.4.0, the dashboard still listed them, so the copies you moved to the trash from a duplicate group still had faces to label.
+
 To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the green plus button in the toolbar to add them to the person. To reject faces, select them and click the orange person-off button in the toolbar, which moves them back to "Unknown - Other".
 
 ### Browse people
@@ -92,6 +94,8 @@ A face you acted on fades out and leaves the group once the list has refreshed. 
 ## Delete faces
 
 Sometimes the face recognition might find a face that is not actually a face. To remove it, select the face and click on the trashcan symbol, or choose **Delete face** in the face's ⋮ menu; a confirmation dialog appears first. The face is then hidden everywhere in LibrePhotos — it disappears from the face dashboard, from the person's face list and from the photo's face list — and it is no longer used for training, clustering or classification. Note that hiding a face does not free disk space: the cropped face image and its embedding are kept, so the same region is not detected again on a later scan, and so the face can be [restored](#restore-deleted-faces).
+
+<Since version="1.5.0" /> Up to 1.4.0, deleted faces were still grouped by clustering, so a painting or a pattern you deleted could still merge or split the clusters of real faces.
 
 If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. <Since version="1.4.0" /> Up to 1.3.0, deleting a face left its region and name in the file.
 

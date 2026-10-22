@@ -45,6 +45,7 @@ from api.faces.photo_faces import (
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
 from api.models import Face, LongRunningJob, Photo, User
+from api.models.face import face_photo_shown_q
 from api.models.person import Person, get_or_create_person
 from api.models.thumbnail import Thumbnail
 from api.photos.library_files import in_library
@@ -220,6 +221,7 @@ class FaceListView(ListViewSet):
             order_by = ["photo__exif_timestamp", *order_by]
         return (
             Face.objects.owned_by(self.request.user)
+            .on_shown_photos()
             .filter(Q(deleted=deleted), conditional_filter)
             .annotate(analysis_method=Value(analysis_method, output_field=CharField()))
             .prefetch_related("photo")
@@ -264,7 +266,10 @@ class FaceIncompleteListViewSet(ListViewSet):
         real_persons = serializer.data
 
         unknown_faces_count = (
-            Face.objects.owned_by(user).filter(_unknown_faces_filter(params)).count()
+            Face.objects.owned_by(user)
+            .on_shown_photos()
+            .filter(_unknown_faces_filter(params))
+            .count()
         )
         if unknown_faces_count > 0:
             unknown_person = {
@@ -281,38 +286,41 @@ class FaceIncompleteListViewSet(ListViewSet):
 def _viewable_face_count(user: User, params: dict[str, Any]) -> Count:
     """Per person, the faces the dashboard's tab lists for them.
 
-    Every count is scoped to the requester's own photos, because FaceListView
-    scopes its rows the same way (`photo__owner`). Without it, a person shared
+    Every count is scoped like FaceListView scopes its rows: to the
+    requester's own photos (`photo__owner`), and to the photos the photo
+    lists show (`on_shown_photos`). Without the owner scope, a person shared
     with another user is counted across both libraries while the list returns
     only this user's faces, so the dashboard grid draws slots that can never
-    be filled and the last page 404s with "Invalid page" (#2031).
+    be filled and the last page 404s with "Invalid page" (#2031). A face on a
+    trashed photo would do the same (#2753).
     `cluster_owner` scopes the person, not its faces, so it does not cover this.
     """
+    through, condition = _viewable_face_condition(params)
+    condition &= Face.objects.owner_q(user, through=through)
+    condition &= face_photo_shown_q(through)
+    return Count(Case(When(condition, then=1), output_field=IntegerField()))
+
+
+def _viewable_face_condition(params: dict[str, Any]) -> tuple[str, Q]:
+    """The relation from a person to the faces the dashboard's tab lists for
+    them, and which of those faces it lists."""
     min_confidence = params["min_confidence"]
     if params["deleted"]:
         # Deleted faces keep their person (#127), suggested or not.
-        condition = Q(faces__deleted=True) & Face.objects.owner_q(
-            user, through="faces__"
+        return "faces__", Q(faces__deleted=True)
+    if not params["inferred"]:
+        return "faces__", Q(faces__deleted=False)
+    if params["analysis_method"] == "classification":
+        return "classification_faces__", Q(
+            classification_faces__deleted=False,
+            classification_faces__person=None,
+            classification_faces__classification_probability__gte=min_confidence,
         )
-    elif not params["inferred"]:
-        condition = Q(faces__deleted=False) & Face.objects.owner_q(
-            user, through="faces__"
-        )
-    elif params["analysis_method"] == "classification":
-        condition = (
-            Q(classification_faces__deleted=False)
-            & Q(classification_faces__person=None)
-            & Q(classification_faces__classification_probability__gte=min_confidence)
-            & Face.objects.owner_q(user, through="classification_faces__")
-        )
-    else:
-        condition = (
-            Q(cluster_faces__deleted=False)
-            & Q(cluster_faces__person=None)
-            & Q(cluster_faces__cluster_probability__gte=min_confidence)
-            & Face.objects.owner_q(user, through="cluster_faces__")
-        )
-    return Count(Case(When(condition, then=1), output_field=IntegerField()))
+    return "cluster_faces__", Q(
+        cluster_faces__deleted=False,
+        cluster_faces__person=None,
+        cluster_faces__cluster_probability__gte=min_confidence,
+    )
 
 
 def _unknown_faces_filter(params: dict[str, Any]) -> Q:
