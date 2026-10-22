@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.55847b9e.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.d83e2e95.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -66,6 +66,14 @@ should be one of the following:</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-gets-stored-and-why-times-are-not-converted-for-you">What gets stored, and why times are not converted for you<a href="#what-gets-stored-and-why-times-are-not-converted-for-you" class="hash-link" aria-label="Direct link to What gets stored, and why times are not converted for you" title="Direct link to What gets stored, and why times are not converted for you" translate="no">​</a></h3>
 <p>Once a rule succeeds, LibrePhotos stores the <strong>local time the camera recorded</strong> — the time you would have read off the camera when you took the shot.</p>
 <p>This is deliberate. A photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin are both shown as 14:00, because that is the time each one was actually taken. LibrePhotos does <strong>not</strong> re-cast your library into the timezone you happen to be browsing from; if it did, every photo would shift whenever you travelled, and photos from a holiday abroad would no longer line up with the day you remember them on.</p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Next to the local time, LibrePhotos stores its UTC offset when the rule
+that read it knows one: the offset written after the time (<code>2024:04:03 03:00:00-07:00</code>), else the
+offset tag that goes with the date tag (<code>EXIF:OffsetTimeOriginal</code> for <code>EXIF:DateTimeOriginal</code> and
+<code>XMP:DateCreated</code>, <code>EXIF:OffsetTime</code> for <code>EXIF:ModifyDate</code>), or for a rule that converts a UTC
+time the offset of the time zone it converted to, on that day. The info panel shows it after the
+time, for example &quot;Sunday, 23:30 (UTC-07:00)&quot;. A date read from a file name or a file&#x27;s modified
+time, and a date you set by hand, have no offset. Photos already in your library get it with
+<a href="#applying-the-rules" class="">Apply date rules to existing photos</a> or a <strong>Rescan</strong>.</p>
 <div class="theme-admonition theme-admonition-note admonition_xJq3 alert alert--secondary"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942 0 0 1-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28.28 0 .52.09.7.28.18.19.28.42.28.7 0 .28-.09.52-.28.7a1 1 0 0 1-.7.3c-.28 0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27 0 .48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14 0-5.7 2.54-5.7 5.68 0 3.14 2.56 5.7 5.7 5.7s5.7-2.55 5.7-5.7c0-3.15-2.56-5.69-5.7-5.69v.01zM7 .98c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"></path></svg></span>note</div><div class="admonitionContent_BuS1"><p>Under the hood the local time is tagged as UTC before it is saved. That is an internal storage detail, not a claim that the photo was taken in UTC — it is what keeps the wall-clock time stable for every viewer. If you query the database directly, read the timestamps as-is and do not convert them.</p></div></div>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-different-rule-types">The different rule types<a href="#the-different-rule-types" class="hash-link" aria-label="Direct link to The different rule types" title="Direct link to The different rule types" translate="no">​</a></h3>
 <p>Currently, supported rule types:</p>
@@ -78,7 +86,15 @@ An XMP sidecar next to the photo wins over the file (see
 a property that only a sidecar holds, name its XMP tag directly (for example <code>XMP:&lt;tag&gt;</code>).
 <code>XMP:DateCreated</code>, where LibrePhotos writes the dates you set when
 <a class="" href="/docs/user-guide/settings/#metadata-options">Write edits to files</a> is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
-they add it with <strong>Add Rule</strong> or <strong>Reset To Defaults</strong>.</li>
+they add it with <strong>Add Rule</strong> or <strong>Reset To Defaults</strong>.
+<span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> These date tags hold local time: <code>XMP:DateCreated</code>,
+<code>EXIF:DateTimeOriginal</code>, <code>EXIF:ModifyDate</code> and <code>QuickTime:CreationDate</code>. Some apps still write
+them in UTC, with a trailing <code>Z</code> (<code>2025:06:02 06:30:00Z</code>); such a value is turned into local time
+with the date&#x27;s offset tag (see above), else the time zone of the photo&#x27;s position, else your
+default time zone. Up to 1.4.0 the <code>Z</code> was ignored, so such a photo was off by its UTC offset and
+could land on another day; <a href="#applying-the-rules" class="">apply the rules again</a> to fix the photos already
+in your library. A rule with &quot;transform_tz&quot; says itself which zone its tag is in and is not
+changed by this.</li>
 <li class="">&quot;path&quot; - time is taken from the filename using a regular expression matching</li>
 <li class="">&quot;filesystem&quot; - time is taken from a file property. params[&quot;file_property&quot;] must be &quot;mtime&quot;
 (file modified time) or &quot;ctime&quot; (file created time). Since these are UNIX timestamps without
