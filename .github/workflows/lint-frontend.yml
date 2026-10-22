@@ -10,6 +10,8 @@ on:
       - 'scripts/check-shared-deps*.mjs'
       # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
       - 'apps/backend/service/tags/tags.txt'
+      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts.
+      - 'apps/docs/static/img/shots/**'
       - '.github/workflows/lint-frontend.yml'
   pull_request:
     paths:
@@ -19,6 +21,8 @@ on:
       - 'scripts/check-shared-deps*.mjs'
       # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
       - 'apps/backend/service/tags/tags.txt'
+      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts.
+      - 'apps/docs/static/img/shots/**'
       - '.github/workflows/lint-frontend.yml'
 
 concurrency:
@@ -70,6 +74,12 @@ jobs:
       # tsc over the e2e suite, with the e2e dependencies installed above.
       - name: typecheck e2e
         run: yarn run typecheck:e2e
+      # The helpers of the screens run (e2e/screens/*.test.ts, `yarn screens:unit`), without a
+      # running LibrePhotos; one of them decodes WebP images in Chromium.
+      - name: test e2e screens helpers
+        run: |
+          yarn --cwd e2e playwright install --with-deps --only-shell chromium
+          yarn --cwd e2e screens:unit
       # Two vitest projects: the web app's suite, and packages/api-client's
       # suite under this app's zod and React Query (api-client.yml runs it under
       # the mobile app's).

@@ -12,6 +12,8 @@ export type Shot = {
   height: number;
   /** The release the shot was taken for, when it shows a highlight of that release. */
   release?: string;
+  /** Size of the phone variant (`<id>-phone-<theme>.webp`), when there is one. */
+  phone?: { width: number; height: number };
 };
 
 /** The manifest entry for `id`. Throws for an unknown id, which fails `docusaurus build`. */

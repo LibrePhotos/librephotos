@@ -268,6 +268,16 @@ describe("shotsErrors", () => {
     ]);
   });
 
+  it("asks for both phone files of an entry with a phone size, and for an entry for phone files", (t) => {
+    const phone = { phone: { width: 412, height: 839 } };
+    const files = ["a-light.webp", "a-dark.webp", "a-phone-light.webp", "b-light.webp", "b-dark.webp", "b-phone-dark.webp"];
+    assert.deepEqual(shotsErrors(shotsDir(t, [entry("a", phone), entry("b")], files)), [
+      'manifest.json "a": a-phone-dark.webp is missing',
+      "b-phone-dark.webp has no entry in manifest.json",
+    ]);
+    assert.match(shotsErrors(shotsDir(t, [entry("a", { phone: { width: 0, height: 1 } })], files)).join(), /entry 0 \("a"\) phone width:/);
+  });
+
   it("rejects a shot file without a manifest entry", (t) => {
     const dir = shotsDir(t, [entry("a")], ["a-light.webp", "a-dark.webp", "c-light.webp", "d-dark.webp"]);
     assert.deepEqual(shotsErrors(dir), ["c-light.webp has no entry in manifest.json", "d-dark.webp has no entry in manifest.json"]);
