@@ -19,6 +19,7 @@ from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
 from api.metadata import edits
+from api.metadata.edits import KEYWORDS
 from api.metadata.photo_reader import (
     EXIF_FIELDS,
     extract_exif_data,
@@ -26,9 +27,9 @@ from api.metadata.photo_reader import (
 )
 from api.metadata.reader import MEDIA_FILE_ORIGIN, TagValues
 from api.models import Photo
-from api.models.photo_metadata import REVERT_ALL, PhotoMetadata
+from api.models.photo_metadata import REVERT_ALL, MetadataEdit, PhotoMetadata
 from api.models.tag import Tag
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_tag, create_test_user
 
 NAME_OF = {tag: name for name, tag in EXIF_FIELDS}
 WHEN_RATED = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
@@ -151,6 +152,89 @@ class KeywordRescanTest(RescanTestCase):
         self.restore_from_file()
 
         self.assertEqual(["Beach", "Holiday"], self.tags())
+
+
+class KeywordEditRescanTest(RescanTestCase):
+    """A keyword edit through the metadata API (``set_keywords``) and its
+    revert change the photo's tags, never the keywords last read from the
+    file: with "Write edits to files" Off, the next rescan would otherwise
+    find the removed keyword new again and link it back."""
+
+    def setUp(self):
+        super().setUp()
+        self.file.values = {"xmp_subject": ["Beach", "Holiday"]}
+        self.scan()
+
+    def set_keywords(self, keywords):
+        edits.set_keywords(self.photo, keywords, self.user)
+
+    def test_a_keyword_removed_through_the_api_stays_removed(self):
+        self.set_keywords(["Holiday"])
+        self.scan()
+        self.scan()
+
+        self.assertEqual(["Holiday"], self.tags())
+        self.assertEqual(["Beach", "Holiday"], self.metadata().keywords)
+
+    def test_a_keyword_added_through_the_api_is_a_tag_not_a_file_keyword(self):
+        self.set_keywords(["Beach", "Holiday", "Lighthouse"])
+        self.scan()
+
+        self.assertEqual(["Beach", "Holiday", "Lighthouse"], self.tags())
+        self.assertEqual(["Beach", "Holiday"], self.metadata().keywords)
+
+    def test_the_edit_keeps_a_tag_added_by_hand_and_records_the_keywords(self):
+        create_test_tag(owner=self.user, name="typed").photos.add(self.photo)
+
+        self.set_keywords(["Holiday"])
+
+        self.assertEqual(["Holiday", "typed"], self.tags())
+        edit = MetadataEdit.objects.get(photo=self.photo, field_name=KEYWORDS)
+        self.assertEqual(["Beach", "Holiday"], edit.old_value)
+        self.assertEqual(["Holiday"], edit.new_value)
+
+    def test_sending_the_same_keywords_again_is_no_edit(self):
+        self.set_keywords(["Holiday"])
+        self.set_keywords(["Holiday"])
+
+        self.assertEqual(
+            1,
+            MetadataEdit.objects.filter(photo=self.photo, field_name=KEYWORDS).count(),
+        )
+
+    def test_a_keyword_added_through_the_api_can_be_removed_again(self):
+        self.set_keywords(["Beach", "Holiday", "Lighthouse"])
+        self.scan()
+
+        self.set_keywords(["Beach"])
+
+        self.assertEqual(["Beach"], self.tags())
+
+    def test_reverting_an_edit_keeps_the_file_list(self):
+        self.set_keywords(["Holiday", "Lighthouse"])
+        self.set_keywords(["Lighthouse"])
+        (edit,) = [
+            edit
+            for edit in MetadataEdit.objects.filter(
+                photo=self.photo, field_name=KEYWORDS
+            )
+            if edit.new_value == ["Lighthouse"]
+        ]
+
+        edits.revert_to(self.photo, KEYWORDS, edit.old_value, self.user)
+        self.scan()
+
+        self.assertEqual(["Holiday", "Lighthouse"], self.tags())
+        self.assertEqual(["Beach", "Holiday"], self.metadata().keywords)
+
+    def test_restore_from_file_takes_away_a_keyword_added_through_the_api(self):
+        self.set_keywords(["Holiday", "Lighthouse"])
+        create_test_tag(owner=self.user, name="typed").photos.add(self.photo)
+
+        self.restore_from_file()
+
+        self.assertEqual(["Beach", "Holiday", "typed"], self.tags())
+        self.assertIsNone(self.metadata().edited_keywords)
 
 
 class RatingRescanTest(RescanTestCase):

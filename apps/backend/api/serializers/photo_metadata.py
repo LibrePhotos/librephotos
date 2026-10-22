@@ -200,8 +200,10 @@ class PhotoMetadataUpdateSerializer(serializers.Serializer):
     """The fields the metadata API edits, single and bulk.
 
     Each goes to its one store through ``api.metadata.edits``: ``rating`` to
-    ``Photo.rating``, ``caption`` to the lightbox caption, ``keywords``,
-    ``title``, ``copyright`` and ``creator`` to ``PhotoMetadata``. The date and
+    ``Photo.rating``, ``caption`` to the lightbox caption, ``keywords`` to the
+    photo's tags (a tag added by hand stays), ``title``, ``copyright`` and
+    ``creator`` to ``PhotoMetadata``. The ``keywords`` read back stay the
+    file's keywords at the last scan. The date and
     the location are edited through ``PATCH /api/photos/edit/{image_hash}/``;
     sending them here is a 400 rather than an edit nobody sees.
     """
