@@ -116,6 +116,7 @@ NOT_PHOTO_SCOPED = {
     "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
     "api/look-up-places/": "admin-only, instance-wide place name lookup job",
     "api/deduplicate-faces/": "admin-only, instance-wide face deduplication job",
+    "api/check-file-contents/": "admin-only, instance-wide file contents check job",
     "api/autoalbumgen/": "queues a job on the requester's own photos",
     "api/autoalbumtitlegen/": "queues a job on the requester's own albums",
     "api/stacks/detect/": "queues a job on the requester's own photos",

@@ -13,6 +13,11 @@ from rest_framework.views import APIView
 from api.albums.auto_albums import delete_missing_photos
 from api.classification.captioning import captioning_available
 from api.directory_watcher import scan_photos
+from api.directory_watcher.content_check import (
+    FolderError,
+    check_file_contents_job,
+    resolve_folder,
+)
 from api.directory_watcher.removed_paths import detach_removed, plan_removal
 from api.drf.exceptions import Conflict
 from api.drf.params import parse_body
@@ -31,6 +36,7 @@ from api.runtime.ml_models import (
 )
 from api.serializers.job import (
     CaptionsJobStartedResponseSerializer,
+    CheckFileContentsRequest,
     FindThingsRequest,
     GenerateCaptionsRequest,
     GenerateOcrRequest,
@@ -466,3 +472,52 @@ class DeduplicateFacesView(APIView):
             user,
             description="face deduplication",
         )
+
+
+class CheckFileContentsView(APIView):
+    """Read every indexed file again and re-index the ones whose contents
+    changed with their date kept (#2040).
+
+    For files replaced by a tool that keeps the modification time (``cp -p``,
+    ``rsync --times``), which the scan never reads again. Every user's
+    library, or ``user_id``'s; ``folder`` (relative to that user's scan
+    directory) narrows it to one folder. It reads every byte, so only an
+    admin may start it. A 400 for an unknown user or a folder outside the
+    scan directory, a 409 while one runs.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(
+        request=CheckFileContentsRequest, responses=JobStartedResponseSerializer
+    )
+    def post(self, request: Request, format: str | None = None) -> Response:
+        body = parse_body(request, CheckFileContentsRequest)
+        user_id, folder = _check_scope(body["user_id"], body["folder"])
+        admin = request_user(request)
+        return start_job(
+            admin,
+            LongRunningJob.JOB_CHECK_FILE_CONTENTS,
+            check_file_contents_job,
+            admin,
+            user_id=user_id,
+            folder=folder,
+            description="checking the file contents",
+        )
+
+
+def _check_scope(user_id: int | None, folder: str) -> tuple[int | None, str | None]:
+    """The user and the absolute folder a check covers, or a 400 naming the field."""
+    if user_id is None:
+        if folder:
+            raise ValidationError({"folder": "Choose a user to check one folder."})
+        return None, None
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        raise ValidationError({"user_id": "There is no such user."})
+    if not folder:
+        return user.pk, None
+    try:
+        return user.pk, resolve_folder(user, folder)
+    except FolderError as error:
+        raise ValidationError({"folder": str(error)}) from error

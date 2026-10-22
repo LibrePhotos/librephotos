@@ -126,6 +126,11 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
                     <Trans i18nKey="settings.scannextclouddescription.item11" />
                   </Text>
                 </List.Item>
+                <List.Item>
+                  <Text fz="sm" c="dimmed">
+                    <Trans i18nKey="settings.scannextclouddescription.item12" />
+                  </Text>
+                </List.Item>
               </List>
             </Stack>
           </Collapse>

@@ -39,6 +39,7 @@ import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
 import classes from "./AdminPage.module.css";
+import { CheckFileContentsTool } from "./CheckFileContentsTool";
 import { DeduplicateFacesTool } from "./DeduplicateFacesTool";
 import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
@@ -257,6 +258,7 @@ function AdminTools() {
         <StripThumbnailMetadataTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
         <LookUpPlacesTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
         <DeduplicateFacesTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
+        <CheckFileContentsTool buttonWidth={ADMIN_TOOL_MIN_WIDTH} />
       </Stack>
       <Modal
         opened={confirmOpen}

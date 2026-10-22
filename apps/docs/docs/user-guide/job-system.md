@@ -147,6 +147,10 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 
 <Since version="1.5.0" /> Gives the videos added before 1.5.0 the still picture the photo grid shows until you point at a video, across every user's library. It runs by itself once after the update and shows on the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade). Each picture is made from the video's big thumbnail, so it is quick and no video is decoded or changed. A video without a big thumbnail is skipped, and one whose picture cannot be made is listed in the job; both keep playing their clip in the grid as before. See [Video previews in the grid](./feature-toggles.md#animated-video-previews).
 
+### Check File Contents
+
+<Since version="1.5.0" /> Reads every file of every user's library again and compares it with what LibrePhotos has, to find files that were replaced while keeping their old modification date (`cp -p`, `rsync --times`, some sync apps), which a scan does not notice. An admin starts it with **Check file contents** under **Admin Area > Admin Tools**, for all users or one user and, optionally, one folder of that user's library; the `rehash_files` command does the same. A changed file is imported again as a scan would (see [Files replaced in place](./library.md#files-replaced-in-place)), and the photos holding it are then read again by a scan of their owner's. The job's page shows how many files were read, what became of the changed ones, per user, and the files that could not be read. It reads every byte, so it takes hours on a large library, and other jobs wait until it finishes.
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

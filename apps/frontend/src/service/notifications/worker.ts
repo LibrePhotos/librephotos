@@ -28,6 +28,11 @@ function startLookUpPlaces() {
   toast.success(i18n.t("toasts.lookupplaces"), { title: i18n.t("toasts.lookupplacestitle") });
 }
 
+/** The file contents check an admin started from the Admin Area (#2040). */
+function startCheckFileContents() {
+  toast.success(i18n.t("toasts.checkfilecontents"), { title: i18n.t("toasts.checkfilecontentstitle") });
+}
+
 function requestFailed(title: string, message: string) {
   toast.error(message, { title });
 }
@@ -73,6 +78,7 @@ export const worker = {
   saveFailed,
   serverError,
   startDeduplicateFaces,
+  startCheckFileContents,
   startLookUpPlaces,
   startStripThumbnailMetadata,
 };
