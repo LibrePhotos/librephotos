@@ -119,6 +119,9 @@ NOT_PHOTO_SCOPED = {
     "api/look-up-places/": "admin-only, instance-wide place name lookup job",
     "api/deduplicate-faces/": "admin-only, instance-wide face deduplication job",
     "api/check-file-contents/": "admin-only, instance-wide file contents check job",
+    "api/manage/user/<int:user_id>/scan/": (
+        "admin-only; starts the named user's own library scan, as that user"
+    ),
     "api/manage/user/<int:user_id>/trash-photos-outside-library/": (
         "admin-only; trashes only the named user's own photos, as that user "
         "(photos_outside_library is owner-scoped; test_outside_library)"

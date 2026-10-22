@@ -487,6 +487,11 @@ urlpatterns = [
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),
     re_path(r"^api/scanphotos/?$", scan_triggers.ScanPhotosView.as_view()),
     path(
+        "api/manage/user/<int:user_id>/scan/",
+        scan_triggers.ScanUserPhotosView.as_view(),
+        name="manage_user_scan",
+    ),
+    path(
         "api/manage/user/<int:user_id>/scan-directory-impact/",
         user.ScanDirectoryImpactView.as_view(),
         name="manage_user_scan_directory_impact",

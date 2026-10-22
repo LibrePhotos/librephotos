@@ -448,3 +448,26 @@ describe("Library captions (#2211)", () => {
     expect(container.textContent).not.toContain("Generate captions");
   });
 });
+
+describe("Library link to the Admin Area (#2037)", () => {
+  const adminLink = () =>
+    [...container.querySelectorAll("a")].find(link => link.textContent === "Change scan directories in the Admin Area");
+
+  it("is not there for a user who cannot open the Admin Area", () => {
+    expect(adminLink()).toBeUndefined();
+  });
+
+  it("takes a superuser to the users table, where the scan directories are set", async () => {
+    mocks.user = { ...mocks.user, is_superuser: true };
+    await act(async () => {
+      root.render(
+        <MantineProvider>
+          <Library />
+        </MantineProvider>
+      );
+    });
+
+    expect(adminLink()?.getAttribute("href")).toBe("/admin");
+    expect(adminLink()?.getAttribute("hash")).toBe("admin-users");
+  });
+});

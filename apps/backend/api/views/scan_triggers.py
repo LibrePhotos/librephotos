@@ -105,6 +105,27 @@ class ScanPhotosView(APIView):
         return _start_photo_scan(user, user.scan_directory)
 
 
+class ScanUserPhotosView(APIView):
+    """Scan another user's library from the Admin Area (#2037).
+
+    The same scan as that user's own Scan button: the job is started as them,
+    so it reads only their scan directory, shows in their job list and counts
+    as their scan (a second one while it runs is a 409). Admins only, since
+    an admin is who sets the scan directory. 404 for an unknown or
+    deactivated user, 400 when the user has no scan directory or it is gone.
+    """
+
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(
+        self, request: Request, user_id: int, format: str | None = None
+    ) -> Response:
+        owner = _managed_user(user_id)
+        _validate_scan_directory(owner)
+        return _start_photo_scan(owner, owner.scan_directory)
+
+
 class TrashPhotosOutsideLibraryView(APIView):
     """Move a user's photos outside their library to their trash, as a job (#2036).
 

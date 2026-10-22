@@ -1,44 +1,17 @@
-import type { ListUser } from "@librephotos/api-client";
-import {
-  ActionIcon,
-  Button,
-  Card,
-  Container,
-  Flex,
-  Group,
-  Loader,
-  Modal,
-  Space,
-  Stack,
-  Table,
-  Text,
-  Title,
-  Tooltip,
-} from "@mantine/core";
+import { Button, Card, Container, Flex, Group, Modal, Space, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconAdjustments as Adjustments,
-  IconEdit as Edit,
-  IconLock as Lock,
-  IconPlus as Plus,
-  IconTrash as Trash,
-} from "@tabler/icons-react";
-import React, { useState } from "react";
+import { IconAdjustments as Adjustments, IconLock as Lock, IconTrash as Trash } from "@tabler/icons-react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { useUpgradeTasksQuery } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { useFetchServerStatsQuery, useUpdateNotice } from "../../api_client/server/hooks";
-import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
-import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { JobList } from "../job/JobList";
-import { ModalUserDelete } from "../modals/ModalUserDelete";
-import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
-import classes from "./AdminPage.module.css";
+import { AdminUserTable } from "./AdminUserTable";
 import { CheckFileContentsTool } from "./CheckFileContentsTool";
 import { DeduplicateFacesTool } from "./DeduplicateFacesTool";
 import { EmailSettings } from "./EmailSettings";
@@ -53,153 +26,6 @@ import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
 import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
 import { UpdateAvailableCard } from "./UpdateAvailableCard";
-
-/** The scan directory on one line, cut at the start so its last folders stay in view. */
-function ScanDirectory({ path }: Readonly<{ path: string | null | undefined }>) {
-  const { t } = useTranslation();
-  if (!path) {
-    return (
-      <Text size="sm" c="dimmed">
-        {t("adminarea.notset")}
-      </Text>
-    );
-  }
-  return (
-    // Focus and a long press open it too, so the full path is not only for mouse users.
-    <Tooltip
-      label={path}
-      events={{ hover: true, focus: true, touch: true }}
-      multiline
-      maw={480}
-      classNames={{ tooltip: classes.pathTooltip }}
-    >
-      <Text size="sm" truncate="start" className={classes.scanDirectory} tabIndex={0}>
-        {/* Truncating at the start sets the text right-to-left; the path itself stays left-to-right,
-            or the slash of "/mnt/..." shows at its end. */}
-        <span dir="ltr">{path}</span>
-      </Text>
-    </Tooltip>
-  );
-}
-
-function UserTable() {
-  const { t } = useTranslation();
-  const [userModalOpen, { open: openUserModal, close: closeUserModal }] = useDisclosure(false);
-  const [deleteModalOpen, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
-  // Empty until a row is picked, and for a new user.
-  const [userToEdit, setUserToEdit] = useState<Partial<ListUser>>({});
-  const [userToDelete, setUserToDelete] = useState<Partial<ListUser>>({});
-  const [createNewUser, setCreateNewUser] = useState(false);
-  const { data: userList, isFetching } = useFetchUserListQuery();
-  const matches = useIsDesktopLayout();
-
-  return (
-    <Card shadow="md">
-      <Group gap="xs" mb={16}>
-        <Title order={4}>
-          {t("adminarea.users")}
-          <SectionLink />
-        </Title>
-        {isFetching ? <Loader size="xs" /> : null}
-      </Group>
-      {/* Scrolls sideways on a phone instead of cutting the columns off at the card edge. */}
-      <Table.ScrollContainer minWidth={300} type="native">
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t("adminarea.username")}</Table.Th>
-              <Table.Th>{t("adminarea.scandirectory")}</Table.Th>
-              {matches && (
-                <>
-                  <Table.Th>{t("adminarea.photocount")}</Table.Th>
-                  <Table.Th>{t("adminarea.joined")}</Table.Th>
-                </>
-              )}
-              {/* Last, as in the worker jobs table. */}
-              <Table.Th>{t("adminarea.actions")}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {userList?.map(user => (
-              <Table.Tr key={user.username}>
-                <Table.Td>{user.username}</Table.Td>
-                <Table.Td>
-                  <ScanDirectory path={user.scan_directory} />
-                </Table.Td>
-                {matches && <Table.Td>{user.photo_count}</Table.Td>}
-                {matches && (
-                  <Table.Td>{user.date_joined ? parseInstant(user.date_joined).toRelative() : null}</Table.Td>
-                )}
-                <Table.Td>
-                  <Group gap={5} wrap="nowrap">
-                    <ActionIcon
-                      variant="transparent"
-                      color="blue"
-                      title={t("modify")}
-                      aria-label={t("modify")}
-                      onClick={() => {
-                        setUserToEdit(user);
-                        setCreateNewUser(false);
-                        openUserModal();
-                      }}
-                    >
-                      <Edit />
-                    </ActionIcon>
-
-                    <ActionIcon
-                      variant="transparent"
-                      color="red"
-                      disabled={user.is_superuser}
-                      title={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
-                      aria-label={user.is_superuser ? t("adminarea.cannotdeleteadmin") : t("delete")}
-                      onClick={() => {
-                        setUserToDelete(user);
-                        openDeleteModal();
-                      }}
-                    >
-                      <Trash />
-                    </ActionIcon>
-                  </Group>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
-      <Flex justify="flex-end" mt={10}>
-        <Button
-          size="sm"
-          variant="outline"
-          leftSection={<Plus />}
-          onClick={() => {
-            setCreateNewUser(true);
-            setUserToEdit({});
-            openUserModal();
-          }}
-        >
-          {t("adminarea.addnewuser")}
-        </Button>
-      </Flex>
-
-      <ModalUserEdit
-        onRequestClose={() => {
-          closeUserModal();
-        }}
-        userToEdit={userToEdit}
-        userList={userList ?? []}
-        isOpen={userModalOpen}
-        createNew={createNewUser}
-      />
-      <ModalUserDelete
-        onRequestClose={() => {
-          closeDeleteModal();
-        }}
-        isOpen={deleteModalOpen}
-        userToDelete={userToDelete}
-      />
-    </Card>
-  );
-}
 
 const ADMIN_TOOL_MIN_WIDTH = 120;
 
@@ -368,7 +194,7 @@ export function AdminPage() {
             <ServiceList />
           </SettingsSection>
           <SettingsSection id={ADMIN_SECTIONS.users}>
-            <UserTable />
+            <AdminUserTable />
           </SettingsSection>
           <SettingsSection id={ADMIN_SECTIONS.jobs}>
             <JobList />

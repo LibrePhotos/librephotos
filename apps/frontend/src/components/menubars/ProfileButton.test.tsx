@@ -4,6 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { ShortcutsOverlayContext } from "../shortcuts/shortcutsOverlay";
 import type { UploadProcessing } from "../upload/useUploadProcessing";
 import { ProfileButton } from "./ProfileButton";
 import { jobPercent } from "./WorkerJobMenuSection";
@@ -240,7 +241,45 @@ describe("ProfileButton upgrade tasks (#2322)", () => {
 
     expect(dot()).toBeNull();
     await openMenu();
-    expect(adminItem()?.textContent).toBe(i18n.t("topmenu.adminarea"));
+    // No count, only the g a chord hint (#2037).
+    expect(adminItem()?.textContent).toBe(`${i18n.t("topmenu.adminarea")}g a`);
+  });
+});
+
+describe("ProfileButton keyboard shortcuts (#2037)", () => {
+  const shortcutsItem = () =>
+    [...container.querySelectorAll<HTMLElement>("[role=menuitem]")].find(item =>
+      item.textContent?.startsWith(i18n.t("topmenu.shortcuts"))
+    );
+
+  it("lists the chords next to the pages and opens the list of shortcuts", async () => {
+    const openShortcuts = vi.fn<() => void>();
+    stubs.worker = { queue_can_accept_job: true, job_detail: null };
+    await act(async () => {
+      root.render(
+        <MantineProvider env="test">
+          <ShortcutsOverlayContext value={openShortcuts}>
+            <ProfileButton />
+          </ShortcutsOverlayContext>
+        </MantineProvider>
+      );
+    });
+    await openMenu();
+
+    const settings = [...container.querySelectorAll<HTMLElement>("[role=menuitem]")].find(item =>
+      item.textContent?.startsWith(i18n.t("topmenu.settings"))
+    );
+    expect(settings?.textContent).toBe(`${i18n.t("topmenu.settings")}g s`);
+    expect(shortcutsItem()?.textContent).toBe(`${i18n.t("topmenu.shortcuts")}?`);
+    await act(async () => shortcutsItem()?.click());
+    expect(openShortcuts).toHaveBeenCalledOnce();
+  });
+
+  it("has no shortcuts entry outside the signed-in app (public pages)", async () => {
+    await render({ queue_can_accept_job: true, job_detail: null });
+    await openMenu();
+
+    expect(shortcutsItem()).toBeUndefined();
   });
 });
 

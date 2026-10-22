@@ -360,6 +360,21 @@ Details a photo does not have yet are not listed as empty cards: they are button
 
 On a photo someone shared with you, the page shows the photo, its date and the name of its place, **Open in viewer** and **Copy image**, and says who shared it. Everything else stays with the owner, as in the lightbox.
 
+## Going to a page with the keyboard
+
+<Since version="1.5.0" /> Anywhere in the app, press `g` and then a letter to go to a page. After `g`, a hint at the bottom of the window lists the letters; it goes away after a moment or on any other key.
+
+| Keys | Page |
+|------|------|
+| `g` then `p` | Photos |
+| `g` then `l` | Library |
+| `g` then `s` | Settings |
+| `g` then `a` | Admin Area (admins only) |
+| `g` then `j` | My Jobs |
+| `?` | The list of keyboard shortcuts |
+
+The account menu shows the same keys next to its pages, and **Keyboard shortcuts** in it opens the list. The keys do nothing while you type in a field or while a dialog or the photo viewer is open: the viewer has its own keys, listed below, where `g` toggles fullscreen.
+
 ## Keyboard Shortcuts
 
 | Key | Action |

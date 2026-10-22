@@ -918,6 +918,14 @@ export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerRespons
 }
 
 /**
+ * Scan another user's library, as that user (admins only, #2037): the same scan as their own Scan
+ * button, so the job is theirs. Returns the queued (or their already running) job id.
+ */
+export async function scanUserPhotos(client: ApiClient, userId: number): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, `/manage/user/${userId}/scan/`, S.JobTriggerResponse, "scan user photos");
+}
+
+/**
  * Admin: how many of a user's photos the scan directory `scanDirectory` (with the upload folder
  * `uploadDirectory`, "" for the default) would leave outside their library (#2036). Read only.
  */

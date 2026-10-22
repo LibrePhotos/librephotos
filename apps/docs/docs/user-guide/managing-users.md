@@ -12,6 +12,8 @@ The user panel is at the bottom of the page above the worker logs.
 
 You can create, delete and manage users of your instance. You can change the scan path, password, name and e-mail of a given user.
 
+<Since version="1.5.0" /> The circular arrow next to a user's scan directory scans that user's library now, the same scan as the **Scan** button on their Library page: the job is theirs and shows in their job list. While it runs, the arrow shows its progress. So after you fix a user's scan path, you can scan it without signing in as them. On your own Library page, **Change scan directories in the Admin Area** under **Scan library** leads to this table.
+
 **Please note:**
 In LibrePhotos, the file system acts as the definitive source of photo organization. This means that folder structure dictates how photos are grouped and accessed within the application.
 
