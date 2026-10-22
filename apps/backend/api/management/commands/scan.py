@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from api.directory_watcher import scan_photos
 from api.models import User
 from api.models.user import get_deleted_user
-from api.photos.paths import is_valid_path
+from api.photos.paths import library_of
 from nextcloud.directory_watcher import scan_photos as scan_photos_nextcloud
 
 
@@ -51,11 +51,11 @@ class Command(BaseCommand):
     def scan_selected_files(self, scan_files: list[str]) -> None:
         for user in self.scannable_users():
             # A path boundary, not a string prefix: /data/alice2/x.jpg is not
-            # alice's file just because it starts with /data/alice.
+            # alice's file just because it starts with /data/alice. Any of
+            # the user's library folders counts (#123).
+            library = library_of(user)
             user_files = [
-                scan_file
-                for scan_file in scan_files
-                if is_valid_path(scan_file, user.scan_directory)
+                scan_file for scan_file in scan_files if library.contains(scan_file)
             ]
             if user_files:
                 scan_photos(user, False, uuid.uuid4(), scan_files=user_files)

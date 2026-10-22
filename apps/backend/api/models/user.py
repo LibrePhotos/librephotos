@@ -59,6 +59,10 @@ class User(AbstractUser):
     # Where web uploads are written. Empty means the "uploads" folder inside
     # scan_directory; use upload_root() rather than reading this directly.
     upload_directory = models.CharField(max_length=512, blank=True, default="")
+    # Folders inside the library that the user left out (#791): scans skip
+    # them, and their photos count as outside the library. Absolute paths
+    # spelled from their library folder; api.photos.library_folders checks them.
+    excluded_folders = models.JSONField(default=list, blank=True)
     confidence = models.FloatField(default=0.1, db_index=True)
     confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)

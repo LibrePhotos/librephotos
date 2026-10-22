@@ -36,7 +36,7 @@ from api.models.file import content_hash, hash_owner_part
 from api.models.long_running_job import JobCancelledError
 from api.photos.library_files import rescan_targets
 from api.photos.media_files import calculate_hash
-from api.photos.paths import folder_path_q, is_valid_path
+from api.photos.paths import folder_path_q, is_valid_path, library_roots
 
 logger = logging.getLogger(__name__)
 
@@ -80,17 +80,19 @@ class CheckResult:
 
 
 def resolve_folder(user: User, folder: str) -> str:
-    """``folder``, relative to ``user``'s scan directory, as an absolute path.
+    """``folder`` as an absolute path inside one of ``user``'s library folders.
 
-    Raises ``FolderError`` when the user has no scan directory or the folder
-    is outside it or does not exist.
+    A relative folder is read below the scan directory; an absolute one may
+    lie in any folder of the library (#123). Raises ``FolderError`` when the
+    user has no scan directory or the folder is outside the library or does
+    not exist.
     """
-    if not user.scan_directory:
+    roots = library_roots(user)
+    if not roots:
         raise FolderError("This user has no scan directory.")
-    root = os.path.abspath(user.scan_directory)
-    path = os.path.normpath(os.path.join(root, folder))
-    if not is_valid_path(path, root):
-        raise FolderError("The folder is not inside the user's scan directory.")
+    path = os.path.normpath(os.path.join(roots[0], folder))
+    if not any(is_valid_path(path, root) for root in roots):
+        raise FolderError("The folder is not inside the user's library.")
     if not os.path.isdir(path):
         raise FolderError("The folder does not exist.")
     return path

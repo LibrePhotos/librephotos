@@ -2,6 +2,7 @@ import { Space, Text, Title } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { LibraryFolderList } from "../libraryfolders/LibraryFolderList";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
 import { uploadLocation } from "../setup/uploadLocation";
 import type { UserEditValues } from "./ModalUserEdit.schema";
@@ -20,6 +21,9 @@ type Props = Readonly<{
   onPathValidity: (valid: boolean) => void;
   onUploadPathValidity: (valid: boolean) => void;
   change: ScanDirectoryChange;
+  /** The edited user, with a saved scan directory: their further library folders are listed (#123). */
+  libraryOwner?: Readonly<{ id: number; username: string }>;
+  onFolderDialogChange?: (opened: boolean) => void;
 }>;
 
 /** The user dialog's library folders: the scan directory, what a change does (#2036), the upload folder. */
@@ -63,6 +67,24 @@ export function UserFoldersSection(props: Props) {
           choice={form.values.photos_outside}
           onChoiceChange={choice => form.setFieldValue("photos_outside", choice)}
         />
+      )}
+      {props.libraryOwner && (
+        <>
+          <Space h="md" />
+          <Text fw="bold" size="sm">
+            {t("libraryfolders.dialogheader")}
+          </Text>
+          <Text size="sm" c="dimmed" mb="xs">
+            {t("libraryfolders.dialoghint")}
+          </Text>
+          <LibraryFolderList
+            owner={props.libraryOwner.id}
+            userId={props.libraryOwner.id}
+            username={props.libraryOwner.username}
+            canManage
+            onDialogChange={props.onFolderDialogChange}
+          />
+        </>
       )}
       {uploadsAllowed && (
         <>

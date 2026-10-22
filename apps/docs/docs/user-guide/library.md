@@ -63,6 +63,25 @@ A **Scan** processes new and changed files, and also every photo whose metadata 
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
+### Library folders
+
+<Since version="1.5.0" /> A library can have more than one folder. The **Library folders** card above **Photos** lists them: the scan directory (marked **Main folder**), the further folders an admin added, and the upload folder when it lies outside them. Each row says how many of your photos are in it, and its menu (⋮) opens the folder on the Folders page. A **Scan** reads every folder of the library.
+
+Admins add a folder with **Add folder** under the list and remove one with **Remove…** in its menu; see [Several library folders per user](./managing-users.md#several-library-folders-per-user). Other users see their folders here and ask an admin for changes.
+
+A folder that cannot be read right now, such as one on a disk that is unplugged, shows **Not found**. Scans skip it and go on with the rest of the library, list it in the job's errors, and do not mark its photos [missing](./missing-photos.md): they come back as they were when the disk does.
+
+### Leaving subfolders out
+
+<Since version="1.5.0" /> You can leave folders inside your library folders out of your library, for example the trips of a relative in a shared family folder. Choose **Leave out subfolders…** in a folder's menu (⋮): the dialog shows its subfolders with a checkbox each and how many of your photos are in them. Untick a folder to leave it, and everything in it, out; open a folder with the arrow to get to the folders inside it. **Save** applies the change to every folder at once.
+
+- Scans skip the folders you left out from then on, and so do scans of chosen files and [folder watchers](./auto-scan.md#tell-librephotos-about-new-files). The row of the library folder says how many subfolders are left out.
+- Photos already imported from those folders stay in your library until you move them to the trash: tick **Also move my photos outside my library to the trash** before saving. That moves every photo of yours that is outside your library folders to the trash, those in the folders you left out included; you can restore them from the [trash](./trash.md) until it is emptied. Files on disk are never touched.
+- Moving photos into a folder you left out is refused.
+- Tick the folder again to take it back in; the next scan imports its photos again.
+
+You cannot leave out a library folder itself (ask an admin to remove it) or a folder that holds your upload folder. Leaving folders out only changes your own library; the same folders stay in the libraries of others.
+
 Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. <Since version="1.4.0" /> Point at or tab to a greyed-out button to see why it is unavailable.
 
 :::note
@@ -317,8 +336,8 @@ python manage.py scan
 python manage.py scan -f
 
 # Scan specific files, given by full path; each file goes to every user whose
-# scan directory contains it (normally exactly one; /data/alice2/x.jpg is not
-# in /data/alice), and a file outside every scan directory is ignored.
+# library folders contain it (normally exactly one; /data/alice2/x.jpg is not
+# in /data/alice), and a file outside every library is ignored.
 # Since 1.5.0 a folder is scanned too, with its subfolders
 python manage.py scan -s /path/to/file.jpg /path/to/folder
 

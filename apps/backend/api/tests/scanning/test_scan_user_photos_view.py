@@ -12,9 +12,15 @@ from unittest.mock import patch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.directory_watcher import scan_jobs
 from api.models import LongRunningJob
 from api.tests.scanning.test_scan_trigger_views import RecordingChain, RecordingTask
-from api.tests.utils import api_error, create_test_job, create_test_user
+from api.tests.utils import (
+    api_error,
+    create_test_job,
+    create_test_library_folder,
+    create_test_user,
+)
 
 MODULE = "api.views.scan_triggers"
 
@@ -58,6 +64,19 @@ class ScanUserPhotosViewTest(TestCase):
         args, kwargs = RecordingChain.instances[0].appended[0]
         self.assertEqual(args[1], self.owner)
         self.assertEqual(kwargs["scan_directory"], self.library)
+
+    def test_the_scan_covers_every_folder_of_the_users_library(self):
+        """#123: the scan of the scan directory is a library scan of all folders."""
+        extra = tempfile.mkdtemp()
+        self.addCleanup(os.rmdir, extra)
+        create_test_library_folder(self.owner, extra)
+
+        self.post(self.owner.id)
+
+        _, kwargs = RecordingChain.instances[0].appended[0]
+        roots = scan_jobs._scan_roots(self.owner, kwargs["scan_directory"], [])
+        self.assertTrue(roots.library_scan)
+        self.assertEqual(roots.roots, [self.library, extra])
 
     def test_admin_can_scan_their_own_library_too(self):
         self.admin.scan_directory = self.library

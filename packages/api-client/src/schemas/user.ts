@@ -164,3 +164,49 @@ export const ScanDirectoryImpact = z.object({
   outside_count: z.number(),
 });
 export type ScanDirectoryImpact = z.infer<typeof ScanDirectoryImpact>;
+
+/**
+ * One folder of a user's library (#123): the scan directory (`main`), a further library folder an
+ * admin added (`folder`, with its id to remove it), or the upload folder when it lies outside them.
+ */
+export const LibraryFolderEntry = z.object({
+  id: z.number().nullable(),
+  path: z.string(),
+  kind: z.enum(["main", "folder", "upload"]),
+  /** The folder can be read now; a scan skips it otherwise and does not flag its photos missing. */
+  available: z.boolean(),
+  photo_count: z.number(),
+});
+export type LibraryFolderEntry = z.infer<typeof LibraryFolderEntry>;
+
+/** `GET /library-folders/` and `/manage/user/<id>/library-folders/`: every folder of a library, the main one first. */
+export const LibraryFolders = z.object({
+  folders: z.array(LibraryFolderEntry),
+  /** Folders inside them the user left out of the library (#791). */
+  excluded_folders: z.array(z.string()),
+});
+export type LibraryFolders = z.infer<typeof LibraryFolders>;
+
+/** `PUT /library-folders/excluded/` (#791): the library, and the photos now outside it. */
+export const ExcludedFoldersSaved = LibraryFolders.extend({
+  outside_count: z.number(),
+});
+export type ExcludedFoldersSaved = z.infer<typeof ExcludedFoldersSaved>;
+
+/** A folder inside a library folder, for the tree the user leaves folders out in (#791). */
+export const LibrarySubfolder = z.object({
+  name: z.string(),
+  path: z.string(),
+  excluded: z.boolean(),
+  has_subfolders: z.boolean(),
+  photo_count: z.number(),
+});
+export type LibrarySubfolder = z.infer<typeof LibrarySubfolder>;
+
+/** `GET /library-folders/subfolders/?path=`: the folders inside one folder of the library. */
+export const LibrarySubfolders = z.object({
+  path: z.string(),
+  subfolders: z.array(LibrarySubfolder),
+  truncated: z.boolean(),
+});
+export type LibrarySubfolders = z.infer<typeof LibrarySubfolders>;

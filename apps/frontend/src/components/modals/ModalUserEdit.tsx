@@ -1,6 +1,7 @@
 import type { ListUser, User } from "@librephotos/api-client";
 import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
+import { useDisclosure } from "@mantine/hooks";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,6 +65,8 @@ export function ModalUserEdit(props: Props) {
   const [isPathValid, setIsPathValid] = useState(true);
   const [isUploadPathValid, setIsUploadPathValid] = useState(true);
   const isSaving = createNew ? isSigningUp : isUpdating;
+  // A library folder dialog above this one keeps Escape for itself (#123).
+  const [folderDialogOpened, folderDialog] = useDisclosure(false);
 
   const form = useForm({
     initialValues: EMPTY_VALUES,
@@ -213,6 +216,7 @@ export function ModalUserEdit(props: Props) {
       centered
       scrollAreaComponent={ScrollArea.Autosize}
       size="xl"
+      closeOnEscape={!folderDialogOpened}
       onClose={() => {
         closeModal();
       }}
@@ -267,6 +271,12 @@ export function ModalUserEdit(props: Props) {
             onPathValidity={setIsPathValid}
             onUploadPathValidity={setIsUploadPathValid}
             change={change}
+            libraryOwner={
+              userToEdit.id !== undefined && userToEdit.scan_directory
+                ? { id: userToEdit.id, username: userToEdit.username ?? "" }
+                : undefined
+            }
+            onFolderDialogChange={opened => (opened ? folderDialog.open() : folderDialog.close())}
           />
         )}
         <Group justify="flex-end" mt="md">

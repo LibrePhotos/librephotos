@@ -1,0 +1,27 @@
+.tree {
+  list-style: none;
+  margin: 0;
+  padding-left: var(--mantine-spacing-md);
+}
+
+.row {
+  min-height: 28px;
+}
+
+/* Where the chevron would be, so the checkboxes of one level line up. */
+.spacer {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+}
+
+.check {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}

@@ -28,10 +28,10 @@ from api.models import LongRunningJob
 from api.photos.library_files import (
     MAX_REQUESTED,
     in_library,
-    library_roots,
     rescan_targets,
     scannable_files,
 )
+from api.photos.paths import library_roots
 from api.tests.scanning.test_scan_photos_orchestration import (
     ScanPhotosCharacterizationBase,
     TaskRecorder,
@@ -208,10 +208,8 @@ class LibraryFilesTestBase(TestCase):
 
 class LibraryFilesTest(LibraryFilesTestBase):
     def test_the_roots_are_the_scan_directory_and_the_upload_folder(self):
-        self.assertEqual(
-            library_roots(self.user),
-            [self.scan_dir, os.path.join(self.scan_dir, "uploads")],
-        )
+        # The default upload folder is inside the scan directory.
+        self.assertEqual(library_roots(self.user), [self.scan_dir])
         self.user.upload_directory = os.path.join(self.root, "uploads")
         self.assertEqual(
             library_roots(self.user), [self.scan_dir, self.user.upload_directory]

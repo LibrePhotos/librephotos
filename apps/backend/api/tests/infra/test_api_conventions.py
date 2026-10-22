@@ -577,6 +577,8 @@ STAFF_ONLY_VIEWS = {
     "api.views.dataviz.ServerStatsView",
     "api.views.email_config.EmailConfigView",
     "api.views.email_config.EmailTestView",
+    "api.views.library_folders.ManageLibraryFolderView",
+    "api.views.library_folders.ManageLibraryFoldersView",
     "api.views.scan_triggers.DeduplicateFacesView",
     "api.views.scan_triggers.CheckFileContentsView",
     "api.views.scan_triggers.LookUpPlacesView",

@@ -3,7 +3,9 @@
 ``is_valid_path`` keeps a requested path inside a scan root; ``folder_path_q``
 selects the files recorded below a folder without picking up its siblings;
 ``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded;
-``library_roots`` names the folders a user's library lives in.
+``library_roots`` names the folders a user's library lives in, and
+``library_of`` reads them, with the folders left out of it, once for a run
+of checks.
 """
 
 from __future__ import annotations
@@ -11,11 +13,14 @@ from __future__ import annotations
 import os
 import os.path
 import re
+from dataclasses import dataclass
 from types import ModuleType
 from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db.models import Q
+
+from api.models.library_folder import LibraryFolder
 
 if TYPE_CHECKING:
     from api.models.user import User
@@ -40,20 +45,70 @@ def is_nextcloud_copy(path: str) -> bool:
     return is_valid_path(path, root) and not is_valid_path(root, path)
 
 
-def library_roots(user: User) -> list[str]:
-    """The folders ``user``'s library lives in, absolute and normalised.
+def library_folder_paths(user: User) -> list[str]:
+    """The further library folders of ``user`` (#123), in path order."""
+    if user.pk is None:
+        return []
+    paths = LibraryFolder.objects.owned_by(user).order_by("path")
+    return list(paths.values_list("path", flat=True))
 
-    The scan directory, and the upload folder when it is set outside it
-    (``User.upload_root``). Empty for a user without a scan directory. The
-    photos the user may move stay inside these (#352).
+
+def library_roots(user: User) -> list[str]:
+    """The folders ``user``'s library lives in, absolute.
+
+    The scan directory (the main folder) first, then the further library
+    folders an admin added (#123), then the upload folder when it is set
+    outside all of them (``User.upload_root``). Empty for a user without a
+    scan directory. Scans, moves (#352) and every "is this in the library"
+    check go by these. One query, for the further folders.
+
+    Each is spelled as it is stored, which is how the scan spelled the paths
+    it recorded below it (``C:/data\\2024`` on Windows): a prefix query such
+    as ``folder_path_q`` only matches that spelling. ``is_valid_path``
+    normalises both sides, so containment checks do not depend on it.
     """
     if not user.scan_directory:
         return []
-    roots = [os.path.normpath(os.path.abspath(user.scan_directory))]
-    upload_root = os.path.normpath(os.path.abspath(user.upload_root()))
-    if not is_valid_path(upload_root, roots[0]):
+    roots = [user.scan_directory, *library_folder_paths(user)]
+    upload_root = user.upload_root()
+    if not any(is_valid_path(upload_root, root) for root in roots):
         roots.append(upload_root)
     return roots
+
+
+@dataclass(frozen=True)
+class Library:
+    """Where a user's library lies, read once for a run of path checks."""
+
+    #: ``library_roots``: the main folder first.
+    roots: tuple[str, ...]
+    #: Folders inside the roots the user left out (#791).
+    excluded: tuple[str, ...] = ()
+
+    def root_of(self, path: str) -> str | None:
+        """The root holding ``path`` (or equal to it), or None, left out or not."""
+        return next((root for root in self.roots if is_valid_path(path, root)), None)
+
+    def is_excluded(self, path: str) -> bool:
+        """Whether ``path`` is a left-out folder or lies inside one."""
+        return any(is_valid_path(path, folder) for folder in self.excluded)
+
+    def contains(self, path: str) -> bool:
+        """Whether ``path`` is in the library: in a root, and not left out."""
+        return self.root_of(path) is not None and not self.is_excluded(path)
+
+
+def excluded_folders(user: User) -> list[str]:
+    """The folders ``user`` left out of their library (#791)."""
+    stored = user.excluded_folders
+    if not isinstance(stored, list):
+        return []
+    return [path for path in stored if isinstance(path, str) and path]
+
+
+def library_of(user: User) -> Library:
+    """``user``'s library: its roots and left-out folders, read once."""
+    return Library(tuple(library_roots(user)), tuple(excluded_folders(user)))
 
 
 def is_valid_path(path: str, root_path: str) -> bool:

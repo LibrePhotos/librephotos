@@ -1,0 +1,9 @@
+.icon {
+  flex: none;
+  color: var(--mantine-color-dimmed);
+}
+
+/* A long server path wraps anywhere rather than widening the card. */
+.path {
+  overflow-wrap: anywhere;
+}
