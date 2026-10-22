@@ -109,8 +109,9 @@ class ScanUserPhotosView(APIView):
     """Scan another user's library from the Admin Area (#2037).
 
     The same scan as that user's own Scan button: the job is started as them,
-    so it reads only their scan directory, shows in their job list and counts
-    as their scan (a second one while it runs is a 409). Admins only, since
+    so it reads only their library (the scan directory and every further
+    library folder, #123), shows in their job list and counts as their scan
+    (a second one while it runs is a 409). Admins only, since
     an admin is who sets the scan directory. 404 for an unknown or
     deactivated user, 400 when the user has no scan directory or it is gone.
     """

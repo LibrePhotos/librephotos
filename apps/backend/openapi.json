@@ -3967,6 +3967,35 @@
         }
       }
     },
+    "/api/library-folders/": {
+      "get": {
+        "operationId": "api_library_folders_retrieve",
+        "description": "The folders of the requester's own library, the scan directory first.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/library/processing-status/": {
       "get": {
         "operationId": "api_library_processing_status_retrieve",
@@ -4236,10 +4265,146 @@
         }
       }
     },
+    "/api/manage/user/{user_id}/library-folders/": {
+      "get": {
+        "operationId": "api_manage_user_library_folders_retrieve",
+        "description": "A user's library folders, for the user edit dialog: list and add.\n\nPOST adds a folder: an existing folder inside the data root that overlaps\nno folder of another user's library (#2034) nor of this one. 400 names\nthe ``path`` field otherwise. The next scan reads it. Admins only; 404\nfor an unknown or deactivated user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_manage_user_library_folders_create",
+        "description": "A user's library folders, for the user edit dialog: list and add.\n\nPOST adds a folder: an existing folder inside the data root that overlaps\nno folder of another user's library (#2034) nor of this one. 400 names\nthe ``path`` field otherwise. The next scan reads it. Admins only; 404\nfor an unknown or deactivated user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/library-folders/{folder_id}/": {
+      "delete": {
+        "operationId": "api_manage_user_library_folders_destroy",
+        "description": "Remove a further folder from a user's library.\n\nIts photos stay the user's, outside the library now; the user edit dialog\noffers to move them to the user's trash\n(``POST /api/manage/user/<id>/trash-photos-outside-library/``). Files on\ndisk are never touched. The scan directory is not a row here and cannot\nbe removed. Admins only; 404 for another user's folder.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
     "/api/manage/user/{user_id}/scan/": {
       "post": {
         "operationId": "api_manage_user_scan_create",
-        "description": "Scan another user's library from the Admin Area (#2037).\n\nThe same scan as that user's own Scan button: the job is started as them,\nso it reads only their scan directory, shows in their job list and counts\nas their scan (a second one while it runs is a 409). Admins only, since\nan admin is who sets the scan directory. 404 for an unknown or\ndeactivated user, 400 when the user has no scan directory or it is gone.",
+        "description": "Scan another user's library from the Admin Area (#2037).\n\nThe same scan as that user's own Scan button: the job is started as them,\nso it reads only their library (the scan directory and every further\nlibrary folder, #123), shows in their job list and counts as their scan\n(a second one while it runs is a 409). Admins only, since\nan admin is who sets the scan directory. 404 for an unknown or\ndeactivated user, 400 when the user has no scan directory or it is gone.",
         "parameters": [
           {
             "in": "path",
@@ -12388,6 +12553,21 @@
           "write_error"
         ]
       },
+      "AddLibraryFolderRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/manage/user/<id>/library-folders/``: a folder to add.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Absolute path of an existing folder inside the data root",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
       "AddToStackResponse": {
         "type": "object",
         "properties": {
@@ -16162,6 +16342,53 @@
           "path"
         ]
       },
+      "LibraryFolderEntry": {
+        "type": "object",
+        "description": "One folder of a user's library.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The further folder's id, to remove it; null for the scan directory and the upload folder"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path on the server"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LibraryFolderEntryKindEnum"
+              }
+            ],
+            "description": "main: the scan directory; folder: a further library folder; upload: the upload folder, when it lies outside the others\n\n* `main` - main\n* `folder` - folder\n* `upload` - upload"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "The folder can be read now; a scan skips it otherwise and does not flag its photos missing"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The user's photos in it, outside the trash"
+          }
+        },
+        "required": [
+          "available",
+          "id",
+          "kind",
+          "path",
+          "photo_count"
+        ]
+      },
+      "LibraryFolderEntryKindEnum": {
+        "enum": [
+          "main",
+          "folder",
+          "upload"
+        ],
+        "type": "string",
+        "description": "* `main` - main\n* `folder` - folder\n* `upload` - upload"
+      },
       "LibraryFolderListing": {
         "type": "object",
         "description": "The folders a move can go to, one level at a time.",
@@ -16186,6 +16413,21 @@
           "folders",
           "path",
           "truncated"
+        ]
+      },
+      "LibraryFolders": {
+        "type": "object",
+        "description": "Every folder of a user's library, the scan directory first.",
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryFolderEntry"
+            }
+          }
+        },
+        "required": [
+          "folders"
         ]
       },
       "ListedStackTypeEnum": {
