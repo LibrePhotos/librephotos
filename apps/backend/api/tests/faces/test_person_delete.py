@@ -3,15 +3,15 @@
 ``Face.person`` is ``on_delete=SET_NULL``: the faces survive the person and
 go back to unlabeled, as do the clusters and the classifier's suggestions.
 This held through a ``post_delete`` receiver before, and every way a person
-is deleted relies on it: the people list's DELETE, the cleanup of people
-left without faces after their faces were relabeled (what merging two people
-amounts to today), and the clustering reset.
+is deleted relies on it: the people list's DELETE, merging two people and
+the clustering reset. Relabelling every face of a person away leaves the
+person in place, without faces: clustering never deletes a named person.
 """
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.faces.classify import delete_clustered_people, delete_persons_without_faces
+from api.faces.classify import delete_clustered_people
 from api.models.cluster import Cluster
 from api.models.deletion_log import DeletionLog
 from api.models.face import Face
@@ -86,7 +86,7 @@ class PersonDeleteTest(TestCase):
             ).exists()
         )
 
-    def test_relabel_then_cleanup_moves_every_face_to_the_survivor(self) -> None:
+    def test_relabel_moves_every_face_and_keeps_the_emptied_person(self) -> None:
         response = self.client.post(
             "/api/labelfaces",
             {"face_ids": [self.face.pk], "person_name": "Bob"},
@@ -94,15 +94,12 @@ class PersonDeleteTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-        delete_persons_without_faces(self.user)
-
-        self.assertFalse(Person.objects.filter(pk=self.person.pk).exists())
+        self.assertEqual(Person.objects.get(pk=self.person.pk).face_count, 0)
         self.assertEqual(
             set(Face.objects.filter(person=self.other).values_list("pk", flat=True)),
             {self.face.pk, self.other_face.pk},
         )
         self.assertEqual(Person.objects.get(pk=self.other.pk).face_count, 2)
-        self.assertIsNone(Cluster.objects.get(pk=self.cluster.pk).person_id)
 
     def test_clustering_reset_unlinks_the_cluster_people(self) -> None:
         cluster_person = create_test_person(

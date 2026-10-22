@@ -147,8 +147,9 @@ def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
 
 def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
-    existing clusters, then regenerates them all. It will split clusters that have
-    more than one kind of labeled face. Every clustering, whoever started it,
+    existing clusters and cluster people, then regenerates them all; the
+    user's named people are never deleted, not even those without faces. It
+    will split clusters that have more than one kind of labeled face. Every clustering, whoever started it,
     moves the user's face watermark (``record_clustering``), so the upload
     follow-ups do not cluster the same faces again.
     :param user: the current user running the training
@@ -175,7 +176,6 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         watermark = latest_face_id(user)
         delete_clustered_people(user)
         delete_clusters(user)
-        delete_persons_without_faces(user)
         target_count: int = create_all_clusters(user, lrj)
         record_clustering(user, watermark)
 
@@ -302,15 +302,13 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     return target_count
 
 
-# Clustering one user rebuilds only that user's rows: each delete below is
-# scoped to ``user``, so another user's people and clusters, even a person
-# just created with no faces yet, survive it (#2732).
-
-
-def delete_persons_without_faces(user: User) -> None:
-    """Delete the user's named people that have no face left"""
-    logger.info("Deleting the people without faces of user %s", user.id)
-    Person.objects.owned_by(user).filter(faces=None, kind=Person.KIND_USER).delete()
+# Clustering one user rebuilds only that user's rows it made itself: each
+# delete below is scoped to ``user``, so another user's people and clusters
+# survive it (#2732), and only clusters and cluster people are deleted. The
+# user's named people stay, even without faces: one made by hand, or with a
+# birth date and its faces moved away, is the user's, not the clustering's.
+# A face's rejection of a cluster person ("Not Unknown 12") goes with that
+# person: the rebuilt clusters are new people it says nothing about.
 
 
 def delete_clusters(user: User) -> None:
