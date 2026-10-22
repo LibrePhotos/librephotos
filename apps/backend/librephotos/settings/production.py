@@ -659,6 +659,8 @@ SPECTACULAR_SETTINGS = {
         # Moving photos to another folder (#352): a taken name, a refused photo.
         "MoveOnConflictEnum": "api.serializers.photo_moves.ON_CONFLICT_CHOICES",
         "MoveRefusalReasonEnum": "api.serializers.photo_moves.MOVE_REFUSAL_REASONS",
+        # Renaming photos after their date (#2773): what happens to one photo.
+        "RenameStatusEnum": "api.serializers.photo_renames.RENAME_STATUS_CHOICES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

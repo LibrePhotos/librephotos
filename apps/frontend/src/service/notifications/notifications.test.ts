@@ -307,3 +307,37 @@ describe("moving photos (#352)", () => {
     expect(lastShown().message).toBe("The photos are moving in the background.");
   });
 });
+
+describe("sorting and renaming photos by date (#2773, #2774)", () => {
+  const counts = { renamed: 3, unchanged: 0, undated: 0, refused: 0, failed: 0 };
+
+  it("counts undated photos of a sort as staying", () => {
+    notification.photosMoved({ moved: 2, skipped: 0, refused: 0, failed: 0, undated: 1 }, "sorted");
+    expect(lastShown().message).toBe("Moved 2 photos to sorted. 1 photo stayed where it was.");
+  });
+
+  it("says how many were renamed and how many kept their names", () => {
+    notification.photosRenamed(counts);
+    expect(lastShown()).toMatchObject({ color: "teal", message: "Renamed 3 photos." });
+    notification.photosRenamed({ ...counts, undated: 2, unchanged: 1 });
+    expect(lastShown().message).toBe("Renamed 3 photos. 3 photos kept their names.");
+  });
+
+  it("keeps a toast with failed photos up and says their files kept the old names", () => {
+    notification.photosRenamed({ ...counts, failed: 1 });
+    expect(lastShown()).toMatchObject({
+      color: "orange",
+      message: "Renamed 3 photos. 1 photo could not be renamed: its files kept their old name.",
+      autoClose: false,
+    });
+  });
+
+  it("shows the server's reason for a refused rename, else a plain one", () => {
+    notification.photosRenameFailed("A scan of your library is running.");
+    expect(lastShown()).toMatchObject({ color: "red", message: "A scan of your library is running." });
+    notification.photosRenameFailed(null);
+    expect(lastShown().message).toBe("The photos could not be renamed.");
+    notification.renamePhotosStarted();
+    expect(lastShown().message).toBe("The photos are being renamed in the background.");
+  });
+});

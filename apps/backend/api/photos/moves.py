@@ -4,9 +4,11 @@ The owner moves their own photos within their own library folders
 (``library_roots``: the scan directory and the upload folder). A target is
 checked here (``resolve_target``) on its normalised path and on the path its
 links resolve to, so neither ``..`` nor a link leads out of the library.
-``preview_move`` says what a move would do, ``move_photos`` does it one photo
-at a time through ``api.photos.files.move_photo_files``, and
-``move_photos_job`` runs it as a job for a large selection.
+``plan_move`` says which folder each photo goes to (one folder, or one per
+capture date with a folder pattern, #2774), ``preview_move`` says what the
+move would do, ``move_photos`` does it one photo at a time through
+``api.photos.files.move_photo_files``, and ``move_photos_job`` runs it as a
+job for a large selection.
 """
 
 from __future__ import annotations
@@ -34,6 +36,11 @@ from api.photos.files import (
     move_photo_files,
     path_key,
     photo_folder,
+)
+from api.photos.naming import (
+    InvalidPatternError,
+    check_folder_pattern,
+    render_folder,
 )
 from api.photos.paths import (
     is_nextcloud_copy,
@@ -167,6 +174,60 @@ def scan_running(user: User) -> bool:
     )
 
 
+@dataclass
+class MovePlan:
+    """Where the photos of a move go: each target folder with its photos."""
+
+    targets: dict[str, list[Photo]]
+    #: Photos left out: a folder pattern needs their capture date (#2774).
+    undated_photos: list[Photo] = field(default_factory=list)
+
+    @property
+    def photo_count(self) -> int:
+        return sum(len(photos) for photos in self.targets.values())
+
+    @property
+    def undated(self) -> int:
+        return len(self.undated_photos)
+
+
+def _dated_targets(
+    user: User, base: str, folder_pattern: str, photos: Iterable[Photo]
+) -> MovePlan:
+    """``photos`` grouped by ``base/<folder_pattern of their date>``.
+
+    Each target is checked as a typed one is (``resolve_target``): a pattern
+    that leads into a folder the scan skips is refused, whichever photo
+    reaches it first.
+    """
+    plan = MovePlan({})
+    resolved: dict[tuple[str, ...], str] = {}
+    for photo in photos:
+        parts = render_folder(folder_pattern, photo)
+        if parts is None:
+            plan.undated_photos.append(photo)
+            continue
+        key = tuple(parts)
+        if key not in resolved:
+            resolved[key] = resolve_target(user, os.path.join(base, *parts))
+        plan.targets.setdefault(resolved[key], []).append(photo)
+    plan.targets = dict(sorted(plan.targets.items()))
+    return plan
+
+
+def plan_move(
+    user: User, base: str, photos: Iterable[Photo], folder_pattern: str | None = None
+) -> MovePlan:
+    """Where each of ``photos`` goes: ``base`` (from ``resolve_target``), or
+    with ``folder_pattern`` (``{year}/{month}``) the folder of its capture
+    date inside ``base``. ``InvalidTargetError`` for a target outside the
+    library or in a folder the scan skips.
+    """
+    if not folder_pattern:
+        return MovePlan({base: list(photos)})
+    return _dated_targets(user, base, folder_pattern, photos)
+
+
 @dataclass(frozen=True)
 class Clash:
     """A photo whose name is taken in the target folder."""
@@ -175,6 +236,21 @@ class Clash:
     name: str
     #: The name "Rename" gives it, or None when no free name was found.
     renamed_to: str | None
+
+
+@dataclass(frozen=True)
+class FolderCount:
+    """What a dated move does in one of its target folders (#2774)."""
+
+    path: str
+    #: Photos that move into the folder.
+    photos: int
+    #: Photos already in it.
+    unchanged: int
+    #: Photos whose name is taken in it.
+    clashes: int
+    #: Whether the move makes the folder.
+    new: bool
 
 
 @dataclass
@@ -186,6 +262,12 @@ class MovePreview:
     unchanged: int = 0
     refused: dict[str, int] = field(default_factory=dict)
     clashes: list[Clash] = field(default_factory=list)
+    #: Photos a folder pattern leaves out: they have no capture date.
+    undated: int = 0
+    #: Their ``image_hash``, so the client can set their date.
+    undated_hashes: list[str] = field(default_factory=list)
+    #: The target folders of a dated move; empty for a move to one folder.
+    folders: list[FolderCount] = field(default_factory=list)
 
 
 def _main_name(plan: dict[str, str], photo: Photo) -> str:
@@ -221,16 +303,39 @@ def _preview_photo(
     preview.files += len(sources)
 
 
-def preview_move(photos: Iterable[Photo], target: str) -> MovePreview:
-    """What ``move_photos(photos, target, ...)`` would do, changing nothing.
-
-    Names are checked in the order the photos move, so two photos of the
-    selection with one name clash with each other too.
-    """
-    preview = MovePreview()
-    reserved: set[str] = set()
+def _preview_folder(
+    preview: MovePreview, target: str, photos: list[Photo], reserved: set[str]
+) -> FolderCount:
+    """Count the photos going to ``target`` into ``preview``; what that folder gets."""
+    new = not os.path.isdir(target)
+    moving, unchanged, clashes = preview.photos, preview.unchanged, len(preview.clashes)
     for photo in photos:
         _preview_photo(preview, photo, target, reserved)
+    return FolderCount(
+        path=target,
+        photos=preview.photos - moving,
+        unchanged=preview.unchanged - unchanged,
+        clashes=len(preview.clashes) - clashes,
+        new=new,
+    )
+
+
+def preview_move(plan: MovePlan, dated: bool = False) -> MovePreview:
+    """What ``move_photos(plan, ...)`` would do, changing nothing.
+
+    Names are checked in the order the photos move, so two photos of the
+    selection with one name clash with each other too. ``dated``: say what
+    each target folder gets (``folders``).
+    """
+    preview = MovePreview(
+        undated=plan.undated,
+        undated_hashes=[photo.image_hash for photo in plan.undated_photos],
+    )
+    reserved: set[str] = set()
+    for target, photos in plan.targets.items():
+        folder = _preview_folder(preview, target, photos, reserved)
+        if dated:
+            preview.folders.append(folder)
     return preview
 
 
@@ -243,6 +348,8 @@ class MoveResult:
     unchanged: int = 0
     refused: int = 0
     failed: int = 0
+    #: Left out by a folder pattern: no capture date (#2774).
+    undated: int = 0
 
     def as_dict(self) -> dict[str, int]:
         return {
@@ -251,6 +358,7 @@ class MoveResult:
             "unchanged": self.unchanged,
             "refused": self.refused,
             "failed": self.failed,
+            "undated": self.undated,
         }
 
 
@@ -275,24 +383,26 @@ def _move_one(
 
 
 def move_photos(
-    photos: Iterable[Photo],
-    target: str,
+    plan: MovePlan,
     on_conflict: OnConflict,
     progress: Callable[[int], None] | None = None,
 ) -> MoveResult:
-    """Move each of ``photos`` into ``target`` (made if missing), one after the other.
+    """Move each photo of ``plan`` into its target (made if missing), one after the other.
 
-    ``target`` comes from ``resolve_target``. A photo that cannot move is
+    The targets come from ``plan_move``. A photo that cannot move is
     counted, not raised: one locked file does not stop the rest.
     ``progress`` gets the number of photos handled after each; an exception
     it raises (a job's cancel) stops the loop.
     """
-    os.makedirs(target, exist_ok=True)
-    result = MoveResult()
-    for done, photo in enumerate(photos, start=1):
-        _move_one(result, photo, target, on_conflict)
-        if progress is not None:
-            progress(done)
+    result = MoveResult(undated=plan.undated)
+    done = 0
+    for target, photos in plan.targets.items():
+        os.makedirs(target, exist_ok=True)
+        for photo in photos:
+            _move_one(result, photo, target, on_conflict)
+            done += 1
+            if progress is not None:
+                progress(done)
     return result
 
 
@@ -306,36 +416,58 @@ def photos_to_move(user: User, photo_ids: Sequence[uuid.UUID]) -> list[Photo]:
     )
 
 
+@dataclass(frozen=True)
+class Destination:
+    """Where the "Move Photos" job moves to: a folder, or with
+    ``folder_pattern`` the folders of the photos' dates inside it (#2774)."""
+
+    folder: str
+    folder_pattern: str | None = None
+
+
+def _job_plan(
+    user: User, photo_ids: list[uuid.UUID], destination: Destination
+) -> MovePlan:
+    """``plan_move`` for the job, every input checked again."""
+    pattern = destination.folder_pattern
+    if pattern:
+        check_folder_pattern(pattern)
+    base = resolve_target(user, destination.folder)
+    return plan_move(user, base, photos_to_move(user, photo_ids), pattern)
+
+
 def move_photos_job(
     user: User,
     photo_ids: list[uuid.UUID],
-    target: str,
+    destination: Destination | str,
     on_conflict: OnConflict,
     job_id: uuid.UUID | str | None = None,
 ) -> None:
     """The "Move Photos" job: ``move_photos`` with progress and cancel.
 
-    The target is checked again: the library folders may have changed
-    since the request. A cancel stops after the photo the job is on; the
-    photos moved until then stay moved.
+    ``destination`` is a plain folder in jobs queued before #2774. The
+    targets are checked again: the library folders may have changed since
+    the request. A cancel stops after the photo the job is on; the photos
+    moved until then stay moved.
     """
     job = LongRunningJob.claim(user, LongRunningJob.JOB_MOVE_PHOTOS, job_id)
     if job is None:
         return
+    if isinstance(destination, str):
+        destination = Destination(destination)
     try:
-        target = resolve_target(user, target)
-    except InvalidTargetError as error:
+        plan = _job_plan(user, photo_ids, destination)
+    except (InvalidTargetError, InvalidPatternError) as error:
         job.fail(error=str(error))
         return
-    photos = photos_to_move(user, photo_ids)
-    job.update_progress(0, len(photos))
+    job.update_progress(0, plan.photo_count)
 
     def report(done: int) -> None:
         job.update_progress(done)
         job.stop_if_cancelled()
 
     try:
-        result = move_photos(photos, target, on_conflict, progress=report)
+        result = move_photos(plan, on_conflict, progress=report)
     except JobCancelledError:
         logger.info("job %s was cancelled", job.job_id)
         return

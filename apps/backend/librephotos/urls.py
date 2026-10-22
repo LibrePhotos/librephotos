@@ -72,6 +72,7 @@ from api.views import (
     photo_locations,
     photo_metadata,
     photo_moves,
+    photo_renames,
     photos,
     public_albums,
     public_photos,
@@ -376,7 +377,7 @@ urlpatterns = [
         name="media",
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
-    # "public", "date-summary", "reapply-date-rules", "rescan", "move" and the two location routes below them.
+    # "public", "date-summary", "reapply-date-rules", "rescan", "move", "rename" and the two location routes below them.
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
@@ -416,6 +417,16 @@ urlpatterns = [
         "api/photos/move/folders/",
         photo_moves.MoveFoldersView.as_view(),
         name="photos_move_folders",
+    ),
+    path(
+        "api/photos/rename/",
+        photo_renames.RenamePhotosView.as_view(),
+        name="photos_rename",
+    ),
+    path(
+        "api/photos/rename/preview/",
+        photo_renames.RenamePhotosPreviewView.as_view(),
+        name="photos_rename_preview",
     ),
     path(
         "api/photos/reapply-date-rules/",

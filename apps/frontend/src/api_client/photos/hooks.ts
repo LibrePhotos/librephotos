@@ -28,6 +28,8 @@ export * from "./hooks/useLocationSummaryQuery";
 export * from "./hooks/useLocatedNearbyQuery";
 export * from "./hooks/useMovePreviewQuery";
 export * from "./hooks/useMovePhotosMutation";
+export * from "./hooks/useRenamePreviewQuery";
+export * from "./hooks/useRenamePhotosMutation";
 export * from "./hooks/useUpdatePhotoMutation";
 export * from "./hooks/useUpdatePhotoSharingMutation";
 export * from "./hooks/useSavePhotoCaptionMutation";

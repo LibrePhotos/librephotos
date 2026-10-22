@@ -12,11 +12,13 @@ import { useMovePreviewQuery } from "../../api_client/photos/hooks/useMovePrevie
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import { childPath, folderName } from "../../util/folderPaths";
 import { DisabledReason } from "../common/DisabledReason";
+import { DatedFoldersFields } from "./DatedFoldersFields";
 import { MoveConflictModal } from "./MoveConflictModal";
 import { MoveFolderTree, type NewFolder } from "./MoveFolderTree";
 import classes from "./MovePhotosModal.module.css";
 import { makeMovePhotosSchema, type MovePhotosValues } from "./MovePhotosModal.schema";
 import { MovePreviewSummary } from "./MovePreviewSummary";
+import { DEFAULT_FOLDER_PATTERN } from "./namePatterns";
 import { NewFolderForm } from "./NewFolderForm";
 
 type Props = Readonly<{
@@ -50,15 +52,18 @@ const serverMessage = (error: unknown): string | null => (error instanceof ApiEr
 
 function MovePhotosBody({ selection, onClose, onDone, currentFolder }: BodyProps) {
   const { t } = useTranslation();
-  const initialValues: MovePhotosValues = { target: "" };
+  const initialValues: MovePhotosValues = { target: "", byDate: false, folderPattern: DEFAULT_FOLDER_PATTERN };
   const form = useForm({
     initialValues,
     validate: schemaResolver(makeMovePhotosSchema(t), { sync: true }),
   });
-  const target = form.getValues().target.trim();
+  const values = form.getValues();
+  const target = values.target.trim();
+  // Sort by date (#2774): the folder pattern, "" for a move into the destination itself.
+  const folderPattern = values.byDate ? values.folderPattern : "";
   const valid = form.isValid();
   const [settled] = useDebouncedValue(target, PREVIEW_DELAY_MS);
-  const preview = useMovePreviewQuery(selection, valid && settled === target ? target : null);
+  const preview = useMovePreviewQuery(selection, valid && settled === target ? target : null, folderPattern);
   const move = useMovePhotosMutation();
   const [conflictOpened, conflict] = useDisclosure(false);
   const [naming, newFolder] = useDisclosure(false);
@@ -66,7 +71,7 @@ function MovePhotosBody({ selection, onClose, onDone, currentFolder }: BodyProps
 
   const run = (onConflict?: MoveOnConflict) =>
     move.mutate(
-      { selection, targetFolder: target, onConflict },
+      { selection, targetFolder: target, folderPattern, onConflict },
       {
         onSuccess: () => {
           conflict.close();
@@ -124,7 +129,17 @@ function MovePhotosBody({ selection, onClose, onDone, currentFolder }: BodyProps
           </DisabledReason>
         </Group>
       )}
-      <MovePreviewSummary preview={pending ? undefined : preview.data} loading={pending} error={error} />
+      <DatedFoldersFields
+        form={form}
+        target={valid ? target : null}
+        firstFolder={preview.data?.folders?.[0]?.path ?? null}
+      />
+      <MovePreviewSummary
+        preview={pending ? undefined : preview.data}
+        loading={pending}
+        error={error}
+        onDated={() => void preview.refetch()}
+      />
       <Group justify="flex-end" gap="xs">
         <Button variant="default" onClick={onClose}>
           {t("cancel")}

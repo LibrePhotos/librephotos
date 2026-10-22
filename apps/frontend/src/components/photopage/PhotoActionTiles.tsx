@@ -8,6 +8,7 @@ import {
   IconArrowsMaximize,
   IconBookmarkPlus,
   IconCopy,
+  IconCursorText,
   IconDotsVertical,
   IconDownload,
   IconEye,
@@ -30,6 +31,7 @@ import type { PhotoActions } from "../lightbox/usePhotoActions";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { MovePhotosModal } from "../movephotos/MovePhotosModal";
+import { RenamePhotosModal } from "../movephotos/RenamePhotosModal";
 import { FileActionItems } from "../photolist/FileActionItems";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import classes from "./PhotoActionTiles.module.css";
@@ -146,6 +148,7 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
   const { t } = useTranslation();
   const [albumOpened, { open: openAlbum, close: closeAlbum }] = useDisclosure(false);
   const [moveOpened, { open: openMove, close: closeMove }] = useDisclosure(false);
+  const [renameOpened, { open: openRename, close: closeRename }] = useDisclosure(false);
   const mainPath = photo.file_variants?.find(variant => variant.is_main)?.path ?? photo.image_path[0];
   const albumItem = { id: photo.id, image_hash: photo.image_hash, type: photo.video ? Media.VIDEO : Media.IMAGE };
 
@@ -204,6 +207,9 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
           <Menu.Item leftSection={<IconFolderSymlink size={ICON_SIZE.menu} />} onClick={openMove}>
             {t("selectionactions.movetofolder")}
           </Menu.Item>
+          <Menu.Item leftSection={<IconCursorText size={ICON_SIZE.menu} />} onClick={openRename}>
+            {t("selectionactions.renamefiles")}
+          </Menu.Item>
           <Menu.Item leftSection={<IconArrowsMaximize size={ICON_SIZE.menu} />} onClick={onOpenViewer}>
             {t("photopage.openinviewer")}
           </Menu.Item>
@@ -230,6 +236,9 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
           selection={{ image_hashes: [photo.image_hash] }}
           currentFolder={mainPath === undefined ? undefined : parentFolder(mainPath)}
         />
+      )}
+      {renameOpened && (
+        <RenamePhotosModal opened onClose={closeRename} selection={{ image_hashes: [photo.image_hash] }} />
       )}
     </div>
   );

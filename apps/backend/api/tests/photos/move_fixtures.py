@@ -1,6 +1,7 @@
 """A library on disk for the move tests (#352): a user whose scan directory
 is a temporary folder, and photos with real files in it."""
 
+import datetime
 import os
 import shutil
 import tempfile
@@ -51,9 +52,17 @@ class LibraryTestCase(TestCase):
         name: str = "IMG_1.jpg",
         folder: str | None = None,
         variants: tuple[File, ...] = (),
+        taken: datetime.datetime | None = None,
     ) -> Photo:
-        """A photo whose main file ``name`` is in ``folder`` (default ``a``)."""
+        """A photo whose main file ``name`` is in ``folder`` (default ``a``),
+        taken at ``taken`` (the wall clock, as ``Photo.exif_timestamp``)."""
         main = self.file(folder or self.source, name)
-        photo = create_test_photo(owner=self.user, main_file=main)
+        photo = create_test_photo(
+            owner=self.user,
+            main_file=main,
+            exif_timestamp=None
+            if taken is None
+            else taken.replace(tzinfo=datetime.UTC),
+        )
         photo.files.add(main, *variants)
         return photo

@@ -1,6 +1,6 @@
 """The files behind a photo: detaching the missing ones, removing a photo
-together with the files only it uses, and moving a photo's files to another
-folder.
+together with the files only it uses, moving a photo's files to another
+folder and renaming them.
 
 Moved out of ``Photo``; every function takes the photo as its first argument.
 """
@@ -415,6 +415,13 @@ def move_photo_files(
     plan = _plan_move(photo, sources, target_dir, on_conflict)
     if plan is None:
         return MoveOutcome.SKIPPED
+    _carry_out(photo, sources, plan)
+    logger.info("moved photo %s (%s files)", photo.image_hash, len(plan))
+    return MoveOutcome.MOVED
+
+
+def _carry_out(photo: Photo, sources: list[str], plan: Mapping[str, str]) -> None:
+    """Move the files of ``plan`` and record their new paths, all or nothing."""
     indexed = set(indexed_mtimes.as_indexed(sources))
     moved = _move_on_disk(plan)
     try:
@@ -424,5 +431,100 @@ def move_photo_files(
         logger.exception("photo %s: could not record its new paths", photo.image_hash)
         _move_back(moved)
         raise MoveError("the new paths could not be recorded") from error
-    logger.info("moved photo %s (%s files)", photo.image_hash, len(moved))
+
+
+# ---------------------------------------------------------------- renaming
+
+
+def _restemmed(name: str, stem: str, new_stem: str) -> str:
+    """``name`` of a file of the photo whose main file's stem is ``stem``, on ``new_stem``.
+
+    Everything after the old stem stays: ``IMG_1.CR2`` and ``IMG_1.jpg.xmp``
+    become ``<new>.CR2`` and ``<new>.jpg.xmp``, so the scan still groups them.
+    A file named otherwise keeps its extension.
+    """
+    if name.lower().startswith(stem.lower()):
+        return new_stem + name[len(stem) :]
+    return new_stem + os.path.splitext(name)[1]
+
+
+def rename_destinations(
+    photo: Photo, sources: Collection[str], new_stem: str
+) -> dict[str, str]:
+    """Where each of ``sources`` goes when the photo is renamed to ``new_stem``."""
+    assert photo.main_file is not None
+    stem = os.path.splitext(os.path.basename(photo.main_file.path))[0]
+    return {
+        source: os.path.join(
+            os.path.dirname(source),
+            _restemmed(os.path.basename(source), stem, new_stem),
+        )
+        for source in sources
+    }
+
+
+def _is_identity(plan: Mapping[str, str]) -> bool:
+    return all(path_key(source) == path_key(dest) for source, dest in plan.items())
+
+
+def _rename_candidate(
+    photo: Photo, sources: Collection[str], new_stem: str, attempt: int
+) -> dict[str, str]:
+    suffix = f" ({attempt})" if attempt else ""
+    return rename_destinations(photo, sources, new_stem + suffix)
+
+
+def _plan_is_free(plan: Mapping[str, str], reserved: Collection[str]) -> bool:
+    keys = [path_key(dest) for dest in plan.values()]
+    if len(set(keys)) < len(keys):
+        # Two files of the photo would get one name.
+        return False
+    return not any(
+        key in reserved or is_taken(dest)
+        for key, dest in zip(keys, plan.values(), strict=True)
+    )
+
+
+def plan_rename(
+    photo: Photo,
+    sources: Collection[str],
+    new_stem: str,
+    reserved: Collection[str] = (),
+) -> tuple[dict[str, str], int] | None:
+    """Where ``sources`` go to give the photo the name ``new_stem``.
+
+    A name that is taken gets the first free `` (1)``, `` (2)``, ...; the
+    second number says which (0: the name as asked). None when the photo
+    already has that name, or one of its `` (n)`` forms: renaming it again
+    must not move it along. ``reserved`` holds the ``path_key`` of the
+    names other photos of the same rename take. ``MoveError`` when no free
+    name is found.
+    """
+    for attempt in range(MAX_RENAME_ATTEMPTS + 1):
+        plan = _rename_candidate(photo, sources, new_stem, attempt)
+        if _is_identity(plan):
+            return None
+        if _plan_is_free(plan, reserved):
+            return plan, attempt
+    raise MoveError(f"no free name for photo {photo.image_hash}")
+
+
+def rename_photo_files(photo: Photo, new_stem: str) -> MoveOutcome:
+    """Give every file of ``photo`` (``files_to_move``) the name ``new_stem``.
+
+    The files stay in their folder and keep what follows the old stem
+    (``rename_destinations``). A taken name gets `` (1)``, `` (2)``, ...
+    (``plan_rename``); nothing is overwritten. All or nothing, with the rows
+    following, as ``move_photo_files``. ``UNCHANGED`` when the photo has the
+    name already.
+    """
+    sources = files_to_move(photo)
+    if not sources:
+        raise MoveError(f"the files of photo {photo.image_hash} are not on disk")
+    planned = plan_rename(photo, sources, new_stem)
+    if planned is None:
+        return MoveOutcome.UNCHANGED
+    plan, _ = planned
+    _carry_out(photo, sources, plan)
+    logger.info("renamed photo %s (%s files)", photo.image_hash, len(plan))
     return MoveOutcome.MOVED

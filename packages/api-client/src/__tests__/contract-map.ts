@@ -142,6 +142,12 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   MovePhotosStartedResponse: { schema: S.MovePhotosStartedResponse, components: ["MovePhotosStartedResponse"] },
   LibraryFolder: { schema: S.LibraryFolder, components: ["LibraryFolder"] },
   LibraryFolderListing: { schema: S.LibraryFolderListing, components: ["LibraryFolderListing"] },
+  MoveFolderCount: { schema: S.MoveFolderCount, components: ["MoveFolderCount"] },
+  // renaming photos after their date (#2773)
+  RenameRow: { schema: S.RenameRow, components: ["RenameRow"] },
+  RenamePreviewResponse: { schema: S.RenamePreviewResponse, components: ["RenamePreviewResponse"] },
+  RenamePhotosResponse: { schema: S.RenamePhotosResponse, components: ["RenamePhotosResponse"] },
+  RenamePhotosStartedResponse: { schema: S.RenamePhotosStartedResponse, components: ["RenamePhotosStartedResponse"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },

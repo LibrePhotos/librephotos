@@ -17,6 +17,12 @@ vi.mock("../movephotos/MovePhotosModal", () => ({
     return null;
   },
 }));
+vi.mock("../movephotos/RenamePhotosModal", () => ({
+  RenamePhotosModal: () => {
+    stubs.mounted.push("rename");
+    return null;
+  },
+}));
 vi.mock("../map/BulkLocationModal", () => ({
   BulkLocationModal: () => {
     stubs.mounted.push("location");
@@ -53,20 +59,20 @@ async function render(dialogs: SelectionEditDialogState, pathname: string) {
 
 describe("SelectionEditDialogs", () => {
   it("mounts nothing while every dialog is closed", async () => {
-    await render({ dateTime: closed, location: closed, move: closed }, "/");
+    await render({ dateTime: closed, location: closed, move: closed, rename: closed }, "/");
     expect([stubs.mounted, stubs.move]).toEqual([[], []]);
   });
 
   it("marks the folder of a folder page in the move dialog", async () => {
     const open = { ...closed, opened: true };
     await render(
-      { dateTime: open, location: open, move: open },
+      { dateTime: open, location: open, move: open, rename: open },
       `/album/folder/${encodeURIComponent("/p/2025 Porto")}`
     );
-    expect(stubs.mounted).toEqual(["datetime", "location"]);
+    expect(stubs.mounted).toEqual(["datetime", "location", "rename"]);
     expect(stubs.move.at(-1)).toMatchObject({ currentFolder: "/p/2025 Porto", selection: { image_hashes: ["h1"] } });
 
-    await render({ dateTime: closed, location: closed, move: open }, "/");
+    await render({ dateTime: closed, location: closed, move: open, rename: closed }, "/");
     expect(stubs.move.at(-1)?.currentFolder).toBeUndefined();
   });
 });

@@ -225,6 +225,7 @@ export function SelectionActions(props: Readonly<Props>) {
             onSetLocation={editDialogs.location.open}
             onChangeDateTime={editDialogs.dateTime.open}
             onMoveToFolder={editDialogs.move.open}
+            onRenameFiles={editDialogs.rename.open}
           />
 
           <Menu.Divider />

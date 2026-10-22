@@ -3,6 +3,7 @@ import {
   IconCalendarTime as CalendarTime,
   IconFolderSymlink as FolderMove,
   IconMapPin as MapPin,
+  IconCursorText as Rename,
 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,13 +16,20 @@ type Props = Readonly<{
   onSetLocation: () => void;
   onChangeDateTime: () => void;
   onMoveToFolder: () => void;
+  onRenameFiles: () => void;
 }>;
 
 /**
- * The photo actions that open a dialog to edit the selection: its location (#2279), its date (#2278)
- * and its folder (#352).
+ * The photo actions that open a dialog to edit the selection: its location (#2279), its date (#2278),
+ * its folder (#352) and its file names (#2773).
  */
-export function SelectionEditItems({ disabledReason, onSetLocation, onChangeDateTime, onMoveToFolder }: Props) {
+export function SelectionEditItems({
+  disabledReason,
+  onSetLocation,
+  onChangeDateTime,
+  onMoveToFolder,
+  onRenameFiles,
+}: Props) {
   const { t } = useTranslation();
   return (
     <>
@@ -38,6 +46,11 @@ export function SelectionEditItems({ disabledReason, onSetLocation, onChangeDate
       <DisabledReason reason={disabledReason} position="left">
         <Menu.Item leftSection={<FolderMove size={ICON_SIZE.menu} />} onClick={onMoveToFolder}>
           {t("selectionactions.movetofolder")}
+        </Menu.Item>
+      </DisabledReason>
+      <DisabledReason reason={disabledReason} position="left">
+        <Menu.Item leftSection={<Rename size={ICON_SIZE.menu} />} onClick={onRenameFiles}>
+          {t("selectionactions.renamefiles")}
         </Menu.Item>
       </DisabledReason>
     </>

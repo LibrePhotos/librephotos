@@ -105,6 +105,40 @@ A file in the folder is never overwritten.
 
 Albums, faces, tags, ratings and sharing stay with the photo, and the folder views show it in its new folder right away. The next scan does not read a moved photo again. A selection of more than 100 photos moves in the background as a **Move Photos** job (see [Job System](./job-system.md)); a move cannot start while a scan of your library runs.
 
+### Sorting into folders by date
+
+<Since version="1.5.0" />
+
+Turn on **Sort into folders by date** in the same dialog to give each photo a folder of its own capture date inside the destination, for example `/photos/sorted/2025/06` and `/photos/sorted/2025/07`. Choose the folders with `{year}`, `{year}/{month}` or `{year}/{month}/{day}`. Missing folders are made when the photos move.
+
+The dialog lists the folders the photos go to, how many photos each one gets and where a name is taken, and shows an example path with the date folders in colour. Photos without a capture date stay where they are; **Change date and time…** next to their count gives them a date without leaving the dialog. Everything else works as for one folder: taken names, the photos that stay, and the job for more than 100 photos. A date folder that the scan would skip is refused.
+
+## Renaming photos by their date
+
+<Since version="1.5.0" />
+
+You can give your own photos file names made from their capture date, such as `20250601_233000.jpg` instead of `IMG_4711.jpg`, so they are easy to find and share outside LibrePhotos. Select the photos and choose **Rename files…** in the photo actions menu (⋮), or open a photo and choose **More → Rename files…**.
+
+Pick a preset (**Date and time**, **Date, time and old name**, **Date and old name**) or write your own name with these tokens; the buttons under the field put one where the cursor is:
+
+| Token | Becomes |
+| --- | --- |
+| `{year}` `{month}` `{day}` | the capture date, such as `2025` `06` `01` |
+| `{hour}` `{minute}` `{second}` | the capture time where the photo was taken, such as `23` `30` `00` |
+| `{name}` | the current file name without its extension, such as `IMG_4711` |
+
+The extension stays. A name cannot contain `\ / : * ? " < > |` or start with a dot, so a renamed file stays in its folder on every system.
+
+Before you rename, the dialog lists the first photos with a thumbnail, their name now and the name they get, and counts the rest:
+
+- photos that already have the name keep it;
+- photos without a capture date are skipped (**Change date and time…** gives them one);
+- the same photos as for a move keep their names: local copies of Nextcloud files, photos that share a file with another photo, photos whose files are missing on disk.
+
+A photo is renamed with all its files, as for a move: its RAW or JPEG variant, a Live Photo's video and its XMP sidecars (`IMG_1.CR2` becomes `20250601_233000.CR2`, `IMG_1.jpg.xmp` becomes `20250601_233000.jpg.xmp`), so the scan still sees one photo. When a name is taken, for example by two photos of the same second, the photo gets the next free one: `20250601_233000 (1).jpg`. Nothing is ever overwritten, and a photo that cannot be renamed keeps every file under its old name. Albums, faces, tags, ratings and sharing stay with the photo.
+
+A selection of more than 100 photos is renamed in the background as a **Rename Photos** job; a rename cannot start while a scan of your library runs.
+
 ## Nextcloud Integration
 
 If you have a Nextcloud instance, you can scan photos directly from it without manually transferring files.

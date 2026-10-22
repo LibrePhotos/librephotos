@@ -13,7 +13,7 @@ import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { MovePhotosModal } from "./MovePhotosModal";
 
-type Request = { selection: PhotoSelection; targetFolder: string; onConflict?: MoveOnConflict };
+type Request = { selection: PhotoSelection; targetFolder: string; folderPattern?: string; onConflict?: MoveOnConflict };
 type Callbacks = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
 const CONFLICT = new Error("name_conflict");
@@ -35,8 +35,9 @@ vi.mock("../../api_client/folders/hooks", () => ({
   }),
 }));
 vi.mock("../../api_client/photos/hooks/useMovePreviewQuery", () => ({
-  useMovePreviewQuery: (_selection: PhotoSelection, target: string | null) => ({
-    data: target === null ? undefined : stubs.previews.get(target),
+  // A sort by date is keyed "<folder>#<pattern>".
+  useMovePreviewQuery: (_selection: PhotoSelection, target: string | null, pattern = "") => ({
+    data: target === null ? undefined : stubs.previews.get(pattern ? `${target}#${pattern}` : target),
     isError: false,
     isFetching: false,
     error: null,
@@ -46,6 +47,13 @@ vi.mock("../../api_client/photos/hooks/useMovePreviewQuery", () => ({
 vi.mock("../../api_client/photos/hooks/useMovePhotosMutation", () => ({
   useMovePhotosMutation: () => ({ mutate: stubs.mutate, isPending: false }),
   isNameConflict: (error: unknown) => error === CONFLICT,
+}));
+vi.mock("../photolist/ChangeDateTimeModal", () => ({
+  ChangeDateTimeModal: (props: { selection: PhotoSelection; onSaved: () => void }) => (
+    <button type="button" onClick={props.onSaved}>
+      {`set date of ${JSON.stringify(props.selection)}`}
+    </button>
+  ),
 }));
 // The preview is asked for at once instead of after the typing pause.
 vi.mock("@mantine/hooks", async importOriginal => ({
@@ -181,6 +189,7 @@ describe("MovePhotosModal", () => {
     expect(defined(stubs.mutate.mock.calls[0])[0]).toEqual({
       selection: SELECTION,
       targetFolder: "/photos/2025",
+      folderPattern: "",
       onConflict: undefined,
     });
     expect(onClose).toHaveBeenCalled();
@@ -257,5 +266,50 @@ describe("MovePhotosModal", () => {
     await typeInto(defined(document.querySelector<HTMLInputElement>('input[aria-label="New folder name"]')), ".hidden");
 
     expect(document.body.textContent).toContain("A folder name has no / or \\ and does not start with a dot.");
+  });
+
+  it("sorts into folders by date, with each folder's count and the undated photos", async () => {
+    stubs.previews.set(
+      "/photos/2025#{year}/{month}",
+      preview({
+        photos: 3,
+        files: 4,
+        undated: 1,
+        undated_hashes: ["h2"],
+        folders: [
+          { path: "/photos/2025/2025/06", photos: 2, unchanged: 0, clashes: 1, new: false },
+          { path: "/photos/2025/2025/07", photos: 1, unchanged: 0, clashes: 0, new: true },
+        ],
+      })
+    );
+    await open();
+    await click(buttonWithText("2025"));
+    const sortByDate = defined(document.querySelector<HTMLInputElement>('input[type="checkbox"]'));
+    expect(sortByDate.closest("label, .mantine-Switch-root")?.textContent).toContain("Sort into folders by date");
+    await click(sortByDate);
+
+    const folders = defined(document.querySelector('[aria-label="Folders the photos go to"]'));
+    expect(folders.textContent).toContain("2025/062 photos · 1 name taken");
+    expect(folders.textContent).toContain("2025/07New1 photo");
+    expect(document.body.textContent).toContain("Example: /photos/2025/2025/06");
+    expect(document.body.textContent).toContain("1 photo has no date and stays where it is.");
+
+    await click(buttonWithText("Change date and time…"));
+    await click(buttonWithText('set date of {"image_hashes":["h2"]}'));
+    expect(stubs.refetch).toHaveBeenCalled();
+
+    await click(buttonWithText("Move 3 photos"));
+    expect(defined(stubs.mutate.mock.calls[0])[0]).toMatchObject({ folderPattern: "{year}/{month}" });
+  });
+
+  it("shows the folder pattern itself before the preview has a folder", async () => {
+    stubs.previews.set("/photos/2025#{year}", preview({ folders: [] }));
+    await open();
+    await click(buttonWithText("2025"));
+    const sortByDate = defined(document.querySelector<HTMLInputElement>('input[type="checkbox"]'));
+    await click(sortByDate);
+    await click(defined(Array.from(document.querySelectorAll("label")).find(l => l.textContent === "{year}")));
+
+    expect(document.body.textContent).toContain("Example: /photos/2025/{year}");
   });
 });
