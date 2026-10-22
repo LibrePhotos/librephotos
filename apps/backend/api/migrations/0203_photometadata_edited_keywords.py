@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0200_user_share_people_names"),
+        ("api", "0202_rename_photos_job_type"),
     ]
 
     operations = [
