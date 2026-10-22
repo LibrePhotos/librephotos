@@ -2,7 +2,7 @@
 
 from django.test import TestCase
 
-from api.admin import deduplicate_faces_function
+from api.faces.deduplicate import deduplicate_faces_of_photos
 from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from api.faces.photo_faces import overlaps_existing_face
 from api.tests.utils import (
@@ -110,7 +110,7 @@ class OverlapsExistingFaceTest(TestCase):
 
 
 class DeduplicateFacesFunctionTest(TestCase):
-    """Tests for the admin deduplicate_faces_function."""
+    """Tests for deduplicate_faces_of_photos (admin action, command, job)."""
 
     def setUp(self):
         self.user = create_test_user()
@@ -132,7 +132,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=600,
             location_left=500,
         )
-        deduplicate_faces_function([self.photo.id])
+        deduplicate_faces_of_photos([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 2)
 
     def test_duplicate_faces_removed(self):
@@ -151,7 +151,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=320,
             location_left=120,
         )
-        deduplicate_faces_function([self.photo.id])
+        deduplicate_faces_of_photos([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 1)
 
     def test_keeps_face_with_person_label(self):
@@ -175,7 +175,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_left=120,
             person=person,
         )
-        deduplicate_faces_function([self.photo.id])
+        deduplicate_faces_of_photos([self.photo.id])
         remaining = list(self.photo.faces.all())
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0].id, labeled.id)
@@ -205,5 +205,5 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=800,
             location_left=600,
         )
-        deduplicate_faces_function([self.photo.id])
+        deduplicate_faces_of_photos([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 2)

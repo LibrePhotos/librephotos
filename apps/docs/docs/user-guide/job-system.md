@@ -130,6 +130,17 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 <Since version="1.4.0" /> Started with **Move to folder…** for a selection of more than 100 photos. Moves your photos, with all their files, to another folder of your library, one photo after the other; a photo whose name is taken there is renamed or skipped as you chose. A cancel stops after the photo it is on, and the photos moved until then stay moved. It ends with how many photos moved and how many stayed where they were. See [Moving photos to another folder](./library.md#moving-photos-to-another-folder).
 
+### Remove duplicate faces
+
+<Since version="1.5.0" /> Deletes the faces that were saved twice on the same photo, across every user's library: where two faces of a photo overlap, the one with a name stays (the older one, when both or neither have a name). An admin starts it with **Remove duplicate faces** under **Admin Area > Admin Tools**, after a confirmation; the deleted duplicates do not go to the Deleted tab and cannot be restored. It ends with how many photos it checked and how many faces it deleted. The same work runs from the command line, for every user or one:
+
+```bash
+docker compose exec backend python manage.py deduplicate_faces
+docker compose exec backend python manage.py deduplicate_faces --user anna --chunk-size 200
+```
+
+`--chunk-size` (default 500) is how many photos are compared at a time. Up to 1.4.0, only the **Deduplicate faces** action on selected photos in the Django admin did this.
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.

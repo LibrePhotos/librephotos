@@ -105,6 +105,8 @@ Sometimes the face recognition might find a face that is not actually a face. To
 
 If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. <Since version="1.4.0" /> Up to 1.3.0, deleting a face left its region and name in the file.
 
+A face that was saved twice on the same photo (two overlapping boxes, for example from an old scan and from face regions read from the file) can be cleaned up for the whole instance by an admin with [Remove duplicate faces](./job-system.md#remove-duplicate-faces).
+
 ## Undo a face action
 
 <Since version="1.4.0" />

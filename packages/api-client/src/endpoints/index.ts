@@ -1002,6 +1002,11 @@ export async function lookUpPlaces(client: ApiClient): Promise<S.JobStartedRespo
   return triggerJob(client, "/look-up-places/", S.JobStartedResponse, "look up place names");
 }
 
+/** Delete the duplicate faces of every user's photos, as a job (admins only, #2030). */
+export async function deduplicateFaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/deduplicate-faces/", S.JobStartedResponse, "deduplicate faces");
+}
+
 /**
  * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
  * Returns the queued (or already running) job.
