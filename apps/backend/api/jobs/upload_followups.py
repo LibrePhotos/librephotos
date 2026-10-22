@@ -35,6 +35,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Literal, TypedDict
 
 from constance import config as site_config
 from django.db.models import Q
@@ -47,7 +48,7 @@ from api.directory_watcher.processing_jobs import (
 )
 from api.faces.classify import cluster_all_faces
 from api.faces.clustering_gate import clustering_allowed_at, enough_new_faces
-from api.jobs.queue import enqueue_followup, schedule_once_by
+from api.jobs.queue import enqueue_followup, next_scheduled_run, schedule_once_by
 from api.models import LongRunningJob, Photo, UploadFollowupState, User
 from api.models.upload_followup_state import UploadFollowupStateQuerySet
 from api.runtime.features import feature_enabled
@@ -70,6 +71,12 @@ LEASE = timedelta(minutes=15)
 OCR_RETRY = timedelta(minutes=10)
 # The backfill spreads its requests this far apart, one user after another.
 BACKFILL_SPACING = timedelta(minutes=1)
+# A scheduled run due within this is the follow-up of uploads just made
+# (``followup_status``). A later one waits for a quiet period
+# (``cluster_new_faces``), and one overdue by more than ``OVERDUE`` has no
+# scheduler picking it up: neither is "pending" work a client should wait for.
+PENDING_WITHIN = DEBOUNCE + timedelta(minutes=1)
+OVERDUE = timedelta(minutes=5)
 
 RUN_FUNC = "api.jobs.upload_followups.run_upload_followups"
 
@@ -80,9 +87,39 @@ def _states(user: User) -> UploadFollowupStateQuerySet:
     return UploadFollowupState.objects.owned_by(user)
 
 
+def _schedule_name(user: User) -> str:
+    return f"upload-followups-{user.id}"
+
+
 def schedule_upload_followups(user: User, at: datetime) -> None:
     """Make the user's follow-up run start at ``at`` or sooner."""
-    schedule_once_by(f"upload-followups-{user.id}", RUN_FUNC, user.id, at=at)
+    schedule_once_by(_schedule_name(user), RUN_FUNC, user.id, at=at)
+
+
+class FollowupStatus(TypedDict):
+    """Where the user's follow-ups stand, for the upload UI (#2739)."""
+
+    state: Literal["idle", "pending", "running"]
+    next_run_at: datetime | None
+
+
+def followup_status(user: User) -> FollowupStatus:
+    """``running`` while a run holds the lease, ``pending`` while one is due soon.
+
+    The lease and the schedule are the two signals #2790 named; a run's steps
+    also write job rows of their own (Calculate Clip Embeddings, Generate Face
+    Embeddings), which carry their progress.
+    """
+    now = timezone.now()
+    next_run = next_scheduled_run(_schedule_name(user), RUN_FUNC)
+    # Read only: a user who never uploaded has no row, and a status read
+    # does not make one.
+    states = UploadFollowupState.objects.owned_by(user)
+    if states.filter(lease_expires_at__gt=now).exists():
+        return {"state": "running", "next_run_at": next_run}
+    if next_run is not None and now - OVERDUE <= next_run <= now + PENDING_WITHIN:
+        return {"state": "pending", "next_run_at": next_run}
+    return {"state": "idle", "next_run_at": next_run}
 
 
 def request_upload_followups(user: User, delay: timedelta = DEBOUNCE) -> None:

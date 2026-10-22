@@ -22,6 +22,8 @@ vi.mock("./useCanUpload", () => ({ useCanUpload: () => stubs.availability }));
 vi.mock("./useUploadQueue", () => ({
   useUploadQueue: () => ({ items: [], isUploading: false, start: stubs.start }),
 }));
+// The server side polls the API; these tests are about the queue's provider.
+vi.mock("./useUploadProcessing", () => ({ useUploadProcessing: () => null }));
 
 const porto: UploadableAlbum = { id: 12, title: "Porto 2025", locked: false };
 

@@ -108,6 +108,23 @@ Answers `{"sealed_job_ids": ["<uuid>"]}`, the jobs this call sealed. A job that 
 
 A client does not have to call it: a job that takes no file for 3 minutes is sealed by a sweeper that runs every minute, the path of the mobile app's backup, which uploads one file at a time with no end. The sweeper also finishes a sealed job whose uploads made no progress for 30 minutes while the job queue is empty (a worker stopped while it held them): the missing uploads count as failed (`result.lost`) and the follow-ups still run.
 
+The web app calls it when its upload queue drains.
+
+### `GET /api/upload/status/`
+
+<Since version="1.5.0" /> What your uploads are doing on the server, for the web app's upload card, the ring around the avatar and its **Importing your uploads** menu section (#2739). Everything in it is your own, staff included.
+
+#### Query parameters (each repeatable, at most 100):
+
+- `job_id` - Import jobs `POST /api/upload/complete/` answered. They are listed even once they finished, so a client sees them end.
+- `photo_id` - Uploaded photos to check.
+
+#### Response:
+
+- `imports` - Your unfinished **Import Uploads** jobs (from any client, the mobile app's backup included, at most 20) and the named ones, newest first, as `GET /api/jobs/` lists them. Their `result` carries `failed_files` (`{"photo_id", "file", "stage", "error"}`, `stage` `media` meaning the file could not be read), `error_count`, `lost` and `followups_requested`.
+- `ready_photo_ids` - The named photos that have their thumbnails, so they show in the timeline. The jobs are read before the photos: a photo whose job is listed as finished and that is not ready never will be.
+- `followups` - `{"state", "next_run_at"}`: `running` while a follow-up run holds its lease, `pending` while one is scheduled within the next 3 minutes (a run waiting for a quiet period before face clustering is further out and counts as `idle`), else `idle`. `next_run_at` is the scheduled run, or `null`.
+
 ### `POST /api/scanuploadedphotos/`
 
 Alias of `POST /api/fullscanphotos/` — both are handled by the same view (`FullScanPhotosView`). Despite the name it is **not** restricted to the upload folder: it queues a **full rescan of the user's entire scan directory**, reprocessing every file rather than only new or modified ones.

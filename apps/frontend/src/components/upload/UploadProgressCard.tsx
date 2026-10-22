@@ -1,126 +1,24 @@
-import { ActionIcon, Badge, Box, Button, Group, Loader, Paper, Progress, Stack, Text, Tooltip } from "@mantine/core";
-import {
-  IconAlertCircle,
-  IconBan,
-  IconCheck,
-  IconChevronDown,
-  IconChevronUp,
-  IconCopy,
-  IconPhoto,
-  IconPlayerStop,
-  IconRotateClockwise,
-  IconVideo,
-  IconX,
-} from "@tabler/icons-react";
+import { ActionIcon, Box, Button, Group, Paper, Progress, Stack, Text, Tooltip } from "@mantine/core";
+import { IconChevronDown, IconChevronUp, IconPlayerStop, IconRotateClockwise, IconX } from "@tabler/icons-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
-import { AlbumOutcomeNote, UploadAlbumStrip } from "./UploadAlbumStrip";
-import { useUpload } from "./UploadContext";
+import { UploadAlbumStrip } from "./UploadAlbumStrip";
+import { useOptionalUploadProcessing, useUpload } from "./UploadContext";
+import { NO_OUTCOMES, rowServerState } from "./uploadProcessing";
 import classes from "./UploadProgressCard.module.css";
-import type { UploadItem, UploadStatus } from "./useUploadQueue";
+import { UploadRow } from "./UploadRow";
+import { cardStage, summarise, useCardHeading, type CardStage, type Summary } from "./useCardHeading";
+import type { UploadProcessing } from "./useUploadProcessing";
 
-const STATUS_COLOR: Record<UploadStatus, string> = {
-  pending: "gray",
-  hashing: "gray",
-  uploading: "blue",
-  done: "green",
-  duplicate: "gray",
-  error: "red",
-  cancelled: "gray",
+const NOT_FOLLOWED: UploadProcessing = {
+  phase: "untracked",
+  outcomes: NO_OUTCOMES,
+  counts: { ready: 0, total: 0 },
+  stalledMinutes: null,
+  openImports: [],
 };
-
-const isFinished = (status: UploadStatus) => status === "done" || status === "duplicate" || status === "error";
-const isBusy = (status: UploadStatus) => status === "hashing" || status === "uploading";
-
-function StatusBadge({ status }: { status: UploadStatus }) {
-  const { t } = useTranslation();
-  let icon: React.ReactNode = null;
-  if (isBusy(status)) icon = <Loader size={10} color={STATUS_COLOR[status]} />;
-  if (status === "done") icon = <IconCheck size={12} />;
-  if (status === "duplicate") icon = <IconCopy size={12} />;
-  if (status === "error") icon = <IconAlertCircle size={12} />;
-  if (status === "cancelled") icon = <IconBan size={12} />;
-  return (
-    <Badge
-      color={STATUS_COLOR[status]}
-      variant={status === "duplicate" ? "outline" : "light"}
-      leftSection={icon}
-      className={classes.noShrink}
-    >
-      {t(`upload.status.${status}`)}
-    </Badge>
-  );
-}
-
-function UploadRow({ item, onRetry }: { item: UploadItem; onRetry: (item: UploadItem) => void }) {
-  const { t } = useTranslation();
-  const FileIcon = item.file.type.startsWith("video/") ? IconVideo : IconPhoto;
-  return (
-    <Paper withBorder radius="sm" px="sm" py={6} data-testid="upload-row">
-      <Group justify="space-between" wrap="nowrap" gap="sm">
-        <Group gap="xs" wrap="nowrap" miw="0">
-          <FileIcon size={16} className={classes.fileIcon} />
-          <Text size="sm" truncate title={item.file.name}>
-            {item.file.name}
-          </Text>
-        </Group>
-        <StatusBadge status={item.status} />
-      </Group>
-      <AlbumOutcomeNote item={item} />
-      {item.status === "uploading" && <Progress value={item.progress} size="xs" mt={6} />}
-      {item.status === "error" && (
-        <Stack gap={4} mt={6} align="flex-start">
-          <Text size="xs" c="red" lh={1.3}>
-            {item.error || t("upload.unknown_error")}
-          </Text>
-          <Button
-            size="compact-xs"
-            variant="subtle"
-            leftSection={<IconRotateClockwise size={12} />}
-            onClick={() => onRetry(item)}
-          >
-            {t("upload.retry")}
-          </Button>
-        </Stack>
-      )}
-    </Paper>
-  );
-}
-
-type Summary = {
-  total: number;
-  duplicates: number;
-  errors: number;
-  cancelled: number;
-  finished: number;
-  pct: number;
-};
-
-function summarise(items: UploadItem[]): Summary {
-  const count = (status: UploadStatus) => items.filter(i => i.status === status).length;
-  const total = items.length;
-  const finished = items.filter(i => isFinished(i.status)).length;
-  const bytes = items.reduce((acc, i) => acc + i.file.size, 0);
-  const sentBytes = items.reduce((acc, i) => acc + i.file.size * (isFinished(i.status) ? 1 : i.progress / 100), 0);
-  const ratio = bytes > 0 ? sentBytes / bytes : total > 0 ? finished / total : 0;
-  return {
-    total,
-    duplicates: count("duplicate"),
-    errors: count("error"),
-    cancelled: count("cancelled"),
-    finished,
-    pct: Math.round(ratio * 100),
-  };
-}
-
-function useCardTitle(isUploading: boolean, isCancelling: boolean, cancelled: number): string {
-  const { t } = useTranslation();
-  if (isCancelling) return t("upload.cancelling");
-  if (isUploading) return t("upload.uploading");
-  return cancelled > 0 ? t("upload.cancelled") : t("upload.complete");
-}
 
 /** One button re-queues every failed and cancelled file; its label says which kind. */
 function RetryAllButton({ summary, onRetry }: { summary: Summary; onRetry: () => void }) {
@@ -181,17 +79,77 @@ function StopOrCloseButton() {
 }
 
 /**
+ * The card's bar: bytes sent while uploading; then, while the server processes the uploads, a
+ * two-tone bar (green ready, blue uploaded and still processing); a moving full bar while the
+ * search and face steps run; full green when done.
+ */
+function CardBar({ stage, summary, processing }: { stage: CardStage; summary: Summary; processing: UploadProcessing }) {
+  const { t } = useTranslation();
+  const { ready, total } = processing.counts;
+  if (stage === "processing") {
+    const readyPct = total > 0 ? (ready / total) * 100 : 0;
+    return (
+      <Progress.Root size="sm" radius={0} aria-label={t("upload.server.processing_title")}>
+        <Progress.Section
+          value={readyPct}
+          color="green"
+          aria-label={t("upload.server.ready_count", { ready, total })}
+        />
+        <Progress.Section value={100 - readyPct} color="blue" />
+      </Progress.Root>
+    );
+  }
+  if (stage === "followups" || stage === "done") {
+    const busy = stage === "followups";
+    return (
+      <Progress
+        value={100}
+        size="sm"
+        radius={0}
+        color="green"
+        striped={busy}
+        animated={busy}
+        aria-label={busy ? t("upload.server.followups_title") : t("upload.server.ready_count", { ready, total })}
+      />
+    );
+  }
+  return (
+    <Progress
+      value={summary.pct}
+      size="sm"
+      radius={0}
+      color={stage === "untracked" && summary.cancelled > 0 ? "gray" : undefined}
+      aria-label={t("upload.uploading")}
+    />
+  );
+}
+
+/** Said while the server makes no progress, so the card never spins without an explanation. */
+function StallNote({ minutes }: { minutes: number | null }) {
+  const { t } = useTranslation();
+  if (minutes === null) return null;
+  return (
+    <Text size="xs" c="orange" px="md" pt="xs" lh={1.3} data-testid="upload-stalled">
+      {t("upload.server.stalled", { count: minutes })}
+    </Text>
+  );
+}
+
+/**
  * Floating, bottom-right progress card. Visible whenever there are queued or
  * finished uploads; collapsible, cancellable while running and dismissible once
- * the queue is idle.
+ * the queue is idle. After the upload it follows the server's import of the
+ * files until they are ready (#2739).
  */
 export function UploadProgressCard() {
   const { t } = useTranslation();
   const { items, isUploading, isCancelling, retry } = useUpload();
+  const processing = useOptionalUploadProcessing() ?? NOT_FOLLOWED;
   const [collapsed, setCollapsed] = useState(false);
 
   const summary = useMemo(() => summarise(items), [items]);
-  const title = useCardTitle(isUploading, isCancelling, summary.cancelled);
+  const stage = cardStage(isUploading, isCancelling, processing.phase);
+  const { title, detail } = useCardHeading(stage, summary, processing);
 
   if (items.length === 0) return null;
 
@@ -208,16 +166,14 @@ export function UploadProgressCard() {
       data-testid="upload-progress-card"
     >
       <Group justify="space-between" wrap="nowrap" gap="xs" px="md" py="sm" className={classes.header}>
-        {/* Announces "Upload cancelled" and the counts to screen readers as they change. */}
-        <Stack gap={0} miw="0" aria-live="polite">
-          <Text size="sm" fw={600}>
+        <Stack gap={0} miw="0">
+          {/* Announces each stage ("Upload cancelled", "Processing your uploads") to screen readers. */}
+          <Text size="sm" fw={600} aria-live="polite">
             {title}
           </Text>
-          <Text size="xs" c="dimmed" truncate>
-            {t("upload.processed", { finished: summary.finished, total: summary.total })}
-            {summary.duplicates > 0 && ` · ${t("upload.duplicates", { count: summary.duplicates })}`}
-            {summary.errors > 0 && ` · ${t("upload.errors", { count: summary.errors })}`}
-            {summary.cancelled > 0 && ` · ${t("upload.cancelled_count", { count: summary.cancelled })}`}
+          {/* The counts too, except while the server processes: they would chatter every poll. */}
+          <Text size="xs" c="dimmed" truncate aria-live={stage === "processing" ? "off" : "polite"}>
+            {detail}
           </Text>
         </Stack>
         <Group gap={4} wrap="nowrap" className={classes.noShrink}>
@@ -235,13 +191,9 @@ export function UploadProgressCard() {
 
       <UploadAlbumStrip items={items} isUploading={isUploading} />
 
-      <Progress
-        value={summary.pct}
-        size="sm"
-        radius={0}
-        color={!isUploading && summary.cancelled > 0 ? "gray" : undefined}
-        aria-label={t("upload.uploading")}
-      />
+      <CardBar stage={stage} summary={summary} processing={processing} />
+
+      <StallNote minutes={processing.stalledMinutes} />
 
       {!isUploading && summary.errors + summary.cancelled > 0 && (
         <RetryAllButton summary={summary} onRetry={() => retry(items)} />
@@ -251,7 +203,12 @@ export function UploadProgressCard() {
         <Box mah={256} className={classes.rows}>
           <Stack gap="xs" p="sm">
             {items.map(item => (
-              <UploadRow key={item.id} item={item} onRetry={it => retry([it])} />
+              <UploadRow
+                key={item.id}
+                item={item}
+                server={rowServerState(item, processing.outcomes)}
+                onRetry={it => retry([it])}
+              />
             ))}
           </Stack>
         </Box>

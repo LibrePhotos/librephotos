@@ -18,7 +18,8 @@ import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { CancelJobModal } from "../job/CancelJobModal";
-import { LogoutWhileUploadingModal, useLogoutGuard } from "../upload";
+import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
+import { ImportJobMenuSection, importPercent } from "./ImportJobMenuSection";
 import { jobPercent, WorkerJobMenuSection } from "./WorkerJobMenuSection";
 import { WorkerProgressRing } from "./WorkerProgressRing";
 
@@ -31,6 +32,10 @@ export function ProfileButton(): React.ReactNode {
   const { workerRunningJob, currentData } = useWorkerStatus();
   // Busy only once the worker has answered; no ring while the first poll is in flight.
   const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
+  // Uploads the server is still importing (#2739), from this browser or a phone. They never make
+  // the worker busy, so they get their own menu section; the ring shows them when nothing else runs.
+  const openImports = useOptionalUploadProcessing()?.openImports ?? [];
+  const importing = openImports.length > 0;
   // What an update left for an admin to do (#2322): a dot on the avatar, a count on Admin Area.
   const upgradeTasksLeft = useOpenUpgradeTaskCount(user?.is_superuser === true);
   const upgradeTasksLabel = upgradeTasksLeft ? t("topmenu.upgradetasks", { count: upgradeTasksLeft }) : null;
@@ -60,6 +65,7 @@ export function ProfileButton(): React.ReactNode {
                 aria-label={[
                   t("topmenu.accountmenu"),
                   workerBusy ? t("topmenu.workerstatusbusy") : null,
+                  importing ? t("topmenu.workerstatusimporting") : null,
                   upgradeTasksLabel,
                 ]
                   .filter(Boolean)
@@ -74,11 +80,14 @@ export function ProfileButton(): React.ReactNode {
               </ActionIcon>
             </Menu.Target>
           </Indicator>
-          {workerBusy && <WorkerProgressRing percent={jobPercent(workerRunningJob)} />}
+          {(workerBusy || importing) && (
+            <WorkerProgressRing percent={workerBusy ? jobPercent(workerRunningJob) : importPercent(openImports)} />
+          )}
         </Box>
 
         <Menu.Dropdown>
           {workerBusy && <WorkerJobMenuSection job={workerRunningJob} onCancel={askToCancel} />}
+          {importing && <ImportJobMenuSection imports={openImports} />}
 
           <Menu.Label>
             <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}

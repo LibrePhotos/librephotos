@@ -291,6 +291,7 @@ CLIENT_PATHS = {
     "/api/upload/": "api.views.upload.UploadPhotosChunked",
     "/api/upload/complete/": "api.views.upload.UploadPhotosChunkedComplete",
     "/api/upload/seal/": "api.views.upload.SealUploadImportsView",
+    "/api/upload/status/": "api.views.upload.UploadStatusView",
     "/api/user/": "api.views.user.UserViewSet get=list,post=create",
     "/api/user/1/": "api.views.user.UserViewSet get=retrieve,patch=partial_update",
     "/api/useralbum/leave/": "api.views.sharing.LeaveSharedAlbum",

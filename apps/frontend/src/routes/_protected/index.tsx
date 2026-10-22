@@ -24,6 +24,8 @@ import {
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
 import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
 import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
+import { useOptionalUploadProcessing } from "../../components/upload";
+import { importCounts } from "../../components/upload/uploadProcessing";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { i18nResolvedLanguage } from "../../i18n";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -40,6 +42,8 @@ function TimestampPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
+  // Uploads still being imported (#2739): the photos are on their way, like a running scan's.
+  const openImports = useOptionalUploadProcessing()?.openImports;
   // Only an admin can set a user's scan folder, so "Go to Library" would be a
   // dead end; point at what others shared instead.
   const hasNoScanDirectory = useHasNoScanDirectory();
@@ -113,6 +117,18 @@ function TimestampPhotos() {
       };
     }
 
+    if (openImports && openImports.length > 0) {
+      const { ready, total } = importCounts(openImports);
+      return {
+        icon: <Photo size={40} />,
+        title: t("emptystate.importing.title"),
+        description: t("emptystate.importing.description"),
+        actionLabel: t("emptystate.scanning.refreshButton"),
+        onAction: () => refetch(),
+        progress: { current: ready, target: total },
+      };
+    }
+
     // An empty library says so even with a saved default; only a filter that
     // hides photos the library does have gets the "nothing matches" state.
     if (filterActive && !libraryEmpty) {
@@ -142,7 +158,17 @@ function TimestampPhotos() {
       actionLabel: t("emptystate.goToLibrary"),
       actionLink: "/library",
     };
-  }, [t, isScanRunning, workerRunningJob, refetch, filterActive, libraryEmpty, setFilter, hasNoScanDirectory]);
+  }, [
+    t,
+    isScanRunning,
+    workerRunningJob,
+    openImports,
+    refetch,
+    filterActive,
+    libraryEmpty,
+    setFilter,
+    hasNoScanDirectory,
+  ]);
 
   // Select-all carries the filter on screen, so "select all, then delete"
   // never reaches the screenshots or documents the timeline hides.

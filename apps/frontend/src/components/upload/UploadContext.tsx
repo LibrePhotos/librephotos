@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useBeforeUnloadWarning } from "../../hooks/useBeforeUnloadWarning";
 import { useScreenWakeLock } from "../../hooks/useScreenWakeLock";
+import { useUploadProcessing, type UploadProcessing } from "./useUploadProcessing";
 import { useUploadQueue, type UploadAlbumTarget, type UploadQueue } from "./useUploadQueue";
 
 const UploadContext = createContext<UploadQueue | null>(null);
+// Its own context: the account menu and the timeline read the server side without the queue.
+const UploadProcessingContext = createContext<UploadProcessing | null>(null);
 
 /**
  * The album files dropped anywhere on the page go into (#612): the owner's album page names its
@@ -24,13 +27,16 @@ const DropAlbumContext = createContext<DropAlbumState>({ dropAlbum: null, setDro
  */
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const queue = useUploadQueue();
+  const processing = useUploadProcessing(queue.items, queue.isUploading);
   const [dropAlbum, setDropAlbum] = useState<DropAlbum | null>(null);
   const dropAlbumState = useMemo(() => ({ dropAlbum, setDropAlbum }), [dropAlbum]);
   useScreenWakeLock(queue.isUploading);
   useBeforeUnloadWarning(queue.isUploading);
   return (
     <UploadContext.Provider value={queue}>
-      <DropAlbumContext.Provider value={dropAlbumState}>{children}</DropAlbumContext.Provider>
+      <UploadProcessingContext.Provider value={processing}>
+        <DropAlbumContext.Provider value={dropAlbumState}>{children}</DropAlbumContext.Provider>
+      </UploadProcessingContext.Provider>
     </UploadContext.Provider>
   );
 }
@@ -46,6 +52,14 @@ export function useUpload(): UploadQueue {
 /** The queue, or null outside the protected shell (public pages share the account menu). */
 export function useOptionalUpload(): UploadQueue | null {
   return useContext(UploadContext);
+}
+
+/**
+ * What the server does with the user's uploads (#2739), or null outside the protected shell (public
+ * pages share the account menu).
+ */
+export function useOptionalUploadProcessing(): UploadProcessing | null {
+  return useContext(UploadProcessingContext);
 }
 
 /** The album a drop on the current page files into, if the page named one. */

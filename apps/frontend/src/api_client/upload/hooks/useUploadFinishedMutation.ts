@@ -1,4 +1,5 @@
 import {
+  albumKeys,
   endpoints,
   invalidateAfter,
   photoGridKeys,
@@ -31,6 +32,16 @@ export const invalidateUploadQueries = () => {
   void queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
   void queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
   void queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
+};
+
+/**
+ * The server has processed the uploads the card follows (#2739): the photo lists, and the albums
+ * the import filed photos into (their grids and cards), are read again.
+ */
+export const invalidateProcessedUploads = () => {
+  invalidateUploadQueries();
+  void queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("userAlbum") });
+  void queryClient.invalidateQueries({ queryKey: albumKeys.userAlbums() });
 };
 
 /**
