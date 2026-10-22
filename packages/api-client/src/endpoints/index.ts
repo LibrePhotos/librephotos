@@ -1887,19 +1887,29 @@ export async function fetchLocatedNearbyInTime(
 
 /* ---- moving photos (#352) ----------------------------------------------- */
 
-/** Where the selected photos go and what to do with a name taken there (absent: a 409 `name_conflict`). */
-export type MovePhotosTarget = { targetFolder: string; onConflict?: S.MoveOnConflict };
+/**
+ * Where the selected photos go: `targetFolder`, or with `folderPattern` (`{year}/{month}`, #2774)
+ * the folder of each one's capture date inside it; and what to do with a name taken there (absent:
+ * a 409 `name_conflict`).
+ */
+export type MovePhotosTarget = { targetFolder: string; folderPattern?: string; onConflict?: S.MoveOnConflict };
 
-/** What moving the selected photos to `targetFolder` would do: counts, refusals and taken names. */
+const moveTargetBody = ({ targetFolder, folderPattern, onConflict }: MovePhotosTarget) => ({
+  target_folder: targetFolder,
+  ...(folderPattern ? { folder_pattern: folderPattern } : {}),
+  ...(onConflict ? { on_conflict: onConflict } : {}),
+});
+
+/** What moving the selected photos would do: counts, refusals, taken names and, by date, the folders. */
 export async function previewPhotosMove(
   client: ApiClient,
   imageHashes: string[],
-  targetFolder: string,
+  target: Omit<MovePhotosTarget, "onConflict">,
   selectAll?: SelectAllPhotos
 ): Promise<S.MovePreviewResponse> {
   const res = await client.post<unknown>("/photos/move/preview/", {
     ...photoSelection(imageHashes, selectAll),
-    target_folder: targetFolder,
+    ...moveTargetBody(target),
   });
   return parseResponse(S.MovePreviewResponse, res, "preview photos move");
 }
@@ -1916,10 +1926,42 @@ export async function movePhotos(
 ): Promise<S.MovePhotosAnswer> {
   const res = await client.post<unknown>("/photos/move/", {
     ...photoSelection(imageHashes, selectAll),
-    target_folder: target.targetFolder,
-    ...(target.onConflict ? { on_conflict: target.onConflict } : {}),
+    ...moveTargetBody(target),
   });
   return parseResponse(S.MovePhotosAnswer, res, "move photos");
+}
+
+/* ---- renaming photos after their capture date (#2773) ------------------ */
+
+/** What renaming the selected photos with `pattern` would do: counts, refusals and the first new names. */
+export async function previewPhotosRename(
+  client: ApiClient,
+  imageHashes: string[],
+  pattern: string,
+  selectAll?: SelectAllPhotos
+): Promise<S.RenamePreviewResponse> {
+  const res = await client.post<unknown>("/photos/rename/preview/", {
+    ...photoSelection(imageHashes, selectAll),
+    pattern,
+  });
+  return parseResponse(S.RenamePreviewResponse, res, "preview photos rename");
+}
+
+/**
+ * Rename the selected photos, with all their files, to the name `pattern` makes from each one's
+ * capture date. A small selection answers the counts; a large one the "Rename Photos" job (`job_id`).
+ */
+export async function renamePhotos(
+  client: ApiClient,
+  imageHashes: string[],
+  pattern: string,
+  selectAll?: SelectAllPhotos
+): Promise<S.RenamePhotosAnswer> {
+  const res = await client.post<unknown>("/photos/rename/", {
+    ...photoSelection(imageHashes, selectAll),
+    pattern,
+  });
+  return parseResponse(S.RenamePhotosAnswer, res, "rename photos");
 }
 
 /** The subfolders of `path` a move can go to; without it the library folders themselves. */

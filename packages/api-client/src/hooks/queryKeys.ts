@@ -142,9 +142,15 @@ export const photoKeys = {
   locationSummary: (selection: Record<string, unknown>) => [...photoRoot, "locationSummary", selection] as const,
   /** The geotagged photos taken in a window, to copy a location from. */
   locatedNearby: (from: string, to: string) => [...photoRoot, "locatedNearby", from, to] as const,
-  /** What moving a selection to a folder would do (#352), keyed by the selection and the folder. */
-  movePreview: (selection: Record<string, unknown>, targetFolder: string) =>
-    [...photoRoot, "movePreview", selection, targetFolder] as const,
+  /**
+   * What moving a selection to a folder would do (#352), keyed by the selection, the folder and the
+   * date folder pattern (#2774; "" for none).
+   */
+  movePreview: (selection: Record<string, unknown>, targetFolder: string, folderPattern: string) =>
+    [...photoRoot, "movePreview", selection, targetFolder, folderPattern] as const,
+  /** What renaming a selection after its dates would do (#2773), keyed by the selection and the pattern. */
+  renamePreview: (selection: Record<string, unknown>, pattern: string) =>
+    [...photoRoot, "renamePreview", selection, pattern] as const,
 };
 
 // The album lists and pickers. An album's photos are a grid: photoGridKeys.

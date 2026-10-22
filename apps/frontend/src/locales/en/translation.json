@@ -540,7 +540,8 @@
       "deduplicate_faces": "Remove duplicate faces",
       "make_video_posters": "Make Video Posters",
       "check_file_contents": "Check File Contents",
-      "trash_photos_outside_library": "Trash Photos Outside the Library"
+      "trash_photos_outside_library": "Trash Photos Outside the Library",
+      "rename_photos": "Rename Photos"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -846,7 +847,8 @@
     "stacksselectall": "Not available with Select all: select the photos one by one",
     "nomanualstack": "None of the selected photos is in a manual stack",
     "setlocation": "Set location…",
-    "movetofolder": "Move to folder…"
+    "movetofolder": "Move to folder…",
+    "renamefiles": "Rename files…"
   },
   "fileactions": {
     "files": "Files",
@@ -2518,7 +2520,16 @@
     "photosmovefailed": "The photos could not be moved.",
     "trashphotosoutsidelibrary_one": "Moving {{count}} of {{username}}'s photos to their trash. Follow it in Worker Logs.",
     "trashphotosoutsidelibrary_other": "Moving {{count}} of {{username}}'s photos to their trash. Follow it in Worker Logs.",
-    "trashphotosoutsidelibrarytitle": "Job started"
+    "trashphotosoutsidelibrarytitle": "Job started",
+    "renamephotostitle": "Rename files",
+    "renamephotosstarted": "The photos are being renamed in the background.",
+    "photosrenamed_one": "Renamed {{count}} photo.",
+    "photosrenamed_other": "Renamed {{count}} photos.",
+    "photosrenamedkept_one": "{{count}} photo kept its name.",
+    "photosrenamedkept_other": "{{count}} photos kept their names.",
+    "photosrenamedfailed_one": "{{count}} photo could not be renamed: its files kept their old name.",
+    "photosrenamedfailed_other": "{{count}} photos could not be renamed: their files kept their old names.",
+    "photosrenamefailed": "The photos could not be renamed."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -3397,7 +3408,80 @@
     "skiphint_other": "Skip: these {{count}} photos stay where they are.",
     "skip_one": "Skip this photo",
     "skip_other": "Skip {{count}} photos",
-    "rename": "Rename, keep both"
+    "rename": "Rename, keep both",
+    "bydate": "Sort into folders by date",
+    "bydatehint": "Each photo goes into a folder for its capture date, inside the destination.",
+    "bydatepattern": "Folders by date",
+    "example": "Example:",
+    "undated_one": "{{count}} photo has no date and stays where it is.",
+    "undated_other": "{{count}} photos have no date and stay where they are.",
+    "folderslabel": "Folders the photos go to",
+    "folderphotos_one": "{{count}} photo",
+    "folderphotos_other": "{{count}} photos",
+    "folderunchanged_one": "{{count}} already there",
+    "folderunchanged_other": "{{count}} already there",
+    "folderclashes_one": "{{count}} name taken",
+    "folderclashes_other": "{{count}} names taken",
+    "morefolders_one": "and {{count}} more folder",
+    "morefolders_other": "and {{count}} more folders"
+  },
+  "renamephotos": {
+    "title": "Rename files",
+    "name": "Name",
+    "namehint": "Made from each photo's capture date. The extension stays.",
+    "preset": "Preset",
+    "presets": {
+      "datetime": "Date and time",
+      "datetimename": "Date, time and old name",
+      "datename": "Date and old name",
+      "custom": "Custom"
+    },
+    "pattern": "Name pattern",
+    "tokens": "Insert",
+    "inserttoken": "Insert {{token}}",
+    "enterpattern": "Enter a name pattern.",
+    "badpattern": "A name has no \\ / : * ? \" < > | and does not start with a dot.",
+    "unknowntoken": "Use only the tokens below.",
+    "toolong": "The pattern is longer than {{count}} characters.",
+    "checking": "Checking the new names…",
+    "checkfailed": "The new names could not be checked.",
+    "nothingtorename": "None of the selected photos gets a new name.",
+    "rename_one": "Rename {{count}} photo",
+    "rename_other": "Rename {{count}} photos",
+    "now": "Now",
+    "newname": "New name",
+    "otherfiles_one": "+{{count}} file",
+    "otherfiles_other": "+{{count}} files",
+    "nametaken": "name taken",
+    "unchangedrow": "unchanged",
+    "undatedrow": "skipped: no date",
+    "nofreenamerow": "no free name",
+    "refusedrow": {
+      "nextcloud": "Nextcloud copy",
+      "shared_file": "shares a file",
+      "not_on_disk": "not on disk"
+    },
+    "firstshown": "The first {{count}} photos are shown; all are counted below.",
+    "summary_one": "{{count}} photo with {{files}} files gets a new name.",
+    "summary_other": "{{count}} photos with {{files}} files get a new name.",
+    "unchanged_one": "{{count}} photo already has this name.",
+    "unchanged_other": "{{count}} photos already have this name.",
+    "numbered_one": "{{count}} photo gets (1), (2), …: its name is taken, often by a photo of the same second.",
+    "numbered_other": "{{count}} photos get (1), (2), …: their names are taken, often by photos of the same second.",
+    "undated_one": "{{count}} photo has no date and is skipped.",
+    "undated_other": "{{count}} photos have no date and are skipped.",
+    "nofreename_one": "{{count}} photo finds no free name and keeps its own.",
+    "nofreename_other": "{{count}} photos find no free name and keep their own.",
+    "refused": {
+      "nextcloud_one": "{{count}} photo is a copy of a Nextcloud file and keeps its name.",
+      "nextcloud_other": "{{count}} photos are copies of Nextcloud files and keep their names.",
+      "shared_file_one": "{{count}} photo shares a file with another photo and keeps its name.",
+      "shared_file_other": "{{count}} photos share a file with another photo and keep their names.",
+      "not_on_disk_one": "{{count}} photo has no files on disk and keeps its name.",
+      "not_on_disk_other": "{{count}} photos have no files on disk and keep their names."
+    },
+    "background": "This runs in the background. You can close this dialog and keep working.",
+    "filesnote": "RAW files, Live Photo videos and XMP sidecars are renamed with their photo. Nothing is overwritten: a taken name gets (1), (2)."
   },
   "daterules": {
     "new_rule": "New Rule",

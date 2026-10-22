@@ -3,3 +3,22 @@
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+.presets {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.example {
+  overflow-wrap: anywhere;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}

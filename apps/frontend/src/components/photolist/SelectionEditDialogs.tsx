@@ -2,6 +2,7 @@ import React from "react";
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import { BulkLocationModal } from "../map/BulkLocationModal";
 import { MovePhotosModal } from "../movephotos/MovePhotosModal";
+import { RenamePhotosModal } from "../movephotos/RenamePhotosModal";
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import type { SelectionEditDialogState } from "./useSelectionEditDialogs";
 
@@ -22,11 +23,11 @@ const folderOfPage = (pathname: string): string | undefined =>
   pathname.startsWith(FOLDER_PAGE) ? decodeURIComponent(pathname.slice(FOLDER_PAGE.length)) : undefined;
 
 /**
- * The dialogs that edit the selection: its date, its location and its folder. Each is mounted only
+ * The dialogs that edit the selection: its date, its location, its folder and its file names. Each is mounted only
  * while open, because each asks the server about the selection when it opens.
  */
 export function SelectionEditDialogs({ dialogs, selection, onDone, pathname }: Props) {
-  const { dateTime, location, move } = dialogs;
+  const { dateTime, location, move, rename } = dialogs;
   return (
     <>
       {dateTime.opened && (
@@ -42,6 +43,7 @@ export function SelectionEditDialogs({ dialogs, selection, onDone, pathname }: P
           currentFolder={folderOfPage(pathname)}
         />
       )}
+      {rename.opened && <RenamePhotosModal opened onClose={rename.close} selection={selection()} onDone={onDone} />}
     </>
   );
 }

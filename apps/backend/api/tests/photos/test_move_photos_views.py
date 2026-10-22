@@ -60,6 +60,7 @@ class MovePhotosViewTest(MoveViewTestCase):
                 "unchanged": 0,
                 "refused": 0,
                 "failed": 0,
+                "undated": 0,
             },
             body,
         )

@@ -132,6 +132,8 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 <Since version="1.4.0" /> Started with **Move to folder…** for a selection of more than 100 photos. Moves your photos, with all their files, to another folder of your library, one photo after the other; a photo whose name is taken there is renamed or skipped as you chose. A cancel stops after the photo it is on, and the photos moved until then stay moved. It ends with how many photos moved and how many stayed where they were. See [Moving photos to another folder](./library.md#moving-photos-to-another-folder).
 
+<Since version="1.5.0" /> With **Sort into folders by date** each photo goes into the folder of its capture date, and photos without a date are counted as staying.
+
 ### Remove duplicate faces
 
 <Since version="1.5.0" /> Deletes the faces that were saved twice on the same photo, across every user's library: where two faces of a photo overlap, the one with a name stays (the older one, when both or neither have a name). An admin starts it with **Remove duplicate faces** under **Admin Area > Admin Tools**, after a confirmation; the deleted duplicates do not go to the Deleted tab and cannot be restored. It ends with how many photos it checked and how many faces it deleted. The same work runs from the command line, for every user or one:
@@ -150,6 +152,10 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 ### Check File Contents
 
 <Since version="1.5.0" /> Reads every file of every user's library again and compares it with what LibrePhotos has, to find files that were replaced while keeping their old modification date (`cp -p`, `rsync --times`, some sync apps), which a scan does not notice. An admin starts it with **Check file contents** under **Admin Area > Admin Tools**, for all users or one user and, optionally, one folder of that user's library; the `rehash_files` command does the same. A changed file is imported again as a scan would (see [Files replaced in place](./library.md#files-replaced-in-place)), and the photos holding it are then read again by a scan of their owner's. The job's page shows how many files were read, what became of the changed ones, per user, and the files that could not be read. It reads every byte, so it takes hours on a large library, and other jobs wait until it finishes.
+
+### Rename Photos
+
+<Since version="1.5.0" /> Started with **Rename files…** for a selection of more than 100 photos. Gives your photos, with all their files, the name made from their capture date, one photo after the other; a taken name gets ` (1)`, ` (2)`. A cancel stops after the photo it is on, and the photos renamed until then keep their new names. It ends with how many photos were renamed, how many kept their names, and how many could not be renamed (their files keep their old names). See [Renaming photos by their date](./library.md#renaming-photos-by-their-date).
 
 ## Where to get information about previous run jobs
 

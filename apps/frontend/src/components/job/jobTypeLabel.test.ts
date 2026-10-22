@@ -34,6 +34,7 @@ const BACKEND_JOB_TYPES: ReadonlyArray<[number, string]> = [
   [31, "Remove duplicate faces"],
   [33, "Trash Photos Outside the Library"],
   [34, "Make Video Posters"],
+  [35, "Rename Photos"],
 ];
 
 describe("jobTypeLabel", () => {

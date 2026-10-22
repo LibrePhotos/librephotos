@@ -4,6 +4,8 @@ import { IconAlertTriangle } from "@tabler/icons-react";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { MoveFolderCounts } from "./MoveFolderCounts";
+import { UndatedPhotos } from "./UndatedPhotos";
 
 const REFUSAL_KEYS: Readonly<Record<MoveRefusalReason, ParseKeys>> = {
   nextcloud: "movephotos.refused.nextcloud",
@@ -17,10 +19,12 @@ type Props = Readonly<{
   loading: boolean;
   /** Why the server refused the folder (outside the library, a folder the scan skips, ...). */
   error: string | null;
+  /** Dates were given to undated photos of a sort by date (#2774): read the preview again. */
+  onDated: () => void;
 }>;
 
 /** What moving to the picked folder will do: the photos and files that move, and those that stay. */
-export function MovePreviewSummary({ preview, loading, error }: Props) {
+export function MovePreviewSummary({ preview, loading, error, onDated }: Props) {
   const { t } = useTranslation();
   if (error) {
     return (
@@ -39,6 +43,7 @@ export function MovePreviewSummary({ preview, loading, error }: Props) {
   }
   return (
     <Stack gap={4} aria-live="polite">
+      <MoveFolderCounts target={preview.target_folder} folders={preview.folders ?? []} />
       <Text size="sm">{t("movephotos.summary", { count: preview.photos, files: preview.files })}</Text>
       {preview.unchanged > 0 && (
         <Text size="sm" c="dimmed">
@@ -49,6 +54,13 @@ export function MovePreviewSummary({ preview, loading, error }: Props) {
         <Text size="sm" c="orange">
           {t("movephotos.clashes", { count: preview.clashes.length })}
         </Text>
+      )}
+      {(preview.undated ?? 0) > 0 && (
+        <UndatedPhotos
+          message={t("movephotos.undated", { count: preview.undated ?? 0 })}
+          imageHashes={preview.undated_hashes ?? []}
+          onDated={onDated}
+        />
       )}
       {preview.refused.map(({ reason, photos }) => (
         <Text key={reason} size="sm" c="orange">

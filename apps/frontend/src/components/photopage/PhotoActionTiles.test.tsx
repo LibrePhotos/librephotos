@@ -14,12 +14,14 @@ import type { PhotoActions } from "../lightbox/usePhotoActions";
 import type { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { setUpMantineDom } from "../modals/confirmModal.test-utils";
 import type { MovePhotosModal } from "../movephotos/MovePhotosModal";
+import type { RenamePhotosModal } from "../movephotos/RenamePhotosModal";
 import { PhotoActionTiles } from "./PhotoActionTiles";
 
 const stubs = vi.hoisted(() => {
   const album: React.ComponentProps<typeof AlbumEditModal>[] = [];
   const move: React.ComponentProps<typeof MovePhotosModal>[] = [];
-  return { album, move };
+  const rename: React.ComponentProps<typeof RenamePhotosModal>[] = [];
+  return { album, move, rename };
 });
 
 // The Files items have their own tests (FileActionItems.test.tsx).
@@ -32,6 +34,12 @@ vi.mock("../modals/AlbumEdit/AlbumEditModal", () => ({
   },
 }));
 vi.mock("../sharing/PhotoShareLinkModal", () => ({ PhotoShareLinkModal: () => null }));
+vi.mock("../movephotos/RenamePhotosModal", () => ({
+  RenamePhotosModal: (props: React.ComponentProps<typeof RenamePhotosModal>) => {
+    stubs.rename.push(props);
+    return null;
+  },
+}));
 vi.mock("../movephotos/MovePhotosModal", () => ({
   MovePhotosModal: (props: React.ComponentProps<typeof MovePhotosModal>) => {
     stubs.move.push(props);
@@ -47,6 +55,7 @@ afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
   stubs.album.length = 0;
   stubs.move.length = 0;
+  stubs.rename.length = 0;
 });
 
 function makeActions(overrides: Partial<PhotoActions> = {}): PhotoActions {
@@ -183,6 +192,7 @@ describe("photo action tiles", () => {
       "photopage.actions.hide",
       "photopage.actions.archive",
       "selectionactions.movetofolder",
+      "selectionactions.renamefiles",
       "photopage.openinviewer",
       "photopage.actions.trash",
     ]);
@@ -223,5 +233,15 @@ describe("photo action tiles", () => {
       selection: { image_hashes: ["h1"] },
       currentFolder: "/lib",
     });
+  });
+
+  it("renames the photo's files from More (#2773)", async () => {
+    const { container } = await renderTiles();
+    expect(stubs.rename).toEqual([]);
+
+    await openMore(container);
+    await act(async () => byText(document, '[role="menuitem"]', "selectionactions.renamefiles").click());
+
+    expect(stubs.rename.at(-1)).toMatchObject({ opened: true, selection: { image_hashes: ["h1"] } });
   });
 });

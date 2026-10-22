@@ -446,6 +446,19 @@ class CrossTenantWriteTest(TestCase):
             "/api/photos/move/", target_folder=TEST_MEDIA_ROOT, on_conflict="rename"
         )
         cases += self._bulk(
+            "/api/photos/move/preview/",
+            target_folder=TEST_MEDIA_ROOT,
+            folder_pattern="{year}/{month}",
+        )
+        cases += self._bulk(
+            "/api/photos/move/",
+            target_folder=TEST_MEDIA_ROOT,
+            folder_pattern="{year}",
+            on_conflict="rename",
+        )
+        cases += self._bulk("/api/photos/rename/preview/", pattern="{year}_{name}")
+        cases += self._bulk("/api/photos/rename/", pattern="{year}_{name}")
+        cases += self._bulk(
             "/api/photosedit/share", val_shared=True, target_user_id=self.target.id
         )
         cases += self._bulk("/api/photosedit/delete", method="delete")
