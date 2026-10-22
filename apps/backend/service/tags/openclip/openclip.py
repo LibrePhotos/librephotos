@@ -9,11 +9,12 @@ LibrePhotos runs: one image-tower run per photo gives its tags and its
 semantic-search embedding.
 
 Tagging embeds every tag of ``tags.txt`` once with the text tower (cached in
-``tag_embeddings.npy`` next to the model) and keeps the tags that win the
-softmax over all tags, scaled by the model's own logit scale. Raw CLIP cosines
-are not probabilities: matches and noise sit close together and shift from
-photo to photo, so a cut on the cosine keeps noise on a busy photo and drops
-real tags on a plain one. The softmax turns the scores into "how much more
+``tag_embeddings.npy`` next to the model, with the sha256 of the prompted tag
+list in ``tag_embeddings.sha256``, so a renamed or reordered tag rebuilds it)
+and keeps the tags that win the softmax over all tags, scaled by the model's
+own logit scale. Raw CLIP cosines are not probabilities: matches and noise sit
+close together and shift from photo to photo, so a cut on the cosine keeps
+noise on a busy photo and drops real tags on a plain one. The softmax turns the scores into "how much more
 likely than the rest", which adapts to each photo.
 
 The image tower's input is described by the bundle's ``preprocess.json``,
@@ -27,6 +28,7 @@ with 0 (the text tower pools at the end token, so the padding is never read).
 
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import logging
@@ -181,15 +183,59 @@ def _softmax(scores: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
     return exp / exp.sum(axis=-1, keepdims=True)
 
 
-def _stale_cache_reason(cache: npt.NDArray[np.generic], tag_count: int) -> str | None:
-    """Why a cached tag-embedding array cannot be used, or None if it can."""
+def tag_list_hash(tags: Sequence[str]) -> str:
+    """The sha256 of the prompts the tag embeddings are built from, in order.
+
+    Covers the prompt template and every tag, so a renamed, reordered or
+    re-worded tag changes it even when the number of tags stays the same.
+    """
+    digest = hashlib.sha256()
+    for tag in tags:
+        digest.update(PROMPT_TEMPLATE.format(tag=tag).encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def _cache_hash_path() -> str:
+    """Where the tag-list hash of the embedding cache is kept: next to it."""
+    return os.path.splitext(EMBEDDINGS_CACHE)[0] + ".sha256"
+
+
+def _read_cache_hash() -> str | None:
+    """The tag-list hash the cache was built for; None for a cache without one."""
+    try:
+        with open(_cache_hash_path(), encoding="utf-8") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return None
+
+
+def _hash_mismatch_reason(cached_hash: str | None, tags_hash: str) -> str | None:
+    if cached_hash is None:
+        return "cache has no tag-list hash"
+    if cached_hash != tags_hash:
+        return "tag list changed since the cache was built"
+    return None
+
+
+def _stale_cache_reason(
+    cache: npt.NDArray[np.generic],
+    tag_count: int,
+    cached_hash: str | None,
+    tags_hash: str,
+) -> str | None:
+    """Why a cached tag-embedding array cannot be used, or None if it can.
+
+    ``tags_hash`` is the hash of the current tag list, ``cached_hash`` the one
+    the cache was built for: the cache serves that very list only.
+    """
     if cache.ndim != 2:
         return f"cache has wrong shape {cache.shape}"
     if cache.shape[0] != tag_count:
         return f"cache has {cache.shape[0]} tags but tags.txt has {tag_count}"
     if cache.shape[1] != EMBEDDING_DIM:
         return f"cache has dim={cache.shape[1]}, not {EMBEDDING_DIM}"
-    return None
+    return _hash_mismatch_reason(cached_hash, tags_hash)
 
 
 class ClipTokenizer:
@@ -304,6 +350,9 @@ class OpenCLIP:
         self.tag_embeddings = np.concatenate(embeddings, axis=0)
         os.makedirs(os.path.dirname(EMBEDDINGS_CACHE), exist_ok=True)
         np.save(EMBEDDINGS_CACHE, self.tag_embeddings)
+        # Written after the array: a cache whose hash is missing is rebuilt.
+        with open(_cache_hash_path(), "w", encoding="utf-8") as f:
+            f.write(tag_list_hash(tags))
         logger.info("%s: cached %s tag embeddings", MODEL_NAME, len(tags))
 
     def _load_or_build_tag_embeddings(self, tags: list[str]) -> None:
@@ -312,7 +361,9 @@ class OpenCLIP:
             return
 
         cache = np.load(EMBEDDINGS_CACHE)
-        reason = _stale_cache_reason(cache, len(tags))
+        reason = _stale_cache_reason(
+            cache, len(tags), _read_cache_hash(), tag_list_hash(tags)
+        )
         if reason is not None:
             logger.info("%s: %s, rebuilding...", MODEL_NAME, reason)
             os.remove(EMBEDDINGS_CACHE)
