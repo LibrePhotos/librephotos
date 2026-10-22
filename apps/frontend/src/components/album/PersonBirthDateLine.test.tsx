@@ -17,7 +17,7 @@ let container: HTMLDivElement;
 let state: ReturnType<typeof usePersonBirthDate> | undefined;
 
 function Harness({ birthDate }: Readonly<{ birthDate: string }>) {
-  state = usePersonBirthDate(birthDate);
+  state = usePersonBirthDate({ birth_date: birthDate });
   return (
     <MantineProvider env="test">
       <PersonBirthDateLine name="Mia" birthDate={birthDate} onEdit={state.openFrom} />

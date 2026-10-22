@@ -34,11 +34,13 @@ function AlbumPersonGallery(): React.JSX.Element {
   const personQuery = useFetchPersonQuery(personId);
   const { data: person, isLoading: personLoading } = personQuery;
   const notFound = person === null || !Number.isInteger(personId) || personId <= 0;
-  const birthDate = usePersonBirthDate(person?.birth_date ?? null);
+  const birthDate = usePersonBirthDate(person);
+  // The id as the photo queries take it
+  const personNumber = id ? +id : undefined;
 
   const photosQuery = useFetchDateAlbumsQuery({
     photosetType: Photoset.PERSON,
-    person_id: id ? +id : undefined,
+    person_id: personNumber,
     mediaType,
   });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
@@ -56,7 +58,7 @@ function AlbumPersonGallery(): React.JSX.Element {
       album_date_id: group.id,
       page: group.page,
       photosetType: Photoset.PERSON,
-      person_id: id ? +id : undefined,
+      person_id: personNumber,
       mediaType,
     },
     { skip: !group.id }
@@ -100,7 +102,7 @@ function AlbumPersonGallery(): React.JSX.Element {
         // No photo filter for a person who is not there
         mediaType={notFound ? undefined : mediaType}
         albumID={id}
-        photosetQuery={{ person: id ? +id : undefined, ...mediaTypeToBulkQuery(mediaType) }}
+        photosetQuery={{ person: personNumber, ...mediaTypeToBulkQuery(mediaType) }}
       />
       {person && (
         <PersonBirthDateModal

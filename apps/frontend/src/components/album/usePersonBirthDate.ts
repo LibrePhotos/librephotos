@@ -1,6 +1,7 @@
 import { useDisclosure } from "@mantine/hooks";
 import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { Person } from "../../api_client/albums/hooks";
 import type { GroupNote } from "../../util/util";
 import { ageAt, ageNote } from "./personAge";
 
@@ -8,8 +9,9 @@ import { ageAt, ageNote } from "./personAge";
  * The person page's birth date (#2750, #2751): the dialog's state, opened from the ⋮ menu or the
  * header line, and the age beside each day heading (none without a birth date).
  */
-export function usePersonBirthDate(birthDate: string | null) {
+export function usePersonBirthDate(person: Pick<Person, "birth_date"> | null | undefined) {
   const { t } = useTranslation();
+  const birthDate = person?.birth_date ?? null;
   const [opened, { open, close }] = useDisclosure(false);
   // The control the dialog was opened from: a menu item is gone when it closes
   const opener = useRef<HTMLElement | null>(null);
