@@ -151,7 +151,7 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 4. Check the place name under the map: it is the name the photo gets when you save. It reads **Place name unavailable** when the server has no name for the spot (the coordinates are saved anyway), and says so when place names are turned off on the server.
 5. Click **Save**.
 
-The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work.
+The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work. <Since version="1.5.0" /> Up to 1.4.0, the place-name search found nothing when the Map Provider was OpenCage, Mapbox or MapTiler.
 
 A photo without a location opens the dialog where the nearest geotagged photo taken within a day of it was taken, or on a world map when there is none. The browser only asks for your position when you click the crosshair button. <Since version="1.4.0" /> Up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission.
 
