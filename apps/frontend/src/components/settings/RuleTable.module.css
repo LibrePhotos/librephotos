@@ -1,6 +1,11 @@
-/* The date/time and burst rule lists on /settings and their Add rule dialogs (#2225). */
+/* The date/time and burst rule lists on /settings, their Add rule dialogs (#2225) and the date rule form (#2272). */
 
 /* Long tokens such as "MakerNotes:ContinuousDrive" wrap, so the delete button stays in view on a phone. */
 .ruleCell {
   overflow-wrap: anywhere;
+}
+
+/* The custom date rule form's file name pattern (#2272): placeholders line up with the name they match. */
+.patternInput {
+  font-family: var(--mantine-font-family-monospace);
 }

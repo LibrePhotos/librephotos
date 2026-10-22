@@ -1973,6 +1973,125 @@
         }
       }
     },
+    "/api/datetime-rules/check/": {
+      "post": {
+        "operationId": "api_datetime_rules_check_create",
+        "description": "Whether one date rule can be saved, as the settings save checks it.\nEach param that cannot is a 400 entry with the param as its field, so the\nrule form shows the message next to it. Nothing is saved.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRuleCheckResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/datetime-rules/options/": {
+      "get": {
+        "operationId": "api_datetime_rules_options_retrieve",
+        "description": "The tags a custom date rule may read and check, and where custom rule\nids start. Another tag cannot be saved.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRuleOptionsResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/datetime-rules/test/": {
+      "get": {
+        "operationId": "api_datetime_rules_test_retrieve",
+        "description": "What each of the requester's saved date rules reads from one of their\nphotos now, and which one a scan takes the date from: \"Why this date?\".\nIt runs the saved rules, not ones sent along, so it shows exactly what a\nscan would do; nothing is changed. Another user's photo is a 404.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "One of the requester's own photos",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRulesTestResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/defaultburstrules/": {
       "get": {
         "operationId": "api_defaultburstrules_retrieve",
@@ -12742,6 +12861,100 @@
           "username"
         ]
       },
+      "DateRuleCheckRequestRequest": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "One date rule as datetime_rules holds it; a 400 names each of its params that cannot be saved as the error's field"
+          }
+        },
+        "required": [
+          "rule"
+        ]
+      },
+      "DateRuleCheckResponse": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The rule, which can be saved"
+          }
+        },
+        "required": [
+          "rule"
+        ]
+      },
+      "DateRuleOptionsResponse": {
+        "type": "object",
+        "description": "What a custom date rule may use.",
+        "properties": {
+          "date_tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DateTag"
+            },
+            "description": "The tags a rule may read"
+          },
+          "condition_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The tags an 'Only when the tag contains' condition may check"
+          },
+          "first_custom_id": {
+            "type": "integer",
+            "description": "Custom rules take ids from here up"
+          }
+        },
+        "required": [
+          "condition_tags",
+          "date_tags",
+          "first_custom_id"
+        ]
+      },
+      "DateRulesTestResponse": {
+        "type": "object",
+        "description": "What each of the requester's saved date rules reads from the photo's\nfiles now. Nothing is changed.",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "The date the photo has now"
+          },
+          "date_set_by_user": {
+            "type": "boolean",
+            "description": "The date was set by hand, which wins over every rule"
+          },
+          "winner": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The index in outcomes of the rule a scan takes the date from; null when none applies"
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleOutcome"
+            },
+            "description": "One per rule, in order"
+          }
+        },
+        "required": [
+          "date_set_by_user",
+          "exif_timestamp",
+          "outcomes",
+          "photo_id",
+          "winner"
+        ]
+      },
       "DateSummaryResponse": {
         "type": "object",
         "description": "Where a selection's dates stand before they are changed.",
@@ -12778,6 +12991,23 @@
           "newest",
           "oldest",
           "without_date"
+        ]
+      },
+      "DateTag": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The ExifTool tag, such as EXIF:CreateDate"
+          },
+          "utc": {
+            "type": "boolean",
+            "description": "Its value is usually in UTC, so a rule on it converts the time"
+          }
+        },
+        "required": [
+          "name",
+          "utc"
         ]
       },
       "DatedPhoto": {
@@ -15910,6 +16140,15 @@
         "enum": [
           null
         ]
+      },
+      "OutcomeEnum": {
+        "enum": [
+          "applies",
+          "not_applicable",
+          "error"
+        ],
+        "type": "string",
+        "description": "* `applies` - applies\n* `not_applicable` - not_applicable\n* `error` - error"
       },
       "PaginatedAlbumAutoListList": {
         "type": "object",
@@ -19962,6 +20201,52 @@
           "local_orientation",
           "status",
           "write_error"
+        ]
+      },
+      "RuleOutcome": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The rule's id; null when it has none"
+          },
+          "name": {
+            "type": "string",
+            "description": "The rule's name; empty when it has none"
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutcomeEnum"
+              }
+            ],
+            "description": "applies: the rule found a date; error: it could not run\n\n* `applies` - applies\n* `not_applicable` - not_applicable\n* `error` - error"
+          },
+          "local_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "What it found: the local wall-clock time, tagged UTC like exif_timestamp"
+          },
+          "utc_offset": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Minutes east of UTC, when the rule knows them"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why it could not run"
+          }
+        },
+        "required": [
+          "error",
+          "local_time",
+          "name",
+          "outcome",
+          "rule_id",
+          "utc_offset"
         ]
       },
       "SSOConfig": {

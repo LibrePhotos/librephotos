@@ -329,6 +329,9 @@ export const settingsKeys = {
   emailConfig: () => [...settingsRoot, "emailConfig"] as const,
   predefinedBurstRules: () => [...settingsRoot, "predefinedBurstRules"] as const,
   predefinedRules: () => [...settingsRoot, "predefinedRules"] as const,
+  dateRuleOptions: () => [...settingsRoot, "dateRuleOptions"] as const,
+  /** What the saved date rules read from one photo ("Why this date?"). */
+  dateRulesTest: (photoId: string) => [...settingsRoot, "dateRulesTest", photoId] as const,
   timezones: () => [...settingsRoot, "timezones"] as const,
   trashRetentionPreview: (days: number) => [...settingsRoot, "trashRetentionPreview", days] as const,
   /** What "Write metadata to files" would write, for the saved write mode and face tag switch. */

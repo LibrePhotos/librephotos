@@ -240,3 +240,70 @@ describe("email configuration (admin)", () => {
     });
   });
 });
+
+describe("custom date rules (#2272)", () => {
+  const rule = {
+    id: 1000,
+    name: "Copied phone files",
+    custom: true,
+    rule_type: "path" as const,
+    date_pattern: "YYYY-MM-DD HH.mm.ss",
+  };
+
+  it("parses the tags a rule may use", async () => {
+    const options = {
+      date_tags: [
+        { name: "EXIF:DateTimeOriginal", utc: false },
+        { name: "QuickTime:MediaCreateDate", utc: true },
+      ],
+      condition_tags: ["EXIF:Model"],
+      first_custom_id: 1000,
+    };
+    const { client, requests } = fakeServer(options);
+    await expect(endpoints.fetchDateRuleOptions(client)).resolves.toEqual(options);
+    expect(defined(requests[0]).url).toBe("https://demo.example.com/api/datetime-rules/options/");
+  });
+
+  it("posts one rule to be checked and parses it back", async () => {
+    const { client, requests } = fakeServer({ rule });
+    await expect(endpoints.checkDateRule(client, rule)).resolves.toEqual({ rule });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/datetime-rules/check/",
+      method: "POST",
+      body: { rule },
+    });
+  });
+
+  it("asks what the saved rules read from one photo", async () => {
+    const answer = {
+      photo_id: "8f2c1d9e-0b7a-4c55-9a1e-2b3c4d5e6f70",
+      exif_timestamp: "2024-05-06T07:08:09Z",
+      date_set_by_user: false,
+      winner: 1,
+      outcomes: [
+        { rule_id: 1000, name: "Video", outcome: "not_applicable", local_time: null, utc_offset: null, error: null },
+        {
+          rule_id: 1,
+          name: "Camera",
+          outcome: "applies",
+          local_time: "2024-05-06T07:08:09Z",
+          utc_offset: 120,
+          error: null,
+        },
+        { rule_id: null, name: "", outcome: "error", local_time: null, utc_offset: null, error: "'Mars/Olympus'" },
+      ],
+    };
+    const { client, requests } = fakeServer(answer);
+    await expect(endpoints.fetchDateRulesTest(client, answer.photo_id)).resolves.toEqual(answer);
+    expect(defined(requests[0]).url).toBe(
+      "https://demo.example.com/api/datetime-rules/test/?photo_id=8f2c1d9e-0b7a-4c55-9a1e-2b3c4d5e6f70"
+    );
+  });
+
+  it("rejects an outcome the client does not know", async () => {
+    const answer = { photo_id: "x", exif_timestamp: null, date_set_by_user: true, winner: null, outcomes: [{}] };
+    await expect(endpoints.fetchDateRulesTest(fakeServer(answer).client, "x")).rejects.toBeInstanceOf(
+      ResponseParseError
+    );
+  });
+});

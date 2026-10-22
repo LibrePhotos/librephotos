@@ -39,6 +39,8 @@ vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 vi.mock("./VersionComponent", () => ({ VersionComponent: () => null }));
 vi.mock("./CameraInfoSection", () => ({ CameraInfoSection: () => null }));
 vi.mock("./CategoryBadge", () => ({ CategoryBadge: () => null }));
+// WhyThisDate.test.tsx covers it; it reads the signed-in user.
+vi.mock("./WhyThisDate", () => ({ WhyThisDate: () => null }));
 vi.mock("./StackSection", () => ({ StackSection: () => null }));
 vi.mock("./PeopleSection", () => ({
   PeopleSection: ({ photoDetail }: { photoDetail: { people: Array<{ name: string }> } }) => {

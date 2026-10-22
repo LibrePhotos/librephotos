@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, createApiClient, runningJobId } from "../transport";
+import { ApiError, createApiClient, runningJobId, serverFieldErrors } from "../transport";
 import type { TokenSupplier } from "../transport";
 import { defined } from "./defined";
 
@@ -203,6 +203,24 @@ describe("createApiClient errors", () => {
     const conflict = { errors: [{ field: "detail", message: "x", code: "conflict", job_id: "j-1" }] };
     expect(runningJobId(await rejection(client(jsonResponse(conflict, 409)).post("/x/")))).toBeNull();
     expect(runningJobId(new Error("network"))).toBeNull();
+  });
+
+  it("lists the fields a 400 refused", async () => {
+    const body = {
+      errors: [
+        { field: "date_pattern", message: "Needs the year.", code: "invalid_date_rule" },
+        { field: "condition_path", message: "Must be plain text.", code: "invalid_date_rule" },
+        { message: "no field" },
+        "junk",
+      ],
+    };
+    expect(serverFieldErrors(await rejection(client(jsonResponse(body, 400)).post("/x/")))).toEqual([
+      { field: "date_pattern", message: "Needs the year." },
+      { field: "condition_path", message: "Must be plain text." },
+    ]);
+    // Only a 400 has field errors.
+    expect(serverFieldErrors(await rejection(client(jsonResponse(body, 409)).post("/x/")))).toEqual([]);
+    expect(serverFieldErrors(new Error("network"))).toEqual([]);
   });
 
   it("falls back to a string detail", async () => {

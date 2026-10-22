@@ -116,6 +116,11 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SiteAutoScanStatus: { schema: S.SiteAutoScanStatus, components: ["SiteAutoScanStatus"] },
   SiteSsoProvider: { schema: S.SiteSsoProvider, components: ["SiteSsoProvider"] },
   TrashRetentionPreview: { schema: S.TrashRetentionPreview, components: ["TrashRetentionPreview"] },
+  DateTag: { schema: S.DateTag, components: ["DateTag"] },
+  DateRuleOptions: { schema: S.DateRuleOptions, components: ["DateRuleOptionsResponse"] },
+  DateRuleCheck: { schema: S.DateRuleCheck, components: ["DateRuleCheckResponse"] },
+  DateRuleOutcome: { schema: S.DateRuleOutcome, components: ["RuleOutcome"] },
+  DateRulesTest: { schema: S.DateRulesTest, components: ["DateRulesTestResponse"] },
   // search
   MetadataValue: { schema: S.MetadataValue, components: ["MetadataValue"] },
   MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },

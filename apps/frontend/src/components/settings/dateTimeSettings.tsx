@@ -1,6 +1,7 @@
 import type { DateTimeRule } from "@librephotos/api-client";
 import type { ParseKeys, TFunction } from "i18next";
 import React from "react";
+import { unescapePattern } from "./dateRuleForm";
 
 const RULE_TYPE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
   exif: "rules.rule_type_names.exif",
@@ -59,18 +60,33 @@ const RULE_PARAM_KEYS: Partial<Record<string, ParseKeys>> = {
   source_tz: "rules.source_tz",
   report_tz: "rules.report_tz",
   predefined_regexp: "rules.predefined_regexp",
+  date_pattern: "rules.date_pattern",
+  condition_path: "rules.condition_path",
+  condition_filename: "rules.condition_filename",
+  condition_exif: "rules.condition_exif",
 };
 
+/** A condition as the text it looks for: the form saves it escaped (dateRuleForm.escapePattern). */
+function describeCondition(key: string, value: RuleValue, t: TFunction<"translation", undefined>): RuleValue {
+  if (typeof value !== "string") return value;
+  if (key !== "condition_exif") return unescapePattern(value);
+  const [tag = "", text = ""] = value.split(/\/\/(.*)/s);
+  return t("daterules.condition_exif_value", { tag, text: unescapePattern(text) });
+}
+
+function describeParam(key: string, value: unknown, t: TFunction<"translation", undefined>): RuleValue {
+  const shown = ruleValue(value);
+  if (TIMEZONE_PROPS.includes(key)) return describeTimezone(shown, t);
+  return key.startsWith("condition_") ? describeCondition(key, shown, t) : shown;
+}
+
 export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation", undefined>) {
-  const ignoredProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
+  const ignoredProps = ["name", "id", "rule_type", "transform_tz", "is_default", "custom"];
   return (
     <>
       {Object.entries(rule)
         .filter(i => !ignoredProps.includes(i[0]))
-        .map(([key, value]): [string, RuleValue] => [
-          key,
-          TIMEZONE_PROPS.includes(key) ? describeTimezone(ruleValue(value), t) : ruleValue(value),
-        ])
+        .map(([key, value]): [string, RuleValue] => [key, describeParam(key, value, t)])
         .map(([name, value]) => {
           const key = RULE_PARAM_KEYS[name];
           return (

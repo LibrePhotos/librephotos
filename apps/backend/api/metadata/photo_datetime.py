@@ -7,6 +7,7 @@ Moved out of ``Photo``; every function takes the photo as its first argument.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -15,8 +16,12 @@ from django.utils import timezone
 
 import api.models
 from api.metadata import datetime_rules
-from api.metadata.datetime_rules import CaptureTime
-from api.metadata.reader import get_metadata, sidecar_files_for_photo
+from api.metadata.datetime_rules import CaptureTime, RuleOutcome
+from api.metadata.reader import (
+    MetadataFileMissingError,
+    get_metadata,
+    sidecar_files_for_photo,
+)
 from api.metadata.takeout import takeout_metadata_for
 
 if TYPE_CHECKING:
@@ -174,6 +179,33 @@ def _move_to_day_album(photo: Photo, local_time: datetime | None) -> AlbumDate:
 
 def _capture_time_from_file(photo: Photo) -> CaptureTime | None:
     """The capture time the owner's datetime rules read from the photo's files."""
+    return datetime_rules.extract_local_date_time(*_rule_inputs(photo))
+
+
+def date_rule_outcomes(photo: Photo) -> list[RuleOutcome]:
+    """What each of the owner's saved date rules reads from the photo's files,
+    in rule order, without changing anything: "Why this date?" (#2272). A
+    scan takes the first one that found a date, unless the date was set by
+    hand (``extract_date_time``).
+
+    Raises ``MetadataFileMissingError`` when the file is not on disk and
+    ``MetadataReadError`` when the exif service cannot read it."""
+    if photo.main_file is None or not os.path.isfile(photo.main_file.path):
+        raise MetadataFileMissingError("the file is not on disk")
+    return datetime_rules.evaluate_rules(*_rule_inputs(photo))
+
+
+RuleInputs = tuple[
+    str,
+    list[datetime_rules.TimeExtractionRule],
+    datetime_rules.ExifGetter,
+    datetime_rules.RuleContext,
+]
+
+
+def _rule_inputs(photo: Photo) -> RuleInputs:
+    """The photo's main file, the owner's datetime rules, a reader of the
+    file's tags and what else the rules may use."""
     assert photo.main_file is not None
     main_file_path = photo.main_file.path
     sidecar_files = sidecar_files_for_photo(photo)
@@ -190,7 +222,7 @@ def _capture_time_from_file(photo: Photo) -> CaptureTime | None:
     datetime_config = photo.owner.datetime_rules
     if isinstance(datetime_config, str):
         datetime_config = json.loads(datetime_config)
-    return datetime_rules.extract_local_date_time(
+    return (
         main_file_path,
         datetime_rules.as_rules(datetime_config),
         exif_getter,

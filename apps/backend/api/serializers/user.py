@@ -19,6 +19,7 @@ from api.accounts.directories import (
 from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
+from api.metadata.date_rule_checks import changed_rule_problem
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
 from api.runtime.ml_models import missing_models_prerequisites
@@ -314,7 +315,14 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_datetime_rules(self, value: object) -> object:
-        return validate_rule_exif_tag_names(value, "datetime_rules")
+        value = validate_rule_exif_tag_names(value, "datetime_rules")
+        # A rule saved before is not checked again (#2272): the settings page
+        # sends the whole list back, and an older rule must not block a save.
+        saved = self.instance.datetime_rules if self.instance is not None else None
+        problem = changed_rule_problem(value, saved)
+        if problem:
+            raise ValidationError(problem, code="invalid_date_rule")
+        return value
 
     def validate_burst_detection_rules(self, value: object) -> object:
         return validate_rule_exif_tag_names(value, "burst_detection_rules")
