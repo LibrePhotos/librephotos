@@ -4,7 +4,8 @@
 selects the files recorded below a folder without picking up its siblings;
 ``is_nextcloud_copy`` tells a file the Nextcloud scan downloaded;
 ``library_roots`` names the folders a user's library lives in, and
-``library_of`` reads them once for a run of checks.
+``library_of`` reads them, with the folders left out of it, once for a run
+of checks.
 """
 
 from __future__ import annotations
@@ -81,19 +82,33 @@ class Library:
 
     #: ``library_roots``: the main folder first.
     roots: tuple[str, ...]
+    #: Folders inside the roots the user left out (#791).
+    excluded: tuple[str, ...] = ()
 
     def root_of(self, path: str) -> str | None:
-        """The root holding ``path`` (or equal to it), or None."""
+        """The root holding ``path`` (or equal to it), or None, left out or not."""
         return next((root for root in self.roots if is_valid_path(path, root)), None)
 
+    def is_excluded(self, path: str) -> bool:
+        """Whether ``path`` is a left-out folder or lies inside one."""
+        return any(is_valid_path(path, folder) for folder in self.excluded)
+
     def contains(self, path: str) -> bool:
-        """Whether ``path`` is a root of the library or lies inside one."""
-        return self.root_of(path) is not None
+        """Whether ``path`` is in the library: in a root, and not left out."""
+        return self.root_of(path) is not None and not self.is_excluded(path)
+
+
+def excluded_folders(user: User) -> list[str]:
+    """The folders ``user`` left out of their library (#791)."""
+    stored = user.excluded_folders
+    if not isinstance(stored, list):
+        return []
+    return [path for path in stored if isinstance(path, str) and path]
 
 
 def library_of(user: User) -> Library:
-    """``user``'s library: its roots, read from the database once."""
-    return Library(tuple(library_roots(user)))
+    """``user``'s library: its roots and left-out folders, read once."""
+    return Library(tuple(library_roots(user)), tuple(excluded_folders(user)))
 
 
 def is_valid_path(path: str, root_path: str) -> bool:

@@ -405,4 +405,8 @@ export const userKeys = {
     [...userRoot, "scanDirectoryImpact", userId, scanDirectory, uploadDirectory] as const,
   /** The folders of a library (#123): the signed-in user's own ("self"), or a user's for an admin. */
   libraryFolders: (userId: number | "self") => [...userRoot, "libraryFolders", userId] as const,
+  /** Every listing of the folders inside a folder of the signed-in user's library (#791). */
+  librarySubfoldersAll: () => [...userRoot, "librarySubfolders"] as const,
+  /** The folders inside one folder of the signed-in user's library (#791). */
+  librarySubfolders: (path: string) => [...userRoot, "librarySubfolders", path] as const,
 };

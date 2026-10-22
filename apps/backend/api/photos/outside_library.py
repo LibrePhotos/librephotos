@@ -11,7 +11,8 @@ Outside means: the photo's main file is under none of the user's library
 roots (scan directory, further library folders of #123, upload folder) and is
 not a Nextcloud copy, which the Nextcloud scan keeps in a folder of its own.
 Photos already in the trash, and removed ones, are left out. Removing a
-further library folder leaves its photos outside in the same way.
+further library folder leaves its photos outside in the same way, and so
+does leaving a folder out of the library (#791).
 """
 
 import copy
@@ -27,7 +28,12 @@ from api.models.album_thing import (
 from api.models.long_running_job import JobCancelledError
 from api.models.photo import trash_photos
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.photos.paths import folder_path_q, library_roots, nextcloud_media_root
+from api.photos.paths import (
+    excluded_folders,
+    folder_path_q,
+    library_roots,
+    nextcloud_media_root,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +67,15 @@ def photos_outside_library(
     roots = library_roots(library)
     if not roots:
         return Photo.objects.none()
-    return (
-        Photo.objects.owned_by(user)
-        .filter(in_trashcan=False, removed=False, main_file__isnull=False)
-        .exclude(_inside_any([*roots, nextcloud_media_root()]))
+    photos = Photo.objects.owned_by(user).filter(
+        in_trashcan=False, removed=False, main_file__isnull=False
     )
+    inside = _inside_any([*roots, nextcloud_media_root()])
+    left_out = excluded_folders(library)
+    if not left_out:
+        return photos.exclude(inside)
+    # A folder the user left out of their library (#791) is outside it.
+    return photos.filter(~inside | _inside_any(left_out))
 
 
 def _trash(photos: QuerySet[Photo]) -> int:

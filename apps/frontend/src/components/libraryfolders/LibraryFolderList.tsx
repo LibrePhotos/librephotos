@@ -10,6 +10,8 @@ import { DisabledReason } from "../common/DisabledReason";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { AddLibraryFolderModal } from "./AddLibraryFolderModal";
+import { leftOutBelow } from "./excludedPaths";
+import { ExcludeSubfoldersModal } from "./ExcludeSubfoldersModal";
 import { LibraryFolderRow } from "./LibraryFolderRow";
 import { RemoveLibraryFolderModal } from "./RemoveLibraryFolderModal";
 
@@ -25,22 +27,30 @@ type Props = Readonly<{
   onDialogChange?: (opened: boolean) => void;
 }>;
 
-/** The folders of a library (#123) as rows, with Add folder and Remove for admins. */
+/**
+ * The folders of a library (#123) as rows, with Add folder and Remove for admins, and Leave out
+ * subfolders in the owner's own list (#791).
+ */
 export function LibraryFolderList({ owner, userId, username, canManage, onDialogChange }: Props) {
   const { t } = useTranslation();
   const query = useLibraryFoldersQuery(owner);
   const failure = useListFailure(query);
   const [addOpened, { open: openAdd, close: closeAdd }] = useDisclosure(false);
   const [removeOpened, { open: openRemove, close: closeRemove }] = useDisclosure(false);
-  const [toRemove, setToRemove] = useState<LibraryFolderEntry | null>(null);
-  const dialogOpened = addOpened || removeOpened;
+  const [leaveOutOpened, { open: openLeaveOut, close: closeLeaveOut }] = useDisclosure(false);
+  // The folder the remove or leave-out dialog is about.
+  const [selected, setSelected] = useState<LibraryFolderEntry | null>(null);
+  const dialogOpened = addOpened || removeOpened || leaveOutOpened;
+  const excluded = query.data?.excluded_folders ?? [];
+  // Only the owner leaves folders out of their own library (#791).
+  const ownLibrary = owner === "self";
   useEffect(() => {
     onDialogChange?.(dialogOpened);
   }, [dialogOpened, onDialogChange]);
 
-  const askRemove = (folder: LibraryFolderEntry) => {
-    setToRemove(folder);
-    openRemove();
+  const select = (folder: LibraryFolderEntry, open: () => void) => () => {
+    setSelected(folder);
+    open();
   };
 
   return (
@@ -56,7 +66,9 @@ export function LibraryFolderList({ owner, userId, username, canManage, onDialog
         <LibraryFolderRow
           key={folder.path}
           folder={folder}
-          onRemove={canManage ? () => askRemove(folder) : undefined}
+          leftOutCount={leftOutBelow(excluded, folder.path).length}
+          onRemove={canManage ? select(folder, openRemove) : undefined}
+          onLeaveOut={ownLibrary ? select(folder, openLeaveOut) : undefined}
         />
       ))}
       {canManage && (
@@ -79,12 +91,21 @@ export function LibraryFolderList({ owner, userId, username, canManage, onDialog
           <AddLibraryFolderModal opened={addOpened} onClose={closeAdd} userId={userId} username={username} />
           <RemoveLibraryFolderModal
             opened={removeOpened}
-            folder={toRemove}
+            folder={selected}
             onClose={closeRemove}
             userId={userId}
             username={username}
           />
         </>
+      )}
+      {ownLibrary && (
+        <ExcludeSubfoldersModal
+          opened={leaveOutOpened}
+          onClose={closeLeaveOut}
+          folder={selected}
+          savedExcluded={excluded}
+          username={username}
+        />
       )}
     </Stack>
   );

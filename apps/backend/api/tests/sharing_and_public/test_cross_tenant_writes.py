@@ -128,6 +128,14 @@ NOT_PHOTO_SCOPED = {
         "(photos_outside_library is owner-scoped; test_outside_library)"
     ),
     "api/dirtree/folders/": "admin-only; makes a folder on disk, touches no rows",
+    "api/library-folders/excluded/": (
+        "the requester's own excluded folders; each must lie in their own "
+        "library (test_excluded_folders)"
+    ),
+    "api/library-folders/trash-outside/": (
+        "trashes only the requester's own photos outside their library "
+        "(photos_outside_library is owner-scoped; test_excluded_folders)"
+    ),
     "api/manage/user/<int:user_id>/library-folders/": (
         "admin-only; adds a library folder to the named user, refusing one that "
         "overlaps another user's folders (test_library_folders)"

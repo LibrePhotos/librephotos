@@ -1760,7 +1760,18 @@
     "removetrash_other": "Also move its {{count}} photos to {{username}}'s trash",
     "removeconfirm": "Remove folder",
     "dialogheader": "Library folders",
-    "dialoghint": "Further folders that scans read besides the scan directory. Adding or removing one applies right away."
+    "dialoghint": "Further folders that scans read besides the scan directory. Adding or removing one applies right away.",
+    "leaveout": "Leave out subfolders…",
+    "leftoutcount_one": "{{count}} subfolder left out",
+    "leftoutcount_other": "{{count}} subfolders left out",
+    "leaveouttitle": "Leave out subfolders",
+    "leaveoutexplanation": "Untick a folder to leave it and everything in it out of your library. Scans skip it; its files stay on disk. The numbers are photos already in your library.",
+    "leaveoutimpact": "Photos already imported from the folders you leave out stay in your library until you move them to the trash.",
+    "leaveouttrash": "Also move my photos outside my library to the trash",
+    "leftout": "Left out",
+    "showsubfolders": "Show the subfolders of {{name}}",
+    "nosubfolders": "No subfolders.",
+    "truncated": "Only the first 500 folders are listed."
   },
   "modalscandirectoryedit": {
     "header": "Set the scan directory for user",

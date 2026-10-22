@@ -500,6 +500,18 @@ urlpatterns = [
     ),
     path("api/library-folders/", library_folders.OwnLibraryFoldersView.as_view()),
     path(
+        "api/library-folders/excluded/",
+        library_folders.OwnExcludedFoldersView.as_view(),
+    ),
+    path(
+        "api/library-folders/subfolders/",
+        library_folders.OwnLibrarySubfoldersView.as_view(),
+    ),
+    path(
+        "api/library-folders/trash-outside/",
+        library_folders.TrashOwnPhotosOutsideLibraryView.as_view(),
+    ),
+    path(
         "api/manage/user/<int:user_id>/library-folders/",
         library_folders.ManageLibraryFoldersView.as_view(),
         name="manage_user_library_folders",

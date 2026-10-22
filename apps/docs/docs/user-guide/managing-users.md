@@ -50,6 +50,8 @@ The rules for scan directories hold for every library folder: a folder may not b
 
 A folder that cannot be read (an unplugged disk) is shown as **Not found** and skipped by scans; its photos are not marked missing.
 
+Every user can also leave subfolders out of their own library, from the **Library** page; see [Leaving subfolders out](./library.md#leaving-subfolders-out).
+
 To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md). [Sharing photos in a family](./sharing.md#sharing-photos-in-a-family) compares the setups a household can use.
 
 While the application saves metadata (e.g., tags, albums, facial recognition data) on a per-user basis in its database, it doesn’t inherently restrict access to the photos themselves. Access permissions must be managed through the file system / paths.

@@ -2,7 +2,12 @@
  * #123: the folders of a library as rows. Everyone sees theirs; admins add a folder through the
  * folder picker and remove a further one, optionally moving its photos to the user's trash.
  */
-import type { LibraryFolderEntry, LibraryFolders } from "@librephotos/api-client";
+import type {
+  ExcludedFoldersSaved,
+  LibraryFolderEntry,
+  LibraryFolders,
+  LibrarySubfolder,
+} from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -13,6 +18,7 @@ import { click, dialogButton, openDialog, setUpMantineDom } from "../modals/conf
 import { LibraryFolderList } from "./LibraryFolderList";
 
 type MutateOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
+type SaveOptions = { onSuccess?: (saved: ExcludedFoldersSaved) => void };
 
 const stubs = vi.hoisted(() => ({
   query: {
@@ -26,6 +32,10 @@ const stubs = vi.hoisted(() => ({
   add: vi.fn<(path: string, options: MutateOptions) => void>(),
   remove: vi.fn<(folderId: number, options: MutateOptions) => void>(),
   trash: vi.fn<(variables: { userId: number; username: string; count: number }) => void>(),
+  excluded: [] as string[],
+  subfolders: {} as Record<string, LibrarySubfolder[]>,
+  saveExcluded: vi.fn<(paths: string[], options: SaveOptions) => void>(),
+  trashOwn: vi.fn<(variables: { username: string; count: number }) => void>(),
 }));
 
 vi.mock("../../api_client/user/hooks/useLibraryFolders", () => ({
@@ -39,6 +49,16 @@ vi.mock("../../api_client/user/hooks/useLibraryFolders", () => ({
 vi.mock("../../api_client/jobs/hooks/useTrashPhotosOutsideLibraryMutation", () => ({
   useTrashPhotosOutsideLibraryMutation: () => ({ mutate: stubs.trash }),
 }));
+vi.mock("../../api_client/user/hooks/useExcludedFolders", () => ({
+  useLibrarySubfoldersQuery: (path: string) => ({
+    data: { path, subfolders: stubs.subfolders[path] ?? [], truncated: false },
+    isError: false,
+    isFetching: false,
+    refetch: () => Promise.resolve(),
+  }),
+  useSetExcludedFoldersMutation: () => ({ mutate: stubs.saveExcluded, isPending: false }),
+  useTrashOwnPhotosOutsideLibraryMutation: () => ({ mutate: stubs.trashOwn }),
+}));
 vi.mock("../../api_client/folders/hooks", () => ({ useFetchDirsQuery: () => ({ data: undefined }) }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
@@ -51,15 +71,19 @@ const USB: LibraryFolderEntry = { id: 4, path: "/mnt/usb", kind: "folder", avail
 let container: HTMLElement;
 let unmount: (() => Promise<void>) | undefined;
 
-async function render(canManage: boolean, folders: LibraryFolderEntry[] = [MAIN, FAMILY, USB]) {
-  stubs.query = { ...stubs.query, data: { folders } };
+async function render(
+  canManage: boolean,
+  folders: LibraryFolderEntry[] = [MAIN, FAMILY, USB],
+  owner: number | "self" = "self"
+) {
+  stubs.query = { ...stubs.query, data: { folders, excluded_folders: stubs.excluded } };
   container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () =>
     root.render(
       <MantineProvider env="test">
-        <LibraryFolderList owner="self" userId={7} username="anna" canManage={canManage} />
+        <LibraryFolderList owner={owner} userId={7} username="anna" canManage={canManage} />
       </MantineProvider>
     )
   );
@@ -89,6 +113,10 @@ beforeEach(() => {
   stubs.add.mockReset();
   stubs.remove.mockReset();
   stubs.trash.mockReset();
+  stubs.excluded = [];
+  stubs.subfolders = {};
+  stubs.saveExcluded.mockReset();
+  stubs.trashOwn.mockReset();
 });
 
 afterEach(async () => {
@@ -186,5 +214,53 @@ describe("LibraryFolderList", () => {
 
     expect(container.textContent).toContain("No library folders yet.");
     expect(button("Add folder").getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("says how many subfolders a folder leaves out (#791)", async () => {
+    stubs.excluded = ["/data/family/trip", "/data/family/old/2001"];
+    await render(false);
+
+    expect(container.textContent).toContain("2 subfolders left out");
+  });
+
+  it("leaves a subfolder out and moves the photos outside the library to the trash when asked", async () => {
+    stubs.subfolders["/data/family"] = [
+      { name: "trip", path: "/data/family/trip", excluded: false, has_subfolders: false, photo_count: 4 },
+      { name: "xmas", path: "/data/family/xmas", excluded: false, has_subfolders: false, photo_count: 1 },
+    ];
+    stubs.saveExcluded.mockImplementation((_paths, options) =>
+      options.onSuccess?.({ folders: [], excluded_folders: ["/data/family/trip"], outside_count: 4 })
+    );
+    await render(false);
+
+    await openRowMenu(1);
+    await click(menuItem("Leave out subfolders…"));
+    const dialog = defined(openDialog());
+    const trip = defined(
+      [...dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(box =>
+        box.closest("li")?.textContent?.includes("trip")
+      )
+    );
+    expect(trip.checked).toBe(true);
+    await click(trip);
+    expect(openDialog()?.textContent).toContain("stay in your library until you move them to the trash");
+    const trash = defined(
+      [...defined(openDialog()).querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+        box => !box.closest("li")
+      )
+    );
+    await click(trash);
+    await click(dialogButton("Save"));
+
+    expect(stubs.saveExcluded).toHaveBeenCalledWith(["/data/family/trip"], expect.anything());
+    expect(stubs.trashOwn).toHaveBeenCalledWith({ username: "anna", count: 4 });
+  });
+
+  it("offers no Leave out in another user's list", async () => {
+    await render(true, [MAIN, FAMILY], 7);
+
+    await openRowMenu(1);
+    expect(document.body.textContent).toContain("Remove…");
+    expect(document.body.textContent).not.toContain("Leave out subfolders…");
   });
 });

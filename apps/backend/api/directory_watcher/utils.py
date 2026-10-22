@@ -6,7 +6,7 @@ import copy
 import logging
 import os
 import stat
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 from uuid import UUID
 
@@ -15,6 +15,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from api.models import LongRunningJob
+from api.photos.paths import is_valid_path
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,9 @@ class SkippedDirectory(NamedTuple):
     error: str
 
 
-def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory]:
+def walk_directory(
+    directory: str, callback: list[str], excluded: Sequence[str] = ()
+) -> list[SkippedDirectory]:
     """
     Recursively walk a directory and collect file paths.
 
@@ -116,14 +119,18 @@ def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory
     scan. The scan root is not: if it cannot be listed the library itself is
     unavailable, and the ``OSError`` propagates.
 
+    A folder the user left out of their library (``excluded``, #791) is not
+    walked, nor is anything below it.
+
     Args:
         directory: Directory to scan
         callback: List to append file paths to
+        excluded: Folders not to walk
 
     Returns:
         The subdirectories that were skipped because they could not be listed.
     """
-    walk = _DirectoryWalk(callback, skip_patterns())
+    walk = _DirectoryWalk(callback, skip_patterns(), excluded)
     walk.walk_entries(directory, _list_directory(directory))
     return walk.skipped
 
@@ -155,9 +162,12 @@ def _list_directory(directory: str) -> tuple[_DirectoryIdentity, list[str]]:
 class _DirectoryWalk:
     """The state of one ``walk_directory`` call."""
 
-    def __init__(self, callback: list[str], skip_list: list[str]) -> None:
+    def __init__(
+        self, callback: list[str], skip_list: list[str], excluded: Sequence[str] = ()
+    ) -> None:
         self.callback = callback
         self.skip_list = skip_list
+        self.excluded = excluded
         # The directories on the current path, to cut symlink loops.
         self.ancestors: set[_DirectoryIdentity] = set()
         self.skipped: list[SkippedDirectory] = []
@@ -173,9 +183,15 @@ class _DirectoryWalk:
             return
         self.walk_entries(directory, listing)
 
+    def left_out(self, path: str) -> bool:
+        """Whether the walk passes ``path`` by: hidden, a skip pattern, left out."""
+        if is_hidden(path) or should_skip(path, self.skip_list):
+            return True
+        return any(is_valid_path(path, folder) for folder in self.excluded)
+
     def walk_named_directory(self, directory: str) -> None:
         """Walk a folder a scan of chosen paths names, as the library walk would."""
-        if is_hidden(directory) or should_skip(directory, self.skip_list):
+        if self.left_out(directory):
             logger.info("not walking a hidden or skipped folder a scan names")
             return
         self.walk_subdirectory(directory)
@@ -193,7 +209,7 @@ class _DirectoryWalk:
         self.ancestors.add(identity)
         try:
             for fpath in paths:
-                if is_hidden(fpath) or should_skip(fpath, self.skip_list):
+                if self.left_out(fpath):
                     continue
                 if os.path.isdir(fpath):
                     self.walk_subdirectory(fpath)
@@ -208,7 +224,9 @@ class _DirectoryWalk:
             self.ancestors.discard(identity)
 
 
-def walk_files(scan_files: list[str], callback: list[str]) -> list[SkippedDirectory]:
+def walk_files(
+    scan_files: list[str], callback: list[str], excluded: Sequence[str] = ()
+) -> list[SkippedDirectory]:
     """Collect the files of a scan of chosen paths, each once.
 
     A file is taken as it is. A folder is walked as a folder of the library
@@ -217,18 +235,22 @@ def walk_files(scan_files: list[str], callback: list[str]) -> list[SkippedDirect
     listed, or a subfolder of it, is skipped and returned: it does not fail
     the scan.
 
+    Nothing in a folder the user left out of their library (``excluded``,
+    #791) is taken.
+
     Args:
         scan_files: The paths to scan, files and folders
         callback: List to append the file paths to
+        excluded: Folders whose files are not taken
 
     Returns:
         The folders that were skipped because they could not be listed.
     """
-    walk = _DirectoryWalk([], skip_patterns())
+    walk = _DirectoryWalk([], skip_patterns(), excluded)
     for fpath in scan_files:
         if os.path.isdir(fpath):
             walk.walk_named_directory(fpath)
-        elif os.path.isfile(fpath):
+        elif os.path.isfile(fpath) and not walk.left_out(fpath):
             walk.callback.append(fpath)
     # A file named on its own and inside a named folder is read once.
     callback.extend(dict.fromkeys(walk.callback))

@@ -45,6 +45,7 @@ from api.photos.naming import (
 from api.photos.paths import (
     is_nextcloud_copy,
     is_valid_path,
+    library_of,
     library_roots,
     nextcloud_media_root,
 )
@@ -77,7 +78,7 @@ class InvalidTargetError(Exception):
     """The target folder is not one the user may move photos to.
 
     ``code`` is what the API answers (``no_library``, ``outside_library``,
-    ``hidden_folder``, ``not_a_folder``).
+    ``hidden_folder``, ``excluded_folder``, ``not_a_folder``).
     """
 
     def __init__(self, code: str, message: str) -> None:
@@ -135,6 +136,11 @@ def resolve_target(user: User, target_folder: str) -> str:
     if _hidden_below(target, root):
         raise InvalidTargetError(
             "hidden_folder", "The scan skips this folder: photos in it would be lost."
+        )
+    if library_of(user).is_excluded(target):
+        raise InvalidTargetError(
+            "excluded_folder",
+            "You left this folder out of your library: photos in it would be outside it.",
         )
     if os.path.lexists(target) and not os.path.isdir(target):
         raise InvalidTargetError("not_a_folder", "This is a file, not a folder.")
@@ -496,7 +502,7 @@ class FolderListing:
     truncated: bool = False
 
 
-def _visible_subfolders(path: str, root: str, skip_list: list[str]) -> list[str]:
+def visible_subfolders(path: str, root: str, skip_list: list[str]) -> list[str]:
     """The folders in ``path`` the scan walks into and that stay inside ``root``.
 
     ``skip_list`` is the parsed ``SKIP_PATTERNS`` (``skip_patterns``).
@@ -523,7 +529,7 @@ def _folder(path: str, root: str, skip_list: list[str]) -> LibraryFolder:
         # A drive or share root has no last part: its path is its name.
         name=os.path.basename(path) or path,
         path=path,
-        has_subfolders=bool(_visible_subfolders(path, root, skip_list)),
+        has_subfolders=bool(visible_subfolders(path, root, skip_list)),
     )
 
 
@@ -543,7 +549,12 @@ def library_folders(user: User, path: str | None = None) -> FolderListing:
         raise InvalidTargetError("not_a_folder", "The folder does not exist.")
     root = root_of(user, folder)
     assert root is not None  # resolve_target found it
-    children = _visible_subfolders(folder, root, skip_list)
+    library = library_of(user)
+    children = [
+        child
+        for child in visible_subfolders(folder, root, skip_list)
+        if not library.is_excluded(child)
+    ]
     return FolderListing(
         folder,
         [_folder(child, root, skip_list) for child in children[:MAX_LISTED_FOLDERS]],

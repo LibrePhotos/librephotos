@@ -58,7 +58,7 @@ from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
 from api.photos import indexed_mtimes
 from api.photos.files import detach_missing_files, missing_files
 from api.photos.media_files import is_metadata
-from api.photos.paths import is_valid_path, library_folder_paths
+from api.photos.paths import excluded_folders, is_valid_path, library_folder_paths
 from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import semantic_shares_tagger
@@ -393,20 +393,21 @@ def _scan_roots(user: User, scan_directory: str, scan_files: list[str]) -> _Scan
 
 
 def _discover_scan_paths(
-    roots: list[str], scan_files: list[str]
+    roots: list[str], scan_files: list[str], excluded: list[str]
 ) -> tuple[list[str], list[SkippedDirectory]]:
     """Collect every candidate file path, either from an explicit list or a walk.
 
     Also returns the subdirectories the walk had to skip because they could
     not be listed. A folder in the explicit list is walked (#2727); without a
-    list, every folder of ``roots`` is.
+    list, every folder of ``roots`` is. Nothing below a folder the user left
+    out of their library (``excluded``, #791) is collected.
     """
     photo_list: list[str] = []
     if scan_files:
-        return photo_list, walk_files(scan_files, photo_list)
+        return photo_list, walk_files(scan_files, photo_list, excluded=excluded)
     skipped: list[SkippedDirectory] = []
     for root in roots:
-        skipped += walk_directory(root, photo_list)
+        skipped += walk_directory(root, photo_list, excluded=excluded)
     return photo_list, skipped
 
 
@@ -818,7 +819,9 @@ def scan_photos(
             )
             lrj.fail(error=scan_roots.problem)
             return
-        photo_list, skipped = _discover_scan_paths(scan_roots.roots, scan_files)
+        photo_list, skipped = _discover_scan_paths(
+            scan_roots.roots, scan_files, excluded_folders(user)
+        )
         files_found = len(photo_list)
         last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_SCAN_PHOTOS)
 

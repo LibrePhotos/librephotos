@@ -38,7 +38,7 @@ class LibraryFolderEntry(TypedDict):
     photo_count: int
 
 
-def _photo_counts(user: User, roots: list[str]) -> list[int]:
+def photo_counts(user: User, roots: list[str]) -> list[int]:
     """The user's photos below each of ``roots``, outside the trash, in one query."""
     if not roots:
         return []
@@ -67,7 +67,7 @@ def library_folder_entries(user: User) -> list[LibraryFolderEntry]:
         path: pk
         for pk, path in LibraryFolder.objects.owned_by(user).values_list("pk", "path")
     }
-    counts = _photo_counts(user, roots)
+    counts = photo_counts(user, roots)
     entries: list[LibraryFolderEntry] = []
     for index, (root, count) in enumerate(zip(roots, counts)):
         kind = _kind(index, root, folder_ids)

@@ -39,6 +39,18 @@ class LibraryScanTest(ScanPhotosCharacterizationBase):
         self.assertTrue(self.job().result[LongRunningJob.LIBRARY_SCAN])
         self.assertEqual(len(res["tasks"].find(scan_jobs.scan_missing_photos)), 1)
 
+    def test_the_walk_skips_the_folders_left_out(self):
+        """#791: every walk of the scan gets the user's left-out folders."""
+        left_out = os.path.join(self.extra, "trip")
+        create_test_library_folder(self.user, self.extra)
+        self.user.excluded_folders = [left_out]
+        self.user.save(update_fields=["excluded_folders"])
+
+        res = self.run_scan()
+
+        for call in res["walk_directory"].call_args_list:
+            self.assertEqual(call.kwargs["excluded"], [left_out])
+
     def test_a_scan_of_another_folder_walks_only_that_folder(self):
         create_test_library_folder(self.user, self.extra)
         other = os.path.join(self.media_root.name, "other")

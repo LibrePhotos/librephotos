@@ -987,6 +987,40 @@ export async function removeLibraryFolder(
   return parseResponse(S.LibraryFolders, res, "remove library folder");
 }
 
+/**
+ * Leave `excludedFolders` out of the signed-in user's library (#791), replacing the list. A 400
+ * names `excluded_folders` for a folder outside the library. Returns the library and how many of
+ * the user's photos are now outside it.
+ */
+export async function setExcludedFolders(
+  client: ApiClient,
+  excludedFolders: string[]
+): Promise<S.ExcludedFoldersSaved> {
+  const res = await client.request<unknown>("/library-folders/excluded/", {
+    method: "PUT",
+    body: { excluded_folders: excludedFolders },
+  });
+  return parseResponse(S.ExcludedFoldersSaved, res, "excluded folders");
+}
+
+/** The folders inside `path`, a folder of the signed-in user's library (#791). */
+export async function fetchLibrarySubfolders(client: ApiClient, path: string): Promise<S.LibrarySubfolders> {
+  const res = await client.get<unknown>(`/library-folders/subfolders/${buildQuery({ path })}`);
+  return parseResponse(S.LibrarySubfolders, res, "library subfolders");
+}
+
+/** Move the signed-in user's photos outside their library to their trash, as a job (#791). */
+export async function trashOwnPhotosOutsideLibrary(
+  client: ApiClient
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    "/library-folders/trash-outside/",
+    S.JobStartedResponse,
+    "trash own photos outside the library"
+  );
+}
+
 /** Trigger a full library rescan. */
 export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/fullscanphotos/", S.JobTriggerResponse, "full scan photos");

@@ -104,7 +104,7 @@ class ScanPhotosCharacterizationBase(TestCase):
         walk_result = walk_result or []
         recorder = TaskRecorder(self.tasks)
 
-        def fake_walk(target, photo_list):
+        def fake_walk(target, photo_list, excluded=()):
             if walk_directory_side_effect is not None:
                 raise walk_directory_side_effect
             photo_list.extend(walk_result)
