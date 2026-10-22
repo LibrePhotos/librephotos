@@ -1,5 +1,4 @@
 import {
-  Anchor,
   Button,
   Card,
   Center,
@@ -22,6 +21,7 @@ import { useIsAuthenticatedQuery, useLoginMutation, useSsoConfigQuery } from "..
 import { useGetSettingsQuery } from "../../api_client/settings";
 import classes from "../../routes/auth.module.css";
 import { SIGN_IN_GRADIENT, SIGN_UP_GRADIENT } from "../../theme/brandGradients";
+import { RememberMeRow } from "./RememberMeRow";
 import { SsoErrorAlert } from "./SsoErrorAlert";
 
 type LoginFormProps = {
@@ -41,12 +41,19 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
     initialValues: {
       username: "",
       password: "",
+      rememberMe: false,
     },
   });
+  // An older server sends no day count and has no "Remember me".
+  const rememberMeDays = siteSettings?.remember_me_days ?? 0;
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    login({ username: form.values.username.toLowerCase(), password: form.values.password });
+    login({
+      username: form.values.username.toLowerCase(),
+      password: form.values.password,
+      remember_me: rememberMeDays > 0 && form.values.rememberMe,
+    });
   }
 
   if (isAuthenticated) {
@@ -99,14 +106,15 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
                   autoComplete="current-password"
                   {...form.getInputProps("password")}
                 />
+                <RememberMeRow
+                  rememberMeDays={rememberMeDays}
+                  rememberMe={form.values.rememberMe}
+                  onRememberMeChange={checked => form.setFieldValue("rememberMe", checked)}
+                  showForgotPassword={!!siteSettings?.email_configured}
+                />
                 <Button variant="gradient" gradient={SIGN_IN_GRADIENT} type="submit" loading={isLoading}>
                   {t("login.login")}
                 </Button>
-                {siteSettings?.email_configured && (
-                  <Anchor href="/password-reset" size="sm" ta="center">
-                    {t("passwordreset.forgotpassword")}
-                  </Anchor>
-                )}
                 {siteSettings && siteSettings.allow_registration && (
                   <Button
                     disabled={!siteSettings.allow_registration || isLoading}

@@ -27,7 +27,7 @@ from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
-from rest_framework import routers
+from rest_framework import routers, serializers
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,7 +36,7 @@ from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
-from rest_framework_simplejwt.tokens import Token
+from rest_framework_simplejwt.tokens import RefreshToken, Token
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     TokenObtainPairView,
@@ -45,6 +45,11 @@ from rest_framework_simplejwt.views import (
 
 from api.accounts.cookies import clear_auth_cookies, set_auth_cookies
 from api.accounts.throttling import SignInRateThrottle, TokenRefreshRateThrottle
+from api.accounts.tokens import (
+    RememberMeRefreshToken,
+    remember_me_days,
+    remembered_max_age,
+)
 from api.models import User
 from api.views import (
     album_auto,
@@ -95,10 +100,21 @@ from nextcloud import views as nextcloud_views
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    remember_me = serializers.BooleanField(
+        required=False,
+        default=False,
+        write_only=True,
+        help_text="Stay signed in: a refresh token for REMEMBER_ME_DAYS instead of"
+        " REFRESH_TOKEN_DAYS, and auth cookies that outlive the browser session."
+        " Ignored when REMEMBER_ME_DAYS is 0.",
+    )
+
     @classmethod
     def get_token(cls, user: AuthUser) -> Token:
-        token = super(TokenObtainPairSerializer, cls).get_token(user)
+        return cls.with_user_claims(RefreshToken.for_user(user), user)
 
+    @staticmethod
+    def with_user_claims(token: RefreshToken, user: AuthUser) -> RefreshToken:
         # The custom claims below are api.User fields; every caller passes one.
         assert isinstance(user, User)
         token["name"] = user.get_username()
@@ -114,6 +130,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, str]:
+        # TokenObtainSerializer.validate checks the credentials and sets self.user
+        # (or raises); the pair is built here, not in TokenObtainPairSerializer,
+        # so "Remember me" can pick the refresh token class. UPDATE_LAST_LOGIN
+        # is off, so its last_login write is left out.
+        super(TokenObtainPairSerializer, self).validate(attrs)
+        user = self.user
+        assert user is not None
+        remember = attrs.get("remember_me") and remember_me_days() > 0
+        token_class = RememberMeRefreshToken if remember else RefreshToken
+        refresh = self.with_user_claims(token_class.for_user(user), user)
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -125,7 +154,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        set_auth_cookies(response, request, access=response.data["access"])
+        access = response.data["access"]
+        set_auth_cookies(
+            response, request, access=access, max_age=remembered_max_age(access)
+        )
         return response
 
 
@@ -139,7 +171,12 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        set_auth_cookies(response, request, access=response.data["access"])
+        # The access token carries the sign-in's remember_until claim, so a
+        # remembered session keeps its persistent jwt cookie on every refresh.
+        access = response.data["access"]
+        set_auth_cookies(
+            response, request, access=access, max_age=remembered_max_age(access)
+        )
         return response
 
 

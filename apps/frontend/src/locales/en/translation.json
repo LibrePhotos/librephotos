@@ -1274,6 +1274,9 @@
     "errorusernameexists": "A user with that username already exists.",
     "erroremail": "Enter a valid email address.",
     "tagline": "A comfy place for your photos.",
+    "rememberme": "Remember me",
+    "remembermehint_one": "Stay signed in on this browser for {{count}} day. Leave it off on a shared computer.",
+    "remembermehint_other": "Stay signed in on this browser for {{count}} days. Leave it off on a shared computer.",
     "firsttimesetup": "First time setup",
     "setupdatadirectory": "Choose your scan directory",
     "sso": {

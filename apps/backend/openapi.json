@@ -12677,6 +12677,12 @@
       "CustomTokenObtainPairRequest": {
         "type": "object",
         "properties": {
+          "remember_me": {
+            "type": "boolean",
+            "writeOnly": true,
+            "default": false,
+            "description": "Stay signed in: a refresh token for REMEMBER_ME_DAYS instead of REFRESH_TOKEN_DAYS, and auth cookies that outlive the browser session. Ignored when REMEMBER_ME_DAYS is 0."
+          },
           "username": {
             "type": "string",
             "writeOnly": true,
@@ -21464,6 +21470,10 @@
           "email_configured": {
             "type": "boolean"
           },
+          "remember_me_days": {
+            "type": "integer",
+            "description": "Days a sign-in with Remember me lasts (REMEMBER_ME_DAYS); 0 means the login page does not offer it. Sent to everyone: the login page reads it."
+          },
           "oidc_enabled": {
             "type": "boolean"
           },
@@ -21532,6 +21542,7 @@
           "oidc_allow_signup",
           "oidc_button_label",
           "oidc_enabled",
+          "remember_me_days",
           "scan_missing_max_fraction",
           "skip_patterns",
           "tagging_model",

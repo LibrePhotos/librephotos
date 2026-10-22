@@ -62,6 +62,17 @@ The basic idea is this:
 - For scanning photos that reside in external Nextcloud instances
   - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.
 
+### Staying Signed In
+<Since version="1.5.0" />
+
+The login page has a **Remember me** checkbox under the password. Leave it off and you are signed out when you close the browser, or after 7 days at the latest. Tick it and this browser keeps you signed in for 30 days, also after a restart; when you tick it, the page says for how many days. Only tick it on your own device, not on a shared computer.
+
+- **Log out** (in the menu under your avatar) ends a remembered sign-in on that browser right away.
+- A remembered sign-in does not get longer by using it: after the 30 days you sign in again.
+- Some browsers restore your last session when they start, and keep you signed in even without **Remember me**. That is a browser setting.
+- Single sign-on (the buttons under "or") always works like a sign-in without **Remember me**.
+- An admin can change both lifetimes, or remove the checkbox, with `REFRESH_TOKEN_DAYS` and `REMEMBER_ME_DAYS` (see [Sign-in sessions](../installation/environment-variables.md#sign-in-sessions)).
+
 ### How to Change Your Scan Directory
 
 Click on your avatar in the top right, and go to `Admin Area`. On this page, it will show a list of users. Manually set the `Scan Directory` for the desired user. Only an admin can do this.
