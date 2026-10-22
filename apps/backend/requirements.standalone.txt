@@ -3,7 +3,7 @@
 # the frontend build from the binary the way the unified image does, pinned once
 # in requirements.unified.txt.
 -r requirements.unified.txt
-nuitka==4.3
+nuitka==4.3.1
 # Nuitka (4.2.2 too) reads lazy_loader._StubVisitor to follow scikit-image's
 # lazy imports; lazy_loader 0.6 moved it inside attach_stub(), and the build
 # crashes on skimage. Drop the pin once Nuitka handles 0.6.
