@@ -46,6 +46,10 @@ def email_is_configured() -> bool:
 
 
 class DynamicEmailBackend(BaseEmailBackend):
+    # The MAILERS alias this backend was built for. BaseEmailBackend.__init__
+    # sets it since Django 6.1; django-stubs 6.1.2 does not declare it yet.
+    alias: str | None
+
     def _delegate(self) -> BaseEmailBackend | None:
         from api.models.email_config import EmailConfig
 
