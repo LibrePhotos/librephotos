@@ -1,6 +1,6 @@
 """The exif sidecar's batched read against the real ExifTool.
 
-``highest_priority_values`` asks for every tag of every file in one command;
+``values_with_origins`` asks for every tag of every file in one command;
 it must give exactly what asking per tag and per file gave, including where
 ExifTool files a tag under another group or several groups.
 """
@@ -20,8 +20,8 @@ from api.metadata.photo_reader import EXIF_TAGS
 from api.metadata.tags import Tags
 from service.exif.main import (
     _attribute,
-    highest_priority_value,
-    highest_priority_values,
+    value_with_origin,
+    values_with_origins,
 )
 
 EXIFTOOL = shutil.which("exiftool")
@@ -53,6 +53,11 @@ ALL_TAGS = sorted(
     {value for name, value in vars(Tags).items() if name.isupper()} - WRITE_ONLY_TAGS
     | set(EXIF_TAGS)
 )
+
+
+def highest_priority_values(et, tags, files):
+    """The values ``values_with_origins`` reads, without their origins."""
+    return values_with_origins(et, tags, files)[0]
 
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
@@ -209,13 +214,13 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         ]
 
     def test_batched_equals_per_tag_for_every_tag_we_read(self):
+        # The values and the file each came from (#2772).
         for et in (self.plain, self.struct):
             for files in self.cases():
                 with self.subTest(files=files, struct=et is self.struct):
-                    expected = [highest_priority_value(et, t, files) for t in ALL_TAGS]
-                    self.assertEqual(
-                        highest_priority_values(et, ALL_TAGS, files), expected
-                    )
+                    expected = [value_with_origin(et, t, files) for t in ALL_TAGS]
+                    values, origins = values_with_origins(et, ALL_TAGS, files)
+                    self.assertEqual(list(zip(values, origins)), expected)
 
     def test_the_fixture_is_not_trivially_empty(self):
         values = dict(

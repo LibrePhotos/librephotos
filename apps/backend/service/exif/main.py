@@ -54,7 +54,7 @@ log = logger("exif")
 
 def parse_get_tags_request() -> tuple[Any, ...] | None:
     try:
-        return json_fields("files_by_reverse_priority", "tags", "struct")
+        return json_fields("files_by_reverse_priority", "tags", "struct", origins=False)
     except MalformedRequest:
         return None
 
@@ -90,17 +90,25 @@ def _with_equivalents(tags: list[str]) -> list[str]:
     return tags + [name for name in dict.fromkeys(extra) if name not in tags]
 
 
-def highest_priority_value(
+# What ``values_with_origins`` answers: the value of each requested tag, and
+# the index in ``files_by_reverse_priority`` of the file it came from (None
+# where no file has the tag).
+ValuesWithOrigins = tuple[list[object], list[int | None]]
+
+
+def value_with_origin(
     et: exiftool.ExifTool, tag: str, files_by_reverse_priority: list[str]
-) -> object:
+) -> tuple[object, int | None]:
+    """*tag* asked per file, the last file that has it winning, and that file's index."""
     value: object = None
-    for file in files_by_reverse_priority:
+    origin: int | None = None
+    for index, file in enumerate(files_by_reverse_priority):
         for name in _names_in(file, tag):
             retrieved_value = et.get_tag(name, file)
             if retrieved_value is not None:
-                value = retrieved_value
+                value, origin = retrieved_value, index
                 break
-    return value
+    return value, origin
 
 
 def _split_tag(tag: str) -> tuple[str, str]:
@@ -192,14 +200,15 @@ def _file_values(
     return values
 
 
-def highest_priority_values(
+def values_with_origins(
     et: exiftool.ExifTool, tags: list[str], files_by_reverse_priority: list[str]
-) -> list[object]:
-    """Every requested tag from every file in one ExifTool command.
+) -> ValuesWithOrigins:
+    """Every requested tag from every file in one ExifTool command, with the
+    index of the file each value came from.
 
     A command costs ExifTool ~15 ms whether it reads one tag or thirty, so
     asking per tag and per file made metadata the slowest part of a scan.
-    A later file overrides an earlier one, as with ``highest_priority_value``.
+    A later file overrides an earlier one, as with ``value_with_origin``.
     The sidecar names of the tags ride along in the same command; only a
     sidecar's answer to them is used.
     """
@@ -208,23 +217,29 @@ def highest_priority_values(
     if len(per_file) != len(files_by_reverse_priority):
         # ExifTool leaves out a file it cannot read, so the answers no longer
         # line up with the files; ask per tag and per file as before.
-        return [
-            highest_priority_value(et, tag, files_by_reverse_priority) for tag in tags
-        ]
+        found = [value_with_origin(et, tag, files_by_reverse_priority) for tag in tags]
+        return [value for value, _ in found], [origin for _, origin in found]
     values: list[object] = [None] * len(tags)
-    for file, data in zip(files_by_reverse_priority, per_file):
+    origins: list[int | None] = [None] * len(tags)
+    for origin, (file, data) in enumerate(zip(files_by_reverse_priority, per_file)):
         for index, value in enumerate(_file_values(et, tags, file, data, requested)):
             if value is not None:
-                values[index] = value
-    return values
+                values[index], origins[index] = value, origin
+    return values, origins
 
 
 @app.route("/get-tags", methods=["POST"])
 def get_tags() -> ResponseReturnValue:
+    """The value of each requested tag, the highest-priority file's winning.
+
+    With ``"origins": true`` the answer also says, per tag, the index in
+    ``files_by_reverse_priority`` of the file the value came from (None where
+    no file has it): 0 is the media file, a higher one a sidecar (#2772).
+    """
     payload = parse_get_tags_request()
     if payload is None:
         return "", 400
-    files_by_reverse_priority, tags, struct = payload
+    files_by_reverse_priority, tags, struct, with_origins = payload
 
     # A line break in a path would inject ExifTool options into the argument
     # stream just as a bad tag would. Paths are not user-typed, so a line
@@ -251,21 +266,27 @@ def get_tags() -> ResponseReturnValue:
         log.warning("ignoring unsafe tag name(s): %s", dropped)
     safe_tags = [tag for tag, ok in zip(tags, safe) if ok]
 
-    if not safe_tags or not files_by_reverse_priority:
-        return {"values": [None] * len(tags)}, 200
+    found: ValuesWithOrigins = ([], [])
+    if safe_tags and files_by_reverse_priority:
+        try:
+            found = values_with_origins(et, safe_tags, files_by_reverse_priority)
+        except Exception as exc:
+            # Not an empty answer: that reads as "no tags", and the photo would be
+            # stored without a date or location that a rescan never comes back for.
+            log.error("error reading tags from %s: %s", files_by_reverse_priority, exc)
+            return {"error": str(exc)}, 500
 
-    try:
-        safe_values = highest_priority_values(et, safe_tags, files_by_reverse_priority)
-    except Exception as exc:
-        # Not an empty answer: that reads as "no tags", and the photo would be
-        # stored without a date or location that a rescan never comes back for.
-        log.error("error reading tags from %s: %s", files_by_reverse_priority, exc)
-        return {"error": str(exc)}, 500
+    answer = {"values": _in_requested_order(safe, found[0])}
+    if with_origins:
+        answer["origins"] = _in_requested_order(safe, found[1])
+    return answer, 200
 
-    # Splice the safe-tag values back into the full requested order.
-    safe_value_iter = iter(safe_values)
-    values = [next(safe_value_iter) if ok else None for ok in safe]
-    return {"values": values}, 200
+
+def _in_requested_order(safe: list[bool], safe_answers: list[Any]) -> list[Any]:
+    """The answers for the safe tags spliced back into the requested order:
+    None for an unsafe tag, and for every tag when nothing was read."""
+    answers = iter(safe_answers)
+    return [next(answers, None) if ok else None for ok in safe]
 
 
 def _all_tags_path() -> str | None:

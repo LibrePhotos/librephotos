@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import SimpleTestCase
 
-from api.metadata.reader import MetadataReadError, get_metadata
+from api.metadata.reader import MetadataReadError, get_metadata, origins_of
 
 HTTP_POST = "api.runtime.sidecars.http.post"
 
@@ -71,8 +71,48 @@ class GetMetadataPaddingTest(SimpleTestCase):
                 "tags": ["EXIF:Make"],
                 "files_by_reverse_priority": ["/tmp/photo.jpg"],
                 "struct": False,
+                "origins": True,
             },
         )
+
+
+class GetMetadataOriginsTest(SimpleTestCase):
+    """The answer says where each value came from (#2772)."""
+
+    def _read(self, mock_post, answer, tags):
+        response = _values_response(answer["values"])
+        response.json.return_value = answer
+        mock_post.return_value = response
+        return get_metadata("/tmp/photo.jpg", tags=tags, sidecar_files=[])
+
+    @patch(HTTP_POST)
+    def test_the_values_carry_their_origins(self, mock_post):
+        values = self._read(
+            mock_post, {"values": ["a", None], "origins": [1, None]}, ["A", "B"]
+        )
+
+        self.assertEqual(["a", None], values)
+        self.assertEqual([1, None], origins_of(values))
+
+    @patch(HTTP_POST)
+    def test_an_answer_without_usable_origins_has_none(self, mock_post):
+        for answer in (
+            {"values": ["a"]},
+            {"values": ["a"], "origins": "1"},
+            {"values": ["a"], "origins": [0, 1]},
+        ):
+            with self.subTest(answer=answer):
+                self.assertEqual([], origins_of(self._read(mock_post, answer, ["A"])))
+
+    @patch(HTTP_POST)
+    def test_an_origin_that_is_not_a_number_is_none(self, mock_post):
+        values = self._read(
+            mock_post, {"values": [1, 2], "origins": [True, "0"]}, ["A", "B"]
+        )
+        self.assertEqual([None, None], origins_of(values))
+
+    def test_a_plain_list_does_not_say(self):
+        self.assertEqual([], origins_of([1, 2]))
 
 
 class GetMetadataFailureTest(SimpleTestCase):

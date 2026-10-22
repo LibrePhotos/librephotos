@@ -22,6 +22,7 @@ from api.metadata.reader import (
     MetadataReadError,
     existing_sidecars,
     get_metadata,
+    origins_of,
     sidecar_files_for_photo,
     sidecar_for_write,
 )
@@ -375,14 +376,6 @@ def _write_edit(
 
 # --------------------------------------------------------------------- keywords
 
-#: The keyword sources the scan merges (``merged_keywords_of``), by value name.
-FILE_KEYWORD_SOURCES = (
-    "xmp_subject",
-    "iptc_keywords",
-    "person_in_image",
-    "hierarchical_subject",
-)
-
 
 def write_keywords(photo: Photo, use_sidecar: bool, names: Collection[str]) -> None:
     """Make the file's keywords agree with the photo's tags ``names`` (#2289).
@@ -525,20 +518,24 @@ def _keyword_tags(
 def _remember_file_keywords(photo: Photo) -> None:
     """Store the keywords the file gives now as the photo's file keywords.
 
-    ``PhotoMetadata.keywords`` is what the file says. With write-back on, a
-    rescan only turns keywords into tags that the file did not give before
-    (``apply_file_values``), so a removed keyword the file still gives (an
-    ``IPTC:Keywords`` behind a sidecar, a ``HierarchicalSubject`` leaf) does
-    not come back as a tag.
+    ``PhotoMetadata.keywords`` is what the file says, read as the scan reads
+    it (``with_sidecar_keywords_only``). A rescan only turns keywords into
+    tags that the file did not give before (``apply_file_values``), so a
+    removed keyword the file still gives (a ``HierarchicalSubject`` leaf)
+    does not come back as a tag.
     """
-    from api.metadata.photo_reader import EXIF_FIELDS
+    from api.metadata.photo_reader import (
+        EXIF_FIELDS,
+        KEYWORD_SOURCES,
+        with_sidecar_keywords_only,
+    )
 
     assert photo.main_file is not None
     tag_of = dict(EXIF_FIELDS)
     try:
         values = get_metadata(
             photo.main_file.path,
-            tags=[tag_of[name] for name in FILE_KEYWORD_SOURCES],
+            tags=[tag_of[name] for name in KEYWORD_SOURCES],
             sidecar_files=sidecar_files_for_photo(photo),
         )
     except MetadataReadError as error:
@@ -548,7 +545,12 @@ def _remember_file_keywords(photo: Photo) -> None:
             error,
         )
         return
-    keywords = merged_keywords_of(dict(zip(FILE_KEYWORD_SOURCES, values)))
+    keywords = merged_keywords_of(
+        with_sidecar_keywords_only(
+            dict(zip(KEYWORD_SOURCES, values)),
+            dict(zip(KEYWORD_SOURCES, origins_of(values))),
+        )
+    )
     PhotoMetadata.objects.filter(photo=photo).update(
         keywords=keywords or None, updated_at=timezone.now()
     )

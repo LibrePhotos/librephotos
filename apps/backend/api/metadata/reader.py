@@ -4,6 +4,7 @@ import logging
 import os
 import os.path
 import stat
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import requests
@@ -154,7 +155,7 @@ def get_metadata(
     try_sidecar: bool = True,
     struct: bool = False,
     sidecar_files: list[str] | None = None,
-) -> list[Any]:
+) -> TagValues:
     """Get values for each metadata tag in *tags* from *media_file*.
     If *try_sidecar* is `True`, use the value set in any XMP sidecar file
     stored alongside *media_file*. *sidecar_files* (lowest priority first) replaces
@@ -167,6 +168,7 @@ def get_metadata(
     and a rescan never reads the unchanged file again. The scan records the
     raise as a failure of that one file.
 
+    The list also says where each value came from (``TagValues.origins``).
     """
     if sidecar_files is not None:
         files_by_reverse_priority = [media_file, *sidecar_files]
@@ -179,6 +181,7 @@ def get_metadata(
         "tags": tags,
         "files_by_reverse_priority": files_by_reverse_priority,
         "struct": struct,
+        "origins": True,
     }
     from api.runtime.http_timeouts import EXIF
 
@@ -186,7 +189,8 @@ def get_metadata(
     # (api.runtime.sidecars); what still fails here would fail again.
     try:
         response = sidecars.post("exif", "/get-tags", json=payload, timeout=EXIF)
-        values = response.json()["values"]
+        answer = response.json()
+        values = answer["values"]
     except (requests.RequestException, ValueError, KeyError, TypeError) as error:
         # ValueError covers JSONDecodeError (empty/non-JSON body); KeyError and
         # TypeError a body without a "values" list; RequestException timeouts,
@@ -204,7 +208,43 @@ def get_metadata(
     # to honor the documented one-value-per-tag contract.
     if len(values) < len(tags):
         values = list(values) + [None] * (len(tags) - len(values))
-    return values
+    return TagValues(values, _origins_in(answer, len(tags)))
+
+
+#: The origin (``TagValues.origins``) of a value read from the media file itself.
+MEDIA_FILE_ORIGIN = 0
+
+
+class TagValues(list[Any]):
+    """``get_metadata``'s answer: the value of each tag, in tag order.
+
+    ``origins`` says where each came from (#2772), in the same order: the
+    index of the file in ``files_by_reverse_priority``, so
+    ``MEDIA_FILE_ORIGIN`` for the media file itself and a higher number for
+    a sidecar, and None where no file has the tag. It is empty when the
+    exif service did not say.
+    """
+
+    def __init__(self, values: list[Any], origins: list[int | None]) -> None:
+        super().__init__(values)
+        self.origins = origins
+
+
+def origins_of(values: Sequence[object]) -> list[int | None]:
+    """Where each of ``values`` came from (``TagValues.origins``); empty for a
+    plain list, which does not say (a stand-in for ``get_metadata``)."""
+    return values.origins if isinstance(values, TagValues) else []
+
+
+def _origins_in(answer: dict[str, object], count: int) -> list[int | None]:
+    """The ``origins`` of an exif service answer, or none if it has no usable list."""
+    found = answer.get("origins")
+    if not isinstance(found, list) or len(found) != count:
+        return []
+    return [
+        origin if isinstance(origin, int) and not isinstance(origin, bool) else None
+        for origin in found
+    ]
 
 
 def all_tags(path: str) -> list[dict[str, object]]:
