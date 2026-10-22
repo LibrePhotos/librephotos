@@ -231,11 +231,9 @@ class LongRunningJob(models.Model):
     # What a run of these types needs on top of ``baselines()`` to be one. A
     # photo scan must have walked the whole library: a file-list scan or a
     # Nextcloud import says nothing about the files it did not look at
-    # (#2192). An OCR run must have had work: a disabled or empty run would
-    # otherwise make every photo added before it look done.
+    # (#2192).
     BASELINE_CONDITIONS: dict[int, models.Q] = {
         JOB_SCAN_PHOTOS: models.Q(**{f"result__{LIBRARY_SCAN}": True}),
-        JOB_GENERATE_OCR: models.Q(progress_target__gt=0),
     }
 
     job_type = models.PositiveIntegerField(

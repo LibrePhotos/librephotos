@@ -36,6 +36,7 @@ from api.models.duplicate import Duplicate
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
 from api.models.photo_metadata import MetadataEdit
+from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
@@ -265,6 +266,11 @@ def create_test_job(
 def create_test_upgrade_task_state(key: str, **kwargs: Any) -> UpgradeTaskState:
     """The row of the post-upgrade task ``key`` (``api.jobs.upgrade_tasks``), made now."""
     return UpgradeTaskState.objects.create(key=key, **kwargs)
+
+
+def create_test_photo_ocr(photo: Photo, **kwargs: Any) -> PhotoOcr:
+    """The OCR result of ``photo``: no text unless given, read by ``kwargs["engine"]``."""
+    return PhotoOcr.objects.create(photo=photo, **kwargs)
 
 
 def create_test_upload_followup_state(user: User, **kwargs: Any) -> UploadFollowupState:

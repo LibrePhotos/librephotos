@@ -141,6 +141,10 @@ class Photo(models.Model):
     # again would not change (#2199). None until then, and again after the
     # file is replaced: an incremental Scan Faces covers exactly those photos.
     faces_scanned_at = models.DateTimeField(null=True, blank=True)
+    # Failed OCR calls since the last success; at OCR_MAX_FAILURES the photo
+    # is left out of incremental OCR runs (#2736). An unreachable OCR
+    # service is not counted.
+    ocr_failures = models.PositiveSmallIntegerField(default=0)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)

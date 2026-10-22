@@ -31,7 +31,9 @@ from api.directory_watcher.missing_guard import (
 from api.directory_watcher.processing_jobs import (
     add_geolocation,
     generate_tags,
+    ocr_has_work,
     probe_videos,
+    queue_ocr_followup,
     scan_faces,
     videos_to_probe,
 )
@@ -703,6 +705,11 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
             )
         )
     enqueue_chain(user, steps, exclusive=False)
+
+    # While a model is selected, the photos still without text (#2736). A
+    # run already queued or running covers them.
+    if ocr_has_work(user):
+        queue_ocr_followup(user)
 
 
 def scan_photos(
