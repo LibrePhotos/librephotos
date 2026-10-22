@@ -79,9 +79,8 @@ class ResolveTargetTest(LibraryTestCase):
         self.addCleanup(os.rmdir, uploads)
         User.objects.filter(pk=self.user.pk).update(upload_directory=uploads)
         self.user.refresh_from_db()
-        self.assertEqual(
-            [self.root, os.path.normpath(uploads)], library_roots(self.user)
-        )
+        # As stored: the spelling the paths below it were recorded with.
+        self.assertEqual([self.root, uploads], library_roots(self.user))
         self.assertEqual(os.path.normpath(uploads), resolve_target(self.user, uploads))
 
 

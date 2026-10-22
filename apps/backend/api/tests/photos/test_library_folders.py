@@ -233,6 +233,20 @@ class LibraryFolderEntriesTest(LibraryFoldersTestBase):
         kinds = [entry["kind"] for entry in library_folder_entries(self.user)]
         self.assertEqual(kinds, ["main", "upload"])
 
+    def test_counts_by_the_spelling_the_scan_recorded(self):
+        """A prefix query only matches the stored spelling, not a normalised one."""
+        # Like C:/data\anna on Windows: no normalised prefix of it matches.
+        spelled = os.path.join(self.folder("other"), "..", "anna", "photos")
+        self.user.scan_directory = spelled
+        self.user.save(update_fields=["scan_directory"])
+        self.photo_at(self.user, spelled, "a.jpg")
+
+        entries = library_folder_entries(self.user)
+
+        self.assertEqual(
+            [(e["path"], e["photo_count"]) for e in entries], [(spelled, 1)]
+        )
+
     def test_nothing_without_a_scan_directory(self):
         self.assertEqual(library_folder_entries(create_test_user()), [])
 

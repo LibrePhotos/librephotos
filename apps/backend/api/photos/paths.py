@@ -44,31 +44,32 @@ def is_nextcloud_copy(path: str) -> bool:
     return is_valid_path(path, root) and not is_valid_path(root, path)
 
 
-def normalised_path(path: str) -> str:
-    return os.path.normpath(os.path.abspath(path))
-
-
 def library_folder_paths(user: User) -> list[str]:
-    """The further library folders of ``user`` (#123), normalised, in path order."""
+    """The further library folders of ``user`` (#123), in path order."""
     if user.pk is None:
         return []
     paths = LibraryFolder.objects.owned_by(user).order_by("path")
-    return [normalised_path(path) for path in paths.values_list("path", flat=True)]
+    return list(paths.values_list("path", flat=True))
 
 
 def library_roots(user: User) -> list[str]:
-    """The folders ``user``'s library lives in, absolute and normalised.
+    """The folders ``user``'s library lives in, absolute.
 
     The scan directory (the main folder) first, then the further library
     folders an admin added (#123), then the upload folder when it is set
     outside all of them (``User.upload_root``). Empty for a user without a
     scan directory. Scans, moves (#352) and every "is this in the library"
     check go by these. One query, for the further folders.
+
+    Each is spelled as it is stored, which is how the scan spelled the paths
+    it recorded below it (``C:/data\\2024`` on Windows): a prefix query such
+    as ``folder_path_q`` only matches that spelling. ``is_valid_path``
+    normalises both sides, so containment checks do not depend on it.
     """
     if not user.scan_directory:
         return []
-    roots = [normalised_path(user.scan_directory), *library_folder_paths(user)]
-    upload_root = normalised_path(user.upload_root())
+    roots = [user.scan_directory, *library_folder_paths(user)]
+    upload_root = user.upload_root()
     if not any(is_valid_path(upload_root, root) for root in roots):
         roots.append(upload_root)
     return roots

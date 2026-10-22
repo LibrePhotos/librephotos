@@ -21,7 +21,7 @@ from django.db.models import Count
 from api.accounts.directories import normalize_library_folder
 from api.directory_watcher.missing_guard import library_root_problem
 from api.models import LibraryFolder, Photo, User
-from api.photos.paths import folder_path_q, library_roots, normalised_path
+from api.photos.paths import folder_path_q, library_roots
 
 #: The main folder (the scan directory), a further folder, the upload folder.
 FolderKind = Literal["main", "folder", "upload"]
@@ -64,7 +64,7 @@ def library_folder_entries(user: User) -> list[LibraryFolderEntry]:
     """Every folder of ``user``'s library, the main folder first."""
     roots = library_roots(user)
     folder_ids = {
-        normalised_path(path): pk
+        path: pk
         for pk, path in LibraryFolder.objects.owned_by(user).values_list("pk", "path")
     }
     counts = _photo_counts(user, roots)
