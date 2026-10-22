@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.48027c8a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.7485ab77.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -68,6 +68,7 @@ On the first chunk leave <code>upload_id</code> empty, you will get a response w
 <ul>
 <li class="">Writes the assembled file to <code>&lt;upload root&gt;/web/&lt;sanitized filename&gt;</code>. The upload root is the user&#x27;s upload folder when an admin set one, otherwise <code>&lt;scan_directory&gt;/uploads</code> (<code>User.upload_root()</code>). The <code>web/</code> subfolder is created if missing; <code>web</code> is currently hardcoded as the origin device, so mobile backups land there too.</li>
 <li class="">Queues a background task chain (django-q) that imports the photo — <code>create_new_image</code> + <code>handle_new_image</code>, then <code>add_photo_to_user_album</code> when <code>album_id</code> was sent (it checks again that the album is still yours and unlocked, and skips it otherwise), caption generation, geolocation, album-date location and face extraction. Because of this, <strong>clients do not need to call <code>/api/scanuploadedphotos/</code> afterwards</strong>; the upload is already imported.</li>
+<li class="">Ends that chain by requesting the user&#x27;s upload follow-ups (<code>api/jobs/upload_followups.py</code>). <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> They run the library-level steps a scan&#x27;s follow-ups run: search embeddings for photos that have none (with tagging off the per-photo chain stores none), a rebuild of the similarity index so new photos show up in semantic and similar-photo search, and encodings for faces that have none (faces read from XMP regions). Requests are debounced per user: the run starts at most two minutes after the first request, so a burst of uploads gets one run, and an upload during a run makes it go round once more. The run takes a per-user lease (<code>UploadFollowupState</code>), so two workers never run it at once. Up to 1.4.0, uploaded photos stayed out of semantic search until the next scan or restart.</li>
 <li class="">Deduplicates by hash: if a <code>Photo</code> with the same hash already exists, or a same-named file in the upload folder has the same hash, the file is not copied and no new import is performed (the endpoint still returns <code>200</code>); with <code>album_id</code>, the photo you already have is added to that album. If a same-named file exists with a <em>different</em> hash, the image hash is appended to the basename.</li>
 </ul>
 <p>Error responses:</p>
