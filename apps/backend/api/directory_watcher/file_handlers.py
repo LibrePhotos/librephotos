@@ -25,6 +25,7 @@ from api.directory_watcher.file_grouping import (
     get_sidecar_grouping_keys,
     select_main_file,
 )
+from api.directory_watcher.generated_content import discard_generated_content
 from api.directory_watcher.utils import is_job_cancelled, update_scan_counter
 from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
@@ -250,10 +251,13 @@ def _discard_cheap_derived_content(photo: Photo, old_hash: str) -> None:
 def _discard_derived_content(photo: Photo, old_hash: str) -> None:
     """Throw away everything that still describes the picture that was replaced.
 
-    The thumbnails are named after the old image hash, so they go with it.
+    The thumbnails are named after the old image hash, so they go with it. The
+    things, generated caption, search embedding and text go too (#2041): their
+    jobs select photos that have none, so the next runs make them again.
     """
     _discard_cheap_derived_content(photo, old_hash)
     _discard_faces(photo)
+    discard_generated_content(photo)
 
     transaction.on_commit(partial(delete_thumbnail_files, old_hash))
 
