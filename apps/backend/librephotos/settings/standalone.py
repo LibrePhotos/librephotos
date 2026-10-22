@@ -36,3 +36,7 @@ Q_CLUSTER = {  # noqa: F405
     **Q_CLUSTER,  # noqa: F405
     "workers": env_int("WORKER_CONCURRENCY", 2),
 }
+
+# The update check offers only releases with the Windows zip, and links to the
+# Windows app's update steps (api/updates).
+INSTALL_TYPE = "windows"

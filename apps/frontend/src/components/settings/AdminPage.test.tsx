@@ -6,6 +6,7 @@
  * - The users table reads name first, actions last, like the worker jobs table, without the
  *   user's own scene confidence, and a long scan directory stays on one line (#2244).
  * - The Finish the upgrade card heads the page only while an update left work (#2322).
+ * - The Update available card heads it while a newer release is out, for admins only (#2311).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -35,6 +36,9 @@ const mocks = vi.hoisted(() => {
     users,
     upgradeTasks,
     upgradeTasksEnabled: [] as boolean[],
+    // What useUpdateNotice answers an admin; the flag it was asked with.
+    updateNotice: null as { latest: string } | null,
+    updateNoticeAsked: [] as boolean[],
     // What the theme's sm breakpoint query answers: true is the desktop layout.
     desktop: false,
     deleteAll: vi.fn<(variables: undefined, options?: { onSettled?: () => void }) => void>(),
@@ -49,7 +53,13 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../../api_client/albums/hooks", () => ({
   useDeleteAllAutoAlbumsMutation: () => ({ mutate: mocks.deleteAll, isPending: false }),
 }));
-vi.mock("../../api_client/server/hooks", () => ({ useFetchServerStatsQuery: () => ({ data: {}, isLoading: false }) }));
+vi.mock("../../api_client/server/hooks", () => ({
+  useFetchServerStatsQuery: () => ({ data: {}, isLoading: false }),
+  useUpdateNotice: (isAdmin: boolean) => {
+    mocks.updateNoticeAsked.push(isAdmin);
+    return isAdmin ? mocks.updateNotice : null;
+  },
+}));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => ({ data: mocks.users, isFetching: false }),
 }));
@@ -63,6 +73,9 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
   },
 }));
 vi.mock("./FinishUpgradeCard", () => ({ FinishUpgradeCard: () => "finish-upgrade-card" }));
+vi.mock("./UpdateAvailableCard", () => ({
+  UpdateAvailableCard: ({ status }: { status: { latest: string } }) => `update-card ${status.latest}`,
+}));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../job/JobList", () => ({ JobList: () => null }));
 vi.mock("../modals/ModalUserDelete", () => ({ ModalUserDelete: () => null }));
@@ -105,6 +118,8 @@ beforeEach(() => {
   mocks.users = [];
   mocks.upgradeTasks = [];
   mocks.upgradeTasksEnabled = [];
+  mocks.updateNotice = null;
+  mocks.updateNoticeAsked = [];
   mocks.desktop = false;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -207,6 +222,33 @@ describe("AdminPage", () => {
     mocks.upgradeTasksEnabled = [];
     await render();
     expect(mocks.upgradeTasksEnabled.every(enabled => !enabled)).toBe(true);
+  });
+
+  it("puts the Update available card first while a newer release is out (#2311)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    mocks.updateNotice = { latest: "1.5.0" };
+    mocks.upgradeTasks = [{ key: "probe_videos" }];
+    await render();
+
+    expect(document.getElementById("admin-update")?.textContent).toBe("update-card 1.5.0");
+    const toc = defined(container.querySelector("nav"), "the section navigation");
+    expect([...toc.querySelectorAll("a")].slice(0, 2).map(link => link.getAttribute("href"))).toEqual([
+      "#admin-update",
+      "#admin-upgrade",
+    ]);
+  });
+
+  it("has no Update available card without a notice, and asks for none for a non-admin", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+    expect(document.getElementById("admin-update")).toBeNull();
+
+    mocks.selfDetails = { data: { is_superuser: false }, isPending: false };
+    mocks.updateNotice = { latest: "1.5.0" };
+    mocks.updateNoticeAsked = [];
+    await render();
+    expect(document.getElementById("admin-update")).toBeNull();
+    expect(mocks.updateNoticeAsked.every(isAdmin => !isAdmin)).toBe(true);
   });
 
   it("offers the thumbnail metadata cleanup among the admin tools (#2321)", async () => {

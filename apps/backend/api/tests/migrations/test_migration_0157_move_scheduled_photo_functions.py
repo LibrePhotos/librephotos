@@ -106,8 +106,14 @@ class MoveScheduledPhotoFunctionsMigrationTest(TestCase):
         self._forwards()
         call_command("start_cleaning_service")
 
-        # The trash retention (#2203) is the only schedule the command adds.
+        # The trash retention (#2203) and the update check (#2311) are the only
+        # schedules the command adds.
         self.assertEqual(
             self._funcs(),
-            [NEW_CLEANUP, "api.photos.retention.empty_expired_trash", NEW_PRUNE],
+            [
+                NEW_CLEANUP,
+                "api.photos.retention.empty_expired_trash",
+                NEW_PRUNE,
+                "api.updates.check.check_for_updates",
+            ],
         )

@@ -27,7 +27,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { useUpgradeTasksQuery } from "../../api_client/jobs/hooks/useUpgradeTasks";
-import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
+import { useFetchServerStatsQuery, useUpdateNotice } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
@@ -52,6 +52,7 @@ import { ServiceList } from "./ServiceList";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
 import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
+import { UpdateAvailableCard } from "./UpdateAvailableCard";
 
 /** The scan directory on one line, cut at the start so its last folders stay in view. */
 function ScanDirectory({ path }: Readonly<{ path: string | null | undefined }>) {
@@ -301,6 +302,8 @@ export function AdminPage() {
   const { t } = useTranslation();
   // The card heads the page while an update left something to do (#2322).
   const upgradeTasks = useUpgradeTasksQuery({ enabled: currentUser?.is_superuser === true }).data?.tasks ?? [];
+  // A newer release is out (#2311), unless skipped or closed this week.
+  const update = useUpdateNotice(currentUser?.is_superuser === true);
 
   if (isPending) {
     return <PageLoader />;
@@ -319,6 +322,7 @@ export function AdminPage() {
   }
 
   const sections = [
+    ...(update ? [{ id: ADMIN_SECTIONS.update, label: t("updates.header") }] : []),
     ...(upgradeTasks.length ? [{ id: ADMIN_SECTIONS.upgrade, label: t("upgradetasks.header") }] : []),
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
     { id: ADMIN_SECTIONS.features, label: t("sitesettings.features_header") },
@@ -336,6 +340,11 @@ export function AdminPage() {
       <PageHeader icon={Adjustments} title={t("adminarea.header")} />
       <SectionNav sections={sections}>
         <Stack>
+          {update ? (
+            <SettingsSection id={ADMIN_SECTIONS.update}>
+              <UpdateAvailableCard status={update} />
+            </SettingsSection>
+          ) : null}
           {upgradeTasks.length ? (
             <SettingsSection id={ADMIN_SECTIONS.upgrade}>
               <FinishUpgradeCard tasks={upgradeTasks} />

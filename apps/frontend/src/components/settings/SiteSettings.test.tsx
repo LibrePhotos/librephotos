@@ -36,6 +36,7 @@ vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => m
 vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save }));
 // Its own test: TrashRetentionSetting.test.tsx.
 vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
+vi.mock("./UpdateCheckSetting", () => ({ UpdateCheckSetting: () => null }));
 // Its own test: PlaceNameLanguageSetting.test.tsx. The card tells it which provider is set.
 vi.mock("./PlaceNameLanguageSetting", () => ({
   PlaceNameLanguageSetting: ({ provider }: { provider?: { label: string; data: { place_language: boolean } } }) => (

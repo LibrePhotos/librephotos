@@ -306,6 +306,18 @@ Once an hour, LibrePhotos marks a job failed when it has made no progress for a 
 | --- | --- | --- | --- |
 | `STUCK_JOB_HOURS` | `stuckJobHours` | `24` | Hours without progress after which a job counts as stuck. Raise it only if a single photo can take longer than this on your machine. |
 
+### Checking for new releases {#update-check}
+
+<Since version="1.5.0" /> Once a day, and right after the first start, the backend asks GitHub which LibrePhotos release is the newest and tells admins when it is newer than the one they run: an **Update available** card in the Admin Area, a dot next to the version in the sidebar, and on the [Windows app](windows-standalone.md#update-notifications) a tray menu item and one notification. Users who are not admins see nothing.
+
+What is sent: one plain `GET https://api.github.com/repos/LibrePhotos/librephotos/releases` request, without a login, cookie or anything about your server, its users or its photos. GitHub sees your server's IP address, as with any request. The answer is kept in the database, so the pages that show it never contact GitHub. Development builds (`dev`, a source checkout) have no release to compare and never ask.
+
+Admins can turn the check off in **Admin Area > Site Settings > Check for new releases**. To turn it off for good, for example on a server without internet access, set the variable below; the switch is then locked off.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `UPDATE_CHECK` | `updateCheck` | `true` | `false` sends no request to GitHub at all and locks **Check for new releases** off. On the Windows app, set it in a small `.cmd` file that starts LibrePhotos, as [Using another port](windows-standalone.md#using-another-port) shows for the service ports. |
+
 ### Internal service address
 
 The backend talks to its helper services (thumbnails, metadata, faces, tags, captions, OCR, search) over HTTP inside the container. They have no authentication, so they listen on `127.0.0.1` only and cannot be reached from outside the container.

@@ -315,6 +315,8 @@ export const serverKeys = {
   logs: (lines: number) => [...serverRoot, "logs", lines] as const,
   stats: () => [...serverRoot, "stats"] as const,
   storageStats: () => [...serverRoot, "storageStats"] as const,
+  /** The update check's result (admins, #2311). */
+  updates: () => [...serverRoot, "updates"] as const,
 };
 
 const serviceRoot = ["services"] as const;

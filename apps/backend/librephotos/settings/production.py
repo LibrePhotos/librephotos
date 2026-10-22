@@ -185,6 +185,13 @@ ALLOWED_HOSTS = ["localhost", BACKEND_HOST]
 # from a source checkout, where api/views/server_info.py asks git instead.
 IMAGE_TAG = env_str("IMAGE_TAG")
 GIT_HASH = env_str("GIT_HASH")
+# How this server was installed, for the "How to update" link of the update
+# check (api/updates): docker when an image set IMAGE_TAG, source otherwise;
+# librephotos/settings/standalone.py says windows.
+INSTALL_TYPE = "docker" if IMAGE_TAG else "source"
+# The daily check for a newer release (#2311). UPDATE_CHECK=false turns it off
+# for good, whatever the site setting says: nothing is sent to github.com.
+UPDATE_CHECK_ALLOWED = env_flag("UPDATE_CHECK", default=True)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
@@ -418,6 +425,39 @@ CONSTANCE_CONFIG = {
         "",
         "Written by the automatic scan, not a setting: when it last ran and"
         " which libraries it scanned, skipped or could not start (JSON).",
+        str,
+    ),
+    # The update check (#2311, api/updates). UPDATE_CHECK_ALLOWED (the
+    # UPDATE_CHECK environment variable) is a hard off above this switch.
+    "UPDATE_CHECK": (
+        True,
+        "Ask github.com once a day which LibrePhotos release is the newest, and"
+        " tell admins when it is newer than this server. Nothing about this"
+        " server is sent.",
+        bool,
+    ),
+    "UPDATE_CHECK_RESULT": (
+        "",
+        "Written by the update check, not a setting: the newest release it"
+        " found, when it checked, and why the check failed (JSON).",
+        str,
+    ),
+    "UPDATE_CHECK_SKIPPED_RELEASE": (
+        "",
+        "Written by Skip this release on the Admin page, not a setting: the"
+        " release admins are no longer told about.",
+        str,
+    ),
+    "UPDATE_CHECK_SNOOZED_UNTIL": (
+        "",
+        "Written by closing the Update available card, not a setting: when the"
+        " card shows again (ISO time).",
+        str,
+    ),
+    "UPDATE_CHECK_NOTIFIED_RELEASE": (
+        "",
+        "Written by the Windows app, not a setting: the release its notification"
+        " last announced, so each release is announced once.",
         str,
     ),
     "UPLOAD_FOLLOWUPS_BACKFILL_DONE": (

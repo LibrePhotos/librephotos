@@ -13,6 +13,7 @@ import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSettin
 import { SectionLink } from "./SettingsSection";
 import { SsoSettingsGroup } from "./SsoSettings";
 import { TrashRetentionSetting } from "./TrashRetentionSetting";
+import { UpdateCheckSetting } from "./UpdateCheckSetting";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 /** What an option's label says about it, after the product name; translated at render time. */
@@ -245,6 +246,7 @@ function SiteSettingsForm() {
             onChange={() => save({ auto_create_user_directory: !autoCreateUserDirectory })}
             checked={autoCreateUserDirectory}
           />
+          <UpdateCheckSetting />
           <SsoSettingsGroup />
 
           <Grid justify="flex-end">

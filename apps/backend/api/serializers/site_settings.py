@@ -24,6 +24,7 @@ from api.runtime.features import (
     feature_locked,
     site_setting_key,
 )
+from api.updates.check import update_check_locked
 
 
 def feature_field(feature: Feature) -> str:
@@ -133,6 +134,21 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         help_text="Let a first SSO login with an unknown email create an account;"
         " needs email to be set up as well.",
     )
+    # The daily update check (#2311). Locked off by UPDATE_CHECK=false.
+    update_check = JsonBooleanField(
+        required=False,
+        help_text="Ask github.com once a day for the newest release and tell admins"
+        " about a newer one; turning it on checks at once.",
+    )
+
+    def validate_update_check(self, value: bool) -> bool:
+        if value and update_check_locked():
+            raise serializers.ValidationError(
+                "UPDATE_CHECK is turned off in the server environment. Change it"
+                " there and restart the server.",
+                code="update_check_locked",
+            )
+        return value
 
     def validate_oidc_button_label(self, value: str) -> str:
         label = value.strip()
@@ -270,7 +286,7 @@ class SiteSsoProviderSerializer(serializers.Serializer[None]):
 class SiteSettingsSerializer(serializers.Serializer[None]):
     """What GET (and a successful POST) answers.
 
-    ``features``, ``model_download``, the ``auto_scan`` fields,
+    ``features``, ``model_download``, the ``auto_scan`` fields, ``update_check``,
     ``sso_providers`` and ``public_url_configured`` are sent to staff only; the
     GET is anonymous (the login page reads it).
     """
@@ -338,6 +354,11 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         help_text="Weekdays of a custom scan, 0 (Monday) to 6. Staff only.",
     )
     auto_scan_status = SiteAutoScanStatusSerializer(required=False)
+    update_check = serializers.BooleanField(
+        required=False,
+        help_text="The update check's site switch (GET /api/updates/ has its"
+        " state). Staff only.",
+    )
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)
 
 

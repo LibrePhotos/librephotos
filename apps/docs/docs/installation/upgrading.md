@@ -53,6 +53,17 @@ The page never shows error messages or file paths, only the reason code; the det
 
 With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `docker compose ps` shows the backend as `starting` while it updates, `healthy` once it serves, and `unhealthy` after a failed update (the healthcheck gives an update 15 minutes before it counts). `/api/healthz` answers from the first seconds on, so scripts that wait for LibrePhotos to serve should ask `/api/healthz/ready` instead.
 
+## The Update available card {#update-available}
+
+<Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin Area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.
+
+- **How to update** opens the steps for your install: [Windows](windows-standalone.md#updating), or the top of this page for Docker and the rest.
+- **Release notes** opens the release on GitHub. Read them before you update: some releases ask you to do something once.
+- **Skip this release** hides the card and the dot until a newer release comes out. **Undo** in the message that follows, or **Show it again** under **Check for new releases** in Site Settings, brings it back.
+- The close button hides the card for a week.
+
+Only admins see it. The card comes from a daily check that can be turned off; see [Checking for new releases](environment-variables.md#update-check). Docker installs that run the `dev` image, and installs from source, have no release to compare and never show it.
+
 ## The Finish the upgrade card {#finish-the-upgrade}
 
 <Since version="1.4.0" /> Up to 1.3.0, the work an update left was only described in the release notes, and some of it needed a terminal.

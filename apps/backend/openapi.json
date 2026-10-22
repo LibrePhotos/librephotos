@@ -11363,6 +11363,113 @@
         }
       }
     },
+    "/api/updates/": {
+      "get": {
+        "operationId": "api_updates_retrieve",
+        "description": "The newest release the last check found, and what to do about it.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/updates/skip/": {
+      "post": {
+        "operationId": "api_updates_skip_create",
+        "description": "**Skip this release**: no card, dot or tray notification for it; an\nempty version undoes it.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/updates/snooze/": {
+      "post": {
+        "operationId": "api_updates_snooze_create",
+        "description": "Closing the Update available card: it comes back in a week.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/upgrade-tasks/": {
       "get": {
         "operationId": "api_upgrade_tasks_retrieve",
@@ -22589,7 +22696,7 @@
       },
       "SiteSettings": {
         "type": "object",
-        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
+        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields, ``update_check``,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
         "properties": {
           "allow_registration": {
             "type": "boolean"
@@ -22701,6 +22808,10 @@
           },
           "auto_scan_status": {
             "$ref": "#/components/schemas/SiteAutoScanStatus"
+          },
+          "update_check": {
+            "type": "boolean",
+            "description": "The update check's site switch (GET /api/updates/ has its state). Staff only."
           },
           "model_download": {
             "allOf": [
@@ -22845,6 +22956,10 @@
           "oidc_allow_signup": {
             "type": "boolean",
             "description": "Let a first SSO login with an unknown email create an account; needs email to be set up as well."
+          },
+          "update_check": {
+            "type": "boolean",
+            "description": "Ask github.com once a day for the newest release and tell admins about a newer one; turning it on checks at once."
           }
         }
       },
@@ -22863,6 +22978,19 @@
         "required": [
           "name",
           "on_this_site"
+        ]
+      },
+      "SkipReleaseRequestRequest": {
+        "type": "object",
+        "description": "The release to stop telling admins about.",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "A release version such as 1.5.0; empty shows the newest release again."
+          }
+        },
+        "required": [
+          "version"
         ]
       },
       "SocialGraph": {
@@ -24094,6 +24222,98 @@
         "required": [
           "status",
           "unlinked_count"
+        ]
+      },
+      "UpdateStatus": {
+        "type": "object",
+        "description": "The update check as admins see it.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the daily check runs: the site setting is on and the environment does not turn it off."
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "UPDATE_CHECK=false in the environment: the site setting cannot turn it on."
+          },
+          "status": {
+            "type": "string",
+            "description": "locked, off, development (no version to compare), not_checked, failed, up_to_date, available or skipped"
+          },
+          "current": {
+            "type": "string",
+            "description": "The release this server runs; empty for a source checkout."
+          },
+          "latest": {
+            "type": "string",
+            "nullable": true,
+            "description": "The newest release the last check found for this install; null before the first check or while the check is off."
+          },
+          "update_available": {
+            "type": "boolean",
+            "description": "latest is newer than current."
+          },
+          "notice": {
+            "type": "boolean",
+            "description": "Show the Update available card and the sidebar dot: an update is available, not skipped, and the card was not closed in the last week."
+          },
+          "release_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The release's page on GitHub."
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the last check ran; null before the first."
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the last check failed (timeout, unreachable, http_<status>, bad_response); null when it worked."
+          },
+          "install_type": {
+            "type": "string",
+            "description": "windows, docker or source"
+          },
+          "how_to_update_url": {
+            "type": "string",
+            "description": "The update steps for this install type in the docs."
+          },
+          "skipped_release": {
+            "type": "string",
+            "nullable": true,
+            "description": "The release Skip this release hid."
+          },
+          "snoozed_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Until when the closed card stays hidden; null when it is not."
+          }
+        },
+        "required": [
+          "checked_at",
+          "current",
+          "enabled",
+          "error",
+          "how_to_update_url",
+          "install_type",
+          "latest",
+          "locked",
+          "notice",
+          "published_at",
+          "release_url",
+          "skipped_release",
+          "snoozed_until",
+          "status",
+          "update_available"
         ]
       },
       "UpgradeTask": {
