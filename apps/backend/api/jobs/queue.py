@@ -17,7 +17,7 @@ receives the row's id as ``job_id`` and claims the row when it starts
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
 - ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
-  ``remove_schedule``: django-q schedules.
+  ``remove_schedule``: django-q schedules; ``next_scheduled_run`` reads one.
 - ``tasks_are_waiting``: whether the queue has drained.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
@@ -259,6 +259,16 @@ def schedule_once_by(name: str, func: str, *args: object, at: datetime) -> None:
     except IntegrityError:
         # django-q's own name check: a concurrent request created it.
         logger.info("schedule %s was created concurrently", name)
+
+
+def next_scheduled_run(name: str, func: str) -> datetime | None:
+    """When the schedule ``schedule_once_by(name, func, ...)`` runs next, or ``None``."""
+    return (
+        Schedule.objects.filter(name=name, func=func)
+        .order_by("next_run")
+        .values_list("next_run", flat=True)
+        .first()
+    )
 
 
 def ensure_schedule(

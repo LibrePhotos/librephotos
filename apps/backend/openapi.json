@@ -11376,6 +11376,64 @@
         }
       }
     },
+    "/api/upload/status/": {
+      "get": {
+        "operationId": "api_upload_status_retrieve",
+        "description": "``GET /api/upload/status/``: what the caller's uploads are doing on the server (#2739).\n\nThe caller's upload imports still open or processing, the named ones even\nonce finished, which named photos are ready, and the follow-ups' state.\nEvery part is the caller's own, staff included.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "job_id",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 36
+              },
+              "maxItems": 100
+            },
+            "description": "Repeatable. Import jobs POST /api/upload/complete/ answered, listed even once they finished; someone else's id is ignored"
+          },
+          {
+            "in": "query",
+            "name": "photo_id",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 100
+            },
+            "description": "Repeatable. Uploaded photos to check for being ready; someone else's id is ignored"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/": {
       "get": {
         "operationId": "api_user_list",
@@ -24020,6 +24078,39 @@
           "photo_id"
         ]
       },
+      "UploadFollowupStateEnum": {
+        "enum": [
+          "idle",
+          "pending",
+          "running"
+        ],
+        "type": "string",
+        "description": "* `idle` - idle\n* `pending` - pending\n* `running` - running"
+      },
+      "UploadFollowups": {
+        "type": "object",
+        "description": "The library-level work after uploads (search embeddings, faces, text).",
+        "properties": {
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UploadFollowupStateEnum"
+              }
+            ],
+            "description": "running: a follow-up run is working; pending: one starts within a few minutes; idle: neither\n\n* `idle` - idle\n* `pending` - pending\n* `running` - running"
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the next follow-up run is scheduled; a run waiting for a quiet period (face clustering) can be hours ahead"
+          }
+        },
+        "required": [
+          "next_run_at",
+          "state"
+        ]
+      },
       "UploadSealRequestRequest": {
         "type": "object",
         "description": "``POST /api/upload/seal/``: the import jobs an upload run is done with (#2737).",
@@ -24053,6 +24144,35 @@
         },
         "required": [
           "sealed_job_ids"
+        ]
+      },
+      "UploadStatus": {
+        "type": "object",
+        "description": "``GET /api/upload/status/``: the caller's upload imports and follow-ups.",
+        "properties": {
+          "imports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongRunningJob"
+            },
+            "description": "The caller's unfinished Import Uploads jobs (from any client) and the named ones, newest first"
+          },
+          "ready_photo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The named photos that have their thumbnails and show in the timeline"
+          },
+          "followups": {
+            "$ref": "#/components/schemas/UploadFollowups"
+          }
+        },
+        "required": [
+          "followups",
+          "imports",
+          "ready_photo_ids"
         ]
       },
       "User": {

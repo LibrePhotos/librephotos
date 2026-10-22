@@ -7,6 +7,7 @@ import type {
   MetadataValueField,
   Photoset,
   ReviewStatus,
+  UploadStatusParams,
 } from "../schemas";
 
 // React Query keys for the web and mobile apps: one factory per domain, built hierarchically so one
@@ -279,6 +280,8 @@ export const jobKeys = {
   detail: (id: number) => [...jobRoot, "detail", id] as const,
   /** The Finish the upgrade card's tasks (#2322): under `all`, so a job change refreshes them. */
   upgradeTasks: () => [...jobRoot, "upgradeTasks"] as const,
+  /** The caller's upload imports and follow-ups (#2739), with the jobs and photos the upload card follows. */
+  uploadStatus: (params: UploadStatusParams) => [...jobRoot, "uploadStatus", params] as const,
   /** Whether the worker can take a job (not under `all`: a job change does not always move it). */
   worker: () => ["worker"] as const,
 };

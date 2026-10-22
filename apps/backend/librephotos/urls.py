@@ -688,6 +688,7 @@ urlpatterns = [
     # Chunked upload. The mobile sync uploader calls these two paths exactly.
     re_path(r"^api/upload/complete/?$", upload.UploadPhotosChunkedComplete.as_view()),
     path("api/upload/seal/", upload.SealUploadImportsView.as_view()),
+    path("api/upload/status/", upload.UploadStatusView.as_view()),
     re_path(r"^api/upload/?$", upload.UploadPhotosChunked.as_view()),
     # Mobile-v2 delta-sync feeds (doc 04)
     re_path(r"^api/sync/photos/?$", sync.SyncPhotosView.as_view()),

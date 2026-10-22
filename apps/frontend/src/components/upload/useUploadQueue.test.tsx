@@ -13,6 +13,7 @@ const stubs = vi.hoisted(() => ({
   invalidate: vi.fn<() => void>(),
   patch: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
   refreshAlbums: vi.fn<(albumIds: number[]) => void>(),
+  seal: vi.fn<(jobIds: string[]) => Promise<void>>(),
 }));
 
 vi.mock("../../api_client/api", () => ({
@@ -28,6 +29,7 @@ vi.mock("../../api_client/upload", async importOriginal => ({
   useUploadFinishedMutation: () => ({ mutateAsync: stubs.uploadFinished }),
   invalidateUploadQueries: stubs.invalidate,
   useRefreshUploadAlbums: () => stubs.refreshAlbums,
+  sealUploadImports: stubs.seal,
 }));
 vi.mock("./chunkedUpload", async importOriginal => ({
   ...(await importOriginal<typeof import("./chunkedUpload")>()),
@@ -80,6 +82,27 @@ afterEach(async () => {
 });
 
 describe("useUploadQueue", () => {
+  it("keeps the import job and photo the server names, seals the run's jobs and leaves the refresh to the import (#2739)", async () => {
+    stubs.uploadFinished
+      .mockResolvedValueOnce({ job_id: "j1", photo_id: "p1" })
+      .mockResolvedValueOnce({ job_id: "j1", photo_id: "p2" })
+      .mockResolvedValueOnce({ detail: "Photo duplicated. No new import performed.", photo_id: "p0" });
+
+    await act(async () => {
+      latest.start([file("a.jpg", 10), file("b.jpg", 10), file("c.jpg", 10)]);
+    });
+    await settle();
+
+    expect(latest.items.map(i => [i.file.name, i.status, i.jobId, i.photoId])).toEqual([
+      ["a.jpg", "done", "j1", "p1"],
+      ["b.jpg", "done", "j1", "p2"],
+      // The server already had it: a duplicate, not counted in any import.
+      ["c.jpg", "duplicate", undefined, "p0"],
+    ]);
+    expect(stubs.seal).toHaveBeenCalledExactlyOnceWith(["j1"]);
+    expect(stubs.invalidate).not.toHaveBeenCalled();
+  });
+
   it("uploads new files in chunks, marks known files as duplicates and invalidates once at the end", async () => {
     stubs.exists.mockImplementation(async url => ({ exists: url.endsWith("md5-dup.jpg7") }));
     const fresh = file("fresh.jpg", 1_500_000);

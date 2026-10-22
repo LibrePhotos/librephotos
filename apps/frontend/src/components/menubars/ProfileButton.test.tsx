@@ -1,9 +1,10 @@
-import type { JobDetail } from "@librephotos/api-client";
+import type { ImportJob, JobDetail } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import type { UploadProcessing } from "../upload/useUploadProcessing";
 import { ProfileButton } from "./ProfileButton";
 import { jobPercent } from "./WorkerJobMenuSection";
 
@@ -14,6 +15,7 @@ const stubs = vi.hoisted(() => ({
   isAdmin: false,
   upgradeTasksLeft: 0,
   cancelJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),
+  openImports: [] as ImportJob[],
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
@@ -26,6 +28,10 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useCancelJobMutation: () => ({ mutate: stubs.cancelJob, isPending: false }),
+}));
+vi.mock("../upload/UploadContext", async importOriginal => ({
+  ...(await importOriginal<typeof import("../upload/UploadContext")>()),
+  useOptionalUploadProcessing: (): Pick<UploadProcessing, "openImports"> => ({ openImports: stubs.openImports }),
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({
   useWorkerStatus: () => ({ currentData: stubs.worker, workerRunningJob: stubs.worker?.job_detail ?? null }),
@@ -98,6 +104,7 @@ beforeEach(() => {
   stubs.cancelJob.mockClear();
   stubs.isAdmin = false;
   stubs.upgradeTasksLeft = 0;
+  stubs.openImports = [];
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -106,6 +113,38 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+});
+
+describe("ProfileButton upload imports (#2739)", () => {
+  const importJob = (overrides: Partial<ImportJob> = {}): ImportJob => ({
+    ...job({ job_type: 20, job_type_str: "Import Uploads", progress_current: 12, progress_target: 40 }),
+    result: { stages: {} },
+    ...overrides,
+  });
+  const importSection = () => container.querySelector('[data-testid="import-job-section"]');
+
+  it("rings the avatar with the import's progress and adds its own section, without Cancel", async () => {
+    stubs.openImports = [importJob()];
+    await render({ queue_can_accept_job: true, job_detail: null });
+
+    expect(arcOffset()).toBe("70");
+    expect(avatarButton().getAttribute("aria-label")).toContain(i18n.t("topmenu.workerstatusimporting"));
+    await openMenu();
+    expect(importSection()?.textContent).toContain("Importing your uploads");
+    expect(importSection()?.textContent).toContain("12 / 40 ready");
+    expect(importSection()?.querySelector("button")).toBeNull();
+    expect(jobSection()).toBeNull();
+  });
+
+  it("keeps the running job's ring and section beside the import", async () => {
+    stubs.openImports = [importJob()];
+    await render({ queue_can_accept_job: false, job_detail: job() });
+
+    expect(arcOffset()).toBe("75");
+    await openMenu();
+    expect(jobSection()).not.toBeNull();
+    expect(importSection()).not.toBeNull();
+  });
 });
 
 describe("ProfileButton worker status", () => {

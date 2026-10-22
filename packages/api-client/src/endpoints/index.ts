@@ -1721,6 +1721,31 @@ export async function completeUpload(client: ApiClient, formData: FormData): Pro
 }
 
 /**
+ * The upload run is over: the import jobs `/upload/complete/` answered take no more files and finish
+ * once their files are processed (#2737). Without it the server seals them after a few idle minutes.
+ */
+export async function sealUploadImports(client: ApiClient, jobIds: readonly string[]): Promise<S.UploadSealResponse> {
+  const res = await client.post<unknown>("/upload/seal/", { job_ids: jobIds });
+  return parseResponse(S.UploadSealResponse, res, "seal upload imports");
+}
+
+/**
+ * What the caller's uploads do on the server (#2739): their unfinished import jobs plus `jobIds`,
+ * which of `photoIds` are ready, and the follow-ups. Each list is sent as repeated parameters.
+ */
+export async function fetchUploadStatus(client: ApiClient, params: S.UploadStatusParams = {}): Promise<S.UploadStatus> {
+  const res = await client.get<unknown>(`/upload/status/${repeatedQuery(params)}`);
+  return parseResponse(S.UploadStatus, res, "upload status");
+}
+
+/** `?job_id=a&job_id=b&photo_id=c` for the upload status, or "" without ids. */
+function repeatedQuery({ jobIds = [], photoIds = [] }: S.UploadStatusParams): string {
+  const pairs = [...jobIds.map(id => ["job_id", id]), ...photoIds.map(id => ["photo_id", id])];
+  const text = new URLSearchParams(pairs).toString();
+  return text ? `?${text}` : "";
+}
+
+/**
  * Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id),
  * and that photo's id.
  */

@@ -488,6 +488,8 @@
   "topmenu": {
     "running": "Running",
     "busy": "Busy...",
+    "importing": "Importing your uploads",
+    "importingprogress": "{{ready}} / {{total}} ready",
     "loggedin": "Logged in as",
     "logout": "Log out",
     "settings": "Settings",
@@ -497,6 +499,7 @@
     "jobs": "My Jobs",
     "accountmenu": "Account menu",
     "workerstatusbusy": "Worker status: busy",
+    "workerstatusimporting": "Importing your uploads",
     "upgradetasks_one": "{{count}} upgrade task left",
     "upgradetasks_other": "{{count}} upgrade tasks left"
   },
@@ -523,6 +526,7 @@
       "classify_media": "Classify Media Categories",
       "generate_ocr": "Extract Text (OCR)",
       "probe_videos": "Probe Videos",
+      "import_uploads": "Import Uploads",
       "detect_stacks": "Detect Stacks",
       "strip_thumbnail_metadata": "Remove Photo Details from Thumbnails",
       "empty_trash": "Empty Trash",
@@ -2593,6 +2597,10 @@
       "description": "Scan your photo library to see your photos here.",
       "noscandirectory": "An administrator has not set up a photo folder for you yet. Albums and photos others share with you are under Sharing."
     },
+    "importing": {
+      "title": "Importing your uploads",
+      "description": "Your photos show up here as the server makes them ready."
+    },
     "favorites": {
       "title": "No favorites yet",
       "description": "Mark photos as favorites and they'll appear here."
@@ -2831,6 +2839,33 @@
       "open": "Open album",
       "existing_added": "Already in your library: added to the album",
       "library_only": "Added to your library only: the album is locked or was deleted"
+    },
+    "server": {
+      "processing_title": "Processing your uploads",
+      "followups_title": "Updating search and faces",
+      "done_title_one": "{{count}} photo ready",
+      "done_title_other": "{{count}} photos ready",
+      "ready_count": "{{ready}}/{{total}} ready",
+      "in_timeline": "already in your timeline",
+      "uploaded_one": "{{count}} uploaded",
+      "uploaded_other": "{{count}} uploaded",
+      "stalled_one": "No progress for {{count}} minute. The server may be busy with another job; your files are safe and will be processed.",
+      "stalled_other": "No progress for {{count}} minutes. The server may be busy with another job; your files are safe and will be processed.",
+      "processing": "Processing",
+      "ready": "Ready",
+      "not_imported": "Not imported",
+      "not_read": "Uploaded, but the server could not read it: {{error}}",
+      "lost": "Uploaded, but the server stopped before processing it. The file is in your upload folder; a scan picks it up.",
+      "step_failed": "In your library, but {{step}} failed: {{error}}",
+      "view_jobs": "Open My Jobs",
+      "stage": {
+        "media": "reading the file",
+        "album": "adding it to the album",
+        "date": "setting its date",
+        "tags": "finding things in it",
+        "places": "looking up its place",
+        "faces": "finding faces"
+      }
     }
   },
   "timelinefilter": {

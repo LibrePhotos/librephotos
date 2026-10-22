@@ -5,7 +5,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
+import { NO_OUTCOMES } from "./uploadProcessing";
 import { UploadProgressCard } from "./UploadProgressCard";
+import type { UploadProcessing } from "./useUploadProcessing";
 import type { UploadItem, UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => {
@@ -18,16 +20,17 @@ const stubs = vi.hoisted(() => {
     cancel: vi.fn<UploadQueue["cancel"]>(),
     reset: vi.fn<UploadQueue["reset"]>(),
   };
-  return { queue };
+  return { queue, processing: null as UploadProcessing | null };
 });
 
 vi.mock("./UploadContext", () => ({
   useUpload: () => stubs.queue,
+  useOptionalUploadProcessing: () => stubs.processing,
 }));
-// The album strip's "Open album" link, without a router
+// The album strip's "Open album" and the rows' "Open My Jobs" links, without a router
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ to, params, ...props }: { to: string; params: { id: string } } & React.ComponentProps<"a">) => (
-    <a {...props} href={to.replace("$id", params.id)} />
+  Link: ({ to, params, ...props }: { to: string; params?: { id: string } } & React.ComponentProps<"a">) => (
+    <a {...props} href={params ? to.replace("$id", params.id) : to} />
   ),
 }));
 
@@ -79,6 +82,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  stubs.processing = null;
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -222,6 +226,95 @@ describe("UploadProgressCard", () => {
         false
       );
       expect(strip()).toBeNull();
+    });
+  });
+
+  describe("after the upload, while the server imports the files (#2739)", () => {
+    const uploaded = (name: string, photoId: string): UploadItem => ({
+      ...item(name, "done", 100),
+      jobId: "job-1",
+      photoId,
+    });
+    const files = [uploaded("a.jpg", "p1"), uploaded("b.jpg", "p2"), uploaded("c.jpg", "p3")];
+    const following = (patch: Partial<UploadProcessing>): UploadProcessing => ({
+      phase: "processing",
+      outcomes: NO_OUTCOMES,
+      counts: { ready: 0, total: 3 },
+      stalledMinutes: null,
+      openImports: [],
+      ...patch,
+    });
+    const rows = () => [...container.querySelectorAll<HTMLElement>('[data-testid="upload-row"]')];
+
+    it("counts the ready uploads and shows each file's state, with the server's thumbnail once ready", async () => {
+      stubs.processing = following({
+        counts: { ready: 1, total: 3 },
+        outcomes: { ...NO_OUTCOMES, ready: new Set(["p1"]) },
+      });
+      await render(files, false);
+
+      const card = defined(byTestId("upload-progress-card"));
+      expect(card.textContent).toContain("Processing your uploads");
+      expect(card.textContent).toContain("1/3 ready");
+      expect(rows().map(row => row.textContent)).toEqual(["a.jpgReady", "b.jpgProcessing", "c.jpgProcessing"]);
+      expect(defined(rows()[0]).querySelector("img")?.getAttribute("src")).toBe("/media/square_thumbnails_small/p1");
+      // Closing is allowed: the account menu keeps following the import.
+      expect(byTestId("upload-close")).not.toBeNull();
+    });
+
+    it("puts a failure on the file's own row", async () => {
+      const failure = (photo_id: string, stage: string, error: string) => ({ photo_id, file: "x", stage, error });
+      stubs.processing = following({
+        outcomes: {
+          ready: new Set(["p3"]),
+          failed: new Map([
+            ["p1", failure("p1", "media", "unsupported RAW format")],
+            ["p3", failure("p3", "faces", "the face service is down")],
+          ]),
+          lost: new Set(["p2"]),
+        },
+      });
+      await render(files, false);
+
+      const [first, second, third] = rows().map(row => row.textContent);
+      expect(first).toContain("Not imported");
+      expect(first).toContain("Uploaded, but the server could not read it: unsupported RAW format");
+      expect(defined(rows()[0]).querySelector("a")?.getAttribute("href")).toBe("/jobs");
+      expect(second).toContain("the server stopped before processing it");
+      expect(third).toContain("Ready");
+      expect(third).toContain("In your library, but finding faces failed: the face service is down");
+    });
+
+    it("says when the server makes no progress", async () => {
+      stubs.processing = following({ stalledMinutes: 4 });
+      await render(files, false);
+
+      expect(defined(byTestId("upload-stalled")).textContent).toContain("No progress for 4 minutes");
+    });
+
+    it("updates search and faces once every file is processed", async () => {
+      stubs.processing = following({ phase: "followups", counts: { ready: 3, total: 3 } });
+      await render(files, false);
+
+      const card = defined(byTestId("upload-progress-card"));
+      expect(card.textContent).toContain("Updating search and faces");
+      expect(card.textContent).toContain("3/3 ready · already in your timeline");
+    });
+
+    it("ends with the photos ready", async () => {
+      stubs.processing = following({ phase: "done", counts: { ready: 3, total: 3 } });
+      await render([...files, item("d.jpg", "duplicate", 100)], false);
+
+      const card = defined(byTestId("upload-progress-card"));
+      expect(card.textContent).toContain("3 photos ready");
+      expect(card.textContent).toContain("3 uploaded · 1 duplicate");
+    });
+
+    it("keeps the upload's own title while files are still being sent", async () => {
+      stubs.processing = following({});
+      await render([...files, item("d.jpg", "uploading", 40)], true);
+
+      expect(defined(byTestId("upload-progress-card")).textContent).toContain("Uploading…");
     });
   });
 });

@@ -16,7 +16,8 @@ import { useLogoutMutation } from "../../api_client/auth";
 import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
-import { LogoutWhileUploadingModal, useLogoutGuard } from "../upload";
+import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
+import { ImportJobMenuSection } from "./ImportJobMenuSection";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 
 export function FooterMenu(): React.JSX.Element {
@@ -28,6 +29,8 @@ export function FooterMenu(): React.JSX.Element {
   // The raw scheme is "auto" until the user picks one; show the one in effect.
   const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
   const { data: user } = useCurrentUserSelfDetailsQuery();
+  // Uploads still being imported (#2739), as at the top of the desktop account menu.
+  const openImports = useOptionalUploadProcessing()?.openImports ?? [];
   const { mutate: logout } = useLogoutMutation();
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
 
@@ -122,6 +125,7 @@ export function FooterMenu(): React.JSX.Element {
         </Menu.Target>
 
         <Menu.Dropdown>
+          {openImports.length > 0 && <ImportJobMenuSection imports={openImports} />}
           <Menu.Label>
             <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
           </Menu.Label>

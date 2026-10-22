@@ -2,6 +2,10 @@
 
 from rest_framework import serializers
 
+from api.jobs.upload_followups import FollowupStatus
+from api.jobs.upload_status import UploadStatus
+from api.serializers.job import LongRunningJobSerializer
+
 
 class UploadExistsSerializer(serializers.Serializer[None]):
     """``GET /api/exists/{id}/``: whether the caller already has the file."""
@@ -48,3 +52,59 @@ class UploadSealResponse(serializers.Serializer[None]):
         help_text="The jobs this call sealed. A job that was sealed already, has "
         "finished or is not the caller's is left out",
     )
+
+
+# A client names at most this many jobs and photos in one status read.
+MAX_STATUS_IDS = 100
+FOLLOWUP_STATES = ["idle", "pending", "running"]
+
+
+class UploadStatusQuery(serializers.Serializer[None]):
+    """``GET /api/upload/status/``: the jobs and photos an upload client follows (#2739)."""
+
+    job_id = serializers.ListField(
+        child=serializers.CharField(max_length=36),
+        required=False,
+        default=list,
+        max_length=MAX_STATUS_IDS,
+        help_text="Repeatable. Import jobs POST /api/upload/complete/ answered, "
+        "listed even once they finished; someone else's id is ignored",
+    )
+    photo_id = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list,
+        max_length=MAX_STATUS_IDS,
+        help_text="Repeatable. Uploaded photos to check for being ready; "
+        "someone else's id is ignored",
+    )
+
+
+class UploadFollowupsSerializer(serializers.Serializer[FollowupStatus]):
+    """The library-level work after uploads (search embeddings, faces, text)."""
+
+    state = serializers.ChoiceField(
+        choices=FOLLOWUP_STATES,
+        help_text="running: a follow-up run is working; pending: one starts "
+        "within a few minutes; idle: neither",
+    )
+    next_run_at = serializers.DateTimeField(
+        allow_null=True,
+        help_text="When the next follow-up run is scheduled; a run waiting for a "
+        "quiet period (face clustering) can be hours ahead",
+    )
+
+
+class UploadStatusSerializer(serializers.Serializer[UploadStatus]):
+    """``GET /api/upload/status/``: the caller's upload imports and follow-ups."""
+
+    imports = LongRunningJobSerializer(
+        many=True,
+        help_text="The caller's unfinished Import Uploads jobs (from any client) "
+        "and the named ones, newest first",
+    )
+    ready_photo_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        help_text="The named photos that have their thumbnails and show in the timeline",
+    )
+    followups = UploadFollowupsSerializer()

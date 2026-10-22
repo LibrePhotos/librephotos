@@ -32,7 +32,7 @@ from api.albums.user_albums import (
     upload_target_album,
 )
 from api.directory_watcher import create_new_image, is_valid_media
-from api.drf.params import parse_body
+from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import enqueue_task
 from api.jobs.upload_import import (
@@ -41,16 +41,20 @@ from api.jobs.upload_import import (
     release_upload,
     seal_upload_imports,
 )
+from api.jobs.upload_status import upload_status
 from api.metadata.datetime_rules import CaptureTime
 from api.models import LongRunningJob, Photo
 from api.models.album_user import AlbumUser
 from api.models.user import User
 from api.photos.media_files import calculate_hash
+from api.serializers.job import with_job_relations
 from api.serializers.upload import (
     UploadCompleteRequest,
     UploadExistsSerializer,
     UploadSealRequest,
     UploadSealResponse,
+    UploadStatusQuery,
+    UploadStatusSerializer,
 )
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
@@ -305,6 +309,28 @@ class SealUploadImportsView(APIView):
             job_id__in=job_ids
         )
         return Response({"sealed_job_ids": seal_upload_imports(jobs)})
+
+
+class UploadStatusView(APIView):
+    """``GET /api/upload/status/``: what the caller's uploads are doing on the server (#2739).
+
+    The caller's upload imports still open or processing, the named ones even
+    once finished, which named photos are ready, and the follow-ups' state.
+    Every part is the caller's own, staff included.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(parameters=[UploadStatusQuery], responses=UploadStatusSerializer)
+    def get(self, request: Request) -> Response:
+        query = parse_query(request, UploadStatusQuery)
+        status = upload_status(
+            with_job_relations(LongRunningJob.objects.all()),
+            request_user(request),
+            query["job_id"],
+            query["photo_id"],
+        )
+        return Response(UploadStatusSerializer(status).data)
 
 
 class UploaderScopedMixin:

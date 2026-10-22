@@ -231,6 +231,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PhotoDownloadStart: { schema: S.PhotoDownloadStart, components: ["ZipDownloadStarted"] },
   PhotoDownloadStatus: { schema: S.PhotoDownloadStatus, components: ["ZipDownloadFinished", "ZipDownloadPending"] },
   UploadExistsResponse: { schema: S.UploadExistsResponse, components: ["UploadExists"] },
+  UploadSealResponse: { schema: S.UploadSealResponse, components: ["UploadSealResponse"] },
+  UploadStatus: { schema: S.UploadStatus, components: ["UploadStatus"] },
+  UploadFollowups: { schema: S.UploadFollowups, components: ["UploadFollowups"] },
+  ImportJob: { schema: S.ImportJob, components: ["LongRunningJob"] },
   // services, serving diagnostics
   ServicesList: { schema: S.ServicesList, components: ["Services"] },
   ServiceHealth: { schema: S.ServiceHealth, components: ["ServiceHealth"] },
@@ -327,4 +331,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
   UploadCompleteResponse:
     "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
+  ImportJobResult: "the result of an Import Uploads job; the schema types a job's result as a free-form object",
+  UploadFailedFile: "an entry of an Import Uploads job's result, which the schema types as a free-form object",
 };

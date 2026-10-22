@@ -32,6 +32,7 @@ from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
+from api.models import LongRunningJob
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     create_test_album_auto,
@@ -119,6 +120,11 @@ class CrossTenantReadTest(TestCase):
         self.v_dup = create_test_duplicate(owner=self.victim)
         self.v_dup.photos.add(*self.v_photos)
         self.v_job = create_test_job(started_by=self.victim)
+        self.v_import = create_test_job(
+            started_by=self.victim,
+            job_type=LongRunningJob.JOB_IMPORT_UPLOADS,
+            sealed=False,
+        )
 
         # The attacker's own library, so each list has something to return.
         self.a_photo = create_test_photo(owner=self.attacker)
@@ -140,6 +146,7 @@ class CrossTenantReadTest(TestCase):
             str(self.v_stack.pk),
             str(self.v_dup.pk),
             self.v_job.job_id,
+            self.v_import.job_id,
         }
 
     def client_for(self, user):
@@ -247,6 +254,7 @@ class CrossTenantReadTest(TestCase):
             (f"/api/duplicates/{v.v_dup.pk}/", str(v.v_dup.pk)),
             ("/api/duplicates/stats/", None),
             ("/api/jobs/", v.v_job.job_id),
+            ("/api/upload/status/", v.v_import.job_id),
             (f"/api/jobs/{v.v_job.pk}/", v.v_job.job_id),
             (f"/api/photos/download?job_id={v.v_job.job_id}", None),
             ("/api/memories/?fallback=true&window=30", v.v_photo.image_hash),
