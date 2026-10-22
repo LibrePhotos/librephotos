@@ -14,6 +14,7 @@ export function rowToItem(r: MergedTimelineRow): TimelineItem {
     type: r.type,
     dominantColor: r.dominant_color,
     localUri: r.local_uri,
+    processing: r.processing === 1,
     day: r.bucket_day,
   };
 }
@@ -31,7 +32,14 @@ export function rowToItem(r: MergedTimelineRow): TimelineItem {
  * not re-run by unrelated churn — during a scan that is `job_queue`, `sync_log`
  * and `app_meta` on essentially every job.
  */
-const TIMELINE_TABLES = ["remote_photo", "local_asset", "local_album", "local_album_asset"] as const;
+const TIMELINE_TABLES = [
+  "remote_photo",
+  "local_asset",
+  "local_album",
+  "local_album_asset",
+  // The camera-roll rows' "processing on the server" badge (#2740).
+  "upload_queue",
+] as const;
 
 export function useMirrorTimeline() {
   const [limit, setLimit] = useState(PAGE);

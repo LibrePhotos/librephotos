@@ -18,6 +18,7 @@ import type {
 } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
 import type { SyncEntity } from "@/db/queries/sync-state";
+import { settleUploads } from "@/db/queries/upload-processing";
 import {
   deleteAutoAlbums,
   deleteNamedAlbums,
@@ -76,6 +77,9 @@ export function applyPhotosPage(db: AppDatabase, env: SyncPhotosResponse, now: n
   const rows = env.items.map((i) => syncPhotoToRow(i, now));
   db.transaction((tx) => {
     writeRemotePhotos(tx, rows);
+    // Uploads whose photo this page brought in with a thumbnail are no longer
+    // "processing on the server" (#2740).
+    settleUploads(tx, now);
     deleteRemotePhotos(tx, env.tombstones);
     advanceCursor(tx, "photo", env.next_cursor, lastModifiedOf(env.items));
   });

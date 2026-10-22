@@ -69,6 +69,7 @@ class FakeTransport implements UploadTransport {
   }
   async complete(input: UploadCompleteInput) {
     this.completes.push(input);
+    return { photoId: null };
   }
 }
 
