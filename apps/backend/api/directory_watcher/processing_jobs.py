@@ -192,29 +192,49 @@ def _untagged_photos(user: User) -> QuerySet[Photo]:
     )
 
 
-def generate_tags(user: User, job_id: UUID) -> None:
+def photos_to_tag(user: User, full_scan: bool) -> QuerySet[Photo]:
+    """The photos of ``user`` the Things job covers (#2765).
+
+    Without ``full_scan`` the photos without OpenCLIP tags; with it every
+    photo with a big thumbnail (the tagger reads it), tagged or not.
     """
-    Generate image tags with the active tagging model for every untagged photo.
+    if not full_scan:
+        return _untagged_photos(user)
+    return Photo.objects.owned_by(user).exclude(
+        Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
+    )
+
+
+def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
+    """
+    Detect the things in the photos of ``user`` with OpenCLIP.
 
     The photos are selected by need, not by when they were added: a photo a
     cancelled or failed run did not reach is picked up by the next one
-    (#2212), like the search embeddings job does.
+    (#2212), like the search embeddings job does. ``full_scan`` (Detect
+    things again, #2765) tags every photo again, for a changed tag list or
+    confidence; a cancelled full run is not resumed by the next plain one.
 
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
+        full_scan: Replace the things of photos that have them too
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_TAGS, job_id)
     if lrj is None:
         return
 
     try:
-        existing_photos = _untagged_photos(user)
+        existing_photos = photos_to_tag(user, full_scan)
         if not _begin_photo_scan(lrj, existing_photos):
             return
 
         _queue_per_photo_tasks(
-            generate_tag_job, existing_photos, job_id, "Generate tags job cancelled"
+            generate_tag_job,
+            existing_photos,
+            job_id,
+            "Generate tags job cancelled",
+            force=full_scan,
         )
 
     except Exception as err:
@@ -222,13 +242,14 @@ def generate_tags(user: User, job_id: UUID) -> None:
         lrj.fail(error=err)
 
 
-def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
+def generate_tag_job(photo_id: UUID | Photo, job_id: str, force: bool = False) -> None:
     """
     Worker task to generate tags for a single photo.
 
     Args:
         photo_id: Primary key of the photo to process
         job_id: Job ID for tracking progress
+        force: Replace the photo's OpenCLIP tags if it has them
     """
     photo = _photo_for_task(photo_id, job_id)
     if photo is None:
@@ -237,7 +258,7 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str) -> None:
     error = None
     try:
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        semantic.generate_photo_tags(caption_instance, commit=True)
+        semantic.generate_photo_tags(caption_instance, commit=True, force=force)
     except Exception as err:
         logger.exception("An error occurred: %s", photo.image_hash)
         failed = True

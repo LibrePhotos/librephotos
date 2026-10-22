@@ -82,7 +82,23 @@ The **Places** card on the Albums page shows a small map zoomed to fit your plac
 Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
 
 ### Things Albums
-Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty. To generate them, run a full **Rescan** from **Settings → Library** (in the *Scan Library* section, open the dropdown next to **Scan** and choose **Rescan**), which detects the things in your existing photos again. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
+Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty.
+
+<Since version="1.5.0" /> To find the things in your photos again, open **Account menu > Library** and, under the **Things** heading, click the arrow next to **Find** and choose **Find things again for all photos**. It asks first, because on a large library it runs for hours. Every photo is labelled again with the current list of things, and the Things albums follow; your own tags, keywords and captions stay as they are. **Find** alone covers only the photos that have no things yet, which a scan also does by itself. Each user runs it for their own photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
+
+#### Teaching LibrePhotos new things
+
+<Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 940 words that ships with it (beach, dog, birthday cake, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":
+
+1. Create a text file named `custom_tags.txt` in the OpenCLIP model folder: `protected_media/data_models/openclip_vitb32/` in your data volume (`/protected_media/data_models/openclip_vitb32/custom_tags.txt` inside the Docker containers). To keep it somewhere else, point `OPENCLIP_CUSTOM_TAGS` at it (see [Environment variables](../installation/environment-variables.md#your-own-words-for-things)).
+2. Write one word or short phrase per line. Empty lines and lines starting with `#` are skipped, and so is a word the list already has (in any capitalisation).
+3. Restart the backend, or wait until nobody has scanned or searched for a couple of minutes: the `tags` service reads the file each time it loads its model, and it unloads the model when it sits idle. The backend log then says how many of your words were added.
+
+Things to know:
+
+- Only photos labelled from then on get your words. To label the photos you already have with them, run **Find things again for all photos** (see above).
+- Every photo gets the words that fit it best out of the whole list. A specific word ("tortoise") works well; a very generic one ("thing", "photo", "outdoors") competes with the built-in words and can push them out of photos where they fit better.
+- The file stays when you update LibrePhotos, as it lives in your data volume next to the downloaded model.
 
 ---
 

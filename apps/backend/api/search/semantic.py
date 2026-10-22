@@ -111,29 +111,38 @@ def calculate_query_embeddings(query: str | None) -> tuple[list[float], float]:
     return emb, magnitude
 
 
-def _needs_tags(caption: PhotoCaption) -> bool:
-    """Whether the photo has a big thumbnail to tag and no OpenCLIP tags yet."""
+def _needs_tags(caption: PhotoCaption, force: bool = False) -> bool:
+    """Whether the photo has a big thumbnail to tag and, unless ``force``,
+    no OpenCLIP tags yet."""
     try:
         thumbnail = caption.photo.thumbnail
     except ObjectDoesNotExist:
         return False
     if not thumbnail.thumbnail_big:
         return False
+    if force:
+        return True
     return caption.captions_json is None or caption.captions_json.get(OPENCLIP) is None
 
 
-def generate_photo_tags(caption: PhotoCaption, commit: bool = True) -> None:
+def generate_photo_tags(
+    caption: PhotoCaption, commit: bool = True, force: bool = False
+) -> None:
     """Tag the photo with OpenCLIP.
 
     The tags go to ``captions_json[OPENCLIP]`` and the photo's tag albums.
     When tagging feeds semantic search too (``semantic_shares_tagger``),
     the same image-tower run gives the photo's search embedding. Moved out
     of ``PhotoCaption`` so the model makes no sidecar calls (#2336).
+
+    A photo that has OpenCLIP tags is skipped unless ``force`` (Detect things
+    again, #2765): then its OpenCLIP tags and tag albums are replaced by the
+    new run's. The user's own tags and the other captions stay.
     """
     if not feature_enabled("SCENE_CLASSIFICATION"):
         logger.info("Scene classification is disabled")
         return
-    if not _needs_tags(caption):
+    if not _needs_tags(caption, force):
         return
 
     photo = caption.photo

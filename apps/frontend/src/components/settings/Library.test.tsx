@@ -72,6 +72,7 @@ vi.mock("../../api_client/jobs/hooks", () => ({
   useApplyDateRules: () => ({ start: mocks.applyDateRules, running: false }),
   useGenerateAutoAlbumsMutation: () => ({ ...noopMutation, mutate: mocks.generateAutoAlbums }),
   useGenerateCaptionsMutation: () => noopMutation,
+  useFindThingsMutation: () => noopMutation,
   useGenerateOcrMutation: () => noopMutation,
   useRegenerateEventTitlesMutation: () => ({ ...noopMutation, mutate: mocks.regenerateEventTitles }),
   useRescanPhotosMutation: () => noopMutation,

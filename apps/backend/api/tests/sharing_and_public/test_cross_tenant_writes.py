@@ -107,6 +107,7 @@ NOT_PHOTO_SCOPED = {
     "api/classifymedia/": "queues a job on the requester's own photos",
     "api/generateocr/": "queues a job on the requester's own photos",
     "api/generate-captions/": "queues a job on the requester's own photos",
+    "api/find-things/": "queues a job on the requester's own photos",
     "api/photos/reapply-date-rules/": "queues a job on the requester's own photos",
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
     "api/upgrade-tasks/<slug:key>/start/": "admin-only, instance-wide post-upgrade jobs",

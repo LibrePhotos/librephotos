@@ -117,6 +117,15 @@ def _captioning_available(config: dict[str, Any]) -> bool:
     )
 
 
+def _things_available(config: dict[str, Any]) -> bool:
+    """Whether Things are on, from the values this request read.
+
+    Sent to everyone: the Library page offers Find things only then (#2765).
+    """
+    feature: Feature = "SCENE_CLASSIFICATION"
+    return not feature_locked(feature) and bool(config[site_setting_key(feature)])
+
+
 def _auto_scan(config: dict[str, Any]) -> dict[str, object]:
     """The automatic library scan's setting and status line (#235)."""
     return {
@@ -175,6 +184,7 @@ class SiteSettingsView(APIView):
         out["map_tile_provider"] = config["MAP_TILE_PROVIDER"]
         out["captioning_model"] = config["CAPTIONING_MODEL"]
         out["captioning_available"] = _captioning_available(config)
+        out["things_available"] = _things_available(config)
         # There is no LLM any more; older mobile clients still expect the key.
         out["llm_model"] = "None"
         # One tagging model, not a setting: the web client reads it to find

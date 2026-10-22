@@ -19,7 +19,12 @@ from api.search import semantic
 from api.search.embedding_jobs import store_clip_embeddings
 from api.search.semantic import generate_photo_tags
 from api.search.similarity import search_similar_image
-from api.tests.utils import create_test_job, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_job,
+    create_test_photo,
+    create_test_tag,
+    create_test_user,
+)
 
 OPENCLIP = semantic.OPENCLIP
 EARLIER_MODEL = "an-earlier-model"
@@ -163,6 +168,61 @@ class TagsStoreTheEmbeddingTest(TestCase):
             ),
             [("beach", semantic.TAG_THING_TYPE)],
         )
+
+    def _tag_again(self, body, force):
+        with patch("api.search.semantic.sidecars.post") as post:
+            post.return_value = _reply(body)
+            generate_photo_tags(self.caption, commit=True, force=force)
+        return post
+
+    def _things(self):
+        return sorted(
+            AlbumThing.objects.filter(
+                photos=self.photo, thing_type=semantic.TAG_THING_TYPE
+            ).values_list("title", flat=True)
+        )
+
+    def test_force_replaces_the_things_and_keeps_the_rest(self):
+        """Find things again (#2765): only OpenCLIP's part changes."""
+        self._tag({"tags": {"tags": ["beach", "dog"]}})
+        self.caption.refresh_from_db()
+        self.caption.captions_json = {
+            **self.caption.captions_json,
+            "user_caption": "Our summer",
+            "im2txt": "a dog on a beach",
+        }
+        self.caption.save()
+        tag = create_test_tag(self.photo.owner, "holiday")
+        tag.photos.add(self.photo)
+
+        post = self._tag_again({"tags": {"tags": ["tortoise"]}}, force=True)
+
+        post.assert_called_once()
+        caption = PhotoCaption.objects.get(photo=self.photo)
+        self.assertEqual(caption.captions_json[OPENCLIP], {"tags": ["tortoise"]})
+        self.assertEqual(caption.captions_json["user_caption"], "Our summer")
+        self.assertEqual(caption.captions_json["im2txt"], "a dog on a beach")
+        self.assertEqual(self._things(), ["tortoise"])
+        self.assertEqual(
+            list(self.photo.tags.values_list("name", flat=True)), ["holiday"]
+        )
+
+    def test_without_force_a_tagged_photo_is_skipped(self):
+        self._tag({"tags": {"tags": ["beach"]}})
+        self.caption.refresh_from_db()
+
+        post = self._tag_again({"tags": {"tags": ["tortoise"]}}, force=False)
+
+        post.assert_not_called()
+        self.assertEqual(self._things(), ["beach"])
+
+    def test_force_still_needs_a_big_thumbnail(self):
+        self.photo.thumbnail.thumbnail_big = ""
+        self.photo.thumbnail.save()
+
+        post = self._tag_again({"tags": {"tags": ["tortoise"]}}, force=True)
+
+        post.assert_not_called()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     def test_tagging_off_tags_nothing(self):

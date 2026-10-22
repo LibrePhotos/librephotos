@@ -921,6 +921,18 @@ export async function generateCaptions(
 }
 
 /**
+ * Find the things in the signed-in user's photos (#2765): the ones without things yet, or with
+ * `fullScan` every photo again, after the list of things changed. Only the things and their albums
+ * are replaced, never the user's own tags. A 403 while Things are turned off on the server.
+ */
+export async function findThings(
+  client: ApiClient,
+  fullScan: boolean
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/find-things/", S.JobStartedResponse, "find things", { full_scan: fullScan });
+}
+
+/**
  * Remove photo details (EXIF, GPS, XMP) from the thumbnails older releases wrote, over the whole
  * instance (admins only, #2321). Returns the queued (or already running) job.
  */

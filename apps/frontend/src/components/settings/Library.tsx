@@ -45,6 +45,7 @@ export function Library() {
   const ocrModel = siteSettings?.ocr_model ?? "none";
   const isOcrEnabled = ocrModel.trim().toLowerCase() !== "none";
   const isCaptioningAvailable = siteSettings?.captioning_available ?? false;
+  const isThingsAvailable = siteSettings?.things_available ?? false;
   const {
     isFetching: isNextcloudFetching,
     isSuccess: isNextcloudSuccess,
@@ -167,6 +168,7 @@ export function Library() {
               isAdmin={isAdmin}
               isOcrEnabled={isOcrEnabled}
               isCaptioningAvailable={isCaptioningAvailable}
+              isThingsAvailable={isThingsAvailable}
             />
             {isNextcloudEnabled && (
               <NextcloudSettings

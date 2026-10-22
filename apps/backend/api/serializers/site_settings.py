@@ -221,6 +221,10 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         help_text="Captions can be generated: the image captioning switch is on"
         " and a captioning model is picked. Sent to everyone."
     )
+    things_available = serializers.BooleanField(
+        help_text="Things can be found: the Things switch is on and the"
+        " environment does not lock it off. Sent to everyone."
+    )
     llm_model = serializers.CharField()
     tagging_model = serializers.CharField()
     ocr_model = serializers.CharField()

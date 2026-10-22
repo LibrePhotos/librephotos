@@ -2,6 +2,7 @@ export * from "./useApplyDateRules";
 export * from "./useCancelJobMutation";
 export * from "./useDeleteJobMutation";
 export * from "./useDownloadPhotosMutation";
+export * from "./useFindThingsMutation";
 export * from "./useGenerateAutoAlbumsMutation";
 export * from "./useGenerateCaptionsMutation";
 export * from "./useGenerateOcrMutation";
