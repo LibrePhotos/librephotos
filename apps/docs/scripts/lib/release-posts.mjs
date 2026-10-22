@@ -126,6 +126,8 @@ export const shotSchema = z.strictObject({
   width: z.int().positive(),
   height: z.int().positive(),
   release: version.optional(),
+  /** Size of the phone variant, `<id>-phone-light.webp` and `<id>-phone-dark.webp`, when there is one. */
+  phone: z.strictObject({ width: z.int().positive(), height: z.int().positive() }).optional(),
 });
 
 const SHOT_FILE = /-(light|dark)\.webp$/;
@@ -156,9 +158,10 @@ function duplicateShotErrors(shots) {
   return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].map((id) => `manifest.json: "${id}" is listed twice`);
 }
 
-/** The files a manifest entry needs: `<id>-light.webp` and `<id>-dark.webp`. */
+/** The files a manifest entry needs: `<id>-light.webp` and `<id>-dark.webp`, and the phone pair with `phone`. */
 function shotFiles(shot) {
-  return ["light", "dark"].map((theme) => `${shot.id}-${theme}.webp`);
+  const stems = shot.phone ? [shot.id, `${shot.id}-phone`] : [shot.id];
+  return stems.flatMap((stem) => ["light", "dark"].map((theme) => `${stem}-${theme}.webp`));
 }
 
 function missingShotFileErrors(shots, files) {
@@ -177,8 +180,9 @@ function unlistedShotFileErrors(shots, files) {
 }
 
 /**
- * Problems of static/img/shots: every manifest entry needs alt text and a light and a dark file,
- * and every `<id>-light.webp`/`<id>-dark.webp` needs a manifest entry.
+ * Problems of static/img/shots: every manifest entry needs alt text and a light and a dark file
+ * (and the phone pair when it has `phone`), and every `*-light.webp`/`*-dark.webp` needs an entry.
+ * The screens run (apps/frontend/e2e, `yarn screens`) writes the files and the manifest.
  */
 export function shotsErrors(shotsDir = SHOTS_DIR) {
   if (!fs.existsSync(shotsDir)) {

@@ -1,0 +1,187 @@
+name: screenshots
+
+# Refreshes the docs and release screenshots in apps/docs/static/img/shots/ (#2307):
+# builds the e2e stack from the chosen branch, runs the screens run of
+# apps/frontend/e2e (`yarn screens`, shots listed in e2e/screens/manifest.ts) inside
+# the Playwright container, so fonts and rendering match from run to run, uploads the
+# shots as an artifact, and opens a PR with the files that changed. A shot that looks
+# the same as the committed file keeps that file, so a run without UI changes opens
+# no PR. Started by hand only.
+#
+# Two jobs, so the write token never meets code from the repository: "shots" runs the
+# stack and the Playwright suite with a read-only token; "pr" only copies the
+# artifact into a checkout, commits, pushes a branch and opens the PR with the
+# workflow token. That needs "Allow GitHub Actions to create and approve pull
+# requests" (Settings, Actions, General); no other secret or app. A PR opened with
+# the workflow token starts no workflows: close and reopen it to run the checks.
+#
+# The stack is deploy/compose/docker-compose.e2e.yml: eight synthetic photos and no
+# ML, so it has no faces, places or events. The `shots` input therefore defaults to
+# the shots that stack can take; the landing page tour (timeline, lightbox, faces,
+# places, events) was taken on a bigger sample library and waits for #2306.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Branch to take the shots on and to open the PR against
+        required: true
+        default: dev
+      shots:
+        description: Shot ids from apps/frontend/e2e/screens/manifest.ts, comma-separated (empty takes every shot)
+        required: false
+        default: timeline-filter,category-badge
+      version:
+        description: Version the app shows in the sidebar (empty takes the latest release)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: screenshots-${{ inputs.base }}
+  cancel-in-progress: false
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      sha: ${{ steps.checkout.outputs.commit }}
+      version: ${{ steps.version.outputs.version }}
+    env:
+      COMPOSE_FILE: deploy/compose/docker-compose.e2e.yml
+    steps:
+      - uses: actions/checkout@v7
+        id: checkout
+        with:
+          ref: ${{ inputs.base }}
+          persist-credentials: false
+
+      # The backend reads IMAGE_TAG at runtime; the sidebar shows it instead of "dev".
+      - name: Pick the version to show
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "$VERSION" ]; then
+            VERSION=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build the e2e stack
+        run: docker compose build
+
+      - name: Start the e2e stack
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.version }}
+        run: docker compose up -d --wait --wait-timeout 600
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: apps/frontend/e2e/yarn.lock
+
+      # @playwright/test is plain JavaScript: installed here, run in the container below,
+      # whose browsers belong to the same Playwright version.
+      - name: Install the e2e package
+        working-directory: apps/frontend/e2e
+        run: yarn install --frozen-lockfile
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      # The image tag follows @playwright/test in apps/frontend/e2e/package.json
+      # (screens/files.test.ts checks it; Renovate bumps both, renovate.json).
+      - name: Take the shots
+        env:
+          SHOTS: ${{ inputs.shots }}
+        run: |
+          docker run --rm --network host --ipc host \
+            --user "$(id -u):$(id -g)" -e HOME=/tmp \
+            -e CI=true -e E2E_BASE_URL=http://localhost:8080 -e SHOTS \
+            -v "$GITHUB_WORKSPACE:/repo" -w /repo/apps/frontend/e2e \
+            mcr.microsoft.com/playwright:v1.64.1-noble \
+            node node_modules/@playwright/test/cli.js test -c playwright.screens.config.ts --project screens
+
+      # Every run, also when no file changed or a shot failed: the images to look at.
+      - name: Upload the shots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: shots-${{ github.run_id }}
+          path: apps/docs/static/img/shots/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Collect stack logs
+        if: failure()
+        run: |
+          mkdir -p e2e-logs
+          docker compose ps -a > e2e-logs/ps.txt 2>&1 || true
+          docker compose logs --no-color --timestamps > e2e-logs/compose.log 2>&1 || true
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            apps/frontend/e2e/test-results/
+            e2e-logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Stop the e2e stack
+        if: always()
+        run: docker compose down -v
+
+  pr:
+    needs: shots
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # The token stays in the checkout for the push below. This job runs no code
+      # from the repository: git, gh and the downloaded images only.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.shots.outputs.sha }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: shots-${{ github.run_id }}
+          path: apps/docs/static/img/shots/
+
+      - name: Open a PR with the changed shots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ inputs.base }}
+          BRANCH: docs/refresh-screenshots-${{ github.run_id }}
+          VERSION: ${{ needs.shots.outputs.version }}
+          APP_SHA: ${{ needs.shots.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          git add apps/docs/static/img/shots/
+          if git diff --cached --quiet; then
+            echo "No shot changed, so no PR." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          changed=$(git diff --cached --name-only -- apps/docs/static/img/shots/ | sed 's|.*/|- `|; s|$|`|')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -q -m "docs: refresh screenshots"
+          git push -q origin "$BRANCH"
+          {
+            echo "Screenshots taken by the [screenshots workflow]($RUN_URL) on \`$BASE\` at $APP_SHA, with the sidebar showing version $VERSION."
+            echo
+            echo "Changed files:"
+            echo
+            echo "$changed"
+            echo
+            echo "Checks do not start on a PR opened with the workflow token: close and reopen this PR to run them."
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base "$BASE" --head "$BRANCH" --title "docs: refresh screenshots" --body-file "$RUNNER_TEMP/body.md"
