@@ -1,0 +1,4 @@
+/* "(UTC-07:00)" stays on one line: a break at its hyphen would read as two values. */
+.offset {
+  white-space: nowrap;
+}
