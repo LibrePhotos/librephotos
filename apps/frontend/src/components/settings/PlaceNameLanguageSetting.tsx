@@ -12,10 +12,11 @@ import { CONTROL_SPAN, SettingLabel } from "./ScanSettings";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
 type Props = Readonly<{
-  /** The Map Provider's name, for the reason the setting does nothing with it. */
-  providerLabel: string;
-  /** Whether the Map Provider can be asked for a language (not Mapbox or ExifTool). */
-  supported: boolean;
+  /**
+   * The Map Provider set now: its name, for the reason the setting does nothing with it, and
+   * whether it can be asked for a language (`place_language`: not Mapbox or ExifTool).
+   */
+  provider: Readonly<{ label: string; data: Readonly<{ place_language: boolean }> }> | undefined;
 }>;
 
 /**
@@ -24,7 +25,8 @@ type Props = Readonly<{
  * then offers the Admin tools job that looks every photo's place up again. With a provider that
  * cannot be asked, the Select is disabled and its description says why; the value is kept.
  */
-export function PlaceNameLanguageSetting({ providerLabel, supported }: Props) {
+export function PlaceNameLanguageSetting({ provider }: Props) {
+  const supported = provider?.data.place_language ?? false;
   const { t, i18n } = useTranslation();
   const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
   const save = useSaveSiteSettings();
@@ -65,7 +67,9 @@ export function PlaceNameLanguageSetting({ providerLabel, supported }: Props) {
           allowDeselect={false}
           placeholder={t("sitesettings.placelanguage_search")}
           disabled={!supported}
-          description={supported ? undefined : t("sitesettings.placelanguage_unsupported", { provider: providerLabel })}
+          description={
+            supported ? undefined : t("sitesettings.placelanguage_unsupported", { provider: provider?.label ?? "" })
+          }
           // The reason under the greyed field, where the eye goes, not above it
           inputWrapperOrder={["label", "input", "description", "error"]}
           data={data}

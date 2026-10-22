@@ -69,7 +69,7 @@ async function render(supported = true) {
       // env="test": no transitions or portals, so the dropdown and the dialog render in place
       <MantineProvider env="test">
         <Grid>
-          <PlaceNameLanguageSetting providerLabel="Mapbox" supported={supported} />
+          <PlaceNameLanguageSetting provider={{ label: "Mapbox", data: { place_language: supported } }} />
         </Grid>
       </MantineProvider>
     );
@@ -177,5 +177,18 @@ describe("PlaceNameLanguageSetting", () => {
     await render(false);
     expect(select().disabled).toBe(true);
     expect(container.textContent).toContain("Mapbox cannot be asked for a language");
+  });
+
+  it("is disabled for a provider it does not know", async () => {
+    await act(async () => {
+      root.render(
+        <MantineProvider env="test">
+          <Grid>
+            <PlaceNameLanguageSetting provider={undefined} />
+          </Grid>
+        </MantineProvider>
+      );
+    });
+    expect(select().disabled).toBe(true);
   });
 });

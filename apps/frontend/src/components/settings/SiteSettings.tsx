@@ -275,10 +275,7 @@ function SiteSettingsForm() {
                 }}
               />
             </Grid.Col>
-            <PlaceNameLanguageSetting
-              providerLabel={mapProvider?.label ?? mapApiProvider}
-              supported={mapProvider?.data.place_language ?? false}
-            />
+            <PlaceNameLanguageSetting provider={mapProvider} />
             {mapProvider?.data.use_api_key && (
               <>
                 <Grid.Col span={LABEL_SPAN}>

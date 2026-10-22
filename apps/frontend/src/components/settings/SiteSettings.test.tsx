@@ -38,8 +38,8 @@ vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save 
 vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
 // Its own test: PlaceNameLanguageSetting.test.tsx. The card tells it which provider is set.
 vi.mock("./PlaceNameLanguageSetting", () => ({
-  PlaceNameLanguageSetting: ({ providerLabel, supported }: { providerLabel: string; supported: boolean }) => (
-    <span data-place-language={`${providerLabel} ${supported}`} />
+  PlaceNameLanguageSetting: ({ provider }: { provider?: { label: string; data: { place_language: boolean } } }) => (
+    <span data-place-language={`${provider?.label} ${provider?.data.place_language}`} />
   ),
 }));
 vi.mock("./ScanSettings", () => ({
