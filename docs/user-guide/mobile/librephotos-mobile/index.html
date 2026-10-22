@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.7842b7eb.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.c9d50bdd.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -121,6 +121,12 @@ up photo&#x27;s badge flips from <em>pending</em> to <em>synced</em> once the se
 Backup continues in the background within the limits your phone&#x27;s operating
 system allows; keeping the app in the foreground is the fastest way to clear a
 large backlog.</p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> After an upload the server still has to make the
+photo&#x27;s thumbnails before it shows up in your timeline. Until the app&#x27;s next
+sync brings it in, the Backup tab counts it as <em>processing on the server</em>, its
+queue row says <strong>Processing on server</strong>, and its grid tile shows an hourglass
+instead of the upload arrow. The Backup tab only says everything is backed up
+once the server has finished.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="sync-status-and-repair">Sync status and repair<a href="#sync-status-and-repair" class="hash-link" aria-label="Direct link to Sync status and repair" title="Direct link to Sync status and repair" translate="no">​</a></h2>
 <p>Open <strong>Sync status</strong> (from Settings) to see what the app is doing:</p>
 <ul>
