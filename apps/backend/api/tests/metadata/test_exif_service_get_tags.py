@@ -361,6 +361,72 @@ class GetTagsTest(SimpleTestCase):
         self.assertEqual(resp.get_json(), {"error": "RuntimeError: cannot start"})
 
 
+class OriginsTest(SimpleTestCase):
+    """``"origins": true``: which file each value came from (#2772)."""
+
+    def setUp(self):
+        exif_main.app.config["TESTING"] = True
+        self.client = exif_main.app.test_client()
+
+    def answer(self, fake, files, tags, **extra):
+        with patch.object(exif_main, "static_et", fake):
+            resp = self.client.post(
+                "/get-tags",
+                data=json.dumps(
+                    {
+                        "files_by_reverse_priority": files,
+                        "tags": tags,
+                        "struct": False,
+                        **extra,
+                    }
+                ),
+                content_type="application/json",
+            )
+        self.assertEqual(resp.status_code, 200)
+        return resp.get_json()
+
+    def test_not_asked_for_they_are_left_out(self):
+        fake = FakeExifTool(values={("A", "/a.jpg"): 1}, running=True)
+        self.assertEqual({"values": [1]}, self.answer(fake, ["/a.jpg"], ["A"]))
+
+    def test_the_index_of_the_file_each_value_came_from(self):
+        fake = FakeExifTool(
+            values={
+                ("A", "/a.jpg"): "jpg",
+                ("A", "/a.xmp"): "xmp",
+                ("B", "/a.jpg"): "jpg",
+            },
+            running=True,
+        )
+        answer = self.answer(fake, ["/a.jpg", "/a.xmp"], ["A", "B", "C"], origins=True)
+        self.assertEqual(["xmp", "jpg", None], answer["values"])
+        self.assertEqual([1, 0, None], answer["origins"])
+        self.assertEqual(fake.calls, [])
+
+    def test_the_per_tag_fallback_says_it_too(self):
+        fake = FakeExifTool(
+            values={("T", "/a.jpg"): "jpg", ("U", "/b.jpg"): "b"},
+            unreadable={"/c.xmp"},
+            running=True,
+        )
+        answer = self.answer(
+            fake, ["/a.jpg", "/b.jpg", "/c.xmp"], ["T", "U", "V"], origins=True
+        )
+        self.assertEqual(["jpg", "b", None], answer["values"])
+        self.assertEqual([0, 1, None], answer["origins"])
+
+    def test_an_unsafe_tag_has_no_origin(self):
+        fake = FakeExifTool(values={("A", "/a.jpg"): 1}, running=True)
+        with self.assertLogs("exif", "WARNING"):
+            answer = self.answer(fake, ["/a.jpg"], ["A", "B=evil"], origins=True)
+        self.assertEqual({"values": [1, None], "origins": [0, None]}, answer)
+
+    def test_nothing_to_read_has_no_origins(self):
+        fake = FakeExifTool(running=True)
+        answer = self.answer(fake, [], ["A", "B"], origins=True)
+        self.assertEqual({"values": [None, None], "origins": [None, None]}, answer)
+
+
 class HealthAndLogTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True

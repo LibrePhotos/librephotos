@@ -368,10 +368,12 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
             ["0", "2026", "September", "Urlaub Bodensee"],
         )
 
-        # An empty scalar keyword must not replace the imported keyword list.
+        # An empty scalar keyword is no keyword: the file has none now (#2770),
+        # and the tags imported before stay.
         metadata = self.extract(xmp_subject="")
         metadata.refresh_from_db()
-        self.assertEqual(metadata.keywords, expected)
+        self.assertIsNone(metadata.keywords)
+        self.assertEqual(4, self.photo.tags.count())
 
     def test_numeric_scalar_keywords_are_preserved_in_each_source(self):
         for source in ("xmp_subject", "iptc_keywords"):
@@ -438,16 +440,17 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
         self.assertIn("0", words)
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
-    def test_empty_keyword_containers_leave_existing_keywords_intact(self, link_tags):
-        """No keywords found -> the existing keywords column is not cleared."""
+    def test_empty_keyword_containers_clear_the_stored_keywords(self, link_tags):
+        """No keywords found -> the column says so (#2770): it is what the
+        next scan compares with, and a keyword the file gets back is new."""
         PhotoMetadata.objects.create(
             photo=self.photo, keywords=["previously", "stored"]
         )
 
         metadata = self.extract(xmp_subject=[], iptc_keywords=[])
 
-        self.assertEqual(metadata.keywords, ["previously", "stored"])
-        link_tags.assert_called_once_with(self.photo, ["previously", "stored"])
+        self.assertIsNone(metadata.keywords)
+        link_tags.assert_called_once_with(self.photo, None)
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
     def test_link_tags_called_with_none_when_no_keywords_ever_seen(self, link_tags):

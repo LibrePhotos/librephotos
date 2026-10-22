@@ -691,7 +691,8 @@ class KeywordRoundTripTest(RealExifToolTestCase):
 
     def test_a_removed_keyword_the_file_still_gives_stays_removed(self):
         # A sidecar cannot remove the original's IPTC:Keywords, and no write
-        # touches a HierarchicalSubject leaf: the file still gives both.
+        # touches a HierarchicalSubject leaf: the original still has both,
+        # but once the sidecar has a keyword list it is the photo's (#2772).
         path = self.make_image(".jpg")
         self.tag(
             path,
@@ -708,7 +709,7 @@ class KeywordRoundTripTest(RealExifToolTestCase):
 
         self.assertEqual(["Holiday"], self._tags(photo))
         self.assertEqual(["Holiday"], self._file_keywords(self.sidecar_of(path)))
-        self.assertIn("Sunset", self._scan_keywords(photo))
+        self.assertEqual(["Holiday"], self._scan_keywords(photo))
 
     def test_a_keyword_another_app_adds_becomes_a_tag(self):
         path = self.make_image(".jpg")
@@ -719,7 +720,8 @@ class KeywordRoundTripTest(RealExifToolTestCase):
 
         self.assertEqual(["Holiday", "Lighthouse", "Sunset"], self._tags(photo))
 
-    def test_while_off_a_rescan_still_adds_a_removed_file_keyword_back(self):
+    def test_while_off_a_removed_tag_stays_removed(self):
+        # #2770: the file did not change, so nothing new is linked.
         path = self.make_image(".jpg")
         photo = self._photo(path, OFF, "Holiday", "Beach")
 
@@ -727,7 +729,17 @@ class KeywordRoundTripTest(RealExifToolTestCase):
             self._remove(photo, "Beach")
         self._rescan(photo)
 
-        self.assertEqual(["Beach", "Holiday"], self._tags(photo))
+        self.assertEqual(["Holiday"], self._tags(photo))
+
+    def test_while_off_a_keyword_another_app_adds_becomes_a_tag(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF, "Holiday", "Beach")
+        self._remove(photo, "Beach")
+
+        self.tag(path, "-XMP-dc:Subject+=Lighthouse")
+        self._rescan(photo)
+
+        self.assertEqual(["Holiday", "Lighthouse"], self._tags(photo))
 
     def test_an_existing_iptc_block_follows_the_edit(self):
         path = self.make_image(".jpg")
