@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.40575dfe.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.ecb47768.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -49,6 +49,7 @@
 <p>Computes the numeric encoding for faces that have been detected but not yet encoded, so they can be grouped and matched. It runs automatically as part of <strong>Scan Faces</strong>. If no faces are waiting to be encoded it finishes immediately, so you may not always see a row for it.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="find-similar-faces">Find Similar Faces<a href="#find-similar-faces" class="hash-link" aria-label="Direct link to Find Similar Faces" title="Direct link to Find Similar Faces" translate="no">​</a></h3>
 <p>Clusters the faces into known and unknown groups.</p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Uploads start it too, once enough new faces came in: at least 20, and at least 2% of all your faces. So that it does not renumber the &quot;Unknown&quot; groups while you work through them, it waits until 30 minutes after your last upload and 15 minutes after you last labelled, deleted or restored a face, runs at most once an hour, and waits while a scan, a face scan, <strong>Train Faces</strong> or an upload of yours is still running. Any run, also one a scan or the <strong>Train</strong> button started, counts as the last one. Up to 1.4.0, faces of uploaded photos stayed among the unknown faces until you trained by hand.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="download-models">Download Models<a href="#download-models" class="hash-link" aria-label="Direct link to Download Models" title="Direct link to Download Models" translate="no">​</a></h3>
 <p>This downloads the needed machine learning models to data/protected_media/data_models/.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="download-selected-photos">Download Selected Photos<a href="#download-selected-photos" class="hash-link" aria-label="Direct link to Download Selected Photos" title="Direct link to Download Selected Photos" translate="no">​</a></h3>
