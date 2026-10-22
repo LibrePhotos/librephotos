@@ -44,21 +44,29 @@ async function pinMemoriesDay(route: Route) {
   await route.continue({ url: url.toString() });
 }
 
-/** Waits until every image inside the viewport has loaded real pixels. */
+/**
+ * Waits until every image inside the viewport has loaded real pixels, and the photo grid shows no
+ * placeholder there: a tile labelled just "Photo" without a picture, whose page has not arrived.
+ */
 async function waitForVisibleImages(page: Page) {
-  await page.waitForFunction(() =>
-    Array.from(document.images)
-      .filter(image => {
-        const box = image.getBoundingClientRect();
-        return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight;
-      })
-      .every(image => image.complete && image.naturalWidth > 0)
-  );
+  await page.waitForFunction(() => {
+    const inView = (element: Element) => {
+      const box = element.getBoundingClientRect();
+      return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight;
+    };
+    const images = Array.from(document.images).filter(inView);
+    const placeholders = Array.from(document.querySelectorAll('[aria-label="Photo"]')).filter(
+      tile => inView(tile) && !tile.querySelector("img")
+    );
+    return placeholders.length === 0 && images.every(image => image.complete && image.naturalWidth > 0);
+  });
 }
 
 async function openShot(page: Page, shot: ShotSpec) {
   const otherOrigins = countOtherOrigins(page, new URL(test.info().project.use.baseURL ?? "").origin);
-  await page.clock.setFixedTime(`${SHOTS_DAY}T10:00:00Z`);
+  // The clock starts at the fixed day and runs on: a frozen clock (setFixedTime) stalls the app's
+  // throttled handlers, and the grid then never loads the photos of a row that is half in view.
+  await page.clock.setSystemTime(`${SHOTS_DAY}T10:00:00Z`);
   await page.route("**/api/memories**", pinMemoriesDay);
   await page.goto(shot.route);
   await shot.prepare?.(page);
