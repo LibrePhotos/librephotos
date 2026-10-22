@@ -11,6 +11,7 @@ import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceLocationType } from "./lightbox.types";
+import { VideoTimeButton } from "./VideoTimeButton";
 
 type Props = {
   /** One face on the photo, as the photo detail lists it. */
@@ -120,6 +121,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
           {t("lightbox.detectfaces.new")}
         </Badge>
       )}
+      {typeof person.video_time === "number" && <VideoTimeButton seconds={person.video_time} name={person.name} />}
       {!isPublic && !isUnnamed && !isClusterLabel && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon

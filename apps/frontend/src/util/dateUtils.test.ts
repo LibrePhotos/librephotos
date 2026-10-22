@@ -8,6 +8,7 @@ import {
   formatCalendarDay,
   formatPhotoDateTime,
   formatUtcOffset,
+  formatVideoTime,
   fromPickerValue,
   fromUnixSeconds,
   isCalendarDay,
@@ -303,6 +304,14 @@ describe("shifting and describing photo dates (#2278)", () => {
     expect(describeDuration(5400)).toBe("1 hour, 30 minutes");
     expect(describeDuration(-93600)).toBe("1 day, 2 hours");
     expect(describeDuration(61)).toBe("1 minute, 1 second");
+  });
+
+  test("a moment of a video is formatted like a player does", () => {
+    expect(formatVideoTime(0)).toBe("0:00");
+    expect(formatVideoTime(42.9)).toBe("0:42");
+    expect(formatVideoTime(725)).toBe("12:05");
+    expect(formatVideoTime(3723)).toBe("1:02:03");
+    expect(formatVideoTime(-3)).toBe("0:00");
   });
 });
 

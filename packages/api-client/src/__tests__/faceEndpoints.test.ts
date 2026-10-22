@@ -25,6 +25,7 @@ const facePage = {
       photo_image_hash: "82d63ece5bcca091897a1d06d477dd6e1",
       timestamp: "2023-05-05T10:00:00Z",
       person_label_probability: 0.9,
+      video_time: 42.5,
     },
     {
       id: 7,
@@ -53,6 +54,9 @@ describe("face schemas", () => {
     const parsed = PersonFaceListResponse.parse(facePage);
     expect(defined(parsed.results[0]).person_label_probability).toBe(0.9);
     expect(defined(parsed.results[1]).person).toBeUndefined();
+    // Where in its video the face was found (#2762); older servers leave it out.
+    expect(defined(parsed.results[0]).video_time).toBe(42.5);
+    expect(defined(parsed.results[1]).video_time).toBeUndefined();
   });
 
   it("reads the incomplete list with its Unknown - Other entry", () => {

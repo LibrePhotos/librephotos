@@ -18,6 +18,9 @@ export const PersonFace = z.looseObject({
   person: z.number().nullable().optional(),
   person_name: z.string().nullable().optional(),
   timestamp: z.string().nullable().optional(),
+  // The second of the video the face was found at (#2762); null for a photo's faces and a video's
+  // first frame. Optional: older servers do not send it.
+  video_time: z.number().nullable().optional(),
 });
 export type PersonFace = z.infer<typeof PersonFace>;
 
@@ -63,6 +66,7 @@ export const LabelledFace = z.looseObject({
   person: z.number().nullable().optional(),
   person_label_probability: z.number().optional(),
   person_name: z.string().optional(),
+  video_time: z.number().nullable().optional(),
 });
 export type LabelledFace = z.infer<typeof LabelledFace>;
 

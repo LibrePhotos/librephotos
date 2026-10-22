@@ -116,6 +116,9 @@ export const PigPhoto = z.object({
   // A video with a still poster beside its clip (#2026): the grid shows it and plays the clip only
   // while the tile is pointed at. Absent from older backends; false until the poster job has run.
   video_poster: z.boolean().optional(),
+  // In a person's photos: the second of the video where that person is first seen (#2762); null
+  // elsewhere, for a photo and for a video where the person is on the first frame. Older servers omit it.
+  person_video_time: z.number().nullable().optional(),
   rating: z.number().default(0),
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),

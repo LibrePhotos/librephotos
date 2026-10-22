@@ -11,6 +11,7 @@ import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { PageLoader } from "../common/PageLoader";
 import { Lightbox } from "../lightbox/Lightbox";
 import type { FaceLocationType, LightboxItem } from "../lightbox/lightbox.types";
+import { createLightboxCommands, LightboxCommandsContext } from "../lightbox/lightboxCommands";
 import { useFaceDrawing } from "../lightbox/useFaceDrawing";
 import { usePhotoActions } from "../lightbox/usePhotoActions";
 import { usePhotoRotation } from "../lightbox/usePhotoRotation";
@@ -38,6 +39,8 @@ function PhotoPageContent({ photo }: Readonly<{ photo: Photo }>) {
   const clearFaceLocation = useCallback(() => setFaceLocation(null), []);
   const faceDrawing = useFaceDrawing(photo.image_hash, clearFaceLocation);
   const clipboard = useCopyPhotoToClipboard();
+  // The People card's time buttons tell the video on the mat where to play from (#2762).
+  const [commands] = useState(createLightboxCommands);
   const onCopy =
     clipboard.supported && !photo.video
       ? () => clipboard.copy({ imageHash: photo.image_hash, cacheKey: rotation.imageCacheKey })
@@ -56,59 +59,61 @@ function PhotoPageContent({ photo }: Readonly<{ photo: Photo }>) {
   ];
 
   return (
-    <PageBody>
-      <div className={classes.layout}>
-        <PhotoMat
-          photo={photo}
-          isOwner={isOwner}
-          faceLocation={faceLocation}
-          rotation={rotation}
-          faceDrawing={faceDrawing}
-          onOpenViewer={openViewer}
-        />
-        <div className={classes.column}>
-          <PhotoPageHeader photo={photo} isOwner={isOwner} />
-          {isOwner ? (
-            <>
-              <PhotoStatus actions={actions} trashedAt={photo.trashed_at} />
-              <PhotoActionTiles
-                photo={photo}
-                actions={actions}
-                onRotate={photo.video ? undefined : rotation.rotate}
-                onCopy={onCopy}
-                onOpenViewer={openViewer}
-              />
-              <OwnerPhotoDetails
-                photo={photo}
-                setFaceLocation={setFaceLocation}
-                faceDrawing={faceDrawing}
-                addFaceBlockedReason={addFaceBlockedReason}
-              />
-            </>
-          ) : (
-            <SharedPhotoDetails photo={photo} onOpenViewer={openViewer} onCopy={onCopy} />
-          )}
+    <LightboxCommandsContext.Provider value={commands}>
+      <PageBody>
+        <div className={classes.layout}>
+          <PhotoMat
+            photo={photo}
+            isOwner={isOwner}
+            faceLocation={faceLocation}
+            rotation={rotation}
+            faceDrawing={faceDrawing}
+            onOpenViewer={openViewer}
+          />
+          <div className={classes.column}>
+            <PhotoPageHeader photo={photo} isOwner={isOwner} />
+            {isOwner ? (
+              <>
+                <PhotoStatus actions={actions} trashedAt={photo.trashed_at} />
+                <PhotoActionTiles
+                  photo={photo}
+                  actions={actions}
+                  onRotate={photo.video ? undefined : rotation.rotate}
+                  onCopy={onCopy}
+                  onOpenViewer={openViewer}
+                />
+                <OwnerPhotoDetails
+                  photo={photo}
+                  setFaceLocation={setFaceLocation}
+                  faceDrawing={faceDrawing}
+                  addFaceBlockedReason={addFaceBlockedReason}
+                />
+              </>
+            ) : (
+              <SharedPhotoDetails photo={photo} onOpenViewer={openViewer} onCopy={onCopy} />
+            )}
+          </div>
         </div>
-      </div>
-      {isOwner && (
-        <ModalPersonEdit
-          isOpen={!!faceDrawing.drawnBox}
-          onRequestClose={faceDrawing.cancel}
-          selectedFaces={[]}
-          prompt={t("lightbox.addface.whoisit")}
-          onPersonChosen={faceDrawing.onPersonChosen}
-        />
-      )}
-      {viewerOpen && (
-        <Lightbox
-          idx2hash={viewerItems}
-          isPublic={!isOwner}
-          selectedImage={photo.image_hash}
-          onChangedIndex={() => {}}
-          onCloseRequest={closeViewer}
-        />
-      )}
-    </PageBody>
+        {isOwner && (
+          <ModalPersonEdit
+            isOpen={!!faceDrawing.drawnBox}
+            onRequestClose={faceDrawing.cancel}
+            selectedFaces={[]}
+            prompt={t("lightbox.addface.whoisit")}
+            onPersonChosen={faceDrawing.onPersonChosen}
+          />
+        )}
+        {viewerOpen && (
+          <Lightbox
+            idx2hash={viewerItems}
+            isPublic={!isOwner}
+            selectedImage={photo.image_hash}
+            onChangedIndex={() => {}}
+            onCloseRequest={closeViewer}
+          />
+        )}
+      </PageBody>
+    </LightboxCommandsContext.Provider>
   );
 }
 

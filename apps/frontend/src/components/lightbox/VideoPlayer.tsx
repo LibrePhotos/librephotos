@@ -1,14 +1,18 @@
 import { ActionIcon, Alert, Button, Center, Code, Group, Loader, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCopy as CopyIcon } from "@tabler/icons-react";
-import type { ParseKeys } from "i18next";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
 import { probeMedia } from "../../api_client/media/mediaUrl";
 import { copyToClipboard } from "../../util/util";
-import { useLightboxCommands } from "./lightboxCommands";
+import { useSeekShortcut } from "./useSeekShortcut";
+import { useVideoStart } from "./useVideoStart";
+import type { DiagnosticFact, VideoErrorKind } from "./videoFailure";
+import { classifyVideoFailure, factToText, formatSeekDistance, REMEDY_KEYS } from "./videoFailure";
 import classes from "./VideoPlayer.module.css";
+import type { VideoStart } from "./videoStart";
+import { VideoStartNote } from "./VideoStartNote";
 
 type VideoPlayerProps = {
   url: string;
@@ -34,67 +38,8 @@ type VideoPlayerProps = {
    * always served as it is, so advising a conversion setting would not help.
    */
   convertible?: boolean;
-};
-
-/**
- * What actually went wrong. A `<video>` element only ever reports *that* it
- * failed -- `error.code` distinguishes a network problem from an undecodable
- * stream and nothing more -- so these are recovered by re-requesting the same
- * URL and reading the HTTP status, which is the only place the difference lives.
- */
-/** How far one press of a seek shortcut moves the playhead, in seconds. */
-export const SEEK_STEP_SECONDS = 10;
-
-/** The same, for the long jump on Ctrl -- VLC's split between the two. */
-export const SEEK_LONG_STEP_SECONDS = 60;
-
-/** "+10s", "-1m": whole minutes read better than "+60s" once past a minute. */
-export function formatSeekDistance(seconds: number): string {
-  const sign = seconds > 0 ? "+" : "-";
-  const size = Math.abs(seconds);
-  return size >= 60 && size % 60 === 0 ? `${sign}${size / 60}m` : `${sign}${size}s`;
-}
-
-export type VideoErrorKind = "permission" | "missing" | "format" | "server" | "session" | "unknown";
-
-/**
- * Turn the probe's HTTP response into a cause.
- *
- * A 200 here is the interesting one: the file was delivered whole and the
- * browser still refused it, which is the *only* circumstance in which blaming
- * the format is honest. The player used to say that about every failure.
- *
- * 403 is ambiguous by nature -- an expired session and a file the web server
- * cannot open both produce one -- so the backend marks its own refusals with
- * `X-Media-Error`. Without the header the far likelier cause is the file, and
- * that is what an unmarked 403 is read as.
- */
-export function classifyVideoFailure(status: number, mediaError: string | null): VideoErrorKind {
-  if (status >= 200 && status < 300) return "format";
-  if (status === 401) return "session";
-  if (status === 403) return mediaError === "authentication" ? "session" : "permission";
-  if (status === 404) return "missing";
-  return "server";
-}
-
-/**
- * One line of the diagnosis. Kept as data rather than JSX because the same line
- * has to be both rendered and copied to the clipboard, and building those
- * separately is how the copied report silently stops matching the panel.
- */
-export type DiagnosticFact = { label: string; code?: string; suffix?: string };
-
-export function factToText({ label, code, suffix }: DiagnosticFact): string {
-  return [label, code, suffix ? `- ${suffix}` : undefined].filter(Boolean).join(" ");
-}
-
-const REMEDY_KEYS: Partial<Record<string, ParseKeys>> = {
-  chmod: "lightbox.videoerror.remedychmod",
-  mount_options: "lightbox.videoerror.remedymountoptions",
-  mount_deeper: "lightbox.videoerror.remedymountdeeper",
-  read_only: "lightbox.videoerror.remedyreadonly",
-  network_fs: "lightbox.videoerror.remedynetworkfs",
-  labels: "lightbox.videoerror.remedylabels",
+  /** Start at a face's moment instead of 0:00 (#2762); a note says so. */
+  start?: VideoStart;
 };
 
 /**
@@ -121,9 +66,9 @@ export const VideoPlayer = memo(function VideoPlayer({
   mediaHash,
   onEnded,
   convertible = true,
+  start,
 }: VideoPlayerProps) {
   const { t } = useTranslation();
-  const commands = useLightboxCommands();
   const { data: auth } = useAccessToken();
   const isAdmin = !!auth?.access?.is_admin;
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -139,15 +84,12 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [usingFallback, setUsingFallback] = useState(false);
   const usingFallbackRef = useRef(false);
   const src = usingFallback && fallbackUrl ? fallbackUrl : url;
+  const videoStart = useVideoStart(videoRef, start, src);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Bumped on every probe so a stale answer cannot overwrite a newer one after
   // the user has already navigated to a different video.
   const probeRef = useRef(0);
-  // What the last seek shortcut did, shown briefly over the picture. A
-  // keyboard-driven seek never raises the native control bar, so without this
-  // the key produces no visible acknowledgement at all.
-  const [seekHint, setSeekHint] = useState<{ seconds: number } | "unavailable" | null>(null);
-  const seekHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seekHint = useSeekShortcut(videoRef, url);
 
   const hasError = errorKind !== null;
   // Only the permission case has anything to diagnose, and only an administrator
@@ -162,7 +104,6 @@ export const VideoPlayer = memo(function VideoPlayer({
     setErrorStatus(null);
     setProbing(false);
     setRetryCount(0);
-    setSeekHint(null);
     setUsingFallback(false);
     usingFallbackRef.current = false;
     readyFiredRef.current = false;
@@ -179,43 +120,9 @@ export const VideoPlayer = memo(function VideoPlayer({
     }
   }, [playing, loading, hasError]);
 
-  useEffect(() => {
-    const showHint = (hint: { seconds: number } | "unavailable") => {
-      setSeekHint(hint);
-      if (seekHintTimerRef.current) clearTimeout(seekHintTimerRef.current);
-      seekHintTimerRef.current = setTimeout(() => setSeekHint(null), 900);
-    };
-
-    // The lightbox owns the keyboard, and the `<video>` element only exists here, so the seek
-    // arrives as a lightbox command. Only the main slide renders a player, so exactly one
-    // subscriber is ever mounted.
-    const handleSeek = (seconds: number) => {
-      const video = videoRef.current;
-      if (!video || !seconds) return;
-      // `seekable` is the honest bound, not `duration`. A video the backend is
-      // transcoding on the fly is served as a chunked stream with no length and
-      // no `Accept-Ranges`, so its duration reads as Infinity and the playhead
-      // will not move however far we ask it to. Saying that out loud beats a
-      // shortcut that silently does nothing.
-      const { seekable } = video;
-      if (!seekable || seekable.length === 0) {
-        showHint("unavailable");
-        return;
-      }
-      video.currentTime = Math.min(
-        Math.max(video.currentTime + seconds, seekable.start(0)),
-        seekable.end(seekable.length - 1)
-      );
-      showHint({ seconds });
-    };
-
-    return commands.on("seek", handleSeek);
-  }, [commands]);
-
   useEffect(
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      if (seekHintTimerRef.current) clearTimeout(seekHintTimerRef.current);
     },
     []
   );
@@ -514,6 +421,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           </Text>
         </Center>
       )}
+      <VideoStartNote notice={videoStart.notice} onPlayFromStart={videoStart.playFromStart} />
       <video
         ref={videoRef}
         // `url` too: when it changes to the stream already playing (the details
@@ -525,6 +433,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         controls={controls}
         autoPlay={playing}
         onCanPlay={handleCanPlay}
+        onLoadedMetadata={videoStart.onLoadedMetadata}
         onError={handleError}
         onEnded={onEnded}
         crossOrigin="use-credentials"

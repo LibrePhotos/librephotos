@@ -1088,6 +1088,15 @@
       "seekunavailable": "Seeking is not available while this video is being converted",
       "converting": "Converting this video for your browser…"
     },
+    "videostart": {
+      "started": "Started at {{time}}, where the face was found",
+      "startednamed": "Started at {{time}}, where {{name}} appears",
+      "unseekable": "The face is at {{time}}. This video can only play from the start.",
+      "unseekablenamed": "{{name}} appears at {{time}}. This video can only play from the start.",
+      "fromstart": "Play from start",
+      "playfrom": "Play from {{time}}, where the face was found",
+      "playfromnamed": "Play from {{time}}, where {{name}} appears"
+    },
     "videoerror": {
       "retry": "Retry",
       "checking": "Checking what went wrong…",
@@ -1359,6 +1368,7 @@
     "video": "Video",
     "videotaken": "Video taken {{date}}",
     "hdrvideo": "HDR video: recorded with more brightness and color than the tile can show",
+    "personvideotime": "Opens at {{time}}, where this person appears in the video",
     "archived": "Archived: not on the timeline",
     "select": "Select {{name}}",
     "hdrvideolabel": "HDR video",
@@ -2257,6 +2267,7 @@
     "showphoto": "Show photo",
     "facein": "Face in {{name}}",
     "faceinnothumbnail": "Face in {{name}} (no face thumbnail)",
+    "faceinvideo": "Face in {{name}}, at {{time}} in a video",
     "confirmface": "Confirm as {{name}}",
     "faceactions": "Face actions ({{name}})",
     "notperson": "Not {{name}}",

@@ -33,7 +33,7 @@ import { useFaceDrawing } from "./useFaceDrawing";
 import { useLightboxZoom } from "./useLightboxZoom";
 import { usePhotoRotation } from "./usePhotoRotation";
 import { useSlideshow } from "./useSlideshow";
-import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
+import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./videoFailure";
 
 /** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
 type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];

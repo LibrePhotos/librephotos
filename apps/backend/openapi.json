@@ -15972,6 +15972,11 @@
           "person_name": {
             "type": "string",
             "readOnly": true
+          },
+          "video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "required": [
@@ -15982,7 +15987,8 @@
           "person_label_probability",
           "person_name",
           "photo",
-          "timestamp"
+          "timestamp",
+          "video_time"
         ]
       },
       "FindThingsRequestRequest": {
@@ -19295,6 +19301,11 @@
             "type": "number",
             "format": "double",
             "readOnly": true
+          },
+          "video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "required": [
@@ -19304,7 +19315,8 @@
           "person_label_probability",
           "photo",
           "photo_image_hash",
-          "timestamp"
+          "timestamp",
+          "video_time"
         ]
       },
       "PersonGroup": {
@@ -21118,6 +21130,13 @@
             "type": "boolean",
             "readOnly": true
           },
+          "person_video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "The second the person of a person's photo list is first seen at (#2762).\n\nAnnotated by ``with_person_video_time`` on that list only; None\neverywhere else, for a photo, and for a video where the person is on\nthe first frame.",
+            "readOnly": true
+          },
           "rating": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -21192,6 +21211,7 @@
           "local_orientation",
           "location",
           "owner",
+          "person_video_time",
           "projection_type",
           "rating",
           "removed",

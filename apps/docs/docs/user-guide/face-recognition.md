@@ -182,6 +182,12 @@ Photos that already carry XMP `RegionInfo` face regions in the file or its XMP s
 
 Up to 1.4.0, only the first frame of a video was read. After updating, the next face scan (after a photo scan, or **Scan faces** on the Library page) reads the other frames of every video once; the faces the videos have already stay as they are. Reading the frames costs a few seconds per video, and at most two minutes for a long one. To scan videos on their first frame only, turn off **Faces in videos** under **Face detection** in the Features card (see [Feature Toggles](./feature-toggles.md#site-settings-switches)).
 
+#### Open a video where a face appears {#open-a-video-where-a-face-appears}
+
+<Since version="1.5.0" /> A face found in a later frame shows its time in the video, for example **▶ 0:42**, in the corner of its thumbnail on the face dashboard. Opening the photo from that face (**Show photo** in its menu) starts the video a second before that moment, and a note over the video says so for a few seconds: "Started at 0:42, where Anna appears", with a **Play from start** button. On a person's page, a video where the person appears later shows that time in the corner of its tile and opens there too. A video opened anywhere else, from the timeline or an album, starts at 0:00 as before.
+
+In the **People** list of the sidebar, a face from a later frame has a time button next to its name: click it to play the video from there. If the video is being converted while it plays (see [Seeking in videos](./viewing-photos.md#seeking-in-videos)), the player cannot jump ahead; the note then says where the face is and that the video can only play from the start.
+
 A face from a later frame has its thumbnail and embedding from the scan, since the frame itself is not kept: **Train faces** does not encode it again, a thumbnail that went missing is not cut again, and **Write face tags to image files** does not write it into the video as a face region, because its box is in another frame than the one other apps would show.
 
 <Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.

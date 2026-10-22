@@ -15,15 +15,24 @@ beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-async function render(item: { type: Media; video_length: string; is_hdr?: boolean; projection_type?: string | null }) {
+async function render(item: {
+  type: Media;
+  video_length: string;
+  is_hdr?: boolean;
+  projection_type?: string | null;
+  person_video_time?: number | null;
+}) {
   const container = document.createElement("div");
   const root = createRoot(container);
   await act(async () => root.render(<VideoOverlay item={item} />));
   const badge = [...container.querySelectorAll("span")].find(span => span.textContent === "HDR");
   const sphere = [...container.querySelectorAll("span")].find(span => span.textContent === "360°");
+  const moment = [...container.querySelectorAll("span")].find(
+    span => span.getAttribute("title") === "phototile.personvideotime"
+  );
   const text = container.textContent;
   await act(async () => root.unmount());
-  return { badge, sphere, text };
+  return { badge, sphere, moment, text };
 }
 
 describe("VideoOverlay", () => {
@@ -59,5 +68,15 @@ describe("VideoOverlay", () => {
     const { sphere, text } = await render({ type: Media.IMAGE, video_length: "", projection_type: null });
     expect(sphere).toBeUndefined();
     expect(text).toBe("");
+  });
+
+  it("shows in a person's photos where in the video the person is (#2762)", async () => {
+    const { moment } = await render({ type: Media.VIDEO, video_length: "151", person_video_time: 42.5 });
+    expect(defined(moment).textContent).toBe("0:42");
+  });
+
+  it("shows no moment elsewhere", async () => {
+    const { moment } = await render({ type: Media.VIDEO, video_length: "151", person_video_time: null });
+    expect(moment).toBeUndefined();
   });
 });

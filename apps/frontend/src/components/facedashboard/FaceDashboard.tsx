@@ -20,6 +20,8 @@ import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
 import { FacesEmptyState } from "./FacesEmptyState";
 import type { FacesTab } from "./facesTab";
+import { faceVideoStart, withFaceVideoStart } from "./faceVideoStart";
+import type { FaceVideoStart } from "./faceVideoStart";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceActions } from "./hooks/useFaceActions";
@@ -58,6 +60,8 @@ export function FaceDashboard() {
   // Simple lightbox state management
   const [lightboxOpen, { open: openLightbox, close: hideLightbox }] = useDisclosure(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
+  // Opened from a face in a later frame of a video: the video starts there (#2762).
+  const [lightboxStart, setLightboxStart] = useState<FaceVideoStart | null>(null);
 
   const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, fetchingDeletedFacesList, idx2hash } =
     useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
@@ -91,10 +95,12 @@ export function FaceDashboard() {
       // Like idx2hash: the server never sends a face without its photo.
       const photoId = item.photo ?? "";
       const index = idx2hash.findIndex(image => image.id === photoId);
+      setLightboxStart(faceVideoStart(lists[activeTab], item));
       showLightbox(photoId, index >= 0);
     },
-    [idx2hash, showLightbox]
+    [idx2hash, showLightbox, lists, activeTab]
   );
+  const lightboxItems = useMemo(() => withFaceVideoStart(idx2hash, lightboxStart), [idx2hash, lightboxStart]);
 
   // Debounced localStorage save - doesn't trigger re-renders, just persists position
   const debouncedSavePosition = useRef(
@@ -307,7 +313,7 @@ export function FaceDashboard() {
         {lightboxOpen && (
           <Lightbox
             isPublic={false}
-            idx2hash={idx2hash}
+            idx2hash={lightboxItems}
             selectedImage={lightboxImageId}
             onChangedIndex={() => {}}
             onCloseRequest={closeLightbox}
