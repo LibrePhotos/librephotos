@@ -46,7 +46,6 @@ class NextcloudRescanTest(TestCase):
         self.nc.list.side_effect = lambda path: list(self.listing)
         self.nc.get_file.side_effect = self._write_image
         self._patch("nextcloud.server_address.GuardedClient", return_value=self.nc)
-        self._patch("nextcloud.directory_watcher.build_image_similarity_index")
         # Thumbnails, EXIF and the rest are not what this is about; counting
         # the calls tells which files a scan processed.
         self.process = self._patch("api.directory_watcher.file_handlers._process_photo")

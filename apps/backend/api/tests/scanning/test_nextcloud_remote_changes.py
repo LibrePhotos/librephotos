@@ -65,7 +65,6 @@ class NextcloudRemoteChangesTest(TestCase):
         self.nc.list.side_effect = self._list
         self.nc.get_file.side_effect = self._get_file
         self._patch("nextcloud.server_address.GuardedClient", return_value=self.nc)
-        self._patch("nextcloud.directory_watcher.build_image_similarity_index")
         self.process = self._patch("api.directory_watcher.file_handlers._process_photo")
 
     def _patch(self, target, **kwargs):

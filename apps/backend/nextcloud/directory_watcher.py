@@ -12,11 +12,12 @@ from typing import TYPE_CHECKING, Protocol
 from django.db import models
 
 from api.directory_watcher import handle_new_image
+from api.directory_watcher.scan_jobs import remember_import_followups
+from api.directory_watcher.utils import finish_job_if_complete
 from api.models import File, LongRunningJob, Photo, User
 from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import is_metadata, is_raw
 from api.photos.paths import folder_path_q, nextcloud_media_root
-from api.search.similarity import build_image_similarity_index
 from nextcloud.server_address import connect
 
 if TYPE_CHECKING:
@@ -317,17 +318,20 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
         scope = local_path_for(root, user.nextcloud_scan_directory) or root
         detach_deleted_files(user, scope, synced.listed)
 
-        to_add_count = len(paths)
+        # The target goes first: handle_new_image counts each file and
+        # finishes the job at the target, which queues the scan's follow-ups
+        # (tags, places, search embeddings and the index, faces).
+        remember_import_followups(lrj, user)
+        lrj.update_progress(current=0, target=len(paths))
         for idx, image_path in enumerate(paths):
             lrj.stop_if_cancelled()
-            logger.info("begin handling of photo %d/%d", idx + 1, to_add_count)
+            logger.info("begin handling of photo %d/%d", idx + 1, len(paths))
             handle_new_image(user, image_path, job_id)
-            lrj.update_progress(current=idx + 1, target=to_add_count)
 
         logger.info("Added %s photos", len(paths))
-        build_image_similarity_index(user)
-
-        lrj.complete()
+        # With nothing to import the job is at its target already: finish it,
+        # and queue the follow-ups, as a local scan with nothing new does.
+        finish_job_if_complete(job_id)
     except JobCancelledError:
         logger.info("Nextcloud scan job %s was cancelled", lrj.job_id)
         return {"status": False}

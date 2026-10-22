@@ -114,6 +114,8 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 3. Save your changes when the **Save Changes** dialog appears (click **Update**). The **Status** row at the top of the Nextcloud section then shows a green **Connected** badge. It reads **Missing credentials**, **Connecting**, or **Disconnected** while the connection is unset, in progress, or failing.
 4. Click **Browse** (folder icon) to select your Nextcloud photo directory
 
+A Nextcloud scan shows up as a **Scan Photos** job that counts the new and changed files it imports. When it finishes, it starts the same follow-up jobs as a local scan: tags, places, search embeddings and faces. <Since version="1.5.0" /> Up to 1.4.0, the job showed as finished after its first photo, and the imported photos only got tags, places and faces from the next local scan.
+
 ### Nextcloud with a self-signed certificate
 
 LibrePhotos checks the certificate of an `https://` Nextcloud server, and refuses a server whose certificate it does not trust. A Nextcloud with a self-signed certificate (for example the default certificate of TrueNAS) or one from your own certificate authority then shows **Disconnected**. LibrePhotos has no switch that turns this check off. <Since version="1.4.0" /> Instead, an admin tells it which certificate to trust:
