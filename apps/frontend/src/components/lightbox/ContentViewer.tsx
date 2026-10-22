@@ -1,18 +1,19 @@
 import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
-import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { isPhotoSphere } from "../panorama/photoSphere";
+import { usePanoramaMode } from "../panorama/usePanoramaMode";
 import { ImagePreloader } from "./ImagePreloader";
 import {
   COPY_KEY,
   NEXT_KEY,
+  PANORAMA_KEY,
   PLAY_PAUSE_KEY,
   PREVIOUS_KEY,
   SEEK_BACK_KEY,
@@ -23,12 +24,15 @@ import {
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxControls } from "./LightboxControls";
-import { LIGHTBOX_PHOTO_HEIGHT, LIGHTBOX_VIDEO_HEIGHT, MediaDisplay } from "./MediaDisplay";
+import { liveTextBlocks, mainSlide } from "./lightboxSlide";
+import { MediaDisplay } from "./MediaDisplay";
 import { photoActionHotkeys } from "./photoActionHotkeys";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { useFaceDrawing } from "./useFaceDrawing";
+import { useLightboxZoom } from "./useLightboxZoom";
 import { usePhotoRotation } from "./usePhotoRotation";
+import { useSlideshow } from "./useSlideshow";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
 
 /** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
@@ -51,24 +55,21 @@ export function escapeTargetsLightbox(target: EventTarget | null, lightboxDialog
 export function ContentViewer({
   mainSrc,
   mainSrcHash,
-  nextSrc = null,
-  nextSrcHash = null,
-  prevSrc = null,
-  prevSrcHash = null,
+  nextSrc,
+  nextSrcHash,
+  prevSrc,
+  prevSrcHash,
   type,
   onCloseRequest,
   onMovePrevRequest,
   onMoveNextRequest,
-  enableZoom = true,
+  enableZoom,
   isPublic,
   publicAlbumSlug,
   onPhotoSelect,
-  startSlideshow = false,
+  startSlideshow,
   gridItem,
 }: ContentViewerProps) {
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<EmblaApi | null>(null);
@@ -76,32 +77,26 @@ export function ContentViewer({
   // "Live text": overlay selectable OCR text on the photo
   const [showOcrText, setShowOcrText] = useState(false);
 
-  // Slideshow state
-  const [isSlideshowActive, setIsSlideshowActive] = useState(startSlideshow);
-  const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
-  const [slideshowProgress, setSlideshowProgress] = useState(0);
-
   const contentRef = useRef<HTMLDivElement>(null);
   // Fullscreen support. The whole document goes fullscreen, as it always has
   // here: Mantine 8's useFullscreen() took no element (the contentRef this used
   // to be handed was ignored), and useFullscreenDocument is its Mantine 9 successor.
   const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreenDocument();
 
-  // Fetch user settings for default slideshow interval (skip on public pages)
-  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);
-  const defaultSlideshowInterval = userSelfDetails?.slideshow_interval ?? 5;
-  const slideshowInterval = localSlideshowInterval ?? defaultSlideshowInterval;
+  const slideshow = useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest });
 
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
-  // Whether the original or a conversion is played is decided from the details
-  // (`video_playback_type`), so a video waits for them as its poster rather
-  // than starting the original and restarting on the converted stream.
-  const mainType = type === "video" && !isPublic && isPhotoDetailsLoading ? "photo" : type;
-  const mediaBoxHeight =
-    mainType === "video" || mainType === "embedded" ? LIGHTBOX_VIDEO_HEIGHT : LIGHTBOX_PHOTO_HEIGHT;
+  const { mainType, mediaBoxHeight } = mainSlide(type, isPublic, isPhotoDetailsLoading);
+  const { isZoomed, scale, offset, toggleZoom, isMagnified, bind } = useLightboxZoom(mainSrc);
   const { t } = useTranslation();
+  // A photo sphere opens flat; "360° view" (V) shows it in the panorama viewer (#483). A public
+  // page has no details, so the grid's entry says whether it is one.
+  const panorama = usePanoramaMode({
+    sphere: type === "photo" && isPhotoSphere(photoDetails ?? gridItem),
+    photoKey: mainSrc,
+  });
   // The rotate buttons only show once the details are in.
   const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = usePhotoRotation(
     mainSrcHash,
@@ -132,63 +127,11 @@ export function ContentViewer({
   // Reset playing state when slide changes
   useEffect(() => {
     setPlaying(true);
-    setSlideshowProgress(0);
     setShowOcrText(false);
-    // A zoom (or pinch) left over from the last photo would also keep swiping
-    // off, and a video next has no zoom button to undo it.
-    setIsZoomed(false);
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
   }, [mainSrc]);
 
-  // Slideshow timer and progress for images
-  useEffect(() => {
-    if (!isSlideshowActive || type === "video" || type === "embedded") {
-      setSlideshowProgress(0);
-      return;
-    }
-
-    // Progress update interval (update every 50ms for smooth animation)
-    const progressInterval = 50;
-    const totalDuration = slideshowInterval * 1000;
-    let elapsed = 0;
-
-    const progressTimer = setInterval(() => {
-      elapsed += progressInterval;
-      const progress = Math.min((elapsed / totalDuration) * 100, 100);
-      setSlideshowProgress(progress);
-
-      if (elapsed >= totalDuration) {
-        clearInterval(progressTimer);
-        if (nextSrc) {
-          onMoveNextRequest();
-        } else {
-          // Stop slideshow if no more images
-          setIsSlideshowActive(false);
-        }
-      }
-    }, progressInterval);
-
-    return () => clearInterval(progressTimer);
-  }, [isSlideshowActive, type, mainSrc, slideshowInterval, nextSrc, onMoveNextRequest]);
-
-  // Handle video ended - advance to next if slideshow is active
-  const handleVideoEnded = useCallback(() => {
-    if (isSlideshowActive && nextSrc) {
-      onMoveNextRequest();
-    } else if (isSlideshowActive && !nextSrc) {
-      // Stop slideshow if no more items
-      setIsSlideshowActive(false);
-    }
-  }, [isSlideshowActive, nextSrc, onMoveNextRequest]);
-
-  // Toggle slideshow function
-  const toggleSlideshow = useCallback(() => {
-    setIsSlideshowActive(prev => !prev);
-  }, []);
-
-  const ocrBlocks = photoDetails?.ocr?.blocks;
-  const hasOcrText = type === "photo" && !!ocrBlocks && ocrBlocks.length > 0;
+  const ocrBlocks = liveTextBlocks(photoDetails, type);
+  const hasOcrText = ocrBlocks !== undefined;
 
   const toggleOcrText = useCallback(() => {
     setShowOcrText(prev => !prev);
@@ -220,13 +163,6 @@ export function ContentViewer({
     // keep seeing "no previous photo" after navigating forward.
   }, [embla, prevSrc, nextSrc, onMovePrevRequest, onMoveNextRequest]);
 
-  const toggleZoom = () => {
-    const newZoomState = !isZoomed;
-    setIsZoomed(newZoomState);
-    setScale(newZoomState ? 2 : 1);
-    setOffset({ x: 0, y: 0 });
-  };
-
   // Handle close - exit fullscreen first if active
   const handleClose = () => {
     if (isFullscreen) {
@@ -251,7 +187,9 @@ export function ContentViewer({
 
   const handleEscape = (event: KeyboardEvent) => {
     if (!escapeTargetsLightbox(event.target, contentRef.current?.closest('[role="dialog"]') ?? null)) return;
-    handleClose();
+    // Escape leaves the 360° view first, as it gave the arrow keys to looking around.
+    if (panorama.active) panorama.exit();
+    else handleClose();
   };
 
   // The shortcuts below that act on the toolbar or the player are commands to them.
@@ -259,8 +197,9 @@ export function ContentViewer({
 
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
-    [PREVIOUS_KEY, () => prevSrc && onMovePrevRequest()],
-    [NEXT_KEY, () => nextSrc && onMoveNextRequest()],
+    // In the 360° view the arrows look around (the viewer's own keys); the buttons still step.
+    [PREVIOUS_KEY, () => !panorama.active && prevSrc && onMovePrevRequest()],
+    [NEXT_KEY, () => !panorama.active && nextSrc && onMoveNextRequest()],
     // Seeking is added alongside the arrows rather than taking them over. A
     // focused <video> would seek with the bare arrow keys, but these hotkeys
     // are bound on `document` and Mantine's ignore list covers only INPUT,
@@ -280,12 +219,13 @@ export function ContentViewer({
     // This hotkey skips inputs and contenteditable, and the face layer stops it.
     ["Escape", handleEscape],
     [PLAY_PAUSE_KEY, () => type === "video" && setPlaying(prev => !prev)],
-    ["z", () => type === "photo" && toggleZoom()],
+    ["z", () => type === "photo" && !panorama.active && toggleZoom()],
+    [PANORAMA_KEY, panorama.toggle],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
     // F, 0-5, H, P and D act on the photo through the toolbar.
     ...photoActionHotkeys(commands, !!photoDetails && !isPublic),
     ["g", toggleFullscreen], // Toggle fullscreen mode
-    ["s", toggleSlideshow], // Toggle slideshow mode
+    ["s", slideshow.toggleSlideshow], // Toggle slideshow mode
     ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection
     [
       COPY_KEY,
@@ -300,30 +240,8 @@ export function ContentViewer({
     ],
   ]);
 
-  // Pinching sets the scale without the zoom toggle, and either way a drag
-  // then pans the photo instead of swiping to the next one.
-  const isMagnified = isZoomed || scale > 1;
-
-  const bind = useGesture({
-    onPinch: state => {
-      setScale(Math.max(1, Math.min(scale * state.offset[0], 4)));
-    },
-    onPinchEnd: () => {
-      if (scale < 1.5) {
-        setScale(1);
-      } else {
-        setScale(Math.min(scale, 4));
-      }
-    },
-    onDrag: state => {
-      if (isMagnified) {
-        setOffset({
-          x: state.offset[0],
-          y: state.offset[1],
-        });
-      }
-    },
-  });
+  // Dragging pans a zoomed photo or turns a sphere instead of swiping to the next one.
+  const holdsDrag = isMagnified || panorama.active;
 
   useEffect(() => {
     if (embla) {
@@ -386,11 +304,12 @@ export function ContentViewer({
                 setPlaying={setPlaying}
                 isFullscreen={isFullscreen}
                 toggleFullscreen={toggleFullscreen}
-                isSlideshowActive={isSlideshowActive}
-                toggleSlideshow={toggleSlideshow}
-                slideshowInterval={slideshowInterval}
-                setSlideshowInterval={setLocalSlideshowInterval}
-                slideshowProgress={slideshowProgress}
+                isSlideshowActive={slideshow.isSlideshowActive}
+                toggleSlideshow={slideshow.toggleSlideshow}
+                slideshowInterval={slideshow.slideshowInterval}
+                setSlideshowInterval={slideshow.setSlideshowInterval}
+                slideshowProgress={slideshow.slideshowProgress}
+                panorama={panorama}
                 hasOcrText={hasOcrText}
                 showOcrText={showOcrText}
                 toggleOcrText={toggleOcrText}
@@ -419,7 +338,7 @@ export function ContentViewer({
                   // Mantine 8 takes Embla options only here (loop: false and
                   // containScroll: "trimSnaps" are its defaults); the old
                   // `draggable` prop was silently dropped.
-                  emblaOptions={{ watchDrag: !isMagnified }}
+                  emblaOptions={{ watchDrag: !holdsDrag }}
                   // The media box sits at the top of the slide: centre the arrows
                   // on it, not on the taller carousel.
                   styles={{ controls: { top: `calc(${mediaBoxHeight} / 2 - var(--carousel-control-size) / 2)` } }}
@@ -472,17 +391,19 @@ export function ContentViewer({
                           offset={offset}
                           handleDragStart={handleDragStart}
                           playing={playing}
-                          onEnded={handleVideoEnded}
+                          onEnded={slideshow.handleVideoEnded}
                           rotationAngle={rotationAngle}
                           imageCacheKey={imageCacheKey}
                           suppressRotationTransition={suppressRotationTransition}
                           onImageLoad={onImageLoad}
-                          ocrBlocks={ocrBlocks ?? undefined}
+                          ocrBlocks={ocrBlocks}
                           showOcrText={showOcrText}
                           drawingFace={faceDrawing.isDrawing}
                           onFaceDrawn={faceDrawing.onDrawn}
                           onCancelDrawFace={faceDrawing.cancel}
                           isPublic={isPublic}
+                          panoramaActive={panorama.active}
+                          onPanoramaError={panorama.fail}
                           {...(photoDetails ? { photoDetails } : {})}
                         />
                       </motion.div>

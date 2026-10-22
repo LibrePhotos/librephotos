@@ -1,0 +1,31 @@
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--mantine-color-black);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Over the bottom of the sphere, clear of the lightbox's thumbnail strip, which sits below the media box. */
+.bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  background: var(--app-scrim-black-60);
+  color: var(--mantine-color-white);
+}
+
+.hint {
+  white-space: nowrap;
+  padding-left: 4px;
+  color: var(--app-scrim-white-80);
+}

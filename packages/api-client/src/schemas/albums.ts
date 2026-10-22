@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, IntegerId, PhotoHash, SimpleUser, UuidString } from "./common";
+import {
+  DatePhotosGroup,
+  IncompleteDatePhotosGroup,
+  IntegerId,
+  PhotoHash,
+  ProjectionType,
+  SimpleUser,
+  UuidString,
+} from "./common";
 import { Person } from "./persons";
 
 /* ---- Date albums (the timeline) ---------------------------------------- */
@@ -232,6 +240,8 @@ export const PhotoSimple = z.object({
   animated_preview: z.boolean().optional(),
   // A video with a still poster beside its clip (#2026); older backends lack it.
   video_poster: z.boolean().optional(),
+  // A 360° photo sphere gets a badge on its tile (#483).
+  projection_type: ProjectionType,
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

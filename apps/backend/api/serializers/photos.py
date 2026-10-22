@@ -119,7 +119,11 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "stacks",
             "has_raw_variant",
             "local_orientation",
+            # "equirectangular" for a 360° photo sphere, else null: the tile's
+            # 360° badge (#483).
+            "projection_type",
         )
+        read_only_fields = ("projection_type",)
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj: Photo) -> float | None:
@@ -331,6 +335,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "archived",
             "trashed_at",
             "local_orientation",
+            "projection_type",
             # Read by filter_photos_by_media_type for ?is_screenshot / ?is_document.
             "is_screenshot",
             "is_document",
@@ -647,6 +652,9 @@ class PhotoSerializer(serializers.ModelSerializer):
             "ocr",
             "local_orientation",
             "original_mime_type",
+            # "equirectangular" for a 360° photo sphere the lightbox can open
+            # in its panorama viewer, null for a flat photo (#483).
+            "projection_type",
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
@@ -662,6 +670,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "video_codec",
             "exif_timestamp_offset",
             "exif_timestamp_source",
+            "projection_type",
         )
         extra_kwargs = {"rating": {"min_value": 0, "max_value": edits.MAX_RATING}}
 

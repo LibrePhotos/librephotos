@@ -141,6 +141,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.QUICKTIME_MODEL,
                 Tags.ROTATION,
                 Tags.ORIENTATION,
+                Tags.PROJECTION_TYPE,
+                Tags.USE_PANORAMA_VIEWER,
             ],
         )
 

@@ -20,6 +20,7 @@ const toLightboxItems = (idx2hash: PigPhoto[]) =>
     isTemp: item.isTemp,
     date: item.date,
     location: item.location,
+    projection_type: item.projection_type,
   }));
 
 type Props = Readonly<{

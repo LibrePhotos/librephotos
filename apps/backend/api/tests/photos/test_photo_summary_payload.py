@@ -46,6 +46,9 @@ class PhotoSummaryPayloadTest(TestCase):
             create_test_file(None, self.owner, file_type=File.RAW_FILE)
         )
         self.single.files.add(create_test_file(None, self.owner))
+        # A photo sphere (#483): the tile carries its projection for the 360° badge.
+        self.single.projection_type = "equirectangular"
+        self.single.save(update_fields=["projection_type"])
         self.photos = (self.primary, self.member, self.single)
 
     def _client(self, user):
@@ -79,6 +82,10 @@ class PhotoSummaryPayloadTest(TestCase):
         self.assertIs(by_id[str(self.primary.id)]["has_raw_variant"], True)
         self.assertIs(by_id[str(self.member.id)]["has_raw_variant"], False)
         self.assertIs(by_id[str(self.single.id)]["has_raw_variant"], False)
+        self.assertEqual(
+            by_id[str(self.single.id)]["projection_type"], "equirectangular"
+        )
+        self.assertIsNone(by_id[str(self.primary.id)]["projection_type"])
 
     def test_no_timestamp_list(self):
         for photo in self.photos:

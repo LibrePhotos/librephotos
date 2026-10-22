@@ -1031,6 +1031,19 @@
       "previous": "Previous",
       "next": "Next"
     },
+    "panorama": {
+      "toggle": "360° view (V)",
+      "nowebgl": "This browser cannot show 360° photos: WebGL is not available",
+      "loadfailed": "The 360° view could not load this photo",
+      "loading": "Loading the 360° view…",
+      "roledescription": "360° photo",
+      "zoomin": "Zoom in (+)",
+      "zoomout": "Zoom out (-)",
+      "faceforward": "Face forward",
+      "hint": "Drag or use the arrow keys to look around",
+      "zoominviewer": "In the 360° view, zoom with + and -, the mouse wheel or the buttons on the photo",
+      "notext": "Not in the 360° view: turn it off to select text"
+    },
     "toolbar": {
       "pauseVideo": "Pause video (Space)",
       "playVideo": "Play video (Space)",
@@ -1334,6 +1347,9 @@
     "select": "Select {{name}}",
     "hdrvideolabel": "HDR video",
     "hdrvideotaken": "HDR video taken {{date}}",
+    "sphere": "360° photo",
+    "spheretaken": "360° photo taken {{date}}",
+    "spherebadge": "360° photo: open it and turn on 360° view to look around",
     "rating": "Rated {{rating}} of 5 stars",
     "withlength": "{{label}}, {{length}}"
   },
@@ -3063,6 +3079,7 @@
     "openinviewerhint": "Open in the viewer: zoom, fullscreen and keyboard shortcuts",
     "livetext": "Select text in photo",
     "livetextoff": "Stop selecting text",
+    "panorama": "360° view",
     "place": "Place",
     "sharedby": "Shared by {{name}}",
     "actions": {

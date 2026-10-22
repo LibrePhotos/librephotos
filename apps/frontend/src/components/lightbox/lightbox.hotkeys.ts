@@ -24,6 +24,8 @@ export const SEEK_FORWARD_KEY = "shift+ArrowRight";
  */
 export const SEEK_LONG_BACK_KEY = "ctrl+ArrowLeft";
 export const SEEK_LONG_FORWARD_KEY = "ctrl+ArrowRight";
+/** Show a photo sphere in the 360° viewer, or flat again (#483). */
+export const PANORAMA_KEY = "v";
 export const PREVIOUS_KEY = "ArrowLeft";
 export const NEXT_KEY = "ArrowRight";
 

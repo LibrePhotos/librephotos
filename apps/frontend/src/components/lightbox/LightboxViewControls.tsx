@@ -10,6 +10,9 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
+import { PanoramaToggle } from "../panorama/PanoramaToggle";
+import type { PanoramaMode } from "../panorama/usePanoramaMode";
 
 type Props = Readonly<{
   hasOcrText: boolean;
@@ -27,21 +30,27 @@ type Props = Readonly<{
   isFullscreen: boolean;
   toggleFullscreen: () => void;
   fullscreenLabel: string;
+  /** A photo sphere's 360° view toggle; absent for a flat photo. */
+  panorama?: PanoramaMode;
 }>;
 
-/** Group 2 of the lightbox toolbar: live text, zoom, copy and fullscreen. */
+/** Group 2 of the lightbox toolbar: 360° view, live text, zoom, copy and fullscreen. */
 export function LightboxViewControls(props: Props) {
   const { t } = useTranslation();
   const { hasOcrText, showOcrText, toggleOcrText, canZoom, isZoomed, toggleZoom } = props;
   const { onCopyToClipboard, isCopyingToClipboard, copyLabel } = props;
   const { showFullscreen, isFullscreen, toggleFullscreen, fullscreenLabel } = props;
   const liveTextLabel = showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext");
+  // In the 360° view live text and zoom stay where they are, so the toolbar does not shift under
+  // the pointer, but say why they do nothing: the sphere zooms itself.
+  const inPanorama = !!props.panorama?.active;
   return (
     <>
       <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
       <Group gap={4} align="center">
+        {props.panorama && <PanoramaToggle panorama={props.panorama} look="toolbar" />}
         {hasOcrText && (
-          <Tooltip label={liveTextLabel} position="bottom" withArrow>
+          <DisabledReason reason={inPanorama && t("lightbox.panorama.notext")} label={liveTextLabel} position="bottom">
             <ActionIcon
               variant="subtle"
               color={showOcrText ? "blue" : "gray"}
@@ -51,10 +60,14 @@ export function LightboxViewControls(props: Props) {
             >
               <TextRecognition size={ICON_SIZE.lightbox} />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
         )}
         {canZoom && (
-          <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
+          <DisabledReason
+            reason={inPanorama && t("lightbox.panorama.zoominviewer")}
+            label={t("lightbox.controls.zoom")}
+            position="bottom"
+          >
             <ActionIcon
               variant="subtle"
               color="gray"
@@ -68,7 +81,7 @@ export function LightboxViewControls(props: Props) {
             >
               {isZoomed ? <ZoomOut size={ICON_SIZE.lightbox} /> : <ZoomIn size={ICON_SIZE.lightbox} />}
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
         )}
         {onCopyToClipboard && (
           <Tooltip label={copyLabel} position="bottom" withArrow>

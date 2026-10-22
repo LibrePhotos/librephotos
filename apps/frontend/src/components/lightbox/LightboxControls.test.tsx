@@ -406,3 +406,44 @@ describe("LightboxControls rating", () => {
     expect(stubs.setRating).not.toHaveBeenCalled();
   });
 });
+
+describe("LightboxControls 360° view (#483)", () => {
+  const panorama = (active: boolean) => ({
+    available: true,
+    blockedReason: undefined,
+    active,
+    toggle: vi.fn<() => void>(),
+    exit: () => {},
+    fail: () => {},
+  });
+  const button = (container: HTMLElement, name: string) =>
+    defined(container.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`), name);
+
+  it("shows no toggle for a flat photo", async () => {
+    const container = await renderControls();
+
+    expect(labels(container)).not.toContain("lightbox.panorama.toggle");
+  });
+
+  it("puts the toggle before live text and zoom, also on a phone", async () => {
+    stubs.narrow = true;
+    const container = await renderControls({ panorama: panorama(false), hasOcrText: true });
+
+    const names = labels(container);
+    expect(names.indexOf("lightbox.panorama.toggle")).toBeLessThan(names.indexOf("lightbox.controls.livetext"));
+    expect(button(container, "lightbox.controls.zoom").getAttribute("aria-disabled")).toBeNull();
+  });
+
+  it("keeps live text and zoom in place in the 360° view, saying why they do nothing", async () => {
+    const toggleZoom = vi.fn<() => void>();
+    const container = await renderControls({ panorama: panorama(true), hasOcrText: true, toggleZoom });
+
+    const zoom = button(container, "lightbox.controls.zoom");
+    await act(async () => zoom.click());
+
+    expect(zoom.getAttribute("aria-disabled")).toBe("true");
+    expect(button(container, "lightbox.controls.livetext").getAttribute("aria-disabled")).toBe("true");
+    expect(toggleZoom).not.toHaveBeenCalled();
+    expect(button(container, "lightbox.panorama.toggle").getAttribute("aria-pressed")).toBe("true");
+  });
+});

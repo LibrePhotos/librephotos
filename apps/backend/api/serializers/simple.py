@@ -67,7 +67,11 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "is_hdr",
             "animated_preview",
             "video_poster",
+            # The tile's 360° badge (#483), as in PhotoSummarySerializer.
+            "projection_type",
         )
+        # What the scan read from the file, never written through an event.
+        read_only_fields = ("projection_type",)
 
     def get_square_thumbnail(self, obj: Photo) -> str:
         # ``obj.thumbnail`` raises when the photo has no thumbnail row, as before.

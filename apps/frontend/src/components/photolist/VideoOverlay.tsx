@@ -3,13 +3,16 @@ import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-reac
 import { Duration } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { isPhotoSphere } from "../panorama/photoSphere";
 import { TileBadge } from "./TileBadge";
+import classes from "./VideoOverlay.module.css";
 
 type Props = Readonly<{
   item: {
     type: Media;
     video_length?: string;
     is_hdr?: boolean;
+    projection_type?: string | null;
   };
 }>;
 
@@ -27,6 +30,18 @@ function HdrBadge() {
     </TileBadge>
   );
 }
+/** A 360° photo sphere (#483): it opens flat, and "360° view" in the lightbox looks around in it. */
+function SphereBadge() {
+  const { t } = useTranslation();
+  // The tile button's aria-label says "360° photo", as with HDR.
+  return (
+    <TileBadge title={t("phototile.spherebadge")} aria-hidden="true" className={classes.sphereBadge}>
+      360°
+    </TileBadge>
+  );
+}
+
+/** The bottom-right corner of a tile: a video's length and HDR badge, or a photo sphere's 360° badge. */
 export function VideoOverlay({ item }: Props) {
   // video_length is the duration in seconds, as a string.
   function getDuration(videoLength: string) {
@@ -36,6 +51,7 @@ export function VideoOverlay({ item }: Props) {
     );
   }
 
+  if (item.type === Media.IMAGE && isPhotoSphere(item)) return <SphereBadge />;
   if (![Media.VIDEO, Media.MOTION_PHOTO].includes(item.type)) {
     return <div />;
   }

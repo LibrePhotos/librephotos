@@ -46,6 +46,8 @@ export type ImageItem = {
   video_poster?: boolean;
   /** A video's length in seconds, as a string; Tile puts it in its label. */
   video_length?: string;
+  /** "equirectangular" for a 360° photo sphere (#483); Tile says so in its label. */
+  projection_type?: string | null;
 };
 
 /**

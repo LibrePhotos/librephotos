@@ -47,6 +47,7 @@
     "@mantine/notifications": "^9.7.3",
     "@mantine/spotlight": "^9.7.3",
     "@mantine/tiptap": "^9.7.3",
+    "@photo-sphere-viewer/core": "5.15.1",
     "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-router": "^1.168.10",

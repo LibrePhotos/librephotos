@@ -232,6 +232,10 @@ class Photo(models.Model):
     video_pixel_format = models.CharField(max_length=32, blank=True, null=True)
     video_color_transfer = models.CharField(max_length=32, blank=True, null=True)
     video_container = models.CharField(max_length=64, blank=True, null=True)
+    # "equirectangular" for a 360° photo sphere, NULL for a flat photo (#483).
+    # Read at scan time (api.metadata.projection); on the photo rather than
+    # PhotoMetadata so the grid's tile badge costs no join.
+    projection_type = models.CharField(max_length=32, blank=True, null=True)
     size = models.BigIntegerField(default=0)
     # Metadata fields (camera, lens, fstop, etc.) moved to PhotoMetadata model
     # See migration 0103_remove_photo_metadata_fields.py

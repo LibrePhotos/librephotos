@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import { convertedUrl, needsConversion } from "../../util/videoPlayback";
+import { LazyPanoramaViewer } from "../panorama/LazyPanoramaViewer";
 import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
+import classes from "./MediaDisplay.module.css";
 import { OcrTextOverlay } from "./OcrTextOverlay";
 import type { OriginalZoomDetails, PixelSize } from "./originalZoom";
 import { ResolutionChip } from "./ResolutionChip";
@@ -72,6 +74,10 @@ export type MediaDisplayProps = {
   drawingFace?: boolean;
   onFaceDrawn?: (box: NormalizedFaceBox) => void;
   onCancelDrawFace?: () => void;
+  /** Show the main photo, a photo sphere, in the 360° viewer instead of flat (#483). */
+  panoramaActive?: boolean;
+  /** The 360° viewer could not show it. */
+  onPanoramaError?: () => void;
 };
 
 /** What a video or photo needs once the dispatcher has resolved the hash. */
@@ -184,6 +190,15 @@ function PhotoMedia(props: ResolvedProps) {
     magnified: scale > 1,
   });
 
+  const name = describePhoto(photoDetails) || t("phototile.photo");
+  if (isMainContent && props.panoramaActive) {
+    return (
+      <div className={classes.panorama}>
+        <LazyPanoramaViewer src={zoom.panoramaSrc} label={name} onLoadFailed={props.onPanoramaError ?? (() => {})} />
+      </div>
+    );
+  }
+
   const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
     if (!zoom.swapped) setNaturalSize({ width: naturalWidth, height: naturalHeight });
@@ -208,7 +223,7 @@ function PhotoMedia(props: ResolvedProps) {
         <img
           src={zoom.src}
           // The neighbouring slides get no details, so they are just "Photo".
-          alt={describePhoto(photoDetails) || t("phototile.photo")}
+          alt={name}
           loading="eager"
           onDragStart={props.handleDragStart}
           onDoubleClick={isMainContent ? props.toggleZoom : undefined}

@@ -26,6 +26,11 @@ export type ZoomOriginal = {
   chip: ChipState | null;
   retry: () => void;
   originalUrl: string;
+  /**
+   * What the 360° viewer draws a photo sphere from (#483): the original where zooming may load it,
+   * so the sphere is sharp, else the big thumbnail (a public page, a HEIC, a turned photo).
+   */
+  panoramaSrc: string;
 };
 
 /**
@@ -47,11 +52,14 @@ export function useZoomOriginal(args: Args): ZoomOriginal {
   const original = useOriginalImage(plan.kind === "load" && mediaHash ? originalUrl : null, magnified);
   const swapped = original.status === "loaded";
   const animated = isMainContent && isAnimatedOriginal(details);
+  const thumbnailUrl = `${mediaUrl.bigThumbnail(mediaHash)}${version}`;
+  const originalAllowed = plan.kind === "load" || plan.kind === "original";
   return {
-    src: swapped || animated ? originalUrl : `${mediaUrl.bigThumbnail(mediaHash)}${version}`,
+    src: swapped || animated ? originalUrl : thumbnailUrl,
     swapped,
     chip: chipState(plan, original),
     retry: original.retry,
     originalUrl,
+    panoramaSrc: originalAllowed ? originalUrl : thumbnailUrl,
   };
 }
