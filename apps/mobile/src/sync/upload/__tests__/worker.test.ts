@@ -25,6 +25,7 @@ class FakeTransport implements UploadTransport {
   }
   async complete(input: UploadCompleteInput) {
     this.completes.push(input);
+    return { photoId: `photo-${input.uploadId}` };
   }
 }
 
@@ -64,6 +65,16 @@ describe("upload worker", () => {
       deviceCreatedAt: 1700000000000,
       deviceModifiedAt: 1700000009999,
     });
+  });
+
+  it("keeps the photo id the completion answered, to follow it into the mirror (#2740)", async () => {
+    seedQueued(t, "a1", "h1");
+    enqueueBackups(t.db);
+    await runUploadQueue(t.db, { userId: 5, transport: new FakeTransport(), now: () => 1_000 });
+    const row = t.db.get(
+      sql`SELECT server_photo_id, server_ready_at FROM upload_queue WHERE asset_id = 'a1'`
+    ) as { server_photo_id: string | null; server_ready_at: number | null };
+    expect(row).toEqual({ server_photo_id: "photo-up-a1", server_ready_at: null });
   });
 
   it("strips the userId suffix from the hash for the md5 checksum", async () => {

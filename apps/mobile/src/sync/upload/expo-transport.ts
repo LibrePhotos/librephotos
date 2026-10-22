@@ -19,12 +19,14 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { isRecord, parseJson } from "@/lib/guards";
-import type {
-  UploadCompleteInput,
-  UploadFileInput,
-  UploadProgress,
-  UploadResult,
-  UploadTransport,
+import {
+  parseCompleteResponse,
+  type UploadCompleteInput,
+  type UploadCompleteResult,
+  type UploadFileInput,
+  type UploadProgress,
+  type UploadResult,
+  type UploadTransport,
 } from "./transport";
 
 export type TransportDeps = {
@@ -140,7 +142,7 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
       return { uploadId, md5 };
     },
 
-    async complete(input: UploadCompleteInput): Promise<void> {
+    async complete(input: UploadCompleteInput): Promise<UploadCompleteResult> {
       const token = await deps.getAccessToken();
       const form = new FormData();
       form.append("upload_id", input.uploadId);
@@ -154,7 +156,9 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         headers: { ...authHeaders(token, true) },
         body: form,
       });
-      if (!res.ok) throw httpError("complete", res.status, await res.text().catch(() => ""));
+      const body = await res.text().catch(() => "");
+      if (!res.ok) throw httpError("complete", res.status, body);
+      return parseCompleteResponse(body);
     },
   };
 }

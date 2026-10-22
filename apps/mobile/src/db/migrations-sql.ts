@@ -56,4 +56,7 @@ export const MIGRATION_STATEMENTS: string[] = [
   "CREATE UNIQUE INDEX `idx_job_queue_dedupe` ON `job_queue` (`dedupe_key`) WHERE state IN ('pending', 'running');",
   "CREATE INDEX `idx_local_asset_timeline` ON `local_asset` (`created_at`,`id`);",
   "ALTER TABLE `local_asset` ADD `hash_state` text;",
+  "ALTER TABLE `upload_queue` ADD `server_photo_id` text;",
+  "ALTER TABLE `upload_queue` ADD `server_ready_at` integer;",
+  "UPDATE `upload_queue` SET `server_ready_at` = 0 WHERE `state` IN ('done', 'skipped_exists');",
 ];

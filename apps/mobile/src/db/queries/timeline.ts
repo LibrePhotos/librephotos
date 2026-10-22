@@ -31,6 +31,7 @@
  */
 import { sql, type SQL } from "drizzle-orm";
 import type { AppDatabase, MergedTimelineRow, TimelineBucket } from "../types";
+import { PROCESSING_ON_SERVER } from "./upload-processing";
 
 export type TimelineCursor = { timestamp: number; sortId: string };
 export type TimelinePage = { rows: MergedTimelineRow[]; nextCursor: TimelineCursor | null };
@@ -97,7 +98,7 @@ export function remoteTimelinePage(db: AppDatabase, opts: TimelinePageOptions): 
   const dir = order(direction);
   const rows = db.all(
     sql`SELECT id AS remote_id, NULL AS local_id, timestamp, type, aspect_ratio, is_favorite,
-               bucket_day, image_hash, NULL AS local_uri, dominant_color, id AS sort_id
+               bucket_day, image_hash, NULL AS local_uri, dominant_color, 0 AS processing, id AS sort_id
         FROM remote_photo
         WHERE ${VISIBLE} AND ${keyset("timestamp", "id", cursor, direction, inclusive)}
         ORDER BY timestamp ${dir}, id ${dir}
@@ -134,7 +135,7 @@ const REMOTE_ARM = `
          rp.timestamp AS timestamp, rp.type AS type, rp.aspect_ratio AS aspect_ratio,
          rp.is_favorite AS is_favorite, rp.bucket_day AS bucket_day, rp.image_hash AS image_hash,
          (SELECT la.uri FROM local_asset la WHERE la.hash = rp.image_hash LIMIT 1) AS local_uri,
-         rp.dominant_color AS dominant_color, rp.id AS sort_id
+         rp.dominant_color AS dominant_color, 0 AS processing, rp.id AS sort_id
   FROM remote_photo rp`;
 
 const REMOTE_ARM_WHERE = `rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.timestamp IS NOT NULL`;
@@ -144,8 +145,17 @@ const LOCAL_ARM = `
          CAST(la.width AS REAL) / la.height AS aspect_ratio, 0 AS is_favorite,
          strftime('%Y-%m-%d', la.created_at / 1000, 'unixepoch', 'localtime') AS bucket_day,
          la.hash AS image_hash, la.uri AS local_uri, NULL AS dominant_color,
+         EXISTS (SELECT 1 FROM upload_queue uq
+                 WHERE uq.asset_id = la.id AND ${PROCESSING_ON_SERVER}) AS processing,
          la.id AS sort_id
   FROM local_asset la`;
+
+/*
+ * A camera-roll row's `processing` flag: its upload is done but the server is
+ * still making the photo's thumbnail (#2740). The tile shows an hourglass
+ * instead of the "only on this phone" badge. A remote row is never processing:
+ * it only reaches the timeline once the server has dated it.
+ */
 
 /**
  * The camera-roll arm suppresses an asset exactly when the remote arm is
@@ -192,7 +202,7 @@ function mergedPageSql(opts: TimelinePageOptions): SQL {
   const dir = order(direction);
   return sql`
     SELECT remote_id, local_id, timestamp, type, aspect_ratio, is_favorite,
-           bucket_day, image_hash, local_uri, dominant_color, sort_id
+           bucket_day, image_hash, local_uri, dominant_color, processing, sort_id
     FROM (
       SELECT * FROM (
         ${sql.raw(REMOTE_ARM)}

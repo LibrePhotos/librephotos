@@ -33,7 +33,7 @@ export function remotePhoto(overrides: Partial<RemotePhotoInput> = {}): RemotePh
     inTrashcan: overrides.inTrashcan ?? false,
     removed: overrides.removed ?? false,
     isPublic: overrides.isPublic ?? false,
-    aspectRatio: overrides.aspectRatio ?? 1,
+    aspectRatio: overrides.aspectRatio === undefined ? 1 : overrides.aspectRatio,
     latitude: overrides.latitude ?? null,
     longitude: overrides.longitude ?? null,
     searchLocation: overrides.searchLocation ?? null,

@@ -291,6 +291,19 @@ export const uploadQueue = sqliteTable(
     enqueuedAt: integer("enqueued_at"),
     /** Earliest ms-epoch a failed item may be retried (exponential backoff). */
     nextAttemptAt: integer("next_attempt_at"),
+    /**
+     * The server photo `/api/upload/complete/` answered with (#2740). Matches the
+     * mirror row even when the bytes that went out no longer hash to
+     * `local_asset.hash` (an iOS edit between the hash pass and the upload).
+     */
+    serverPhotoId: text("server_photo_id"),
+    /**
+     * ms epoch when the mirror first held this upload's photo with a thumbnail.
+     * Until then a done row is "processing on the server". Set once and kept, so
+     * a photo later deleted on the server, or a mirror wiped for a re-seed, does
+     * not count as processing again.
+     */
+    serverReadyAt: integer("server_ready_at"),
   },
   (t) => [index("idx_upload_queue_state").on(t.state)]
 );

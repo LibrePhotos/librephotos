@@ -134,6 +134,8 @@ export const en = {
     title: "Photos",
     empty: "No photos yet",
     error: "Could not load your timeline",
+    // Tile badge (#2740): uploaded, but not in the timeline until the server is done.
+    processingOnServer: "Uploaded, the server is still processing it",
   },
   backup: {
     title: "Backup",
@@ -160,6 +162,7 @@ export const en = {
     stateDone: "Done",
     stateFailed: "Failed",
     stateSkipped: "Already on server",
+    stateProcessing: "Processing on server",
     summary: "{{done}} done · {{pending}} pending · {{failed}} failed",
     allPhotos: "All photos",
     // Headline: which of the two stages is running, against a real total.
@@ -172,6 +175,10 @@ export const en = {
     statusICloud: "{{count}} photo waiting to download from iCloud",
     statusICloud_other: "{{count}} photos waiting to download from iCloud",
     statusUpToDate: "{{count}} backed up — nothing new to upload",
+    // Never "up to date" while the server still works on uploads (#2740).
+    statusProcessing: "{{uploaded}} uploaded, {{count}} still processing on the server",
+    statusProcessingDetail: "It shows up in your timeline once the server has made its thumbnail.",
+    statusProcessingDetail_other: "They show up in your timeline once the server has made their thumbnails.",
     statusIdle: "Nothing selected to back up yet",
     // Blockers: never leave an idle queue unexplained.
     blockerNoAccess: "No photo access. Allow LibrePhotos to read your library in iOS Settings.",
@@ -190,6 +197,7 @@ export const en = {
     icloudPending_other:
       "{{count}} photos are stored in iCloud, not on this phone — they download as they upload.",
     uploadProgress: "Uploaded {{done}} of {{total}} ready",
+    processingOnServer: "{{count}} processing on the server",
     albumCounts: "{{total}} photos · {{hashed}} prepared · {{onServer}} on server",
   },
   sync: {

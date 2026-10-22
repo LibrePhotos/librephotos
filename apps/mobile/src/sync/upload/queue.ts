@@ -16,6 +16,7 @@
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
+import { PROCESSING_ON_SERVER } from "@/db/queries/upload-processing";
 
 export type UploadState =
   | "pending"
@@ -112,9 +113,15 @@ export function setQueueState(db: AppDatabase, assetId: string, state: UploadSta
   }
 }
 
-export function markDone(db: AppDatabase, assetId: string): void {
+/**
+ * The bytes are on the server. `serverPhotoId` is the photo the completion
+ * answered with; the row counts as "processing on the server" until the mirror
+ * has that photo with a thumbnail (see db/queries/upload-processing).
+ */
+export function markDone(db: AppDatabase, assetId: string, serverPhotoId: string | null): void {
   db.run(
-    sql`UPDATE upload_queue SET state = 'done', progress = 1, last_error = NULL, next_attempt_at = NULL
+    sql`UPDATE upload_queue SET state = 'done', progress = 1, last_error = NULL, next_attempt_at = NULL,
+               server_photo_id = ${serverPhotoId}, server_ready_at = NULL
         WHERE asset_id = ${assetId}`
   );
 }
@@ -195,13 +202,16 @@ export type QueueListRow = {
   name: string | null;
   uri: string | null;
   type: string | null;
+  /** 1 while the server is still processing this upload (#2740), else 0. */
+  processing: number;
 };
 
 /** Queue rows for the Backup screen (active/failed first, newest last). */
 export function queueList(db: AppDatabase, limit = 200): QueueListRow[] {
   return db.all(
     sql`SELECT uq.asset_id AS asset_id, uq.state AS state, uq.progress AS progress, uq.attempts AS attempts,
-               uq.last_error AS last_error, la.name AS name, la.uri AS uri, la.type AS type
+               uq.last_error AS last_error, la.name AS name, la.uri AS uri, la.type AS type,
+               CASE WHEN ${sql.raw(PROCESSING_ON_SERVER)} THEN 1 ELSE 0 END AS processing
         FROM upload_queue uq LEFT JOIN local_asset la ON la.id = uq.asset_id
         ORDER BY
           CASE uq.state WHEN 'uploading' THEN 0 WHEN 'checking' THEN 1 WHEN 'pending' THEN 2

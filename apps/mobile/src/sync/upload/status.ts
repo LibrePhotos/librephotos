@@ -23,6 +23,11 @@
  *             legitimate state; a bar that stalls without explanation is not.
  *   upload  : how many upload-ready assets have reached the server, out of all
  *             that are ready.
+ *   server  : how many uploaded assets the server is still processing: their
+ *             photo is not in the mirror yet, or is there without a thumbnail
+ *             (#2740). Until the next delta sync brings them in ready they are
+ *             neither "only on this phone" nor in the timeline, so the headline
+ *             never calls the library up to date while this is above zero.
  *   blocker : permission, master toggle, album selection, gate, upload failures,
  *             or a job the queue has given up on.
  *
@@ -38,6 +43,7 @@ import type { BackupConfig } from "@/db/queries/backup";
 import type { MediaAccess } from "@/sync/device/types";
 import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
 import { scanCounts, type JobQueueSnapshot } from "@/sync/jobs/status";
+import { PROCESSING_ON_SERVER } from "@/db/queries/upload-processing";
 import type { GateDecision } from "./gate";
 import { queueSummary, type QueueSummary } from "./queue";
 
@@ -57,8 +63,16 @@ export type BackupCounts = {
    * showing a hash bar that never reaches its total.
    */
   awaitingRemote: number;
-  /** Of those, how many already exist on the server. */
+  /**
+   * Of those, how many the server has: in the mirror, or uploaded (or found
+   * there) by the queue and not mirrored yet.
+   */
   onServer: number;
+  /**
+   * Of `onServer`, how many the server is still processing: uploaded, but not
+   * yet in the mirror with a thumbnail (#2740).
+   */
+  processingOnServer: number;
   /** How many albums are marked "back this up". */
   selectedAlbums: number;
 };
@@ -88,6 +102,11 @@ export type BackupStage =
    * 90% and never explains itself.
    */
   | { kind: "icloud"; pending: number }
+  /**
+   * Nothing left to upload, but the server is still making thumbnails for some
+   * of it. Never "up to date": those photos are not in the timeline yet.
+   */
+  | { kind: "processing"; uploaded: number; processing: number }
   | { kind: "up_to_date"; total: number };
 
 export type BackupState = {
@@ -105,6 +124,13 @@ const SELECTED = sql`EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_albu
 const EXCLUDED = sql`EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
                              WHERE laa.asset_id = la.id AND l.backup_selection = 2)`;
 
+/** The queue has put this asset's bytes on the server (or found them there). */
+const UPLOADED = sql`EXISTS (SELECT 1 FROM upload_queue uq
+                             WHERE uq.asset_id = la.id AND uq.state IN ('done', 'skipped_exists'))`;
+/** …and the server is still processing it (db/queries/upload-processing). */
+const PROCESSING = sql`EXISTS (SELECT 1 FROM upload_queue uq
+                               WHERE uq.asset_id = la.id AND ${sql.raw(PROCESSING_ON_SERVER)})`;
+
 /** Counts over the backup-selected asset set (the real denominators). */
 export function backupCounts(db: AppDatabase): BackupCounts {
   const row = db.get(
@@ -114,8 +140,10 @@ export function backupCounts(db: AppDatabase): BackupCounts {
                         THEN 1 ELSE 0 END) AS awaiting_hash,
                SUM(CASE WHEN la.hash IS NULL AND la.hash_state = ${HASH_STATE_ICLOUD}
                         THEN 1 ELSE 0 END) AS awaiting_remote,
-               SUM(CASE WHEN la.hash IS NOT NULL AND EXISTS
-                     (SELECT 1 FROM remote_photo rp WHERE rp.image_hash = la.hash) THEN 1 ELSE 0 END) AS on_server
+               SUM(CASE WHEN (la.hash IS NOT NULL AND EXISTS
+                       (SELECT 1 FROM remote_photo rp WHERE rp.image_hash = la.hash))
+                     OR ${UPLOADED} THEN 1 ELSE 0 END) AS on_server,
+               SUM(CASE WHEN ${PROCESSING} THEN 1 ELSE 0 END) AS processing_on_server
         FROM local_asset la
         WHERE ${SELECTED} AND NOT ${EXCLUDED}`
   ) as {
@@ -124,6 +152,7 @@ export function backupCounts(db: AppDatabase): BackupCounts {
     awaiting_hash: number | null;
     awaiting_remote: number | null;
     on_server: number | null;
+    processing_on_server: number | null;
   };
   const albums = db.get(
     sql`SELECT COUNT(*) AS c FROM local_album WHERE backup_selection = 1`
@@ -134,6 +163,7 @@ export function backupCounts(db: AppDatabase): BackupCounts {
     awaitingHash: row?.awaiting_hash ?? 0,
     awaitingRemote: row?.awaiting_remote ?? 0,
     onServer: row?.on_server ?? 0,
+    processingOnServer: row?.processing_on_server ?? 0,
     selectedAlbums: albums?.c ?? 0,
   };
 }
@@ -245,5 +275,17 @@ function resolveStage(
   if (localPending > 0) return { kind: "waiting", pending: localPending };
   if (counts.awaitingRemote > 0) return { kind: "icloud", pending: counts.awaitingRemote };
   if (queue.pending > 0) return { kind: "waiting", pending: queue.pending };
-  return { kind: "up_to_date", total: counts.onServer + queue.done + queue.skipped_exists };
+  return settledStage(counts);
+}
+
+/**
+ * Nothing left to do on the phone. The library is only up to date once the
+ * server has finished too (#2740): "up to date" while its photos are still
+ * missing from the timeline is the lie users reported.
+ */
+function settledStage(counts: Pick<BackupCounts, "onServer" | "processingOnServer">): BackupStage {
+  if (counts.processingOnServer > 0) {
+    return { kind: "processing", uploaded: counts.onServer, processing: counts.processingOnServer };
+  }
+  return { kind: "up_to_date", total: counts.onServer };
 }

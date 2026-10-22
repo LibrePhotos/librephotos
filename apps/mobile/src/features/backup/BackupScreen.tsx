@@ -158,6 +158,7 @@ export function BackupScreen() {
               .filter(Boolean)
               .join(" · ")}
           </Text>
+          <ServerProcessingLine state={state} t={t} theme={theme} />
           {/* The iCloud line is never folded into the hash fraction. Hashing
               deliberately does not download originals, so on a phone using
               "Optimise iPhone Storage" these assets are simply elsewhere —
@@ -306,14 +307,12 @@ export function BackupScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: row.state === "failed" ? "#dc2626" : theme.muted,
+                    color: queueStateColor(row, theme),
                     fontSize: 11,
                     marginLeft: 8,
                   }}
                 >
-                  {row.state === "uploading"
-                    ? `${Math.round(row.progress * 100)}%`
-                    : t(`backup.${STATE_LABEL[row.state] ?? "statePending"}`)}
+                  {queueStateText(t, row)}
                 </Text>
               </View>
             ))
@@ -339,12 +338,56 @@ function stageText(t: Translate, stage: BackupStage): string {
       return t("backup.statusWaiting", { count: stage.pending });
     case "icloud":
       return t("backup.statusICloud", { count: stage.pending });
+    case "processing":
+      return t("backup.statusProcessing", { uploaded: stage.uploaded, count: stage.processing });
     case "up_to_date":
       return t("backup.statusUpToDate", { count: stage.total });
     case "idle":
     default:
       return t("backup.statusIdle");
   }
+}
+
+/**
+ * What the server still has to do after the uploads (#2740). With nothing left
+ * on the phone the headline already says so, and this line says when the
+ * photos arrive; otherwise it is the count under the other pipelines.
+ */
+function ServerProcessingLine({
+  state,
+  t,
+  theme,
+}: {
+  state: BackupState;
+  t: Translate;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  const count = state.counts.processingOnServer;
+  if (count === 0) return null;
+  if (state.stage.kind === "processing") {
+    return (
+      <Text testID="backup-processing" style={{ color: theme.muted, fontSize: 12 }}>
+        {t("backup.statusProcessingDetail", { count })}
+      </Text>
+    );
+  }
+  return (
+    <Text testID="backup-processing" style={{ color: theme.brand, fontSize: 12 }}>
+      {t("backup.processingOnServer", { count })}
+    </Text>
+  );
+}
+
+/** A queue row's state: upload progress, or where the file is now. */
+function queueStateText(t: Translate, row: QueueListRow): string {
+  if (row.state === "uploading") return `${Math.round(row.progress * 100)}%`;
+  if (row.processing === 1) return t("backup.stateProcessing");
+  return t(`backup.${STATE_LABEL[row.state] ?? "statePending"}`);
+}
+
+function queueStateColor(row: QueueListRow, theme: ReturnType<typeof useTheme>): string {
+  if (row.state === "failed") return "#dc2626";
+  return row.processing === 1 ? theme.brand : theme.muted;
 }
 
 /** Why nothing is moving. Never null-rendered while a blocker exists. */

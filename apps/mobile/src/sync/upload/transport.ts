@@ -8,8 +8,11 @@
  *   - GET  /api/exists/{hash}      → { exists: boolean }
  *   - POST /api/upload/            → chunked bytes; { upload_id, offset }
  *   - POST /api/upload/complete/   → finalize; optional device_created_at /
- *                                    device_modified_at (epoch ms) date fallback
+ *                                    device_modified_at (epoch ms) date fallback;
+ *                                    { job_id, photo_id } (a duplicate:
+ *                                    { detail, photo_id })
  */
+import { isRecord, parseJson } from "@/lib/guards";
 
 export type UploadFileInput = {
   assetId: string;
@@ -61,13 +64,35 @@ export type UploadResult = {
   md5?: string;
 };
 
+/** What the completion call yields. */
+export type UploadCompleteResult = {
+  /**
+   * The server photo the upload made (or the one it duplicates), null when the
+   * server named none. Lets the Backup screen follow the photo until the mirror
+   * has it with a thumbnail (#2740).
+   */
+  photoId: string | null;
+};
+
+/** Read `photo_id` from a `/api/upload/complete/` body; null for anything else. */
+export function parseCompleteResponse(body: string): UploadCompleteResult {
+  let parsed: unknown = null;
+  try {
+    parsed = parseJson(body);
+  } catch {
+    // An empty or non-JSON body still means the upload completed.
+  }
+  const photoId = isRecord(parsed) ? parsed.photo_id : null;
+  return { photoId: typeof photoId === "string" && photoId ? photoId : null };
+}
+
 export interface UploadTransport {
   /** GET /api/exists/{hash} */
   exists(hash: string): Promise<boolean>;
   /** POST /api/upload/ (one or more chunks). Resolves with the upload_id. */
   uploadFile(input: UploadFileInput, onProgress?: (p: UploadProgress) => void): Promise<UploadResult>;
   /** POST /api/upload/complete/ with device-timestamp fallback. */
-  complete(input: UploadCompleteInput): Promise<void>;
+  complete(input: UploadCompleteInput): Promise<UploadCompleteResult>;
 }
 
 /**
