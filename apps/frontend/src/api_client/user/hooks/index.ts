@@ -4,6 +4,7 @@ export * from "./useFetchUserListQuery";
 export * from "./useFetchUserSelfDetailsQuery";
 export * from "./useManageUpdateUserMutation";
 export * from "./useSaveDefaultTimelineFilterMutation";
+export * from "./useSaveLastSeenReleaseMutation";
 export * from "./useUpdateAvatarMutation";
 export * from "./useUpdateUserMutation";
 export * from "./useUpdateUserScanDirectoryMutation";

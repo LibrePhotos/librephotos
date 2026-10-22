@@ -18704,7 +18704,14 @@
           "duplicate_clear_existing": {
             "type": "boolean"
           },
-          "default_timeline_filter": {}
+          "default_timeline_filter": {},
+          "last_seen_release": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "show_whats_new": {
+            "type": "boolean"
+          }
         }
       },
       "Person": {
@@ -23521,6 +23528,10 @@
               }
             ],
             "nullable": true
+          },
+          "whats_new_enabled": {
+            "type": "boolean",
+            "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
           }
         },
         "required": [
@@ -23547,7 +23558,8 @@
           "skip_patterns",
           "tagging_model",
           "things_available",
-          "trash_retention_days"
+          "trash_retention_days",
+          "whats_new_enabled"
         ]
       },
       "SiteSettingsRequestRequest": {
@@ -23661,6 +23673,10 @@
           "update_check": {
             "type": "boolean",
             "description": "Ask github.com once a day for the newest release and tell admins about a newer one; turning it on checks at once."
+          },
+          "whats_new_enabled": {
+            "type": "boolean",
+            "description": "Show each user a What's new card once after an update."
           }
         }
       },
@@ -25432,7 +25448,14 @@
           "duplicate_clear_existing": {
             "type": "boolean"
           },
-          "default_timeline_filter": {}
+          "default_timeline_filter": {},
+          "last_seen_release": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "show_whats_new": {
+            "type": "boolean"
+          }
         },
         "required": [
           "avatar",
@@ -25456,6 +25479,7 @@
           "image_scale",
           "is_superuser",
           "last_name",
+          "last_seen_release",
           "llm_settings",
           "min_cluster_size",
           "min_face_size",
@@ -25474,6 +25498,7 @@
           "scan_directory",
           "semantic_search_topk",
           "share_people_names",
+          "show_whats_new",
           "skip_raw_files",
           "slideshow_interval",
           "stack_raw_jpeg",

@@ -88,6 +88,8 @@ USER_UPDATE_FIELDS = (
         "default_timeline_filter",
         "Updated default_timeline_filter to {value} for user {username}",
     ),
+    ("last_seen_release", None),
+    ("show_whats_new", None),
 )
 
 
@@ -276,6 +278,10 @@ class UserSerializer(serializers.ModelSerializer):
             "duplicate_clear_existing": {"required": False},
             "default_timeline_filter": {"required": False},
             "share_people_names": {"required": False},
+            # The "What's new" card (#2305). A release tag, at most 32
+            # characters (the model's max_length is the check).
+            "last_seen_release": {"required": False},
+            "show_whats_new": {"required": False},
         }
         fields = (
             "id",
@@ -328,6 +334,8 @@ class UserSerializer(serializers.ModelSerializer):
             "duplicate_sensitivity",
             "duplicate_clear_existing",
             "default_timeline_filter",
+            "last_seen_release",
+            "show_whats_new",
         )
 
     def validate_nextcloud_app_password(self, value: str) -> str:

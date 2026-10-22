@@ -121,6 +121,9 @@ export const SiteSettings = z.object({
   // The daily update check's switch (#2311), staff only; its state is GET /updates/. A 400
   // `update_check_locked` when UPDATE_CHECK=false in the server environment refuses to turn it on.
   update_check: z.boolean().optional(),
+  // Whether users see the What's new card once after an update (#2305). Sent to everyone; older
+  // backends lack it, and have no place to remember that a user closed the card either.
+  whats_new_enabled: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 

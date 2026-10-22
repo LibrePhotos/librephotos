@@ -274,6 +274,8 @@
     "interface": "Interface",
     "slideshowinterval": "Default Slideshow Interval",
     "slideshowintervaldesc": "The default time to display each image before advancing in slideshow mode",
+    "showwhatsnew": "Show what's new after updates",
+    "showwhatsnewdesc": "After LibrePhotos is updated, a small card shows the highlights of the new version once. Account menu > What's new shows them at any time.",
     "duplicatesensitivity": "Duplicate detection sensitivity",
     "duplicatesensitivityhelp": "Changes how similar two photos have to be to count as duplicates. Strict only matches near-identical photos, loose matches more photos but may report false positives.",
     "sensitivity": {
@@ -1861,6 +1863,8 @@
     "feature_locked_description": "Turned off by the server configuration: <code>{{variable}}=false</code>. Change it in your compose or .env file and restart to use it.",
     "updatecheck": "Check for new releases",
     "updatecheck_description": "Once a day LibrePhotos asks github.com which release is the newest and tells admins about a newer one. Nothing about this server is sent: no photos, no user data, no instance ID.",
+    "whatsnew": "Show users what's new after an update",
+    "whatsnew_description": "After an update, each user sees a small card with the highlights of the new version once. Users can also turn it off for themselves in their settings.",
     "updatecheck_locked": "Turned off by the server configuration: <code>UPDATE_CHECK=false</code>. Change it in your compose or .env file and restart to use it.",
     "updatecheck_off": "Off. LibrePhotos does not contact github.com.",
     "updatecheck_development": "Development build (commit {{hash}}): there is no release to compare, so nothing is checked.",
@@ -3669,5 +3673,24 @@
     "adminsonly": "Admins",
     "thislist": "This list",
     "note": "Shortcuts are ignored while you type in a field or a dialog is open. The photo viewer has its own keys, shown in its tooltips."
+  },
+  "whatsnew": {
+    "menu": "What's new",
+    "cardtitle": "What's new in LibrePhotos {{version}}",
+    "releasecount_one": "{{count}} update since your last visit",
+    "releasecount_other": "{{count}} updates since your last visit",
+    "close": "Close What's new",
+    "seewhatsnew": "See what's new",
+    "releasenotes": "Release notes",
+    "upgradetasks_one": "{{count}} task to finish the upgrade.",
+    "upgradetasks_other": "{{count}} tasks to finish the upgrade.",
+    "openupgradetasks": "Open",
+    "dialogtitle": "What's new in LibrePhotos",
+    "release": "Release",
+    "openinapp": "Open",
+    "learnmore": "Learn more",
+    "nothing": "There is nothing new to show for this version.",
+    "done": "Close",
+    "versionlabel": "Version {{version}}, what's new"
   }
 }

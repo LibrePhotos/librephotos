@@ -141,6 +141,12 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         " about a newer one; turning it on checks at once.",
     )
 
+    # The What's new card after an update (#2305).
+    whats_new_enabled = JsonBooleanField(
+        required=False,
+        help_text="Show each user a What's new card once after an update.",
+    )
+
     def validate_update_check(self, value: bool) -> bool:
         if value and update_check_locked():
             raise serializers.ValidationError(
@@ -360,6 +366,10 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         " state). Staff only.",
     )
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)
+    whats_new_enabled = serializers.BooleanField(
+        help_text="Whether users see a What's new card once after an update"
+        " (each user can also turn it off). Sent to everyone."
+    )
 
 
 class TrashRetentionPreviewQuery(serializers.Serializer[None]):

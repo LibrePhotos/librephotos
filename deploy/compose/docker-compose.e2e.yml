@@ -102,6 +102,8 @@ services:
       # interpolated from a .env file: it is a build argument of the images (INTERNAL_ENV_VARS in
       # api/tests/infra/test_environment_variables_documented.py), not an operator .env key.
       - IMAGE_TAG
+      # A release image asks github.com for newer releases once a day; the suite needs no network.
+      - UPDATE_CHECK=false
       # The smoke suite needs no ML; keep the sidecars and their models out of it.
       - FEATURE_FACE_DETECTION=false
       - FEATURE_FACE_CLUSTER=false

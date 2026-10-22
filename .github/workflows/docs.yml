@@ -5,11 +5,15 @@ on:
     branches: [dev]
     paths:
       - 'apps/docs/**'
+      # Generated from the release posts; the check below fails when it is out of date.
+      - 'apps/frontend/src/components/whatsnew/releases.json'
       - '.github/workflows/docs.yml'
   # PRs only build, so onBrokenLinks: throw fails the PR instead of the deploy.
   pull_request:
     paths:
       - 'apps/docs/**'
+      # Generated from the release posts; the check below fails when it is out of date.
+      - 'apps/frontend/src/components/whatsnew/releases.json'
       - '.github/workflows/docs.yml'
 
 concurrency:

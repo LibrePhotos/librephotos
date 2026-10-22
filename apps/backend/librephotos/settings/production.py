@@ -460,6 +460,14 @@ CONSTANCE_CONFIG = {
         " last announced, so each release is announced once.",
         str,
     ),
+    # The "What's new" card (#2305): after an update, each user sees the
+    # release's highlights once. Users can also turn it off for themselves.
+    "WHATS_NEW_ENABLED": (
+        True,
+        "Show each user a small What's new card once after an update, with the"
+        " release's highlights. The account menu opens it either way.",
+        bool,
+    ),
     "UPLOAD_FOLLOWUPS_BACKFILL_DONE": (
         False,
         "Written at startup, not a setting: whether the upload follow-ups (search"
