@@ -16,11 +16,14 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api.mime import RAW_MIME_TYPE
 from api.models.album_user_share import AlbumUserShare
 from api.photos.media_files import get_or_create_file
 from api.tests.utils import (
     ONE_PIXEL_PNG,
+    TEST_MEDIA_ROOT,
     create_test_album_user,
+    create_test_file,
     create_test_photo,
     create_test_user,
 )
@@ -224,8 +227,8 @@ class UnifiedPublicAlbumIdTest(TestCase):
     def test_original_from_a_shared_album_is_served_anonymously(self):
         response = _unified("photos", self.photo.image_hash, album_id=self.album.id)
         self.assertEqual(response.status_code, 200)
-        # Not a video, so the content type is forced to webp.
-        self.assertEqual(response["Content-Type"], "image/webp")
+        # The original's own type (the fixture is a PNG), not a blanket webp (#2742).
+        self.assertEqual(response["Content-Type"], "image/png")
         self.assertTrue(response["X-Accel-Redirect"])
         self.assertNotIn("Content-Disposition", response)
 
@@ -469,7 +472,7 @@ class UnifiedOriginalPhotoTest(TestCase):
     def test_owner_gets_an_inline_content_disposition(self):
         response = _unified("photos", self.photo.image_hash, user=self.owner)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "image/webp")
+        self.assertEqual(response["Content-Type"], "image/png")
         self.assertIn("inline;", response["Content-Disposition"])
         self.assertIn(
             os.path.basename(self.photo.main_file.path),
@@ -556,6 +559,31 @@ class UnifiedOriginalPhotoTest(TestCase):
         response = _unified("photos", self.photo.image_hash, user=self.owner)
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("X-Accel-Redirect", response)
+        self.assertEqual(response["Content-Type"], "image/png")
+
+    def _jpeg_photo(self):
+        path = os.path.join(TEST_MEDIA_ROOT, f"{self.photo.pk.hex}-original.jpg")
+        main = create_test_file(path, self.owner, b"\xff\xd8\xff\xe0" + b"\x00" * 64)
+        return create_test_photo(owner=self.owner, main_file=main)
+
+    def test_a_jpeg_original_is_served_as_a_jpeg(self):
+        """The lightbox swaps to it when zooming in (#2742)."""
+        photo = self._jpeg_photo()
+        response = _unified("photos", photo.image_hash, user=self.owner)
+        self.assertEqual(response["Content-Type"], "image/jpeg")
+
+    @override_settings(SERVE_FRONTEND=True)
+    def test_direct_mode_serves_a_jpeg_original_as_a_jpeg(self):
+        photo = self._jpeg_photo()
+        response = _unified("photos", photo.image_hash, user=self.owner)
+        self.assertEqual(response["Content-Type"], "image/jpeg")
+
+    def test_a_raw_original_is_not_called_webp(self):
+        path = os.path.join(TEST_MEDIA_ROOT, f"{self.photo.pk.hex}-original.nef")
+        main = create_test_file(path, self.owner, b"II*\x00" + b"\x00" * 64)
+        photo = create_test_photo(owner=self.owner, main_file=main)
+        response = _unified("photos", photo.image_hash, user=self.owner)
+        self.assertEqual(response["Content-Type"], RAW_MIME_TYPE)
 
 
 class UnifiedTranscodeBranchTest(TestCase):

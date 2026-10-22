@@ -218,3 +218,42 @@ def mime_type(path: str) -> str:
         or mimetypes.guess_type(path)[0]
         or "application/octet-stream"
     )
+
+
+# Camera RAW has no registered MIME type, and a content sniff misnames it: most
+# RAW formats are TIFF containers (image/tiff) and CR3 is ISO BMFF. Every RAW
+# original is reported as shared-mime-info's parent type for camera RAW.
+RAW_MIME_TYPE = "image/x-dcraw"
+# Formats that neither the sniff nor every platform's mimetypes table knows.
+_MIME_TYPE_FALLBACKS = {".jxl": "image/jxl"}
+
+
+def original_mime_type(path: str) -> str:
+    """What a photo's original is, in lower case, for clients to decide whether they can draw it.
+
+    A RAW file by its extension (``RAW_MIME_TYPE``), anything else by its magic
+    bytes, then its extension, else ``application/octet-stream``.
+    """
+    ext = extension(path)
+    if ext in RAW_EXTENSIONS:
+        return RAW_MIME_TYPE
+    found = (
+        sniffed_mime_type(path)
+        or _MIME_TYPE_FALLBACKS.get(ext)
+        or mimetypes.guess_type(path)[0]
+        or "application/octet-stream"
+    )
+    return found.lower()
+
+
+def still_content_type(path: str) -> str:
+    """The ``Content-Type`` a still photo's original is served with.
+
+    Its real type when that is an image, else ``application/octet-stream``:
+    an original is served inline on the app's own origin, so a type a browser
+    runs (SVG, HTML) must never reach it.
+    """
+    found = original_mime_type(path)
+    if found.startswith("image/") and "svg" not in found:
+        return found
+    return "application/octet-stream"

@@ -164,7 +164,7 @@ The toolbar at the top provides quick actions. From left to right:
 
 - **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
 - **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
-- **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
+- **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
 - **Hide / Show** (eye icon) - Hide the photo everywhere but the Hidden page, or unhide it.
@@ -178,9 +178,22 @@ The toolbar at the top provides quick actions. From left to right:
 
 The Hide, Archive, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
 
-There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+There is no download or share button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
 To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
+
+### Zooming into the original
+
+<Since version="1.5.0" /> The viewer shows a display-size version of each photo, 1080 pixels high by default. When you zoom in (the zoom button, a double-click, `z` or a pinch), it loads the original file in the background and switches to it once it is there, so the details stay sharp. Up to 1.4.0, zooming only enlarged the display-size version.
+
+A small label in the photo's lower-left corner says what you are looking at while you are zoomed in:
+
+- **Loading original** while the file is on its way. The display-size version stays on screen until then.
+- **Original · 6000 × 4000** once the original is shown, which shrinks to **Original** after two seconds. The viewer keeps the original until you move to another photo.
+- **Preview** with the reason when the browser cannot show the original: RAW, HEIC, TIFF and JPEG XL files, and photos you turned with the rotate buttons (the file itself is not turned). The **Original** link next to it downloads the file.
+- **The original did not load** with **Try again** when loading it failed.
+
+Photos no bigger than the display-size version need nothing more, and animated GIFs always show the original. The original loads only when you are signed in and may download it anyway: your own photos and photos shared with you. Visitors of a [public album](./sharing.md#the-public-album-experience) or a public photo link keep the display-size version.
 
 ### Rotating Photos
 

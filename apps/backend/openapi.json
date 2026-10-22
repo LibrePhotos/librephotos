@@ -17829,6 +17829,11 @@
             "maximum": 9223372036854775807,
             "minimum": -9223372036854775808,
             "format": "int64"
+          },
+          "original_mime_type": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
           }
         },
         "required": [
@@ -17867,6 +17872,7 @@
           "metadata",
           "metering_mode",
           "ocr",
+          "original_mime_type",
           "owner",
           "people",
           "public",

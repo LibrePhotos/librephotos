@@ -33,7 +33,7 @@ from api.accounts.authentication import (
     ThrottledBasicAuthentication,
 )
 from api.drf.params import parse_query
-from api.mime import mime_type
+from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.user import User
@@ -378,6 +378,17 @@ class MediaServingView(APIView):
         except Exception:
             return "application/octet-stream"
 
+    def _original_content_type(self, photo: Photo) -> str:
+        """A video's type as it is; a still photo's real image type (#2742).
+
+        Stills used to go out as ``image/webp`` whatever they were, which made
+        a browser that opened the original guess, and told a client nothing.
+        """
+        path = _original_path(photo)
+        if photo.video:
+            return self._file_content_type(path)
+        return still_content_type(path)
+
     def _safe_media_join(self, path: str, fname: str, suffix: str = "") -> str | None:
         """Join ``path``/``fname`` under ``MEDIA_ROOT``, or ``None`` if it escapes.
 
@@ -719,11 +730,11 @@ class MediaServingView(APIView):
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
-        content_type = self._file_content_type(_original_path(photo))
+        content_type = self._original_content_type(photo)
 
         if use_proxy:
             response = HttpResponse()
-            response["Content-Type"] = content_type if photo.video else "image/webp"
+            response["Content-Type"] = content_type
             if _original_path(photo).startswith("/nextcloud_media/"):
                 internal_path = "/nextcloud_original" + _original_path(photo)[21:]
             elif _original_path(photo).startswith(settings.PHOTOS):
@@ -982,13 +993,11 @@ class MediaServingView(APIView):
         if "thumbnail" in path or "thumbnails" in path or "faces" in path:
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        content_type = self._file_content_type(_original_path(photo))
+        content_type = self._original_content_type(photo)
         if not use_proxy:
-            return self._serve_file_direct(
-                _original_path(photo), content_type if photo.video else "image/webp"
-            )
+            return self._serve_file_direct(_original_path(photo), content_type)
         response = HttpResponse()
-        response["Content-Type"] = content_type if photo.video else "image/webp"
+        response["Content-Type"] = content_type
         if _original_path(photo).startswith(settings.PHOTOS):
             internal_path = "/original" + _original_path(photo)[len(settings.PHOTOS) :]
         else:

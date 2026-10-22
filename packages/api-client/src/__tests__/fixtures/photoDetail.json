@@ -64,5 +64,6 @@
   "stacks": null,
   "metadata": null,
   "ocr": null,
-  "local_orientation": 1
+  "local_orientation": 1,
+  "original_mime_type": "image/jpeg"
 }

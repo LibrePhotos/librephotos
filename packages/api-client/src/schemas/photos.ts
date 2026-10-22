@@ -179,6 +179,10 @@ export const Photo = z.object({
   // and 8 render swapped, #2595). Optional:
   // backends before 1.3 do not send it.
   local_orientation: z.number().optional(),
+  // What the main file is ("image/jpeg"; "image/x-dcraw" for any camera RAW), so a client
+  // can tell whether it can draw the original; null without a main file (#2742).
+  // Optional: older backends do not send it.
+  original_mime_type: z.string().nullish(),
 });
 export type Photo = z.infer<typeof Photo>;
 
