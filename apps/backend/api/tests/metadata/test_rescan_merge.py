@@ -31,7 +31,7 @@ from api.models.tag import Tag
 from api.tests.utils import create_test_photo, create_test_user
 
 NAME_OF = {tag: name for name, tag in EXIF_FIELDS}
-WHEN_RATED = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
+WHEN_RATED = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
 SIDECAR = 1
 
 
