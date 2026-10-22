@@ -1,0 +1,31 @@
+[package]
+name = "lpbench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Load client for the Django vs Rust backend benchmark (bench/README.md)"
+
+# Not part of the backend-rs workspace: a benchmark tool with its own lockfile.
+[workspace]
+
+[dependencies]
+anyhow = "1"
+bytes = "1"
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+hdrhistogram = "7"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["http2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+windows-sys = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Diagnostics_ToolHelp",
+] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

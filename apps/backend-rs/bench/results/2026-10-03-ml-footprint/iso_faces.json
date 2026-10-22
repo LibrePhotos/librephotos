@@ -1,0 +1,84 @@
+{
+ "service": "faces",
+ "steps": [
+  {
+   "label": "idle",
+   "rss_mb": 15.3,
+   "private_mb": 3.7,
+   "procs": 1,
+   "by_label_mb": {
+    "librephotos-rs": 15.3
+   }
+  },
+  {
+   "label": "after scan (no other model)",
+   "rss_mb": 185.7,
+   "private_mb": 141.4,
+   "procs": 5,
+   "by_label_mb": {
+    "librephotos-rs": 185.7
+   }
+  },
+  {
+   "label": "after faces",
+   "rss_mb": 185.6,
+   "private_mb": 141.2,
+   "procs": 5,
+   "by_label_mb": {
+    "librephotos-rs": 185.6
+   }
+  }
+ ],
+ "no_arena": false,
+ "ready_s": 0.7,
+ "trigger_s": 0.0,
+ "peak": {
+  "rss_mb": 190.9,
+  "private_mb": 145.5
+ },
+ "services": {
+  "image_similarity": {
+   "loaded": false,
+   "models": []
+  },
+  "thumbnail": {
+   "loaded": false,
+   "models": []
+  },
+  "face_recognition": {
+   "loaded": true,
+   "models": [
+    {
+     "model": "face_recognition",
+     "copies": 1
+    }
+   ]
+  },
+  "image_captioning": {
+   "loaded": false,
+   "models": []
+  },
+  "tags": {
+   "loaded": false,
+   "models": []
+  },
+  "ocr": {
+   "loaded": false,
+   "models": []
+  },
+  "face_cluster": {
+   "loaded": false,
+   "models": []
+  }
+ },
+ "counts": {
+  "photos": 6,
+  "with_thumbnail": 6,
+  "clip_embedded": 0,
+  "faces": 7,
+  "tagged": 0,
+  "captioned": 0,
+  "ocr_rows": 0,
+  "clustered_faces": 7
+ }
+}

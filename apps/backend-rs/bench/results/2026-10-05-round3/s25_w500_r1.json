@@ -1,0 +1,565 @@
+{
+ "side": "rs",
+ "concurrency": 1,
+ "db": "lp_run_foot_rs1_w500a",
+ "bin": "C:\\Users\\Niaz\\librephotos\\wt-rust-backend\\apps\\backend-rs\\target\\release\\librephotos-rs.exe",
+ "no_arena": false,
+ "env": {
+  "LP_SCAN_TIMERS": "1",
+  "LP_TAG_STORE_WAIT_MS": "500"
+ },
+ "site": {},
+ "lib": "w4",
+ "cpus": "all",
+ "threads": 6,
+ "gpu_ort": "dml",
+ "gpu_baseline_mib": 1930.0,
+ "ready_s": 0.7,
+ "idle": {
+  "label": "idle (20 s after ready)",
+  "rss_mb": 15.4,
+  "private_mb": 3.6,
+  "procs": 1,
+  "by_label_mb": {
+   "librephotos-rs": 15.4
+  },
+  "by_exe_mb": {
+   "librephotos-rs.exe": 15.4
+  }
+ },
+ "gpu_scan": {
+  "peak_mib": 467,
+  "mean_util": 25.7,
+  "proc_peak_mib": 283
+ },
+ "scan_stage_peak": {
+  "rss": 1310.3,
+  "private": 1583.2
+ },
+ "after_scan": {
+  "label": "after scan + followups",
+  "rss_mb": 414.3,
+  "private_mb": 659.6,
+  "procs": 1,
+  "by_label_mb": {
+   "librephotos-rs": 414.3
+  },
+  "by_exe_mb": {
+   "librephotos-rs.exe": 414.3
+  }
+ },
+ "counts_after_scan": {
+  "photos": 2025,
+  "with_thumbnail": 2025,
+  "clip_embedded": 2025,
+  "faces": 0,
+  "tagged": 2025,
+  "captioned": 0,
+  "ocr_rows": 0,
+  "clustered_faces": 0
+ },
+ "cpu_s": {
+  "scan": 729.7,
+  "end": 0.0
+ },
+ "stages_s": {
+  "scan+tags+clip+faces": 118.4
+ },
+ "ml_wall_s": 122.0,
+ "completed": true,
+ "end": {
+  "label": "end of run",
+  "rss_mb": 414.3,
+  "private_mb": 659.6,
+  "procs": 1,
+  "by_label_mb": {
+   "librephotos-rs": 414.3
+  },
+  "by_exe_mb": {
+   "librephotos-rs.exe": 414.3
+  }
+ },
+ "peak": {
+  "rss_mb": 1310.3,
+  "private_mb": 1583.2,
+  "by_label_mb": {
+   "librephotos-rs": 1310.3
+  },
+  "by_exe_mb": {
+   "conhost.exe": 79.4,
+   "exiftool.exe": 137.2,
+   "ffmpeg.exe": 666.6,
+   "ffprobe.exe": 2.6,
+   "librephotos-rs.exe": 424.5
+  },
+  "procs": 19
+ },
+ "counts": {
+  "photos": 2025,
+  "with_thumbnail": 2025,
+  "clip_embedded": 2025,
+  "faces": 0,
+  "tagged": 2025,
+  "captioned": 0,
+  "ocr_rows": 0,
+  "clustered_faces": 0
+ },
+ "lrj": [
+  {
+   "job_type": 1,
+   "job": "scan",
+   "finished": true,
+   "failed": false,
+   "progress": "2025/2025",
+   "seconds": 116.9
+  },
+  {
+   "job_type": 14,
+   "job": "scan missing",
+   "finished": true,
+   "failed": false,
+   "progress": "1/1",
+   "seconds": 0.3
+  },
+  {
+   "job_type": 16,
+   "job": "repair variants",
+   "finished": true,
+   "failed": false,
+   "progress": "0/0",
+   "seconds": 0.0
+  },
+  {
+   "job_type": 12,
+   "job": "tags",
+   "finished": true,
+   "failed": false,
+   "progress": "5/5",
+   "seconds": 0.6
+  },
+  {
+   "job_type": 6,
+   "job": "clip embeddings",
+   "finished": true,
+   "failed": false,
+   "progress": "0/0",
+   "seconds": 0.4
+  },
+  {
+   "job_type": 7,
+   "job": "scan faces",
+   "finished": true,
+   "failed": false,
+   "progress": "5/5",
+   "seconds": 0.4
+  },
+  {
+   "job_type": 8,
+   "job": "cluster faces",
+   "finished": true,
+   "failed": false,
+   "progress": "0/0",
+   "seconds": 0.0
+  },
+  {
+   "job_type": 4,
+   "job": "train faces",
+   "finished": true,
+   "failed": true,
+   "progress": "1/2",
+   "seconds": 0.0
+  }
+ ],
+ "files_per_s": 17.103,
+ "gpu": {
+  "peak_mib": 467,
+  "mean_util": 22.2,
+  "proc_peak_mib": 283
+ },
+ "services": {
+  "image_similarity": {
+   "loaded": false,
+   "models": []
+  },
+  "thumbnail": {
+   "loaded": false,
+   "models": []
+  },
+  "face_recognition": {
+   "loaded": true,
+   "models": [
+    {
+     "model": "face_recognition",
+     "copies": 1
+    }
+   ]
+  },
+  "clip_embeddings": {
+   "loaded": false,
+   "models": []
+  },
+  "image_captioning": {
+   "loaded": false,
+   "models": []
+  },
+  "tags": {
+   "loaded": true,
+   "models": [
+    {
+     "model": "tagger",
+     "copies": 1
+    }
+   ]
+  },
+  "ocr": {
+   "loaded": false,
+   "models": []
+  },
+  "face_cluster": {
+   "loaded": false,
+   "models": []
+  }
+ },
+ "samples": [
+  [
+   0.0,
+   15.4,
+   3.8
+  ],
+  [
+   2.1,
+   15.4,
+   3.8
+  ],
+  [
+   4.2,
+   15.4,
+   3.8
+  ],
+  [
+   6.2,
+   15.4,
+   3.8
+  ],
+  [
+   8.3,
+   15.4,
+   3.8
+  ],
+  [
+   10.4,
+   15.4,
+   3.6
+  ],
+  [
+   12.5,
+   15.4,
+   3.6
+  ],
+  [
+   14.6,
+   15.4,
+   3.6
+  ],
+  [
+   16.6,
+   15.4,
+   3.6
+  ],
+  [
+   18.7,
+   15.4,
+   3.6
+  ],
+  [
+   20.8,
+   34.7,
+   16.4
+  ],
+  [
+   22.9,
+   651.7,
+   654.6
+  ],
+  [
+   25.0,
+   638.0,
+   774.9
+  ],
+  [
+   27.1,
+   633.6,
+   770.2
+  ],
+  [
+   29.2,
+   650.2,
+   788.0
+  ],
+  [
+   31.3,
+   656.8,
+   786.5
+  ],
+  [
+   33.4,
+   621.3,
+   755.5
+  ],
+  [
+   35.5,
+   623.4,
+   758.8
+  ],
+  [
+   37.6,
+   642.6,
+   786.0
+  ],
+  [
+   39.7,
+   649.1,
+   784.6
+  ],
+  [
+   41.8,
+   666.2,
+   798.0
+  ],
+  [
+   43.9,
+   995.8,
+   1277.3
+  ],
+  [
+   46.1,
+   1130.8,
+   1347.1
+  ],
+  [
+   48.2,
+   645.3,
+   777.2
+  ],
+  [
+   50.3,
+   672.8,
+   802.3
+  ],
+  [
+   52.4,
+   677.1,
+   819.8
+  ],
+  [
+   54.5,
+   643.8,
+   785.6
+  ],
+  [
+   56.6,
+   660.5,
+   806.7
+  ],
+  [
+   58.7,
+   881.2,
+   1083.7
+  ],
+  [
+   60.8,
+   667.4,
+   845.2
+  ],
+  [
+   63.0,
+   621.8,
+   811.1
+  ],
+  [
+   65.1,
+   654.0,
+   849.8
+  ],
+  [
+   67.2,
+   697.6,
+   886.1
+  ],
+  [
+   69.3,
+   677.6,
+   870.6
+  ],
+  [
+   71.4,
+   644.0,
+   835.7
+  ],
+  [
+   73.5,
+   665.9,
+   853.1
+  ],
+  [
+   75.7,
+   702.6,
+   883.5
+  ],
+  [
+   77.8,
+   659.4,
+   841.9
+  ],
+  [
+   79.9,
+   682.8,
+   873.4
+  ],
+  [
+   82.0,
+   681.5,
+   871.6
+  ],
+  [
+   84.2,
+   701.2,
+   891.0
+  ],
+  [
+   86.3,
+   765.6,
+   949.3
+  ],
+  [
+   88.4,
+   727.0,
+   913.9
+  ],
+  [
+   90.5,
+   715.7,
+   907.3
+  ],
+  [
+   92.6,
+   716.1,
+   904.9
+  ],
+  [
+   94.7,
+   743.9,
+   934.5
+  ],
+  [
+   96.8,
+   735.6,
+   925.6
+  ],
+  [
+   98.9,
+   731.2,
+   913.7
+  ],
+  [
+   101.0,
+   764.3,
+   948.9
+  ],
+  [
+   103.1,
+   694.3,
+   883.1
+  ],
+  [
+   105.2,
+   706.2,
+   899.6
+  ],
+  [
+   107.4,
+   746.2,
+   930.7
+  ],
+  [
+   109.5,
+   687.3,
+   875.7
+  ],
+  [
+   111.6,
+   725.2,
+   913.3
+  ],
+  [
+   113.7,
+   724.6,
+   914.2
+  ],
+  [
+   115.8,
+   726.7,
+   929.9
+  ],
+  [
+   118.0,
+   715.5,
+   911.3
+  ],
+  [
+   120.1,
+   687.5,
+   888.0
+  ],
+  [
+   122.2,
+   739.1,
+   930.2
+  ],
+  [
+   124.3,
+   731.6,
+   924.0
+  ],
+  [
+   126.4,
+   738.9,
+   942.4
+  ],
+  [
+   128.5,
+   741.0,
+   932.4
+  ],
+  [
+   130.6,
+   684.1,
+   874.2
+  ],
+  [
+   132.8,
+   697.1,
+   891.3
+  ],
+  [
+   134.9,
+   747.6,
+   945.8
+  ],
+  [
+   137.0,
+   371.9,
+   613.7
+  ],
+  [
+   139.1,
+   414.3,
+   659.6
+  ],
+  [
+   141.1,
+   414.3,
+   659.6
+  ]
+ ]
+}
