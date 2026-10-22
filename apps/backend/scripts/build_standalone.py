@@ -106,6 +106,15 @@ NOFOLLOW = [
     "coverage",
 ]
 
+# Modules shipped as bytecode instead of compiled C. faiss.swigfaiss is SWIG's
+# 680 KB of generated proxy classes: Nuitka turns it into a 636k-line C file
+# that MSVC on a GitHub Windows runner (16 GB) cannot compile ("C1002: compiler
+# is out of heap space in pass 2", first seen with Python 3.14). Its methods only
+# forward to the _swigfaiss extension, so compiling them gains nothing.
+BYTECODE_MODULES = [
+    "faiss.swigfaiss",
+]
+
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
 BUNDLED_BINARY_DIRS = {
     "exiftool_bin": Path("exiftool_bin"),
@@ -206,6 +215,7 @@ def nuitka_command(output_dir, jobs, version):
     command += [f"--include-package={name}" for name in INCLUDE_PACKAGES]
     command += [f"--include-package-data={name}" for name in INCLUDE_PACKAGE_DATA]
     command += [f"--nofollow-import-to={name}" for name in NOFOLLOW]
+    command += [f"--noinclude-custom-mode={name}:bytecode" for name in BYTECODE_MODULES]
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")

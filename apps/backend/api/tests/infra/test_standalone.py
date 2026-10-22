@@ -162,6 +162,17 @@ class StageRuntimeFilesTest(SimpleTestCase):
         self.assertIn("is missing", str(stopped.exception))
 
 
+class NuitkaCommandTest(SimpleTestCase):
+    def test_swig_proxies_ship_as_bytecode(self):
+        # MSVC runs out of heap on the C Nuitka generates for faiss.swigfaiss.
+        build = load_build_script()
+
+        command = build.nuitka_command(Path("out"), None, "0.0.0")
+
+        self.assertIn("--noinclude-custom-mode=faiss.swigfaiss:bytecode", command)
+        self.assertEqual(command[-1], str(build.ENTRY))
+
+
 class ArchiveTest(SimpleTestCase):
     """The release zip under a versioned name and the stable alias, with
     SHA256SUMS for both (#2318, #2317)."""
