@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.0a63bbd5.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3dee2313.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -129,6 +129,9 @@
 </li>
 <li class="">
 <p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> <code>Single sign-on</code> A group with the switches for logging in through an OpenID Connect identity provider: <code>Show the single sign-on button</code>, <code>Button label</code> and <code>Allow sign-ups over single sign-on</code>. It lists the providers set up in the Django admin and warns when SSO cannot work yet. See <a class="" href="/docs/user-guide/settings/single-sign-on#telling-librephotos-about-the-provider">Single sign-on</a>.</p>
+</li>
+<li class="">
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> <code>Check for new releases</code> On by default. Once a day the backend asks github.com which LibrePhotos release is the newest; nothing about your server is sent. A line under the switch says what the last check found: up to date, a newer release (or that you skipped it, with <strong>Show it again</strong>), that the check failed, or that it is off. It is locked off when the server&#x27;s <code>UPDATE_CHECK</code> environment variable is <code>false</code>, and development builds have nothing to compare. See <a class="" href="/docs/installation/environment-variables#update-check">Checking for new releases</a> and <a class="" href="/docs/installation/upgrading#update-available">The Update available card</a>.</p>
 </li>
 <li class="">
 <p><code>Skip patterns</code> Comma delimited list of patterns to ignore (e.g. &#x27;@eaDir,#recycle&#x27; for synology devices)</p>
