@@ -8,6 +8,7 @@ type Group = {
   height: number;
   location?: string | null;
   date: string | null;
+  note?: string | null;
 };
 
 type GroupHeaderProps = {
@@ -17,6 +18,12 @@ type GroupHeaderProps = {
   textAlignment?: "left" | "right";
   headerSize?: HeaderSize;
 };
+
+// The dimmed note beside the date (a person's age, #2751); nothing without one.
+function Note({ note, headerSize }: Readonly<{ note?: string | null; headerSize: HeaderSize }>) {
+  if (!note) return null;
+  return <span className={`${styles.note} pig-header_note ${styles[headerSize]}`}>{note}</span>;
+}
 
 export default function GroupHeader({
   settings,
@@ -48,11 +55,13 @@ export default function GroupHeader({
             >
               {group.location}
             </span>
+            <Note note={group.note} headerSize={headerSize} />
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
           </>
         ) : (
           <>
             <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
+            <Note note={group.note} headerSize={headerSize} />
             <span
               className={`${styles.location} pig-header_location ${styles[headerSize]}`}
               title={group.location ?? undefined}

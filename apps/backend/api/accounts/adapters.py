@@ -19,14 +19,19 @@ Policy (per the maintainer's steer on issue #401):
   only when the admin has turned on OIDC_ALLOW_SIGNUP *and* configured an email
   provider (so the verified-email claim is meaningful). Otherwise SSO only logs in
   users that already exist and whose email an admin has set to match the IdP.
+* **Unambiguous email only.** When more than one account uses the provider's
+  email, the login is refused rather than guessing or creating another one.
 * **Never privileged.** An account created via SSO is never a superuser or staff,
   even during first-time setup when no superuser exists yet.
 """
+
+import logging
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
+from allauth.socialaccount.providers.base import AuthError, Provider
 from constance import config as site_config
 from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponseRedirect
@@ -34,6 +39,8 @@ from django.http import HttpRequest, HttpResponseRedirect
 from api.accounts.directories import auto_create_user_directory
 from api.accounts.mail import email_is_configured
 from api.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def _login_error_redirect(reason: str) -> ImmediateHttpResponse:
@@ -64,6 +71,46 @@ def _extract_email(sociallogin: SocialLogin) -> tuple[str, bool]:
         email = (extra.get("email") or "").strip().lower()
         verified = bool(extra.get("email_verified", False))
     return email, verified
+
+
+def _account_with_email(email: str) -> User | None:
+    """The one LibrePhotos account using ``email``, or None if there is none.
+
+    Only an unambiguous, non-empty match counts: many LibrePhotos users have a
+    blank email, and a social identity must never be linked to the wrong (or
+    every) account. Two or more matches refuse the login outright instead of
+    falling through to sign-up, which would add yet another account with the
+    same address.
+    """
+    if not email:
+        return None
+    matches = list(User.objects.filter(email__iexact=email)[:2])
+    if len(matches) > 1:
+        raise _login_error_redirect("email_ambiguous")
+    return matches[0] if matches else None
+
+
+def _describe_auth_error(
+    request: HttpRequest,
+    error: str | None,
+    exception: BaseException | None,
+    extra_context: dict[str, object] | None,
+) -> str:
+    """One line saying why allauth gave up, for the server log.
+
+    The login page only gets a generic reason; this is what an admin needs to
+    fix the provider setup.
+    """
+    if exception is not None:
+        return f"{type(exception).__name__}: {exception}"
+    if extra_context and "state_id" in extra_context:
+        return (
+            "the state check failed (the login expired, was replayed, or started "
+            "in another browser)"
+        )
+    idp_error = request.GET.get("error", "")
+    description = request.GET.get("error_description", "")
+    return f"error={error} idp_error={idp_error!r} description={description!r}"
 
 
 class NoLocalSignupAccountAdapter(DefaultAccountAdapter):
@@ -98,15 +145,7 @@ class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
             return
 
         email, verified = _extract_email(sociallogin)
-
-        # Try to match an existing account by email. Only an unambiguous,
-        # non-empty match counts — many LibrePhotos users have a blank email, and
-        # we must never link a social identity to the wrong (or every) account.
-        existing = None
-        if email:
-            matches = list(User.objects.filter(email__iexact=email))
-            if len(matches) == 1:
-                existing = matches[0]
+        existing = _account_with_email(email)
 
         if existing is not None:
             if not verified:
@@ -122,6 +161,29 @@ class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
         if not verified:
             raise _login_error_redirect("email_not_verified")
         # Fall through: allauth proceeds to save_user() below.
+
+    def on_authentication_error(
+        self,
+        request: HttpRequest,
+        provider: Provider,
+        error: str | None = None,
+        exception: BaseException | None = None,
+        extra_context: dict[str, object] | None = None,
+    ) -> None:
+        """Send identity-provider failures to the SPA login page.
+
+        Without this allauth renders its own unstyled error page under
+        ``/api/accounts/``. The reason stays generic for the user; the details go
+        to the server log.
+        """
+        logger.warning(
+            "SSO login via %s failed: %s",
+            getattr(provider, "id", provider),
+            _describe_auth_error(request, error, exception, extra_context),
+        )
+        if error == AuthError.CANCELLED:
+            raise _login_error_redirect("provider_cancelled")
+        raise _login_error_redirect("provider_error")
 
     def save_user(
         self,

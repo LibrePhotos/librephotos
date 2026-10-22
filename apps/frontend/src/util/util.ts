@@ -23,8 +23,14 @@ export const copyToClipboard = (str: string) => {
 // place, thing and tag lists on servers before 1.3 (those send null now).
 export const LEGACY_UNDATED_GROUP_DATE = "No timestamp";
 
+/** A note for a dated group's heading, from its day (a person's age on the person page, #2751). */
+export type GroupNote = (day: DateTime) => string | null;
+
 // TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
-export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePhotosGroup[] {
+export function formatDateForPhotoGroups(
+  photoGroups: DatePhotosGroup[],
+  note?: GroupNote
+): (DatePhotosGroup & { note?: string | null })[] {
   return photoGroups.map(photoGroup => {
     if (photoGroup.date === null || photoGroup.date === LEGACY_UNDATED_GROUP_DATE) {
       return { ...photoGroup, date: i18n.t("sidemenu.withouttimestamp") };
@@ -38,6 +44,7 @@ export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePh
         year: date.year,
         month: date.month,
         date: date.toLocaleString(DateTime.DATE_HUGE),
+        note: note?.(date),
       };
     }
     return photoGroup;

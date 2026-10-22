@@ -357,7 +357,6 @@ class ScanPhotosDownloadTest(TestCase):
         self.handle_new_image = self._patch(
             "nextcloud.directory_watcher.handle_new_image"
         )
-        self._patch("nextcloud.directory_watcher.build_image_similarity_index")
         self._patch("nextcloud.server_address.GuardedClient", return_value=self.nc)
 
     def _patch(self, target, **kwargs):

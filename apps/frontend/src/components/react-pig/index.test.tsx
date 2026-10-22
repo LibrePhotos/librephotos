@@ -101,6 +101,41 @@ describe("react-pig date headers", () => {
     expect(container.querySelector(".pig-header")).toBe(second);
   });
 
+  it("shows a group's note beside its date, on either side (#2751)", () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const noted = [{ ...defined(groups[0]), note: "Age 6" }];
+    const render = (textAlignment: "left" | "right") => {
+      act(() => {
+        defined(root).render(
+          <Pig
+            imageData={noted}
+            groupByDate
+            getUrl={(imageHash: string) => `/media/${imageHash}`}
+            textAlignment={textAlignment}
+          />
+        );
+      });
+      const header = defined(defined(container).querySelector(".pig-header"));
+      return Array.from(header.children).map(child => child.className.split(" ").find(name => name.startsWith("pig-")));
+    };
+
+    expect(render("left")).toEqual(["pig-header_date", "pig-header_note", "pig-header_location"]);
+    expect(render("right")).toEqual(["pig-header_location", "pig-header_note", "pig-header_date"]);
+    expect(defined(container).querySelector(".pig-header_note")?.textContent).toBe("Age 6");
+  });
+
+  it("has no note without one", () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    renderPig({ textAlignment: "left", headerSize: "large" });
+
+    expect(defined(container).querySelector(".pig-header_note")).toBeNull();
+  });
+
   it("re-render when the text alignment or header size setting changes", () => {
     container = document.createElement("div");
     document.body.appendChild(container);

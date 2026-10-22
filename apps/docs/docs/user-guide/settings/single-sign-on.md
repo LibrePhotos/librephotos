@@ -55,15 +55,25 @@ In the Django admin (`/api/django-admin/`), under **Social applications**, add o
 | Settings | `{"server_url": "https://your-idp/realms/example"}` — the issuer URL |
 | Sites | pick your site |
 
-Then, in Site Settings:
+Then, in the app, open **Admin Area > Site Settings** and find the **Single
+sign-on** group. Each change saves at once. <Since version="1.5.0" /> Up to 1.4.0
+these switches were only on the Constance page of the Django admin, under the
+names in brackets.
 
-- **`OIDC_ENABLED`** — the on/off switch. While it is off, the login button is
-  hidden *and* the SSO endpoints are inactive, so switching it off is a real way
-  to stop SSO logins.
-- **`OIDC_BUTTON_LABEL`** — the text on the login button, e.g. "Sign in with
-  Keycloak".
-- **`OIDC_ALLOW_SIGNUP`** — whether a first-time SSO login may create a new
-  LibrePhotos account. Off by default; also requires email to be configured.
+- **Show the single sign-on button** (`OIDC_ENABLED`): the on/off switch. While
+  it is off, the login button is hidden *and* the SSO endpoints are inactive, so
+  switching it off is a real way to stop SSO logins.
+- **Button label** (`OIDC_BUTTON_LABEL`): the text on the login button, e.g.
+  "Sign in with Keycloak", at most 64 characters. With more than one provider
+  each button shows its provider's name instead.
+- **Allow sign-ups over single sign-on** (`OIDC_ALLOW_SIGNUP`): whether a
+  first-time SSO login may create a new LibrePhotos account. Off by default; also
+  requires email to be configured.
+
+The provider itself is only added and changed in the Django admin, as above. The
+group lists the providers it finds, and warns under the switches when SSO cannot
+work yet: no provider attached to this site, no public URL
+(`FRONTEND_BASE_URL`), or, for sign-ups, no email set up.
 
 ## How accounts are matched up
 
@@ -75,14 +85,52 @@ matches the one the provider reports:
   that person.
 - **The provider has not verified the address** → refused. Otherwise anyone able
   to register your email address at the provider could claim your account.
-- **Two accounts share the address, or the provider sends no address** → refused,
-  because there is no single right answer.
+- **Two or more accounts share the address** → refused, whether or not sign-ups
+  over SSO are on, because there is no single right answer. LibrePhotos does not
+  create yet another account with the same address either.
+- **The provider sends no address** → refused, since there is nothing to match
+  on and no verified address to create an account with.
 - **No matching account** → a new one is created only if `OIDC_ALLOW_SIGNUP` is on
   *and* email is configured. Otherwise create the account first (or set its email
   to match) and let the user sign in again.
 
 Accounts created through SSO are never administrators. Grant that in the admin
 afterwards if you want it.
+
+## Using LDAP accounts
+
+LibrePhotos does not connect to an LDAP directory itself. Instead, point your
+identity provider at the directory and LibrePhotos at the provider: people then
+log in with their directory username and password at the provider, and
+LibrePhotos gets the result over OpenID Connect. Every common self-hosted
+provider can do this.
+
+- **Authelia**: set up the
+  [LDAP authentication backend](https://www.authelia.com/configuration/first-factor/ldap/)
+  (it works with LLDAP, OpenLDAP and Active Directory), then add LibrePhotos as an
+  [OpenID Connect client](https://www.authelia.com/integration/openid-connect/introduction/).
+- **Authentik**: add an
+  [LDAP source](https://docs.goauthentik.io/users-sources/sources/protocols/ldap/)
+  that syncs your directory, then an
+  [OAuth2/OpenID provider](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/)
+  with an application for LibrePhotos.
+- **Keycloak**: in your realm, add
+  [User Federation with an LDAP provider](https://www.keycloak.org/docs/latest/server_admin/index.html#_ldap),
+  then a confidential
+  [OpenID Connect client](https://www.keycloak.org/docs/latest/server_admin/index.html#_oidc_clients).
+  Turn on **Trust Email** on the LDAP provider, or Keycloak reports directory
+  addresses as unverified and LibrePhotos refuses them.
+
+What this means for accounts: LibrePhotos matches people by the email address the
+directory holds, and only when the provider says it is verified (see
+[How accounts are matched up](#how-accounts-are-matched-up)). Either give each
+LibrePhotos account the same email as in the directory, or turn on sign-ups over
+SSO so that a first login creates the account.
+
+The mobile app logs in with a username and password, not with SSO. A user who only
+ever signed in through the provider has no LibrePhotos password yet; they can set
+one with **Forgot your password?** on the login page (this needs email to be
+configured).
 
 ## When something goes wrong
 
@@ -92,5 +140,8 @@ A failed attempt returns to the login page with an explanation. The usual causes
 | --- | --- |
 | Account not known to LibrePhotos | Create the account, or turn on `OIDC_ALLOW_SIGNUP` |
 | Email address not verified | Verify the address at your identity provider |
+| More than one account uses this email address | Give each LibrePhotos account its own email address (or clear it on the ones that should not log in over SSO) |
+| Sign-in was cancelled at your identity provider | Nothing to fix: the user pressed Cancel or declined access. Try again |
+| Your identity provider could not complete the sign-in | Look in the server log for the line starting `SSO login via`; it names the reason (for example an expired login, or the provider refusing the client secret) |
 | Public URL not configured | Set `FRONTEND_BASE_URL` |
 | Provider-side "invalid redirect URI" | The redirect URI at your provider must match the callback URL above exactly, including the trailing slash |

@@ -190,6 +190,12 @@ function startCaptionsJob(fullScan: boolean, downloadsModel: boolean) {
   toast.success(message, { title: i18n.t("toasts.captionsjobtitle") });
 }
 
+function startThingsJob(fullScan: boolean) {
+  toast.success(i18n.t(fullScan ? "toasts.thingsjobfull" : "toasts.thingsjob"), {
+    title: i18n.t("toasts.thingsjobtitle"),
+  });
+}
+
 function startNextcloudPhotoScan() {
   toast.success(i18n.t("toasts.scannextcloudphotos"), { title: i18n.t("toasts.scannextcloudphotostitle") });
 }
@@ -294,6 +300,7 @@ export const photos = {
   startNextcloudPhotoScan,
   startOcrScan,
   startPhotoScan,
+  startThingsJob,
   togglePhotoDelete,
   togglePhotosFavorite,
   togglePhotoSharing,

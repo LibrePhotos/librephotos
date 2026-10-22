@@ -27,6 +27,13 @@
   text-overflow: ellipsis;
 }
 
+/* The note beside the date (a person's age, #2751): dimmed like the place, never cut. */
+.note {
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .date {
   font-weight: bold;
   text-align: right;
@@ -62,6 +69,15 @@
   font-size: 14px;
 }
 
+.large.note,
+.normal.note {
+  font-size: 15px;
+}
+
+.small.note {
+  font-size: 14px;
+}
+
 @media (min-width: 36em) {
   .large.date {
     font-size: 32px;
@@ -86,6 +102,15 @@
   .small.location {
     font-size: 15px;
   }
+
+  .large.note,
+  .normal.note {
+    font-size: 16px;
+  }
+
+  .small.note {
+    font-size: 15px;
+  }
 }
 
 /* Left alignment styles - Location first, then Date */
@@ -100,6 +125,10 @@
 .leftAligned .date {
   margin-right: 1rem;
   text-align: left;
+}
+
+.leftAligned .note {
+  margin-right: 1rem;
 }
 
 /* Right alignment styles - Date first, then Location */

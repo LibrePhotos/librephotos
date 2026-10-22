@@ -16,6 +16,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.albums.auto_albums import delete_missing_photos
+from api.metadata.datetime_rules import CaptureTime
 from api.models import (
     DeletionLog,
     Person,
@@ -629,7 +630,9 @@ class DeviceTimestampFallbackTest(TestCase):
         # No EXIF date extracted.
         self.assertIsNone(photo.exif_timestamp)
 
-        device_time = datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
+        device_time = CaptureTime(
+            datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
+        )
         # The file carries no date; the exif service is not running here.
         with patch(
             "api.metadata.photo_datetime.get_metadata",
@@ -652,7 +655,9 @@ class DeviceTimestampFallbackTest(TestCase):
         Photo.objects.filter(pk=photo.pk).update(exif_timestamp=existing)
         photo.refresh_from_db()
 
-        device_time = datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
+        device_time = CaptureTime(
+            datetime.datetime(2019, 3, 1, 10, 30, tzinfo=datetime.UTC)
+        )
         apply_device_timestamp_fallback(photo, device_time)
 
         photo.refresh_from_db()

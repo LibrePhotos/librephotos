@@ -69,7 +69,7 @@ from api.models.photo_metadata import (
     MetadataEdit,
     PhotoMetadata,
     description_of,
-    merged_keywords_of,
+    file_rating_of,
     text_fields_of,
 )
 from api.models.photo_search import PhotoSearch, place_label
@@ -168,6 +168,9 @@ def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
     old = photo.exif_timestamp
     date_changed = photo.timestamp != value
     photo.timestamp = value
+    # A date typed in has no known UTC offset (#2768); without one, the rules
+    # give it again.
+    photo.exif_timestamp_offset = None
     photo.save()
     if date_changed:
         write_photo_metadata_on_commit(photo, ["timestamp"])
@@ -264,8 +267,17 @@ def _set_capture_time_batch(
         if photo.timestamp != value:
             written.append(photo.id)
         photo.timestamp = value
+        photo.exif_timestamp_offset = None
         extract_date_time(photo, commit=False)
-        photo.save(update_fields=["timestamp", "exif_timestamp", "last_modified"])
+        photo.save(
+            update_fields=[
+                "timestamp",
+                "exif_timestamp",
+                "exif_timestamp_offset",
+                "exif_timestamp_source",
+                "last_modified",
+            ]
+        )
         if photo.exif_timestamp != old:
             changes.append(Change(photo.id, old, photo.exif_timestamp))
     _record(user, DATE_TAKEN, changes)
@@ -723,19 +735,23 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     # First, so the date rules below see the file's position.
     _restore_location_from_file(photo)
     values = read_file_values(photo)
+    # The keywords before the restore, whose tags the restore takes away.
+    previous_keywords = (
+        PhotoMetadata.objects.filter(photo=photo)
+        .values_list("keywords", flat=True)
+        .first()
+    )
+    # Also stores the file's keywords (``merged_keywords_of``).
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)
     assert metadata is not None
 
-    rating = values.get("rating")
-    photo.rating = (
-        rating if isinstance(rating, int) and not isinstance(rating, bool) else 0
-    )
+    # The file's rating, also as the one last read (#2771), or 0 without one.
+    metadata.file_rating = file_rating_of(values)
+    photo.rating = metadata.file_rating or 0
     photo.timestamp = None
     extract_date_time(photo, commit=False)
     photo.save()
 
-    previous_keywords = metadata.keywords
-    metadata.keywords = merged_keywords_of(values) or None
     file_text = text_fields_of(values)
     for field in TEXT_FIELDS:
         setattr(metadata, field, file_text[field])

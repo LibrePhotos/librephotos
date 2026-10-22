@@ -11,12 +11,14 @@ from api.metadata.datetime_rules import (
     DEFAULT_RULES_JSON,
     DEFAULT_RULES_PARAMS,
     PREDEFINED_RULES_PARAMS,
+    CaptureTime,
     RuleContext,
     TimeExtractionRule,
     _extract_no_tz_datetime_from_str,
     as_rules,
     extract_local_date_time,
 )
+from api.metadata.edits import set_capture_times, set_to
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.tags import Tags
 from api.models import Photo
@@ -24,6 +26,11 @@ from api.tests.utils import create_test_photo, create_test_user
 
 # "Timestamp set by user" as lists saved before #2254 hold it.
 RULE_14 = {"id": 14, "name": "Timestamp set by user", "rule_type": "user_defined"}
+
+
+def _local_time_of(found):
+    """The wall clock of what the rules read, None when no rule applied."""
+    return found.local_time if found else None
 
 
 class NumericTagValueTest(TestCase):
@@ -109,15 +116,17 @@ class DefaultRulesOrderTest(TestCase):
         def exif_getter(tags):
             return [exif_values.get(tag) for tag in tags]
 
-        return extract_local_date_time(
-            path="/photos/IMG_0001.jpg",
-            rules=as_rules(DEFAULT_RULES_PARAMS),
-            exif_getter=exif_getter,
-            context=RuleContext(
-                gps_lat=None,
-                gps_lon=None,
-                user_default_tz="UTC",
-            ),
+        return _local_time_of(
+            extract_local_date_time(
+                path="/photos/IMG_0001.jpg",
+                rules=as_rules(DEFAULT_RULES_PARAMS),
+                exif_getter=exif_getter,
+                context=RuleContext(
+                    gps_lat=None,
+                    gps_lon=None,
+                    user_default_tz="UTC",
+                ),
+            )
         )
 
     def test_date_created_wins_over_the_exif_date_tags(self):
@@ -179,15 +188,17 @@ class DefaultVideoRulesTest(TestCase):
         def exif_getter(tags):
             return [exif_values.get(tag) for tag in tags]
 
-        return extract_local_date_time(
-            path=path,
-            rules=as_rules(DEFAULT_RULES_PARAMS),
-            exif_getter=exif_getter,
-            context=RuleContext(
-                gps_lat=gps[0],
-                gps_lon=gps[1],
-                user_default_tz="Europe/Berlin",
-            ),
+        return _local_time_of(
+            extract_local_date_time(
+                path=path,
+                rules=as_rules(DEFAULT_RULES_PARAMS),
+                exif_getter=exif_getter,
+                context=RuleContext(
+                    gps_lat=gps[0],
+                    gps_lon=gps[1],
+                    user_default_tz="Europe/Berlin",
+                ),
+            )
         )
 
     def test_the_default_rule_order(self):
@@ -273,15 +284,17 @@ class BrokenCustomRegexpRuleTest(TestCase):
                 for tag in tags
             ]
 
-        return extract_local_date_time(
-            path="/photos/2020/01/02/03/04/05/06/07/IMG_abc.jpg",
-            rules=rules,
-            exif_getter=exif_getter,
-            context=RuleContext(
-                gps_lat=None,
-                gps_lon=None,
-                user_default_tz="UTC",
-            ),
+        return _local_time_of(
+            extract_local_date_time(
+                path="/photos/2020/01/02/03/04/05/06/07/IMG_abc.jpg",
+                rules=rules,
+                exif_getter=exif_getter,
+                context=RuleContext(
+                    gps_lat=None,
+                    gps_lon=None,
+                    user_default_tz="UTC",
+                ),
+            )
         )
 
     def _assert_falls_through(self, custom_regexp):
@@ -412,3 +425,347 @@ class ManualDateOverrideTest(TestCase):
         self.assertIsNone(photo.timestamp)
         self.assertEqual(photo.exif_timestamp, CAMERA_DATE)
         self.assertEqual(parse_datetime(response.json()["exif_timestamp"]), CAMERA_DATE)
+
+
+SAN_FRANCISCO = (37.7749, -122.4194)
+# 2025-06-01 23:30 in San Francisco (UTC-07:00 in summer) is 06:30 UTC on the 2nd.
+LOCAL_EVENING = datetime.datetime(2025, 6, 1, 23, 30, tzinfo=pytz.utc)
+
+
+def _read(exif_values, rules=None, gps=(None, None), default_tz="UTC"):
+    """What ``rules`` (the default list) read from a file with ``exif_values``."""
+
+    def exif_getter(tags):
+        return [exif_values.get(tag) for tag in tags]
+
+    return extract_local_date_time(
+        path="/photos/IMG_0001.jpg",
+        rules=as_rules(DEFAULT_RULES_PARAMS if rules is None else rules),
+        exif_getter=exif_getter,
+        context=RuleContext(gps_lat=gps[0], gps_lon=gps[1], user_default_tz=default_tz),
+    )
+
+
+def _predefined(rule_id):
+    return next(rule for rule in PREDEFINED_RULES_PARAMS if rule["id"] == rule_id)
+
+
+class UtcValueOfALocalTimeTagTest(TestCase):
+    """#2767: a local-time tag written in UTC ("...Z") is turned into local time."""
+
+    def test_the_offset_tag_converts_it(self):
+        found = _read(
+            {
+                Tags.DATE_CREATED: "2025:06:02 06:30:00Z",
+                Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+                Tags.OFFSET_TIME_ORIGINAL: "-07:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 16), found)
+
+    def test_without_an_offset_tag_the_gps_zone_converts_it(self):
+        found = _read(
+            {Tags.DATE_CREATED: "2025:06:02 06:30:00Z"},
+            gps=SAN_FRANCISCO,
+            default_tz="Europe/Berlin",
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 16), found)
+
+    def test_without_gps_the_owners_zone_converts_it(self):
+        found = _read(
+            {Tags.DATE_CREATED: "2025:06:02 06:30:00Z"},
+            default_tz="Europe/Berlin",
+        )
+        self.assertEqual(
+            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=pytz.utc), 120, 16),
+            found,
+        )
+
+    def test_an_unusable_offset_tag_is_skipped(self):
+        found = _read(
+            {
+                Tags.DATE_CREATED: "2025:06:02 06:30:00Z",
+                Tags.OFFSET_TIME_ORIGINAL: "   :  ",
+            },
+            gps=SAN_FRANCISCO,
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 16), found)
+
+    def test_fractional_seconds_before_the_z(self):
+        found = _read(
+            {
+                Tags.DATE_TIME_ORIGINAL: "2025:06:02 06:30:00.25Z",
+                Tags.OFFSET_TIME_ORIGINAL: "-07:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 1), found)
+
+    def test_modify_date_goes_with_offset_time(self):
+        found = _read(
+            {
+                Tags.DATE_TIME: "2025:06:02 06:30:00Z",
+                Tags.OFFSET_TIME_ORIGINAL: "+09:00",
+                Tags.OFFSET_TIME: "-07:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 15), found)
+
+    def test_a_rule_that_transforms_the_zone_itself_is_left_alone(self):
+        # Rule 11 reads Composite:GPSDateTime as UTC and converts it already.
+        found = _read({Tags.GPS_DATE_TIME: "2025:06:02 06:30:00Z"}, gps=SAN_FRANCISCO)
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 11), found)
+
+    def test_the_gps_time_in_utc_rule_keeps_utc(self):
+        # Rule 13 keeps UTC on purpose: it does not know the zone.
+        found = _read(
+            {Tags.GPS_DATE_TIME: "2025:06:02 06:30:00Z"},
+            rules=[_predefined(13)],
+            gps=SAN_FRANCISCO,
+        )
+        self.assertEqual(
+            CaptureTime(
+                datetime.datetime(2025, 6, 2, 6, 30, tzinfo=pytz.utc), None, 13
+            ),
+            found,
+        )
+
+    def test_a_transform_rule_on_a_local_time_tag_reads_no_offset_tag(self):
+        rule = TimeExtractionRule(
+            {
+                "rule_type": "exif",
+                "exif_tag": Tags.DATE_TIME_ORIGINAL,
+                "transform_tz": 1,
+                "source_tz": "utc",
+                "report_tz": "name:Asia/Tokyo",
+            }
+        )
+        self.assertEqual({Tags.DATE_TIME_ORIGINAL}, rule.get_required_exif_tags())
+        found = rule.apply(
+            "/photos/IMG_0001.jpg",
+            {Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00Z"},
+            RuleContext(None, None, "UTC"),
+        )
+        self.assertEqual(
+            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=pytz.utc), 540),
+            found,
+        )
+
+
+class CaptureTimeOffsetTest(TestCase):
+    """#2768: the rules hand back the UTC offset of the time they read."""
+
+    def test_the_offset_tag_of_the_camera_date(self):
+        found = _read(
+            {
+                Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+                Tags.OFFSET_TIME_ORIGINAL: "-07:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 1), found)
+
+    def test_an_offset_written_after_the_time_wins_over_the_offset_tag(self):
+        found = _read(
+            {
+                Tags.DATE_CREATED: "2025:06:01 23:30:00+05:30",
+                Tags.OFFSET_TIME_ORIGINAL: "-07:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, 330, 16), found)
+
+    def test_without_offset_information_the_offset_is_unknown(self):
+        found = _read({Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00"})
+        self.assertEqual(CaptureTime(LOCAL_EVENING, None, 1), found)
+
+    def test_a_phone_videos_creation_date_states_its_offset(self):
+        found = _read(
+            {
+                Tags.QUICKTIME_CREATION_DATE: "2025:06:01 23:30:00-07:00",
+                Tags.QUICKTIME_CREATE_DATE: "2025:06:02 06:30:00",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 17), found)
+
+    def test_a_utc_video_date_gets_the_gps_zones_offset_of_that_day(self):
+        # Rule 2; San Francisco is UTC-08:00 in winter, UTC-07:00 in summer.
+        winter = _read(
+            {Tags.QUICKTIME_CREATE_DATE: "2025:01:02 06:30:00"}, gps=SAN_FRANCISCO
+        )
+        summer = _read(
+            {Tags.QUICKTIME_CREATE_DATE: "2025:06:02 06:30:00"}, gps=SAN_FRANCISCO
+        )
+        self.assertEqual(
+            CaptureTime(
+                datetime.datetime(2025, 1, 1, 22, 30, tzinfo=pytz.utc), -480, 2
+            ),
+            winter,
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 2), summer)
+
+    def test_a_file_name_date_has_no_offset(self):
+        found = extract_local_date_time(
+            path="/photos/IMG_20250601_233000.jpg",
+            rules=as_rules(DEFAULT_RULES_PARAMS),
+            exif_getter=lambda tags: [None] * len(tags),
+            context=RuleContext(None, None, "Europe/Berlin"),
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, None, 3), found)
+
+    def test_the_server_zone_reports_the_servers_offset(self):
+        rule = TimeExtractionRule(
+            {
+                "rule_type": "exif",
+                "exif_tag": Tags.QUICKTIME_CREATE_DATE,
+                "transform_tz": 1,
+                "source_tz": "utc",
+                "report_tz": "server_local",
+            }
+        )
+        found = rule.apply(
+            "/videos/clip.mp4",
+            {Tags.QUICKTIME_CREATE_DATE: "2025:06:02 06:30:00"},
+            RuleContext(None, None, "UTC"),
+        )
+        local = datetime.datetime(2025, 6, 2, 6, 30, tzinfo=pytz.utc).astimezone()
+        offset = local.utcoffset()
+        assert found is not None and offset is not None
+        self.assertEqual(int(offset.total_seconds()) // 60, found.utc_offset)
+
+    def test_a_rule_id_that_is_not_a_number_is_not_kept(self):
+        for rule_id in ("custom", True, None, -1, 2**31):
+            with self.subTest(rule_id=rule_id):
+                found = _read(
+                    {Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00"},
+                    rules=[
+                        {
+                            "id": rule_id,
+                            "rule_type": "exif",
+                            "exif_tag": Tags.DATE_TIME_ORIGINAL,
+                        }
+                    ],
+                )
+                self.assertEqual(CaptureTime(LOCAL_EVENING), found)
+
+    def test_out_of_range_offsets_are_ignored(self):
+        for value in ("+15:00", "-07:60", "07:00", "-7:00", 420):
+            with self.subTest(value=value):
+                found = _read(
+                    {
+                        Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+                        Tags.OFFSET_TIME_ORIGINAL: value,
+                    }
+                )
+                self.assertEqual(CaptureTime(LOCAL_EVENING, None, 1), found)
+
+    def test_offsets_without_a_colon_are_read(self):
+        found = _read(
+            {
+                Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+                Tags.OFFSET_TIME_ORIGINAL: "-0700",
+            }
+        )
+        self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 1), found)
+
+    def test_the_local_time_rules_ask_for_their_offset_tag(self):
+        self.assertEqual(
+            {
+                16: {Tags.DATE_CREATED, Tags.OFFSET_TIME_ORIGINAL},
+                1: {Tags.DATE_TIME_ORIGINAL, Tags.OFFSET_TIME_ORIGINAL},
+                15: {Tags.DATE_TIME, Tags.OFFSET_TIME},
+                17: {Tags.QUICKTIME_CREATION_DATE},
+                2: {Tags.QUICKTIME_CREATE_DATE},
+            },
+            {
+                rule_id: TimeExtractionRule(
+                    _predefined(rule_id)
+                ).get_required_exif_tags()
+                for rule_id in (16, 1, 15, 17, 2)
+            },
+        )
+
+
+def _file_values(values):
+    """``get_metadata`` of a file holding ``values``."""
+    return patch(
+        "api.metadata.photo_datetime.get_metadata",
+        side_effect=lambda path, tags, **kwargs: [values.get(tag) for tag in tags],
+    )
+
+
+CAMERA_WITH_OFFSET = {
+    Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+    Tags.OFFSET_TIME_ORIGINAL: "-07:00",
+}
+
+
+class CaptureTimeStoredTest(TestCase):
+    """#2768: the scan stores the offset and the rule next to exif_timestamp."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def _scan(self, photo, values):
+        with _file_values(values):
+            extract_date_time(photo)
+        return Photo.objects.get(pk=photo.pk)
+
+    @staticmethod
+    def _stored(photo):
+        return (
+            photo.exif_timestamp,
+            photo.exif_timestamp_offset,
+            photo.exif_timestamp_source,
+        )
+
+    def _edit(self, photo, value):
+        with _file_values(CAMERA_WITH_OFFSET):
+            response = self.client.patch(
+                f"/api/photos/edit/{photo.image_hash}/",
+                {"exif_timestamp": value},
+                format="json",
+            )
+        self.assertEqual(200, response.status_code)
+        return self._stored(Photo.objects.get(pk=photo.pk))
+
+    def test_the_rules_offset_and_id_are_stored(self):
+        photo = self._scan(create_test_photo(owner=self.user), CAMERA_WITH_OFFSET)
+        self.assertEqual((LOCAL_EVENING, -420, 1), self._stored(photo))
+
+    def test_a_date_set_by_hand_clears_them_and_removing_it_restores_them(self):
+        photo = self._scan(create_test_photo(owner=self.user), CAMERA_WITH_OFFSET)
+
+        self.assertEqual(
+            (MANUAL_DATE, None, None), self._edit(photo, MANUAL_DATE.isoformat())
+        )
+        self.assertEqual((LOCAL_EVENING, -420, 1), self._edit(photo, None))
+
+    def test_a_rescan_of_a_date_set_by_hand_keeps_no_rule(self):
+        photo = create_test_photo(
+            owner=self.user, timestamp=MANUAL_DATE, exif_timestamp=MANUAL_DATE
+        )
+        photo = self._scan(photo, CAMERA_WITH_OFFSET)
+        self.assertEqual((MANUAL_DATE, None, None), self._stored(photo))
+
+    def test_the_photo_detail_returns_them(self):
+        photo = self._scan(
+            create_test_photo(owner=self.user),
+            {
+                Tags.DATE_TIME_ORIGINAL: "2025:06:01 23:30:00",
+                Tags.OFFSET_TIME_ORIGINAL: "+05:30",
+            },
+        )
+        body = self.client.get(f"/api/photos/{photo.image_hash}/").json()
+        self.assertEqual(
+            (330, 1), (body["exif_timestamp_offset"], body["exif_timestamp_source"])
+        )
+
+    def test_a_date_set_for_many_photos_clears_them(self):
+        photo = self._scan(create_test_photo(owner=self.user), CAMERA_WITH_OFFSET)
+
+        set_capture_times(
+            Photo.objects.filter(pk=photo.pk), set_to(MANUAL_DATE), self.user
+        )
+
+        photo.refresh_from_db()
+        self.assertEqual((MANUAL_DATE, None, None), self._stored(photo))

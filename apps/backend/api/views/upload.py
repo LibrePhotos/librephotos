@@ -36,6 +36,8 @@ from api.drf.request_user import request_user
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.jobs.queue import Task, enqueue_task_chain
+from api.jobs.upload_followups import request_upload_followups
+from api.metadata.datetime_rules import CaptureTime
 from api.models import Photo
 from api.models.album_user import AlbumUser
 from api.models.photo_caption import PhotoCaption
@@ -110,6 +112,38 @@ def parse_device_timestamp(
     except ValueError:
         return None
     return parsed.replace(tzinfo=datetime.UTC)
+
+
+def device_time_offset(
+    raw: str | int | None, utc_offset: datetime.timedelta | None
+) -> int | None:
+    """The UTC offset, in minutes east of UTC, of the wall clock
+    ``parse_device_timestamp`` reads from ``raw`` (#2768): the one an ISO 8601
+    value states, else the client's ``device_tz_offset``."""
+    text = "" if raw is None else str(raw).strip()
+    try:
+        stated = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        stated = None
+    offset = stated.utcoffset() if stated is not None else None
+    if offset is None:
+        offset = utc_offset
+    return None if offset is None else int(offset.total_seconds()) // 60
+
+
+def device_capture_time(
+    form: Mapping[str, str], default_timezone: str
+) -> CaptureTime | None:
+    """The capture time a client states for an upload (doc 04 §5, #614), with
+    its UTC offset: ``device_created_at``, else ``device_modified_at``, which
+    stands in when the device has no creation time."""
+    utc_offset = parse_utc_offset(form.get("device_tz_offset"))
+    for field in ("device_created_at", "device_modified_at"):
+        raw = form.get(field)
+        local = parse_device_timestamp(raw, utc_offset, default_timezone)
+        if local is not None:
+            return CaptureTime(local, device_time_offset(raw, utc_offset))
+    return None
 
 
 def _zone(name: str) -> datetime.tzinfo:
@@ -343,7 +377,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         user: User,
         photo_path: str,
         image_hash: str,
-        device_created_at: datetime.datetime | None = None,
+        device_time: CaptureTime | None = None,
         album: AlbumUser | None = None,
     ) -> None:
         photo = create_new_image(user, photo_path)
@@ -356,12 +390,15 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
                 *filing,
                 Task(
                     apply_device_timestamp_fallback,
-                    (photo, device_created_at),
+                    (photo, device_time),
                 ),
                 Task(generate_captions_wrapper, (photo, True)),
                 Task(geolocate_photo, (photo,)),
                 Task(add_location_to_album_dates, (photo,)),
                 Task(extract_faces, (photo,)),
+                # Last, so the library-level steps (search index, face
+                # encodings) see this photo done; one run per burst (#2735).
+                Task(request_upload_followups, (user,)),
             ]
         )
 
@@ -405,19 +442,12 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
             )
 
         # Optional client-supplied capture time, used as a timestamp fallback
-        # for photos that carry no EXIF date (doc 04 §5, issue #614); the
-        # modification time stands in when the device has no creation time.
-        utc_offset = parse_utc_offset(request.POST.get("device_tz_offset"))
-        device_time = parse_device_timestamp(
-            request.POST.get("device_created_at"), utc_offset, user.default_timezone
-        ) or parse_device_timestamp(
-            request.POST.get("device_modified_at"), utc_offset, user.default_timezone
-        )
+        # for photos that carry no EXIF date (doc 04 §5, issue #614).
         self.import_photo(
             user,
             photo_path,
             image_hash,
-            device_created_at=device_time,
+            device_time=device_capture_time(request.POST, user.default_timezone),
             album=album,
         )
         return None

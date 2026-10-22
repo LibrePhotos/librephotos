@@ -25,6 +25,29 @@ MAP_API_PROVIDERS = frozenset(
 )
 
 
+# The providers geopy can ask for place names in a language (GEOCODE_LANGUAGE,
+# #2745), as the ``language`` keyword of ``reverse`` and ``geocode``. Mapbox's
+# reverse lookup has no such argument, and ExifTool's database is English.
+LANGUAGE_PROVIDERS = frozenset({"nominatim", "opencage", "tomtom", "maptiler"})
+# Nominatim sends the value as Accept-Language, which takes a list of
+# languages in order of preference ("de,en"); the others take one.
+LANGUAGE_LIST_PROVIDERS = frozenset({"nominatim"})
+
+
+def language_args(provider: str, language: str) -> dict[str, str]:
+    """The keyword arguments that ask *provider* for place names in *language*.
+
+    None for an empty setting (the provider's default, as before the setting
+    existed) or a provider that cannot be asked; the first language of a list
+    for a provider that takes one.
+    """
+    if not language or provider not in LANGUAGE_PROVIDERS:
+        return {}
+    if provider not in LANGUAGE_LIST_PROVIDERS:
+        language = language.split(",", maxsplit=1)[0]
+    return {"language": language}
+
+
 class _ProviderConfig(TypedDict):
     geocode_args: dict[str, object]
     parser: Callable[[Location], dict[str, object]]

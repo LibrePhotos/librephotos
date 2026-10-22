@@ -673,6 +673,16 @@ export async function setPersonCover(
   return parseResponse(S.PersonEditResponse, res, "set person cover");
 }
 
+/** Set a person's birth date (`YYYY-MM-DD`), or clear it with null (#2750). Answers the person. */
+export async function setPersonBirthDate(
+  client: ApiClient,
+  personId: number | string,
+  birthDate: string | null
+): Promise<S.Person> {
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { birth_date: birthDate });
+  return parseResponse(S.Person, res, "set person birth date");
+}
+
 /** Delete a person. Answers 204. */
 export async function deletePerson(client: ApiClient, personId: number | string): Promise<void> {
   await client.delete(`/persons/${personId}/`);
@@ -918,6 +928,18 @@ export async function generateCaptions(
   return triggerJob(client, "/generate-captions/", S.CaptionsJobStartedResponse, "generate captions", {
     full_scan: fullScan,
   });
+}
+
+/**
+ * Find the things in the signed-in user's photos (#2765): the ones without things yet, or with
+ * `fullScan` every photo again, after the list of things changed. Only the things and their albums
+ * are replaced, never the user's own tags. A 403 while Things are turned off on the server.
+ */
+export async function findThings(
+  client: ApiClient,
+  fullScan: boolean
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/find-things/", S.JobStartedResponse, "find things", { full_scan: fullScan });
 }
 
 /**

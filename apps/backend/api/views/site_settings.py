@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.accounts.mail import email_is_configured
+from api.accounts.sso_setup import sso_setup
 from api.directory_watcher.scan_schedule import (
     LAST_RUN_KEY,
     SCHEDULE_KEYS,
@@ -54,6 +55,7 @@ SETTING_KEYS = (
     "MAP_API_PROVIDER",
     "MAP_API_KEY",
     "MAP_TILE_PROVIDER",
+    "GEOCODE_LANGUAGE",
     "CAPTIONING_MODEL",
     "OCR_MODEL",
     "FACE_RECOGNITION_MODEL",
@@ -61,6 +63,9 @@ SETTING_KEYS = (
     "AUTO_CREATE_USER_DIRECTORY",
     "SCAN_MISSING_MAX_FRACTION",
     "TRASH_RETENTION_DAYS",
+    "OIDC_ENABLED",
+    "OIDC_BUTTON_LABEL",
+    "OIDC_ALLOW_SIGNUP",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -115,6 +120,15 @@ def _captioning_available(config: dict[str, Any]) -> bool:
         and bool(config[site_setting_key(feature)])
         and captioning_model_selected(config["CAPTIONING_MODEL"])
     )
+
+
+def _things_available(config: dict[str, Any]) -> bool:
+    """Whether Things are on, from the values this request read.
+
+    Sent to everyone: the Library page offers Find things only then (#2765).
+    """
+    feature: Feature = "SCENE_CLASSIFICATION"
+    return not feature_locked(feature) and bool(config[site_setting_key(feature)])
 
 
 def _auto_scan(config: dict[str, Any]) -> dict[str, object]:
@@ -173,8 +187,10 @@ class SiteSettingsView(APIView):
         # absent so clients that require the field keep parsing.
         out["map_api_key"] = config["MAP_API_KEY"] if request.user.is_staff else ""
         out["map_tile_provider"] = config["MAP_TILE_PROVIDER"]
+        out["geocode_language"] = config["GEOCODE_LANGUAGE"]
         out["captioning_model"] = config["CAPTIONING_MODEL"]
         out["captioning_available"] = _captioning_available(config)
+        out["things_available"] = _things_available(config)
         # There is no LLM any more; older mobile clients still expect the key.
         out["llm_model"] = "None"
         # One tagging model, not a setting: the web client reads it to find
@@ -188,11 +204,16 @@ class SiteSettingsView(APIView):
         # Not staff-only: every user's trash page says when its photos go.
         out["trash_retention_days"] = config["TRASH_RETENTION_DAYS"]
         out["email_configured"] = email_is_configured()
+        # Not secret: /api/auth/sso/config/ tells the login page as much.
+        out["oidc_enabled"] = config["OIDC_ENABLED"]
+        out["oidc_button_label"] = config["OIDC_BUTTON_LABEL"]
+        out["oidc_allow_signup"] = config["OIDC_ALLOW_SIGNUP"]
         if request.user.is_staff:
             # The Features card's state: admin-only, like the settings it shows.
             out["features"] = _features(config)
             out["model_download"] = _model_download()
             out.update(_auto_scan(config))
+            out.update(sso_setup(request._request))
         return Response(out)
 
     @extend_schema(request=SiteSettingsRequest, responses=SiteSettingsSerializer)

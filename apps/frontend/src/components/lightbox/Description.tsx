@@ -1,15 +1,7 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
-import {
-  IconCheck,
-  IconPencil,
-  IconX,
-  IconNote as Note,
-  IconTags as Tags,
-  IconWand as Wand,
-} from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { IconCheck, IconPencil, IconX, IconNote as Note, IconWand as Wand } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -26,6 +18,7 @@ import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
 import hashtagClasses from "./Hashtag.module.css";
 import suggestion from "./Suggestion";
+import { ThingBadges } from "./ThingBadges";
 import { UnsavedBadge } from "./UnsavedBadge";
 import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
@@ -156,7 +149,6 @@ function CaptionEditor(props: Props) {
   const { data: thingAlbums } = useFetchThingsAlbumsQuery(isPublic);
   const { data: siteSettings } = useGetSettingsQuery();
   const taggingModel = siteSettings?.tagging_model ?? "openclip_vitb32";
-  const navigate = useNavigate();
 
   // Every tagging model stores { tags: string[] } under its own key.
   const autoTags = autoTagsOf(photoDetail.captions_json, taggingModel);
@@ -295,45 +287,12 @@ function CaptionEditor(props: Props) {
         {editMode && <WriteBackHint field="caption" />}
       </Stack>
       {autoTags && autoTags.length > 0 && (
-        <Stack gap="xs">
-          {/* The tagging model's own output (Things, as in the album list),
-              not the user's tags -- both used to render as "Tags" here. In a
-              card it is a label under the card's heading, not a heading. */}
-          {heading ? (
-            <Text size="xs" c="dimmed" fw={500}>
-              {t("things")}
-            </Text>
-          ) : (
-            <Group>
-              <Tags />
-              <Title order={4}>{t("things")}</Title>
-            </Group>
-          )}
-          <Group gap="xs">
-            {autoTags.map(tag =>
-              // Search needs a login, so a public page's tags are just labels;
-              // the owner's are buttons, so the keyboard can reach them too.
-              isPublic ? (
-                <Badge key={`lightbox_autotag_${photoDetail.image_hash}_${tag}`} color="green" variant="light">
-                  {tag}
-                </Badge>
-              ) : (
-                <Badge
-                  key={`lightbox_autotag_${photoDetail.image_hash}_${tag}`}
-                  component="button"
-                  type="button"
-                  className="mantine-focus-auto"
-                  color="green"
-                  variant="light"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate({ to: `/search/${encodeURIComponent(tag)}` })}
-                >
-                  {tag}
-                </Badge>
-              )
-            )}
-          </Group>
-        </Stack>
+        <ThingBadges
+          things={autoTags}
+          imageHash={photoDetail.image_hash}
+          isPublic={isPublic}
+          inCard={Boolean(heading)}
+        />
       )}
     </Stack>
   );

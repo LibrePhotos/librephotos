@@ -99,6 +99,21 @@ def _shown_sideways(
     return by_file != _orientation_turns_sideways(local_orientation)
 
 
+# A UTC offset as ExifTool prints EXIF:OffsetTimeOriginal ("-07:00").
+_UTC_OFFSET = re.compile(r"[+-]\d{2}:\d{2}")
+
+
+def _utc_offset_text(*values: object) -> str | None:
+    """The first of ``values`` that is a UTC offset ("+05:30"), or None.
+
+    A camera that does not know its zone writes blanks ("   :  ") (#2766).
+    """
+    for value in values:
+        if isinstance(value, str) and _UTC_OFFSET.fullmatch(value.strip()):
+            return value.strip()
+    return None
+
+
 def _text_value(value: object) -> str | None:
     """A free-text tag value as a stripped string, or None when empty.
 
@@ -361,6 +376,18 @@ def keywords_to_import(
     return sorted(tag_names(keywords) - tag_names(known))
 
 
+def file_rating_of(values: Mapping[str, object]) -> int | None:
+    """The file's ``Rating`` as a whole number, also 0; None without one."""
+    rating = values.get("rating")
+    if isinstance(rating, bool) or not isinstance(rating, int | float):
+        return None
+    return int(rating)
+
+
+# The MetadataEdit field name of a rating edit (``api.metadata.edits.RATING``).
+_RATING_EDIT = "rating"
+
+
 class PhotoMetadata(models.Model):
     """
     What a photo's file says: technical metadata, keywords, title, copyright
@@ -370,7 +397,7 @@ class PhotoMetadata(models.Model):
     home is ``Photo`` / ``PhotoCaption`` (#2252). The metadata API still shows
     them, read from there. ``source`` is a row-level flag (``user_edit`` once
     any field of the photo was edited through ``api.metadata.edits``); which
-    source wins per field on a rescan is #2250.
+    source wins per field on a rescan is ``apply_file_values``.
     """
 
     class Source(models.TextChoices):
@@ -464,7 +491,12 @@ class PhotoMetadata(models.Model):
     # The caption is PhotoCaption.captions_json["user_caption"], the rating
     # Photo.rating.
     title = models.CharField(max_length=TITLE_MAX_LENGTH, null=True, blank=True)
-    keywords = models.JSONField(null=True, blank=True)  # List of strings
+    # The file's keywords at the last read (a list of strings), None when it
+    # had none. A rescan makes tags only of keywords not in it (#2770).
+    keywords = models.JSONField(null=True, blank=True)
+    # The file's Rating at the last read, None when it had none or the row is
+    # from before #2771. A rescan takes the file's rating only when it changed.
+    file_rating = models.IntegerField(null=True, blank=True)
 
     # Copyright info
     copyright = models.TextField(null=True, blank=True)
@@ -523,25 +555,28 @@ class PhotoMetadata(models.Model):
         photo: Photo,
         values: Mapping[str, object],
         commit: bool = True,
-        new_keywords_only: bool = False,
     ) -> PhotoMetadata:
         """Update ``photo`` and its PhotoMetadata from the values read from its
         file (``api.metadata.photo_reader.read_file_values``).
 
-        Each keyword becomes a tag. With ``new_keywords_only`` (the owner
-        writes edits to files, #2289) only a keyword the file did not give
-        before does: the tags are then the list the user edits and the file
-        follows them, so a tag the user removed is not brought back by a
-        keyword the file still has.
+        A value the user can edit in LibrePhotos is taken from the file only
+        where the file changed since the last read, whether or not edits are
+        written to files: a keyword the file did not give before becomes a
+        tag (#2770), so a tag the user removed is not brought back by a
+        keyword the file still has, and a first scan links every keyword;
+        the rating follows ``_apply_file_rating`` (#2771) and the caption
+        ``_import_description_to_caption``. "Restore from file"
+        (``api.metadata.edits.revert_all``) takes every value again.
         """
-        cls._apply_to_photo(photo, values)
-        if commit:
-            photo.save()
-
         metadata, created = cls.objects.get_or_create(
             photo=photo, defaults={"source": cls.Source.EMBEDDED}
         )
-        known_keywords = metadata.keywords if new_keywords_only else None
+        known_keywords = metadata.keywords
+        cls._apply_to_photo(photo, values)
+        cls._apply_file_rating(photo, metadata, file_rating_of(values))
+        if commit:
+            photo.save()
+
         # The scan renders the thumbnails first: their aspect ratio is the
         # photo as shown. Read from the row, which the renderer saved.
         shown_aspect_ratio = (
@@ -574,7 +609,6 @@ class PhotoMetadata(models.Model):
             "video_length",
             values["video_length"] or values["matroska_duration"],
         )
-        _assign_number(photo, "rating", values["rating"])
 
         # Burst/sequence detection fields
         subsec_time_original = values["subsec_time_original"]
@@ -587,6 +621,29 @@ class PhotoMetadata(models.Model):
         # is what lets int() below type-check.
         if image_number is not None and isinstance(image_number, int | float):
             photo.image_sequence_number = int(image_number)
+
+    @staticmethod
+    def _apply_file_rating(
+        photo: Photo, metadata: PhotoMetadata, rating: int | None
+    ) -> None:
+        """Take the file's ``rating`` when it changed since the last read.
+
+        ``file_rating`` is the rating the file had at the last read: while the
+        file still says the same, the photo keeps the rating it has, which the
+        user may have set in LibrePhotos since. A row without one (a first
+        scan, or one from before #2771) takes the file's rating unless the
+        user edited the rating after the latest restore from file. A file
+        without a rating changes nothing.
+        """
+        if rating is None:
+            return
+        if metadata.file_rating is None:
+            changed = not _fields_edited_by_user(metadata, [_RATING_EDIT])
+        else:
+            changed = metadata.file_rating != rating
+        if changed:
+            photo.rating = rating
+        metadata.file_rating = rating
 
     @staticmethod
     def _apply_to_metadata(
@@ -633,10 +690,15 @@ class PhotoMetadata(models.Model):
         subsec_time_original = values["subsec_time_original"]
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
+        _assign_string(
+            metadata,
+            "timezone_offset",
+            _utc_offset_text(values["offset_time_original"], values["offset_time"]),
+        )
 
-        keywords = merged_keywords_of(values)
-        if keywords:
-            metadata.keywords = keywords
+        # What the file says now, also that it has no keywords any more: the
+        # next scan compares with it (``keywords_to_import``).
+        metadata.keywords = merged_keywords_of(values) or None
 
         PhotoMetadata._apply_text_fields(metadata, values)
 

@@ -7,15 +7,20 @@ I/O (#2336): the values are read here, through the exif sidecar, and
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from django.db.models import Q, QuerySet
 
 from api.geocode.photo_location import apply_file_position, usable_coordinates
-from api.metadata.photo_writer import write_target
-from api.metadata.reader import MetadataReadError, get_metadata, sidecar_files_for_photo
+from api.metadata.reader import (
+    MEDIA_FILE_ORIGIN,
+    MetadataReadError,
+    get_metadata,
+    origins_of,
+    sidecar_files_for_photo,
+)
 from api.metadata.tags import Tags
 from api.metadata.takeout import TakeoutMetadata, takeout_metadata_of
 from api.models.photo_metadata import PhotoMetadata, format_exposure_time
@@ -42,6 +47,9 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("video_length", Tags.QUICKTIME_DURATION),
     ("rating", Tags.RATING),
     ("subsec_time_original", Tags.SUBSEC_TIME_ORIGINAL),
+    # The UTC offset of the capture time, as the file states it (#2766).
+    ("offset_time_original", Tags.OFFSET_TIME_ORIGINAL),
+    ("offset_time", Tags.OFFSET_TIME),
     ("image_number", Tags.IMAGE_NUMBER),
     ("xmp_subject", Tags.SUBJECT),
     ("iptc_keywords", Tags.IPTC_KEYWORDS),
@@ -85,6 +93,16 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
 EXIF_VALUE_NAMES = tuple(name for name, _ in EXIF_FIELDS)
 EXIF_TAGS = [tag for _, tag in EXIF_FIELDS]
 
+#: The keyword sources the scan merges (``merged_keywords_of``), by value name.
+KEYWORD_SOURCES = (
+    "xmp_subject",
+    "iptc_keywords",
+    "person_in_image",
+    "hierarchical_subject",
+)
+#: The ones an XMP sidecar can hold: it has no IPTC block.
+SIDECAR_KEYWORD_SOURCES = ("xmp_subject", "person_in_image", "hierarchical_subject")
+
 
 def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None:
     """Extract EXIF data from a photo's main file and update PhotoMetadata.
@@ -105,34 +123,53 @@ def extract_exif_data(photo: Photo, commit: bool = True) -> PhotoMetadata | None
         return None
     values = read_file_values(photo)
     apply_file_position(photo, values["gps_latitude"], values["gps_longitude"])
-    return PhotoMetadata.apply_file_values(
-        photo, values, commit, new_keywords_only=_tags_are_written(photo)
-    )
-
-
-def _tags_are_written(photo: Photo) -> bool:
-    """Whether the owner's tag edits reach the files (``write_target``, #2289)."""
-    return write_target(photo.owner) is not None
+    return PhotoMetadata.apply_file_values(photo, values, commit)
 
 
 def read_file_values(photo: Photo) -> dict[str, object]:
     """The values of ``EXIF_TAGS`` in the photo's file or sidecar, by name,
-    with what its Google Takeout JSON adds (``with_takeout_values``)."""
+    with the sidecar's keywords only where it has any
+    (``with_sidecar_keywords_only``) and what its Google Takeout JSON adds
+    (``with_takeout_values``)."""
     assert photo.main_file is not None
     # Every name gets a key even if get_metadata comes back short, so the
     # appliers can index values[...] without a KeyError.
     values: dict[str, object] = dict.fromkeys(EXIF_VALUE_NAMES)
-    values.update(
-        zip(
-            EXIF_VALUE_NAMES,
-            get_metadata(
-                photo.main_file.path,
-                tags=EXIF_TAGS,
-                sidecar_files=sidecar_files_for_photo(photo),
-            ),
-        )
+    found = get_metadata(
+        photo.main_file.path,
+        tags=EXIF_TAGS,
+        sidecar_files=sidecar_files_for_photo(photo),
     )
+    values.update(zip(EXIF_VALUE_NAMES, found))
+    origins = dict(zip(EXIF_VALUE_NAMES, origins_of(found)))
+    values = with_sidecar_keywords_only(values, origins)
     return with_takeout_values(values, takeout_metadata_of(photo))
+
+
+def with_sidecar_keywords_only(
+    values: dict[str, object], origins: Mapping[str, int | None]
+) -> dict[str, object]:
+    """``values`` without the media file's keywords when a sidecar has a
+    keyword list (#2772).
+
+    Each tag comes from the highest-priority file that has it, so a sidecar's
+    ``XMP:Subject`` replaces the photo's embedded one, but the photo's
+    ``IPTC:Keywords``, which a sidecar cannot hold, would still be added: a
+    keyword removed in digiKam or Lightroom would never go. When any keyword
+    source (``SIDECAR_KEYWORD_SOURCES``) came from a sidecar, the keyword
+    sources that came from the media file are dropped, so the sidecar's list
+    is the photo's whole list. ``origins`` are ``TagValues.origins`` by value
+    name; without them ``values`` stay as they are.
+    """
+    if not any(
+        origins.get(name, MEDIA_FILE_ORIGIN) not in (None, MEDIA_FILE_ORIGIN)
+        for name in SIDECAR_KEYWORD_SOURCES
+    ):
+        return values
+    for name in KEYWORD_SOURCES:
+        if origins.get(name) == MEDIA_FILE_ORIGIN:
+            values[name] = None
+    return values
 
 
 def with_takeout_values(

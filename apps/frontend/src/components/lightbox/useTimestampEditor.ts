@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 
 /** Only the hash is always there: a viewer who is not the owner may have no date. */
-export type TimestampPhoto = Pick<Photo, "image_hash"> & Partial<Pick<Photo, "exif_timestamp" | "date_set_by_user">>;
+export type TimestampPhoto = Pick<Photo, "image_hash"> &
+  Partial<Pick<Photo, "exif_timestamp" | "date_set_by_user" | "exif_timestamp_offset">>;
 
 /** The body that puts a photo's date back as it was before the last change. */
 type DateChange = { exif_timestamp: string | null };

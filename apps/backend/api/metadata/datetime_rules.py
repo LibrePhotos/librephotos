@@ -7,13 +7,13 @@ import os
 import pathlib
 import re
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
-from datetime import datetime, tzinfo
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any
 
 import pytz
 
-from api.metadata.tags import Tags
+from api.metadata.tags import LOCAL_TIME_TAG_OFFSETS, Tags
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,21 @@ class RuleContext:
     gps_lon: float | None
     user_default_tz: str
     takeout_taken_at: Callable[[], datetime | None] = _no_takeout_time
+
+
+@dataclass(frozen=True)
+class CaptureTime:
+    """What a date rule read (#2768).
+
+    ``local_time`` is the wall clock where the photo was taken, tagged UTC as
+    every stored capture time is (``Photo.exif_timestamp``). ``utc_offset``
+    is the offset of that wall clock in minutes east of UTC (-420 for
+    UTC-07:00) when the rule knows it, and ``rule_id`` the id of the rule.
+    """
+
+    local_time: datetime
+    utc_offset: int | None = None
+    rule_id: int | None = None
 
 
 def _regexp_group_range(a: int, b: int) -> str:
@@ -63,6 +78,52 @@ REGEXP_NO_TZ = re.compile(
         ]
     )
 )
+
+# What may follow the seconds of a date tag's value: a fraction, then "Z"
+# (UTC) or the UTC offset of the local time ("+02:00").
+_ZONE_SUFFIX = re.compile(r"(?:\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})")
+# A UTC offset as ExifTool prints EXIF:OffsetTimeOriginal ("-07:00").
+_UTC_OFFSET = re.compile(r"([+-])(\d{2}):?(\d{2})")
+# UTC offsets in use run from -12:00 to +14:00.
+_MAX_UTC_OFFSET_MINUTES = 14 * 60
+
+
+def _zone_suffix(value: str) -> str | None:
+    """The "Z" or "+HH:MM" after the time in ``value``, None without one."""
+    time = REGEXP_NO_TZ.search(value)
+    suffix = _ZONE_SUFFIX.match(value, time.end()) if time else None
+    return suffix.group(1) if suffix else None
+
+
+def _utc_offset_minutes(value: object) -> int | None:
+    """``value`` ("+05:30", "-0700") in minutes east of UTC, or None."""
+    match = _UTC_OFFSET.fullmatch(value.strip()) if isinstance(value, str) else None
+    if match is None:
+        return None
+    sign, hours, minutes = match.groups()
+    total = int(hours) * 60 + int(minutes)
+    if int(minutes) >= 60 or total > _MAX_UTC_OFFSET_MINUTES:
+        return None
+    return -total if sign == "-" else total
+
+
+# Photo.exif_timestamp_source is an IntegerField.
+_MAX_RULE_ID = 2**31 - 1
+
+
+def _storable_rule_id(rule_id: object) -> int | None:
+    """``rule_id`` if it fits ``Photo.exif_timestamp_source``: a rule list
+    saved through the API may hold any JSON as an id."""
+    if isinstance(rule_id, bool) or not isinstance(rule_id, int):
+        return None
+    return rule_id if 0 <= rule_id <= _MAX_RULE_ID else None
+
+
+def _offset_of(local: datetime) -> int | None:
+    """The UTC offset of ``local`` in minutes; a naive time is the server's."""
+    offset = local.utcoffset() if local.tzinfo else local.astimezone().utcoffset()
+    return None if offset is None else int(offset.total_seconds()) // 60
+
 
 # WhatsApp style filename - like IMG-20220101-WA0007.jpg
 # Here we get year, month, day from the filename and use the number as microsecond so that
@@ -183,6 +244,8 @@ class RuleTypes:
 class TimeExtractionRule:
     """The goal is to help extract local time, but for historical reason it is expected the returned
     datetime will have timezone to be set to pytz.utc (so local time + timezone equal to UTC)..
+    ``apply`` returns it as a ``CaptureTime``, with the UTC offset of that local time where the
+    rule knows it.
 
     Some sources of data might give us very rich information, e.g. timestamp + timezone,
     but others only allow to get local time (without knowing real timestamp).
@@ -193,6 +256,9 @@ class TimeExtractionRule:
 
     Currently supported rule types:
       - "exif" - local time is taken using exif tag params["exif_tag"] as obtained with exiftool
+        - a tag that holds local time by its spec (``LOCAL_TIME_TAG_OFFSETS``) but is written in
+          UTC ("...Z") is turned into local time with its offset tag, the GPS zone or the user
+          default timezone, in that order, unless the rule has "transform_tz" (#2767).
       - "path" - time is taken from the filename using a regular expression matching
         - if params["path_part"] is set to "full_path" then full path (as seen by backend container)
           is used for regexp matching instead of just fileanme.
@@ -299,7 +365,26 @@ class TimeExtractionRule:
             res.add(condition_tag)
         if self.rule_type == RuleTypes.EXIF:
             res.add(self.params["exif_tag"])
+            offset_tag = self._paired_offset_tag()
+            if offset_tag is not None:
+                res.add(offset_tag)
         return res
+
+    def _reads_local_time(self) -> bool:
+        """Whether this is an ``exif`` rule on a tag that holds local time by
+        its spec (``LOCAL_TIME_TAG_OFFSETS``), read as it is: a rule with
+        ``transform_tz`` says itself which zone the value is in."""
+        return (
+            self.rule_type == RuleTypes.EXIF
+            and not self.params.get("transform_tz")
+            and self.params["exif_tag"] in LOCAL_TIME_TAG_OFFSETS
+        )
+
+    def _paired_offset_tag(self) -> str | None:
+        """The tag holding the UTC offset of this rule's local time, if any."""
+        if not self._reads_local_time():
+            return None
+        return LOCAL_TIME_TAG_OFFSETS[self.params["exif_tag"]]
 
     def _get_no_tz_dt_from_tag(
         self, tag_name: str, exif_tags: dict[str, object]
@@ -363,13 +448,25 @@ class TimeExtractionRule:
 
     def apply(
         self, path: str, exif_tags: dict[str, object], context: RuleContext
-    ) -> datetime | None:
+    ) -> CaptureTime | None:
+        """The capture time this rule reads, with its id, or None when the
+        rule does not apply to the file."""
+        if not self._check_conditions(
+            path, exif_tags, context.gps_lat, context.gps_lon
+        ):
+            return None
+        found = self._apply_by_type(path, exif_tags, context)
+        if found is None:
+            return None
+        return replace(found, rule_id=_storable_rule_id(self.params.get("id")))
+
+    def _apply_by_type(
+        self, path: str, exif_tags: dict[str, object], context: RuleContext
+    ) -> CaptureTime | None:
         gps_lat, gps_lon = context.gps_lat, context.gps_lon
         user_default_tz = context.user_default_tz
-        if not self._check_conditions(path, exif_tags, gps_lat, gps_lon):
-            return None
         if self.rule_type == RuleTypes.EXIF:
-            return self._apply_exif(exif_tags, gps_lat, gps_lon, user_default_tz)
+            return self._apply_exif(exif_tags, context)
         elif self.rule_type == RuleTypes.PATH:
             return self._apply_path(path, gps_lat, gps_lon, user_default_tz)
         elif self.rule_type == RuleTypes.FILESYSTEM:
@@ -410,36 +507,44 @@ class TimeExtractionRule:
         gps_lat: float | None,
         gps_lon: float | None,
         user_default_tz: str,
-    ) -> datetime | None:
+    ) -> CaptureTime | None:
+        """``dt`` as the rule reports it. Without ``transform_tz`` that is
+        ``dt`` as it is, in a zone the rule does not know; with it, ``dt``
+        read in ``source_tz`` and reported in ``report_tz``, at the offset
+        ``report_tz`` has at that instant."""
         if not dt:
             return None
-        if self.params.get("transform_tz"):
-            has_source_tz, source_tz = self._get_tz(
-                self.params["source_tz"], gps_lat, gps_lon, user_default_tz
-            )
-            if not has_source_tz:
-                return None
-            has_report_tz, report_tz = self._get_tz(
-                self.params["report_tz"], gps_lat, gps_lon, user_default_tz
-            )
-            if not has_report_tz:
-                return None
-            # Either of source_tz or report_tz might be None - meaning that we want to use
-            # server local timezone
-            dt = datetime.fromtimestamp(
-                dt.replace(tzinfo=source_tz).timestamp(), report_tz
-            )
-        return dt.replace(tzinfo=pytz.utc)
+        if not self.params.get("transform_tz"):
+            return CaptureTime(dt.replace(tzinfo=pytz.utc))
+        has_source_tz, source_tz = self._get_tz(
+            self.params["source_tz"], gps_lat, gps_lon, user_default_tz
+        )
+        if not has_source_tz:
+            return None
+        has_report_tz, report_tz = self._get_tz(
+            self.params["report_tz"], gps_lat, gps_lon, user_default_tz
+        )
+        if not has_report_tz:
+            return None
+        # Either of source_tz or report_tz might be None - meaning that we want to use
+        # server local timezone
+        local = datetime.fromtimestamp(
+            dt.replace(tzinfo=source_tz).timestamp(), report_tz
+        )
+        return CaptureTime(local.replace(tzinfo=pytz.utc), _offset_of(local))
 
     def _apply_exif(
-        self,
-        exif_tags: dict[str, object],
-        gps_lat: float | None,
-        gps_lon: float | None,
-        user_default_tz: str,
-    ) -> datetime | None:
-        dt = self._get_no_tz_dt_from_tag(self.params["exif_tag"], exif_tags)
-        return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
+        self, exif_tags: dict[str, object], context: RuleContext
+    ) -> CaptureTime | None:
+        tag = self.params["exif_tag"]
+        dt = self._get_no_tz_dt_from_tag(tag, exif_tags)
+        if dt is not None and self._reads_local_time():
+            offset_tag = self._paired_offset_tag()
+            stated_offset = exif_tags.get(offset_tag) if offset_tag else None
+            return _local_time(dt, str(exif_tags[tag]), stated_offset, context)
+        return self._transform_tz(
+            dt, context.gps_lat, context.gps_lon, context.user_default_tz
+        )
 
     def _apply_path(
         self,
@@ -447,7 +552,7 @@ class TimeExtractionRule:
         gps_lat: float | None,
         gps_lon: float | None,
         user_default_tz: str,
-    ) -> datetime | None:
+    ) -> CaptureTime | None:
         path_part = self.params.get("path_part")
         if path_part is None or path_part == "filename":
             source = pathlib.Path(path).name
@@ -474,7 +579,7 @@ class TimeExtractionRule:
         gps_lat: float | None,
         gps_lon: float | None,
         user_default_tz: str,
-    ) -> datetime | None:
+    ) -> CaptureTime | None:
         file_property = self.params.get("file_property")
         if file_property == "mtime":
             dt = datetime.fromtimestamp(os.path.getmtime(path), pytz.utc)
@@ -484,7 +589,7 @@ class TimeExtractionRule:
             raise ValueError(f"Unknown file_property {file_property}")
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
 
-    def _apply_takeout_json(self, context: RuleContext) -> datetime | None:
+    def _apply_takeout_json(self, context: RuleContext) -> CaptureTime | None:
         taken_at = context.takeout_taken_at()
         if taken_at is None:
             return None
@@ -496,6 +601,41 @@ class TimeExtractionRule:
             context.gps_lon,
             context.user_default_tz,
         )
+
+
+def _local_time(
+    wall_clock: datetime, value: str, stated_offset: object, context: RuleContext
+) -> CaptureTime:
+    """A local-time tag's ``value``, read as ``wall_clock``.
+
+    Its UTC offset is the one written after the time, else the one in the
+    paired offset tag (``stated_offset``). A value written in UTC ("...Z",
+    #2767) is turned into local time first (``_utc_to_local``).
+    """
+    suffix = _zone_suffix(value)
+    if suffix == "Z":
+        return _utc_to_local(wall_clock, _utc_offset_minutes(stated_offset), context)
+    offset = _utc_offset_minutes(suffix)
+    if offset is None:
+        offset = _utc_offset_minutes(stated_offset)
+    return CaptureTime(wall_clock.replace(tzinfo=pytz.utc), offset)
+
+
+def _utc_to_local(
+    utc_time: datetime, stated_offset: int | None, context: RuleContext
+) -> CaptureTime:
+    """``utc_time`` at the offset the file states, else in the zone of the
+    photo's GPS position, else in the owner's default zone."""
+    zone: tzinfo
+    if stated_offset is not None:
+        zone = timezone(timedelta(minutes=stated_offset))
+    else:
+        has_gps_tz, gps_tz = _get_gps_tz(context.gps_lat, context.gps_lon)
+        zone = (
+            gps_tz if has_gps_tz and gps_tz else pytz.timezone(context.user_default_tz)
+        )
+    local = utc_time.replace(tzinfo=pytz.utc).astimezone(zone)
+    return CaptureTime(local.replace(tzinfo=pytz.utc), _offset_of(local))
 
 
 def _get_gps_tz(lat: float | None, lon: float | None) -> tuple[bool, tzinfo | None]:
@@ -544,9 +684,9 @@ DEFAULT_RULES_PARAMS: list[dict[str, Any]] = [
         "id": 17,
         "name": f"Local time from the video's {Tags.QUICKTIME_CREATION_DATE} tag (phones)",
         "rule_type": RuleTypes.EXIF,
-        # The value carries its UTC offset ("2024:04:03 03:00:00-07:00"). The
-        # date regexp drops it, which is right here: what is left is the local
-        # time the video was shot at.
+        # The value carries its UTC offset ("2024:04:03 03:00:00-07:00"): the
+        # time in front of it is the local time the video was shot at, and
+        # the offset is stored next to it (#2768).
         "exif_tag": Tags.QUICKTIME_CREATION_DATE,
     },
     {
@@ -718,7 +858,8 @@ def extract_local_date_time(
     rules: list[TimeExtractionRule],
     exif_getter: Callable[[list[str]], Sequence[object]],
     context: RuleContext,
-) -> datetime | None:
+) -> CaptureTime | None:
+    """The capture time the first rule that applies reads, or None."""
     required_tags: set[str] = set()
     for rule in rules:
         required_tags.update(rule.get_required_exif_tags())

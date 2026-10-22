@@ -36,11 +36,15 @@ Goes through every photo in the database and flags the ones whose file can no lo
 
 ### Calculate Clip Embeddings
 
-Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Generate Tags** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
+Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Find Things** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
 
-### Generate Tags
+<Since version="1.5.0" /> Uploads start it too: a few minutes after your last upload, LibrePhotos embeds the uploaded photos that have no embedding yet and rebuilds the similarity index, then runs **Generate Face Embeddings** for faces without one. A burst of uploads gets one run. Up to 1.4.0, uploaded photos only appeared in semantic search after the next scan or restart. The first start after the upgrade does this once for every user with photos.
 
-Runs the configured tagging model over your photos to produce the scene and content tags used for search. It runs automatically after each scan and tags every photo that has no tags yet, including the ones an earlier run did not reach because it was cancelled or failed. <Since version="1.4.0" /> Up to 1.3.0, a normal scan only tagged photos added since the last run, so photos a cancelled run left behind stayed untagged until a full scan.
+### Find Things
+
+Finds the things in your photos (beach, dog, sunset, ...) with OpenCLIP, for the Things albums and for search. It runs automatically after each scan and covers every photo that has no things yet, including the ones an earlier run did not reach because it was cancelled or failed. <Since version="1.4.0" /> Up to 1.3.0, a normal scan only covered photos added since the last run, so photos a cancelled run left behind stayed without things until a full scan.
+
+<Since version="1.5.0" /> You can also start it from **Account menu > Library**, under the **Things** heading: **Find** covers the photos without things, and **Find things again for all photos** (the arrow next to it) labels every photo again with the current list of things, replacing the things it found before. Your own tags and keywords are never changed. See [Things Albums](./albums.md#things-albums). Up to 1.4.0 this job was called **Generate Tags**.
 
 ### Add Geolocation
 

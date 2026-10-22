@@ -54,7 +54,12 @@ beforeEach(() => {
   mutation.isPending = false;
 });
 
-type TestPhoto = { image_hash: string; exif_timestamp: string | null; date_set_by_user?: boolean };
+type TestPhoto = {
+  image_hash: string;
+  exif_timestamp: string | null;
+  date_set_by_user?: boolean;
+  exif_timestamp_offset?: number | null;
+};
 
 async function render(root: Root, photo: TestPhoto, isPublic = false, drafts = createUnsavedDrafts()) {
   await act(async () => {
@@ -189,6 +194,48 @@ describe("TimestampItem", () => {
 
     await click(button(container, "Edit date and time"));
     expect(container.textContent).toContain("November 2019");
+  });
+});
+
+describe("TimestampItem's UTC offset (#2769)", () => {
+  // Sunday, 2025-06-01 23:30 where it was taken.
+  const EVENING = { image_hash: "evening", exif_timestamp: "2025-06-01T23:30:00+00:00" };
+
+  it.each([
+    [-420, "UTC-07:00"],
+    [330, "UTC+05:30"],
+    [0, "UTC+00:00"],
+  ])("shows an offset of %i minutes as %s after the time", async (offset, text) => {
+    const { container, root } = mount();
+    await render(root, { ...EVENING, exif_timestamp_offset: offset });
+
+    // ICU puts a narrow no-break space before PM.
+    expect(container.textContent?.replace(/\s/g, " ")).toContain(`Sunday, 11:30 PM (${text})`);
+  });
+
+  it("shows the panel as before without an offset", async () => {
+    const { container, root } = mount();
+    await render(root, { ...EVENING, exif_timestamp_offset: null });
+    const withoutOffset = container.textContent;
+    await render(root, EVENING);
+
+    expect(withoutOffset).not.toContain("UTC");
+    expect(container.textContent).toBe(withoutOffset);
+  });
+
+  it("shows no offset for a date set by hand", async () => {
+    const { container, root } = mount();
+    await render(root, { ...EVENING, exif_timestamp_offset: -420, date_set_by_user: true });
+
+    expect(container.textContent).toContain("Set by you");
+    expect(container.textContent).not.toContain("UTC");
+  });
+
+  it("shows the offset on a public share", async () => {
+    const { container, root } = mount();
+    await render(root, { ...EVENING, exif_timestamp_offset: -420 }, true);
+
+    expect(container.textContent).toContain("(UTC-07:00)");
   });
 });
 

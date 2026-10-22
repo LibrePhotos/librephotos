@@ -21,12 +21,21 @@ The People page shows each person as a round picture of their cover face, the sa
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
 - **Rename** renames the person. A name another person already has offers **Merge into** that person instead (see below).
+- **Add birth date…** (**Birth date…** once there is one) sets, changes or removes the person's birth date (see below).
 - **Groups…** puts the person in your groups of people (see below).
 - **Merge into…** merges this person into another one you pick from your people, then shows that person's page.
 - **Manage faces** opens the face dashboard.
 - **Delete person** removes the person from People and takes you back there. The photos stay in your library; the faces labelled with that person go back to the unknown faces, where you can label them again.
 
 A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album Actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
+
+#### Birth date and age
+
+<Since version="1.5.0" /> A person can have a birth date. Set it with **Add birth date…** in the person's **⋮** menu, or click the line under their name once there is one; the dialog also has **Remove birth date**. A date in the future is refused, and the dialog warns when some of the person's photos are older than the date, because those are often a wrong date or a wrong face.
+
+With a birth date, the person's page shows "Born _date_ · _N_ years old" under their name, and their age on each day beside the day's date ("Age 6", "4 months", "Newborn"). Photos without a date, or from before the birth, show no age. A person without a birth date looks as before.
+
+Only you see a birth date: it is not part of shared albums, public links or what other users see of a photo. [Face training](./face-recognition.md#train-faces) also uses it: it never suggests a person for a face on a photo taken before their birth date.
 
 #### Groups of people
 
@@ -82,7 +91,25 @@ The **Places** card on the Albums page shows a small map zoomed to fit your plac
 Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
 
 ### Things Albums
-Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty. To generate them, run a full **Rescan** from **Settings → Library** (in the *Scan Library* section, open the dropdown next to **Scan** and choose **Rescan**), which detects the things in your existing photos again. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
+Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty.
+
+<Since version="1.5.0" /> To find the things in your photos again, open **Account menu > Library** and, under the **Things** heading, click the arrow next to **Find** and choose **Find things again for all photos**. It asks first, because on a large library it runs for hours. Every photo is labelled again with the current list of things, and the Things albums follow; your own tags, keywords and captions stay as they are. **Find** alone covers only the photos that have no things yet, which a scan also does by itself. Each user runs it for their own photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
+
+<Since version="1.5.0" /> Things show in the language you picked under **Settings > Profile > Language**, in the Things albums, the photo's info panel and the statistics word cloud, as far as that language has been translated; a thing without a translation shows in English. Hover over a translated thing in the info panel or the word cloud to see its English word. Search still finds things by their English word only: searching *Strand* finds nothing, *beach* does. Clicking a thing searches for its English word for you. Your own words (below) and hashtag albums show as you wrote them.
+
+#### Teaching LibrePhotos new things
+
+<Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 940 words that ships with it (beach, dog, birthday cake, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":
+
+1. Create a text file named `custom_tags.txt` in the OpenCLIP model folder: `protected_media/data_models/openclip_vitb32/` in your data volume (`/protected_media/data_models/openclip_vitb32/custom_tags.txt` inside the Docker containers). To keep it somewhere else, point `OPENCLIP_CUSTOM_TAGS` at it (see [Environment variables](../installation/environment-variables.md#your-own-words-for-things)).
+2. Write one word or short phrase per line. Empty lines and lines starting with `#` are skipped, and so is a word the list already has (in any capitalisation).
+3. Restart the backend, or wait until nobody has scanned or searched for a couple of minutes: the `tags` service reads the file each time it loads its model, and it unloads the model when it sits idle. The backend log then says how many of your words were added.
+
+Things to know:
+
+- Only photos labelled from then on get your words. To label the photos you already have with them, run **Find things again for all photos** (see above).
+- Every photo gets the words that fit it best out of the whole list. A specific word ("tortoise") works well; a very generic one ("thing", "photo", "outdoors") competes with the built-in words and can push them out of photos where they fit better.
+- The file stays when you update LibrePhotos, as it lives in your data volume next to the downloaded model.
 
 ---
 

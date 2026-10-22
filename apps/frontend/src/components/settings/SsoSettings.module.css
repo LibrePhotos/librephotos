@@ -1,0 +1,30 @@
+/* The group's name on its divider, like a small heading. */
+.header {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  color: var(--mantine-color-text);
+}
+
+/* Under a switch's label: the label input and the provider note line up with the switch text. */
+.indent {
+  padding-left: calc(2.375rem * var(--mantine-scale) + var(--mantine-spacing-sm));
+}
+
+/* Darker than the filled shades, so the text passes AA contrast on the card. */
+.warning {
+  color: light-dark(var(--mantine-color-orange-9), var(--mantine-color-yellow-4));
+}
+
+.error {
+  color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-4));
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.counter {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}

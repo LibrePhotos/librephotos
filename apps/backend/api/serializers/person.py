@@ -1,9 +1,11 @@
+import datetime
 import logging
 from collections.abc import Callable
 from typing import Any, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import OuterRef, Prefetch, QuerySet
+from django.utils import timezone
 from rest_framework import serializers
 
 from api.drf.request_user import request_user
@@ -67,6 +69,14 @@ class PersonSerializer(serializers.ModelSerializer):
     )
     newPersonName = serializers.CharField(max_length=100, default="", write_only=True)
     cover_photo = serializers.CharField(max_length=100, default="", write_only=True)
+    birth_date = serializers.DateField(
+        required=False,
+        allow_null=True,
+        help_text=(
+            "The person's birth date, or null. Only the owner sees it: it is in "
+            "no photo's people and no shared or public payload"
+        ),
+    )
 
     class Meta:
         model = Person
@@ -80,6 +90,7 @@ class PersonSerializer(serializers.ModelSerializer):
             "newPersonName",
             "cover_photo",
             "group_ids",
+            "birth_date",
         )
 
     def _first_face_value(
@@ -168,36 +179,51 @@ class PersonSerializer(serializers.ModelSerializer):
             logger.info("created person %s", new_person.id)
             return new_person
 
+    def validate_birth_date(self, value: datetime.date | None) -> datetime.date | None:
+        # A day of slack: the owner's today can be the server's tomorrow.
+        latest = timezone.now().date() + datetime.timedelta(days=1)
+        if value is not None and value > latest:
+            raise serializers.ValidationError(
+                "The birth date cannot be in the future", code="future_date"
+            )
+        return value
+
     def update(self, instance: Person, validated_data: dict[str, Any]) -> Person:
-        if "newPersonName" in validated_data.keys():
-            new_name = validated_data.pop("newPersonName")
-            instance.name = new_name
-            instance.save()
+        """Rename, or set the cover; and set or clear the birth date (#2750).
+
+        A rename and a cover in one request rename only, as before the birth
+        date came. A request with none of them changes nothing.
+        """
+        if "birth_date" in validated_data:
+            instance.birth_date = validated_data["birth_date"]
+        if "newPersonName" in validated_data:
+            instance.name = validated_data["newPersonName"]
+        elif "cover_photo" in validated_data:
+            self._set_cover(instance, validated_data["cover_photo"])
+        elif "birth_date" not in validated_data:
             return instance
-        if "cover_photo" in validated_data.keys():
-            photo_ref = validated_data.pop("cover_photo")
-
-            # Backward compatibility:
-            # older frontend paths send image_hash, newer paths send Photo UUID.
-            own_photos = Photo.objects.owned_by(self._requester())
-            photo = own_photos.filter(image_hash=photo_ref).first()
-
-            if photo is None:
-                try:
-                    photo = own_photos.filter(pk=photo_ref).first()
-                except ValueError, TypeError, DjangoValidationError:
-                    photo = None
-
-            if photo is None:
-                raise serializers.ValidationError(
-                    {"cover_photo": f"Photo not found: {photo_ref}"}
-                )
-
-            instance.cover_photo = photo
-            instance.cover_face = photo.faces.filter(person=instance).first()
-            instance.save()
-            return instance
+        instance.save()
         return instance
+
+    def _set_cover(self, instance: Person, photo_ref: str) -> None:
+        # Backward compatibility:
+        # older frontend paths send image_hash, newer paths send Photo UUID.
+        own_photos = Photo.objects.owned_by(self._requester())
+        photo = own_photos.filter(image_hash=photo_ref).first()
+
+        if photo is None:
+            try:
+                photo = own_photos.filter(pk=photo_ref).first()
+            except ValueError, TypeError, DjangoValidationError:
+                photo = None
+
+        if photo is None:
+            raise serializers.ValidationError(
+                {"cover_photo": f"Photo not found: {photo_ref}"}
+            )
+
+        instance.cover_photo = photo
+        instance.cover_face = photo.faces.filter(person=instance).first()
 
     def delete(self, validated_data: dict[str, Any], id: int) -> None:
         person = Person.objects.filter(id=id).get()

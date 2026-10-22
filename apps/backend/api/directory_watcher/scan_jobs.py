@@ -580,8 +580,30 @@ def _remember_followups(
         library_scan = False
     if library_scan:
         result[LongRunningJob.LIBRARY_SCAN] = True
+    _store_followups(lrj, user, result, bool(full_scan), scan_missing)
+
+
+def remember_import_followups(lrj: LongRunningJob, user: User) -> None:
+    """Store the follow-ups of an import that only adds files: the Nextcloud scan.
+
+    Call before the import counts its first file. It is no library scan, so
+    never the change baseline of the local scan (``LongRunningJob.baselines``),
+    and it does not look for missing files: the Nextcloud scan flags the files
+    the server stopped listing itself (``detach_deleted_files``).
+    """
+    result: dict[str, Any] = dict(lrj.result) if isinstance(lrj.result, dict) else {}
+    _store_followups(lrj, user, result, full_scan=False, scan_missing=False)
+
+
+def _store_followups(
+    lrj: LongRunningJob,
+    user: User,
+    result: dict[str, Any],
+    full_scan: bool,
+    scan_missing: bool,
+) -> None:
     result[_FOLLOWUPS_KEY] = {
-        "full_scan": bool(full_scan),
+        "full_scan": full_scan,
         # if the scan type is not the default user scan directory, or if it is
         # specified as only scanning specific files, there is no need to rescan
         # fully for missing photos.

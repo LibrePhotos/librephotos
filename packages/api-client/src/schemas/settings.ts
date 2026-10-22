@@ -52,6 +52,14 @@ export const SiteAutoScanStatus = z.object({
 });
 export type SiteAutoScanStatus = z.infer<typeof SiteAutoScanStatus>;
 
+/** One OpenID Connect provider from the Django admin, for the Site Settings card. Staff only. */
+export const SiteSsoProvider = z.object({
+  name: z.string(),
+  // Attached to this site; the login page offers only those.
+  on_this_site: z.boolean(),
+});
+export type SiteSsoProvider = z.infer<typeof SiteSsoProvider>;
+
 /** GET/POST /api/sitesettings (api/views/site_settings.py). GET is anonymous; POST is admin-only. */
 export const SiteSettings = z.object({
   allow_registration: z.boolean(),
@@ -60,10 +68,16 @@ export const SiteSettings = z.object({
   map_api_key: z.string(),
   map_api_provider: z.string(),
   map_tile_provider: z.string(),
+  // The language online map providers name places in, e.g. "de", "pt-BR" or "de,en" (#2745);
+  // "" for the provider's default. Older backends lack it and always use that default.
+  geocode_language: z.string().optional(),
   captioning_model: z.string(),
   // Whether captions can be generated: the image captioning switch is on and a model is picked.
   // Sent to everyone (#2211); older backends lack it and have no caption job either.
   captioning_available: z.boolean().optional(),
+  // Whether things can be found: the Things switch is on (#2765). Sent to everyone; older backends
+  // lack it and have no Find things job either.
+  things_available: z.boolean().optional(),
   // Gone with the LLM; the server still sends "None" for older clients.
   llm_model: z.string().optional(),
   // The captions_json key the tags live under: the one tagging model's name.
@@ -81,6 +95,13 @@ export const SiteSettings = z.object({
   // (#2203). Sent to every user for the trash page; older backends lack it.
   trash_retention_days: z.number().optional(),
   email_configured: z.boolean().optional(),
+  // Single sign-on (#2725); older backends lack them. The label is trimmed, at most 64 characters.
+  oidc_enabled: z.boolean().optional(),
+  oidc_button_label: z.string().optional(),
+  oidc_allow_signup: z.boolean().optional(),
+  // Staff only: the providers from the Django admin, and whether FRONTEND_BASE_URL is known.
+  sso_providers: SiteSsoProvider.array().optional(),
+  public_url_configured: z.boolean().optional(),
   // Always 0: the setting is gone; older clients still read the key.
   heavyweight_process: z.number().optional(),
   // Staff only, and older backends have no feature switches.
@@ -102,7 +123,15 @@ export type SiteSettings = z.infer<typeof SiteSettings>;
  * `<feature>_enabled`; one the server environment locked is refused with a 400 naming the field.
  */
 export type SiteSettingsUpdate = Partial<
-  Omit<SiteSettings, "features" | "model_download" | "heavyweight_process" | "auto_scan_status"> & {
+  Omit<
+    SiteSettings,
+    | "features"
+    | "model_download"
+    | "heavyweight_process"
+    | "auto_scan_status"
+    | "sso_providers"
+    | "public_url_configured"
+  > & {
     [K in SiteFeatureName as `${K}_enabled`]: boolean;
   }
 >;

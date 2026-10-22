@@ -9,6 +9,9 @@ const SSO_ERROR_MESSAGE_KEYS: Record<string, ParseKeys> = {
   email_not_verified: "login.sso.erroremailnotverified",
   not_authenticated: "login.sso.errornotauthenticated",
   public_url_not_configured: "login.sso.errorpublicurlnotconfigured",
+  email_ambiguous: "login.sso.erroremailambiguous",
+  provider_cancelled: "login.sso.errorprovidercancelled",
+  provider_error: "login.sso.errorprovider",
 };
 
 /**

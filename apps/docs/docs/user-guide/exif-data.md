@@ -52,10 +52,11 @@ Where a field lists several tags, the first one the photo has is used.
 | In LibrePhotos | Tags, best first | Notes |
 | --- | --- | --- |
 | Date and time | `XMP:DateCreated`, `EXIF:DateTimeOriginal`, `EXIF:ModifyDate`, `QuickTime:CreationDate`, `QuickTime:CreateDate`, `Matroska:DateTimeOriginal`, `Composite:GPSDateTime`, then the file name | Decided by your [date rules](./settings/date-rules.md), in the order of your list; this is the default order. A date you set by hand wins over every rule. `QuickTime:CreationDate` is the local time a phone recorded a video at; `QuickTime:CreateDate` (MP4, MOV), `Matroska:DateTimeOriginal` (MKV, WebM) and `Composite:GPSDateTime` are UTC and are converted with the time zone of the photo's position, or else your default time zone. `XMP:DateCreated` is where LibrePhotos writes dates. Accounts created before 1.1.0 do not have its rule unless they add it with **Add Rule** or **Reset To Defaults**. <Since version="1.4.0" /> Between the tags and the file name, a [Google Takeout JSON](./google-takeout.md) next to the file gives the date. |
+| Time zone of the date | `EXIF:OffsetTimeOriginal`, `EXIF:OffsetTime` | <Since version="1.5.0" /> The UTC offset the camera or phone wrote for the capture time (`-07:00`), stored in the photo's metadata as it is written; blank values some cameras write are skipped. The date rules use it too: Info shows the offset of the photo's date after the time, for example "23:30 (UTC-07:00)", and a date tag written in UTC (`2025:06:02 06:30:00Z`) is turned into local time with it (see [date rules](./settings/date-rules.md#what-gets-stored-and-why-times-are-not-converted-for-you)). |
 | Location | `Composite:GPSLatitude`, `Composite:GPSLongitude` | ExifTool builds them from the EXIF GPS block, the embedded XMP or a video's `GPSCoordinates`. The place name (city, country) is looked up from the position. <Since version="1.4.0" /> A file without a position takes the one in its [Google Takeout JSON](./google-takeout.md), if it has one. |
 | Altitude | `Composite:GPSAltitude` | In metres, negative below sea level, stored in the photo's metadata. |
 | Rating, favorite | `Rating` | Without a group ExifTool answers with `XMP-xmp:Rating` or the EXIF `Rating`. A photo rated at least **Minimum image rating to interpret as favorite** is a favorite. |
-| Tags | `XMP:Subject`, `IPTC:Keywords`, `XMP:PersonInImage`, `XMP:HierarchicalSubject` | All four are merged, and each keyword becomes a tag with a small file icon. Of a hierarchical keyword (Lightroom, digiKam, darktable) the last level counts: `Places\|USA\|San Francisco` adds `San Francisco`. The `XMP-iptcExt:PersonInImage` names become tags, not people: people come from face regions. |
+| Tags | `XMP:Subject`, `IPTC:Keywords`, `XMP:PersonInImage`, `XMP:HierarchicalSubject` | All four are merged, and each keyword becomes a tag with a small file icon. <Since version="1.5.0" /> A sidecar with a keyword list replaces the photo file's keywords ([XMP sidecars](#which-sidecars-are-read)). Of a hierarchical keyword (Lightroom, digiKam, darktable) the last level counts: `Places\|USA\|San Francisco` adds `San Francisco`. The `XMP-iptcExt:PersonInImage` names become tags, not people: people come from face regions. |
 | Caption | `XMP:Description`, `XMP:Description-*`, `IPTC:Caption-Abstract`, `EXIF:ImageDescription` | The description's default-language entry first, else any language entry, then the IPTC caption (older Photoshop and Lightroom, Picasa, newsroom tools), then the EXIF one. Text cameras put there, such as `OLYMPUS DIGITAL CAMERA` or `SONY DSC`, and a description that only repeats the camera model are skipped. <Since version="1.4.0" /> Without any of them, the `description` of a [Google Takeout JSON](./google-takeout.md) next to the file. |
 | Title | `XMP:Title`, `XMP:Headline`, `IPTC:ObjectName` | Stored in the photo's metadata (`/api/photos/{id}/metadata/`). |
 | Creator | `XMP:Creator`, `IPTC:By-line`, `EXIF:Artist` | The first name when there are several. Stored in the photo's metadata. |
@@ -89,9 +90,12 @@ or upper case. For a photo `IMG_2.jpg`, from the highest priority down:
 5. the photo file itself.
 
 Each tag is taken from the highest one that has it, so one field can come from the sidecar and
-the next from the photo. A keyword list in a sidecar replaces the photo's own `XMP:Subject`, for
-example, while the photo's `IPTC:Keywords`, which a sidecar cannot hold, are still added to the
-tags. On a file system that ignores case (Windows, macOS), `IMG_2.xmp` and `IMG_2.XMP` are the same
+the next from the photo. Keywords are the exception: <Since version="1.5.0" /> when a sidecar has a
+keyword list (`XMP:Subject`, `XMP:PersonInImage` or `XMP:HierarchicalSubject`), it is the photo's
+whole keyword list, and the photo file's own keywords, its `IPTC:Keywords` included, are not read.
+A keyword you removed in digiKam or Lightroom, which write sidecars, then no longer comes back from
+the original. Up to 1.4.0 the photo's `IPTC:Keywords`, which a sidecar cannot hold, were still
+added. On a file system that ignores case (Windows, macOS), `IMG_2.xmp` and `IMG_2.XMP` are the same
 file and it is read once.
 
 Apps that leave the original untouched (geotaggers, digiKam, darktable, Lightroom) store the EXIF
@@ -323,8 +327,8 @@ What a scan does to a value you edited in LibrePhotos:
 | Location | A position you set is kept. A position that came from the file follows the file: it moves when the file's position changes and is cleared when the file has none any more. |
 | Caption | Kept. A description in the file becomes the caption only when it is new or changed since it was last imported, and only while your caption is empty or still the one imported before. A caption you cleared stays cleared. |
 | Title, creator, copyright | Kept once you edited them through the metadata API, until you restore the photo from its file. |
-| Tags | With **Write edits to files** `Off`, every keyword of the file becomes a tag again, so a tag you removed comes back while the file still has the keyword. With a sidecar or the media file chosen, only a keyword the file did not have before becomes a tag, such as one another app added; a tag you removed stays removed, even where the file still carries the keyword. |
-| Rating | Taken from the file whenever the file or its sidecar has a `Rating`, also 0. With write-back on, that is the rating you set. With `Off`, a rating you changed in LibrePhotos is replaced by the file's on a rescan ([#2250](https://github.com/LibrePhotos/librephotos/issues/2250)). |
+| Tags | Only a keyword the file did not have at the last scan becomes a tag, such as one another app added; a tag you removed stays removed, even where the file still carries the keyword. A first scan makes a tag of every keyword. <Since version="1.5.0" /> This holds with **Write edits to files** `Off` too; up to 1.4.0 every keyword of the file became a tag again there. |
+| Rating | <Since version="1.5.0" /> Taken from the file only when the file's or sidecar's `Rating` changed since the last scan, also to 0; a rating or favorite you set in LibrePhotos stays while the file says the same. A file without a `Rating` changes nothing. On the first rescan after updating, a photo whose rating you changed in LibrePhotos keeps it. Up to 1.4.0, with `Off`, the file's rating replaced yours on every rescan. |
 | Rotation | Kept. A sidecar's orientation is never read. |
 | Faces | The faces LibrePhotos has stay. A face region in the file that overlaps one of them is not added again. |
 

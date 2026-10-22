@@ -10,6 +10,11 @@ class Tags:
     # written into an XMP sidecar, and writing it leaves the camera's
     # EXIF:DateTimeOriginal untouched.
     DATE_CREATED = "XMP:DateCreated"
+    # The UTC offset of the local time in DateTimeOriginal ("-07:00") and in
+    # ModifyDate (EXIF 2.31: most phones and newer cameras). ExifTool prints
+    # them as "+HH:MM" or "-HH:MM".
+    OFFSET_TIME_ORIGINAL = "EXIF:OffsetTimeOriginal"
+    OFFSET_TIME = "EXIF:OffsetTime"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
     # Phones (iPhone, many Android phones) store the local capture time with
     # its UTC offset in the QuickTime Keys atom; ExifTool reports Keys tags
@@ -180,6 +185,19 @@ SIDECAR_EQUIVALENTS: dict[str, str] = {
     # space of its output, not of the file. Not SerialNumber: the struct reads
     # are ungrouped, so XMP:SerialNumber would also answer for
     # MakerNotes:SerialNumber.
+}
+
+
+# The date tags that hold local time by their spec, each with the tag that
+# holds its UTC offset (None: the offset can only be inline, "...-07:00").
+# XMP:DateCreated shares the offset of the capture time it copies. A value of
+# one of these can still be written in UTC with a trailing "Z" (#2767); the
+# date rules turn that into local time.
+LOCAL_TIME_TAG_OFFSETS: dict[str, str | None] = {
+    Tags.DATE_CREATED: Tags.OFFSET_TIME_ORIGINAL,
+    Tags.DATE_TIME_ORIGINAL: Tags.OFFSET_TIME_ORIGINAL,
+    Tags.DATE_TIME: Tags.OFFSET_TIME,
+    Tags.QUICKTIME_CREATION_DATE: None,
 }
 
 

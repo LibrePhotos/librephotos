@@ -159,6 +159,18 @@ export function shiftPhotoTimestamp(timestamp: string, seconds: number): string 
   return parsed.isValid ? parsed.plus({ seconds }).toISO() : null;
 }
 
+/**
+ * A UTC offset in minutes east of UTC (`exif_timestamp_offset`) as "UTC-07:00", "UTC+05:30" or
+ * "UTC+00:00": the zone the wall clock of an `exif_timestamp` is in (#2769). Not translated.
+ */
+export function formatUtcOffset(minutes: number): string {
+  const sign = minutes < 0 ? "-" : "+";
+  const total = Math.abs(minutes);
+  const hours = String(Math.floor(total / 60)).padStart(2, "0");
+  const rest = String(total % 60).padStart(2, "0");
+  return `UTC${sign}${hours}:${rest}`;
+}
+
 /** An `exif_timestamp` as its wall clock to the second, in the UI language ("Oct 9, 2025, 8:14:02 AM"). */
 export function formatPhotoDateTime(timestamp: string): string {
   return parsePhotoTimestamp(timestamp).toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
@@ -184,6 +196,11 @@ const CALENDAR_DAY_FORMAT = "yyyy-MM-dd";
 /** Whether `value` is a real calendar day written `YYYY-MM-DD` (2024-02-30 is not). */
 export function isCalendarDay(value: string): boolean {
   return DateTime.fromFormat(value, CALENDAR_DAY_FORMAT).isValid;
+}
+
+/** A `YYYY-MM-DD` day with no time or zone (a person's birth date); invalid when it is no day. */
+export function parseCalendarDay(day: string): DateTime {
+  return DateTime.fromFormat(day, CALENDAR_DAY_FORMAT);
 }
 
 /** A `YYYY-MM-DD` day for people, in the UI language ("Mar 1, 2024"); the value itself if it is no day. */

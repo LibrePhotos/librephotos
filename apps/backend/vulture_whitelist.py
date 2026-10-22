@@ -22,6 +22,7 @@ _.SSOSocialAccountAdapter  # class in api/accounts/adapters.py (SOCIALACCOUNT_AD
 _.DynamicEmailBackend  # class in api/accounts/mail.py (EMAIL_BACKEND)
 _.custom_exception_handler  # function in api/views/exception_handler.py (REST_FRAMEWORK)
 _.require_page_keys  # function in api/drf/openapi.py (SPECTACULAR_SETTINGS POSTPROCESSING_HOOKS)
+_.on_authentication_error  # SSOSocialAccountAdapter hook; allauth's render_authentication_error calls it
 
 # App configs: api/__init__.py names ApiConfig, Django finds NextcloudConfig.
 _.ApiConfig  # class in api/apps.py
@@ -35,6 +36,7 @@ _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_serv
 _.scheduled_library_scans  # function in api/directory_watcher/scan_schedule.py (sync_scan_schedule)
 _.cleanup_stuck_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
+_.run_upload_followups  # function in api/jobs/upload_followups.py (schedule_upload_followups)
 
 # drf-spectacular extensions: defining one registers it, nothing names it.
 _.ThrottledBasicScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension)

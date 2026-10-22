@@ -6,6 +6,7 @@
   "map_api_provider": "nominatim",
   "map_api_key": "",
   "map_tile_provider": "photoprism",
+  "geocode_language": "",
   "captioning_model": "lfm2_vl_450m",
   "llm_model": "None",
   "tagging_model": "openclip_vitb32",

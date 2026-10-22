@@ -290,6 +290,14 @@ A larger or higher-quality big thumbnail looks sharper in the lightbox, especial
 
 These settings apply to thumbnails rendered from then on: those of newly scanned photos, and of a photo you rotate or whose file changed on disk. Existing thumbnails keep their size and quality until they are rendered again; there is no job that renders every thumbnail again. When a big thumbnail is rendered again at a new height, the face boxes found on the old one are scaled with it. Do not delete thumbnail files by hand to have them rendered again: a face box is stored in pixels of the big thumbnail its face was found on, and it would no longer line up with the face.
 
+### Your own words for Things
+
+<Since version="1.5.0" /> The words LibrePhotos can find in a photo for the Things albums come from a list that ships with it. An admin can add more in a text file, one word or short phrase per line; see [Teaching LibrePhotos new things](../user-guide/albums.md#teaching-librephotos-new-things).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `OPENCLIP_CUSTOM_TAGS` | `$BASE_DATA/protected_media/data_models/openclip_vitb32/custom_tags.txt` | Where that file is. Without the variable LibrePhotos reads `custom_tags.txt` in the OpenCLIP model folder; in the Docker images that is `/protected_media/data_models/openclip_vitb32/custom_tags.txt`. A missing file adds nothing. |
+
 ### Stuck jobs
 
 Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started.
@@ -580,6 +588,7 @@ The same settings have environment variables, which set the first-run default in
 | `MAPBOX_API_KEY` | `mapApiKey` | _(empty)_ | The key for the geocoding provider, as in the example above. |
 | `MAP_API_PROVIDER` | `mapApiProvider` | `exiftool` | The geocoding provider: `exiftool` (offline, no key needed), `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. It applies only until the setting is first stored, which happens with the first place lookup or a save in Site Settings, so changing it on an install that has already geocoded photos does nothing: change **Map Provider** in Site Settings instead. <Since version="1.4.0" /> The default was `nominatim` up to 1.3.0, and the compose files did not pass it on. |
 | `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site Settings, without a restart. |
+| `GEOCODE_LANGUAGE` | _(none)_ | _(empty)_ | <Since version="1.5.0" /> The language online map providers name places in: a code such as `de` or `pt-BR`, or for Nominatim a list in order of preference such as `de,en`. Empty asks for the provider's default, as before. Mapbox and ExifTool ignore it. You can change it afterwards in Site Settings, as **Place name language**; see [Place names in your language](../user-guide/places.md#place-names-in-your-language). |
 
 ### Removed variables
 

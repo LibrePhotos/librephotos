@@ -23,33 +23,10 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_photo, create_test_user
 
-# Index of each value inside the tuple returned by get_metadata(), in the
-# order extract_exif_data unpacks it.
-IDX = {
-    "size": 0,
-    "fstop": 1,
-    "focal_length": 2,
-    "iso": 3,
-    "shutter_speed": 4,
-    "camera": 5,
-    "lens": 6,
-    "width": 7,
-    "height": 8,
-    "focal_length_35": 9,
-    "subject_distance": 10,
-    "digital_zoom_ratio": 11,
-    "video_length": 12,
-    "rating": 13,
-    "subsec_time_original": 14,
-    "image_number": 15,
-    "xmp_subject": 16,
-    "iptc_keywords": 17,
-    "xmp_description": 18,
-    "xmp_description_any_language": 19,
-    "matroska_duration": 20,
-    "gps_latitude": EXIF_VALUE_NAMES.index("gps_latitude"),
-    "gps_longitude": EXIF_VALUE_NAMES.index("gps_longitude"),
-}
+# Index of each value inside the tuple returned by get_metadata(), by its
+# name in EXIF_VALUE_NAMES, so adding a tag does not shift these.
+IDX = {name: EXIF_VALUE_NAMES.index(name) for name in EXIF_VALUE_NAMES}
+IDX["focal_length_35"] = IDX["focal_length_35mm"]
 
 
 def metadata_tuple(**overrides):
@@ -127,6 +104,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.QUICKTIME_DURATION,
                 Tags.RATING,
                 Tags.SUBSEC_TIME_ORIGINAL,
+                Tags.OFFSET_TIME_ORIGINAL,
+                Tags.OFFSET_TIME,
                 Tags.IMAGE_NUMBER,
                 Tags.SUBJECT,
                 Tags.IPTC_KEYWORDS,
@@ -368,10 +347,12 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
             ["0", "2026", "September", "Urlaub Bodensee"],
         )
 
-        # An empty scalar keyword must not replace the imported keyword list.
+        # An empty scalar keyword is no keyword: the file has none now (#2770),
+        # and the tags imported before stay.
         metadata = self.extract(xmp_subject="")
         metadata.refresh_from_db()
-        self.assertEqual(metadata.keywords, expected)
+        self.assertIsNone(metadata.keywords)
+        self.assertEqual(4, self.photo.tags.count())
 
     def test_numeric_scalar_keywords_are_preserved_in_each_source(self):
         for source in ("xmp_subject", "iptc_keywords"):
@@ -438,16 +419,17 @@ class ExtractExifDataKeywordsTestCase(ExtractExifDataBaseTestCase):
         self.assertIn("0", words)
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
-    def test_empty_keyword_containers_leave_existing_keywords_intact(self, link_tags):
-        """No keywords found -> the existing keywords column is not cleared."""
+    def test_empty_keyword_containers_clear_the_stored_keywords(self, link_tags):
+        """No keywords found -> the column says so (#2770): it is what the
+        next scan compares with, and a keyword the file gets back is new."""
         PhotoMetadata.objects.create(
             photo=self.photo, keywords=["previously", "stored"]
         )
 
         metadata = self.extract(xmp_subject=[], iptc_keywords=[])
 
-        self.assertEqual(metadata.keywords, ["previously", "stored"])
-        link_tags.assert_called_once_with(self.photo, ["previously", "stored"])
+        self.assertIsNone(metadata.keywords)
+        link_tags.assert_called_once_with(self.photo, None)
 
     @patch("api.models.photo_metadata.link_tags_from_keywords")
     def test_link_tags_called_with_none_when_no_keywords_ever_seen(self, link_tags):

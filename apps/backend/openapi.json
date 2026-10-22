@@ -2944,6 +2944,54 @@
         }
       }
     },
+    "/api/find-things/": {
+      "post": {
+        "operationId": "api_find_things_create",
+        "description": "Find the things in the requester's photos with OpenCLIP, as a job (#2765).\n\nWithout ``full_scan`` the photos that have no things yet; with it every\nphoto again, after the list of things (``custom_tags.txt``) or the\nconfidence changed. Only the things and their albums are replaced, never\nthe user's own tags. Refused (403) while Things are turned off; a second\nstart while one runs is a 409.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FindThingsRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/firsttimesetup/": {
       "get": {
         "operationId": "api_firsttimesetup_retrieve",
@@ -14300,6 +14348,16 @@
           "timestamp"
         ]
       },
+      "FindThingsRequestRequest": {
+        "type": "object",
+        "properties": {
+          "full_scan": {
+            "type": "boolean",
+            "default": false,
+            "description": "Find things again in the photos that have them (#2765)"
+          }
+        }
+      },
       "FirstTimeSetup": {
         "type": "object",
         "description": "``GET /api/firsttimesetup/``: whether the instance still has no admin\n(the login page then offers to create one).",
@@ -16852,6 +16910,12 @@
             "minLength": 1,
             "default": "",
             "maxLength": 100
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The person's birth date, or null. Only the owner sees it: it is in no photo's people and no shared or public payload"
           }
         }
       },
@@ -17213,9 +17277,16 @@
             },
             "description": "The ids of the owner's groups the person is in",
             "readOnly": true
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The person's birth date, or null. Only the owner sees it: it is in no photo's people and no shared or public payload"
           }
         },
         "required": [
+          "birth_date",
           "face_count",
           "face_photo_url",
           "face_url",
@@ -17439,6 +17510,16 @@
           "exif_timestamp": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "exif_timestamp_offset": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true
+          },
+          "exif_timestamp_source": {
+            "type": "integer",
+            "readOnly": true,
             "nullable": true
           },
           "date_set_by_user": {
@@ -17713,6 +17794,8 @@
           "exif_gps_lat",
           "exif_gps_lon",
           "exif_timestamp",
+          "exif_timestamp_offset",
+          "exif_timestamp_source",
           "exposure_compensation",
           "file_variants",
           "flash_fired",
@@ -21318,7 +21401,7 @@
       },
       "SiteSettings": {
         "type": "object",
-        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download`` and the ``auto_scan`` fields are sent to\nstaff only; the GET is anonymous (the login page reads it).",
+        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
         "properties": {
           "allow_registration": {
             "type": "boolean"
@@ -21342,12 +21425,20 @@
           "map_tile_provider": {
             "type": "string"
           },
+          "geocode_language": {
+            "type": "string",
+            "description": "The language online map providers name places in; empty for the provider's default."
+          },
           "captioning_model": {
             "type": "string"
           },
           "captioning_available": {
             "type": "boolean",
             "description": "Captions can be generated: the image captioning switch is on and a captioning model is picked. Sent to everyone."
+          },
+          "things_available": {
+            "type": "boolean",
+            "description": "Things can be found: the Things switch is on and the environment does not lock it off. Sent to everyone."
           },
           "llm_model": {
             "type": "string"
@@ -21377,6 +21468,26 @@
           },
           "email_configured": {
             "type": "boolean"
+          },
+          "oidc_enabled": {
+            "type": "boolean"
+          },
+          "oidc_button_label": {
+            "type": "string"
+          },
+          "oidc_allow_signup": {
+            "type": "boolean"
+          },
+          "sso_providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteSsoProvider"
+            },
+            "description": "The OpenID Connect providers, by name. Staff only."
+          },
+          "public_url_configured": {
+            "type": "boolean",
+            "description": "Whether the public URL single sign-on needs is known (FRONTEND_BASE_URL). Staff only."
           },
           "features": {
             "$ref": "#/components/schemas/SiteFeatures"
@@ -21416,6 +21527,7 @@
           "captioning_model",
           "email_configured",
           "face_recognition_model",
+          "geocode_language",
           "heavyweight_process",
           "llm_model",
           "map_api_key",
@@ -21423,9 +21535,13 @@
           "map_tile_provider",
           "nextcloud_enabled",
           "ocr_model",
+          "oidc_allow_signup",
+          "oidc_button_label",
+          "oidc_enabled",
           "scan_missing_max_fraction",
           "skip_patterns",
           "tagging_model",
+          "things_available",
           "trash_retention_days"
         ]
       },
@@ -21450,6 +21566,10 @@
           },
           "map_tile_provider": {
             "type": "string"
+          },
+          "geocode_language": {
+            "type": "string",
+            "description": "The language online map providers name places in: a code such as de or pt-BR, or a list such as de,en (Nominatim); empty for the provider's default."
           },
           "captioning_model": {
             "type": "string"
@@ -21520,8 +21640,37 @@
           },
           "video_previews_enabled": {
             "type": "boolean"
+          },
+          "oidc_enabled": {
+            "type": "boolean",
+            "description": "Show the single sign-on button; off also stops SSO logins."
+          },
+          "oidc_button_label": {
+            "type": "string",
+            "description": "The text on the login page's single sign-on button, trimmed, at most 64 characters."
+          },
+          "oidc_allow_signup": {
+            "type": "boolean",
+            "description": "Let a first SSO login with an unknown email create an account; needs email to be set up as well."
           }
         }
+      },
+      "SiteSsoProvider": {
+        "type": "object",
+        "description": "One OpenID Connect provider configured in the Django admin.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "on_this_site": {
+            "type": "boolean",
+            "description": "Attached to this site; the login page offers only those."
+          }
+        },
+        "required": [
+          "name",
+          "on_this_site"
+        ]
       },
       "SocialGraph": {
         "type": "object",

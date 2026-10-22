@@ -1,5 +1,6 @@
 """The body and the answer of /api/sitesettings."""
 
+import re
 from collections.abc import Mapping
 
 from rest_framework import serializers
@@ -35,9 +36,24 @@ def feature_key(feature: Feature) -> str:
     return feature.lower()
 
 
+# One language tag ("de", "pt-BR", "zh-Hans"), or a list of them in order of
+# preference ("de,en"), as GEOCODE_LANGUAGE holds it (#2745).
+_LANGUAGE_TAG = r"[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*"
+GEOCODE_LANGUAGE_RE = re.compile(rf"{_LANGUAGE_TAG}(?:,{_LANGUAGE_TAG})*")
+
+
+def normalize_geocode_language(value: str) -> str:
+    """*value* without the spaces around it and its commas; "" stays ""."""
+    return ",".join(part.strip() for part in value.split(",")) if value.strip() else ""
+
+
 # A hundred years: far past any real retention, well inside what a timedelta
 # can subtract from today.
 MAX_TRASH_RETENTION_DAYS = 36500
+
+# Long enough for "Sign in with <a long provider name>", short enough for the
+# login page button.
+MAX_OIDC_BUTTON_LABEL = 64
 
 
 class SiteSettingsRequest(serializers.Serializer[None]):
@@ -53,6 +69,12 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     map_api_provider = JsonStringField(required=False)
     map_api_key = JsonStringField(required=False)
     map_tile_provider = JsonStringField(required=False)
+    geocode_language = JsonStringField(
+        required=False,
+        help_text="The language online map providers name places in: a code such as"
+        " de or pt-BR, or a list such as de,en (Nominatim); empty for the provider's"
+        " default.",
+    )
     captioning_model = JsonStringField(required=False)
     ocr_model = JsonStringField(required=False)
     face_recognition_model = JsonStringField(required=False)
@@ -96,6 +118,30 @@ class SiteSettingsRequest(serializers.Serializer[None]):
     reverse_geocoding_enabled = JsonBooleanField(required=False)
     scene_classification_enabled = JsonBooleanField(required=False)
     video_previews_enabled = JsonBooleanField(required=False)
+    # Single sign-on (#2725). The providers themselves live in the Django admin.
+    oidc_enabled = JsonBooleanField(
+        required=False,
+        help_text="Show the single sign-on button; off also stops SSO logins.",
+    )
+    oidc_button_label = JsonStringField(
+        required=False,
+        help_text="The text on the login page's single sign-on button, trimmed,"
+        f" at most {MAX_OIDC_BUTTON_LABEL} characters.",
+    )
+    oidc_allow_signup = JsonBooleanField(
+        required=False,
+        help_text="Let a first SSO login with an unknown email create an account;"
+        " needs email to be set up as well.",
+    )
+
+    def validate_oidc_button_label(self, value: str) -> str:
+        label = value.strip()
+        if len(label) > MAX_OIDC_BUTTON_LABEL:
+            raise serializers.ValidationError(
+                f"Use at most {MAX_OIDC_BUTTON_LABEL} characters.",
+                code="max_length",
+            )
+        return label
 
     def validate_map_api_provider(self, value: str) -> str:
         # reverse_geocode cannot ask a provider it does not know: every photo
@@ -106,6 +152,16 @@ class SiteSettingsRequest(serializers.Serializer[None]):
                 code="unknown_map_api_provider",
             )
         return value
+
+    def validate_geocode_language(self, value: str) -> str:
+        language = normalize_geocode_language(value)
+        if language and not GEOCODE_LANGUAGE_RE.fullmatch(language):
+            raise serializers.ValidationError(
+                "Use a language code like de or pt-BR, or a list like de,en;"
+                " leave it empty for the provider's default.",
+                code="invalid_geocode_language",
+            )
+        return language
 
     def validate_auto_scan_time(self, value: str) -> str:
         if not is_valid_time(value):
@@ -202,11 +258,21 @@ class SiteAutoScanStatusSerializer(serializers.Serializer[None]):
     )
 
 
+class SiteSsoProviderSerializer(serializers.Serializer[None]):
+    """One OpenID Connect provider configured in the Django admin."""
+
+    name = serializers.CharField()
+    on_this_site = serializers.BooleanField(
+        help_text="Attached to this site; the login page offers only those."
+    )
+
+
 class SiteSettingsSerializer(serializers.Serializer[None]):
     """What GET (and a successful POST) answers.
 
-    ``features``, ``model_download`` and the ``auto_scan`` fields are sent to
-    staff only; the GET is anonymous (the login page reads it).
+    ``features``, ``model_download``, the ``auto_scan`` fields,
+    ``sso_providers`` and ``public_url_configured`` are sent to staff only; the
+    GET is anonymous (the login page reads it).
     """
 
     allow_registration = serializers.BooleanField()
@@ -216,10 +282,18 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     map_api_provider = serializers.CharField()
     map_api_key = serializers.CharField(help_text="Blank unless the caller is staff.")
     map_tile_provider = serializers.CharField()
+    geocode_language = serializers.CharField(
+        help_text="The language online map providers name places in; empty for the"
+        " provider's default."
+    )
     captioning_model = serializers.CharField()
     captioning_available = serializers.BooleanField(
         help_text="Captions can be generated: the image captioning switch is on"
         " and a captioning model is picked. Sent to everyone."
+    )
+    things_available = serializers.BooleanField(
+        help_text="Things can be found: the Things switch is on and the"
+        " environment does not lock it off. Sent to everyone."
     )
     llm_model = serializers.CharField()
     tagging_model = serializers.CharField()
@@ -234,6 +308,19 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         " when a photo goes."
     )
     email_configured = serializers.BooleanField()
+    oidc_enabled = serializers.BooleanField()
+    oidc_button_label = serializers.CharField()
+    oidc_allow_signup = serializers.BooleanField()
+    sso_providers = SiteSsoProviderSerializer(
+        many=True,
+        required=False,
+        help_text="The OpenID Connect providers, by name. Staff only.",
+    )
+    public_url_configured = serializers.BooleanField(
+        required=False,
+        help_text="Whether the public URL single sign-on needs is known"
+        " (FRONTEND_BASE_URL). Staff only.",
+    )
     features = SiteFeaturesSerializer(required=False)
     auto_scan = serializers.CharField(
         required=False, help_text="off, hourly, daily or custom. Staff only."

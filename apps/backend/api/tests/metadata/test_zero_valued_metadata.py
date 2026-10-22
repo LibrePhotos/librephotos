@@ -62,8 +62,9 @@ class ZeroRatingAndImageNumberTestCase(TestCase):
         """rating == 0 and ImageNumber == 0 must be recorded, not dropped."""
         # One slot per tag requested in extract_exif_data.
         mock_values = [None] * len(EXIF_VALUE_NAMES)
-        mock_values[13] = 0  # RATING (explicit 0 stars)
-        mock_values[15] = 0  # IMAGE_NUMBER (first frame of a burst)
+        # An explicit 0 stars, and the first frame of a burst.
+        mock_values[EXIF_VALUE_NAMES.index("rating")] = 0
+        mock_values[EXIF_VALUE_NAMES.index("image_number")] = 0
 
         with patch("api.metadata.photo_reader.get_metadata", return_value=mock_values):
             extract_exif_data(self.photo, commit=True)

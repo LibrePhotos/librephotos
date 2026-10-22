@@ -1,7 +1,15 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowMerge, IconEdit, IconFaceId, IconPhoto, IconTrash, IconUsersGroup } from "@tabler/icons-react";
+import {
+  IconArrowMerge,
+  IconCake,
+  IconEdit,
+  IconFaceId,
+  IconPhoto,
+  IconTrash,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,14 +33,16 @@ type Props = Readonly<{
   person: Person;
   /** The person's photos, to pick the cover from. */
   photos: PigPhoto[];
+  /** Opens the birth date dialog (#2750); focus goes back to `from`, the ⋮ button, when it closes. */
+  onBirthDate: (from: HTMLElement | null) => void;
 }>;
 
 /**
- * The person page's "⋮": rename, set the cover (any photo, no selection needed, #2240), groups,
+ * The person page's "⋮": rename, the birth date, set the cover (any photo, no selection needed, #2240), groups,
  * merge into another person, manage faces, delete. A merge goes
  * on to the person merged into, a delete back to People.
  */
-export function PersonHeaderMenu({ person, photos }: Props) {
+export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -62,6 +72,9 @@ export function PersonHeaderMenu({ person, photos }: Props) {
       <HeaderActionsMenu label={t("personalbum.personactions")} triggerRef={trigger}>
         <Menu.Item leftSection={<IconEdit size={ICON_SIZE.menu} />} onClick={rename.open}>
           {t("rename")}
+        </Menu.Item>
+        <Menu.Item leftSection={<IconCake size={ICON_SIZE.menu} />} onClick={() => onBirthDate(trigger.current)}>
+          {person.birth_date ? t("personbirthdate.menuedit") : t("personbirthdate.menuadd")}
         </Menu.Item>
         <Menu.Item leftSection={<IconPhoto size={ICON_SIZE.menu} />} onClick={cover.open}>
           {t("modalalbumcover.menuitem")}

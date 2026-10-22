@@ -18,6 +18,9 @@ from django.test import RequestFactory, SimpleTestCase, TestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
+from api.metadata.datetime_rules import CaptureTime
+from api.metadata.photo_datetime import extract_date_time
+from api.models import Photo
 from api.models.album_date import AlbumDate
 from api.models.user import User
 from api.tests.utils import create_test_photo, create_test_user
@@ -46,7 +49,7 @@ class _StagedUpload:
         pass
 
 
-def upload_fallback(user: User, **fields: str) -> object:
+def upload_device_time(user: User, **fields: str) -> CaptureTime | None:
     """The fallback date ``/api/upload/complete/`` hands to the import."""
     staged = os.path.join(user.scan_directory, "staged.png")
     request = RequestFactory().post(
@@ -60,7 +63,13 @@ def upload_fallback(user: User, **fields: str) -> object:
         patch.object(UploadPhotosChunkedComplete, "import_photo") as import_photo,
     ):
         UploadPhotosChunkedComplete().on_completion(_StagedUpload(staged), request)
-    return import_photo.call_args.kwargs["device_created_at"]
+    return import_photo.call_args.kwargs["device_time"]
+
+
+def upload_fallback(user: User, **fields: str) -> datetime.datetime | None:
+    """The wall clock of ``upload_device_time``."""
+    device_time = upload_device_time(user, **fields)
+    return device_time.local_time if device_time else None
 
 
 def uploader(**fields: object) -> User:
@@ -127,6 +136,34 @@ class UploadDateFallbackTest(TestCase):
         )
         self.assertEqual(LOCAL_WALL_CLOCK, fallback)
 
+    def test_the_utc_offset_of_the_wall_clock_goes_with_it(self) -> None:
+        # (#2768) The offset an ISO 8601 value states wins over device_tz_offset.
+        iso = "2025-10-11T21:30:00"
+        cases = [
+            ({"device_created_at": EPOCH_MS, "device_tz_offset": "-420"}, -420),
+            ({"device_created_at": EPOCH_MS}, None),
+            ({"device_created_at": iso + "-07:00", "device_tz_offset": "120"}, -420),
+            ({"device_created_at": iso + "Z"}, 0),
+            ({"device_created_at": iso, "device_tz_offset": "330"}, 330),
+            ({"device_created_at": iso}, None),
+            (
+                {
+                    "device_created_at": "20251011",
+                    "device_modified_at": EPOCH_MS,
+                    "device_tz_offset": "-420",
+                },
+                -420,
+            ),
+        ]
+        for fields, offset in cases:
+            with self.subTest(fields=fields):
+                device_time = upload_device_time(self.user, **fields)
+                assert device_time is not None
+                self.assertEqual(offset, device_time.utc_offset)
+
+    def test_no_device_time_no_fallback(self) -> None:
+        self.assertIsNone(upload_device_time(self.user, device_tz_offset="-420"))
+
 
 class ParseDeviceTimestampTest(SimpleTestCase):
     def test_iso_forms(self) -> None:
@@ -182,8 +219,8 @@ class UndatedUploadDayAlbumTest(TestCase):
         self.addCleanup(shutil.rmtree, user.scan_directory, True)
         photo = create_test_photo(owner=user)
         self.assertIsNone(photo.exif_timestamp)
-        fallback = upload_fallback(user, device_created_at=EPOCH_MS)
-        assert isinstance(fallback, datetime.datetime)
+        fallback = upload_device_time(user, device_created_at=EPOCH_MS)
+        assert fallback is not None
 
         # The file carries no date; the exif service is not running here.
         with patch(
@@ -194,6 +231,37 @@ class UndatedUploadDayAlbumTest(TestCase):
 
         photo.refresh_from_db()
         self.assertEqual(LOCAL_WALL_CLOCK, photo.exif_timestamp)
+        # The owner's zone is a guess, not an offset the device stated (#2768).
+        self.assertEqual(
+            (None, None), (photo.exif_timestamp_offset, photo.exif_timestamp_source)
+        )
+
+    def test_the_device_offset_stays_with_the_date(self) -> None:
+        user = uploader()
+        self.addCleanup(shutil.rmtree, user.scan_directory, True)
+        photo = create_test_photo(owner=user)
+        fallback = upload_device_time(
+            user, device_created_at=EPOCH_MS, device_tz_offset="-420"
+        )
+        assert fallback is not None
+
+        with patch(
+            "api.metadata.photo_datetime.get_metadata",
+            side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+        ):
+            apply_device_timestamp_fallback(photo, fallback)
+            # A rescan keeps it: the device time is the photo's date now.
+            extract_date_time(Photo.objects.get(pk=photo.pk))
+
+        photo.refresh_from_db()
+        self.assertEqual(
+            (LOCAL_WALL_CLOCK, -420, None),
+            (
+                photo.exif_timestamp,
+                photo.exif_timestamp_offset,
+                photo.exif_timestamp_source,
+            ),
+        )
         self.assertEqual(
             [datetime.date(2025, 10, 11)],
             list(AlbumDate.objects.filter(photos=photo).values_list("date", flat=True)),

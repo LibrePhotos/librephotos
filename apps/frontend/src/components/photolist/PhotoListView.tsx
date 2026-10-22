@@ -8,7 +8,7 @@ import { useAccessToken } from "../../api_client/auth/hooks";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { TOP_MENU_HEIGHT } from "../../uiConstants";
-import { formatDateForPhotoGroups } from "../../util/util";
+import { formatDateForPhotoGroups, type GroupNote } from "../../util/util";
 import type { ListFailure } from "../common/useListFailure";
 import Pig from "../react-pig";
 import type { PigHandle, PigVisibleGroup } from "../react-pig";
@@ -96,6 +96,9 @@ type Props = Readonly<{
   updateItems?: (visibleItems: PigPhoto[]) => void;
   date?: string;
   dayHeaderPrefix?: string;
+  // A dimmed note beside each dated group's heading, from its day: a person's age (#2751).
+  // Keep it stable (useCallback): a new function lays the grid out again.
+  groupNote?: GroupNote;
   // Replaces the default header (title, counts, display menu) in the sticky bar above the grid;
   // null leaves the bar out, for a list under its page's own header (the shared photo pages).
   header?: React.ReactNode;
@@ -162,6 +165,7 @@ function PhotoListViewComponent({
   updateItems,
   date,
   dayHeaderPrefix,
+  groupNote,
   header,
   titleOrder,
   additionalSubHeader,
@@ -203,8 +207,8 @@ function PhotoListViewComponent({
   // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
   // only re-format the date groups when the photoset itself changes.
   const photos = useMemo(
-    () => (isDateView && isDateGroupList(photoset) ? formatDateForPhotoGroups(photoset) : photoset),
-    [isDateView, photoset]
+    () => (isDateView && isDateGroupList(photoset) ? formatDateForPhotoGroups(photoset, groupNote) : photoset),
+    [isDateView, photoset, groupNote]
   );
 
   const idx2hashRef = useRef(idx2hash);

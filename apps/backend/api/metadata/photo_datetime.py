@@ -15,6 +15,7 @@ from django.utils import timezone
 
 import api.models
 from api.metadata import datetime_rules
+from api.metadata.datetime_rules import CaptureTime
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
 from api.metadata.takeout import takeout_metadata_for
 
@@ -87,19 +88,23 @@ def find_album_date(photo: Photo) -> AlbumDate | None:
 
 
 def extract_date_time(photo: Photo, commit: bool = True) -> None:
-    """Set ``exif_timestamp`` and move the photo to its day album.
+    """Set ``exif_timestamp``, its UTC offset and source, and move the photo
+    to its day album.
 
     A date the user set by hand (``Photo.timestamp``) is the photo's date,
-    whatever the owner's rule list says (#2254); without one the owner's
-    datetime rules read it from the file.
+    whatever the owner's rule list says (#2254): no rule is its source, and
+    its offset is the one set with it (an upload's device time) or none
+    (``api.metadata.edits.set_capture_time`` clears it). Without one the
+    owner's datetime rules read the date from the file.
     """
-    extracted_local_time: datetime | None
+    found: CaptureTime | None
     if photo.timestamp is not None:
-        extracted_local_time = photo.timestamp
+        found = CaptureTime(photo.timestamp, photo.exif_timestamp_offset)
     else:
-        extracted_local_time = _date_time_from_file(photo)
+        found = _capture_time_from_file(photo)
+    _set_offset_and_source(photo, found)
 
-    album_date = _move_to_day_album(photo, extracted_local_time)
+    album_date = _move_to_day_album(photo, found.local_time if found else None)
     if commit:
         photo.save()
     album_date.save()
@@ -108,24 +113,45 @@ def extract_date_time(photo: Photo, commit: bool = True) -> None:
 def reapply_date_rules(photo: Photo) -> bool:
     """Read the photo's date again with its owner's current datetime rules.
 
-    For photos already in the library (#437): only ``exif_timestamp``,
-    ``last_modified`` (mobile sync) and the day album change, and nothing is
-    written to the file. A date set by hand wins over the rules (#2254), also
-    one set while this ran: the row is only written while it has none.
-    Returns whether the photo moved to another date.
+    For photos already in the library (#437): only ``exif_timestamp``, its
+    UTC offset and source (#2768), ``last_modified`` (mobile sync, when the
+    date moved) and the day album change, and nothing is written to the
+    file. A date set by hand wins over the rules (#2254), also one set while
+    this ran: the row is only written while it has none.
+    Returns whether the photo got another date or UTC offset.
     """
     if photo.timestamp is not None:
         return False
-    new_time = _date_time_from_file(photo)
-    if new_time == photo.exif_timestamp:
+    found = _capture_time_from_file(photo)
+    new_time = found.local_time if found else None
+    old_offset = photo.exif_timestamp_offset
+    old_source = photo.exif_timestamp_source
+    _set_offset_and_source(photo, found)
+    moved = new_time != photo.exif_timestamp
+    offset_changed = photo.exif_timestamp_offset != old_offset
+    if not (moved or offset_changed or photo.exif_timestamp_source != old_source):
         return False
+    fields: dict[str, object] = {
+        "exif_timestamp": new_time,
+        "exif_timestamp_offset": photo.exif_timestamp_offset,
+        "exif_timestamp_source": photo.exif_timestamp_source,
+    }
+    if moved:
+        fields["last_modified"] = timezone.now()
     written = api.models.Photo.objects.filter(
         pk=photo.pk, timestamp__isnull=True
-    ).update(exif_timestamp=new_time, last_modified=timezone.now())
+    ).update(**fields)
     if not written:
         return False
-    _move_to_day_album(photo, new_time).save()
-    return True
+    if moved:
+        _move_to_day_album(photo, new_time).save()
+    return moved or offset_changed
+
+
+def _set_offset_and_source(photo: Photo, found: CaptureTime | None) -> None:
+    """Give the photo the UTC offset and the rule id of ``found``, unsaved."""
+    photo.exif_timestamp_offset = found.utc_offset if found else None
+    photo.exif_timestamp_source = found.rule_id if found else None
 
 
 def _move_to_day_album(photo: Photo, local_time: datetime | None) -> AlbumDate:
@@ -146,7 +172,7 @@ def _move_to_day_album(photo: Photo, local_time: datetime | None) -> AlbumDate:
     return album_date
 
 
-def _date_time_from_file(photo: Photo) -> datetime | None:
+def _capture_time_from_file(photo: Photo) -> CaptureTime | None:
     """The capture time the owner's datetime rules read from the photo's files."""
     assert photo.main_file is not None
     main_file_path = photo.main_file.path
