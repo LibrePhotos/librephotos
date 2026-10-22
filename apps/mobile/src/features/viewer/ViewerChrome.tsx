@@ -115,6 +115,8 @@ export function ViewerTopBar({
 }
 
 const THUMB = 52;
+/** The filmstrip's height: a tile plus its vertical padding. */
+export const FILMSTRIP_HEIGHT = THUMB + 16;
 
 /**
  * A filmstrip of the pager's own window.

@@ -1,6 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { Image, type ImageSource } from "expo-image";
+import {
+  Image,
+  type ImageErrorEventData,
+  type ImageLoadEventData,
+  type ImageProgressEventData,
+  type ImageSource,
+} from "expo-image";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -33,6 +39,10 @@ export function ZoomableImage({
   height,
   onTap,
   overlay,
+  onZoomChange,
+  onProgress,
+  onLoad,
+  onError,
   testID,
 }: {
   source: ImageSource;
@@ -52,6 +62,12 @@ export function ZoomableImage({
    * drifting off the face the moment the user zooms in.
    */
   overlay?: ReactNode;
+  /** Zoomed in (pinch or double tap) or back at 1x; the viewer loads the original on the first zoom. */
+  onZoomChange?: (zoomed: boolean) => void;
+  /** expo-image's load events for `source`, for the resolution chip. */
+  onProgress?: (event: ImageProgressEventData) => void;
+  onLoad?: (event: ImageLoadEventData) => void;
+  onError?: (event: ImageErrorEventData) => void;
   testID?: string;
 }) {
   const scale = useSharedValue(1);
@@ -61,6 +77,10 @@ export function ZoomableImage({
   const savedX = useSharedValue(0);
   const savedY = useSharedValue(0);
   const [zoomed, setZoomed] = useState(false);
+  const updateZoomed = (next: boolean) => {
+    setZoomed(next);
+    onZoomChange?.(next);
+  };
 
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
@@ -74,11 +94,11 @@ export function ZoomableImage({
         translateY.value = withTiming(0);
         savedX.value = 0;
         savedY.value = 0;
-        runOnJS(setZoomed)(false);
+        runOnJS(updateZoomed)(false);
         return;
       }
       savedScale.value = scale.value;
-      runOnJS(setZoomed)(true);
+      runOnJS(updateZoomed)(true);
     });
 
   const pan = Gesture.Pan()
@@ -102,12 +122,12 @@ export function ZoomableImage({
         translateY.value = withTiming(0);
         savedX.value = 0;
         savedY.value = 0;
-        runOnJS(setZoomed)(false);
+        runOnJS(updateZoomed)(false);
         return;
       }
       scale.value = withTiming(DOUBLE_TAP_SCALE);
       savedScale.value = DOUBLE_TAP_SCALE;
-      runOnJS(setZoomed)(true);
+      runOnJS(updateZoomed)(true);
     });
 
   const gesture = Gesture.Simultaneous(pinch, pan, doubleTap);
@@ -135,6 +155,9 @@ export function ZoomableImage({
             contentFit="contain"
             cachePolicy="disk"
             transition={150}
+            onProgress={onProgress}
+            onLoad={onLoad}
+            onError={onError}
           />
           {overlay ? (
             <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width, height }}>
