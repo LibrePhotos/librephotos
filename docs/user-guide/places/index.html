@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.56226202.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.48027c8a.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -55,6 +55,14 @@
 <li class="">Event titles keep their wording until the event albums are generated again (<strong>Regenerate Event Titles</strong>).</li>
 <li class="">With ExifTool it takes minutes for a large library. With an online provider it takes about a second per photo (Nominatim&#x27;s limit), so hours for tens of thousands of photos.</li>
 <li class="">A photo whose lookup fails keeps its old place, and the next run tries it again.</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="place-names-in-your-language">Place names in your language<a href="#place-names-in-your-language" class="hash-link" aria-label="Direct link to Place names in your language" title="Direct link to Place names in your language" translate="no">​</a></h4>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Online providers name places in their own default language: English for some, the local name for Nominatim (<em>Wien</em> for Vienna, <em>Москва</em> for Moscow). To ask for another language, an admin picks it under <strong>Admin Area → Site Settings → Place name language</strong>, right below the Map Provider. <strong>Provider default</strong>, the default, asks for no language, as before.</p>
+<ul>
+<li class="">Nominatim, OpenCage, TomTom and MapTiler answer in the language you pick. Nominatim also takes a list in order of preference: type <code>de,en</code> into the field for German names, or English where a place has no German one.</li>
+<li class="">Mapbox and the offline ExifTool provider always answer in their own language; the field is disabled while one of them is the Map Provider, and it keeps your choice for when you switch.</li>
+<li class="">The language applies to new lookups. Photos named already keep their names until you look them up again: after a change, the setting offers <strong>Look up place names again</strong>, the same job as in Admin Tools (see <a href="#switching-the-provider" class="">Switching the provider</a>).</li>
+<li class="">It is one language for the whole server. The <code>GEOCODE_LANGUAGE</code> environment variable sets it on the first set-up.</li>
 </ul>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="which-name-a-photo-is-filed-under">Which name a photo is filed under<a href="#which-name-a-photo-is-filed-under" class="hash-link" aria-label="Direct link to Which name a photo is filed under" title="Direct link to Which name a photo is filed under" translate="no">​</a></h4>
 <p>Every provider answers several names, from the street or town up to the country. The day albums, memories, event titles and the map button of an event (&quot;Zermatt on map&quot;) use the town (Zermatt, not the canton Valais); the place tree uses the country, the region and the town; the location timeline uses the country. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> These read the level each name has. Up to 1.3.0 they took the name at a fixed position in the list, which named the region for some providers, and the place tree left out places with fewer than three names (<em>Lisbon, Portugal</em>). Photos geocoded before 1.4.0 keep the names they showed until you look the place names up again.</p>
