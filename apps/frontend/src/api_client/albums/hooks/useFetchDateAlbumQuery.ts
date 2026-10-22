@@ -14,6 +14,8 @@ type AlbumDateOption = {
   folder?: string;
   mediaType?: MediaType;
   timelineFilter?: TimelineFilter;
+  library?: number;
+  withLibraries?: boolean;
 };
 
 // Fetch a single date album

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
 import { jobTypeLabel } from "../../components/job/jobTypeLabel";
+import { TimelineLibrariesNote } from "../../components/libraryShare/TimelineLibrariesNote";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
 import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -64,7 +65,8 @@ function TimestampPhotos() {
   // Waits for the saved default: fetching before it loaded would show (and
   // cache) the unfiltered library for a moment.
   const photosQuery = useFetchDateAlbumsQuery(
-    { photosetType: Photoset.NONE, timelineFilter: filter },
+    // With the libraries others share with me and I show in my timeline (#2731).
+    { photosetType: Photoset.NONE, timelineFilter: filter, withLibraries: true },
     { skip: !filterReady }
   );
   const { data: photosGroupedByDate, isLoading, refetch } = photosQuery;
@@ -79,7 +81,13 @@ function TimestampPhotos() {
   // new filter (it may not even be in the new list).
   const [group, setGroup] = useState<PhotoGroup & { filterKey?: string }>(NO_PHOTO_GROUP);
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, timelineFilter: filter },
+    {
+      album_date_id: group.id,
+      page: group.page,
+      photosetType: Photoset.NONE,
+      timelineFilter: filter,
+      withLibraries: true,
+    },
     { skip: !group.id || !filterReady || group.filterKey !== filterKey }
   );
 
@@ -183,6 +191,8 @@ function TimestampPhotos() {
       ) : null,
     [filterActive, filter, t]
   );
+  // Whose libraries the timeline shows besides mine (#2731), beside the title.
+  const librariesNote = useMemo(() => <TimelineLibrariesNote />, []);
 
   const filterButton = useMemo(
     () => (
@@ -215,6 +225,7 @@ function TimestampPhotos() {
       error={listFailure ?? filterFailure}
       photosetQuery={photosetQuery}
       additionalSubHeader={filterSummary}
+      titleBadge={librariesNote}
       headerActions={filterButton}
       banner={memoriesStrip}
     />

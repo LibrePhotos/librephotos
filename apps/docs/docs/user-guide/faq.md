@@ -79,7 +79,7 @@ This is not yet handled gracefully for uploads and deletions, which means, you w
 
 ## Can two users share one photo folder?
 
-No. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that overlaps another user's. To share photos within a household, keep them in one library and share albums or photos from there; [Sharing photos in a family](sharing.md#sharing-photos-in-a-family) compares the setups.
+No. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that overlaps another user's. To share photos within a household, keep them in one library and share albums or photos from there, or let each person [share their whole library](sharing.md#sharing-your-whole-library) read-only with the others; [Sharing photos in a family](sharing.md#sharing-photos-in-a-family) compares the setups.
 
 ## Videos are not playing and showing a 404 error
 

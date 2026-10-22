@@ -20,7 +20,7 @@ const stubs = await vi.hoisted(async () => {
 
 vi.mock("../../api", () => ({ apiClient: { get: stubs.get }, queryClient: stubs.queryClient }));
 
-const { useFetchDateAlbumsQuery } = await import("./useFetchDateAlbumsQuery");
+const { dateAlbumsListKey, useFetchDateAlbumsQuery } = await import("./useFetchDateAlbumsQuery");
 const { useFetchDateAlbumQuery } = await import("./useFetchDateAlbumQuery");
 
 const filter = { media: "photos" as const, hide_screenshots: true, hide_documents: false, favorites: false };
@@ -92,6 +92,33 @@ describe("date-album queries with a timeline filter", () => {
       hide_screenshots: "true",
       page: "2",
     });
+  });
+
+  it("fills a shared library's days only from that library's cached pages (#2731)", async () => {
+    stubs.get.mockReset();
+    stubs.get.mockResolvedValue({
+      results: [{ id: 5, date: "2025-10-18", location: "", incomplete: true, numberOfItems: 1, items: [] }],
+    });
+    const page = (library: number, imageHash: string) => {
+      const key = dateAlbumsListKey({ photosetType: Photoset.NONE, library });
+      stubs.queryClient.setQueryData(photoGridKeys.dateAlbumDay(key, 5, 1), {
+        id: 5,
+        items: [{ id: imageHash, image_hash: imageHash }],
+      });
+    };
+    page(8, "theirs");
+    page(7, "anna");
+    function List() {
+      useFetchDateAlbumsQuery({ photosetType: Photoset.NONE, library: 7 });
+      return null;
+    }
+    await render(<List />);
+
+    const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
+    expect(url.searchParams.get("library")).toBe("7");
+    const key = photoGridKeys.dateAlbumList(dateAlbumsListKey({ photosetType: Photoset.NONE, library: 7 }));
+    const groups = stubs.queryClient.getQueryData<{ items: { image_hash: string }[] }[]>(key);
+    expect(defined(groups?.[0]).items.map(item => item.image_hash)).toEqual(["anna"]);
   });
 
   it("does not fetch while skipped", async () => {

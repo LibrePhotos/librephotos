@@ -234,8 +234,10 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     [guard, onImageChange]
   );
 
+  // Another user's photo in my timeline, from a library they share with me (#2731): read only.
+  const readOnly = isPublic || Boolean(photoDetails?.shared_library);
   // A viewer who is not the owner gets no photo details, only what the grid knows.
-  const gridItem = isPublic ? getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId) : undefined;
+  const gridItem = readOnly ? getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId) : undefined;
 
   return (
     <UnsavedDraftsContext.Provider value={drafts}>
@@ -247,7 +249,7 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
           nextSrcHash={getImageHashForId(getNextId())}
           prevSrc={getPreviousId()}
           prevSrcHash={getImageHashForId(getPreviousId())}
-          isPublic={isPublic}
+          isPublic={readOnly}
           publicAlbumSlug={publicAlbumSlug}
           type={mediaType}
           enableZoom={mediaType === "photo"}

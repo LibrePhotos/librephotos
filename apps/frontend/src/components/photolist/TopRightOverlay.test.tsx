@@ -4,13 +4,14 @@
  * In stars mode (#2202) a rated tile shows its star count instead.
  */
 import { PigPhoto, type User } from "@librephotos/api-client";
+import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { TopRightOverlay } from "./TopRightOverlay";
 
-type StubUser = Pick<User, "favorite_min_rating" | "rating_mode">;
+type StubUser = Pick<User, "favorite_min_rating" | "rating_mode"> & { id?: number };
 
 const stubs = vi.hoisted(() => ({ user: undefined as StubUser | undefined }));
 
@@ -110,5 +111,49 @@ describe("TopRightOverlay archive mark (#545)", () => {
 
   it("leaves other tiles alone", async () => {
     expect(await renderItem(false)).toBeNull();
+  });
+});
+
+describe("TopRightOverlay owner mark (#2731)", () => {
+  async function renderOwned(ownerId: number) {
+    window.matchMedia = (query: string): MediaQueryList => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+    stubs.user = { favorite_min_rating: 4, rating_mode: "favorite", id: 1 };
+    const item = PigPhoto.parse({
+      id: "00000000-0000-4000-8000-000000000002",
+      image_hash: "hash-2",
+      aspectRatio: 1,
+      rating: 0,
+      owner: { id: ownerId, username: "anna", first_name: "Anna", last_name: "Berger" },
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () =>
+      root.render(
+        <MantineProvider env="test">
+          <TopRightOverlay item={item} />
+        </MantineProvider>
+      )
+    );
+    const label = container.querySelector('[role="img"]')?.getAttribute("aria-label") ?? null;
+    await act(async () => root.unmount());
+    return label;
+  }
+
+  it("names the owner of another user's photo", async () => {
+    // i18n is not set up in this file: the label is its key.
+    expect(await renderOwned(2)).toBe("librarySharing.photoOf");
+  });
+
+  it("marks nothing on my own photo", async () => {
+    expect(await renderOwned(1)).toBeNull();
   });
 });

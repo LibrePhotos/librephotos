@@ -51,18 +51,24 @@ export function hydrateGroupsFromCachedPages<T>(groups: HydratableGroup<T>[], pa
   });
 }
 
+// Whether a day query (photoGridKeys.dateAlbumDay: ["photoGrid", "dateAlbum", photoset, day id, page,
+// ...the list's filters]) was asked under the same filters as the list `listKey`: person, user,
+// folder, media type, timeline filter and, for a shared library's lists (#2731), whose days.
+function sameFilters(queryKey: readonly unknown[], listKey: DateAlbumsListKey): boolean {
+  const asked = queryKey.slice(5);
+  const filters = listKey.slice(1);
+  return asked.length === filters.length && filters.every((value, i) => asked[i] === value);
+}
+
 // Collects the still-valid, already-loaded pages of every date album that
 // belongs to the list identified by `listKey` (see useFetchDateAlbumQuery for
 // the per-day query key layout).
 function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPage[] {
-  const [photosetType, personId, username, folder, mediaType, timelineFilter] = listKey;
   return queryClient
     .getQueryCache()
-    .findAll({ queryKey: photoGridKeys.dateAlbumDays(photosetType) })
+    .findAll({ queryKey: photoGridKeys.dateAlbumDays(listKey[0]) })
     .flatMap(query => {
-      // The day query's key (photoGridKeys.dateAlbumDay):
-      // ["photoGrid", "dateAlbum", photoset, day id, page, person, user, folder, media type, filter]
-      const [, , , albumDateId, page, qPersonId, qUsername, qFolder, qMediaType, qTimelineFilter] = query.queryKey;
+      const [, , , albumDateId, page] = query.queryKey;
       // useFetchDateAlbumQuery is the only query under this key, and it caches the day's group.
       const data = queryClient.getQueryData<IncompleteDatePhotosGroup>(query.queryKey);
       if (
@@ -70,11 +76,7 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
         typeof albumDateId !== "number" ||
         typeof page !== "number" ||
         !data?.items ||
-        qPersonId !== personId ||
-        qUsername !== username ||
-        qFolder !== folder ||
-        qMediaType !== mediaType ||
-        qTimelineFilter !== timelineFilter
+        !sameFilters(query.queryKey, listKey)
       ) {
         return [];
       }
@@ -113,7 +115,17 @@ type AlbumDateListOptions = {
   // The main timeline's filter, already resolved against the user's saved
   // default (see components/photolist/timelineFilter.ts). Only "/" sets it.
   timelineFilter?: TimelineFilter;
+  // A library shared with me (#2731): that owner's days instead of mine.
+  library?: number;
+  // My timeline with the libraries I show in it (#2731). Only "/" sets it.
+  withLibraries?: boolean;
 };
+
+// Whose days a list holds, for its key: left out for my own library alone.
+function libraryKey(options: AlbumDateListOptions): string | undefined {
+  if (options.library !== undefined) return `library:${options.library}`;
+  return options.withLibraries ? "libraries" : undefined;
+}
 
 // Everything the list and its day pages filter by. The timeline filter only
 // adds what it turns on, so it never clears the photoset's `favorite`.
@@ -124,12 +136,15 @@ export function dateAlbumRequestFilter(options: AlbumDateListOptions): DateAlbum
     person: options.person_id,
     username: options.username,
     folder: options.folder,
+    library: options.library,
+    libraries: options.withLibraries,
   };
 }
 
 // The list's query key; useFetchDateAlbumQuery merges its pages into it.
 export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsListKey {
-  return [
+  const library = libraryKey(options);
+  const key: DateAlbumsListKey = [
     options.photosetType,
     options.person_id,
     options.username,
@@ -137,6 +152,9 @@ export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsList
     options.mediaType ?? "all",
     timelineFilterKey(options.timelineFilter),
   ];
+  // Only when set, so the keys of my own lists stay as they were.
+  if (library !== undefined) key.push(library);
+  return key;
 }
 
 // Fetch date albums

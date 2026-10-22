@@ -2,3 +2,9 @@
 .archivedMark {
   margin-right: 2px;
 }
+
+/* The owner of a photo from a library shared with me (#2731), ringed so it shows on any photo */
+.ownerMark {
+  box-shadow: 0 0 0 2px var(--app-scrim-white-80);
+  margin-right: 2px;
+}
