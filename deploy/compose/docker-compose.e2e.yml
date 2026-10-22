@@ -97,6 +97,8 @@ services:
       - WEB_CONCURRENCY=1
       - WORKER_CONCURRENCY=2
       - ALLOW_UPLOAD=true
+      # The version the sidebar shows instead of "dev"; the screenshots workflow sets it.
+      - IMAGE_TAG=${IMAGE_TAG:-}
       # The smoke suite needs no ML; keep the sidecars and their models out of it.
       - FEATURE_FACE_DETECTION=false
       - FEATURE_FACE_CLUSTER=false

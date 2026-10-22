@@ -134,6 +134,15 @@ test.describe("docs manifest", () => {
     expect(committed).toBe(serializeDocsManifest(docsManifest(SHOTS, fileReader(SHOTS_DIR))));
   });
 
+  test("the screenshots workflow runs the Playwright container of the installed @playwright/test", () => {
+    const read = (relative: string) => fs.readFileSync(new URL(relative, import.meta.url), "utf8");
+    const installed = /"@playwright\/test": "([^"]+)"/.exec(read("../package.json"))?.[1];
+    const workflow = read("../../../../.github/workflows/screenshots.yml");
+    const tags = [...workflow.matchAll(/mcr\.microsoft\.com\/playwright:v([\d.]+)-noble/g)].map(match => match[1]);
+    expect(tags.length).toBeGreaterThan(0);
+    expect(new Set(tags)).toEqual(new Set([installed]));
+  });
+
   test("shot ids are unique kebab-case and every shot has alt text", () => {
     const ids = SHOTS.map(shot => shot.id);
     expect(new Set(ids).size).toBe(ids.length);

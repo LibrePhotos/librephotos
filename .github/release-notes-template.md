@@ -145,8 +145,11 @@ a visible line under the picture.
 
 Do them in this order, so the docs and their pictures are live before the release points at them.
 
-1. Screenshots: if the release changes what the app looks like, update the shots in
-   `apps/docs/static/img/shots/` and merge that PR first (#2307 automates this with a workflow).
+1. Screenshots: if the release changes what the app looks like, run the `screenshots` workflow on
+   `dev` (Actions, "Run workflow", with the shot ids the post uses) and merge its PR. It opens a PR
+   only when a shot changed; close and reopen that PR to start its checks. Until the sample library
+   of #2306 exists it runs on the e2e stack, whose eight photos have no faces, places or events, so
+   leave the landing page tour (`timeline`, `lightbox`, `faces`, `places`, `events`) out of it.
 2. Write the post and its front matter as above, in a PR against `dev`.
 3. In `apps/docs`, run `node scripts/build-releases.mjs` and commit `src/data/releases.json`. This is
    what flips the `<Since version="<tag>" />` markers and the "New in" block. If the app's "What's new"

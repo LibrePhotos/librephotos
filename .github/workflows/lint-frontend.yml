@@ -10,8 +10,10 @@ on:
       - 'scripts/check-shared-deps*.mjs'
       # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
       - 'apps/backend/service/tags/tags.txt'
-      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts.
+      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts,
+      # and the screenshots workflow's Playwright image against e2e/package.json.
       - 'apps/docs/static/img/shots/**'
+      - '.github/workflows/screenshots.yml'
       - '.github/workflows/lint-frontend.yml'
   pull_request:
     paths:
@@ -21,8 +23,10 @@ on:
       - 'scripts/check-shared-deps*.mjs'
       # src/i18n.tags.test.ts keeps src/locales/en/tags.json in step with it.
       - 'apps/backend/service/tags/tags.txt'
-      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts.
+      # e2e/screens/files.test.ts checks the shots manifest against e2e/screens/manifest.ts,
+      # and the screenshots workflow's Playwright image against e2e/package.json.
       - 'apps/docs/static/img/shots/**'
+      - '.github/workflows/screenshots.yml'
       - '.github/workflows/lint-frontend.yml'
 
 concurrency:

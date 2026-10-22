@@ -99,7 +99,11 @@ yarn screens:unit                      # the helpers, without a running LibrePho
 
 Commit only shots made inside the Playwright Linux container (`mcr.microsoft.com/playwright`, the
 version of `@playwright/test` in `e2e/package.json`): fonts and rendering differ between operating
-systems, so shots from your machine would change every image.
+systems, so shots from your machine would change every image. The `screenshots` workflow does that:
+started by hand on a branch (default `dev`) with the shot ids to take, it builds and starts the e2e
+stack with the sidebar showing the latest release, runs `yarn screens` in that container, uploads the
+shots as an artifact, and opens a PR "docs: refresh screenshots" with the files that changed (none
+changed, no PR). A PR opened by a workflow starts no checks: close and reopen it to run them.
 
 ## 🐛 Debugging
 
