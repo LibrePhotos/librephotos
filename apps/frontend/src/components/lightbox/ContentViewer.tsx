@@ -48,30 +48,6 @@ export function escapeTargetsLightbox(target: EventTarget | null, lightboxDialog
   return !dialog || dialog === lightboxDialog;
 }
 
-/**
- * Tab from the focused lightbox body itself goes to its first or last control.
- * Mantine's focus trap only wraps from either end of its tab order, and the
- * body (focused on open, and again by a click on the photo) is neither, so
- * Shift+Tab would otherwise leave for the page behind the overlay.
- */
-function keepTabInside(event: React.KeyboardEvent<HTMLElement>) {
-  if (event.key !== "Tab" || event.target !== event.currentTarget) return;
-  const tabbable = [
-    ...event.currentTarget.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, [tabindex]"),
-  ].filter(
-    el => el.tabIndex >= 0 && !el.matches(":disabled") && !(el instanceof HTMLInputElement && el.type === "hidden")
-  );
-  if (event.shiftKey) tabbable.reverse();
-  // The first one that actually takes focus: a control can be hidden.
-  for (const el of tabbable) {
-    el.focus();
-    if (el.ownerDocument.activeElement === el) {
-      event.preventDefault();
-      return;
-    }
-  }
-}
-
 export function ContentViewer({
   mainSrc,
   mainSrcHash,
@@ -370,7 +346,6 @@ export function ContentViewer({
             // then shows a focus ring as soon as a shortcut key is pressed.
             data-autofocus
             tabIndex={-1}
-            onKeyDown={keepTabInside}
             style={{
               outline: "none",
               width: `100vw`,
