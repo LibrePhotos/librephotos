@@ -245,6 +245,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SharedGroupCover: { schema: S.SharedGroupCover, components: ["SharedGroupCover"] },
   SharedGroup: { schema: S.SharedGroup, components: ["SharedGroup"] },
   SharedPerson: { schema: S.SharedPerson, components: ["SharedPerson"] },
+  LibraryShare: { schema: S.LibraryShare, components: ["LibraryShare"] },
+  LibraryGrant: { schema: S.LibraryGrant, components: ["LibraryGrant"] },
   // folders, search, geocode, memories, metadata
   FolderSubfolder: { schema: S.FolderSubfolder, components: ["FolderEntry"] },
   FolderSubfoldersResponse: { schema: S.FolderSubfoldersResponse, components: ["FolderSubfoldersPage"] },
@@ -344,6 +346,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
   SharedGroupsResponse:
     "a {results} envelope around rows compared on their own (SharedGroup); the client reads every page into it",
+  LibrarySharesResponse:
+    "a {results} envelope around rows compared on their own (LibraryShare); the client reads every page into it",
   SharedPeopleResponse:
     "a {results} envelope around rows compared on their own (SharedPerson); the client reads every page into it",
   ListUser:

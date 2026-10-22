@@ -6,6 +6,7 @@ from api.drf.params import TristateFlagField
 from api.models import AlbumDate, Photo
 from api.models.place_names import town_name
 from api.serializers.photos import PhotoSummarySerializer
+from api.sharing.library_photos import PLACE_HIDDEN_ATTR
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
 
@@ -49,6 +50,9 @@ def _public_place(obj: AlbumDate) -> str:
 
 
 def _place(serializer: serializers.BaseSerializer, obj: AlbumDate) -> str:
+    # A day of a library whose owner does not share locations (#2731).
+    if getattr(obj, PLACE_HIDDEN_ATTR, False):
+        return ""
     if serializer.context.get("public"):
         return _public_place(obj)
     return _stored_place(obj)
@@ -198,6 +202,17 @@ class DateAlbumFilterQuery(PublicViewQuery):
     apply_default = TristateFlagField(
         help_text="Apply the user's default_timeline_filter; the other filter "
         "params override it key by key."
+    )
+    library = serializers.IntegerField(
+        required=False,
+        help_text="The id of a user who shares their library with you: their "
+        "photos instead of yours, read-only (404 without such a share)",
+    )
+    libraries = serializers.BooleanField(
+        default=False,
+        help_text="Also the photos of the libraries you show in your timeline; "
+        "ignored by views of your own library only (hidden, trash, a person, "
+        "a folder, favourites, a search)",
     )
 
 

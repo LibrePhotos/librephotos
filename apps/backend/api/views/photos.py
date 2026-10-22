@@ -689,7 +689,9 @@ class PhotoViewSet(
             raise NotFound()
 
         # Serializer expects a queryset (calls .get() internally)
-        serializer = PhotoDetailsSummarySerializer(queryset, many=False)
+        serializer = PhotoDetailsSummarySerializer(
+            queryset, many=False, context={"request": request}
+        )
         return Response(serializer.data)
 
     @action(

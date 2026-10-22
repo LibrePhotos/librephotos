@@ -194,7 +194,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   request timeouts, the sidecar supervisor and watchdog, model downloads, external tools; its `__init__.py`
   imports nothing, so `api.runtime.sidecars` stays Django-free), `search/` (OpenCLIP embeddings and tags,
   similarity index client, search filter, term examples), `serving/` (byte ranges, why the web server
-  cannot read a file, the folder picker's directory tree), `stacks/` (bursts, brackets, Motion Photo
+  cannot read a file, the folder picker's directory tree), `sharing/` (library shares: what a recipient sees of each
+  photo, the shared libraries' day albums, metadata-free copies), `stacks/` (bursts, brackets, Motion Photo
   video), `thumbnails/` (render, decode, strip metadata), `video/` (probe and HDR tonemapping, playback
   type, transcode cache, ffmpeg budget).
 - No new flat `api/` module: new code goes into a domain package. The only flat modules are the Django and

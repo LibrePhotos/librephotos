@@ -160,6 +160,8 @@ NOT_PHOTO_SCOPED = {
     "api/nextcloud/scanphotos/": "the requester's own Nextcloud credentials",
     "api/delete/zip/(?P<fname>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/": "only the requester's own <uuid><user id>.zip (test_zip_and_photo_scope)",
     "api/static/(?P<path>.*)": "Django's serve() for STATIC_URL; GET only",
+    "api/library-shares/": "shares the requester's own library; names no photo (test_library_share_api)",
+    "api/library-shares/(?P<pk>[^/.]+)/": "a library share the requester gave or received, else 404 (test_library_share_api)",
 }
 
 

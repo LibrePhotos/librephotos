@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from api.models.duplicate import Duplicate
 from api.models.file import File
+from api.models.library_share import LibraryShare
 from api.models.photo_stack import PhotoStack
 from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
@@ -27,14 +28,26 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
     """
 
     def visible_to(self, user: User | AnonymousUser | None) -> Self:
-        """Photos ``user`` may read: their own, shared directly to them, public.
+        """Photos ``user`` may read: their own, shared directly to them, public,
+        or in a library shared with them (``in_shared_libraries``).
 
-        Album shares are resolved by the media views, not here.
+        Album shares are resolved by the media views, not here. What a
+        library recipient sees of each photo is ``api.sharing.grants``' call.
         """
         q = Q(public=True)
         if isinstance(user, User) and user.is_authenticated:
-            q |= self.owner_q(user) | Q(shared_to=user)
+            q |= self.owner_q(user) | Q(shared_to=user) | shared_library_q(user)
         return self.filter(q)
+
+    def in_shared_libraries(self, user: User | AnonymousUser | None) -> Self:
+        """The photos of the libraries other users share with ``user`` (#2731).
+
+        Never a hidden, trashed or removed photo, whoever asks: the share is
+        the owner's library as their own timeline lists it.
+        """
+        if not (isinstance(user, User) and user.is_authenticated):
+            return self.none()
+        return self.filter(shared_library_q(user))
 
     def holding_content(self, file_hash: str) -> Self:
         """Photos indexed from ``file_hash`` or holding a file with that hash.
@@ -67,6 +80,28 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
             Q(pk__in=through_share.values("photo_id"))
             | Q(pk__in=in_shared_album.values("pk"))
         ).exclude(self.owner_q(user))
+
+
+def shared_library_q(
+    user: User, shares: QuerySet[LibraryShare] | None = None, prefix: str = ""
+) -> Q:
+    """The photos of the libraries shared with ``user``, as a ``Q``.
+
+    ``shares`` narrows the shares (one owner's, or the ones in the timeline);
+    by default every share ``user`` received. ``prefix`` reaches the photos
+    through a relation (``"photos__"`` from a day album). A subquery, so it
+    adds no join of its own.
+    """
+    if shares is None:
+        shares = LibraryShare.objects.received_by(user)
+    owners = shares.values("owner_id")
+    return Q(**{f"{prefix}owner__in": owners}) & Q(  # owner-scope: library sharers
+        **{
+            f"{prefix}hidden": False,
+            f"{prefix}in_trashcan": False,
+            f"{prefix}removed": False,
+        }
+    )
 
 
 def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:

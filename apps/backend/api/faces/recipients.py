@@ -5,6 +5,8 @@ suggestions. Anyone else only ever sees the people the owner named
 (``Person.KIND_USER``), never a cluster ("Unknown 012"), an "Unknown - Other"
 face or a suggestion, and only when the owner allows it:
 
+* someone the owner shares their whole library with (#2731): when that
+  share's ``share_faces`` is on, for every photo of the owner;
 * someone the photo is shared with (directly or in a user album): when the
   owner turned on ``User.share_people_names``;
 * a public photo's visitor: when the owner's public link defaults share
@@ -23,6 +25,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Min, Q, QuerySet
 
 from api.models import Face, Person, Photo, User
+from api.sharing.grants import library_grant, without_switch
 
 
 def is_named(face: Face) -> bool:
@@ -44,7 +47,14 @@ def _owner_shares_publicly(photo: Photo) -> bool:
 
 
 def people_shown_to(photo: Photo, viewer: User | AnonymousUser | None) -> bool:
-    """Whether a viewer who is not the owner sees the named people on ``photo``."""
+    """Whether a viewer who is not the owner sees the named people on ``photo``.
+
+    When the owner shares their library with the viewer (#2731), that share's
+    "People names" switch decides, for every photo of the owner.
+    """
+    grant = library_grant(viewer, photo.owner_id)
+    if grant is not None:
+        return grant.people
     if _owner_shares_publicly(photo):
         return True
     if isinstance(viewer, User) and viewer.is_authenticated:
@@ -72,7 +82,14 @@ def shared_named_faces(user: User | None) -> QuerySet[Face]:
     Only photos whose owner shares people's names, only live faces of a
     person that owner named, on a photo the lists show.
     """
-    shared = Photo.visible.shared_with_me(user).filter(owner__share_people_names=True)
+    shared = (
+        Photo.visible.shared_with_me(user)
+        .filter(owner__share_people_names=True)
+        # A library share with the names switch off wins (#2731).
+        .exclude(
+            owner__in=without_switch(user, "share_faces")  # owner-scope: sharers
+        )
+    )
     return Face.objects.filter(
         photo__in=shared, deleted=False, person__kind=Person.KIND_USER
     ).filter(

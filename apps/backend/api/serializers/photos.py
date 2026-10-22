@@ -42,6 +42,13 @@ from api.serializers.simple import (
     has_animated_preview,
     has_video_poster,
 )
+from api.sharing.grants import (
+    DETAIL_FIELDS,
+    SUMMARY_FIELDS,
+    LibraryGrant,
+    lookup_for,
+    redact,
+)
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -127,6 +134,14 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "projection_type",
         )
         read_only_fields = ("projection_type",)
+
+    def to_representation(self, instance: Photo) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        # Another user's library photo: what its owner shares (#2731).
+        grant = lookup_for(self).for_owner(instance.owner_id)
+        if grant is not None:
+            redact(data, SUMMARY_FIELDS, grant)
+        return data
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj: Photo) -> float | None:
@@ -494,7 +509,9 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     # The view passes a queryset of photos (many=False), not a single photo.
     @extend_schema_field(PhotoSummarySerializer)
     def get_photo_summary(self, obj: QuerySet[Photo]) -> dict[str, Any]:
-        return PhotoSummarySerializer(with_photo_summary_relations(obj).get()).data
+        return PhotoSummarySerializer(
+            with_photo_summary_relations(obj).get(), context=self.context
+        ).data
 
     def get_processing(self, obj: QuerySet[Photo]) -> bool:
         return obj.get().thumbnail.aspect_ratio is None
@@ -565,6 +582,16 @@ def _face_entry(face: Face) -> dict[str, Any]:
     }
 
 
+class LibraryGrantSerializer(serializers.Serializer[None]):
+    """What the owner of a library shares with one recipient (#2731)."""
+
+    location = serializers.BooleanField()
+    people = serializers.BooleanField()
+    camera = serializers.BooleanField()
+    captions = serializers.BooleanField()
+    originals = serializers.BooleanField()
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
@@ -620,6 +647,10 @@ class PhotoSerializer(serializers.ModelSerializer):
     # Height above sea level from the GPS: location-derived, so the owner's
     # only, like ``ocr``.
     gps_altitude = serializers.SerializerMethodField()
+    # What the owner shares with the requester when the photo is in a library
+    # shared with them (#2731), so the lightbox can say why a field is empty;
+    # null for the owner and everyone else.
+    shared_library = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -691,6 +722,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             # "equirectangular" for a 360° photo sphere the lightbox can open
             # in its panorama viewer, null for a flat photo (#483).
             "projection_type",
+            "shared_library",
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
@@ -721,6 +753,24 @@ class PhotoSerializer(serializers.ModelSerializer):
             edits.set_rating(Photo.objects.filter(pk=instance.pk), rating, user)
             instance.refresh_from_db(fields=["rating", "last_modified"])
         return instance
+
+    def _library_grant(self, obj: Photo) -> LibraryGrant | None:
+        return lookup_for(self).for_owner(obj.owner_id)
+
+    def to_representation(self, instance: Photo) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        grant = self._library_grant(instance)
+        if grant is not None:
+            redact(data, DETAIL_FIELDS, grant)
+            if not grant.originals and not instance.video:
+                # The download is a JPEG copy without the file's metadata.
+                data["original_mime_type"] = "image/jpeg"
+        return data
+
+    @extend_schema_field(LibraryGrantSerializer(allow_null=True))
+    def get_shared_library(self, obj: Photo) -> dict[str, bool] | None:
+        grant = self._library_grant(obj)
+        return grant.as_dict() if grant is not None else None
 
     def _get_metadata(self, obj: Photo) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata, with caching."""

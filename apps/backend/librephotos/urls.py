@@ -65,6 +65,7 @@ from api.views import (
     health,
     jobs,
     library_folders,
+    library_shares,
     media,
     memories,
     password_reset,
@@ -330,6 +331,12 @@ router.register(
     r"api/photos/shared/tome/people/photos",
     sharing.SharedToMePersonPhotoListViewSet,
     basename="shared_to_me_person_photos",
+)
+# A whole library shared read-only (#2731).
+router.register(
+    r"api/library-shares",
+    library_shares.LibraryShareViewSet,
+    basename="library_shares",
 )
 router.register(
     r"api/photos/shared/fromme",

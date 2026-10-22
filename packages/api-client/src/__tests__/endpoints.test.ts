@@ -336,3 +336,54 @@ describe("response parsing", () => {
     expect(message).toBe(`Failed to parse thing albums: ${issues}`);
   });
 });
+
+describe("library share endpoints (#2731)", () => {
+  const share = {
+    id: 3,
+    owner: { id: 1, username: "anna", first_name: "Anna", last_name: "Berger" },
+    recipient: { id: 2, username: "ben", first_name: "Ben", last_name: "Okafor" },
+    show_in_timeline: false,
+    share_location: false,
+    share_faces: true,
+    share_camera_info: false,
+    share_captions: false,
+    share_originals: false,
+    created_at: "2026-10-22T10:00:00Z",
+    photo_count: 12,
+  };
+
+  it("lists, creates, changes and ends a share", async () => {
+    const list = harness({ results: [share], next: null });
+    const [parsed] = await endpoints.fetchLibraryShares(list.client);
+    expect(defined(parsed).recipient.username).toBe("ben");
+    expect(defined(list.calls[0]).url).toBe("https://demo.example.com/api/library-shares/");
+
+    const created = harness(share, 201);
+    await endpoints.createLibraryShare(created.client, 2, { share_faces: true });
+    const createCall = defined(created.calls[0]);
+    expect(createCall.url).toBe("https://demo.example.com/api/library-shares/");
+    expect(defined(createCall.init).method).toBe("POST");
+    expect(JSON.parse(String(defined(createCall.init).body))).toEqual({ recipient_id: 2, share_faces: true });
+
+    const updated = harness(share);
+    await endpoints.updateLibraryShare(updated.client, 3, { show_in_timeline: true });
+    const updateCall = defined(updated.calls[0]);
+    expect(updateCall.url).toBe("https://demo.example.com/api/library-shares/3/");
+    expect(defined(updateCall.init).method).toBe("PATCH");
+
+    const removed = harness({});
+    await endpoints.deleteLibraryShare(removed.client, 3);
+    expect(defined(defined(removed.calls[0]).init).method).toBe("DELETE");
+  });
+
+  it("asks for a shared library's days and for the libraries in the timeline", async () => {
+    const own = harness({ results: [] });
+    await endpoints.fetchDateAlbumsList(own.client, { library: 7 });
+    expect(defined(own.calls[0]).url).toBe("https://demo.example.com/api/albums/date/list/?library=7");
+    const timeline = harness({ results: [] });
+    await endpoints.fetchDateAlbumsList(timeline.client, { archived: false, libraries: true });
+    expect(defined(timeline.calls[0]).url).toBe(
+      "https://demo.example.com/api/albums/date/list/?archived=false&libraries=true"
+    );
+  });
+});

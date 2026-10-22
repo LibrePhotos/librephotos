@@ -64,7 +64,11 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
             if request.user in album.shared_to.all():
                 return True
 
-        return False
+        # A photo of a library shared with the requester (#2731); never a
+        # hidden, trashed or removed one.
+        return (
+            Photo.objects.in_shared_libraries(request.user).filter(pk=obj.pk).exists()
+        )
 
 
 class IsNextcloudEnabled(permissions.BasePermission):

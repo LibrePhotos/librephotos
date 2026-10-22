@@ -240,6 +240,8 @@ CLIENT_PATHS = {
     "/api/photos/recentlyadded/": "api.views.photos.RecentlyAddedPhotoListViewSet get=list",
     "/api/photos/searchlist/": "api.views.search.SearchListViewSet get=list",
     "/api/photos/shared/fromme/": "api.views.sharing.SharedFromMePhotoSuperSimpleListViewSet get=list",
+    "/api/library-shares/": "api.views.library_shares.LibraryShareViewSet get=list,post=create",
+    "/api/library-shares/1/": "api.views.library_shares.LibraryShareViewSet delete=destroy,patch=partial_update",
     "/api/photos/shared/tome/": "api.views.sharing.SharedToMePhotoSuperSimpleListViewSet get=list",
     "/api/photos/shared/tome/people/": "api.views.sharing.SharedToMePersonListViewSet get=list",
     "/api/photos/shared/tome/people/photos/": "api.views.sharing.SharedToMePersonPhotoListViewSet get=list",

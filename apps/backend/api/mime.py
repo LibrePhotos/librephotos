@@ -146,6 +146,11 @@ EXIF_ORIENTED_EXTENSIONS = frozenset(
 HEIF_EXTENSIONS = frozenset({".avif", ".heic", ".heif", ".hif"})
 # Subset of VIDEO_EXTENSIONS: the motion half of an Apple Live Photo.
 LIVE_PHOTO_VIDEO_EXTENSIONS = frozenset({".mov"})
+# What a copy without metadata is written as (api.sharing.copies, #2731): a
+# still as a JPEG, a video in its own container, or MP4 when it has no
+# extension to keep.
+JPEG_EXTENSION = ".jpg"
+MP4_EXTENSION = ".mp4"
 
 
 def extension(path: str) -> str:

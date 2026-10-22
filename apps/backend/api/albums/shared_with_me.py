@@ -8,7 +8,8 @@ describe the owner's whole library.
 
 A recipient sees the same place and thing names here as on each shared
 photo itself; the public link switches (``share_location`` and the others)
-only govern public links.
+only govern public links. An owner who also shares their library with the
+recipient with Location off (#2731) adds no places.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from django.db.models import Count, F, Model, Q, QuerySet, Window
 from django.db.models.functions import RowNumber
 
 from api.models import AlbumPlace, AlbumThing, Photo, User
+from api.sharing.grants import without_switch
 
 # Covers per entry, as on the own place and thing lists.
 COVERS_PER_GROUP = 4
@@ -49,6 +51,11 @@ class AlbumKind:
         """The (album, photo) rows of the photos shared with ``user``."""
         through: type[Model] = self.model.photos.through
         shared = Photo.visible.shared_with_me(user)
+        if self.model is AlbumPlace:
+            # A library share with the location switch off wins (#2731).
+            shared = shared.exclude(
+                owner__in=without_switch(user, "share_location")  # owner-scope: sharers
+            )
         return through._default_manager.filter(photo__in=shared)
 
 

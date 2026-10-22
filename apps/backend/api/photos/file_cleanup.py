@@ -18,12 +18,15 @@ from django.db.models.signals import post_delete
 from api.models.face import Face
 from api.models.photo import Photo
 from api.models.thumbnail import Thumbnail, thumbnail_file_paths
+from api.sharing.copies import delete_copies
 
 logger = logging.getLogger(__name__)
 
 
 def delete_thumbnail_files(photo_hash: str) -> None:
-    """Remove every thumbnail file named after ``photo_hash``."""
+    """Remove every thumbnail file named after ``photo_hash``, and the copies
+    without metadata made for library shares (#2731)."""
+    delete_copies(photo_hash)
     for path in thumbnail_file_paths(photo_hash):
         if os.path.exists(path):
             try:

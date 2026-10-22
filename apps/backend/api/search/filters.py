@@ -16,12 +16,14 @@ from rest_framework.views import APIView
 
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.request_user import request_user
+from api.models.photo import Photo
 from api.models.photo_search import fold
 from api.models.tag import Tag
 from api.models.user_place import UserPlace
 from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
 from api.search.semantic import calculate_query_embeddings
 from api.search.similarity import search_similar_embedding
+from api.sharing.library_search import library_matches
 
 # The filter is only used on photo lists, but DRF's BaseFilterBackend is generic
 # in the model, and an override has to accept every queryset the base accepts.
@@ -112,7 +114,34 @@ def build_folded_search_q(folded_term: str, folded_tags: dict[int, str]) -> Q:
     return query
 
 
+def _media_params(request: Request) -> dict[str, str | None]:
+    """The media filter of a search: video/photo, is_screenshot, is_document."""
+    return {
+        param: request.query_params.get(param)
+        for param in ("video", "photo", "is_screenshot", "is_document")
+    }
+
+
 class SemanticSearchFilter(filters.SearchFilter):
+    def library_matches(self, request: Request) -> QuerySet[Photo] | None:
+        """The matches in the libraries the requester shows in their timeline
+        (#2731), under each owner's rules; None when there are none to add.
+
+        Read as the requester's own matches are: the same terms and media
+        filter. A structured filter (camera, rating, location, ...) leaves the
+        shared libraries out, since it would probe what a share hides.
+        """
+        user = request_user(request)
+        structured = metadata_filter_q(
+            parse_metadata_filter(user, request.query_params)
+        )
+        return library_matches(
+            user,
+            self.get_search_terms(request),
+            timeline_filter_q(user, _media_params(request)),
+            owner_only_filters=bool(structured),
+        )
+
     @staticmethod
     def _folded_tags(request: Request, search_fields: list[str]) -> dict[int, str]:
         """The requester's tags by id, with folded names, when the view
@@ -160,11 +189,9 @@ class SemanticSearchFilter(filters.SearchFilter):
         # timeline default or the favorites filter. This is applied before the
         # no-search-term early return so the filter works whether or not a
         # query is supplied.
-        media_params = {
-            param: request.query_params.get(param)
-            for param in ("video", "photo", "is_screenshot", "is_document")
-        }
-        queryset = queryset.filter(*timeline_filter_q(request.user, media_params))
+        queryset = queryset.filter(
+            *timeline_filter_q(request.user, _media_params(request))
+        )
         # The structured filters (camera, exposure, rating, dates, location,
         # file type, people) narrow the same way, with or without a term; a
         # bad value is a 400 naming the parameter.
