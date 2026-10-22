@@ -42,12 +42,19 @@ function deleteFaces(numberOfFaces: number, undo?: Undo) {
   );
 }
 
-function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo) {
+/**
+ * Faces labelled as `personName`, and `twins` faces labelled along with them: the same face in the
+ * other frames of a burst or a duplicate group (#2754). The toast adds both up while on screen.
+ */
+function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo, twins = 0) {
   toast.successCounted(
     `faces-labeled-${personName}`,
     numberOfFaces,
-    total => i18n.t("toasts.addfacestoperson", { numberOfFaces: total, personName }),
-    { title: i18n.t("toasts.addfacestopersontitle"), undo }
+    (total, twinTotal = 0) => {
+      const labelled = i18n.t("toasts.addfacestoperson", { numberOfFaces: total, personName });
+      return twinTotal > 0 ? `${labelled}. ${i18n.t("toasts.addfacestwins", { count: twinTotal })}` : labelled;
+    },
+    { title: i18n.t("toasts.addfacestopersontitle"), undo, extra: twins }
   );
 }
 

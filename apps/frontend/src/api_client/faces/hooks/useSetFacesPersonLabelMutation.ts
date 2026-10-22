@@ -33,7 +33,14 @@ export const useSetFacesPersonLabelMutation = () => {
           notification.removeFacesFromPerson(data.results.length, undo);
         }
       } else {
-        notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length, undo);
+        // The twins in other frames of a burst or duplicate group are in `results` too (#2754)
+        const twins = data.twin_ids?.length ?? 0;
+        notification.addFacesToPerson(
+          data.results[0]?.person_name ?? "unknown",
+          data.results.length - twins,
+          undo,
+          twins
+        );
       }
 
       // Every tagging path funnels through this mutation, so this is the one
