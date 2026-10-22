@@ -60,6 +60,14 @@ describe("face schemas", () => {
     expect(parsed.map(person => person.name)).toEqual(["Alice", "Carol", "Unknown - Other"]);
   });
 
+  it("reads each group's place in the similar order (#622)", () => {
+    const parsed = IncompleteFacesResponse.parse([
+      { id: 1, name: "Unknown 001", kind: "CLUSTER", face_count: 2, similarity_rank: 0 },
+      { id: 0, name: "Unknown - Other", face_count: 2, kind: "Unknown - Other", similarity_rank: null },
+    ]);
+    expect(parsed.map(group => group.similarity_rank)).toEqual([0, null]);
+  });
+
   it("rejects a person without a name: the serializer always sends one", () => {
     expect(IncompleteFacesResponse.safeParse([{ id: 1, name: null, kind: "USER", face_count: 1 }]).success).toBe(false);
   });

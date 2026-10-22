@@ -130,6 +130,14 @@ describe("the faces toolbar", () => {
     expect(deleteFaces).toHaveBeenCalledOnce();
   });
 
+  it("orders the people by name, by face count or with similar faces together (#622)", async () => {
+    await renderToolbar([]);
+
+    const orders = [...container.querySelectorAll<HTMLInputElement>('input[type="radio"]')].map(input => input.value);
+    expect(orders).toEqual(expect.arrayContaining(["name", "count", "similar"]));
+    expect(container.textContent).toContain("Similar faces together");
+  });
+
   it("trains the faces", async () => {
     await renderToolbar([]);
     await act(async () => buttonLabelled(i18n.t("facesdashboard.explanationtraining")).click());

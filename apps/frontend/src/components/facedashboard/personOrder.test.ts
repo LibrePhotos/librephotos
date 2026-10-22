@@ -34,3 +34,32 @@ describe("orderPeople (#764)", () => {
     expect(names(cached)).toEqual(["Anna", "Bob", "Carla", "Unknown 001"]);
   });
 });
+
+describe("orderPeople by similarity (#622)", () => {
+  const ranked = (name: string, rank: number | null, kind = "CLUSTER") => ({
+    ...person(name, 1, kind),
+    similarity_rank: rank,
+  });
+
+  it("follows the server's chain of look-alike groups", () => {
+    const people = [ranked("Anna", 2, "USER"), ranked("Unknown 001", 0), ranked("Unknown 002", 1)];
+
+    expect(names(orderPeople(people, "similar"))).toEqual(["Unknown 001", "Unknown 002", "Anna"]);
+  });
+
+  it("puts the groups without a rank after the chain, in name order", () => {
+    const people = [ranked("Anna", null, "USER"), ranked("Bob", 1, "USER"), ranked("Carla", null, "USER")];
+
+    expect(names(orderPeople(people, "similar"))).toEqual(["Bob", "Anna", "Carla"]);
+  });
+
+  it("keeps the name order when an older server sends no ranks", () => {
+    expect(names(orderPeople(PEOPLE, "similar"))).toEqual(["Anna", "Bob", "Carla", "Unknown 001"]);
+  });
+
+  it("keeps Unknown - Other last", () => {
+    const people = [{ ...UNKNOWN, similarity_rank: null }, ranked("Unknown 001", 0)];
+
+    expect(names(orderPeople(people, "similar")).at(-1)).toBe(UNKNOWN_PERSON_NAME);
+  });
+});

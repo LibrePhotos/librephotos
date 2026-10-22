@@ -45,10 +45,23 @@ PERSON_KINDS = Person.KIND_CHOICES
 
 class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
     face_count = serializers.SerializerMethodField()
+    similarity_rank = serializers.SerializerMethodField(
+        help_text=(
+            "The group's place when groups that look alike sit together "
+            "(#622): a chain from the group with the most faces to each next "
+            "closest one; groups without a cluster come after it. Null above "
+            "3000 groups and for Unknown - Other"
+        )
+    )
 
     class Meta:
         model = Person
-        fields = ["id", "name", "kind", "face_count"]
+        fields = ["id", "name", "kind", "face_count", "similarity_rank"]
+
+    def get_similarity_rank(self, obj: Person) -> int | None:
+        # FaceIncompleteListViewSet.list puts the ranks in the context.
+        ranks: dict[int, int] = self.context.get("similarity_ranks", {})
+        return ranks.get(obj.pk)
 
     def get_face_count(self, obj: Person) -> int:
         # viewable_face_count is annotated by FaceIncompleteListViewSet's queryset.
