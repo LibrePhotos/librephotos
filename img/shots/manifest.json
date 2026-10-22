@@ -1,0 +1,32 @@
+[
+  {
+    "id": "timeline",
+    "alt": "Timeline of a sample library: photos grouped by day, newest first, with the place of each day",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "lightbox",
+    "alt": "A photo open in the lightbox, with the Details sidebar: date, file, camera, the place on a map, the people in it, a generated caption and auto tags",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "faces",
+    "alt": "People page: one cover photo per named person, with the number of photos each person is in",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "places",
+    "alt": "Places page: a world map with clusters of photos, above a grid of places from countries down to streets",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "events",
+    "alt": "Events page: albums made from days out, each named after the day, the time of day and the place, with its date and number of photos",
+    "width": 1600,
+    "height": 1000
+  }
+]
