@@ -89,7 +89,6 @@ class EmailTestView(APIView):
                 "email configuration is working.",
                 config.effective_from_email,
                 [recipient],
-                fail_silently=False,
             )
         except Exception as exc:
             logger.exception("Test email failed")

@@ -28,7 +28,7 @@ from django.core.exceptions import ImproperlyConfigured
 from librephotos.env import env_int, env_list, env_str
 from librephotos.logging_bootstrap import defer
 
-from ._sqlite import sqlite_database
+from ._sqlite import SQLITE_SILENCED_CHECKS, sqlite_database
 from .production import *  # noqa
 
 # librephotos/urls.py hangs the SPA catch-all off this, and api/views/media.py
@@ -91,6 +91,7 @@ if DB_BACKEND == "sqlite":
     DATABASES = {
         "default": sqlite_database(os.path.join(db_dir, "librephotos.sqlite3"))
     }
+    SILENCED_SYSTEM_CHECKS = SQLITE_SILENCED_CHECKS
     # django.contrib.postgres registers PostgreSQL-only lookups and operations,
     # so it comes back out of the app list when the database is not PostgreSQL.
     INSTALLED_APPS = [  # noqa

@@ -5,6 +5,7 @@ Usage:
     DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite python manage.py test api.tests.migrations
 """
 
+from ._sqlite import SQLITE_SILENCED_CHECKS
 from .test import *  # noqa
 
 DATABASES = {
@@ -13,3 +14,4 @@ DATABASES = {
         "NAME": ":memory:",
     },
 }
+SILENCED_SYSTEM_CHECKS = SQLITE_SILENCED_CHECKS

@@ -1,7 +1,8 @@
 """Database-backed outgoing-email backend.
 
-`DynamicEmailBackend` reads the (admin-configured, DB-stored) `EmailConfig` at
-send time and delegates to Django's real SMTP backend. Every feature that wants
+`DynamicEmailBackend` is the ``default`` mailer (``MAILERS`` in the settings). It
+reads the (admin-configured, DB-stored) `EmailConfig` at send time and delegates
+to Django's real SMTP backend. Every feature that wants
 to send mail just uses Django's normal `send_mail`/`EmailMessage`; routing is
 handled here, so email configuration is a shared instance capability rather than
 something baked into any single feature.
@@ -49,13 +50,14 @@ class DynamicEmailBackend(BaseEmailBackend):
         from api.models.email_config import EmailConfig
 
         config = EmailConfig.load()
+        # The delegate is built under this mailer's alias. Without one, Django
+        # 6.1 treats it as constructed by hand (deprecated) and reads the
+        # EMAIL_* settings, which MAILERS replaces.
         if config.is_configured:
-            return SMTPBackend(
-                fail_silently=self.fail_silently, **config.resolve_smtp_kwargs()
-            )
+            return SMTPBackend(alias=self.alias, **config.resolve_smtp_kwargs())
         if getattr(settings, "DEBUG", False):
             # Keep the dev workflow: unconfigured email prints to the log.
-            return ConsoleBackend(fail_silently=self.fail_silently)
+            return ConsoleBackend(alias=self.alias)
         return None
 
     def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
