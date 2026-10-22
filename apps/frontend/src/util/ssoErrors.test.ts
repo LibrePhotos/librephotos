@@ -13,6 +13,12 @@ describe("ssoErrorMessageKey", () => {
     expect(ssoErrorMessageKey("email_not_verified")).toBe("login.sso.erroremailnotverified");
     expect(ssoErrorMessageKey("not_authenticated")).toBe("login.sso.errornotauthenticated");
     expect(ssoErrorMessageKey("public_url_not_configured")).toBe("login.sso.errorpublicurlnotconfigured");
+    expect(ssoErrorMessageKey("email_ambiguous")).toBe("login.sso.erroremailambiguous");
+  });
+
+  it("maps the failures the identity provider reports", () => {
+    expect(ssoErrorMessageKey("provider_cancelled")).toBe("login.sso.errorprovidercancelled");
+    expect(ssoErrorMessageKey("provider_error")).toBe("login.sso.errorprovider");
   });
 
   it("still says something for a reason it does not know", () => {

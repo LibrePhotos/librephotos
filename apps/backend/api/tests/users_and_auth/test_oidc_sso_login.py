@@ -11,9 +11,13 @@ Three things are worth guarding here, in rising order of consequence:
   privileged user.
 """
 
+from unittest.mock import PropertyMock, patch
+from urllib.parse import parse_qs, urlsplit
+
 from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.models import SocialAccount, SocialApp, SocialLogin
+from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from constance.test import override_config
 from django.contrib.auth import get_user_model
 from django.contrib.messages.middleware import MessageMiddleware
@@ -25,6 +29,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api.accounts.adapters import SSOSocialAccountAdapter
 from api.accounts.public_url import is_internal_base_url, public_base_url
+from api.models.email_config import EmailConfig
 from api.tests.utils import create_test_user
 from api.views.sso import LibrePhotosOIDCAdapter
 
@@ -75,6 +80,28 @@ def _make_social_login(email="sso@example.com", verified=True, uid="idp-sub-1"):
     else:
         sociallogin.account.extra_data = {}
     return sociallogin
+
+
+def _configure_email():
+    """Save a working email configuration, which sign-up over SSO requires.
+
+    ``email_is_configured()`` reads the stored ``EmailConfig``, not Django's
+    ``EMAIL_*`` settings, so overriding those would leave sign-up closed.
+    """
+    config = EmailConfig.load()
+    config.provider = "custom"
+    config.host = "smtp.example.com"
+    config.from_email = "LibrePhotos <no-reply@example.com>"
+    config.save()
+
+
+def _bounce_reason(adapter, request, sociallogin):
+    """Return the error reason the adapter bounced with, or None if allowed."""
+    try:
+        adapter.pre_social_login(request, sociallogin)
+    except ImmediateHttpResponse as exc:
+        return exc.response["Location"].split("sso_error=")[-1]
+    return None
 
 
 class PublicBaseUrlTest(TestCase):
@@ -173,6 +200,91 @@ class OidcKillSwitchTest(TestCase):
         self.assertEqual(resp.status_code, 404)
 
 
+@override_config(OIDC_ENABLED=True)
+@override_settings(FRONTEND_BASE_URL="https://photos.example.com")
+class ProviderErrorRedirectTest(TestCase):
+    """Failures inside allauth's callback land on our login page, not allauth's."""
+
+    def setUp(self):
+        _make_social_app()
+
+    def _stash_state(self):
+        """Start a real login, which stashes the state in the session, and
+        return the state the provider would echo back.
+
+        Goes through the login view rather than writing the session, because
+        how allauth stores states changes between releases.
+        """
+        with patch.object(
+            LibrePhotosOIDCAdapter,
+            "openid_config",
+            new_callable=PropertyMock,
+            return_value={
+                "authorization_endpoint": "https://idp.example.com/auth",
+                "token_endpoint": "https://idp.example.com/token",
+                "userinfo_endpoint": "https://idp.example.com/userinfo",
+            },
+        ):
+            resp = self.client.get("/api/accounts/oidc/keycloak/login/")
+        self.assertEqual(resp.status_code, 302)
+        return parse_qs(urlsplit(resp["Location"]).query)["state"][0]
+
+    def test_cancel_at_the_provider_redirects_with_provider_cancelled(self):
+        state = self._stash_state()
+
+        with self.assertLogs("api.accounts.adapters", "WARNING"):
+            resp = self.client.get(
+                CALLBACK_PATH, {"error": "access_denied", "state": state}
+            )
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp["Location"], "/login?sso_error=provider_cancelled")
+
+    def test_wrong_state_redirects_with_provider_error_and_logs_why(self):
+        self._stash_state()
+
+        with self.assertLogs("api.accounts.adapters", "WARNING") as logs:
+            resp = self.client.get(CALLBACK_PATH, {"code": "x", "state": "forged"})
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp["Location"], "/login?sso_error=provider_error")
+        self.assertIn("state", "\n".join(logs.output))
+
+    def test_other_provider_error_redirects_with_provider_error(self):
+        state = self._stash_state()
+
+        with self.assertLogs("api.accounts.adapters", "WARNING") as logs:
+            resp = self.client.get(
+                CALLBACK_PATH,
+                {
+                    "error": "server_error",
+                    "error_description": "IdP is down",
+                    "state": state,
+                },
+            )
+
+        self.assertEqual(resp["Location"], "/login?sso_error=provider_error")
+        self.assertIn("IdP is down", "\n".join(logs.output))
+
+    def test_token_exchange_failure_redirects_and_logs_the_exception(self):
+        state = self._stash_state()
+
+        with (
+            # get_client would fetch the IdP's discovery document.
+            patch.object(LibrePhotosOIDCAdapter, "get_client"),
+            patch.object(
+                LibrePhotosOIDCAdapter,
+                "get_access_token_data",
+                side_effect=OAuth2Error("invalid_grant"),
+            ),
+            self.assertLogs("api.accounts.adapters", "WARNING") as logs,
+        ):
+            resp = self.client.get(CALLBACK_PATH, {"code": "x", "state": state})
+
+        self.assertEqual(resp["Location"], "/login?sso_error=provider_error")
+        self.assertIn("invalid_grant", "\n".join(logs.output))
+
+
 class SSOConfigViewTest(TestCase):
     """What the login screen is told, and that it can ask without a token."""
 
@@ -210,6 +322,26 @@ class SSOConfigViewTest(TestCase):
                 }
             ],
         )
+
+    @override_config(OIDC_ENABLED=True)
+    def test_skips_a_provider_not_attached_to_this_site(self):
+        """allauth looks providers up per site, so a click on this one would 404."""
+        _make_social_app()
+        other = _make_social_app(provider_id="authentik", name="Authentik")
+        other.sites.clear()
+
+        body = self.client.get(CONFIG_URL).json()
+
+        self.assertEqual([p["id"] for p in body["providers"]], ["keycloak"])
+
+    @override_config(OIDC_ENABLED=True)
+    def test_not_enabled_when_no_provider_is_attached_to_this_site(self):
+        _make_social_app().sites.clear()
+
+        body = self.client.get(CONFIG_URL).json()
+
+        self.assertFalse(body["enabled"])
+        self.assertEqual(body["providers"], [])
 
     @override_config(OIDC_ENABLED=True)
     def test_reveals_no_secrets(self):
@@ -274,13 +406,7 @@ class AdapterLinkingPolicyTest(TestCase):
         self.request = _request()
 
     def _run(self, sociallogin):
-        """Return the error reason the adapter bounced with, or None if allowed."""
-        try:
-            self.adapter.pre_social_login(self.request, sociallogin)
-        except ImmediateHttpResponse as exc:
-            location = exc.response["Location"]
-            return location.split("sso_error=")[-1]
-        return None
+        return _bounce_reason(self.adapter, self.request, sociallogin)
 
     def test_verified_email_links_to_the_matching_account(self):
         user = create_test_user(username="alice", email="sso@example.com")
@@ -309,13 +435,14 @@ class AdapterLinkingPolicyTest(TestCase):
 
         self.assertEqual(self._run(sociallogin), "signup_disabled")
 
+    @override_config(OIDC_ALLOW_SIGNUP=False)
     def test_ambiguous_email_never_links(self):
         """Two accounts share the address: linking either one is a guess."""
         create_test_user(username="alice", email="shared@example.com")
         create_test_user(username="bob", email="shared@example.com")
         sociallogin = _make_social_login(email="shared@example.com", verified=True)
 
-        self.assertEqual(self._run(sociallogin), "signup_disabled")
+        self.assertEqual(self._run(sociallogin), "email_ambiguous")
 
     def test_blank_idp_email_never_links(self):
         """Many LibrePhotos accounts have no email; none of them is a match."""
@@ -334,6 +461,45 @@ class AdapterLinkingPolicyTest(TestCase):
         self.assertIsNone(self._run(sociallogin))
 
 
+@override_config(OIDC_ALLOW_SIGNUP=True)
+class AdapterOpenSignupPolicyTest(TestCase):
+    """The policy with sign-ups over SSO really open (flag on, email configured).
+
+    The linking tests above run with sign-up closed, where every refusal that
+    falls through to the sign-up branch answers ``signup_disabled`` anyway; only
+    with sign-up open does it matter which branch a login takes.
+    """
+
+    def setUp(self):
+        _make_social_app()
+        _configure_email()
+        self.adapter = SSOSocialAccountAdapter()
+        self.request = _request()
+
+    def _run(self, sociallogin):
+        return _bounce_reason(self.adapter, self.request, sociallogin)
+
+    def test_ambiguous_email_is_refused_and_creates_nobody(self):
+        """Open sign-up must not turn a shared address into a third account."""
+        create_test_user(username="alice", email="shared@example.com")
+        create_test_user(username="bob", email="shared@example.com")
+        users_before = User.objects.count()
+        sociallogin = _make_social_login(email="shared@example.com", verified=True)
+
+        self.assertEqual(self._run(sociallogin), "email_ambiguous")
+        self.assertEqual(User.objects.count(), users_before)
+
+    def test_unknown_verified_email_may_sign_up(self):
+        sociallogin = _make_social_login(email="nobody@example.com", verified=True)
+
+        self.assertIsNone(self._run(sociallogin))
+
+    def test_unknown_unverified_email_cannot_sign_up(self):
+        sociallogin = _make_social_login(email="nobody@example.com", verified=False)
+
+        self.assertEqual(self._run(sociallogin), "email_not_verified")
+
+
 class AdapterProvisioningTest(TestCase):
     """Provisioning needs both the admin's say-so and a meaningful email claim."""
 
@@ -348,8 +514,13 @@ class AdapterProvisioningTest(TestCase):
 
     @override_config(OIDC_ALLOW_SIGNUP=False)
     def test_signup_stays_closed_when_the_admin_has_not_opted_in(self):
-        with self.settings(EMAIL_HOST="smtp.example.com"):
-            self.assertFalse(self.adapter.is_open_for_signup(self.request, None))
+        _configure_email()
+        self.assertFalse(self.adapter.is_open_for_signup(self.request, None))
+
+    @override_config(OIDC_ALLOW_SIGNUP=True)
+    def test_signup_opens_with_the_flag_and_email_configured(self):
+        _configure_email()
+        self.assertTrue(self.adapter.is_open_for_signup(self.request, None))
 
     def test_provisioned_user_is_never_privileged(self):
         """Notably also during first-time setup, when no superuser exists yet."""
