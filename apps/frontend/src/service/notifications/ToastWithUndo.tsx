@@ -17,7 +17,8 @@ export function ToastWithUndo({ message, onUndo }: Props) {
   return (
     <Group justify="space-between" wrap="nowrap" gap="xs">
       <Text size="sm">{message}</Text>
-      <Button variant="subtle" size="compact-sm" onClick={onUndo}>
+      {/* A long message must not squeeze the button to "Un" (#2754's twins line) */}
+      <Button variant="subtle" size="compact-sm" flex="none" onClick={onUndo}>
         {t("toasts.undo")}
       </Button>
     </Group>
