@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.59df27a2.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.adcfe8f6.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -50,16 +50,25 @@ one whose <code>/.well-known/openid-configuration</code> document describes it).
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="telling-librephotos-about-the-provider">Telling LibrePhotos about the provider<a href="#telling-librephotos-about-the-provider" class="hash-link" aria-label="Direct link to Telling LibrePhotos about the provider" title="Direct link to Telling LibrePhotos about the provider" translate="no">​</a></h2>
 <p>In the Django admin (<code>/api/django-admin/</code>), under <strong>Social applications</strong>, add one:</p>
 <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Provider</td><td><code>OpenID Connect</code></td></tr><tr><td>Provider ID</td><td>the <code>&lt;provider_id&gt;</code> you used in the redirect URI</td></tr><tr><td>Name</td><td>what the login button should say, if you add more than one provider</td></tr><tr><td>Client id</td><td>from your provider</td></tr><tr><td>Secret key</td><td>from your provider</td></tr><tr><td>Settings</td><td><code>{&quot;server_url&quot;: &quot;https://your-idp/realms/example&quot;}</code> — the issuer URL</td></tr><tr><td>Sites</td><td>pick your site</td></tr></tbody></table>
-<p>Then, in Site Settings:</p>
+<p>Then, in the app, open <strong>Admin Area &gt; Site Settings</strong> and find the <strong>Single
+sign-on</strong> group. Each change saves at once. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Up to 1.4.0
+these switches were only on the Constance page of the Django admin, under the
+names in brackets.</p>
 <ul>
-<li class=""><strong><code>OIDC_ENABLED</code></strong> — the on/off switch. While it is off, the login button is
-hidden <em>and</em> the SSO endpoints are inactive, so switching it off is a real way
-to stop SSO logins.</li>
-<li class=""><strong><code>OIDC_BUTTON_LABEL</code></strong> — the text on the login button, e.g. &quot;Sign in with
-Keycloak&quot;.</li>
-<li class=""><strong><code>OIDC_ALLOW_SIGNUP</code></strong> — whether a first-time SSO login may create a new
-LibrePhotos account. Off by default; also requires email to be configured.</li>
+<li class=""><strong>Show the single sign-on button</strong> (<code>OIDC_ENABLED</code>): the on/off switch. While
+it is off, the login button is hidden <em>and</em> the SSO endpoints are inactive, so
+switching it off is a real way to stop SSO logins.</li>
+<li class=""><strong>Button label</strong> (<code>OIDC_BUTTON_LABEL</code>): the text on the login button, e.g.
+&quot;Sign in with Keycloak&quot;, at most 64 characters. With more than one provider
+each button shows its provider&#x27;s name instead.</li>
+<li class=""><strong>Allow sign-ups over single sign-on</strong> (<code>OIDC_ALLOW_SIGNUP</code>): whether a
+first-time SSO login may create a new LibrePhotos account. Off by default; also
+requires email to be configured.</li>
 </ul>
+<p>The provider itself is only added and changed in the Django admin, as above. The
+group lists the providers it finds, and warns under the switches when SSO cannot
+work yet: no provider attached to this site, no public URL
+(<code>FRONTEND_BASE_URL</code>), or, for sign-ups, no email set up.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="how-accounts-are-matched-up">How accounts are matched up<a href="#how-accounts-are-matched-up" class="hash-link" aria-label="Direct link to How accounts are matched up" title="Direct link to How accounts are matched up" translate="no">​</a></h2>
 <p>On a first SSO login, LibrePhotos looks for an existing account whose email
 matches the one the provider reports:</p>

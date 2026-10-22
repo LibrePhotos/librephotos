@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.0a965fec.css">
-<script src="/assets/js/runtime~main.59df27a2.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.adcfe8f6.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -48,7 +48,7 @@
 <li class=""><strong>Text Recognition (OCR) Model</strong>: <code>None</code>, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See <a class="" href="/docs/user-guide/text-recognition#turning-it-off">Text Recognition (OCR)</a>.</li>
 <li class=""><strong>Map Tiles</strong>: <code>None (hide map)</code> hides the maps, so map backgrounds are never loaded from an outside server. See <a class="" href="/docs/user-guide/settings/#site-settings">Site Settings</a>.</li>
 </ul>
-<p>Single sign-on is switched on with the <code>OIDC_*</code> environment variables, which are not feature toggles. See <a class="" href="/docs/user-guide/settings/single-sign-on">Single Sign-On</a>.</p>
+<p>Single sign-on is not a feature toggle: it is switched on in the <strong>Single sign-on</strong> group of the same Site Settings card, once an identity provider is set up. See <a class="" href="/docs/user-guide/settings/single-sign-on">Single Sign-On</a>.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="minimal-machine-learning">Running with minimal machine learning<a href="#minimal-machine-learning" class="hash-link" aria-label="Direct link to Running with minimal machine learning" title="Direct link to Running with minimal machine learning" translate="no">​</a></h2>
 <p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> On a small server, or one without Internet access, you can turn off the machine learning you do not need. Set these in your <code>.env</code> (or the site settings switches above):</p>
 <ul>
