@@ -16,7 +16,8 @@ import { drawnFaceResults, type AddFaceRequest } from "../drawnFaceResults";
 
 const addFace = (data: AddFaceRequest) =>
   endpoints.addFace(apiClient, data.photo, data.personName, data.box, data.fit).then(payload => {
-    notification.addFacesToPerson(payload.face.person_name, 1);
+    if (payload.fitted) notification.faceFoundInBox(payload.face.person_name);
+    else notification.addFacesToPerson(payload.face.person_name, 1);
     return payload;
   });
 

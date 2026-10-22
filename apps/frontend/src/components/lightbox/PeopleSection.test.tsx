@@ -210,6 +210,7 @@ describe("a rough box: the face is looked for in it (#1117)", () => {
     const container = await renderSection();
 
     expect(container.textContent).toContain("No face found in the box");
+    expect(container.textContent).not.toContain("No faces were found in this photo");
     await act(async () => buttonWithText(container, "Keep my box").click());
     await act(async () => buttonWithText(container, "Draw again").click());
 

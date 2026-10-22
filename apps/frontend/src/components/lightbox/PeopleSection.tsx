@@ -96,7 +96,7 @@ export function PeopleSection({
       )}
       {drawn && <DrawnFaceStatus outcome={drawn} onDrawAgain={canAddFace ? onAddFaceRequest : undefined} />}
       {detected && <DetectFacesStatus outcome={detected} onDrawFace={canAddFace ? onAddFaceRequest : undefined} />}
-      {people.length === 0 && !isDrawingFace && (
+      {people.length === 0 && !isDrawingFace && !drawn && !detected && (
         <Text mt="xs" size="sm" c="dimmed">
           {t("lightbox.addface.nofaces")}
         </Text>

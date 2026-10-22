@@ -12,10 +12,12 @@ import { drawnFaceResults } from "../drawnFaceResults";
 import { useAddFaceMutation } from "./useAddFaceMutation";
 import { useDrawnFaceResult, type DrawnFaceOutcome } from "./useDrawnFaceResult";
 
-const toasts = vi.hoisted(() => ({ requestFailed: vi.fn<(title: string, message: string) => void>() }));
-vi.mock("../../../service/notifications", () => ({
-  notification: { ...toasts, addFacesToPerson: () => {}, serverError: () => {} },
+const toasts = vi.hoisted(() => ({
+  requestFailed: vi.fn<(title: string, message: string) => void>(),
+  faceFoundInBox: vi.fn<(personName: string) => void>(),
+  addFacesToPerson: vi.fn<(personName: string, count: number) => void>(),
 }));
+vi.mock("../../../service/notifications", () => ({ notification: { ...toasts, serverError: () => {} } }));
 
 const box = { top: 0.25, right: 0.6, bottom: 0.75, left: 0.4 };
 const request = { photo: "h1", personName: "Anna", box, fit: true };
@@ -59,13 +61,22 @@ describe("useAddFaceMutation with a rough box", () => {
     expect(toasts.requestFailed).not.toHaveBeenCalled();
   });
 
-  it("forgets the box once the face is saved", async () => {
+  it("forgets the box once the face is saved, and says it was found in it", async () => {
     drawnFaceResults.set({ state: "notfound", request });
     respond(201, added);
 
     await settledMutationWith(useAddFaceMutation, request);
 
     expect(drawnFaceResults.get("h1")).toBeUndefined();
+    expect(toasts.faceFoundInBox).toHaveBeenCalledWith("Anna");
+  });
+
+  it("says a box kept as drawn is labelled", async () => {
+    respond(201, { ...added, fitted: false });
+
+    await settledMutationWith(useAddFaceMutation, { ...request, fit: false });
+
+    expect(toasts.addFacesToPerson).toHaveBeenCalledWith("Anna", 1);
   });
 
   it("forgets the box on any other failure, which is toasted", async () => {
