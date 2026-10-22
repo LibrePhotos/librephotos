@@ -183,6 +183,21 @@ describe("moving faces back to unknown", () => {
 
     expect(titles()).toEqual([i18n.t("toasts.removefacestopersontitle")]);
   });
+
+  it("names who will not be suggested for the face again (#2747)", async () => {
+    answer(200, {
+      status: true,
+      results: [{ id: 3, person_name: "Unknown - Other", person: null }],
+      rejected_people: [{ id: 5, name: "Anna" }],
+    });
+    await run(useSetFacesPersonLabelMutation, mutation =>
+      mutation.mutate({ faceIds: [3], personName: "Unknown - Other" })
+    );
+
+    expect(toasts.success.mock.calls[0]?.[0]).toBe(
+      "The face was moved to 'Unknown - Other'. Anna won't be suggested for this face again."
+    );
+  });
 });
 
 describe("the Undo of a face toast (#127)", () => {

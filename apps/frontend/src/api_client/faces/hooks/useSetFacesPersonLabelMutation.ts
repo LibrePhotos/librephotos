@@ -25,7 +25,13 @@ export const useSetFacesPersonLabelMutation = () => {
     onSuccess: (data, { personName }) => {
       const undo = undoOf(data.previous);
       if (personName === UNKNOWN_PERSON_NAME) {
-        notification.removeFacesFromPerson(data.results.length, undo);
+        // Who training no longer suggests for the faces (#2747); older servers do not say
+        const rejectedNames = (data.rejected_people ?? []).map(person => person.name);
+        if (rejectedNames.length > 0) {
+          notification.rejectFacesFromPeople(rejectedNames, data.results.length, undo);
+        } else {
+          notification.removeFacesFromPerson(data.results.length, undo);
+        }
       } else {
         notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length, undo);
       }

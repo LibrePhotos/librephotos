@@ -74,6 +74,13 @@ export const FaceLabels = z.object({
 });
 export type FaceLabels = z.infer<typeof FaceLabels>;
 
+/** A named person faces were sent away from ("Not Anna", #2747): never suggested for them again. */
+export const RejectedPerson = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type RejectedPerson = z.infer<typeof RejectedPerson>;
+
 /** POST /api/labelfaces response. */
 export const SetFacesLabelResponse = z.looseObject({
   status: z.boolean(),
@@ -87,6 +94,8 @@ export const SetFacesLabelResponse = z.looseObject({
   write_error: z.string().nullable().optional(),
   /** Each face's people before the request, for an undo. Optional: older servers omit it. */
   previous: FaceLabels.array().optional(),
+  /** Who is no longer suggested for these faces (#2747). Optional: older servers omit it. */
+  rejected_people: RejectedPerson.array().optional(),
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 

@@ -244,6 +244,21 @@ describe("toasts with an Undo (#127)", () => {
     expect(undone).toEqual(["second", "first"]);
   });
 
+  it("say who is no longer suggested after Not this person (#2747)", () => {
+    // Without an undo the message is the plain text
+    notification.rejectFacesFromPeople(["Anna"], 1);
+
+    expect(lastShown().message).toBe(
+      "The face was moved to 'Unknown - Other'. Anna won't be suggested for this face again."
+    );
+
+    notification.rejectFacesFromPeople(["Anna", "Ben"], 1);
+
+    expect(updateNotification.mock.calls.at(-1)?.[0].message).toBe(
+      "2 faces were moved to 'Unknown - Other'. Anna and Ben won't be suggested for these faces again."
+    );
+  });
+
   it("stop at an undo that fails: the QueryClient reports it", async () => {
     const later = vi.fn<() => Promise<void>>(() => Promise.resolve());
     notification.deleteFaces(1, later);

@@ -2311,6 +2311,8 @@
     "uploadsuccess": "Upload successful",
     "removefacestoperson": "{{numberOfFaces}} face(s) were moved to 'Unknown - Other'",
     "removefacestopersontitle": "Remove faces from person",
+    "removefacesnotsuggested_one": "The face was moved to 'Unknown - Other'. {{names}} won't be suggested for this face again.",
+    "removefacesnotsuggested_other": "{{count}} faces were moved to 'Unknown - Other'. {{names}} won't be suggested for these faces again.",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
     "captionmodeldownloading": "The captioning model is being downloaded. Try again in a few minutes.",

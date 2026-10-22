@@ -89,6 +89,10 @@ You can also review faces one at a time, without selecting them first. Point at 
 
 On the Deleted tab the menu only offers **Restore face** and **Show photo**.
 
+#### "Not _name_" is remembered
+
+<Since version="1.5.0" /> When you send a face back with **Not _name_** (or the orange person-off button, or [**Remove from this person**](./albums.md) on a person's photos), LibrePhotos remembers that the face is not that person. **Train faces** never suggests them for that face again; it may suggest someone else, or leave the face in "Unknown - Other". The message after **Not _name_** says so, for example "Anna won't be suggested for this face again". To take it back, click **Undo** in that message, or label the face as that person yourself. When you [merge](./albums.md#merging-two-people) Anna into another person, the face is not suggested as the merged person either. Up to 1.4.0, the next training often suggested the same person again.
+
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
 <Since version="1.4.0" /> A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again.

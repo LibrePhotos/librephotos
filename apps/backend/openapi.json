@@ -19993,6 +19993,24 @@
           "reason"
         ]
       },
+      "RejectedPerson": {
+        "type": "object",
+        "description": "A named person a face was sent away from (\"Not Anna\", #2747).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The person's id"
+          },
+          "name": {
+            "type": "string",
+            "description": "The person's name"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "RemoveFromStackResponse": {
         "type": "object",
         "description": "``updated``, or ``deleted`` (with a message) when fewer than 2 photos were left.",
@@ -20654,6 +20672,13 @@
             },
             "description": "Each relabelled face's people before this request; POST them to /api/restore-face-labels/ to undo it"
           },
+          "rejected_people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectedPerson"
+            },
+            "description": "The named people the faces were sent away from: training never suggests them for these faces again (#2747). Empty unless the faces went back to unknown"
+          },
           "write_error": {
             "type": "string",
             "nullable": true,
@@ -20663,6 +20688,7 @@
         "required": [
           "not_updated",
           "previous",
+          "rejected_people",
           "results",
           "status",
           "updated",
