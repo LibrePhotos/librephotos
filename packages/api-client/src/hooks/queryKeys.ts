@@ -1,4 +1,4 @@
-import type { MapBounds, SearchFilters, SelectAllPhotos } from "../endpoints";
+import type { MapBounds, SearchFilters, SelectAllPhotos, UserPlaceCircle } from "../endpoints";
 import type {
   DuplicateType,
   FaceAnalysisMethod,
@@ -51,6 +51,7 @@ type PhotoGridKind =
   | "withoutLocation"
   | "notInAlbum"
   | "inBounds"
+  | "userPlace"
   | "myPublicPhotos"
   | "sharedByMe"
   | "sharedWithMe"
@@ -104,6 +105,8 @@ export const photoGridKeys = {
     [...photoGridKeys.search(term, mediaType, mode), filters] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
+  /** One of my places' photos (#1365). */
+  userPlace: (id: number, mediaType: MediaType) => [...gridKind("userPlace"), id, mediaType] as const,
   /** My photos inside a view of the Places map (#343). */
   inBounds: (bounds: MapBounds) => [...gridKind("inBounds"), bounds] as const,
   /** One page of the photos in none of my albums. */
@@ -178,6 +181,9 @@ export const albumKeys = {
   locationClusters: () => [...albumRoot, "locationClusters"] as const,
   /** Where my photos were taken, for the Places map (#343). */
   mapPoints: () => [...albumRoot, "mapPoints"] as const,
+  /** My places (#1365), and under them what a circle being drawn would hold. */
+  userPlaces: () => [...albumRoot, "userPlaces"] as const,
+  userPlacePreview: (circle: UserPlaceCircle) => [...albumKeys.userPlaces(), "preview", circle] as const,
   /** The place albums with a photo inside a map's view, under the places list so it refreshes with it. */
   placesInBounds: (bounds: MapBounds) => [...albumKeys.placesAlbums(), "inBounds", bounds] as const,
   /** The albums I shared, grouped by recipient (web). */

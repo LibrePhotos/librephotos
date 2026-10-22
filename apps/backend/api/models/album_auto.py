@@ -1,16 +1,19 @@
 import logging
+import uuid
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime
 from typing import TypedDict
 
 from django.db import models
+from django.db.models import Count
 
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.place_names import short_place_name
 from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
+from api.models.user_place import UserPlace
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,11 @@ class TitleParts(TypedDict):
     places: list[str]
     # The album's grouping date (YYYY-MM-DD), for "Album from <date>".
     date: str
+    # The id of the owner's place (#1365) most of the photos were taken in,
+    # when it holds at least half of them and may name events ("Sunday at
+    # Home"). Only the id: the owner's app words it from its own places, and
+    # the English ``title`` keeps the town, so a shared event never names it.
+    user_place: int | None
 
 
 def _time_of_day(hour: int) -> str | None:
@@ -136,6 +144,7 @@ def _fallback_parts(album_timestamp: datetime) -> TitleParts:
         people=[],
         places=[],
         date=album_timestamp.strftime("%Y-%m-%d"),
+        user_place=None,
     )
 
 
@@ -163,6 +172,27 @@ def _title_parts(photos: Iterable[Photo], album_timestamp: datetime) -> TitlePar
     parts["people"] = _top_people(people)
     parts["places"] = _top_places(places)
     return parts
+
+
+def _user_place(owner: User, photo_ids: list[uuid.UUID]) -> int | None:
+    """The owner's place most of the photos were taken in, when it holds at
+    least half of them and its name may be used in titles (#1365).
+
+    Takes the ids the title was made from, so the event's membership is not
+    read again for every event a run titles."""
+    if not photo_ids:
+        return None
+    best = (
+        UserPlace.objects.owned_by(owner)
+        .filter(use_in_titles=True, photos__in=photo_ids)
+        .annotate(inside=Count("photos"))
+        .order_by("-inside", "radius_m", "pk")
+        .values_list("pk", "inside")
+        .first()
+    )
+    if best is None or best[1] * 2 < len(photo_ids):
+        return None
+    return best[0]
 
 
 def _english_when(parts: TitleParts) -> str:
@@ -227,7 +257,11 @@ class AlbumAuto(models.Model):
     def _generate_title(self) -> None:
         """Recompute ``title_parts`` and the English ``title`` from the photos, and save."""
         try:
-            parts = _title_parts(self.photos.all(), self.timestamp)
+            photos = list(self.photos.all())
+            parts = _title_parts(photos, self.timestamp)
+            parts["user_place"] = _user_place(
+                self.owner, [photo.pk for photo in photos]
+            )
         except Exception as e:
             logger.exception(e)
             # Set a fallback title if something goes wrong

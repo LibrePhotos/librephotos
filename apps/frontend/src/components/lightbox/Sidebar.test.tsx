@@ -31,6 +31,7 @@ vi.mock("../../api_client/photos/hooks", () => ({
 }));
 // Signed in: a recipient's panel asks for the photo's people and things (#2721, #2722).
 vi.mock("../../api_client/auth", () => ({ useIsAuthenticatedQuery: () => ({ data: true }) }));
+vi.mock("../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { trash_retention_days: 30 } }),
 }));

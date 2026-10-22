@@ -27,6 +27,7 @@ from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
 from api.models.upload_followup_state import UploadFollowupState
 from api.models.user import User
+from api.models.user_place import UserPlace
 
 __all__ = [
     "AlbumAuto",
@@ -58,6 +59,7 @@ __all__ = [
     "UpgradeTaskState",
     "UploadFollowupState",
     "User",
+    "UserPlace",
     "File",
     "FileCopy",
 ]

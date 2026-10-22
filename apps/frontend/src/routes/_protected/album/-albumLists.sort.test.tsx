@@ -72,6 +72,7 @@ vi.mock("@tanstack/react-router", () => ({
   useElementScrollRestoration: () => undefined,
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
+vi.mock("../../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchAutoAlbumsQuery: () => ({ data: stubs.events, isFetching: false }),
   useDeleteAutoAlbumMutation: () => ({ mutate: () => {} }),

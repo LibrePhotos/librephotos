@@ -193,6 +193,11 @@ export const EventTitleParts = z.object({
   places: z.string().array(),
   /** The album's grouping date (YYYY-MM-DD), for the "Album from" fallback. */
   date: z.string(),
+  /**
+   * The id of the owner's place most photos were taken in (#1365), for "<when> at <place>". Only
+   * the owner's own places name it; null without one, absent from older backends.
+   */
+  user_place: z.number().nullish(),
 });
 export type EventTitleParts = z.infer<typeof EventTitleParts>;
 

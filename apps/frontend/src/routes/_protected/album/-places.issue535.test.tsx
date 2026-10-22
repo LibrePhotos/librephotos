@@ -34,8 +34,11 @@ import { STORAGE_KEYS } from "../../../util/storage";
 // component to the createFileRoute stub.
 import "./places.index";
 
-/** The route stub: createFileRoute("...")(options) and its chained calls hand back the same function. */
-type RouteStub = (options?: { component?: React.ComponentType }) => RouteStub;
+/**
+ * The route stub: createFileRoute("...")(options) and its chained calls hand back the same
+ * function, which also answers the page's search params (none: no place to edit).
+ */
+type RouteStub = ((options?: { component?: React.ComponentType }) => RouteStub) & { useSearch: () => object };
 
 /** The part of a MapLibre map the page reads. */
 type MapStub = {
@@ -56,6 +59,18 @@ const stubs = vi.hoisted(() => ({
   },
   // The place albums with a photo in the map's view; undefined until the map reports one
   placesInView: undefined as number[] | undefined,
+  // The user's own places (#1365)
+  userPlaces: [] as {
+    id: number;
+    name: string;
+    icon: "home";
+    center_lat: number;
+    center_lon: number;
+    radius_m: number;
+    use_in_titles: boolean;
+    photo_count: number;
+    cover_photos: never[];
+  }[],
   albums: [
     { id: 1, title: "Paris", cover_photos: [{ image_hash: "hash1" }], photo_count: 12, geolocation_level: 2 },
     { id: 2, title: "Berlin", cover_photos: [{ image_hash: "hash2" }], photo_count: 3, geolocation_level: 2 },
@@ -78,13 +93,16 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
-    const route: RouteStub = options => {
-      stubs.component = options?.component ?? null;
-      return route;
-    };
+    const route: RouteStub = Object.assign(
+      (options?: { component?: React.ComponentType }) => {
+        stubs.component = options?.component ?? null;
+        return route;
+      },
+      { useSearch: () => ({}) }
+    );
     return route;
   },
-  useNavigate: () => () => {},
+  useNavigate: () => () => Promise.resolve(),
   // The href the real Link builds from `to` and `params`
   Link: ({ children, to, params }: { children?: React.ReactNode; to: string; params?: { id: string } }) => (
     <a href={to.replace("$id", params?.id ?? "")}>{children}</a>
@@ -98,6 +116,7 @@ vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPhotoMapPointsQuery: () => ({ data: stubs.mapPoints, isFetching: stubs.fetching, isLoading: false }),
   usePlaceAlbumsInBoundsQuery: () => ({ data: stubs.placesInView }),
   usePhotosInBoundsQuery: () => ({ data: undefined, isError: false, isFetching: false, refetch: () => {} }),
+  useUserPlacesQuery: () => ({ data: stubs.userPlaces }),
 }));
 vi.mock("../../../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
 // The lightbox and its routes are not what this page test is about
@@ -154,6 +173,12 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
+  // The your-places row scrolls sideways (ScrollArea); jsdom has no ResizeObserver
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
 });
@@ -166,6 +191,7 @@ beforeEach(() => {
   stubs.fetching = false;
   stubs.loading = false;
   stubs.placesInView = undefined;
+  stubs.userPlaces = [];
   localStorage.clear();
 });
 
@@ -214,6 +240,30 @@ describe("the places page on first mount", () => {
 
     expect(page.titles()).toEqual(["Berlin"]);
     expect(page.subtitle()).toContain("1 place in view");
+    await page.unmount();
+  });
+
+  // #1365: your places above the places in view, whatever the map shows
+  it("lists your places above the places in view", async () => {
+    stubs.userPlaces = [
+      {
+        id: 7,
+        name: "Home",
+        icon: "home",
+        center_lat: 48.1,
+        center_lon: 11.5,
+        radius_m: 150,
+        use_in_titles: true,
+        photo_count: 4,
+        cover_photos: [],
+      },
+    ];
+    const page = await renderPage();
+
+    const text = page.subtitle();
+    expect(text).toContain("Your places");
+    expect(text).toContain("4 photos · 150 m");
+    expect(text.indexOf("Your places")).toBeLessThan(text.indexOf("Places in view"));
     await page.unmount();
   });
 

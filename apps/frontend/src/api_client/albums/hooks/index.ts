@@ -7,6 +7,7 @@ export * from "./useFetchPlacesAlbumsQuery";
 export * from "./useFetchPlaceAlbumQuery";
 export * from "./useFetchLocationClustersQuery";
 export * from "./usePlacesMapQueries";
+export * from "./useUserPlaces";
 export * from "./useFetchSharedAlbumsByMeQuery";
 export * from "./useFetchSharedAlbumsWithMeQuery";
 export * from "./useShareUserAlbumMutation";

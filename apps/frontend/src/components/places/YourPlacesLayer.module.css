@@ -1,0 +1,45 @@
+/* A place's name on the map: HTML, so it keeps the app's colours in dark mode. */
+.label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--mantine-color-blue-filled);
+  color: var(--mantine-color-white);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  border: 0;
+  cursor: pointer;
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+.label:focus-visible {
+  outline: 2px solid var(--mantine-color-body);
+  outline-offset: 1px;
+}
+
+.labelDimmed {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.centre {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mantine-color-blue-filled);
+  border: 2px solid var(--mantine-color-white);
+}
+
+/* The handle on the edge of the circle being drawn: drag it to change the size. */
+.edge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--mantine-color-white);
+  border: 3px solid var(--mantine-color-blue-filled);
+  box-shadow: var(--mantine-shadow-sm);
+  cursor: ew-resize;
+}

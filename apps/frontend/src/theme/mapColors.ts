@@ -10,6 +10,8 @@ export type MapLayerColors = Readonly<{
   /** A single place, and the ring around it. */
   point: string;
   pointStroke: string;
+  /** Your places (#1365): their circles' outline, and their fill at a low opacity. */
+  place: string;
 }>;
 
 /** The colours as they should look, and as a light map paints them. */
@@ -18,6 +20,7 @@ const LIGHT_MAP_LAYER_COLORS: MapLayerColors = {
   clusterText: "#000",
   point: "#11b4da",
   pointStroke: "#fff",
+  place: "#228be6",
 };
 
 /**
@@ -33,6 +36,7 @@ const DARK_MAP_LAYER_COLORS: MapLayerColors = {
   clusterText: "#fff",
   point: "#007096",
   pointStroke: "#000",
+  place: "#1287f1",
 };
 
 /** The colours to paint the layers with on a map in this colour scheme. */

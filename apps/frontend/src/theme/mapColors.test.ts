@@ -49,6 +49,7 @@ const entries = (colors: MapLayerColors): Array<[string, string]> => [
   ["clusterText", colors.clusterText],
   ["point", colors.point],
   ["pointStroke", colors.pointStroke],
+  ["place", colors.place],
 ];
 
 // How far each dark colour may land from its light one. The filter cannot reach a bright yellow

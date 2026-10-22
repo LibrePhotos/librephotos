@@ -19,6 +19,7 @@ import { Route as ProtectedAlbumPersonsIdRouteImport } from "./routes/_protected
 import { Route as ProtectedAlbumPersonsIndexRouteImport } from "./routes/_protected/album/persons.index";
 import { Route as ProtectedAlbumPlacesIdRouteImport } from "./routes/_protected/album/places.$id";
 import { Route as ProtectedAlbumPlacesIndexRouteImport } from "./routes/_protected/album/places.index";
+import { Route as ProtectedAlbumPlacesMineIdRouteImport } from "./routes/_protected/album/places.mine.$id";
 import { Route as ProtectedAlbumTagsIdRouteImport } from "./routes/_protected/album/tags.$id";
 import { Route as ProtectedAlbumTagsIndexRouteImport } from "./routes/_protected/album/tags.index";
 import { Route as ProtectedAlbumThingsIdRouteImport } from "./routes/_protected/album/things.$id";
@@ -394,6 +395,11 @@ const PasswordResetConfirmUidTokenRoute = PasswordResetConfirmUidTokenRouteImpor
   path: "/password-reset/confirm/$uid/$token",
   getParentRoute: () => rootRouteImport,
 } as any);
+const ProtectedAlbumPlacesMineIdRoute = ProtectedAlbumPlacesMineIdRouteImport.update({
+  id: "/album/places/mine/$id",
+  path: "/album/places/mine/$id",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedSharingWithmePeoplePersonIdRoute = ProtectedSharingWithmePeoplePersonIdRouteImport.update({
   id: "/sharing/withme/people/$personId",
   path: "/sharing/withme/people/$personId",
@@ -474,6 +480,7 @@ export interface FileRoutesByFullPath {
   "/album/tags/": typeof ProtectedAlbumTagsIndexRoute;
   "/album/things/": typeof ProtectedAlbumThingsIndexRoute;
   "/album/user/": typeof ProtectedAlbumUserIndexRoute;
+  "/album/places/mine/$id": typeof ProtectedAlbumPlacesMineIdRoute;
   "/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
   "/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
   "/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   "/album/tags": typeof ProtectedAlbumTagsIndexRoute;
   "/album/things": typeof ProtectedAlbumThingsIndexRoute;
   "/album/user": typeof ProtectedAlbumUserIndexRoute;
+  "/album/places/mine/$id": typeof ProtectedAlbumPlacesMineIdRoute;
   "/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
   "/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
   "/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
@@ -610,6 +618,7 @@ export interface FileRoutesById {
   "/_protected/album/tags/": typeof ProtectedAlbumTagsIndexRoute;
   "/_protected/album/things/": typeof ProtectedAlbumThingsIndexRoute;
   "/_protected/album/user/": typeof ProtectedAlbumUserIndexRoute;
+  "/_protected/album/places/mine/$id": typeof ProtectedAlbumPlacesMineIdRoute;
   "/_protected/sharing/withme/people/$personId": typeof ProtectedSharingWithmePeoplePersonIdRoute;
   "/_protected/sharing/withme/places/$title": typeof ProtectedSharingWithmePlacesTitleRoute;
   "/_protected/sharing/withme/things/$title": typeof ProtectedSharingWithmeThingsTitleRoute;
@@ -680,6 +689,7 @@ export interface FileRouteTypes {
     | "/album/tags/"
     | "/album/things/"
     | "/album/user/"
+    | "/album/places/mine/$id"
     | "/sharing/withme/people/$personId"
     | "/sharing/withme/places/$title"
     | "/sharing/withme/things/$title";
@@ -746,6 +756,7 @@ export interface FileRouteTypes {
     | "/album/tags"
     | "/album/things"
     | "/album/user"
+    | "/album/places/mine/$id"
     | "/sharing/withme/people/$personId"
     | "/sharing/withme/places/$title"
     | "/sharing/withme/things/$title";
@@ -815,6 +826,7 @@ export interface FileRouteTypes {
     | "/_protected/album/tags/"
     | "/_protected/album/things/"
     | "/_protected/album/user/"
+    | "/_protected/album/places/mine/$id"
     | "/_protected/sharing/withme/people/$personId"
     | "/_protected/sharing/withme/places/$title"
     | "/_protected/sharing/withme/things/$title";
@@ -1279,6 +1291,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof PasswordResetConfirmUidTokenRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/_protected/album/places/mine/$id": {
+      id: "/_protected/album/places/mine/$id";
+      path: "/album/places/mine/$id";
+      fullPath: "/album/places/mine/$id";
+      preLoaderRoute: typeof ProtectedAlbumPlacesMineIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
     "/_protected/sharing/withme/people/$personId": {
       id: "/_protected/sharing/withme/people/$personId";
       path: "/sharing/withme/people/$personId";
@@ -1368,6 +1387,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedAlbumTagsIndexRoute: typeof ProtectedAlbumTagsIndexRoute;
   ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute;
   ProtectedAlbumUserIndexRoute: typeof ProtectedAlbumUserIndexRoute;
+  ProtectedAlbumPlacesMineIdRoute: typeof ProtectedAlbumPlacesMineIdRoute;
   ProtectedSharingWithmePeoplePersonIdRoute: typeof ProtectedSharingWithmePeoplePersonIdRoute;
   ProtectedSharingWithmePlacesTitleRoute: typeof ProtectedSharingWithmePlacesTitleRoute;
   ProtectedSharingWithmeThingsTitleRoute: typeof ProtectedSharingWithmeThingsTitleRoute;
@@ -1426,6 +1446,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumTagsIndexRoute: ProtectedAlbumTagsIndexRoute,
   ProtectedAlbumThingsIndexRoute: ProtectedAlbumThingsIndexRoute,
   ProtectedAlbumUserIndexRoute: ProtectedAlbumUserIndexRoute,
+  ProtectedAlbumPlacesMineIdRoute: ProtectedAlbumPlacesMineIdRoute,
   ProtectedSharingWithmePeoplePersonIdRoute: ProtectedSharingWithmePeoplePersonIdRoute,
   ProtectedSharingWithmePlacesTitleRoute: ProtectedSharingWithmePlacesTitleRoute,
   ProtectedSharingWithmeThingsTitleRoute: ProtectedSharingWithmeThingsTitleRoute,

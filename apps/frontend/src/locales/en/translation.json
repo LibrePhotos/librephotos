@@ -2011,6 +2011,8 @@
       "withPeople": "{{when}} with {{people}}",
       "inPlaces": "{{when}} in {{places}}",
       "withPeopleInPlaces": "{{when}} with {{people}} in {{places}}",
+      "atPlace": "{{when}} at {{place}}",
+      "withPeopleAtPlace": "{{when}} with {{people}} at {{place}}",
       "fallback": "Album from {{date}}"
     }
   },
@@ -2637,7 +2639,12 @@
     "photosrenamedfailed_one": "{{count}} photo could not be renamed: its files kept their old name.",
     "photosrenamedfailed_other": "{{count}} photos could not be renamed: their files kept their old names.",
     "photosrenamefailed": "The photos could not be renamed.",
-    "scanuserphotos": "Scanning {{username}}'s photos. Follow it in Worker Logs."
+    "scanuserphotos": "Scanning {{username}}'s photos. Follow it in Worker Logs.",
+    "saveuserplace_one": "{{count}} photo is in {{name}} now.",
+    "saveuserplace_other": "{{count}} photos are in {{name}} now.",
+    "saveuserplacetitle": "{{name}} saved",
+    "deleteuserplace": "{{name}} is deleted. Its photos stay in your library.",
+    "deleteuserplacetitle": "Place deleted"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -3791,5 +3798,56 @@
     "nothing": "There is nothing new to show for this version.",
     "done": "Close",
     "versionlabel": "Version {{version}}, what's new"
+  },
+  "yourplaces": {
+    "title": "Your places",
+    "inView": "Places in view",
+    "add": "Add place",
+    "edit": "Edit place",
+    "delete": "Delete place",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteMessage_one": "The photo in {{name}} stays in your library and keeps its place names from the map. Events already named after {{name}} keep their titles until event titles are generated again.",
+    "deleteMessage_other": "The {{count}} photos in {{name}} stay in your library and keep their place names from the map. Events already named after {{name}} keep their titles until event titles are generated again.",
+    "mapsOff": "Maps are turned off in Site Settings",
+    "drawing": "Save or cancel the place you are drawing first",
+    "metres_one": "{{count}} m",
+    "metres_other": "{{count}} m",
+    "tileCaption_one": "{{count}} photo · {{radius}} m",
+    "tileCaption_other": "{{count}} photos · {{radius}} m",
+    "pageSubtitle": "Your place · {{radius}} m around its centre",
+    "yourPlace": "Your place",
+    "icon": {
+      "pin": "Pin",
+      "home": "Home",
+      "work": "Work",
+      "school": "School",
+      "heart": "Heart",
+      "star": "Star"
+    },
+    "editor": {
+      "newTitle": "New place",
+      "editTitle": "Edit place",
+      "hint": "Click the map to set the centre. Then drag the white dot on the edge, or the slider, to change the size.",
+      "name": "Name",
+      "nameRequired": "Give the place a name",
+      "nameTaken": "You already have a place called {{name}}",
+      "radius": "Radius",
+      "icon": "Icon",
+      "useInTitles": "Use the name in event titles",
+      "useInTitlesHint": "“Sunday at Home” instead of “Sunday in Munich”",
+      "save": "Save place",
+      "centreRequired": "Click the map to set the centre first",
+      "dragEdge": "Drag to change the size"
+    },
+    "preview": {
+      "count_one": "{{count}} photo was taken inside",
+      "count_other": "{{count}} photos were taken inside",
+      "counting": "Counting photos…",
+      "failed": "The photos inside could not be counted",
+      "overlapSmaller_one": "{{count}} photo is inside {{name}} too. It shows {{name}}, the smaller place.",
+      "overlapSmaller_other": "{{count}} photos are inside {{name}} too. They show {{name}}, the smaller place.",
+      "overlapLarger_one": "{{count}} photo is inside {{name}} too. It shows this place, the smaller one.",
+      "overlapLarger_other": "{{count}} photos are inside {{name}} too. They show this place, the smaller one."
+    }
   }
 }

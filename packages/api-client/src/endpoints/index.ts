@@ -726,6 +726,61 @@ export async function setPersonGroups(
   return parseResponse(S.PersonGroupsResponse, res, "set person groups");
 }
 
+/* ---- your places (#1365) ----------------------------------------------- */
+
+/** What a place is drawn and named as: the circle, the name, the icon and the event titles switch. */
+export type UserPlaceFields = Pick<
+  S.UserPlace,
+  "name" | "icon" | "center_lat" | "center_lon" | "radius_m" | "use_in_titles"
+>;
+
+/** A circle being drawn, and the place it edits (left out for a new one). */
+export type UserPlaceCircle = { lat: number; lon: number; radiusM: number; exclude?: number };
+
+/** My places by name, with their photo counts; all pages. */
+export async function fetchUserPlaces(client: ApiClient): Promise<S.UserPlace[]> {
+  const results = await fetchAllPages(client, "/user-places/");
+  return parseResponse(S.UserPlaceList, { results }, "user places").results;
+}
+
+/** Draw a place (ApiError 400 `unique` for a name I use in any case, `too_many_places` past the limit). */
+export async function createUserPlace(client: ApiClient, fields: UserPlaceFields): Promise<S.UserPlace> {
+  const res = await client.post<unknown>("/user-places/", fields);
+  return parseResponse(S.UserPlace, res, "create user place");
+}
+
+/** Change a place; my photos are filed into the places they were taken in again. */
+export async function updateUserPlace(
+  client: ApiClient,
+  placeId: number,
+  fields: Partial<UserPlaceFields>
+): Promise<S.UserPlace> {
+  const res = await client.patch<unknown>(`/user-places/${placeId}/`, fields);
+  return parseResponse(S.UserPlace, res, "update user place");
+}
+
+/** Delete a place; its photos stay. Answers 204. */
+export async function deleteUserPlace(client: ApiClient, placeId: number): Promise<void> {
+  await client.delete(`/user-places/${placeId}/`);
+}
+
+/** How many of my photos a circle being drawn holds, the newest few, and my places it overlaps. */
+export async function fetchUserPlacePreview(client: ApiClient, circle: UserPlaceCircle): Promise<S.UserPlacePreview> {
+  const query = buildQuery({ lat: circle.lat, lon: circle.lon, radius_m: circle.radiusM, exclude: circle.exclude });
+  const res = await client.get<unknown>(`/user-places/preview/${query}`);
+  return parseResponse(S.UserPlacePreview, res, "user place preview");
+}
+
+/** A place's photos by day, newest first; `filter` narrows them to photos or videos. */
+export async function fetchUserPlacePhotos(
+  client: ApiClient,
+  placeId: number,
+  filter: AlbumMediaFilter = {}
+): Promise<S.UserPlacePhotos> {
+  const res = await client.get<unknown>(`/user-places/${placeId}/photos/${buildQuery(albumMediaQuery(filter))}`);
+  return parseResponse(S.UserPlacePhotos, res, "user place photos");
+}
+
 /* ---- search ------------------------------------------------------------ */
 
 /**

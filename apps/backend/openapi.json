@@ -12495,6 +12495,356 @@
         }
       }
     },
+    "/api/user-places/": {
+      "get": {
+        "operationId": "api_user_places_list",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUserPlaceList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_user_places_create",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user-places/{id}/": {
+      "get": {
+        "operationId": "api_user_places_retrieve",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "api_user_places_partial_update",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_user_places_destroy",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/user-places/{id}/photos/": {
+      "get": {
+        "operationId": "api_user_places_photos_retrieve",
+        "description": "The place's visible photos, by day, newest first.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlacePhotos"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user-places/preview/": {
+      "get": {
+        "operationId": "api_user_places_preview_retrieve",
+        "description": "How many of the requester's photos were taken inside a circle being\ndrawn, the newest few, and the places that share some of them.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "exclude",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The place being edited, left out of the overlaps"
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Centre, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Centre, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            },
+            "description": "Radius in metres (25 to 2000)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlacePreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/{id}/": {
       "get": {
         "operationId": "api_user_retrieve",
@@ -15976,6 +16326,12 @@
             "type": "string",
             "readOnly": true,
             "description": "The album's grouping date, YYYY-MM-DD"
+          },
+          "user_place": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true,
+            "description": "The id of the owner's place most photos were taken in, for \"<when> at <place>\" (#1365); only the owner's own places name it. Null without one, or before the titles are regenerated"
           }
         },
         "required": [
@@ -15984,6 +16340,7 @@
           "places",
           "span_days",
           "time_of_day",
+          "user_place",
           "weekday",
           "weekend"
         ]
@@ -18786,6 +19143,54 @@
           }
         }
       },
+      "PaginatedUserPlaceList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserPlace"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PasswordResetConfirmRequestRequest": {
         "type": "object",
         "description": "The emailed link's ``uid`` and ``token`` plus the new password.\n\nA missing, blank or null parameter is one error with the code\n``missing_parameters``, not a per-field one: the web client branches on it.",
@@ -19241,6 +19646,43 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512
+          }
+        }
+      },
+      "PatchedUserPlaceRequest": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
           }
         }
       },
@@ -21521,6 +21963,31 @@
         "required": [
           "count",
           "place"
+        ]
+      },
+      "PreviewOverlap": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos inside both"
+          },
+          "smaller": {
+            "type": "boolean",
+            "description": "That place is the smaller one, so the photos inside both show it"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "photo_count",
+          "smaller"
         ]
       },
       "ProcessingStage": {
@@ -26325,6 +26792,179 @@
         },
         "required": [
           "collection_ids"
+        ]
+      },
+      "UserPlace": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
+          },
+          "photo_count": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "The visible photos taken inside it"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoHashList"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "center_lat",
+          "center_lon",
+          "cover_photos",
+          "icon",
+          "id",
+          "name",
+          "photo_count",
+          "radius_m",
+          "use_in_titles"
+        ]
+      },
+      "UserPlaceIconEnum": {
+        "enum": [
+          "pin",
+          "home",
+          "work",
+          "school",
+          "heart",
+          "star"
+        ],
+        "type": "string",
+        "description": "* `pin` - Pin\n* `home` - Home\n* `work` - Work\n* `school` - School\n* `heart` - Heart\n* `star` - Star"
+      },
+      "UserPlacePhotos": {
+        "type": "object",
+        "description": "A place's visible photos by day, for its page: prefetched newest first\nwith the photo summary relations (the view does it).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "grouped_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupedPhotos"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "grouped_photos",
+          "id",
+          "name"
+        ]
+      },
+      "UserPlacePreview": {
+        "type": "object",
+        "description": "What the circle would hold.",
+        "properties": {
+          "photo_count": {
+            "type": "integer",
+            "description": "The visible photos taken inside the circle"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoHashList"
+            },
+            "description": "The newest few"
+          },
+          "overlaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreviewOverlap"
+            },
+            "description": "Your other places that share some of these photos"
+          }
+        },
+        "required": [
+          "cover_photos",
+          "overlaps",
+          "photo_count"
+        ]
+      },
+      "UserPlaceRequest": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "center_lat",
+          "center_lon",
+          "name",
+          "radius_m"
         ]
       },
       "UserStats": {
