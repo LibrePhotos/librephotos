@@ -355,12 +355,11 @@ def _discover_scan_paths(
     """Collect every candidate file path, either from an explicit list or a walk.
 
     Also returns the subdirectories the walk had to skip because they could
-    not be listed.
+    not be listed. A folder in the explicit list is walked (#2727).
     """
     photo_list: list[str] = []
     if scan_files:
-        walk_files(scan_files, photo_list)
-        return photo_list, []
+        return photo_list, walk_files(scan_files, photo_list)
     return photo_list, walk_directory(scan_directory, photo_list)
 
 

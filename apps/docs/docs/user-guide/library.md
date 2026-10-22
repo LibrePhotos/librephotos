@@ -251,8 +251,9 @@ python manage.py scan -f
 
 # Scan specific files, given by full path; each file goes to every user whose
 # scan directory contains it (normally exactly one; /data/alice2/x.jpg is not
-# in /data/alice), and a file outside every scan directory is ignored
-python manage.py scan -s /path/to/file.jpg
+# in /data/alice), and a file outside every scan directory is ignored.
+# Since 1.5.0 a folder is scanned too, with its subfolders
+python manage.py scan -s /path/to/file.jpg /path/to/folder
 
 # Scan Nextcloud directories for every user that has one configured
 # (users without a Nextcloud scan directory are skipped; -n cannot be combined with -f or -s)

@@ -11,7 +11,7 @@ import enum
 import logging
 import os
 import shutil
-from collections.abc import Callable, Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from django.db import transaction
@@ -28,14 +28,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def missing_files(photo: Photo) -> list[File]:
+def missing_files(photo: Photo, among: Container[str] | None = None) -> list[File]:
     """The photo's files that are gone from disk.
 
     A file whose own path is gone but which has an exact copy on disk (a
     ``FileCopy``, #2417) is not missing: the copy takes the file over here,
     as the next scan would, so the photo is not flagged missing meanwhile.
+    ``among``: only look at the files at these paths (#2728).
     """
-    return [file for file in photo.files.all() if not _on_disk(file)]
+    return [
+        file
+        for file in photo.files.all()
+        if (among is None or file.path in among) and not _on_disk(file)
+    ]
 
 
 def _on_disk(file: File) -> bool:

@@ -129,9 +129,15 @@ export const RescanPhotosResponse = JobStartedResponse.extend({
 });
 export type RescanPhotosResponse = z.infer<typeof RescanPhotosResponse>;
 
-/** `POST /scan-files/`: the scan of the files an outside process named (#900), and the paths it left out. */
+/**
+ * `POST /scan-files/`: the scan of the files and folders an outside process named (#900, #2727), the
+ * files of its removed paths that were detached (#2728), and the paths it left out. `job_id` is null
+ * when only removed paths were named.
+ */
 export const ScanFilesResponse = JobStartedResponse.extend({
+  job_id: z.string().nullable(),
   file_count: z.number(),
+  removed_count: z.number(),
   ignored_paths: z.array(z.string()),
 });
 export type ScanFilesResponse = z.infer<typeof ScanFilesResponse>;
