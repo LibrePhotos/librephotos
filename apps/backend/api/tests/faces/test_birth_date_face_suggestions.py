@@ -24,7 +24,7 @@ from api.faces.classify import (
     _Classifiers,
     assign_face_predictions,
     classify_face_page,
-    most_probable_born_class,
+    likeliest_class,
 )
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import get_unknown_cluster
@@ -84,21 +84,17 @@ class UnbornPeopleTest(TestCase):
         )
 
 
-class MostProbableBornClassTest(TestCase):
-    def test_nobody_unborn_is_the_plain_pick(self) -> None:
-        self.assertEqual(
-            most_probable_born_class([1, 2], [0.7, 0.3], frozenset()), (1, 0.7)
-        )
+class LikeliestClassTest(TestCase):
+    def test_the_most_probable_class(self) -> None:
+        self.assertEqual(likeliest_class([1, 2], [0.7, 0.3]), (1, 0.7))
 
     def test_the_next_likeliest_person_wins_over_an_unborn_one(self) -> None:
-        self.assertEqual(
-            most_probable_born_class([1, 2, 3], [0.7, 0.2, 0.1], {1}), (2, 0.2)
-        )
+        masked = without_unborn([1, 2, 3], [0.7, 0.2, 0.1], {1})
+
+        self.assertEqual(likeliest_class([1, 2, 3], masked), (2, 0.2))
 
     def test_nobody_left_is_no_suggestion(self) -> None:
-        self.assertEqual(
-            most_probable_born_class([1, 2], [0.7, 0.3], {1, 2}), (None, 0.0)
-        )
+        self.assertEqual(likeliest_class([1, 2], [0.0, 0.0]), (None, 0.0))
 
 
 class AssignFacePredictionsTest(TestCase):
@@ -135,14 +131,14 @@ class AssignFacePredictionsTest(TestCase):
         taken: datetime.datetime | None,
         birth_dates: dict[int, datetime.date] | None = None,
     ) -> None:
+        # As classify_face_page does for each face
         classifiers = self.classifiers(birth_dates)
+        unborn = unborn_people(classifiers.birth_dates, taken)
         assign_face_predictions(
             self.face,
-            cluster,
-            classification,
+            *classifiers.born_only(unborn, cluster, classification),
             classifiers,
             classifiers.predicted_persons(),
-            taken,
         )
 
     def test_an_unborn_person_is_not_suggested_the_next_one_is(self) -> None:
@@ -192,6 +188,20 @@ class AssignFacePredictionsTest(TestCase):
         self.assertEqual(self.face.classification_probability, 0.0)
         self.assertIsNone(self.face.cluster_person)
         self.assertEqual(self.face.cluster_probability, 0.0)
+
+
+class BornOnlyTest(TestCase):
+    def test_without_a_person_classifier_only_the_cluster_row_is_masked(self) -> None:
+        classifiers = _Classifiers(
+            person=None,
+            cluster=stub_classifier([1, 2]),
+            unknown_cluster=get_unknown_cluster(user=create_test_user()),
+        )
+
+        self.assertEqual(
+            classifiers.born_only({1}, [0.6, 0.4], [0.0, 0.0]),
+            ([0.0, 0.4], [0.0, 0.0]),
+        )
 
 
 class BirthDatesOfTest(TestCase):

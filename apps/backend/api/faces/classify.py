@@ -407,20 +407,12 @@ def most_probable_class(
     return highest_class, highest_probability
 
 
-def most_probable_born_class(
-    classes: Sequence[int],
-    probabilities: Sequence[float] | npt.NDArray[float64],
-    unborn: Collection[int],
+def likeliest_class(
+    classes: Sequence[int], probabilities: Sequence[float] | npt.NDArray[float64]
 ) -> tuple[int | None, float]:
-    """``most_probable_class`` among the people born by the photo's date (#2752).
-
-    None when every class left has no chance: the face gets no suggestion.
-    """
-    if not unborn:
-        return most_probable_class(classes, probabilities)
-    person_id, probability = most_probable_class(
-        classes, without_unborn(classes, probabilities, unborn)
-    )
+    """``most_probable_class``, or None when no class has a chance: every one
+    was ruled out (people born after the photo, #2752), so no suggestion."""
+    person_id, probability = most_probable_class(classes, probabilities)
     if probability <= 0:
         return None, 0.0
     return person_id, probability
@@ -450,6 +442,26 @@ class _Classifiers:
             classes.update(int(class_id) for class_id in self.person.classes_)
         return Person.objects.in_bulk(classes)
 
+    def born_only(
+        self,
+        unborn: Collection[int],
+        cluster_probabilities: Sequence[float] | npt.NDArray[float64],
+        classification_probabilities: Sequence[float] | npt.NDArray[float64],
+    ) -> tuple[
+        Sequence[float] | npt.NDArray[float64], Sequence[float] | npt.NDArray[float64]
+    ]:
+        """Both rows of probabilities with the ``unborn`` people at 0 (#2752)"""
+        if not unborn:
+            return cluster_probabilities, classification_probabilities
+        if self.person is not None:
+            classification_probabilities = without_unborn(
+                self.person.classes_, classification_probabilities, unborn
+            )
+        return (
+            without_unborn(self.cluster.classes_, cluster_probabilities, unborn),
+            classification_probabilities,
+        )
+
 
 def existing_prediction(
     persons: Mapping[int, Person], person_id: int | None, probability: float
@@ -468,27 +480,21 @@ def assign_face_predictions(
     classification_probabilities: Sequence[float] | npt.NDArray[float64],
     classifiers: _Classifiers,
     persons: Mapping[int, Person],
-    taken: datetime.datetime | None = None,
 ) -> None:
-    """Suggest a person for ``face``, whose photo was taken at ``taken``: never
-    one born after it (#2752)."""
     face.cluster_probability = 0.0
     face.classification_probability = 0.0
-    unborn = unborn_people(classifiers.birth_dates, taken)
 
     # Find the probability in the probability array corresponding to the person
     # that we currently believe the face is, even a simulated "unknown" person
     if face.cluster_id != classifiers.unknown_cluster.id:
         face.cluster_person, face.cluster_probability = existing_prediction(
             persons,
-            *most_probable_born_class(
-                classifiers.cluster.classes_, cluster_probabilities, unborn
-            ),
+            *likeliest_class(classifiers.cluster.classes_, cluster_probabilities),
         )
 
     if classifiers.person:
-        classification_person, classification_probability = most_probable_born_class(
-            classifiers.person.classes_, classification_probabilities, unborn
+        classification_person, classification_probability = likeliest_class(
+            classifiers.person.classes_, classification_probabilities
         )
         if classification_person is None:
             face.classification_person = None
@@ -534,13 +540,15 @@ def classify_face_page(
         face = faces_by_id.get(face_id)
         if face is None:
             continue
+        # Never a person born after the photo was taken (#2752)
+        unborn = unborn_people(classifiers.birth_dates, taken_by_face.get(face_id))
         assign_face_predictions(
             face,
-            cluster_probabilities,
-            classification_probabilities,
+            *classifiers.born_only(
+                unborn, cluster_probabilities, classification_probabilities
+            ),
             classifiers,
             persons,
-            taken_by_face.get(face_id),
         )
         face_stack.append(face)
         if commit_time < datetime.datetime.now():
