@@ -150,6 +150,11 @@ class User(AbstractUser):
     )
     default_creator = models.CharField(max_length=200, blank=True, default="")
     default_copyright = models.TextField(blank=True, default="")
+    # Whether this user's public photos are in the public gallery (#434), the
+    # one page of every taking-part user's public photos that the server's
+    # address opens when the admin turns it on. Off until the user opts in;
+    # their public photos keep working on their own links either way.
+    in_public_gallery = models.BooleanField(default=False)
 
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)

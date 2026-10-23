@@ -282,7 +282,7 @@ class PublicTimelineIgnoresViewerDefaultTest(TestCase):
     """Bob's saved default never filters Alice's public timeline."""
 
     def test_public_list_and_day(self):
-        alice = create_test_user()
+        alice = create_test_user(public_sharing=True)
         bob = create_test_user(default_timeline_filter={"hide_screenshots": True})
         now = timezone.now()
         day = create_test_album_date(owner=alice, date=now.date())

@@ -2,7 +2,8 @@
  * A full load of a signed-in page painted a lone spinner in the top-left corner of an empty page
  * before the header and menu appeared (#2238): the protected layout waited for a "query" that only
  * reads a cookie. The first render must be the app shell for a signed-in user, and the redirect to
- * /login for anyone else.
+ * /login for anyone else. At the server's address itself, a visitor gets the public gallery when the
+ * admin opened it to everyone (#434), and the login page as before otherwise.
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
@@ -20,6 +21,8 @@ const stubs = vi.hoisted(() => ({
   navigateProps: vi.fn<(props: Record<string, unknown>) => void>(),
   // What each render of the layout put on screen, in order.
   painted: [] as string[],
+  // The anonymous site settings: undefined while they load.
+  settings: undefined as { public_gallery?: string } | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -45,6 +48,9 @@ vi.mock("../../components/menubars/TopMenu", () => ({
     stubs.painted.push("shell");
     return <div data-testid="top-menu" />;
   },
+}));
+vi.mock("../../api_client/settings/hooks", () => ({
+  useGetSettingsQuery: () => ({ data: stubs.settings, isPending: stubs.settings === undefined }),
 }));
 vi.mock("../../components/menubars/SideMenuNarrow", () => ({ SideMenuNarrow: () => null }));
 vi.mock("../../components/menubars/FooterMenu", () => ({ FooterMenu: () => null }));
@@ -80,6 +86,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  stubs.settings = { public_gallery: "off" };
   stubs.painted = [];
   stubs.navigateProps.mockReset();
   clearAuthCookies();
@@ -133,5 +140,42 @@ describe("protected layout", () => {
     expect(stubs.navigateProps).toHaveBeenCalledWith(
       expect.objectContaining({ to: "/login", search: { redirect: "/photos?tab=all" }, replace: true })
     );
+  });
+
+  it("opens the public gallery at / for a visitor when it is open to everyone (#434)", async () => {
+    window.history.replaceState(null, "", "/");
+    stubs.settings = { public_gallery: "everyone" };
+    await renderLayout();
+
+    expect(stubs.navigateProps).toHaveBeenCalledWith(expect.objectContaining({ to: "/public", replace: true }));
+  });
+
+  it("keeps / the login page while the gallery is off or members only", async () => {
+    window.history.replaceState(null, "", "/");
+    for (const stage of ["off", "members"]) {
+      stubs.navigateProps.mockReset();
+      stubs.settings = { public_gallery: stage };
+      await renderLayout();
+      expect(stubs.navigateProps).toHaveBeenCalledWith(
+        expect.objectContaining({ to: "/login", search: { redirect: "/" }, replace: true })
+      );
+      await act(async () => root?.unmount());
+    }
+  });
+
+  it("decides nothing at / before the settings are in", async () => {
+    window.history.replaceState(null, "", "/");
+    stubs.settings = undefined;
+    await renderLayout();
+
+    expect(stubs.navigateProps).not.toHaveBeenCalled();
+    expect(stubs.painted).not.toContain("loader");
+  });
+
+  it("sends a visitor elsewhere to /login whatever the gallery", async () => {
+    stubs.settings = { public_gallery: "everyone" };
+    await renderLayout();
+
+    expect(stubs.navigateProps).toHaveBeenCalledWith(expect.objectContaining({ to: "/login" }));
   });
 });

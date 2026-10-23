@@ -158,7 +158,8 @@ class PublicViewQuery(serializers.Serializer[None]):
     """
 
     public = serializers.BooleanField(
-        default=False, help_text="The public view: public photos of any user"
+        default=False,
+        help_text="The public view: one user's public photos (with username)",
     )
 
 
@@ -173,7 +174,9 @@ class DateAlbumFilterQuery(PublicViewQuery):
         default="",
         allow_blank=True,
         trim_whitespace=False,
-        help_text="With public: only this user's public photos",
+        help_text="With public (required there): whose public photos. The "
+        "public view is per user and needs their public profile on; everyone's "
+        "public photos together are the public gallery (/api/gallery/)",
     )
     hidden = serializers.BooleanField(
         default=False, help_text="Hidden photos instead of the visible ones"

@@ -305,6 +305,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "public_gallery": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("off", "Off"),
+                ("members", "Members only (signed-in users)"),
+                ("everyone", "Everyone"),
+            ),
+        },
+    ],
     "captioning_model": [
         "django.forms.fields.ChoiceField",
         {
@@ -465,6 +476,21 @@ CONSTANCE_CONFIG = {
         " with photos.",
         bool,
     ),
+    # The public gallery (#434, api/sharing/gallery.py): the public photos of
+    # every user who takes part, at the server's address.
+    "PUBLIC_GALLERY": (
+        "off",
+        "Public gallery: one page of the public photos of every user who takes"
+        " part, opened by the server's address. Off, members only (signed-in"
+        " users), or everyone, without an account.",
+        "public_gallery",
+    ),
+    "PUBLIC_GALLERY_INDEXABLE": (
+        False,
+        "Let search engines index the public gallery. Off: its pages and"
+        " answers carry noindex.",
+        bool,
+    ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "exiftool"),
         "Map Provider",
@@ -598,6 +624,9 @@ DEFAULT_THROTTLE_RATES: dict[str, str] = {
     # Sign-in (per address and username), sign-up, password reset confirm.
     "auth": env_str("AUTH_THROTTLE_RATE", "10/minute"),
     "token_refresh": env_str("TOKEN_REFRESH_THROTTLE_RATE", "60/minute"),
+    # The public gallery's answers, per user or, without an account, per
+    # address (#434).
+    "public_gallery": env_str("PUBLIC_GALLERY_THROTTLE_RATE", "300/minute"),
 }
 
 REST_FRAMEWORK = {

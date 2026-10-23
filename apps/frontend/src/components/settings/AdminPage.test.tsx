@@ -86,6 +86,7 @@ vi.mock("./FeaturesCard", () => ({ FeaturesCard: () => null }));
 vi.mock("./ServerLogsCard", () => ({ ServerLogsCard: () => null }));
 vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
+vi.mock("./PublicGallerySetting", () => ({ PublicGallerySetting: () => null }));
 vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
 vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
 vi.mock("./DeduplicateFacesTool", () => ({ DeduplicateFacesTool: () => "deduplicate-faces-tool" }));
@@ -185,6 +186,7 @@ describe("AdminPage", () => {
     // admin-email is inside EmailSettings (mocked here); EmailSettings.test checks it.
     for (const id of [
       "admin-site",
+      "admin-gallery",
       "admin-features",
       "admin-tools",
       "admin-logs",
@@ -197,6 +199,7 @@ describe("AdminPage", () => {
     const toc = defined(container.querySelector("nav"), "the section navigation");
     expect([...toc.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual([
       "#admin-site",
+      "#admin-gallery",
       "#admin-features",
       "#admin-email",
       "#admin-tools",

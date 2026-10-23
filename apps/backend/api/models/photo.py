@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
@@ -13,6 +13,7 @@ from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.library_share import LibraryShare
 from api.models.photo_stack import PhotoStack
+from api.models.place_names import town_name
 from api.models.scopes import SharedOwnedQuerySet
 from api.models.user import User, get_deleted_user
 
@@ -167,6 +168,15 @@ def restore_photos(photos: QuerySet[Photo]) -> int:
     )
 
 
+# ``Photo.town``: longer town names are cut (none comes close).
+TOWN_MAX_LENGTH = 200
+
+
+def photo_town(geolocation_json: object) -> str:
+    """``Photo.town`` for a place: its ``town_name``, "" without one."""
+    return (town_name(geolocation_json) or "")[:TOWN_MAX_LENGTH]
+
+
 # Large per-photo columns that list endpoints never render: defer them when a
 # query loads whole photos only to show a cover or a hash.
 HEAVY_PHOTO_COLUMNS = ("clip_embeddings", "exif_json", "geolocation_json")
@@ -258,6 +268,13 @@ class Photo(models.Model):
     exif_json = models.JSONField(blank=True, null=True)
 
     geolocation_json = models.JSONField(blank=True, null=True, db_index=True)
+    # The town of ``geolocation_json`` (``town_name``), "" without one. Kept
+    # with it by ``save`` (also a save of ``update_fields`` that names
+    # geolocation_json) and by a ``bulk_update`` that writes both; the public
+    # gallery (#434) groups and filters by it without reading every place.
+    town = models.CharField(
+        max_length=TOWN_MAX_LENGTH, blank=True, default="", db_index=True
+    )
 
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
@@ -384,6 +401,14 @@ class Photo(models.Model):
                 return None
 
         return self.clip_embeddings
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        # The town goes with the place it is read from, never on its own.
+        self.town = photo_town(self.geolocation_json)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "geolocation_json" in update_fields:
+            kwargs["update_fields"] = [*update_fields, "town"]
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         main_file_path = (

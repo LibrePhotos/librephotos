@@ -1,0 +1,23 @@
+/* One row of chips that scrolls sideways on a phone instead of wrapping. */
+.chips {
+  max-width: 100%;
+}
+
+.activeFilter {
+  display: inline-flex;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-xl);
+  background-color: var(--mantine-color-default);
+}
+
+/* The tabs scroll sideways in one row on a phone, like Sharing > Shared with you. */
+.tabList {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList > * {
+  flex-shrink: 0;
+}

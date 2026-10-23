@@ -2,6 +2,7 @@ import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
+import { LoggedOutHome } from "../../components/gallery/LoggedOutHome";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
@@ -25,6 +26,8 @@ function AppShellProtected() {
   const { pathname, search } = window.location;
 
   if (!isAuthenticated) {
+    // The server's address opens the public gallery when the admin opened it to everyone (#434).
+    if (pathname === "/") return <LoggedOutHome redirect={pathname + search} />;
     return <Navigate to="/login" search={{ redirect: pathname + search }} replace />;
   }
 

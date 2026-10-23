@@ -19,6 +19,7 @@ import { ExperimentalOptionsCard } from "./ExperimentalOptionsCard";
 import { FaceOptionsCard } from "./FaceOptionsCard";
 import { InterfaceCard } from "./InterfaceCard";
 import { MetadataOptionsCard } from "./MetadataOptionsCard";
+import { PublicGalleryCard } from "./PublicGalleryCard";
 import { PublicSharingDefaultsCard } from "./PublicSharingDefaultsCard";
 import { RightsDefaultCard } from "./RightsDefaultCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
@@ -126,6 +127,7 @@ export function Settings() {
           <SettingsSection id={SETTINGS_SECTIONS.sharing}>
             <UserSharingCard {...cardProps} />
             <PublicSharingDefaultsCard {...cardProps} />
+            <PublicGalleryCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.interface}>
             <InterfaceCard {...cardProps} />

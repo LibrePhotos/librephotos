@@ -141,3 +141,16 @@ class AlbumCommentRateThrottle(UserRateThrottle):
 
     scope = "album_comment"
     rate = "30/minute"
+
+
+class PublicGalleryRateThrottle(UserRateThrottle):
+    """The public gallery's answers (#434): the ``public_gallery`` scope
+    (``PUBLIC_GALLERY_THROTTLE_RATE``), per signed-in user and, for visitors
+    without an account, per client address.
+
+    Not a credential throttle: it keeps one client from walking the whole
+    gallery's API in a loop. A visitor scrolling the timeline asks for a page
+    of photos per day on screen, so the rate stays well above that.
+    """
+
+    scope = "public_gallery"

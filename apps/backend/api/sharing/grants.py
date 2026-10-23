@@ -365,6 +365,11 @@ PUBLIC_SWITCHES: Final = {
 # The context key a view sets to the grant of the public page it renders (an
 # album link's own switches); without it the owner's defaults decide.
 PUBLIC_GRANT: Final = "public_grant"
+# The context key a view sets to the grants of a page of many owners' public
+# photos (the public gallery, #434): owner id -> that owner's ``public_grant``,
+# loaded with the owners in one query. An owner missing from it is shown with
+# every switch off.
+PUBLIC_OWNER_GRANTS: Final = "public_owner_grants"
 
 
 def public_grant(settings: Mapping[str, object] | None) -> LibraryGrant:
@@ -401,18 +406,27 @@ def either(a: LibraryGrant, b: LibraryGrant) -> LibraryGrant:
 class PublicLookup(GrantLookup):
     """Every photo as a visitor of a public page sees it, whoever asks.
 
-    ``grant`` is the page's own (an album link); without it each owner's
-    public sharing defaults decide, one query per owner.
+    ``grant`` is the page's own (an album link); ``owner_grants`` each
+    owner's, loaded beforehand (the public gallery); without either each
+    owner's public sharing defaults decide, one query per owner.
     """
 
-    def __init__(self, grant: LibraryGrant | None = None) -> None:
+    def __init__(
+        self,
+        grant: LibraryGrant | None = None,
+        owner_grants: Mapping[int, LibraryGrant] | None = None,
+    ) -> None:
         super().__init__(None)
         self._grant = grant
+        self._owner_grants = owner_grants
         self._owners: dict[int | None, LibraryGrant] = {}
 
     def for_owner(self, owner_id: int | None) -> LibraryGrant:
         if self._grant is not None:
             return self._grant
+        if self._owner_grants is not None:
+            known = self._owner_grants.get(owner_id) if owner_id is not None else None
+            return known if known is not None else public_grant(None)
         if owner_id not in self._owners:
             self._owners[owner_id] = owner_public_grant(owner_id)
         return self._owners[owner_id]
@@ -425,6 +439,9 @@ def _public_page_lookup(serializer: BaseSerializer) -> PublicLookup | None:
     fixed = serializer.context.get(PUBLIC_GRANT)
     if isinstance(fixed, LibraryGrant):
         return PublicLookup(fixed)
+    owner_grants = serializer.context.get(PUBLIC_OWNER_GRANTS)
+    if isinstance(owner_grants, Mapping):
+        return PublicLookup(owner_grants=owner_grants)
     if serializer.context.get("public") is True:
         return PublicLookup()
     request = serializer.context.get("request")

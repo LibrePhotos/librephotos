@@ -36,5 +36,6 @@ REST_FRAMEWORK = {
         **DEFAULT_THROTTLE_RATES,  # noqa: F405
         "auth": "100000/minute",
         "token_refresh": "100000/minute",
+        "public_gallery": "100000/minute",
     },
 }

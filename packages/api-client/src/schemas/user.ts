@@ -110,6 +110,9 @@ export const User = z.object({
   default_license: z.string().optional(),
   default_creator: z.string().optional(),
   default_copyright: z.string().optional(),
+  // Whether the user's public photos are in the public gallery (#434). Optional: older servers have
+  // no gallery.
+  in_public_gallery: z.boolean().optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
   // How the scroll scrubber beside a photo list looks. Optional: older servers do not send it, and

@@ -20,6 +20,7 @@ export const ADMIN_SECTIONS = {
   update: "admin-update",
   upgrade: "admin-upgrade",
   site: "admin-site",
+  gallery: "admin-gallery",
   features: "admin-features",
   email: "admin-email",
   tools: "admin-tools",

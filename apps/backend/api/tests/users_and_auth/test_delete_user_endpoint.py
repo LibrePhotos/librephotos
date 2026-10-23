@@ -360,7 +360,11 @@ class DeletedUsersPublicLinksTest(TestCase):
         for url, refused in self._public_urls().items():
             with self.subTest(url):
                 self.assertEqual(refused, self.anonymous.get(url).status_code)
-        self.assertEqual([], self._public_timeline("deleted"))
+        # The placeholder user has no public profile: no public view at all.
+        response = self.anonymous.get(
+            "/api/albums/date/list/", {"public": "true", "username": "deleted"}
+        )
+        self.assertEqual(404, response.status_code)
         self.assertFalse(Photo.objects.filter(public=True).exists())
         self.assertFalse(AlbumUserShare.objects.filter(enabled=True).exists())
         self.assertFalse(PhotoShare.objects.filter(enabled=True).exists())

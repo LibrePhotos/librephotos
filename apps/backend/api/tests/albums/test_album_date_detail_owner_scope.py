@@ -89,14 +89,18 @@ class AlbumDateDetailOwnerScopeTest(TestCase):
     def test_public_day_with_a_public_photo_stays_readable(self):
         public = create_test_photo(owner=self.victim, public=True)
         self.victim_day.photos.add(public)
+        self.victim.public_sharing = True
+        self.victim.save()
 
-        for params in (
-            {"public": "1"},
-            {"public": "1", "username": self.victim.username},
-        ):
-            with self.subTest(params=params):
-                response = self.client_for().get(self.url, params)
+        response = self.client_for().get(
+            self.url, {"public": "1", "username": self.victim.username}
+        )
 
-                self.assertEqual(response.status_code, 200)
-                items = response.json()["results"]["items"]
-                self.assertEqual([i["id"] for i in items], [str(public.pk)])
+        self.assertEqual(response.status_code, 200)
+        items = response.json()["results"]["items"]
+        self.assertEqual([i["id"] for i in items], [str(public.pk)])
+        # The public view is per user: without the owner's username it opens
+        # nothing (the combined view is the public gallery, #434).
+        self.assertEqual(
+            self.client_for().get(self.url, {"public": "1"}).status_code, 404
+        )

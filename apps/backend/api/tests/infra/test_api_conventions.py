@@ -169,6 +169,12 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/photos/shared/tome/people": {"GET list"},
     "api/photos/shared/tome/people/photos": {"GET list"},
     "api/photos/shared/fromme": {"GET list"},
+    # The public gallery (#434).
+    "api/gallery/days": {"GET list"},
+    "api/gallery/photos": {"GET list"},
+    "api/gallery/places": {"GET list"},
+    "api/gallery/people": {"GET list"},
+    "api/gallery/photographers": {"GET list"},
     # A whole library shared read-only (#2731).
     "api/library-shares": {
         "GET list",
@@ -554,6 +560,10 @@ DEBUG_ONLY_VIEWS = {
     "drf_spectacular.views.SpectacularSwaggerView",
 }
 
+# The public gallery (#434): open to everyone when the admin says so, a 404
+# (never a 401) while it is off or members only, throttled for visitors.
+GALLERY_REASON = "the public gallery, when the admin opens it to everyone"
+
 # Views an anonymous caller gets past the permission check of, for at least one
 # of their methods. Every other view under api/ answers 401 before its body runs.
 ANONYMOUS_VIEWS: dict[str, str] = {
@@ -566,6 +576,12 @@ ANONYMOUS_VIEWS: dict[str, str] = {
     "api.views.public_albums.PublicAlbumBySlug": "public album links",
     "api.views.public_albums.PublicPhotoDetailBySlug": "public album links",
     "api.views.public_photos.PublicPhotoBySlug": "public photo links",
+    "api.views.gallery.GalleryView": GALLERY_REASON,
+    "api.views.gallery.GalleryDayViewSet": GALLERY_REASON,
+    "api.views.gallery.GalleryPhotoViewSet": GALLERY_REASON,
+    "api.views.gallery.GalleryPlaceViewSet": GALLERY_REASON,
+    "api.views.gallery.GalleryPersonViewSet": GALLERY_REASON,
+    "api.views.gallery.GalleryPhotographerViewSet": GALLERY_REASON,
     "api.views.public_photos.PublicPhotoMediaBySlug": "public photo links",
     "api.views.server_info.ApiHelpView": "API overview",
     "api.views.site_settings.SiteSettingsView": "GET: read before sign-in",
@@ -604,6 +620,7 @@ STAFF_ONLY_VIEWS = {
     "api.views.scan_triggers.TrashPhotosOutsideLibraryView",
     "api.views.services.ServiceViewSet",
     "api.views.site_settings.TrashRetentionPreviewView",
+    "api.views.gallery.GalleryPreviewView",
     "api.views.updates.InstallUpdateView",
     "api.views.updates.RestartToUpdateView",
     "api.views.updates.SkipReleaseView",
@@ -1271,6 +1288,10 @@ UNPAGINATED_LIST_VIEWS: dict[str, str] = {
     "api.views.albums.AlbumDateListViewSet": (
         "the timeline's index, one row per day without its photos; the "
         "clients lay the whole timeline out from it"
+    ),
+    "api.views.gallery.GalleryDayViewSet": (
+        "the public gallery's timeline index, one row per day without its "
+        "photos, like the day list it mirrors"
     ),
     "api.views.faces.FaceIncompleteListViewSet": (
         "one row per person with a face count, plus the unknown-faces row the "

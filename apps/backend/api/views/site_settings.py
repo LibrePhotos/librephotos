@@ -71,6 +71,8 @@ SETTING_KEYS = (
     "OIDC_ALLOW_SIGNUP",
     "UPDATE_CHECK",
     "WHATS_NEW_ENABLED",
+    "PUBLIC_GALLERY",
+    "PUBLIC_GALLERY_INDEXABLE",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -217,6 +219,10 @@ class SiteSettingsView(APIView):
         # Sent to everyone: every user's app decides whether to show the
         # What's new card after an update (#2305).
         out["whats_new_enabled"] = config["WHATS_NEW_ENABLED"]
+        # Sent to everyone: the web app opens the public gallery (#434) at /
+        # for a visitor without an account when it is open to everyone.
+        out["public_gallery"] = config["PUBLIC_GALLERY"]
+        out["public_gallery_indexable"] = config["PUBLIC_GALLERY_INDEXABLE"]
         if request.user.is_staff:
             # The Features card's state: admin-only, like the settings it shows.
             out["features"] = _features(config)

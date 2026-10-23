@@ -14,12 +14,14 @@ reason; a new list route in neither fails the suite, the way
 ``test_cross_tenant_writes.py`` holds mutating routes to ``NOT_PHOTO_SCOPED``.
 """
 
+import datetime
 import itertools
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Literal
 from unittest.mock import patch
 
+from constance import config as site_config
 from django.db import connection, transaction
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -30,6 +32,7 @@ from rest_framework.test import APIClient
 from api.models import File, LongRunningJob, Person, Photo, User
 from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
+from api.models.user import get_default_public_sharing_settings
 from api.serializers.job import LongRunningJobSerializer
 from api.tests.infra.routes import ApiRoute, api_routes
 from api.tests.utils import (
@@ -276,6 +279,34 @@ def _photo_share(requester: User, index: int) -> None:
     PhotoShare.objects.create(photo=photo, enabled=True, slug=f"share-{photo.pk.hex}")
 
 
+GALLERY_DAY = datetime.datetime(2025, 8, 16, 12, tzinfo=datetime.UTC)
+
+
+def _gallery_photo(
+    index: int, day: datetime.datetime = GALLERY_DAY, town: str = "Munich"
+) -> Photo:
+    """A public photo of a new user in the public gallery (#434) with every
+    public switch on: a named person on it, a stack it leads and a RAW file."""
+    site_config.PUBLIC_GALLERY = "everyone"
+    owner = create_test_user(
+        in_public_gallery=True,
+        public_sharing_defaults=dict.fromkeys(
+            get_default_public_sharing_settings(), True
+        ),
+    )
+    photo = _tile_photo(
+        owner,
+        public=True,
+        exif_timestamp=day,
+        geolocation_json={"places": ["x", town, "y"]},
+    )
+    stack = photo.stacks.get()
+    stack.primary_photo = photo
+    stack.save()
+    create_test_face(photo=photo, person=create_test_person(cluster_owner=owner))
+    return photo
+
+
 # Every measured list route: the exact normalised route the walker reports,
 # and one fixture per kind of requester whose response differs.
 LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
@@ -347,6 +378,35 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
             params={"camera": "x-t5", "iso_min": "200", "rating_min": "3"},
             rows=grouped_rows,
         ),
+    ),
+    # The public gallery (#434): each row a new owner, so the counts also hold
+    # for many owners' switches.
+    "api/gallery/days/": (
+        ListFixture(
+            lambda user, index: _gallery_photo(
+                index, GALLERY_DAY - datetime.timedelta(days=index)
+            ),
+            requester="anonymous",
+        ),
+    ),
+    "api/gallery/photos/": (
+        ListFixture(
+            lambda user, index: _gallery_photo(index),
+            requester="anonymous",
+            params={"day": "20250816"},
+        ),
+    ),
+    "api/gallery/places/": (
+        ListFixture(
+            lambda user, index: _gallery_photo(index, town=f"Town {index}"),
+            requester="anonymous",
+        ),
+    ),
+    "api/gallery/people/": (
+        ListFixture(lambda user, index: _gallery_photo(index), requester="anonymous"),
+    ),
+    "api/gallery/photographers/": (
+        ListFixture(lambda user, index: _gallery_photo(index), requester="anonymous"),
     ),
     "api/faces/incomplete/": (ListFixture(_person),),
     "api/faces/": (ListFixture(_face_without_person),),
