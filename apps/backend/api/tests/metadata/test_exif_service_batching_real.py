@@ -30,8 +30,8 @@ FIXTURES = os.path.join(
 )
 # Written, never read (#2297, #2289, #2290). The batched read files values by
 # tag name, so it would answer a family-1 group like these with another
-# group's tag, and MWG:Description and MWG:Keywords need a module the reader
-# never loads.
+# group's tag, and MWG:Description, MWG:Keywords, MWG:Copyright and MWG:Creator
+# need a module the reader never loads.
 WRITE_ONLY_TAGS = {
     Tags.ORIENTATION_XMP,
     Tags.DESCRIPTION_XMP,
@@ -48,6 +48,16 @@ WRITE_ONLY_TAGS = {
     Tags.GPS_COORDINATES_KEYS,
     Tags.GPS_COORDINATES_USER_DATA,
     Tags.GPS_COORDINATES_ITEM_LIST,
+    # The rights write tags (#425); they are read as XMP:Rights, XMP:Creator,
+    # XMP:License, XMP:WebStatement and XMP:Marked.
+    Tags.RIGHTS_XMP,
+    Tags.COPYRIGHT_MWG,
+    Tags.CREATOR_XMP,
+    Tags.CREATOR_MWG,
+    Tags.LICENSE_WRITE,
+    Tags.WEB_STATEMENT_WRITE,
+    Tags.MARKED_WRITE,
+    Tags.USAGE_TERMS,
 }
 ALL_TAGS = sorted(
     {value for name, value in vars(Tags).items() if name.isupper()} - WRITE_ONLY_TAGS
