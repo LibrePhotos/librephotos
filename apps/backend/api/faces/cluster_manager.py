@@ -61,13 +61,15 @@ class ClusterManager:
         logger.info("Adding unknown cluster")
         logger.info("Adding unknown %d faces to unknown cluster", len(unknown_faces))
         logger.info("Adding known %d faces to unknown cluster", len(known_faces))
-        for face in unknown_faces:
-            face.cluster = unknown_cluster
-            face.cluster_person = None
-            face.save()
-        for face in known_faces:
-            face.cluster = unknown_cluster
-            face.save()
+        # Two updates instead of a save() per face: a full save of these copies,
+        # loaded before clustering, would write back a person the user set since,
+        # and insert again a face deleted since.
+        Face.objects.filter(id__in=[face.id for face in unknown_faces]).update(
+            cluster=unknown_cluster, cluster_person=None
+        )
+        Face.objects.filter(id__in=[face.id for face in known_faces]).update(
+            cluster=unknown_cluster
+        )
 
     @staticmethod
     def _create_cluster_person(
