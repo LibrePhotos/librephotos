@@ -28,6 +28,8 @@ export type {
   SharedGroupKind,
   SyncPullParams,
   UserAlbumOptions,
+  UserPlaceCircle,
+  UserPlaceFields,
 } from "./endpoints";
 export * from "./hooks";
 export * from "./polling";

@@ -249,6 +249,7 @@ class TitlePartsStoredTest(TestCase):
             "people": [],
             "places": [],
             "date": "2022-01-03",
+            "user_place": None,
         }
         self.assertEqual(expected, rows[0]["title_parts"])
         self.assertEqual(expected, detail["title_parts"])

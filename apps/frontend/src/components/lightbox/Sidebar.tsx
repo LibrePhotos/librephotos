@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { useYourPlaceAt } from "../places/useYourPlaceAt";
 import { AlbumsSection } from "./AlbumsSection";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { CategoryBadge } from "./CategoryBadge";
@@ -291,6 +292,7 @@ function OwnerSidebar({
 
   const { data: photoDetail, isError: isPhotoDetailError } = useFetchPhotoDetailsQuery(id);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+  const yourPlace = useYourPlaceAt(photoDetail?.exif_gps_lat, photoDetail?.exif_gps_lon);
 
   if (!photoDetail) {
     // Keep the panel in place while loading, and say so if the photo has no
@@ -339,7 +341,7 @@ function OwnerSidebar({
           category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} />}
         />
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
-        <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} />
+        <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
         <PeopleSection
           photoDetail={photoDetail}
           isPublic={false}

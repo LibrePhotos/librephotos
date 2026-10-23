@@ -35,6 +35,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   },
   PhotoMapPoints: { schema: S.PhotoMapPoints, components: ["PhotoMapPoints"] },
   PlaceAlbumsInBounds: { schema: S.PlaceAlbumsInBounds, components: ["PlaceAlbumsInBounds"] },
+  UserPlace: { schema: S.UserPlace, components: ["UserPlace"] },
+  UserPlaceOverlap: { schema: S.UserPlaceOverlap, components: ["PreviewOverlap"] },
+  UserPlacePreview: { schema: S.UserPlacePreview, components: ["UserPlacePreview"] },
+  UserPlacePhotos: { schema: S.UserPlacePhotos, components: ["UserPlacePhotos"] },
   MyPublicPhotosResponse: {
     schema: S.MyPublicPhotosResponse,
     components: ["PaginatedPhotoSummaryList"],
@@ -320,6 +324,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   FetchPlaceAlbumResponse: "the {results} envelope of PlaceAlbum (see there)",
   FetchPeopleAlbumsResponse:
     "a {results} envelope around rows compared on their own (Person); the view's wrapper is not a component",
+  UserPlaceList:
+    "a {results} envelope around rows compared on their own (UserPlace), read whole with fetchAllPages; the page envelope is not compared",
   PersonGroupList:
     "a {results} envelope around rows compared on their own (PersonGroup), read whole with fetchAllPages; the page envelope is not compared",
   PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",

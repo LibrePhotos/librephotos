@@ -52,6 +52,7 @@ from api.photos.media_files import (
     is_video,
     looks_like_media,
 )
+from api.places.membership import refresh_photo_places
 from api.runtime.features import feature_enabled
 from api.stacks.live_photo import (
     extract_embedded_motion_video,
@@ -1047,7 +1048,11 @@ def _read_metadata(
     photo: Photo, path: str, job_id: UUID | str, start: datetime.datetime
 ) -> None:
     """Read the file's EXIF and date into the photo; raises ``MetadataReadError``."""
+    position = (photo.exif_gps_lat, photo.exif_gps_lon)
     photo_reader.extract_exif_data(photo, commit=True)
+    if (photo.exif_gps_lat, photo.exif_gps_lon) != position:
+        # A new, moved or removed position: into the owner's place there (#1365)
+        refresh_photo_places([photo])
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
 

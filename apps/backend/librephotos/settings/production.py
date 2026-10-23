@@ -666,6 +666,8 @@ SPECTACULAR_SETTINGS = {
         "MediaDiagnosisCauseEnum": "api.serializers.media.DIAGNOSIS_CAUSES",
         # A person's kind keeps its name now that another "kind" choice exists.
         "KindEnum": "api.serializers.face.PERSON_KINDS",
+        # The icon of a user's place (#1365).
+        "UserPlaceIconEnum": "api.models.user_place.UserPlaceIcon",
         # Where a user's upload follow-ups stand (#2739).
         "UploadFollowupStateEnum": "api.serializers.upload.FOLLOWUP_STATES",
         # A file of the All metadata view: the media file or a sidecar.

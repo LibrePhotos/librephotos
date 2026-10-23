@@ -70,6 +70,7 @@ from api.tests.utils import (
     create_test_stack,
     create_test_tag,
     create_test_user,
+    create_test_user_place,
 )
 
 # URLconfs LibrePhotos does not write (Django admin, allauth). A route under
@@ -312,7 +313,11 @@ class CrossTenantWriteTest(TestCase):
         )
         self.v_priv = create_test_photo(owner=self.victim, public=False)
         self.v_trash = create_test_photo(owner=self.victim, in_trashcan=True)
-        self.victim_photos = [self.v_pub, self.v_priv, self.v_trash]
+        # Inside the victim's place (#1365), and where the attacker draws one
+        self.v_located = create_test_photo(
+            owner=self.victim, exif_gps_lat=48.1374, exif_gps_lon=11.5755
+        )
+        self.victim_photos = [self.v_pub, self.v_priv, self.v_trash, self.v_located]
 
         self.v_person = create_test_person(
             name="Victim Friend", cluster_owner=self.victim
@@ -366,6 +371,7 @@ class CrossTenantWriteTest(TestCase):
         self.a_person = create_test_person(name="Mallory", cluster_owner=self.attacker)
         self.a_face = create_test_face(photo=self.a_photo, person=self.a_person)
         self._person_groups()
+        self._user_places()
 
         self.client = APIClient()
         self.client.raise_request_exception = False
@@ -428,6 +434,16 @@ class CrossTenantWriteTest(TestCase):
         self.a_auto.photos.add(self.a_photo, self.a_photo2)
         self.a_collection = create_test_album_collection(
             name="Loot Collection", owner=self.attacker
+        )
+
+    def _user_places(self):
+        """A place of each user's (#1365); the victim's holds their located photo."""
+        self.v_user_place = create_test_user_place(
+            self.victim, "Victim Home", center=(48.1374, 11.5755), radius_m=100
+        )
+        self.v_user_place.photos.add(self.v_located)
+        self.a_user_place = create_test_user_place(
+            self.attacker, "Loot Place", center=(0.5, 0.5), radius_m=100
         )
 
     def _person_groups(self):
@@ -727,6 +743,25 @@ class CrossTenantWriteTest(TestCase):
                 f"/api/persons/{self.v_person.pk}/merge/",
                 {"person": self.a_person.pk},
             ),
+            # your places (#1365): another user's place is not there, and the
+            # attacker's own place never takes the victim's photos inside it
+            (
+                "post",
+                "/api/user-places/",
+                {
+                    "name": "Loot",
+                    "center_lat": 48.1374,
+                    "center_lon": 11.5755,
+                    "radius_m": 2000,
+                },
+            ),
+            ("patch", f"/api/user-places/{self.v_user_place.pk}/", {"name": "pwned"}),
+            (
+                "patch",
+                f"/api/user-places/{self.a_user_place.pk}/",
+                {"center_lat": 48.1374, "center_lon": 11.5755, "radius_m": 2000},
+            ),
+            ("delete", f"/api/user-places/{self.v_user_place.pk}/", None),
             # person groups (#1126)
             ("post", "/api/person-groups/", {"name": "Victim Family"}),
             (

@@ -55,6 +55,24 @@ async function renderSection(
 }
 
 describe("LocationSection", () => {
+  // #1365: the owner's own place comes first, the map provider's name stays under it
+  it("names the owner's place above the place name, and above bare coordinates", async () => {
+    const named = await renderSection(
+      { image_hash: "h1", exif_gps_lat: 48.1, exif_gps_lon: 11.5, search_location: "Marienplatz, Munich" },
+      { yourPlace: { name: "Home", icon: "home" } }
+    );
+    expect(named.text.indexOf("Home")).toBeLessThan(named.text.indexOf("Marienplatz, Munich"));
+    await named.unmount();
+
+    const unnamed = await renderSection(
+      { image_hash: "h1", exif_gps_lat: 48.1, exif_gps_lon: 11.5, search_location: "" },
+      { yourPlace: { name: "Home", icon: "home" } }
+    );
+    expect(unnamed.text).toContain("Home");
+    expect(unnamed.text).toContain("48.10000, 11.50000");
+    await unnamed.unmount();
+  });
+
   it("names a spot without a place name by its coordinates", async () => {
     const section = await renderSection({
       image_hash: "h1",

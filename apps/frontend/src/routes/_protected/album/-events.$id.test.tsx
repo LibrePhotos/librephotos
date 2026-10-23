@@ -30,6 +30,7 @@ vi.mock("@tanstack/react-router", () => ({
   },
   Link: () => null,
 }));
+vi.mock("../../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchAutoAlbumQuery: () => ({ data: stubs.album, isLoading: false, isError: false }),
 }));

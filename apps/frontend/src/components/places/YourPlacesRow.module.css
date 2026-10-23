@@ -1,0 +1,35 @@
+.row {
+  padding: 0 10px 8px;
+}
+
+.tile {
+  display: block;
+  width: 132px;
+  flex: none;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cover {
+  width: 132px;
+  height: 132px;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-default-hover);
+}
+
+.tile:hover .name,
+.tile:focus-visible .name {
+  text-decoration: underline;
+}
+
+.add {
+  width: 132px;
+  height: 132px;
+  flex: none;
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}

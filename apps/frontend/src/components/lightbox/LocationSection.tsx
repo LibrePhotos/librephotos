@@ -1,4 +1,4 @@
-import type { Photo as PhotoType } from "@librephotos/api-client";
+import type { Photo as PhotoType, UserPlace } from "@librephotos/api-client";
 import { ActionIcon, Box, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPencil, IconMapPin as MapPin } from "@tabler/icons-react";
@@ -8,6 +8,7 @@ import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { formatCoordinates } from "../../util/exifFormat";
 import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
+import { PLACE_ICONS } from "../places/placeIcons";
 import { CoordinatesLine } from "./CoordinatesLine";
 
 type LocationSectionProps = {
@@ -23,7 +24,26 @@ type LocationSectionProps = {
   heading?: React.ReactNode;
   /** Open the location picker at once: the photo page's "Add a place" asked for it. */
   startEditing?: boolean;
+  /**
+   * The owner's own place the photo was taken in (#1365), named first, above the map provider's
+   * name. Only the owner's views pass it.
+   */
+  yourPlace?: Pick<UserPlace, "name" | "icon">;
 };
+
+/** The owner's own place (#1365), with its icon, above the map provider's name. */
+function YourPlaceLine({ place }: Readonly<{ place: NonNullable<LocationSectionProps["yourPlace"]> }>) {
+  const { t } = useTranslation();
+  const Icon = PLACE_ICONS[place.icon];
+  return (
+    <Group gap={4} wrap="nowrap" title={t("yourplaces.yourPlace")}>
+      <Icon size={16} color="var(--mantine-color-blue-filled)" aria-hidden />
+      <Text fw={600} size="sm">
+        {place.name}
+      </Text>
+    </Group>
+  );
+}
 
 /**
  * The place name, or what stands in for it: the coordinates the geocoder could not
@@ -34,7 +54,13 @@ function PlaceLabel({
   photoDetail,
   isPublic,
   inCard,
-}: Readonly<{ photoDetail: LocationSectionProps["photoDetail"]; isPublic: boolean; inCard: boolean }>) {
+  yourPlace,
+}: Readonly<{
+  photoDetail: LocationSectionProps["photoDetail"];
+  isPublic: boolean;
+  inCard: boolean;
+  yourPlace?: LocationSectionProps["yourPlace"];
+}>) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
   const { exif_gps_lat: lat, exif_gps_lon: lon, search_location: place } = photoDetail;
@@ -42,11 +68,20 @@ function PlaceLabel({
     !isPublic && lat != null && lon != null ? (
       <CoordinatesLine lat={lat} lon={lon} altitude={photoDetail.gps_altitude} size={place ? "xs" : "sm"} />
     ) : null;
-  if (ownerCoordinates && !place) return ownerCoordinates;
+  const yourPlaceLine = yourPlace && <YourPlaceLine place={yourPlace} />;
+  if (ownerCoordinates && !place) {
+    return (
+      <>
+        {yourPlaceLine}
+        {ownerCoordinates}
+      </>
+    );
+  }
 
   const label = place || formatCoordinates(lat, lon, locale) || t("lightbox.sidebar.no_location");
   return (
     <>
+      {yourPlaceLine}
       {inCard ? (
         // In a card the whole address shows.
         <Text size="sm" c={place ? undefined : "dimmed"}>
@@ -72,6 +107,7 @@ export function LocationSection({
   isPublic = false,
   heading,
   startEditing = false,
+  yourPlace,
 }: LocationSectionProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(startEditing && !isPublic);
@@ -101,14 +137,14 @@ export function LocationSection({
               {editButton}
             </Group>
             <div>
-              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard />
+              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard yourPlace={yourPlace} />
             </div>
           </>
         ) : (
           <Group wrap="nowrap" align="center">
             <MapPin />
             <Box flex={1} miw={0}>
-              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard={false} />
+              <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard={false} yourPlace={yourPlace} />
             </Box>
             {editButton}
           </Group>

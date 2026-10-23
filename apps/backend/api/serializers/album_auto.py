@@ -38,6 +38,13 @@ class EventTitlePartsSerializer(serializers.Serializer):
     date = serializers.CharField(
         read_only=True, help_text="The album's grouping date, YYYY-MM-DD"
     )
+    user_place = serializers.IntegerField(
+        read_only=True,
+        allow_null=True,
+        help_text="The id of the owner's place most photos were taken in, for "
+        '"<when> at <place>" (#1365); only the owner\'s own places name it. '
+        "Null without one, or before the titles are regenerated",
+    )
 
 
 def with_event_cover(queryset: QuerySet[AlbumAuto]) -> QuerySet[AlbumAuto]:

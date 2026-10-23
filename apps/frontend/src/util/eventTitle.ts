@@ -52,8 +52,19 @@ function describeWhen(parts: EventTitleParts, t: TFunction, locale: string): str
   return weekday === undefined ? undefined : weekdayWithTime(weekday, parts.time_of_day, t);
 }
 
-function withCompany(when: string, parts: EventTitleParts, t: TFunction, locale: string): string {
+function withCompany(
+  when: string,
+  parts: EventTitleParts,
+  t: TFunction,
+  locale: string,
+  yourPlace: string | undefined
+): string {
   const people = joinList(parts.people, locale);
+  if (yourPlace !== undefined) {
+    return parts.people.length > 0
+      ? t("autoalbum.title.withPeopleAtPlace", { when, people, place: yourPlace })
+      : t("autoalbum.title.atPlace", { when, place: yourPlace });
+  }
   const places = joinList(parts.places, locale);
   if (parts.people.length > 0 && parts.places.length > 0) {
     return t("autoalbum.title.withPeopleInPlaces", { when, people, places });
@@ -73,13 +84,23 @@ function hasNoContent(parts: EventTitleParts): boolean {
  * the translations, so in English it reads exactly like `title`. Albums whose
  * parts are not stored yet (until the next event run or "Regenerate event
  * titles") keep their English `title`.
+ *
+ * `yourPlaceName` names the owner's own place the event was mostly taken at (#1365), "Sunday at
+ * Home": the parts carry only its id, so a shared event, whose viewer has no such place, keeps
+ * the town.
  */
-export function formatEventTitle(album: EventTitleSource, t: TFunction, locale: string): string {
+export function formatEventTitle(
+  album: EventTitleSource,
+  t: TFunction,
+  locale: string,
+  yourPlaceName: (placeId: number) => string | undefined = () => undefined
+): string {
   const parts = album.title_parts;
   if (!parts) return album.title;
   const language = intlLocale(locale);
   const when = describeWhen(parts, t, language);
-  if (when !== undefined) return withCompany(when, parts, t, language);
+  const yourPlace = parts.user_place == null ? undefined : yourPlaceName(parts.user_place);
+  if (when !== undefined) return withCompany(when, parts, t, language, yourPlace);
   // Only an album whose title failed has no day: the backend says "Album from <date>" then.
   return hasNoContent(parts) ? t("autoalbum.title.fallback", { date: parts.date }) : album.title;
 }

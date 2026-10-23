@@ -49,6 +49,7 @@ from api.tests.utils import (
     create_test_stack,
     create_test_tag,
     create_test_user,
+    create_test_user_place,
     share_test_photos,
 )
 from api.views.custom_api_view import ListViewSet
@@ -166,6 +167,12 @@ def _person_group(requester: User, index: int) -> None:
     )
 
 
+def _user_place(requester: User, index: int) -> None:
+    """A place of the requester's (#1365) with a photo inside it."""
+    place = create_test_user_place(requester)
+    place.photos.add(_visible_photo(requester))
+
+
 def _tag(requester: User, index: int) -> None:
     create_test_tag(owner=requester).photos.add(_visible_photo(requester))
 
@@ -278,6 +285,7 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/albums/user/shared/fromme/": (ListFixture(_album_user),),
     "api/persons/": (ListFixture(_person),),
     "api/person-groups/": (ListFixture(_person_group),),
+    "api/user-places/": (ListFixture(_user_place),),
     "api/tags/": (ListFixture(_tag),),
     "api/photos/shared/tome/": (ListFixture(_photo_shared_to_me),),
     "api/photos/shared/fromme/": (ListFixture(_photo_shared_from_me),),

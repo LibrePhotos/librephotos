@@ -95,6 +95,7 @@ from api.views import (
     upgrade_tasks,
     upload,
     user,
+    user_places,
     zip_downloads,
 )
 from librephotos.converters import (
@@ -287,6 +288,9 @@ router.register(
 router.register(r"api/persons", albums.PersonViewSet, basename="persons")
 router.register(
     r"api/person-groups", person_groups.PersonGroupViewSet, basename="person_groups"
+)
+router.register(
+    r"api/user-places", user_places.UserPlaceViewSet, basename="user_places"
 )
 
 router.register(r"api/tags", tags.TagViewSet, basename="tags")

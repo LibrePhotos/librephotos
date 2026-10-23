@@ -69,6 +69,25 @@ describe("formatEventTitle in English", () => {
   });
 });
 
+// #1365: an event mostly taken at one of the owner's places is named after it, for the owner only
+describe("formatEventTitle at one of your places", () => {
+  const t = i18n.getFixedT("en");
+  const names = (placeId: number) => (placeId === 7 ? "Home" : undefined);
+
+  it("says where the event was, with or without people", () => {
+    const sunday = { title: "Sunday in Munich", title_parts: parts({ weekday: 7, places: ["Munich"], user_place: 7 }) };
+    expect(formatEventTitle(sunday, t, "en", names)).toBe("Sunday at Home");
+    const withAnna = { title: "", title_parts: parts({ weekday: 7, people: ["Anna"], user_place: 7 }) };
+    expect(formatEventTitle(withAnna, t, "en", names)).toBe("Sunday with Anna at Home");
+  });
+
+  it("keeps the town for a place the viewer does not have, as on a shared event", () => {
+    const shared = { title: "", title_parts: parts({ weekday: 7, places: ["Munich"], user_place: 9 }) };
+    expect(formatEventTitle(shared, t, "en", names)).toBe("Sunday in Munich");
+    expect(formatEventTitle(shared, t, "en")).toBe("Sunday in Munich");
+  });
+});
+
 describe("formatEventTitle in German", () => {
   // Weblate owns the real German strings; these stand in for them.
   i18n.addResourceBundle(

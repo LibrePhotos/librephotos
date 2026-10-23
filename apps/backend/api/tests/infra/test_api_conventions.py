@@ -141,6 +141,16 @@ ROUTER_VERBS: dict[str, set[str]] = {
         "PATCH partial_update",
         "DELETE destroy",
     },
+    # Your places (#1365): the editor's preview and a place's photos by day.
+    "api/user-places": {
+        "GET list",
+        "GET retrieve",
+        "POST create",
+        "PATCH partial_update",
+        "DELETE destroy",
+        "GET preview",
+        "GET photos",
+    },
     "api/tags": {
         "GET list",
         "GET retrieve",

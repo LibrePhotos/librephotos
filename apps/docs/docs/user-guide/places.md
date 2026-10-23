@@ -117,6 +117,34 @@ Up to 1.4.0 the map drew one marker per place name at the centre of that place: 
 
 The map and its counts only ever show your own photos. Hidden photos and photos in the trash are left out, and photos other users shared with you are not on it.
 
+## Your places
+
+<Since version="1.5.0" /> Name the places that matter to you, such as *Home*, *Office* or *Grandma's*, and LibrePhotos files every photo taken there under that name, whatever the map provider calls the street.
+
+### Adding a place
+
+1. Open **Albums → Places** and click **Add place** above the map. The map grows so there is room to draw.
+2. Click the map where the place is. A circle appears around that spot; the map zooms in if it is too small to see. Click elsewhere to move it.
+3. Drag the white dot on the circle's edge, or the **Radius** slider, to make it the size of the place: from 25 m (a house) to 2 km (a village).
+4. Type a **Name**, pick an icon, and leave **Use the name in event titles** on to have events taken there called "Sunday at Home" rather than "Sunday in Munich".
+5. While you draw, the editor says how many of your photos were taken inside the circle and shows the newest few. When the circle overlaps another of your places, it says how many photos are inside both.
+6. Click **Save place**. The photos taken inside are filed under the place at once.
+
+Your places are drawn on the map as blue circles with their names, and listed under **Your places** above the places in view, whatever part of the map you look at. Click one to open its page with its photos by day and its circle on a small map; **Edit place** there opens the editor on the Places map again, and **⋮ → Delete place** deletes it. Deleting a place keeps its photos and their place names from the map provider.
+
+### Which photos are in a place
+
+- A photo is in a place when its position lies inside the circle. A photo inside two of your places is in the smaller one: a photo of the garden is in *Home*, not in the neighbourhood around it.
+- Photos join and leave on their own: when a scan finds a new or changed position in a file, and when you set or remove a location by hand (for one photo or many). Moving or resizing a place files your photos again.
+- A photo without a position is in no place. Give it a location first (see [Setting a Location Manually](#setting-a-location-manually)).
+- A photo in one of your places shows the place's name first in the photo's details, with the map provider's name under it, and searching for the place's name finds it.
+- An event mostly taken in one of your places (at least half of its photos) is called after it, such as "Sunday at Home" or "Saturday with Anna at Home", once its title is generated: new events right away, existing ones after **Regenerate Event Titles**. Turn **Use the name in event titles** off to keep the town in the title. The web app shows these titles; the mobile app still shows the town.
+- You can have up to 100 places.
+
+### Your places stay yours
+
+A place called *Home* tells where you live, so your places are private. Their names and circles are never shown to anyone else: not in albums or events you share, not in photos shared with other users (their **Shared with you** page groups them by the map provider's place names only), not on public links, and not in another user's search. The titles of shared events keep the town. Your places are not written to your photo files either.
+
 ## Setting Up Places
 
 ### Step 1: Configure Map Providers (Optional)

@@ -78,6 +78,7 @@ from api.models.photo_metadata import (
 from api.models.photo_search import PhotoSearch, place_label
 from api.models.tag import Tag, sync_tags_from_keywords, tag_names
 from api.models.user import User
+from api.places.membership import refresh_photo_places
 
 logger = logging.getLogger(__name__)
 
@@ -393,6 +394,8 @@ def _clear_location(photo: Photo, source: LocationSource) -> None:
     clear_location(photo)
     photo.location_source = source
     photo.save(update_fields=LOCATION_COLUMNS)
+    # Out of the user's places (#1365) with its position
+    refresh_photo_places([photo])
 
 
 def _move_photos(
@@ -417,6 +420,8 @@ def _move_photos(
         photo.geocoded_lat, photo.geocoded_lon = position if place else (None, None)
         photo.last_modified = now
     Photo.objects.bulk_update(photos, LOCATION_COLUMNS, batch_size=500)
+    # Into the user's place at the new position (#1365), whatever the geocoder said
+    refresh_photo_places(photos)
     _set_search_locations(photos, place)
     if place:
         _join_album_places(photos, place)

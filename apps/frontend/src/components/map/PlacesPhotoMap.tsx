@@ -17,13 +17,27 @@ type Props = Readonly<{
   mapStyle: Exclude<ResolvedMapStyle, null>;
   height: number;
   onHeightChange: (height: number) => void;
+  /** More on the map, over the photos: your places (#1365). */
+  overlay?: React.ReactNode;
+  /** Over the map's corner, instead of a spot's card: the editor of a place being drawn. */
+  panel?: React.ReactNode;
+  /** The grip under the map; off while a place is drawn on a taller map. */
+  resizable?: boolean;
 }>;
 
 /**
  * The Places page's map of photos (#343): clusters that count photos, the popover of a spot, the
  * lightbox it opens, and the grip that makes the map taller.
  */
-export function PlacesPhotoMap({ placesMap, mapStyle, height, onHeightChange }: Props) {
+export function PlacesPhotoMap({
+  placesMap,
+  mapStyle,
+  height,
+  onHeightChange,
+  overlay,
+  panel,
+  resizable = true,
+}: Props) {
   const [viewer, setViewer] = useState<{ photos: PigPhoto[]; startId: string } | null>(null);
   const { spot } = placesMap;
 
@@ -56,13 +70,15 @@ export function PlacesPhotoMap({ placesMap, mapStyle, height, onHeightChange }: 
             <Layer {...placesMap.layers.clusterCount} />
             <Layer {...placesMap.layers.unclusteredPoint} />
           </Source>
+          {overlay}
           {spot && (
             <Marker longitude={spot.longitude} latitude={spot.latitude}>
               <SpotRing />
             </Marker>
           )}
         </ThemedMap>
-        {spot && (
+        {panel}
+        {spot && !panel && (
           <SpotCard
             // A new spot starts with its own photos, not the last one's
             key={`${spot.longitude},${spot.latitude}`}
@@ -72,12 +88,14 @@ export function PlacesPhotoMap({ placesMap, mapStyle, height, onHeightChange }: 
           />
         )}
       </Box>
-      <MapResizeHandle
-        height={height}
-        min={PLACES_MAP_HEIGHTS.min}
-        max={PLACES_MAP_HEIGHTS.max}
-        onChange={onHeightChange}
-      />
+      {resizable && (
+        <MapResizeHandle
+          height={height}
+          min={PLACES_MAP_HEIGHTS.min}
+          max={PLACES_MAP_HEIGHTS.max}
+          onChange={onHeightChange}
+        />
+      )}
       {viewer && <SpotLightbox photos={viewer.photos} startId={viewer.startId} onClose={() => setViewer(null)} />}
     </>
   );
