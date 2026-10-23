@@ -171,6 +171,24 @@ describe("Sidebar for a user the photo is shared with (#2721, #2722)", () => {
   });
 });
 
+describe("Sidebar for a photo of a library shared with me (#2731)", () => {
+  it("says whose photo it is and what its owner does not share", async () => {
+    stubs.ownPhoto = {
+      ...makePhoto({
+        id: "p1",
+        image_hash: "h1",
+        owner: { id: 2, username: "alice", first_name: "Alice", last_name: "Lang" },
+      }),
+      shared_library: { location: false, people: true, camera: false, captions: false, originals: true },
+    };
+    const container = await renderSidebar({ id: "p1", image_hash: "h1", date: "", location: "" });
+
+    expect(container.textContent).toContain("Alice Lang's photo");
+    expect(container.textContent).toContain("Alice doesn't share locations with you");
+    expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.ownerOnlyDetails"));
+  });
+});
+
 describe("Sidebar for the owner", () => {
   it("lists tags in one section, with no separate keywords editor (#2230)", async () => {
     stubs.ownPhoto = makePhoto({ id: "p1", image_hash: "h1" });

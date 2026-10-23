@@ -34,6 +34,7 @@ from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
 from api.models.library_folder import LibraryFolder
+from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
 from api.models.photo_metadata import MetadataEdit
@@ -228,6 +229,14 @@ def create_test_tag(owner: User, name: str | None = None, **kwargs: Any) -> Tag:
     """A tag for ``owner``. Names are unique per owner, so the default is random."""
     name = name or f"{fake.word()}-{uuid.uuid4().hex[:8]}"
     return Tag.objects.create(owner=owner, name=name, **kwargs)
+
+
+def create_test_library_share(
+    owner: User, recipient: User, **kwargs: Any
+) -> LibraryShare:
+    """``owner``'s library shared with ``recipient`` (#2731); every switch off
+    unless given (``share_location=True``, ``show_in_timeline=True``, ...)."""
+    return LibraryShare.objects.create(owner=owner, recipient=recipient, **kwargs)
 
 
 def create_test_album_user(

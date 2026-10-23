@@ -60,6 +60,11 @@ vi.mock("@tanstack/react-router", () => ({
     </a>
   ),
 }));
+// The library sections (#2731) have their own tests (components/libraryShare).
+vi.mock("../../../components/libraryShare/YourLibrarySection", () => ({ YourLibrarySection: () => null }));
+vi.mock("../../../components/libraryShare/LibrariesSharedWithYouSection", () => ({
+  LibrariesSharedWithYouSection: () => null,
+}));
 vi.mock("../../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => answer(stubs.users),
 }));

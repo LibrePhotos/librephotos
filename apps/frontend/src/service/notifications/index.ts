@@ -1,6 +1,7 @@
 import { albums } from "./albums";
 import { auth } from "./auth";
 import { faces } from "./faces";
+import { libraryShares } from "./libraryShares";
 import { moves } from "./moves";
 import { people } from "./people";
 import { photos } from "./photos";
@@ -14,6 +15,7 @@ export const notification = {
   ...albums,
   ...auth,
   ...faces,
+  ...libraryShares,
   ...moves,
   ...people,
   ...photos,

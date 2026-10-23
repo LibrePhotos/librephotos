@@ -52,6 +52,7 @@ import { Route as ProtectedSearchIndexRouteImport } from "./routes/_protected/se
 import { Route as ProtectedSettingsRouteImport } from "./routes/_protected/settings";
 import { Route as ProtectedSharingBymeTabRouteImport } from "./routes/_protected/sharing/byme.$tab";
 import { Route as ProtectedSharingIndexRouteImport } from "./routes/_protected/sharing/index";
+import { Route as ProtectedSharingLibraryUserIdRouteImport } from "./routes/_protected/sharing/library.$userId";
 import { Route as ProtectedSharingLinksRouteImport } from "./routes/_protected/sharing/links";
 import { Route as ProtectedSharingPublicRouteImport } from "./routes/_protected/sharing/public";
 import { Route as ProtectedSharingWithmeTabRouteImport } from "./routes/_protected/sharing/withme.$tab";
@@ -385,6 +386,11 @@ const ProtectedSharingBymeTabRoute = ProtectedSharingBymeTabRouteImport.update({
   path: "/sharing/byme/$tab",
   getParentRoute: () => ProtectedRouteRoute,
 } as any);
+const ProtectedSharingLibraryUserIdRoute = ProtectedSharingLibraryUserIdRouteImport.update({
+  id: "/sharing/library/$userId",
+  path: "/sharing/library/$userId",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedSharingWithmeTabRoute = ProtectedSharingWithmeTabRouteImport.update({
   id: "/sharing/withme/$tab",
   path: "/sharing/withme/$tab",
@@ -471,6 +477,7 @@ export interface FileRoutesByFullPath {
   "/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
   "/album/user/$id": typeof ProtectedAlbumUserIdRoute;
   "/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/sharing/library/$userId": typeof ProtectedSharingLibraryUserIdRoute;
   "/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
   "/password-reset/confirm/$uid/$token": typeof PasswordResetConfirmUidTokenRoute;
   "/album/events/": typeof ProtectedAlbumEventsIndexRoute;
@@ -538,6 +545,7 @@ export interface FileRoutesByTo {
   "/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
   "/album/user/$id": typeof ProtectedAlbumUserIdRoute;
   "/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/sharing/library/$userId": typeof ProtectedSharingLibraryUserIdRoute;
   "/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
   "/password-reset/confirm/$uid/$token": typeof PasswordResetConfirmUidTokenRoute;
   "/album/events": typeof ProtectedAlbumEventsIndexRoute;
@@ -609,6 +617,7 @@ export interface FileRoutesById {
   "/_protected/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
   "/_protected/album/user/$id": typeof ProtectedAlbumUserIdRoute;
   "/_protected/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/_protected/sharing/library/$userId": typeof ProtectedSharingLibraryUserIdRoute;
   "/_protected/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
   "/password-reset/confirm/$uid/$token": typeof PasswordResetConfirmUidTokenRoute;
   "/_protected/album/events/": typeof ProtectedAlbumEventsIndexRoute;
@@ -680,6 +689,7 @@ export interface FileRouteTypes {
     | "/album/things/$id"
     | "/album/user/$id"
     | "/sharing/byme/$tab"
+    | "/sharing/library/$userId"
     | "/sharing/withme/$tab"
     | "/password-reset/confirm/$uid/$token"
     | "/album/events/"
@@ -747,6 +757,7 @@ export interface FileRouteTypes {
     | "/album/things/$id"
     | "/album/user/$id"
     | "/sharing/byme/$tab"
+    | "/sharing/library/$userId"
     | "/sharing/withme/$tab"
     | "/password-reset/confirm/$uid/$token"
     | "/album/events"
@@ -817,6 +828,7 @@ export interface FileRouteTypes {
     | "/_protected/album/things/$id"
     | "/_protected/album/user/$id"
     | "/_protected/sharing/byme/$tab"
+    | "/_protected/sharing/library/$userId"
     | "/_protected/sharing/withme/$tab"
     | "/password-reset/confirm/$uid/$token"
     | "/_protected/album/events/"
@@ -1277,6 +1289,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ProtectedSharingBymeTabRouteImport;
       parentRoute: typeof ProtectedRouteRoute;
     };
+    "/_protected/sharing/library/$userId": {
+      id: "/_protected/sharing/library/$userId";
+      path: "/sharing/library/$userId";
+      fullPath: "/sharing/library/$userId";
+      preLoaderRoute: typeof ProtectedSharingLibraryUserIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
     "/_protected/sharing/withme/$tab": {
       id: "/_protected/sharing/withme/$tab";
       path: "/sharing/withme/$tab";
@@ -1379,6 +1398,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute;
   ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute;
   ProtectedSharingBymeTabRoute: typeof ProtectedSharingBymeTabRoute;
+  ProtectedSharingLibraryUserIdRoute: typeof ProtectedSharingLibraryUserIdRoute;
   ProtectedSharingWithmeTabRoute: typeof ProtectedSharingWithmeTabRoute;
   ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute;
   ProtectedAlbumFolderIndexRoute: typeof ProtectedAlbumFolderIndexRoute;
@@ -1438,6 +1458,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumThingsIdRoute: ProtectedAlbumThingsIdRoute,
   ProtectedAlbumUserIdRoute: ProtectedAlbumUserIdRoute,
   ProtectedSharingBymeTabRoute: ProtectedSharingBymeTabRoute,
+  ProtectedSharingLibraryUserIdRoute: ProtectedSharingLibraryUserIdRoute,
   ProtectedSharingWithmeTabRoute: ProtectedSharingWithmeTabRoute,
   ProtectedAlbumEventsIndexRoute: ProtectedAlbumEventsIndexRoute,
   ProtectedAlbumFolderIndexRoute: ProtectedAlbumFolderIndexRoute,

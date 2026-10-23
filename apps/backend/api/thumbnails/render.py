@@ -23,6 +23,7 @@ from api.runtime import binaries, sidecars
 from api.runtime.features import feature_enabled
 from api.thumbnails import face_boxes
 from api.video import color
+from api.video.no_metadata import NO_METADATA
 
 if TYPE_CHECKING:
     import numpy as np
@@ -410,11 +411,6 @@ def create_static_thumbnails(
 # minute (VIDEO_PREVIEW_SECONDS allows up to 30); ffmpeg still running after
 # this is stuck on the file.
 FFMPEG_TIMEOUT = 300
-
-
-# ffmpeg copies the source's global metadata into its output, and with it a
-# phone video's recorded location (the mp4 "location" tag). See ``WEBP``.
-NO_METADATA = ("-map_metadata", "-1", "-map_chapters", "-1")
 
 
 class VideoThumbnailError(RuntimeError):

@@ -98,6 +98,19 @@ export const PhotoStackDetail = z.object({
 });
 export type PhotoStackDetail = z.infer<typeof PhotoStackDetail>;
 
+/**
+ * What the owner of a library shared with me shows me of their photos (#2731). The photos and
+ * their dates are always shared; each of these only when the owner turned it on for me.
+ */
+export const LibraryGrant = z.object({
+  location: z.boolean(),
+  people: z.boolean(),
+  camera: z.boolean(),
+  captions: z.boolean(),
+  originals: z.boolean(),
+});
+export type LibraryGrant = z.infer<typeof LibraryGrant>;
+
 /** Full photo-detail response from GET /api/photos/{hash}/. */
 export const Photo = z.object({
   id: UuidString,
@@ -187,6 +200,10 @@ export const Photo = z.object({
   original_mime_type: z.string().nullish(),
   // A 360° photo sphere opens in the panorama viewer on request (#483).
   projection_type: ProjectionType,
+  // Set when the photo is in a library its owner shares with me (#2731): what they share, so a
+  // client can say why a field is empty. Null for my own photos and every other way in. Optional:
+  // older backends do not send it.
+  shared_library: LibraryGrant.nullable().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 

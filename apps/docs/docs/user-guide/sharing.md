@@ -10,6 +10,8 @@ LibrePhotos offers multiple ways to share your photos and albums — with other 
 
 The **Sharing** page (accessible from the navigation) is your central hub for all sharing activity. It provides an overview of:
 
+- **Your library**: who you share your whole library with, and what each of them sees ([Sharing your whole library](#sharing-your-whole-library))
+- **Libraries shared with you**: the libraries other users share with you. This row only shows once someone does.
 - **Public photos** — Other users on your instance who have made their profile public
 - **Shared with you** — Photos and albums that others have shared with you
 - **You shared** — Photos and albums you have shared with others
@@ -37,6 +39,60 @@ You can share individual photos (or a selection of photos) with other users:
 
 Shared photos show up in the recipient's sharing area, grouped by the person who shared them: they open **Sharing**, click the **Shared with you** tile, then the **Photos** tab (the page is titled *Photos others shared*).
 
+## Sharing your whole library
+
+<Since version="1.5.0" />
+
+You can share your whole library with another user, read-only. They see your photos and videos as you add them, without you sharing albums or photos one by one. Nothing moves and nothing is copied: the photos, their people, albums and edits stay yours, and you can stop at any time.
+
+### Starting a share
+
+1. Open **Sharing**. The **Your library** section is at the top.
+2. Click **Share my library**.
+3. Under **With**, pick the user.
+4. Under **What they see**, turn on what you want them to see. Every switch starts off.
+5. Click **Share with Ben** (with their name).
+
+### What they see
+
+| | They see it |
+|---|---|
+| Photos and videos, and their dates | Always |
+| **Location**: GPS position, place names, the map and Places | Only with the switch on |
+| **People names**: the face boxes and names of the people you named | Only with the switch on. Faces you have not named and face groups such as *Unknown 012* are never shown |
+| **Camera information**: make, model, lens and exposure | Only with the switch on |
+| **Captions and descriptions**: your descriptions, generated captions and text found in photos | Only with the switch on |
+| **Download original files** | Only with the switch on. Off, a download is a full-size copy without the file's metadata |
+| Hidden photos, the trash, albums, tags, favourites and ratings, edit history, file names and folders | Never |
+
+:::caution
+An original file keeps its GPS position, camera serial number and keywords inside it, whatever the **Location** switch says. Turn on **Download original files** only for someone you would also show where your photos were taken. With it off, downloads and videos are copies without that metadata; thumbnails never carry it.
+:::
+
+**Search follows the same rules.** With **Location** off, searching a place name does not find your photos for them; with **People names** off, searching a person's name does not either, and the same goes for captions and cameras. Searching for what is in a photo, such as *beach* or *dog*, works, because they see the photo.
+
+They can open, search and download your photos. They cannot edit, delete, favourite, rate or hide them, add them to their albums, or change their people.
+
+The switches also apply to the photos and albums you share with that user one by one: once you share your library with someone, its switches decide what they see of every photo of yours.
+
+### Changing or stopping a share
+
+Every person you share your library with is listed under **Your library**, with a line that says what they see (for example *No location*, *People*, *Copies only*) and whether they show your photos in their timeline. Click **What Ben sees** (with their name) to:
+
+- turn a switch on or off. It is saved at once.
+- **Preview a photo as Ben**: your newest photo, with what you see next to what they see.
+- **Stop sharing**. They lose access at once, including photo links they already opened. Photos and albums you shared with them one by one stay shared.
+
+### A library shared with you
+
+When someone shares their library with you, **Sharing** shows it under **Libraries shared with you**. Click it to open the library, read-only, as a timeline of its days. The page says what the owner shares; a day shows no place when they do not share locations.
+
+Turn on **Show in my timeline** to see their photos between yours on the **Photos** page, in your search and in their day groups. Their photos carry a small avatar in the corner, and the title says whose photos it includes. It is off when a share starts, and only you can turn it on or off. Archived photos stay out of your timeline, as in theirs, but are in their library page.
+
+The details panel of their photo says whose photo it is and, for each field they do not share, that they don't share it with you. The photo's own controls are not there: it is read-only.
+
+To leave a library, open it, click the **⋮** at the right of its title and choose **Leave Anna's library** (with the owner's name). LibrePhotos asks first. The owner can share it with you again.
+
 ## What the users you share with see
 
 <Since version="1.5.0" />
@@ -50,6 +106,8 @@ The people on a photo are different, because a name is personal. The users you s
 - The setting applies to everything you share with other users, albums and single photos alike.
 
 The sharing dialogs say the same in one sentence under the list of users.
+
+When you also [share your whole library](#sharing-your-whole-library) with someone, its **People names** switch decides for them instead of this setting.
 
 Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo Details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
 
@@ -233,12 +291,22 @@ Each person scans their own folder and shares albums or single photos with the o
 - Under **Shared with you**, everyone sees the others' places and things merged, and their people per owner.
 - A trip both partners photographed stays in two libraries. Each shares their own half.
 
-### Setup 3: one shared login
+### Setup 3: share your libraries with each other
+
+<Since version="1.5.0" />
+
+Each person scans their own folder and [shares their whole library](#sharing-your-whole-library) with the others, choosing what they see. Everyone turns on **Show in my timeline** for the libraries they want between their own photos.
+
+- Each person keeps their own favourites, faces, albums and hidden photos.
+- New photos show up for the others without sharing anything again.
+- The others can look, search and download, but not edit: for photos several people should change, use Setup 1.
+
+### Setup 4: one shared login
 
 Everyone signs in with the same account. It is the simplest setup, but nobody has favourites, ratings or private photos of their own, and everyone sees everything, including what someone meant to keep to themselves.
 
 ### What is not possible yet
 
-- Owning photos together, or one library that several users scan: [#395](https://github.com/LibrePhotos/librephotos/issues/395).
+- Owning photos together, or one library that several users scan and change: [#395](https://github.com/LibrePhotos/librephotos/issues/395). [Sharing your whole library](#sharing-your-whole-library) shares it read-only.
 - Letting the people you share an album with add their own photos to it: [#464](https://github.com/LibrePhotos/librephotos/issues/464).
 - Adding the people someone shared with you to your own People page: [#632](https://github.com/LibrePhotos/librephotos/issues/632).

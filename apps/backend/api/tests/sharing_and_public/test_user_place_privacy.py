@@ -10,11 +10,14 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from api.models.album_date import AlbumDate
 from api.models.album_user_share import AlbumUserShare
 from api.places.membership import refresh_user_places
 from api.tests.utils import (
     create_test_album_auto,
+    create_test_album_date,
     create_test_album_user,
+    create_test_library_share,
     create_test_photo,
     create_test_user,
     create_test_user_place,
@@ -97,11 +100,27 @@ class UserPlacePrivacyTest(TestCase):
             "/api/memories/?fallback=true&window=30",
         ]
 
-    def assert_never_shown(self, user):
+    def library_reads(self):
+        """The reads of a library share's recipient (#2731)."""
+        owner = self.owner.pk
+        return [
+            *self.reads(),
+            "/api/library-shares/",
+            f"/api/albums/date/list/?library={owner}",
+            "/api/albums/date/list/?libraries=true",
+            *(f"/api/albums/date/{day}/?library={owner}" for day in self.owner_days()),
+            f"/api/photos/{self.shared.pk}/summary/",
+            f"/api/photos/?search={PLACE_NAME}",
+        ]
+
+    def owner_days(self):
+        return list(AlbumDate.objects.owned_by(self.owner).values_list("pk", flat=True))
+
+    def assert_never_shown(self, user, urls=None):
         client = APIClient()
         if user is not None:
             client.force_authenticate(user=user)
-        for url in self.reads():
+        for url in urls or self.reads():
             with self.subTest(url=url, user=user):
                 response = client.get(url)
                 self.assertLess(response.status_code, 500, url)
@@ -111,6 +130,28 @@ class UserPlacePrivacyTest(TestCase):
 
     def test_a_recipient_of_every_kind_of_share_never_sees_the_place(self):
         self.assert_never_shown(self.recipient)
+
+    def test_a_library_share_recipient_never_sees_the_place(self):
+        """Even with every switch on and the library in their timeline (#2731):
+        a share shows positions and place names, never the owner's places."""
+        recipient = create_test_user()
+        create_test_library_share(
+            owner=self.owner,
+            recipient=recipient,
+            show_in_timeline=True,
+            share_location=True,
+            share_faces=True,
+            share_camera_info=True,
+            share_captions=True,
+            share_originals=True,
+        )
+        day = create_test_album_date(owner=self.owner, date=timezone.now().date())
+        day.photos.add(self.shared, self.public)
+        self.assert_never_shown(recipient, self.library_reads())
+        client = APIClient()
+        client.force_authenticate(recipient)
+        body = client.get("/api/photos/searchlist/", {"search": PLACE_NAME}).json()
+        self.assertEqual(body["results"], [])
 
     def test_a_stranger_never_sees_the_place(self):
         self.assert_never_shown(self.stranger)

@@ -62,6 +62,37 @@ export const SharedPeopleResponse = z.object({
 });
 export type SharedPeopleResponse = z.infer<typeof SharedPeopleResponse>;
 
+/**
+ * A whole library shared read-only (#2731), as either side sees it. The owner sets the `share_*`
+ * switches (all off by default); the recipient sets `show_in_timeline`. `photo_count` is what the
+ * share holds: the owner's photos and videos, never the hidden or trashed ones.
+ */
+export const LibraryShare = z.object({
+  id: IntegerId,
+  owner: SimpleUser,
+  recipient: SimpleUser,
+  show_in_timeline: z.boolean(),
+  share_location: z.boolean(),
+  share_faces: z.boolean(),
+  share_camera_info: z.boolean(),
+  share_captions: z.boolean(),
+  share_originals: z.boolean(),
+  created_at: z.string(),
+  photo_count: z.number(),
+});
+export type LibraryShare = z.infer<typeof LibraryShare>;
+
+export const LibrarySharesResponse = z.object({
+  results: LibraryShare.array(),
+});
+export type LibrarySharesResponse = z.infer<typeof LibrarySharesResponse>;
+
+/** The owner's switches of a library share, as the share dialog sends them. */
+export type LibraryShareSwitches = Pick<
+  LibraryShare,
+  "share_location" | "share_faces" | "share_camera_info" | "share_captions" | "share_originals"
+>;
+
 /** Albums shared by-me / with-me reuse the UserAlbumInfo row shape. */
 export const SharedAlbumsResponse = z.object({
   results: UserAlbumInfo.array(),

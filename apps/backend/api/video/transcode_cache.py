@@ -41,6 +41,7 @@ from django.conf import settings
 
 from api.runtime import binaries
 from api.video import color
+from api.video.no_metadata import NO_METADATA
 
 if TYPE_CHECKING:
     # Not imported at run time: api.models reaches this module through
@@ -292,7 +293,9 @@ def build_command(
     # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video.color`.
     command += color.h264_video_args(source, color.PLAYBACK_SCALE, transfer)
 
-    return command + ["-movflags", "+faststart", "-f", "mp4", destination]
+    # Without the source's metadata (its recorded location): the copy is for
+    # playing, and library recipients play it too (#2731).
+    return command + [*NO_METADATA, "-movflags", "+faststart", "-f", "mp4", destination]
 
 
 def run_transcode(

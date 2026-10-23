@@ -7,6 +7,7 @@ import {
   buildDateAlbumFilter,
   DATE_ALBUM_PAGE_SIZE,
   dateAlbumRequestFilter,
+  dateAlbumsListKey,
   hydrateGroupsFromCachedPages,
 } from "./useFetchDateAlbumsQuery";
 
@@ -178,5 +179,19 @@ describe("hydrateGroupsFromCachedPages", () => {
     hydrateGroupsFromCachedPages(groups, [{ albumDateId: 99, page: 1, items: [photo("x")] }]);
 
     expect(defined(groups[0]?.items[0]).isTemp).toBe(true);
+  });
+});
+
+describe("the libraries shared with me (#2731)", () => {
+  test("ask for one owner's library or my timeline with the libraries in it", () => {
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.NONE, library: 7 }).library).toBe(7);
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.NONE, withLibraries: true }).libraries).toBe(true);
+  });
+
+  test("key their lists apart from mine, and leave my own keys as they were", () => {
+    const own = dateAlbumsListKey({ photosetType: Photoset.NONE });
+    expect(own).toHaveLength(6);
+    expect(dateAlbumsListKey({ photosetType: Photoset.NONE, library: 7 }).at(-1)).toBe("library:7");
+    expect(dateAlbumsListKey({ photosetType: Photoset.NONE, withLibraries: true }).at(-1)).toBe("libraries");
   });
 });

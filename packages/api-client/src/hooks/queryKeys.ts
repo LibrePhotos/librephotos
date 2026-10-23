@@ -33,6 +33,11 @@ export type DateAlbumsListKey = [
   folder: string | undefined,
   mediaType: MediaType | "all",
   timelineFilter: string,
+  /**
+   * Whose days (#2731): a shared library's `library:<owner id>`, `libraries` for my timeline with
+   * the libraries I show in it, left out for my own library only.
+   */
+  library?: string,
 ];
 
 /** The grids a photo can show up in; each is a kind under `photoGridKeys.all`. */
@@ -402,6 +407,14 @@ export const tagKeys = {
   all: tagRoot,
   list: () => [...tagRoot, "list"] as const,
   photo: (photoId: string) => [...tagRoot, "photo", photoId] as const,
+};
+
+const libraryShareRoot = ["libraryShares"] as const;
+
+/** The libraries I share and the ones shared with me (#2731). Their photos are photo grids. */
+export const libraryShareKeys = {
+  all: libraryShareRoot,
+  list: () => [...libraryShareRoot, "list"] as const,
 };
 
 const userRoot = ["user"] as const;

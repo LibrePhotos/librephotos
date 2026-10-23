@@ -100,6 +100,12 @@ from api.serializers.photos import (
     with_photo_summary_relations as _with_photo_summary_relations,
 )
 from api.views.custom_api_view import ListViewSet
+from api.views.library_days import (
+    library_day,
+    library_day_rows,
+    timeline_day,
+    timeline_day_rows,
+)
 from api.views.mixins import PartialUpdateModelMixin
 
 logger = logging.getLogger(__name__)
@@ -637,18 +643,37 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         # DRF's get_object_or_404 also turns a non-numeric id into a 404.
         return get_object_or_404(albums.distinct(), pk=self.kwargs["pk"])
 
+    def _day_and_photos(self) -> tuple[AlbumDate, QuerySet[Photo]]:
+        """The day album and the photos it shows, before paging.
+
+        One owner's shared library with ``library``, the requester's day with
+        the libraries in their timeline with ``libraries`` (#2731).
+        """
+        params = self._query
+        if params.get("library") is not None:
+            return library_day(request_user(self.request), params, self.kwargs["pk"])
+        if params["libraries"] and not params["public"]:
+            return timeline_day(
+                request_user(self.request),
+                params,
+                self.kwargs["pk"],
+                self._photo_filters(),
+            )
+        album_date = self._album_date()
+        return album_date, album_date.photos.filter(*self._photo_filters())
+
     def _album_date_page(self) -> tuple[AlbumDate, list[Photo]]:
         """The day album and one page of its photos (``DayAlbumPagination``).
 
         Not ``get_queryset``: it returns no queryset, and ``retrieve`` is the
         only action this viewset serves.
         """
-        album_date = self._album_date()
+        album_date, day_photos = self._day_and_photos()
 
         photo_qs = _with_photo_summary_relations(
-            album_date.photos.filter(*self._photo_filters())
-            .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
-            .order_by("-exif_timestamp", "main_file__path")
+            day_photos.distinct().order_by(  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
+                "-exif_timestamp", "main_file__path"
+            )
         )
         if "person" in self._query:
             # A person's video opens where the person is (#2762).
@@ -689,7 +714,10 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             },
         )
         serializer_data = serializer.data
-        serializer_data["items"] = PhotoSummarySerializer(photos, many=True).data
+        # The request: another user's library photos show what they share.
+        serializer_data["items"] = PhotoSummarySerializer(
+            photos, many=True, context={"request": self.request}
+        ).data
         response = self.get_paginated_response(serializer_data)
         # The day's total, where clients have always read it (the same number
         # as the page's count).
@@ -818,13 +846,22 @@ class AlbumDateListViewSet(ListViewSet):
         description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
     )
     def list(self, *args: Any, **kwargs: Any) -> Response:
+        params = self._query
+        if params.get("library") is not None:
+            days = library_day_rows(request_user(self.request), params)
+            return Response(
+                {"results": IncompleteAlbumDateSerializer(days, many=True).data}
+            )
         queryset = self.get_queryset()
-        public = self._query["public"]
+        public = params["public"]
+        rows: QuerySet[AlbumDate] | list[AlbumDate] = queryset
         if public:
             # The public view may only name places of public photos.
-            queryset = queryset.prefetch_related(prefetch_public_photos())
+            rows = queryset.prefetch_related(prefetch_public_photos())
+        elif params["libraries"]:
+            rows = timeline_day_rows(request_user(self.request), params, queryset)
         serializer = IncompleteAlbumDateSerializer(
-            queryset, many=True, context={"public": public}
+            rows, many=True, context={"public": public}
         )
         return Response({"results": serializer.data})
 

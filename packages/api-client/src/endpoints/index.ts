@@ -123,6 +123,10 @@ export type DateAlbumFilter = {
   person?: number;
   username?: string;
   folder?: string;
+  /** A user who shares their library with me: their days instead of mine (#2731). */
+  library?: number;
+  /** Also the libraries I show in my timeline (#2731). */
+  libraries?: boolean;
 };
 
 /** Map a Photoset onto the backend's boolean date-album filter params. */
@@ -161,6 +165,8 @@ function dateAlbumParams(filter: DateAlbumFilter) {
     person: filter.person,
     username: filter.username?.toLowerCase(),
     folder: filter.folder,
+    library: filter.library,
+    libraries: filter.libraries ? "true" : undefined,
   };
 }
 
@@ -1572,6 +1578,42 @@ export async function setUserAlbumShared(
  * Leave an album someone shared with you: it drops off your "Shared with me" list, while the
  * owner and the other recipients keep it. Answers 204; 404 for an album not shared with you.
  */
+/* ---- library shares (a whole library, read-only, #2731) ---------------- */
+
+/** The library shares I gave and the ones I received, every page. */
+export async function fetchLibraryShares(client: ApiClient): Promise<S.LibraryShare[]> {
+  const results = await fetchAllPages(client, "/library-shares/");
+  return parseResponse(S.LibrarySharesResponse, { results }, "library shares").results;
+}
+
+/** Share my library with `recipientId`; 409 `library_already_shared` when it already is. */
+export async function createLibraryShare(
+  client: ApiClient,
+  recipientId: number,
+  switches: Partial<S.LibraryShareSwitches> = {}
+): Promise<S.LibraryShare> {
+  const res = await client.post<unknown>("/library-shares/", { recipient_id: recipientId, ...switches });
+  return parseResponse(S.LibraryShare, res, "library share");
+}
+
+/**
+ * Change a library share: the owner its `share_*` switches, the recipient `show_in_timeline`.
+ * A switch of the other side is a 400.
+ */
+export async function updateLibraryShare(
+  client: ApiClient,
+  shareId: number,
+  patch: Partial<S.LibraryShareSwitches & Pick<S.LibraryShare, "show_in_timeline">>
+): Promise<S.LibraryShare> {
+  const res = await client.patch<unknown>(`/library-shares/${shareId}/`, patch);
+  return parseResponse(S.LibraryShare, res, "library share");
+}
+
+/** The owner stops sharing, or the recipient leaves. Answers 204. */
+export async function deleteLibraryShare(client: ApiClient, shareId: number): Promise<void> {
+  await client.delete(`/library-shares/${shareId}/`);
+}
+
 export async function leaveSharedAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.post("/useralbum/leave/", { album_id: String(albumId) });
 }

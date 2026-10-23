@@ -2,6 +2,8 @@ import { IconUsers } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { LibrariesSharedWithYouSection } from "../../../components/libraryShare/LibrariesSharedWithYouSection";
+import { YourLibrarySection } from "../../../components/libraryShare/YourLibrarySection";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { PublicLinksSection } from "../../../components/sharing/PublicLinksSection";
@@ -22,6 +24,8 @@ function SharingExplore() {
     <>
       <PageHeader icon={IconUsers} title={t("sidemenu.sharing")} subtitle={t("sharing.subtitle")} />
       <PageBody gap="md">
+        <YourLibrarySection />
+        <LibrariesSharedWithYouSection />
         <PublicUsersSection />
         <SharedWithYouSection />
         <YouSharedSection />

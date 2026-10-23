@@ -42,7 +42,10 @@ from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
 from api.serializers.media import MediaQuery
 from api.serving.http_range import file_size, ranged_response
+from api.sharing.copies import COPIES_DIR, CopyUnavailableError, ensure_copy
+from api.sharing.grants import LibraryGrant, library_grant
 from api.video import color, ffmpeg_budget, transcode_cache
+from api.video.no_metadata import NO_METADATA
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +185,9 @@ def build_live_command(path: str, transfer: str | None = None) -> list[str]:
         "ultrafast",
         "-movflags",
         "frag_keyframe+empty_moov",
+        # A playback copy needs none of the source's metadata, and the
+        # recorded location must not reach a library recipient (#2731).
+        *NO_METADATA,
     ]
 
     # A ceiling, not a target: plain "scale=-2:720" enlarges anything shorter
@@ -842,16 +848,79 @@ class MediaServingView(APIView):
         return candidates[0]
 
     def _may_access(self, photo: Photo, user: User | None) -> bool:
-        """Whether `user` may fetch `photo`: owner, direct share, or via album."""
+        """Whether `user` may fetch `photo`: owner, direct share, via album, or
+        as a photo of a library shared with them (#2731)."""
         if user is None:
             return False
         if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
             return True
-        return (
+        if (
             self._vouching_albums(photo)
             .filter(self._public_album_active_q() | Q(shared_to=user))
             .exists()
+        ):
+            return True
+        return Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists()
+
+    def _library_grant(self, photo: Photo, user: User | None) -> LibraryGrant | None:
+        """The grant of a library share ``user`` may fetch ``photo`` under.
+
+        When the owner shares their library with ``user``, its switches decide
+        what is served for every photo of the owner (``api.sharing.grants``).
+        """
+        if user is None:
+            return None
+        grant = library_grant(user, photo.owner_id)
+        if grant is None or not self._may_access(photo, user):
+            return None
+        return grant
+
+    def _library_copy_response(self, photo: Photo, use_proxy: bool) -> HttpResponseBase:
+        """The full-size copy without metadata a recipient gets instead of the
+        original when its owner does not share original files."""
+        original = _original_path(photo)
+        requester = self._requester(self.request)
+        try:
+            copy = ensure_copy(photo, original, requester.pk if requester else 0)
+        except CopyUnavailableError:
+            # Still being made by another request, or this recipient made
+            # too many new copies this hour: ask again later.
+            response = HttpResponse(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            response["Retry-After"] = "30"
+            return response
+        if copy is None:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        content_type = (
+            self._file_content_type(original) if photo.video else "image/jpeg"
         )
+        if not use_proxy:
+            return self._serve_file_direct(copy, content_type)
+        response = HttpResponse()
+        response["Content-Type"] = content_type
+        response["X-Accel-Redirect"] = self._protected_media_url(
+            f"{COPIES_DIR}/{photo.owner_id}", os.path.basename(copy)
+        )
+        return response
+
+    def _library_media(
+        self,
+        photo: Photo,
+        grant: LibraryGrant,
+        path: str,
+        fname: str,
+        use_proxy: bool,
+    ) -> HttpResponseBase:
+        """A derived file of a library photo: thumbnails, posters and face
+        crops carry no metadata; a video's own file only as originals allow."""
+        if "thumbnail" in path or "faces" in path:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        if self._video_poster_name(photo, path, fname) is not None:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        if not photo.video:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        if grant.originals:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        return self._library_copy_response(photo, use_proxy)
 
     @staticmethod
     def _is_uuid_format(value: str) -> bool:
@@ -974,6 +1043,10 @@ class MediaServingView(APIView):
             or self._is_public_photo(photo)
         ):
             return self._refuse(user)
+        # A motion photo's video comes out of the original file (#2731).
+        grant = self._library_grant(photo, user)
+        if grant is not None and not grant.originals:
+            return self._refuse(user)
         main_file = photo.main_file
         embedded_media_file = (
             main_file.embedded_media.first() if main_file is not None else None
@@ -1070,6 +1143,10 @@ class MediaServingView(APIView):
                 photo, path, fname, user.transcode_videos, use_proxy
             )
 
+        grant = self._library_grant(photo, user)
+        if grant is not None:
+            return self._library_media(photo, grant, path, fname, use_proxy)
+
         if self._in_public_album(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
@@ -1114,6 +1191,9 @@ class MediaServingView(APIView):
         # unconverted to its own owner, who may need it converted to see it.
         if user is not None:
             transcode = self._transcode_for(user, request)
+            grant = self._library_grant(photo, user)
+            if grant is not None:
+                return self._library_original(photo, grant, use_proxy, transcode)
             if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
                 return self._generate_response_original(
                     photo, use_proxy, transcode, inline=True
@@ -1130,6 +1210,19 @@ class MediaServingView(APIView):
             return self._generate_response_original(photo, use_proxy, False)
 
         return self._refuse(user)
+
+    def _library_original(
+        self, photo: Photo, grant: LibraryGrant, use_proxy: bool, transcode: bool
+    ) -> HttpResponseBase:
+        """The original of a library photo, as its owner allows (#2731).
+
+        Never with the file's name. Without the originals switch, a still or
+        a video is the metadata-free copy, never a conversion: one cached
+        before conversions dropped the source's metadata still carries it.
+        """
+        if grant.originals:
+            return self._generate_response_original(photo, use_proxy, transcode)
+        return self._library_copy_response(photo, use_proxy)
 
 
 class UnifiedMediaAccessView(MediaServingView):

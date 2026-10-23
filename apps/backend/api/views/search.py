@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.core.cache import cache
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -80,17 +80,39 @@ class SearchListViewSet(ListViewSet):
         # serializer reads; without them every match cost three more queries.
         user = request_user(request)
         photos = with_photo_summary_relations(Photo.visible.owned_by(user))
+        # The request: a shared library's photos show what their owner shares.
+        context = {"request": request}
         if user.semantic_search_topk == 0:
-            queryset = self.filter_queryset(photos.order_by("-exif_timestamp"))
+            queryset = self._with_libraries(
+                request, self.filter_queryset(photos.order_by("-exif_timestamp"))
+            ).order_by("-exif_timestamp")
             grouped_photos = get_photos_ordered_by_date(
                 queryset, undated_date=LEGACY_UNDATED_DATE
             )
-            serializer = GroupedPhotosSerializer(grouped_photos, many=True)
+            serializer = GroupedPhotosSerializer(
+                grouped_photos, many=True, context=context
+            )
             return Response({"results": serializer.data})
         else:
-            queryset = self.filter_queryset(photos)
-            summary_serializer = PhotoSummarySerializer(queryset, many=True)
+            queryset = self._with_libraries(request, self.filter_queryset(photos))
+            summary_serializer = PhotoSummarySerializer(
+                queryset, many=True, context=context
+            )
             return Response({"results": summary_serializer.data})
+
+    def _with_libraries(
+        self, request: Request, own: QuerySet[Photo]
+    ) -> QuerySet[Photo]:
+        """``own`` matches plus the matches in the libraries the requester
+        shows in their timeline, under each owner's rules (#2731)."""
+        shared = SemanticSearchFilter().library_matches(request)
+        if shared is None:
+            return own
+        return with_photo_summary_relations(
+            Photo.objects.filter(
+                Q(pk__in=own.values("pk")) | Q(pk__in=shared.values("pk"))
+            )
+        )
 
 
 class MetadataValuesView(APIView):

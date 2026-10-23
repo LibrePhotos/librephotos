@@ -43,6 +43,7 @@ from api.tests.utils import (
     create_test_face,
     create_test_file,
     create_test_job,
+    create_test_library_share,
     create_test_person,
     create_test_person_group,
     create_test_photo,
@@ -227,6 +228,14 @@ def _shared_person(requester: User, index: int) -> None:
 SHARED_PERSON_ID = 990001
 
 
+def _library_share(requester: User, index: int) -> None:
+    """A library shared with the requester, and one the requester shares (#2731)."""
+    owner = create_test_user()
+    _visible_photo(owner)
+    create_test_library_share(owner=owner, recipient=requester)
+    create_test_library_share(owner=requester, recipient=create_test_user())
+
+
 def _shared_person_photo(requester: User, index: int) -> None:
     """One more shared photo of the one person ``SHARED_PERSON_ID``."""
     person = Person.objects.filter(pk=SHARED_PERSON_ID).first()
@@ -292,6 +301,9 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/photos/shared/tome/places/": (ListFixture(_shared_place),),
     "api/photos/shared/tome/things/": (ListFixture(_shared_thing),),
     "api/photos/shared/tome/people/": (ListFixture(_shared_person),),
+    "api/library-shares/": (
+        ListFixture(_library_share, rows=lambda payload: result_rows(payload) // 2),
+    ),
     "api/photos/shared/tome/places/photos/": (
         ListFixture(_shared_lisbon_photo, params={"title": "Lisbon"}),
     ),

@@ -222,6 +222,7 @@ class MemoriesView(APIView):
         """Build one memory per window that has any photos in it."""
         if not windows:
             return []
+        context = {"request": self.request}
 
         day_filter = Q()
         for _, _, start, end in windows:
@@ -325,8 +326,12 @@ class MemoriesView(APIView):
                         (places[day] for day in days_in_window if day in places), ""
                     ),
                     "numberOfItems": memory["count"],
-                    "cover": PhotoSummarySerializer(pick_cover(items)).data,
-                    "items": PhotoSummarySerializer(items, many=True).data,
+                    "cover": PhotoSummarySerializer(
+                        pick_cover(items), context=context
+                    ).data,
+                    "items": PhotoSummarySerializer(
+                        items, many=True, context=context
+                    ).data,
                 }
             )
         return results

@@ -578,6 +578,23 @@
           },
           {
             "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
             "name": "media",
             "schema": {
               "type": "string"
@@ -771,6 +788,23 @@
               "format": "date-time"
             },
             "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
           },
           {
             "in": "query",
@@ -4190,6 +4224,192 @@
               }
             },
             "description": ""
+          }
+        }
+      }
+    },
+    "/api/library-shares/": {
+      "get": {
+        "operationId": "api_library_shares_list",
+        "description": "The library shares the requester gave or received.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLibraryShareList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_library_shares_create",
+        "description": "The library shares the requester gave or received.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryShareRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryShareRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibraryShareRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryShare"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library-shares/{id}/": {
+      "patch": {
+        "operationId": "api_library_shares_partial_update",
+        "description": "The library shares the requester gave or received.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this library share.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUpdateLibraryShareRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUpdateLibraryShareRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUpdateLibraryShareRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryShare"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_library_shares_destroy",
+        "description": "The owner stops sharing, or the recipient leaves: access ends at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this library share.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
           }
         }
       }
@@ -14647,6 +14867,38 @@
           "parent_path"
         ]
       },
+      "CreateLibraryShareRequestRequest": {
+        "type": "object",
+        "description": "Share the requester's library with ``recipient_id``; every switch off\nunless sent.",
+        "properties": {
+          "recipient_id": {
+            "type": "integer"
+          },
+          "share_location": {
+            "type": "boolean",
+            "default": false
+          },
+          "share_faces": {
+            "type": "boolean",
+            "default": false
+          },
+          "share_camera_info": {
+            "type": "boolean",
+            "default": false
+          },
+          "share_captions": {
+            "type": "boolean",
+            "default": false
+          },
+          "share_originals": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "recipient_id"
+        ]
+      },
       "CreateManualStackRequestRequest": {
         "type": "object",
         "properties": {
@@ -17190,6 +17442,105 @@
           "folders"
         ]
       },
+      "LibraryGrant": {
+        "type": "object",
+        "description": "What the owner of a library shares with one recipient (#2731).",
+        "properties": {
+          "location": {
+            "type": "boolean"
+          },
+          "people": {
+            "type": "boolean"
+          },
+          "camera": {
+            "type": "boolean"
+          },
+          "captions": {
+            "type": "boolean"
+          },
+          "originals": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "camera",
+          "captions",
+          "location",
+          "originals",
+          "people"
+        ]
+      },
+      "LibraryShare": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "readOnly": true
+          },
+          "recipient": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "readOnly": true
+          },
+          "show_in_timeline": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "share_location": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "share_faces": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "share_camera_info": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "share_captions": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "share_originals": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "photo_count": {
+            "type": "integer",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "owner",
+          "photo_count",
+          "recipient",
+          "share_camera_info",
+          "share_captions",
+          "share_faces",
+          "share_location",
+          "share_originals",
+          "show_in_timeline"
+        ]
+      },
       "LibrarySubfolder": {
         "type": "object",
         "description": "A folder inside a library folder, for the tree the user leaves folders out in.",
@@ -18520,6 +18871,54 @@
           }
         }
       },
+      "PaginatedLibraryShareList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryShare"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedLongRunningJobList": {
         "type": "object",
         "required": [
@@ -19650,6 +20049,30 @@
           }
         }
       },
+      "PatchedUpdateLibraryShareRequestRequest": {
+        "type": "object",
+        "description": "The owner changes what the recipient sees; the recipient changes\n``show_in_timeline``. A switch of the other side is a 400.",
+        "properties": {
+          "show_in_timeline": {
+            "type": "boolean"
+          },
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_faces": {
+            "type": "boolean"
+          },
+          "share_camera_info": {
+            "type": "boolean"
+          },
+          "share_captions": {
+            "type": "boolean"
+          },
+          "share_originals": {
+            "type": "boolean"
+          }
+        }
+      },
       "PatchedUserPlaceRequest": {
         "type": "object",
         "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
@@ -20412,6 +20835,15 @@
             "type": "string",
             "readOnly": true,
             "nullable": true
+          },
+          "shared_library": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LibraryGrant"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
           }
         },
         "required": [
@@ -20459,6 +20891,7 @@
           "removed",
           "search_captions",
           "search_location",
+          "shared_library",
           "shared_to",
           "shutter_speed",
           "similar_photos",

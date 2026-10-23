@@ -16,14 +16,17 @@ import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useIsAuthenticatedQuery } from "../../api_client/auth";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
+import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
 import { AlbumsSection } from "./AlbumsSection";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { CategoryBadge } from "./CategoryBadge";
 import { Description } from "./Description";
+import { LibraryPhotoDetails } from "./LibraryPhotoDetails";
 import type { FaceLocationType, LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
@@ -230,6 +233,24 @@ type SharedViewerSidebarProps = {
   setFaceLocation: (location: FaceLocationType) => void;
 };
 
+/**
+ * Anyone who is not the owner: a photo of a library shared with them (#2731) says whose it is and
+ * what its owner shares; any other photo shows what the grid knows.
+ */
+function ViewerSidebar(props: SharedViewerSidebarProps) {
+  const { data: isAuthenticated } = useIsAuthenticatedQuery();
+  const { data: photo } = useFetchPhotoDetailsQuery(props.id, !isAuthenticated);
+  if (!photo || !isLibraryPhoto(photo)) return <SharedViewerSidebar {...props} />;
+  return (
+    <SidebarPanel>
+      <Stack>
+        <SidebarHeader closeSidepanel={props.closeSidepanel} />
+        <LibraryPhotoDetails photo={photo} setFaceLocation={props.setFaceLocation} />
+      </Stack>
+    </SidebarPanel>
+  );
+}
+
 /** Public pages without a slug, and shared albums: anyone who is not the owner. */
 function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: SharedViewerSidebarProps) {
   const { t } = useTranslation();
@@ -264,7 +285,7 @@ export function Sidebar({ isPublic, publicAlbumSlug, ...props }: SidebarProps) {
   }
   if (isPublic) {
     return (
-      <SharedViewerSidebar
+      <ViewerSidebar
         id={props.id}
         gridItem={props.gridItem}
         closeSidepanel={props.closeSidepanel}
