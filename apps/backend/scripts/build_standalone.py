@@ -104,15 +104,42 @@ NOFOLLOW = [
     "tkinter",
     "silk",
     "coverage",
+    # Optional imports nothing in LibrePhotos needs, about 1,000 modules of C
+    # (counted with --generate-c-only): insightface imports pip only inside a
+    # function that installs missing packages, albumentations guards
+    # huggingface_hub (and with it httpx2, httpcore2, anyio) with
+    # try/except ImportError, DRF guards pygments, and prompt_toolkit and ipdb
+    # serve django-extensions' shell_plus and runserver_plus, which the
+    # standalone build does not offer.
+    "pip",
+    "huggingface_hub",
+    "pygments",
+    "prompt_toolkit",
+    "ipdb",
 ]
 
-# Modules shipped as bytecode instead of compiled C. faiss.swigfaiss is SWIG's
-# 680 KB of generated proxy classes: Nuitka turns it into a 636k-line C file
-# that MSVC on a GitHub Windows runner (16 GB) cannot compile ("C1002: compiler
-# is out of heap space in pass 2", first seen with Python 3.14). Its methods only
-# forward to the _swigfaiss extension, so compiling them gains nothing.
+# Packages shipped as bytecode instead of compiled C. The C compile is most of
+# the build (5,713 files took 1 h 51 min on a 4-core GitHub runner) and its
+# cache does not carry over between CI runs, so every module of C costs every
+# build. These are pure Python that runs as fast as bytecode for a single-user
+# server (it is what the Docker images run), and Nuitka's own configuration
+# for them only decides what is included, which applies to bytecode too.
+# Module counts from --generate-c-only.
 BYTECODE_MODULES = [
+    # SWIG's 680 KB of generated proxy classes: Nuitka turns it into a 636k-line
+    # C file that MSVC on the runner (16 GB) cannot compile ("C1002: compiler is
+    # out of heap space in pass 2"). Its methods only forward to _swigfaiss.
     "faiss.swigfaiss",
+    "django",  # 907
+    "allauth",  # 838, mostly one module per login provider
+    "narwhals",  # 151, scikit-learn's dataframe layer
+    "django_extensions",  # 103
+    "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
+    "rest_framework",  # 73
+    "django_q",  # 66
+    "albumentations",  # 59, insightface's augmentation import
+    "insightface",  # 37
+    "drf_spectacular",  # 36
 ]
 
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
@@ -181,7 +208,7 @@ def collect_static():
     return BACKEND / "static"
 
 
-def nuitka_command(output_dir, jobs, version):
+def nuitka_command(output_dir, jobs, version, cache=True):
     command = [
         sys.executable,
         "-m",
@@ -209,6 +236,8 @@ def nuitka_command(output_dir, jobs, version):
     ]
     if jobs:
         command.append(f"--jobs={jobs}")
+    if not cache:
+        command.append("--disable-cache=all")
     icon = FRONTEND / "public" / "favicon.ico"
     if sys.platform == "win32" and icon.exists():
         command.append(f"--windows-icon-from-ico={icon}")
@@ -233,7 +262,7 @@ def nuitka_command(output_dir, jobs, version):
     return command
 
 
-def compile_binary(output_dir, jobs, version):
+def compile_binary(output_dir, jobs, version, cache=True):
     env = {
         **os.environ,
         "PYTHONPATH": os.pathsep.join(
@@ -241,7 +270,7 @@ def compile_binary(output_dir, jobs, version):
             + [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
         ),
     }
-    run(nuitka_command(output_dir, jobs, version), cwd=BACKEND, env=env)
+    run(nuitka_command(output_dir, jobs, version, cache), cwd=BACKEND, env=env)
     built = output_dir / f"{ENTRY.stem}.dist"
     dist = output_dir / DIST_NAME
     shutil.rmtree(dist, ignore_errors=True)
@@ -440,6 +469,11 @@ def main():
     parser.add_argument(
         "--version", default="0.0.0", help="numeric X.Y.Z stamped into the executable"
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="build without Nuitka's caches; CI uses it, see standalone-windows.yml",
+    )
     args = parser.parse_args()
 
     if not args.skip_frontend:
@@ -448,7 +482,7 @@ def main():
     static = collect_static()
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    dist = compile_binary(output_dir, args.jobs, args.version)
+    dist = compile_binary(output_dir, args.jobs, args.version, cache=not args.no_cache)
     stage_runtime_files(dist, frontend_build, static, args.version)
     print(f"built: {dist}")
     if args.zip:
