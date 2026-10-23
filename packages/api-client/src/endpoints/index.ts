@@ -1845,6 +1845,25 @@ export async function snoozeUpdateNotice(client: ApiClient): Promise<S.UpdateSta
   return parseResponse(S.UpdateStatus, res, "snooze update notice");
 }
 
+/**
+ * Admin, Windows app (#2788): download `version` (the newest release) in the background, check it
+ * and unpack it. `install` in the answer and in `fetchUpdateStatus` follows it; 409 `not_supported`
+ * elsewhere.
+ */
+export async function installUpdate(client: ApiClient, version: string): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/install/", { version });
+  return parseResponse(S.UpdateStatus, res, "install update");
+}
+
+/**
+ * Admin, Windows app (#2788): Restart to update once the download is ready. 409 `job_running` while
+ * a job runs, unless `force`.
+ */
+export async function restartToUpdate(client: ApiClient, force: boolean): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/restart/", { force });
+  return parseResponse(S.UpdateStatus, res, "restart to update");
+}
+
 /** Disk space where the server keeps its data (bytes). */
 export async function fetchStorageStats(client: ApiClient): Promise<S.StorageStats> {
   const res = await client.get<unknown>("/storagestats/");

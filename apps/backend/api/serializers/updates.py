@@ -2,9 +2,46 @@
 
 from rest_framework import serializers
 
-from api.drf.params import JsonStringField
+from api.drf.params import JsonBooleanField, JsonStringField
 from api.updates.check import UpdateStatus
+from api.updates.install import InstallState
 from api.updates.versions import parse_version
+
+
+class InstallStateSerializer(serializers.Serializer[InstallState]):
+    """The Windows app's built-in updater (#2788)."""
+
+    supported = serializers.BooleanField(
+        help_text="This install can download a release and restart into it:"
+        " the Windows app, in a program folder it may replace."
+    )
+    reason = serializers.CharField(
+        allow_null=True,
+        help_text="Why not, when supported is false: not_windows_app, read_only"
+        " (the folder around the program folder is not writable) or"
+        " data_in_program_folder.",
+    )
+    # A string, not an enum: a state a later server adds must not break clients.
+    state = serializers.CharField(
+        help_text="idle, downloading, verifying, extracting, ready, restarting"
+        " or failed"
+    )
+    version = serializers.CharField(
+        allow_null=True, help_text="The release being downloaded or ready."
+    )
+    received_bytes = serializers.IntegerField()
+    total_bytes = serializers.IntegerField(
+        allow_null=True, help_text="The zip's size; null until the server says."
+    )
+    error = serializers.CharField(
+        allow_null=True,
+        help_text="Why the last download failed (checksum_mismatch,"
+        " missing_sha256sums, disk_full, unreachable, ...); null otherwise.",
+    )
+    signature_checked = serializers.BooleanField(
+        help_text="Whether the download's signature is checked too; until a"
+        " signing key is chosen (#2317) only its SHA-256 is."
+    )
 
 
 class UpdateStatusSerializer(serializers.Serializer[UpdateStatus]):
@@ -61,6 +98,9 @@ class UpdateStatusSerializer(serializers.Serializer[UpdateStatus]):
         allow_null=True,
         help_text="Until when the closed card stays hidden; null when it is not.",
     )
+    install = InstallStateSerializer(
+        help_text="Downloading the newest release and restarting into it."
+    )
 
 
 class SkipReleaseRequest(serializers.Serializer[None]):
@@ -79,3 +119,19 @@ class SkipReleaseRequest(serializers.Serializer[None]):
                 code="invalid_version",
             )
         return version
+
+
+class InstallUpdateRequest(serializers.Serializer[None]):
+    """The release to download: the newest one, as GET /api/updates/ names it."""
+
+    version = JsonStringField(help_text="The release version, such as 1.5.0.")
+
+
+class RestartToUpdateRequest(serializers.Serializer[None]):
+    """Restart to update."""
+
+    force = JsonBooleanField(
+        required=False,
+        default=False,
+        help_text="Restart even while a job runs (it stops).",
+    )

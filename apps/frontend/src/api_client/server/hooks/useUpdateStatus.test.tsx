@@ -3,12 +3,19 @@
  * Skip this release takes it off both at once until a newer release comes, and closing the card
  * does the same for a week.
  */
-import { serverKeys, type UpdateStatus } from "@librephotos/api-client";
+import { POLL_ACTIVE_MS, serverKeys, type UpdateStatus } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSkipReleaseMutation, useSnoozeUpdateNoticeMutation, useUpdateNotice } from "./useUpdateStatus";
+import {
+  isInstallingUpdate,
+  useInstallUpdateMutation,
+  useRestartToUpdateMutation,
+  useSkipReleaseMutation,
+  useSnoozeUpdateNoticeMutation,
+  useUpdateNotice,
+} from "./useUpdateStatus";
 
 const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
@@ -43,11 +50,15 @@ let queryClient: QueryClient;
 let notice: UpdateStatus | null | undefined;
 let skip: ((version: string) => Promise<UpdateStatus>) | undefined;
 let snooze: (() => Promise<UpdateStatus>) | undefined;
+let install: ((version: string) => Promise<UpdateStatus>) | undefined;
+let restart: ((force: boolean) => Promise<UpdateStatus>) | undefined;
 
 function Harness({ isAdmin }: { isAdmin: boolean }) {
   notice = useUpdateNotice(isAdmin);
   skip = useSkipReleaseMutation().mutateAsync;
   snooze = useSnoozeUpdateNoticeMutation().mutateAsync;
+  install = useInstallUpdateMutation().mutateAsync;
+  restart = useRestartToUpdateMutation().mutateAsync;
   return null;
 }
 
@@ -136,5 +147,81 @@ describe("useUpdateNotice", () => {
     await settle();
     expect(stubs.post).toHaveBeenCalledWith("/updates/snooze/", {});
     expect(notice).toBeNull();
+  });
+});
+
+function installing(state: string, current = "1.4.0"): UpdateStatus {
+  return status({
+    install_type: "windows",
+    current,
+    install: {
+      supported: true,
+      reason: null,
+      state,
+      version: "1.5.0",
+      received_bytes: 0,
+      total_bytes: null,
+      error: null,
+      signature_checked: false,
+    },
+  });
+}
+
+describe("the Windows app's updater (#2788)", () => {
+  it("is followed while it works, and not otherwise", async () => {
+    expect(isInstallingUpdate(installing("downloading"))).toBe(true);
+    expect(isInstallingUpdate(installing("ready"))).toBe(false);
+    expect(isInstallingUpdate(status())).toBe(false);
+
+    stubs.get.mockResolvedValue(installing("downloading"));
+    await render(true);
+    expect(stubs.get).toHaveBeenCalledTimes(1);
+    stubs.get.mockResolvedValue(installing("ready"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_ACTIVE_MS);
+    });
+    expect(stubs.get).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_ACTIVE_MS * 3);
+    });
+    expect(stubs.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("downloads and restarts", async () => {
+    await render(true);
+    stubs.post.mockResolvedValue(installing("downloading"));
+    await act(async () => {
+      await install?.("1.5.0");
+    });
+    expect(stubs.post).toHaveBeenCalledWith("/updates/install/", { version: "1.5.0" });
+    stubs.post.mockResolvedValue(installing("restarting"));
+    await act(async () => {
+      await restart?.(false);
+    });
+    expect(stubs.post).toHaveBeenCalledWith("/updates/restart/", { force: false });
+  });
+
+  it("reloads the page once the new release answers", async () => {
+    const reload = vi.fn<() => void>();
+    vi.stubGlobal("location", { ...window.location, reload });
+    try {
+      stubs.get.mockResolvedValue(installing("restarting"));
+      await render(true);
+      expect(reload).not.toHaveBeenCalled();
+      // Back, still the old release (a swap that failed and was undone): no reload.
+      stubs.get.mockResolvedValue(installing("idle"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(POLL_ACTIVE_MS);
+      });
+      expect(reload).not.toHaveBeenCalled();
+      stubs.get.mockResolvedValue(status({ current: "1.5.0", notice: false, update_available: false }));
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: serverKeys.updates() });
+      });
+      await settle();
+      expect(reload).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

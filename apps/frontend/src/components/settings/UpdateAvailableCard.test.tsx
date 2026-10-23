@@ -3,7 +3,7 @@
  * Update available card: the release, the update steps for this install, its notes, Skip this
  * release (with Undo) and a close button that hides it for a week.
  */
-import type { UpdateStatus } from "@librephotos/api-client";
+import type { InstallState, UpdateStatus } from "@librephotos/api-client";
 import React from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
@@ -17,6 +17,7 @@ const stubs = vi.hoisted(() => ({
   skip: vi.fn<(version: string, options?: SkipOptions) => void>(),
   skipAsync: vi.fn<(version: string) => Promise<unknown>>(),
   snooze: vi.fn<() => void>(),
+  download: vi.fn<(version: string) => void>(),
   toast:
     vi.fn<(id: string, count: number, message: (total: number) => unknown, options: { undo: () => unknown }) => void>(),
 }));
@@ -24,6 +25,8 @@ const stubs = vi.hoisted(() => ({
 vi.mock("../../api_client/server", () => ({
   useSkipReleaseMutation: () => ({ mutate: stubs.skip, mutateAsync: stubs.skipAsync, isPending: false }),
   useSnoozeUpdateNoticeMutation: () => ({ mutate: stubs.snooze, isPending: false }),
+  useInstallUpdateMutation: () => ({ mutate: stubs.download, isPending: false }),
+  useRestartToUpdateMutation: () => ({ mutate: vi.fn<(force: boolean) => void>(), isPending: false, error: null }),
 }));
 vi.mock("../../service/notifications", () => ({ notification: { successCounted: stubs.toast } }));
 
@@ -45,6 +48,24 @@ function status(overrides: Partial<UpdateStatus> = {}): UpdateStatus {
     skipped_release: null,
     snoozed_until: null,
     ...overrides,
+  };
+}
+
+function windowsApp(install: Partial<InstallState>): Partial<UpdateStatus> {
+  return {
+    install_type: "windows",
+    how_to_update_url: "https://docs.librephotos.com/docs/installation/windows-standalone#updating",
+    install: {
+      supported: true,
+      reason: null,
+      state: "idle",
+      version: null,
+      received_bytes: 0,
+      total_bytes: null,
+      error: null,
+      signature_checked: false,
+      ...install,
+    },
   };
 }
 
@@ -105,6 +126,23 @@ describe("UpdateAvailableCard", () => {
     expect(link(container, "How to update the Windows app").href).toContain("windows-standalone#updating");
     expect(container.textContent).toContain("You have 1.4.0.");
     expect(container.textContent).not.toContain("Release notes");
+  });
+
+  it("lets the Windows app download the release itself (#2788)", async () => {
+    const { container } = await renderInMantine(<UpdateAvailableCard status={status(windowsApp({}))} />);
+    expect(container.textContent).not.toContain("How to update the Windows app");
+    await click(button(container, "Download update"));
+    expect(stubs.download).toHaveBeenCalledWith("1.5.0");
+    expect(link(container, "Release notes").href).toContain("releases/tag/1.5.0");
+  });
+
+  it("says why the Windows app cannot update itself, and links the steps", async () => {
+    const { container } = await renderInMantine(
+      <UpdateAvailableCard status={status(windowsApp({ supported: false, reason: "read_only" }))} />
+    );
+    expect(link(container, "How to update the Windows app").href).toContain("windows-standalone#updating");
+    expect(container.textContent).toContain("LibrePhotos cannot update itself here");
+    expect(container.textContent).not.toContain("Download update");
   });
 
   it("skips the release, with Undo in the toast", async () => {

@@ -271,8 +271,64 @@ of the next scan with the reason only in `console.log`.
 ## Updating {#updating}
 
 An update replaces the program folder and keeps the data folder: your photos, albums, people, users
-and settings are all still there afterwards. The steps assume the program is in
-`C:\Users\<you>\LibrePhotos-app\librephotos`; use your own folder if it is somewhere else.
+and settings are all still there afterwards. LibrePhotos can do it itself ([Updating from
+LibrePhotos](#update-from-the-app)); [by hand](#update-by-hand) works for every release.
+
+### Updating from LibrePhotos {#update-from-the-app}
+
+<Since version="1.5.0" /> When a newer release is out (see [Knowing when there is an
+update](#update-notifications)), LibrePhotos downloads it and restarts into it. The first release
+that can do this is 1.5.0: to get from 1.4.0 or older to 1.5.0, update [by hand](#update-by-hand)
+once.
+
+1. [Back up](#backing-up) the database if you want a copy on another drive. LibrePhotos makes a copy
+   in `db\backups` itself before it updates the database.
+2. In the browser, open **Admin Area** and click **Download update** on the **Update available**
+   card. Or right-click the LibrePhotos icon in the tray and choose **Download LibrePhotos 1.5.0**.
+3. LibrePhotos downloads the release from GitHub (about 450 MB) while it keeps running. The card
+   shows how far it got, and the tray menu says **Downloading 1.5.0 (42 %)**. An interrupted download
+   continues where it stopped when you try again.
+4. When the card says the update is downloaded and checked (and a notification says "LibrePhotos 1.5.0
+   is ready"), click **Restart to update** on the card, or choose **Restart to update to 1.5.0** in
+   the tray menu. If a job such as a scan is running, LibrePhotos asks first: the restart stops the
+   job, and you can start it again afterwards.
+5. LibrePhotos quits, puts the new release in place and starts it. After a minute or two (longer
+   when the release updates the database) the browser page reloads by itself on the new release.
+
+What happens on your disk, next to the program folder (for example in `C:\Users\<you>\LibrePhotos-app`):
+
+- The download goes into `librephotos-1.5.0.partial` and is unpacked into `librephotos-1.5.0`. Nothing
+  else changes until you restart; quitting LibrePhotos meanwhile is fine, and the next start knows
+  the update is ready.
+- On **Restart to update**, the old `librephotos` folder is renamed to `librephotos-old` and
+  `librephotos-1.5.0` to `librephotos`. Shortcuts to `librephotos\librephotos.exe` keep working. The
+  new release starts with the same options as the old one (`--data-dir`, `--port`, ...).
+- `librephotos-old` stays: it is the way [back to the previous release](#going-back). The
+  `librephotos-old` of the update before is deleted, but only once the new release has started and
+  answers. A log of each update is in `update.log` in the logs folder (tray: **Open logs**).
+
+If the new release does not start, nothing is deleted and a message box says where the old release
+is; [Going back](#going-back) has the steps.
+
+LibrePhotos only downloads from the LibrePhotos release page on github.com, over HTTPS, and checks
+the zip against the `SHA256SUMS` file of the same release, like [Checking your
+download](#checking-your-download) does by hand: a damaged download is deleted and not installed,
+and a release without `SHA256SUMS` cannot be installed this way. That proves the download is the
+file the release has; it does not prove who made the release. The release files are not signed
+yet: once the project has chosen how to sign them, LibrePhotos will also check a signature of
+`SHA256SUMS` before installing.
+
+LibrePhotos updates by hand only, and the card links these steps instead, when it cannot replace its
+own folder:
+
+- the program folder is somewhere it cannot write next to, such as `C:\Program Files` (see [Choosing
+  a folder](#choosing-a-folder));
+- the data folder (`--data-dir`) is inside the program folder, which an update replaces.
+
+### Updating by hand {#update-by-hand}
+
+The steps assume the program is in `C:\Users\<you>\LibrePhotos-app\librephotos`; use your own
+folder if it is somewhere else.
 
 1. [Back up](#backing-up) the database. <Since version="1.4.0" /> The new release also makes a copy of the database itself
    before it changes it (see below), but a copy on another drive is the safe way
@@ -323,9 +379,10 @@ If the new release does not start, the message box says why, and `console.log` i
 is, and its `librephotos-windows-x64.zip` can be downloaded:
 
 - a Windows notification says "LibrePhotos 1.5.0 is available" once for that release;
-- the tray menu has **Update to 1.5.0 available...**, which opens these steps;
-- admins see an **Update available** card at the top of the Admin Area, with **How to update**,
-  **Release notes** and **Skip this release**.
+- the tray menu has **Download LibrePhotos 1.5.0**, which [updates from LibrePhotos](#update-from-the-app)
+  (where LibrePhotos cannot update itself: **Update to 1.5.0 available...**, which opens these steps);
+- admins see an **Update available** card at the top of the Admin Area, with **Download update**
+  (or **How to update the Windows app**), **Release notes** and **Skip this release**.
 
 **Check for updates** in the tray menu asks at once and answers with a notification, also when
 LibrePhotos is up to date. A release skipped on the Admin page is not announced again; the next
@@ -398,6 +455,9 @@ To restore one of the automatic copies from `db\backups` instead, see [Restoring
 backup](upgrading.md#restore) on the Upgrading page.
 
 ### Going back to the previous release {#going-back}
+
+The previous release is in `librephotos-old` next to the program folder, whether you updated [from
+LibrePhotos](#update-from-the-app) or [by hand](#update-by-hand).
 
 1. Quit LibrePhotos.
 2. In `C:\Users\<you>\LibrePhotos-app`, rename the new `librephotos` folder to `librephotos-new`,

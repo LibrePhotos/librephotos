@@ -124,6 +124,9 @@ allow-star-arg-any = true
 "api/runtime/binaries.py" = ["TID251"]
 # The one module that queues background work (issue #2333).
 "api/jobs/queue.py" = ["TID251"]
+# The update's folder swap: it starts the new release with the environment
+# the old one was started with (issue #2788).
+"librephotos/updater.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
 "librephotos/wsgi.py" = ["TID251"]

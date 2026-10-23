@@ -315,7 +315,9 @@ Where your library is
   --data-dir chooses another place), not in this program folder.
 
 Updating, backing up, uninstalling
-  Quit LibrePhotos from its tray icon first (Quit LibrePhotos).
+  LibrePhotos updates itself: when a new release is out, right-click its
+  tray icon and choose Download LibrePhotos <version>, then Restart to update.
+  By hand, and for the steps below, quit it first (tray: Quit LibrePhotos).
   Updating:     {WINDOWS_DOCS_URL}#updating
   Backing up:   {WINDOWS_DOCS_URL}#backing-up
   Uninstalling: {WINDOWS_DOCS_URL}#uninstalling

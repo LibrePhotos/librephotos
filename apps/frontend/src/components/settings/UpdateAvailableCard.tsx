@@ -7,14 +7,41 @@ import { useSkipReleaseMutation, useSnoozeUpdateNoticeMutation } from "../../api
 import { notification } from "../../service/notifications";
 import { NoticeCard } from "../common/NoticeCard";
 import { publishedDate } from "./updateCheckStatus";
+import { UpdateInstallPanel } from "./UpdateInstallPanel";
+import { unsupportedReasonKey } from "./updateInstallText";
 
 /** The toast after Skip this release; one at a time. */
 const SKIPPED_TOAST_ID = "release-skipped";
 
+/** How to update: the docs' steps for this install, and why the Windows app cannot do it itself. */
+function HowToUpdate({ status }: Readonly<{ status: UpdateStatus }>) {
+  const { t } = useTranslation();
+  const reason = unsupportedReasonKey(status.install?.reason ?? null);
+  return (
+    <>
+      <Button
+        component="a"
+        href={status.how_to_update_url}
+        target="_blank"
+        rel="noreferrer"
+        leftSection={<Book size={16} />}
+      >
+        {status.install_type === "windows" ? t("updates.howtoupdatewindows") : t("updates.howtoupdate")}
+      </Button>
+      {reason ? (
+        <Text size="sm" c="dimmed" w="100%">
+          {t(reason)}
+        </Text>
+      ) : null}
+    </>
+  );
+}
+
 /**
  * The Admin page's Update available card (#2311): a newer release than this server runs, with the
  * update steps for this install, its release notes, and Skip this release (until a newer one
- * comes). The close button hides it for a week. Only admins see it; the server stores both.
+ * comes). The close button hides it for a week. Only admins see it; the server stores both. The
+ * Windows app downloads the release and restarts into it from here instead (#2788).
  */
 export function UpdateAvailableCard({ status }: Readonly<{ status: UpdateStatus }>) {
   const { t } = useTranslation();
@@ -53,16 +80,9 @@ export function UpdateAvailableCard({ status }: Readonly<{ status: UpdateStatus 
         </Tooltip>
       }
     >
+      {status.install?.supported ? <UpdateInstallPanel install={status.install} latest={latest} /> : null}
       <Group gap="xs">
-        <Button
-          component="a"
-          href={status.how_to_update_url}
-          target="_blank"
-          rel="noreferrer"
-          leftSection={<Book size={16} />}
-        >
-          {status.install_type === "windows" ? t("updates.howtoupdatewindows") : t("updates.howtoupdate")}
-        </Button>
+        {status.install?.supported ? null : <HowToUpdate status={status} />}
         {status.release_url ? (
           <Button
             component="a"

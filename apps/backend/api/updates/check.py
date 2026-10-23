@@ -32,6 +32,7 @@ from constance import config as site_config
 from django.conf import settings
 from django.utils import timezone
 
+from .install import InstallState, install_state
 from .versions import Version, is_newer, parse_version
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ class UpdateStatus(TypedDict):
     how_to_update_url: str
     skipped_release: str | None
     snoozed_until: datetime.datetime | None
+    install: InstallState
 
 
 def current_version() -> str:
@@ -302,6 +304,7 @@ def update_status(now: datetime.datetime | None = None) -> UpdateStatus:
         how_to_update_url=HOW_TO_UPDATE_URLS.get(kind, HOW_TO_UPDATE_URLS[SOURCE]),
         skipped_release=skipped_release,
         snoozed_until=snoozed_until if snoozed else None,
+        install=install_state(latest if available else None),
     )
 
 

@@ -131,6 +131,39 @@ describe("update check", () => {
     expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/snooze/`, method: "POST" });
     expect(status.snoozed_until).not.toBeNull();
   });
+
+  it("reads an older server without the updater, and the updater's state", async () => {
+    const install = {
+      supported: true,
+      reason: null,
+      state: "downloading",
+      version: "1.5.0",
+      received_bytes: 42,
+      total_bytes: 100,
+      error: null,
+      signature_checked: false,
+    };
+    const { client } = fakeServer({ ...updateStatus, install });
+    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({ install });
+    const older = fakeServer(updateStatus);
+    expect((await endpoints.fetchUpdateStatus(older.client)).install).toBeUndefined();
+  });
+
+  it("downloads the newest release, then restarts into it (#2788)", async () => {
+    const { client, requests } = fakeServer(updateStatus);
+    await endpoints.installUpdate(client, "1.5.0");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/updates/install/`,
+      method: "POST",
+      body: { version: "1.5.0" },
+    });
+    await endpoints.restartToUpdate(client, true);
+    expect(defined(requests[1])).toMatchObject({
+      url: `${API}/updates/restart/`,
+      method: "POST",
+      body: { force: true },
+    });
+  });
 });
 
 describe("server", () => {
