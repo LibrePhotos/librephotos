@@ -6,7 +6,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
@@ -31,10 +31,11 @@ from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-    from hdbscan import HDBSCAN as _HDBSCAN
     from numpy import float64, intp
-    from sklearn.decomposition import PCA as _PCA
-    from sklearn.neural_network import MLPClassifier as _MLPClassifier
+
+    from api.faces.hdbscan import HDBSCAN
+    from api.faces.mlp import MLPClassifier
+    from api.faces.pca import PCA
 
 if TYPE_CHECKING:
     import numpy as np
@@ -51,25 +52,38 @@ class _FaceData(TypedDict):
     id: list[int]
 
 
-# hdbscan and scikit-learn (with scipy) take 1.6 s and ~100 MB to import, and
-# this module is imported by the API server, which never clusters. They load
-# on first use; the factories are module attributes so tests can patch them.
-def make_pca(*args: Any, **kwargs: Any) -> _PCA:
-    from sklearn.decomposition import PCA
+# The numpy implementations load on first use: the API server imports this
+# module but never clusters. The factories are module attributes so tests can
+# patch them.
+def make_pca(n_components: int) -> PCA:
+    from api.faces.pca import PCA
 
-    return PCA(*args, **kwargs)
-
-
-def make_hdbscan(*args: Any, **kwargs: Any) -> _HDBSCAN:
-    from hdbscan import HDBSCAN
-
-    return HDBSCAN(*args, **kwargs)
+    return PCA(n_components=n_components)
 
 
-def make_mlp_classifier(*args: Any, **kwargs: Any) -> _MLPClassifier:
-    from sklearn.neural_network import MLPClassifier
+def make_hdbscan(
+    *,
+    min_cluster_size: int,
+    min_samples: int,
+    cluster_selection_epsilon: float,
+    metric: str,
+) -> HDBSCAN:
+    from api.faces.hdbscan import HDBSCAN
 
-    return MLPClassifier(*args, **kwargs)
+    return HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        cluster_selection_epsilon=cluster_selection_epsilon,
+        metric=metric,
+    )
+
+
+def make_mlp_classifier(
+    *, alpha: float, random_state: int, max_iter: int
+) -> MLPClassifier:
+    from api.faces.mlp import MLPClassifier
+
+    return MLPClassifier(alpha=alpha, random_state=random_state, max_iter=max_iter)
 
 
 # What training writes back: only its predictions. The label (``person``)
@@ -235,7 +249,7 @@ def resolve_min_cluster_size(user: User, target_count: int) -> int:
     return 2
 
 
-def build_clusterer(user: User, target_count: int) -> _HDBSCAN:
+def build_clusterer(user: User, target_count: int) -> HDBSCAN:
     return make_hdbscan(
         min_cluster_size=resolve_min_cluster_size(user, target_count),
         min_samples=user.min_samples if user.min_samples > 0 else 1,
@@ -363,10 +377,10 @@ def classifier_input(
     return array * np.sqrt(array.shape[1])
 
 
-def fit_mlp(encodings: npt.NDArray[float64], ids: npt.NDArray[intp]) -> _MLPClassifier:
-    return make_mlp_classifier(
-        solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-    ).fit(classifier_input(encodings), ids)
+def fit_mlp(encodings: npt.NDArray[float64], ids: npt.NDArray[intp]) -> MLPClassifier:
+    return make_mlp_classifier(alpha=1e-5, random_state=1, max_iter=1000).fit(
+        classifier_input(encodings), ids
+    )
 
 
 def split_faces_by_label(user: User) -> tuple[_FaceData, _FaceData]:
@@ -439,9 +453,9 @@ class _Classifiers:
     """What ``train_faces`` predicts the person of an unlabelled face with."""
 
     # Trained on the labelled faces; None when there are none.
-    person: _MLPClassifier | None
+    person: MLPClassifier | None
     # Trained on the labelled faces and the centroids of the clusters.
-    cluster: _MLPClassifier
+    cluster: MLPClassifier
     # A face in this cluster gets no cluster person.
     unknown_cluster: Cluster
     # The birth dates of the user's people that have one (#2752).
@@ -541,6 +555,7 @@ def classify_face_page(
     rejected = rejected_people_of(page_id)
     face_encodings_unknown_np = classifier_input(page_encodings)
     cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
+    classification_probs: npt.NDArray[float64] | list[list[float]]
     if classifiers.person:
         classification_probs = classifiers.person.predict_proba(
             face_encodings_unknown_np
@@ -584,7 +599,7 @@ def classify_face_page(
     bulk_update(face_stack, update_fields=FACE_PREDICTION_COLUMNS)
 
 
-def fit_person_classifier(data_known: _FaceData) -> _MLPClassifier | None:
+def fit_person_classifier(data_known: _FaceData) -> MLPClassifier | None:
     """The classifier of the labelled faces; None when no face is labelled"""
     if not data_known["id"]:
         return None

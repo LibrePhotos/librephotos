@@ -55,7 +55,7 @@ def enc_hex(seed, length=128):
 
 
 class FakeMLP:
-    """Stand-in for ``sklearn.neural_network.MLPClassifier``.
+    """Stand-in for ``api.faces.mlp.MLPClassifier``.
 
     ``predict_proba`` puts the probability mass on the class at
     ``PEAK_INDEX`` so the "person with the highest probability" branches are
@@ -516,7 +516,7 @@ class TrainFacesTest(TrainFacesTestBase):
         self.assertEqual(len(FakeMLP.instances), 2)
         self.assertEqual(
             FakeMLP.instances[0].kwargs,
-            {"solver": "adam", "alpha": 1e-5, "random_state": 1, "max_iter": 1000},
+            {"alpha": 1e-5, "random_state": 1, "max_iter": 1000},
         )
 
     def test_unknown_face_gets_cluster_and_classification_person(self):

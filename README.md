@@ -86,7 +86,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 ### Machine Learning
 
 - **Face detection:** [InsightFace](https://github.com/deepinsight/insightface)
-- **Face classification/clustering:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
+- **Face classification/clustering:** [hdbscan](https://github.com/scikit-learn-contrib/hdbscan) clustering and a [scikit-learn](https://scikit-learn.org/) multilayer perceptron, both ported to numpy
 - **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), prompted with the recognised people and the place
 - **Tagging, semantic search and similar photos:** [OpenCLIP ViT-B/32](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) (DataComp-XL, MIT licence)
 - **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with [FAISS](https://github.com/facebookresearch/faiss)

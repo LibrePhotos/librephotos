@@ -22,8 +22,8 @@
       "enabled": false
     },
     {
-      "description": "Never auto-bump these: hdbscan and timezonefinder have Windows and arm64 wheels built by prebuilt-wheels.yml and pinned by URL in apps/backend/requirements.txt next to the PyPI pin. Renovate would move the PyPI line alone. Bump every line together by hand and re-run the workflow.",
-      "matchPackageNames": ["timezonefinder", "hdbscan"],
+      "description": "Never auto-bump timezonefinder: it has Windows and arm64 wheels built by prebuilt-wheels.yml and pinned by URL in apps/backend/requirements.txt next to the PyPI pin. Renovate would move the PyPI line alone. Bump every line together by hand and re-run the workflow.",
+      "matchPackageNames": ["timezonefinder"],
       "enabled": false
     },
     {

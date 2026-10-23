@@ -2,8 +2,8 @@ name: prebuilt-wheels
 
 # Builds the wheels apps/backend/requirements.txt references by URL, for the
 # packages PyPI ships no wheel for on a platform we run on, and attaches them to
-# a GitHub release: insightface and timezonefinder for Windows, insightface,
-# hdbscan and timezonefinder as manylinux wheels for the Docker images and CI,
+# a GitHub release: insightface and timezonefinder for Windows, insightface and
+# timezonefinder as manylinux wheels for the Docker images and CI,
 # ExifTool and ffmpeg for every platform.
 #
 # Only the wheels requirements.txt downloads from the release named by `tag`
