@@ -149,6 +149,16 @@ Changes made since the upgrade (faces named, albums edited, photos added) are no
 
 Releases after 1.3.0 keep the secret key in `protected_media/secret.key` and move it there from the logs folder on their first start. 1.3.0 and older look for it in the logs folder (`logs\secret.key` on Windows, `/logs/secret.key` in Docker): when you go back to one of them, copy the key there first. Without it, that release makes a new key, everyone has to log in again, and the saved email server and Nextcloud passwords have to be entered again.
 
+### While the old container is still running {#rolling-update}
+
+<Since version="1.5.0" /> Some hosts (Coolify, Kubernetes) start the new container before they stop the old one. Once the new release has migrated the database, the old release's background worker takes no more tasks and leaves them to the new one. Its log says:
+
+```text
+A newer LibrePhotos release migrated the database (api.0193_...), so this cluster takes no more tasks and leaves them to that release
+```
+
+This works when the release you upgrade from has it. A worker of 1.4.0 or older can still take the new release's first scheduled tasks and log errors like `Function api.updates.check.check_for_updates is not defined`. They do no harm: each schedule runs again on its next turn, the update check the next day.
+
 ## After upgrading from 1.2.1 or older {#strip-thumbnail-metadata}
 
 Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS position, camera serial number and keywords. A public link serves those thumbnails, so anyone holding one can read the location, even with location sharing off. Since 1.3.0, new thumbnails are written without it, but the ones already on disk keep it until you run the cleanup once.

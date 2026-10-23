@@ -256,6 +256,10 @@ Q_CLUSTER = {
     "timeout": 10000000,
     "retry": 20000000,
     "orm": "default",
+    # The ORM broker, except that a cluster takes no tasks once a newer release
+    # has migrated the database: during a rolling deploy the old container's
+    # cluster would otherwise run the new release's tasks.
+    "broker_class": "api.jobs.broker.ReleaseGuardedORM",
     "max_rss": 300000,
     "poll": 1,
     # Schedules missed while the workers were busy (the minutely service
