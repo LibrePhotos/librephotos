@@ -16,6 +16,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
@@ -112,19 +113,20 @@ class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
 
     # --- public / username -------------------------------------------
 
-    def test_public_for_anonymous_returns_only_public_photos_of_all_owners(self):
-        mine_public = self.photo(public=True)
-        other_public = self.photo(owner=self.other, public=True)
-        self.photo(public=False)
+    def test_public_without_a_username_is_no_view_at_all(self):
+        # The public view is per user; everyone's public photos together are
+        # the public gallery (#434).
+        self.photo(public=True)
+        self.photo(owner=self.other, public=True)
 
-        _, photos, count = self.run_queryset(AnonymousUser(), self.album, public="true")
-
-        self.assertEqual(self.ids(photos), {str(mine_public.pk), str(other_public.pk)})
-        self.assertEqual(count, 2)
+        with self.assertRaises(NotFound):
+            self.run_queryset(AnonymousUser(), self.album, public="true")
 
     def test_public_with_username_restricts_to_that_owner(self):
         # ``username`` names the owner of the day album as well, so the album
         # has to be theirs to be found at all.
+        self.other.public_sharing = True
+        self.other.save(update_fields=["public_sharing"])
         self.album.owner = self.other
         self.album.save(update_fields=["owner"])
         self.photo(public=True)
@@ -140,11 +142,17 @@ class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
         self.assertEqual(self.ids(photos), {str(other_public.pk)})
 
     def test_public_drops_the_owner_filter_even_for_authenticated_users(self):
-        """``public`` suppresses ``Q(owner=user)``: foreign public photos show up."""
+        """``public`` replaces ``Q(owner=user)`` by the named owner's public photos."""
+        self.other.public_sharing = True
+        self.other.save(update_fields=["public_sharing"])
+        self.album.owner = self.other
+        self.album.save(update_fields=["owner"])
         other_public = self.photo(owner=self.other, public=True)
         self.photo(public=False)
 
-        _, photos, _ = self.run_queryset(self.user, self.album, public="true")
+        _, photos, _ = self.run_queryset(
+            self.user, self.album, public="true", username=self.other.username
+        )
 
         self.assertEqual(self.ids(photos), {str(other_public.pk)})
 

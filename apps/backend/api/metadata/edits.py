@@ -74,7 +74,7 @@ from api.metadata.rights import (
 from api.metadata.tags import Tags
 from api.metadata.takeout import takeout_metadata_of
 from api.models.album_place import AlbumPlace, get_album_place
-from api.models.photo import LocationSource, Photo
+from api.models.photo import LocationSource, Photo, photo_town
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import (
     IMPORTED_DESCRIPTION_KEY,
@@ -112,6 +112,8 @@ LOCATION_COLUMNS = [
     "exif_gps_lon",
     "location_source",
     "geolocation_json",
+    # Photo.town goes with geolocation_json (the bulk_update below skips save).
+    "town",
     "geocoded_lat",
     "geocoded_lon",
     "last_modified",
@@ -431,6 +433,7 @@ def _move_photos(
         photo.location_source = source
         # A copy each: the photos must not share one mutable dict.
         photo.geolocation_json = dict(place) if place else {}
+        photo.town = photo_town(photo.geolocation_json)
         photo.geocoded_lat, photo.geocoded_lon = position if place else (None, None)
         photo.last_modified = now
     Photo.objects.bulk_update(photos, LOCATION_COLUMNS, batch_size=500)

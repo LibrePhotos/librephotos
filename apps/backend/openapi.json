@@ -654,7 +654,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "The public view: public photos of any user"
+            "description": "The public view: one user's public photos (with username)"
           },
           {
             "in": "query",
@@ -672,7 +672,7 @@
               "type": "string",
               "default": ""
             },
-            "description": "With public: only this user's public photos"
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
           },
           {
             "in": "query",
@@ -865,7 +865,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "The public view: public photos of any user"
+            "description": "The public view: one user's public photos (with username)"
           },
           {
             "in": "query",
@@ -892,7 +892,7 @@
               "type": "string",
               "default": ""
             },
-            "description": "With public: only this user's public photos"
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
           },
           {
             "in": "query",
@@ -1784,7 +1784,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "The public view: public photos of any user"
+            "description": "The public view: one user's public photos (with username)"
           },
           {
             "in": "query",

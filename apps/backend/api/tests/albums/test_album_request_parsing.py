@@ -73,14 +73,14 @@ class DateAlbumQueryTest(TestCase):
     def test_the_spellings_clients_send_open_the_public_view(self):
         for value in ("true", "True", "1", "yes", "on"):
             with self.subTest(public=value):
-                params = {"public": value}
+                params = {"public": value, "username": self.owner.username}
                 self.assertEqual({self.day.id: 1}, self._list(self.anonymous, params))
                 self.assertEqual(
                     self._ids(self.public_photo), self._items(self.anonymous, params)
                 )
 
     def test_public_with_username_keeps_the_owner_scope(self):
-        other = create_test_user()
+        other = create_test_user(public_sharing=True)
         for username, expected in ((self.owner.username, 1), (other.username, None)):
             with self.subTest(username=username):
                 params = {"public": "true", "username": username}

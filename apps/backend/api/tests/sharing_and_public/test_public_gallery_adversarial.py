@@ -269,17 +269,12 @@ class ConstantQueriesTest(GalleryAdversarialFixture):
 
 class ThrottleTest(GalleryAdversarialFixture):
     @gallery()
-    def test_visitors_without_an_account_are_throttled_and_users_are_not(self):
+    def test_visitors_and_users_are_throttled_each_on_their_own(self):
         cache.clear()
         self.addCleanup(cache.clear)
         with patch.dict(
             SimpleRateThrottle.THROTTLE_RATES, {"public_gallery": "2/minute"}
         ):
-            codes = [
-                self.anonymous.get("/api/gallery/days/").status_code for _ in range(3)
-            ]
-            self.assertEqual(codes, [200, 200, 429])
-            signed_in = [
-                self.signed_in.get("/api/gallery/days/").status_code for _ in range(3)
-            ]
-            self.assertEqual(signed_in, [200, 200, 200])
+            for client in (self.anonymous, self.signed_in):
+                codes = [client.get("/api/gallery/days/").status_code for _ in range(3)]
+                self.assertEqual(codes, [200, 200, 429])

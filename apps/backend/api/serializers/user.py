@@ -10,7 +10,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db.models import Count, Prefetch, Q, QuerySet
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from api.accounts.directories import (
     auto_create_user_directory,
@@ -410,6 +410,30 @@ class UserSerializer(serializers.ModelSerializer):
             return merged_public_sharing_defaults(value, saved)
         except ValueError as error:
             raise ValidationError(f"public_sharing_defaults {error}.") from error
+
+    def validate_in_public_gallery(self, value: bool) -> bool:
+        """Only the user themselves takes part in the public gallery (#434).
+
+        An admin editing another user, or creating one, cannot opt them in or
+        out: the same value is accepted (the user editor sends the whole
+        user back), a change is a 403.
+        """
+        request = self.context.get("request")
+        requester = getattr(request, "user", None)
+        current = (
+            self.instance.in_public_gallery if self.instance is not None else False
+        )
+        is_self = (
+            self.instance is not None
+            and isinstance(requester, User)
+            and requester.pk == self.instance.pk
+        )
+        if not is_self and value != current:
+            raise PermissionDenied(
+                "Only the user themselves can show their photos in the public gallery.",
+                code="public_gallery_self_only",
+            )
+        return value
 
     def validate_default_timeline_filter(self, value: object) -> dict[str, object]:
         try:

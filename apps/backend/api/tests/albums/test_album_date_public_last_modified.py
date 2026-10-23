@@ -74,7 +74,7 @@ class AlbumDatePublicLastModifiedTest(TestCase):
         return [item["id"] for item in response.json()["results"]["items"]]
 
     def test_anonymous_list_returns_only_public_days(self):
-        for params in ({"username": self.owner.username}, {}):
+        for params in ({"username": self.owner.username},):
             with self.subTest(params=params):
                 listed = self._list(self.anonymous, last_modified=self.past, **params)
                 self.assertEqual({self.day.id: 1}, listed)
@@ -89,7 +89,7 @@ class AlbumDatePublicLastModifiedTest(TestCase):
         self.assertEqual({self.day.id: 1}, listed)
 
     def test_anonymous_detail_returns_only_public_photos(self):
-        for params in ({"username": self.owner.username}, {}):
+        for params in ({"username": self.owner.username},):
             with self.subTest(params=params):
                 items = self._detail_items(
                     self.anonymous, last_modified=self.past, **params

@@ -54,6 +54,7 @@ from api.sharing.gallery import (
     person_entries,
     photographer_entries,
     photographer_rows,
+    place_entries,
     place_rows,
 )
 from api.sharing.grants import PUBLIC_OWNER_GRANTS
@@ -177,10 +178,11 @@ class GalleryPlaceViewSet(GalleryAPIView, ListViewSet):
 
     @extend_schema(parameters=[GalleryOwnerQuery])
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        rows = self.paginate_queryset(place_rows(_owners(request, GalleryOwnerQuery)))
-        return self.get_paginated_response(
-            self.get_serializer(rows or [], many=True).data
+        owners = _owners(request, GalleryOwnerQuery)
+        entries = place_entries(
+            owners, self.paginate_queryset(place_rows(owners)) or []
         )
+        return self.get_paginated_response(self.get_serializer(entries, many=True).data)
 
 
 class GalleryPersonViewSet(GalleryAPIView, ListViewSet):

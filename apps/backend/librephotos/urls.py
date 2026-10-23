@@ -51,6 +51,7 @@ from api.accounts.tokens import (
     remembered_max_age,
 )
 from api.models import User
+from api.sharing.gallery import gallery_indexable
 from api.views import (
     album_auto,
     album_collections,
@@ -217,6 +218,11 @@ class LogoutView(TokenBlacklistView):
         return response
 
 
+# The addresses that open the public gallery (#434): the server's own and
+# /public.
+GALLERY_PAGES = frozenset({"/", "/public", "/public/"})
+
+
 class FrontendView(TemplateView):
     """
     Serves the frontend index.html for all non-API routes (no-proxy compatibility)
@@ -230,11 +236,16 @@ class FrontendView(TemplateView):
                 os.path.dirname(settings.BASE_DIR), "frontend_build", "index.html"
             )
             with open(frontend_path) as f:
-                return HttpResponse(f.read(), content_type="text/html")
+                response = HttpResponse(f.read(), content_type="text/html")
         except FileNotFoundError:
             return HttpResponse(
                 "Frontend build not found. Please build the frontend first.", status=500
             )
+        # The public gallery's pages (#434): kept out of search engines unless
+        # the admin lets them in, as the gallery's API answers are.
+        if request.path in GALLERY_PAGES and not gallery_indexable():
+            response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
 
 
 router = routers.DefaultRouter()

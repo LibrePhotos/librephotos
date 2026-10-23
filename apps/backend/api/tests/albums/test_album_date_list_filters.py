@@ -59,14 +59,12 @@ class AlbumDateListPublicFilterTest(TestCase):
     def _ids(response):
         return {album["id"] for album in response.json()["results"]}
 
-    def test_public_without_username_returns_all_public_albums(self):
+    def test_public_without_username_lists_nobody(self):
+        # The public view is per user; everyone's public photos together are
+        # the public gallery (#434), with switches of its own.
         response = self.client.get("/api/albums/date/list/", {"public": "true"})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            self._ids(response),
-            {self.public_album_a.id, self.public_album_b.id},
-        )
+        self.assertEqual(response.status_code, 404)
 
     def test_public_with_username_returns_only_that_owners_albums(self):
         response = self.client.get(

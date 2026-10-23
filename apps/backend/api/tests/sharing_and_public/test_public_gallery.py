@@ -7,7 +7,15 @@ The privacy side (what a visitor never gets) is
 
 from __future__ import annotations
 
-from api.models import User
+import importlib
+import os
+import shutil
+import tempfile
+
+from django.apps import apps as django_apps
+from django.test import RequestFactory, TestCase, override_settings
+
+from api.models import Photo, User
 from api.tests.sharing_and_public.gallery_fixtures import (
     DAY_ID,
     UNDATED_DAY_ID,
@@ -15,6 +23,7 @@ from api.tests.sharing_and_public.gallery_fixtures import (
     gallery,
 )
 from api.tests.utils import create_test_face, create_test_person, create_test_user
+from librephotos.urls import FrontendView
 
 
 class GalleryTimelineTest(GalleryFixture):
@@ -237,6 +246,31 @@ class GallerySwitchesTest(GalleryFixture):
         self.assertEqual(other.status_code, 403)
         self.assertTrue(User.objects.get(pk=self.anna.pk).in_public_gallery)
 
+    def test_an_admin_cannot_opt_another_user_in_or_out(self):
+        for user, value in ((self.cleo, True), (self.anna, False)):
+            with self.subTest(user=user.username):
+                response = self.admin_client.patch(
+                    f"/api/user/{user.pk}/", {"in_public_gallery": value}, format="json"
+                )
+                self.assertEqual(response.status_code, 403, response.content)
+                self.assertEqual(
+                    response.json()["errors"][0]["code"], "public_gallery_self_only"
+                )
+                user.refresh_from_db()
+                self.assertEqual(user.in_public_gallery, not value)
+        # The same value (the user editor sends the whole user back) is fine.
+        response = self.admin_client.patch(
+            f"/api/user/{self.anna.pk}/",
+            {"in_public_gallery": True, "first_name": "Anna"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        # An admin opts themselves in like anyone else.
+        response = self.admin_client.patch(
+            f"/api/user/{self.admin.pk}/", {"in_public_gallery": True}, format="json"
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
     @gallery()
     def test_opting_out_takes_the_photos_out_and_keeps_them_public(self):
         self.anna.in_public_gallery = False
@@ -273,3 +307,50 @@ ROUTES = (
     "/api/gallery/people/",
     "/api/gallery/photographers/",
 )
+
+
+class GalleryPageHtmlTest(TestCase):
+    """The unified image serves the web app itself (SERVE_FRONTEND): the
+    gallery's addresses carry noindex there too unless the admin allows it."""
+
+    def setUp(self):
+        self.code = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.code)
+        os.makedirs(os.path.join(self.code, "frontend_build"))
+        with open(os.path.join(self.code, "frontend_build", "index.html"), "w") as f:
+            f.write("<html></html>")
+
+    def page(self, path):
+        with override_settings(BASE_DIR=os.path.join(self.code, "librephotos")):
+            return FrontendView.as_view()(RequestFactory().get(path))
+
+    def test_the_gallery_pages_say_noindex_until_indexing_is_allowed(self):
+        for path in ("/", "/public", "/public/"):
+            with self.subTest(path=path):
+                self.assertEqual(self.page(path)["X-Robots-Tag"], "noindex, nofollow")
+                with gallery(indexable=True):
+                    self.assertNotIn("X-Robots-Tag", self.page(path))
+        self.assertNotIn("X-Robots-Tag", self.page("/public/anna"))
+
+
+class PhotoTownTest(GalleryFixture):
+    """``Photo.town``, the gallery's places and town filter (#434), goes with
+    the photo's place: every save of the place, and the migration that filled
+    it for the photos already there."""
+
+    def test_a_save_of_the_place_saves_its_town(self):
+        self.anna_1.geolocation_json = {"places": ["Alfama", "Lisbon", "Portugal"]}
+        self.anna_1.save(update_fields=["geolocation_json"])
+        self.anna_1.refresh_from_db()
+        self.assertEqual(self.anna_1.town, "Lisbon")
+        self.anna_1.geolocation_json = None
+        self.anna_1.save()
+        self.anna_1.refresh_from_db()
+        self.assertEqual(self.anna_1.town, "")
+
+    def test_the_migration_fills_the_towns_of_photos_already_placed(self):
+        migration = importlib.import_module("api.migrations.0218_photo_town")
+        Photo.objects.all().update(town="")
+        migration.fill_towns(django_apps, None)
+        self.assertEqual(Photo.objects.get(pk=self.anna_1.pk).town, "Munich")
+        self.assertEqual(Photo.objects.get(pk=self.ben_1.pk).town, "Lisbon")

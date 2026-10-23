@@ -40,7 +40,6 @@ from django.db.models import Count, Exists, F, Min, OuterRef, Q, QuerySet, Windo
 from django.db.models.functions import RowNumber, TruncDate
 
 from api.models import Face, Person, Photo, PhotoStack, User
-from api.models.place_names import town_name
 from api.models.user import public_sharing_settings
 from api.sharing.grants import (
     NEVER,
@@ -63,8 +62,6 @@ _STAGES: Final[dict[str, GalleryStage]] = {
 UNDATED_DAY_ID: Final = 1
 # Cover photos per place or photographer, as on the place lists.
 COVERS_PER_ROW: Final = 4
-# Photos per day the day's place is looked for in: the first ones with a town.
-_PLACE_CANDIDATES: Final = 3
 
 # A photo on a list of the gallery: what its owner shares on public pages,
 # but never its coordinates or address. A list mixes owners and is browsed
@@ -131,12 +128,6 @@ def gallery_photos(owner_ids: Iterable[int]) -> QuerySet[Photo]:
         archived=False,
         owner_id__in=list(owner_ids),  # owner-scope: users who opted in
     ).filter(in_no_stack | is_primary)
-
-
-def town_photo_ids(photos: QuerySet[Photo], place: str) -> list[Any]:
-    """The ids of ``photos`` taken in the town ``place`` (``town_name``)."""
-    rows = photos.values_list("pk", "geolocation_json")
-    return [pk for pk, geolocation in rows if town_name(geolocation) == place]
 
 
 def named_faces(photos: QuerySet[Photo]) -> QuerySet[Face]:
@@ -229,7 +220,7 @@ class GalleryQuery:
         """The photos matching every filter."""
         photos = gallery_photos(self._owner_ids())
         if self.place:
-            photos = photos.filter(pk__in=town_photo_ids(photos, self.place))
+            photos = photos.filter(town=self.place)
         if self.person is not None:
             faces = named_faces(photos).filter(person_id=self.person)
             photos = photos.filter(pk__in=faces.values("photo_id"))
@@ -292,6 +283,7 @@ class GalleryQuery:
         days = [day for day, owners in owners_of_day.items() if owners <= located]
         if not days:
             return {}
+        # The town of each day's first photo that has one.
         rank = Window(
             RowNumber(),
             partition_by=[_day()],
@@ -299,17 +291,12 @@ class GalleryQuery:
         )
         rows = (
             self.dated()
+            .exclude(town="")
             .annotate(day=_day(), rank=rank)
-            .filter(day__in=days, rank__lte=_PLACE_CANDIDATES)
-            .order_by("day", "rank")
-            .values_list("day", "geolocation_json")
+            .filter(day__in=days, rank=1)
+            .values_list("day", "town")
         )
-        places: dict[datetime.date, str] = {}
-        for day, geolocation in rows:
-            name = town_name(geolocation)
-            if name and day not in places:
-                places[day] = name
-        return places
+        return dict(rows)
 
     def day_photos(self, day_id: int) -> QuerySet[Photo] | None:
         """The photos of a day of the day list; None for an id that names none."""
@@ -326,27 +313,57 @@ class GalleryQuery:
         )
 
 
-def place_rows(owners: GalleryOwners) -> list[GalleryPlaceRow]:
-    """The towns of the photos of owners who share places, most photos first.
+class GalleryTownRow(TypedDict):
+    town: str
+    photo_count: int
 
-    One entry per town name, owners merged: a town is not a person.
-    """
-    photos = gallery_photos(owners.ids("location")).order_by("pk")
-    places: dict[str, GalleryPlaceRow] = {}
-    for owner_id, image_hash, video, geolocation in photos.values_list(
-        "owner_id", "image_hash", "video", "geolocation_json"
+
+def _located_photos(owners: GalleryOwners) -> QuerySet[Photo]:
+    """The gallery photos of owners who share places, with a town."""
+    return gallery_photos(owners.ids("location")).exclude(town="")
+
+
+def place_rows(owners: GalleryOwners) -> QuerySet[Any, GalleryTownRow]:
+    """One row per town of the photos of owners who share places, most photos
+    first. One entry per town name, owners merged: a town is not a person."""
+    return (
+        _located_photos(owners)
+        .values("town")
+        .annotate(photo_count=Count("pk"))
+        .order_by("-photo_count", "town")
+    )
+
+
+def place_entries(
+    owners: GalleryOwners, rows: Iterable[GalleryTownRow]
+) -> list[GalleryPlaceRow]:
+    """The page ``rows`` of ``place_rows`` with their photographers and up to
+    ``COVERS_PER_ROW`` covers each (by id): two queries for the page."""
+    rows = list(rows)
+    photos = _located_photos(owners).filter(town__in=[row["town"] for row in rows])
+    owner_ids: dict[str, list[int]] = {}
+    for town, owner_id in (
+        photos.values_list("town", "owner_id").distinct().order_by("town", "owner_id")
     ):
-        name = town_name(geolocation)
-        if not name:
-            continue
-        row = places.setdefault(
-            name, {"name": name, "photo_count": 0, "owner_ids": [], "cover_photos": []}
-        )
-        row["photo_count"] += 1
-        if owner_id not in row["owner_ids"]:
-            row["owner_ids"].append(owner_id)
-        _add_cover(row["cover_photos"], image_hash, video)
-    return sorted(places.values(), key=lambda row: (-row["photo_count"], row["name"]))
+        owner_ids.setdefault(town, []).append(owner_id)
+    rank = Window(RowNumber(), partition_by=[F("town")], order_by=["pk"])
+    covers: dict[str, list[GalleryCover]] = {}
+    for town, image_hash, video in (
+        photos.annotate(rank=rank)
+        .filter(rank__lte=COVERS_PER_ROW)
+        .order_by("town", "rank")
+        .values_list("town", "image_hash", "video")
+    ):
+        _add_cover(covers.setdefault(town, []), image_hash, video)
+    return [
+        {
+            "name": row["town"],
+            "photo_count": row["photo_count"],
+            "owner_ids": owner_ids.get(row["town"], []),
+            "cover_photos": covers.get(row["town"], []),
+        }
+        for row in rows
+    ]
 
 
 def people_rows(owners: GalleryOwners) -> QuerySet[Any, GalleryPersonRow]:

@@ -624,8 +624,9 @@ DEFAULT_THROTTLE_RATES: dict[str, str] = {
     # Sign-in (per address and username), sign-up, password reset confirm.
     "auth": env_str("AUTH_THROTTLE_RATE", "10/minute"),
     "token_refresh": env_str("TOKEN_REFRESH_THROTTLE_RATE", "60/minute"),
-    # The public gallery's answers to visitors without an account (#434).
-    "public_gallery": env_str("PUBLIC_GALLERY_THROTTLE_RATE", "600/minute"),
+    # The public gallery's answers, per user or, without an account, per
+    # address (#434).
+    "public_gallery": env_str("PUBLIC_GALLERY_THROTTLE_RATE", "300/minute"),
 }
 
 REST_FRAMEWORK = {

@@ -557,6 +557,31 @@ def public_view_permissions(request: Request) -> list[BasePermission]:
     return [IsAuthenticated()]
 
 
+def public_view_owner(request: Request, username: str) -> User:
+    """The user whose public photos the public view (``?public``) shows.
+
+    The public view is per user: their public profile, ``/public/<username>``.
+    The combined view of everyone's public photos is the public gallery
+    (``/api/gallery/``, #434), which has switches of its own. A blank or
+    unknown username, a deactivated user, or one whose public profile
+    (``public_sharing``) is off is a 404, except to that user themselves (the
+    Public Links page lists their own public photos).
+    """
+    owner = (
+        User.objects.filter(username=username, is_active=True).first()
+        if username
+        else None
+    )
+    if owner is None:
+        raise NotFound()
+    requester = request.user
+    if not owner.public_sharing and not (
+        isinstance(requester, User) and requester.pk == owner.pk
+    ):
+        raise NotFound()
+    return owner
+
+
 # Retrieve only: there is no queryset, so the list, create, update and destroy
 # a ModelViewSet adds all failed with a 500. The day list is AlbumDateListViewSet.
 class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -576,8 +601,8 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         if isinstance(user, User) and not params["public"]:
             filters.append(Photo.objects.owner_q(user))
         if params["public"]:
-            if params["username"]:
-                filters.append(Q(owner__username=params["username"]))
+            owner = public_view_owner(self.request, params["username"])
+            filters.append(Photo.objects.owner_q(owner))
             filters.append(Q(public=True))
         return filters
 
@@ -640,13 +665,14 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         filtering only the photos is not enough. Mirror the scope of
         ``AlbumDateListViewSet``, which hands out the ids: the caller's own
         days, or with ``public`` the days holding a public photo (of
-        ``username``, when given).
+        ``username``, whose public profile must be on: ``public_view_owner``).
         """
         params = self._query
         albums = AlbumDate.objects.all()
         if params["public"]:
-            if params["username"]:
-                albums = albums.filter(owner__username=params["username"])
+            albums = albums.owned_by(
+                public_view_owner(self.request, params["username"])
+            )
             # The photos the day list counts: never a hidden or trashed one.
             albums = albums.filter(photos__in=Photo.visible.filter(public=True))
         else:
@@ -836,9 +862,8 @@ class AlbumDateListViewSet(ListViewSet):
             filter.append(Photo.objects.owner_q(user, through="photos__"))
 
         if params["public"]:
-            username = params["username"]
-            if username:
-                filter.append(Q(owner__username=username))
+            owner = public_view_owner(self.request, params["username"])
+            filter.append(AlbumDate.objects.owner_q(owner))
             filter.append(Q(photos__public=True))
 
         # Media type, screenshots, documents and favorites (see

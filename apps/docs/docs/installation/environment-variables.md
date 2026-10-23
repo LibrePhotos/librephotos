@@ -443,7 +443,7 @@ Signing in, refreshing a token, setting a new password from a reset link and sig
 | `AUTH_THROTTLE_RATE` | `10/minute` | Sign-in (`/api/auth/token/obtain/`) and wrong passwords in Basic auth requests, together, per address and username; setting the new password from a reset link; sign-up and first-time setup. |
 | `TOKEN_REFRESH_THROTTLE_RATE` | `60/minute` | `/api/auth/token/refresh/`, per address. Every open tab and the mobile app refresh their token every few minutes, and a refused refresh signs the web app out, so keep this well above the number of devices behind one address. |
 | `PASSWORD_RESET_THROTTLE_RATE` | `5/hour` | Requesting a password-reset email, per address. |
-| `PUBLIC_GALLERY_THROTTLE_RATE` | `600/minute` | <Since version="1.5.0" /> The [public gallery](../user-guide/sharing.md#public-gallery)'s answers to visitors who are not signed in, per address. A visitor scrolling the timeline asks for one page of photos per day on screen; signed-in users are not counted. |
+| `PUBLIC_GALLERY_THROTTLE_RATE` | `300/minute` | <Since version="1.5.0" /> The [public gallery](../user-guide/sharing.md#public-gallery)'s answers, per signed-in user and, for visitors who are not signed in, per address. A visitor scrolling the timeline asks for one page of photos per day on screen. |
 | `NUM_PROXIES` | `1` (Compose, Kubernetes); `0` ([unified image](unified-deployment.md), [Windows standalone](windows-standalone.md)) | How many reverse proxies in front of the backend append the client address to `X-Forwarded-For`. See below. |
 
 A rate is a number, a slash and `second`, `minute`, `hour` or `day` (only the first letter counts, so `10/m` works too).
