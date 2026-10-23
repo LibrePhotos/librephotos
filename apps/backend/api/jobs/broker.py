@@ -13,24 +13,18 @@ this code has no file for (``api.checks.unknown_applied_migrations``).
 from __future__ import annotations
 
 import logging
-import math
 import time
 
 from django.db import DatabaseError, connections
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
+from django.db.models import Count, Max
 from django_q.brokers.orm import ORM
 from django_q.conf import Conf
 
 from api.checks import unknown_applied_migrations
 
 logger = logging.getLogger(__name__)
-
-# How often a cluster looks at the applied migrations again. The pusher asks
-# for work every Q_CLUSTER["poll"] second; this keeps that to one cheap query
-# per half minute. A newer release's schedules wait at most this long, while
-# its own cluster is still starting.
-RECHECK_SECONDS = 30.0
 
 
 class ReleaseGuardedORM(ORM):
@@ -51,7 +45,9 @@ class ReleaseGuardedORM(ORM):
         # Every enqueue builds a broker, so the disk migrations load on the
         # first dequeue, which only a cluster's pusher calls.
         self._loader: MigrationLoader | None = None
-        self._checked_at = -math.inf
+        # Kept, so that it remembers the migrations table exists.
+        self._recorder: MigrationRecorder | None = None
+        self._seen_migrations: dict[str, int | None] | None = None
         self._database_is_newer = False
 
     def dequeue(self) -> list[tuple[int, str]] | None:
@@ -63,20 +59,32 @@ class ReleaseGuardedORM(ORM):
         return tasks
 
     def database_is_newer(self) -> bool:
-        """Whether the database has a migration this code has no file for."""
-        now = time.monotonic()
-        if now - self._checked_at < RECHECK_SECONDS:
+        """Whether the database has a migration this code has no file for.
+
+        Asked before every dequeue: the new release queues its first tasks
+        seconds after its migrate, so an answer kept for a while would let the
+        old cluster take them. One count of the migration rows says whether
+        anything was applied since the last look; only then are the names
+        compared.
+        """
+        if self._recorder is None:
+            self._recorder = MigrationRecorder(connections[Conf.ORM])
+        recorder = self._recorder
+        try:
+            if not recorder.has_table():
+                return self._database_is_newer
+            seen = recorder.migration_qs.aggregate(count=Count("id"), last=Max("id"))
+            if seen == self._seen_migrations:
+                return self._database_is_newer
+            applied = set(recorder.applied_migrations())
+        except DatabaseError:
+            # An unreachable database is the ORM broker's own error to report.
             return self._database_is_newer
-        self._checked_at = now
+        self._seen_migrations = seen
         if self._loader is None:
             loader = MigrationLoader(None, load=False)
             loader.load_disk()
             self._loader = loader
-        try:
-            applied = set(MigrationRecorder(connections[Conf.ORM]).applied_migrations())
-        except DatabaseError:
-            # An unreachable database is the ORM broker's own error to report.
-            return self._database_is_newer
         unknown = unknown_applied_migrations(applied, self._loader)
         if unknown and not self._database_is_newer:
             app_label, name = max(unknown, key=lambda key: key[1])

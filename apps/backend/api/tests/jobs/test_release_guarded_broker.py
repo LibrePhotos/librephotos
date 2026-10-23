@@ -26,7 +26,7 @@ from django_q.models import OrmQ
 from django_q.signing import SignedPackage
 
 from api.jobs import broker as broker_module
-from api.jobs.broker import RECHECK_SECONDS, ReleaseGuardedORM
+from api.jobs.broker import ReleaseGuardedORM
 
 LIST_KEY = "release-guard-test"
 # A task of the newer release: its module does not exist in this code.
@@ -97,27 +97,31 @@ class ReleaseGuardedBrokerTest(TestCase):
 
         self.assertEqual([pk for pk, _payload in taken], [task_id])
 
-    def test_looks_at_the_migrations_again_after_the_recheck_interval(self) -> None:
+    def test_stops_at_the_first_dequeue_after_the_newer_release_migrated(
+        self,
+    ) -> None:
+        # The deploy order: the old cluster is busy taking tasks, the new
+        # release migrates, and seconds later queues its first scheduled task.
         guarded = ReleaseGuardedORM(list_key=LIST_KEY)
-        task_id = queue_newer_release_task(guarded)
-        clock = patch.object(broker_module.time, "monotonic", return_value=1000.0)
-        monotonic = clock.start()
-        self.addCleanup(clock.stop)
+        own_task = queue_newer_release_task(guarded)
+        self.assertEqual([pk for pk, _ in guarded.dequeue() or []], [own_task])
 
-        self.assertTrue(guarded.dequeue())
         self.newer_release_migrates()
-        unlock(task_id)
+        queue_newer_release_task(guarded)
 
-        # Within the interval the earlier answer stands.
-        monotonic.return_value = 1000.0 + RECHECK_SECONDS - 1
-        self.assertEqual(
-            guarded.dequeue(), [(task_id, OrmQ.objects.get(pk=task_id).payload)]
-        )
-        unlock(task_id)
-
-        monotonic.return_value = 1000.0 + RECHECK_SECONDS
         with self.assertLogs("api.jobs.broker", "WARNING"):
             self.assertIsNone(guarded.dequeue())
+
+    def test_compares_the_names_only_when_a_migration_was_applied(self) -> None:
+        guarded = ReleaseGuardedORM(list_key=LIST_KEY)
+        guarded.database_is_newer()
+
+        # Each poll: one count of the migration rows.
+        with self.assertNumQueries(1):
+            self.assertFalse(guarded.database_is_newer())
+        self.newer_release_migrates()
+        with self.assertNumQueries(2), self.assertLogs("api.jobs.broker", "WARNING"):
+            self.assertTrue(guarded.database_is_newer())
 
     def test_guards_in_the_process_it_is_pickled_into(self) -> None:
         # Without fork (Windows) the cluster pickles its broker into the pusher.
