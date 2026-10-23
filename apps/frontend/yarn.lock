@@ -4274,9 +4274,9 @@ react-dropzone@^20.0.0:
     file-selector "^5.0.1"
 
 react-i18next@^17.0.0:
-  version "17.1.3"
-  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.1.3.tgz#0ba1b8f1f7be007b2005c323014aa764ebd64a5f"
-  integrity sha512-XfaTqU09NPuBDuADQ8TEPbE0Goc2Gh6FHu0qvdFWfOWCdGQWRxRY2Uo5tDPtGBdzu4COXp0LQCkQIYa0IhJXlA==
+  version "17.1.4"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.1.4.tgz#c53fbed4fdbbe5c35cd223e4078b729eb19cd00b"
+  integrity sha512-1qGDcWXQ99pd5aPA9oikycr9lLoa6Iu79/aHS4pzgi3NLbM1hDE8RaAb1U/82vsssav9fsQARpcUtnmeGpFwEQ==
   dependencies:
     "@babel/runtime" "^7.29.7"
     html-parse-stringify "^4.0.1"
