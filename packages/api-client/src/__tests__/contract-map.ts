@@ -68,6 +68,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   AlbumMemberSwitches: { schema: S.AlbumMemberSwitches, components: ["AlbumMemberSwitches"] },
   AlbumPhotosChanged: { schema: S.AlbumPhotosChanged, components: ["AlbumPhotosChanged"] },
   AlbumComment: { schema: S.AlbumComment, components: ["AlbumComment"] },
+  PersonSharing: { schema: S.PersonSharing, components: ["PersonSharing"] },
+  PersonSharePendingPage: { schema: S.PersonSharePendingPage, components: ["PersonSharePendingPage"] },
   AlbumLikes: { schema: S.AlbumLikes, components: ["AlbumLikes"] },
   EventTitleParts: { schema: S.EventTitleParts, components: ["EventTitleParts"] },
   AutoAlbumInfo: { schema: S.AutoAlbumInfo, components: ["AlbumAutoList"] },

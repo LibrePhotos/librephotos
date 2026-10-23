@@ -24,6 +24,7 @@ from typing import Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Min, Q, QuerySet
 
+from api.faces.person_shares import shared_person_faces
 from api.models import Face, Person, Photo, User
 from api.sharing.grants import library_grant, without_switch
 
@@ -90,11 +91,16 @@ def shared_named_faces(user: User | None) -> QuerySet[Face]:
             owner__in=without_switch(user, "share_faces")  # owner-scope: sharers
         )
     )
-    return Face.objects.filter(
+    on_shared_photos = Face.objects.filter(
         photo__in=shared, deleted=False, person__kind=Person.KIND_USER
     ).filter(
         # owner-scope: the person must be the photo owner's, not a scope to a user
         person__cluster_owner=F("photo__owner")
+    )
+    # And the people shared with ``user`` (#668), on their approved photos.
+    return Face.objects.filter(
+        Q(pk__in=on_shared_photos.values("pk"))
+        | Q(pk__in=shared_person_faces(user).values("pk"))
     )
 
 

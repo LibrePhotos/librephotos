@@ -3,6 +3,7 @@ from rest_framework import permissions
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from api.faces.person_shares import photos_seen_through_people
 from api.models import AlbumUser, AlbumUserPhoto, Photo, User
 
 
@@ -69,6 +70,10 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
             .filter(albumuser__in=AlbumUser.objects.owned_or_shared_to(request.user))
             .exists()
         ):
+            return True
+
+        # An approved photo of a person shared with the requester (#668).
+        if photos_seen_through_people(request.user).filter(pk=obj.pk).exists():
             return True
 
         # A photo of a library shared with the requester (#2731); never a

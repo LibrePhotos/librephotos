@@ -7,6 +7,7 @@ import {
   IconEdit,
   IconFaceId,
   IconPhoto,
+  IconShare,
   IconTrash,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -28,6 +29,7 @@ import { PersonGroupsModal } from "./PersonGroupsModal";
 import { PersonMergeModal, type MergePerson } from "./PersonMergeModal";
 import { PersonMergePickerModal } from "./PersonMergePickerModal";
 import { PersonRenameModal } from "./PersonRenameModal";
+import { SharePersonModal } from "./SharePersonModal";
 
 type Props = Readonly<{
   person: Person;
@@ -38,7 +40,8 @@ type Props = Readonly<{
 }>;
 
 /**
- * The person page's "⋮": rename, the birth date, set the cover (any photo, no selection needed, #2240), groups,
+ * The person page's "⋮": rename, the birth date, set the cover (any photo, no selection needed, #2240), share
+ * with other users (#668), groups,
  * merge into another person, manage faces, delete. A merge goes
  * on to the person merged into, a delete back to People.
  */
@@ -53,6 +56,7 @@ export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
   const [mergeOpened, merge] = useDisclosure(false);
   const [mergeTarget, setMergeTarget] = useState<MergePerson | null>(null);
   const [deleteOpened, remove] = useDisclosure(false);
+  const [shareOpened, share] = useDisclosure(false);
   // Every person, for the rename's duplicate check and the merge choices. Loaded with the
   // page: the form reads its rules when the dialog opens.
   const { data: people } = useFetchPeopleAlbumsQuery();
@@ -79,6 +83,9 @@ export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
         <Menu.Item leftSection={<IconPhoto size={ICON_SIZE.menu} />} onClick={cover.open}>
           {t("modalalbumcover.menuitem")}
         </Menu.Item>
+        <Menu.Item leftSection={<IconShare size={ICON_SIZE.menu} />} onClick={share.open}>
+          {t("personshare.menu")}
+        </Menu.Item>
         <Menu.Item leftSection={<IconUsersGroup size={ICON_SIZE.menu} />} onClick={groups.open}>
           {t("persongroups.menu")}
         </Menu.Item>
@@ -103,6 +110,7 @@ export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
         onMerged={showTarget}
       />
       <PersonGroupsModal opened={groupsOpened} onClose={closeAndFocus(groups.close)} person={person} />
+      <SharePersonModal opened={shareOpened} onClose={closeAndFocus(share.close)} person={person} />
       <AlbumCoverPickerModal
         isOpen={coverOpened}
         onRequestClose={closeAndFocus(cover.close)}

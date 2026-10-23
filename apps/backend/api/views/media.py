@@ -33,7 +33,6 @@ from api.accounts.authentication import (
     JWTCookieAuthentication,
     ThrottledBasicAuthentication,
 )
-from api.albums.member_grants import album_grants
 from api.drf.params import parse_query
 from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, AlbumUserPhoto, Photo
@@ -51,6 +50,7 @@ from api.sharing.copies import (
     ensure_copy,
 )
 from api.sharing.grants import LibraryGrant, library_grant
+from api.sharing.indirect import indirect_grants
 from api.video import color, ffmpeg_budget, transcode_cache
 from api.video.no_metadata import NO_METADATA
 
@@ -860,7 +860,8 @@ class MediaServingView(APIView):
         as a photo of a library shared with them (#2731).
 
         Through an album only along a vouched link (``AlbumUserPhoto.vouched``)
-        of an album ``user`` owns or is a member of, and the bytes of the
+        of an album ``user`` owns or is a member of, or as an approved photo of
+        a person shared with them (#668), and the bytes of the
         original file (``original``) only where the album's grant allows
         them: a contributor's original carries every field of its metadata
         (``_album_copy`` serves the metadata-free copy instead).
@@ -869,7 +870,7 @@ class MediaServingView(APIView):
             return False
         if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
             return True
-        grant = album_grants(user, [photo.pk]).get(photo.pk)
+        grant = indirect_grants(user, [photo.pk]).get(photo.pk)
         if grant is not None and (grant.originals or not original):
             return True
         if Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists():
@@ -884,7 +885,7 @@ class MediaServingView(APIView):
         and a download works without the file's metadata; None otherwise."""
         if user is None:
             return None
-        grant = album_grants(user, [photo.pk]).get(photo.pk)
+        grant = indirect_grants(user, [photo.pk]).get(photo.pk)
         if grant is None or grant.originals:
             return None
         return self._library_copy_response(

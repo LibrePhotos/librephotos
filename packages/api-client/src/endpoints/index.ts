@@ -1622,6 +1622,45 @@ export async function setAlbumMembership(
   return parseResponse(S.AlbumMemberSwitches, res, "set album membership");
 }
 
+/** Who one of your people is shared with (#668). */
+export async function fetchPersonSharing(client: ApiClient, personId: number): Promise<S.PersonSharing> {
+  const res = await client.get<unknown>(`/persons/${personId}/sharing/`);
+  return parseResponse(S.PersonSharing, res, "person sharing");
+}
+
+/**
+ * Share one of your people with exactly `recipientIds` (none unshares). Sharing a person nobody had
+ * shows the photos labelled with it now; later ones wait for your review.
+ */
+export async function setPersonSharing(
+  client: ApiClient,
+  personId: number,
+  body: { recipient_ids: number[]; share_location?: boolean; share_other_people?: boolean }
+): Promise<S.PersonSharing> {
+  const res = await client.request<unknown>(`/persons/${personId}/sharing/`, { method: "PUT", body });
+  return parseResponse(S.PersonSharing, res, "set person sharing");
+}
+
+/** The first page of the photos of a shared person that wait for your review. */
+export async function fetchPersonSharingPending(
+  client: ApiClient,
+  personId: number
+): Promise<S.PersonSharePendingPage> {
+  const res = await client.get<unknown>(`/persons/${personId}/sharing/pending/`);
+  return parseResponse(S.PersonSharePendingPage, res, "person sharing pending");
+}
+
+/** Show photos of a shared person to its recipients (`approve`), or keep them back (`decline`). */
+export async function reviewPersonSharing(
+  client: ApiClient,
+  personId: number,
+  approve: string[],
+  decline: string[]
+): Promise<S.PersonSharing> {
+  const res = await client.post<unknown>(`/persons/${personId}/sharing/review/`, { approve, decline });
+  return parseResponse(S.PersonSharing, res, "review person sharing");
+}
+
 function threadPath(albumId: number | string, photoId: string) {
   return `/albums/user/${albumId}/photos/${photoId}/`;
 }

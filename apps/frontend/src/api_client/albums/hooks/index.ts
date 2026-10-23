@@ -42,3 +42,4 @@ export * from "./useAlbumCollections";
 export * from "./usePersonGroups";
 export * from "./useCollaborativeAlbumMutations";
 export * from "./useAlbumPhotoThread";
+export * from "./usePersonSharing";

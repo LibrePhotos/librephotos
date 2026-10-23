@@ -97,6 +97,7 @@ from api.serializers.photos import (
     WriteMetadataStartedSerializer,
     with_photo_summary_relations,
 )
+from api.sharing.indirect import photos_seen_indirectly
 from api.views.custom_api_view import ListViewSet
 
 logger = logging.getLogger(__name__)
@@ -756,8 +757,11 @@ class PhotoViewSet(
             # photo they can merely read.
             return own.prefetch_related("stacks").order_by("-exif_timestamp")
         # The photos of the albums the requester owns or is a member of
-        # (#464); PhotoSerializer redacts them by the album's rules.
-        in_albums = Photo.visible.filter(pk__in=seen_links(user).values("photo_id"))
+        # (#464) and of the people shared with them (#668); PhotoSerializer
+        # redacts them by those rules.
+        in_albums = Photo.visible.filter(
+            pk__in=photos_seen_indirectly(user).values("pk")
+        )
         return (
             (Photo.visible.visible_to(user) | own | in_albums)
             .distinct()

@@ -23,6 +23,7 @@ from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.person_group import PersonGroup
+from api.models.person_share import PersonShare, PersonSharePhoto
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
@@ -62,6 +63,8 @@ __all__ = [
     "MetadataEdit",
     "Person",
     "PersonGroup",
+    "PersonShare",
+    "PersonSharePhoto",
     "Photo",
     "PhotoCaption",
     "PhotoMetadata",

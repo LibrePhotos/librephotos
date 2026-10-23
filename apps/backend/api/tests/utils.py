@@ -38,6 +38,7 @@ from api.models.library_folder import LibraryFolder
 from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
+from api.models.person_share import PersonShare, PersonSharePhoto
 from api.models.photo_metadata import MetadataEdit
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
@@ -144,6 +145,18 @@ def create_test_person_group(
     group = PersonGroup.objects.create(owner=owner, name=name, **kwargs)
     group.persons.add(*persons)
     return group
+
+
+def create_test_person_share(person: Person, recipient: User) -> PersonShare:
+    """``person`` shared with ``recipient`` (#668); no photo approved by it."""
+    return PersonShare.objects.create(person=person, recipient=recipient)
+
+
+def create_test_person_share_photo(
+    person: Person, photo: Photo, status: str = PersonSharePhoto.APPROVED
+) -> PersonSharePhoto:
+    """The owner's decision on ``photo`` of a shared ``person`` (#668)."""
+    return PersonSharePhoto.objects.create(person=person, photo=photo, status=status)
 
 
 def create_test_face(

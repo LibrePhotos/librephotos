@@ -676,6 +676,22 @@ class CrossTenantWriteTest(TestCase):
                 f"/api/albums/user/{self.v_album.pk}/membership/",
                 {"share_location": True},
             ),
+            # sharing the victim's person, and reviewing its photos (#668)
+            (
+                "put",
+                f"/api/persons/{self.v_person.pk}/sharing/",
+                {"recipient_ids": [self.attacker.pk]},
+            ),
+            (
+                "post",
+                f"/api/persons/{self.v_person.pk}/sharing/review/",
+                {"approve": self._ids()},
+            ),
+            (
+                "post",
+                f"/api/persons/{self.a_person.pk}/sharing/review/",
+                {"approve": self._ids()},
+            ),
             # comments and likes in an album the attacker is not in (#262)
             *(
                 (method, f"{thread}{suffix}", body)

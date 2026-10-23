@@ -88,6 +88,23 @@ Only in the album itself. They are not in the album owner's timeline, search, pl
 
 An album only holds photos its owner or a current contributor added. Since 1.5.0, old links in an album to other users' photos are removed when you upgrade.
 
+## Sharing a person
+
+<Since version="1.5.0" />
+
+You can share one of your people, for example your child with the grandparents, without sharing an album or your whole library. Open the person under **People**, open the **⋮** (**Person actions**) and choose **Share…**. Turn on each user who should see the photos; they can only look.
+
+Face recognition can be wrong, and a wrong match would hand someone a photo that has nothing to do with the person. So the people you share with see a photo only when **both** of these are true:
+
+- **You labelled a face on it** with the person. A face that face recognition only suggested, or a face group such as *Unknown 012*, never counts. Only people you named can be shared.
+- **You approved it for sharing.** The photos you labelled before you first share the person are approved at once: that is what you chose to share. Photos you label afterwards wait, also when you turn a user off and on again. The person's page then says how many wait; **Review** shows them, each ticked, and the ticked ones are shared when you confirm. An unticked photo is kept back for good.
+
+Taking the label off, hiding or trashing a photo takes it away from them at once, and turning a user off in **Share…** ends their access to all of the person's photos.
+
+They see each photo and its date. Two switches in **Share…** add more, both off by default: **Where the photos were taken** and **Names of the other people on these photos**. Camera details, captions and original files are never shared this way (a download is a copy without the file's metadata).
+
+The people you share with find the person under **Shared with you**, on the **People** tab, with whose person it is (*Mila, shared by Anna*).
+
 ## Sharing Photos with Users
 
 You can share individual photos (or a selection of photos) with other users:
@@ -365,6 +382,10 @@ Each person scans their own folder and [shares their whole library](#sharing-you
 ### Setup 4: one shared login
 
 Everyone signs in with the same account. It is the simplest setup, but nobody has favourites, ratings or private photos of their own, and everyone sees everything, including what someone meant to keep to themselves.
+
+### Setup 5: share the people who matter
+
+Each person keeps their own library and shares the people the others care about, for example the children with both grandparents ([Sharing a person](#sharing-a-person)). New photos of them reach the others once you approve them.
 
 ### What is not possible yet
 

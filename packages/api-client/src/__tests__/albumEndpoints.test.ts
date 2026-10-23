@@ -599,3 +599,38 @@ describe("comments and likes in shared albums (#262)", () => {
     await expect(endpoints.fetchAlbumPhotoLikes(read.client, 4, photo)).resolves.toEqual(likes);
   });
 });
+
+describe("sharing a person (#668)", () => {
+  const sharing = {
+    recipients: [{ id: 3, username: "clara", first_name: "Clara", last_name: "" }],
+    share_location: false,
+    share_other_people: false,
+    shared_count: 4,
+    pending_count: 1,
+  };
+
+  it("reads and sets who a person is shared with", async () => {
+    const read = fakeServer(sharing);
+    await expect(endpoints.fetchPersonSharing(read.client, 7)).resolves.toEqual(sharing);
+    expect(defined(read.requests[0]).url).toBe("https://demo.example.com/api/persons/7/sharing/");
+    const put = fakeServer(sharing);
+    await endpoints.setPersonSharing(put.client, 7, { recipient_ids: [3], share_location: true });
+    expect(defined(put.requests[0])).toEqual({
+      url: "https://demo.example.com/api/persons/7/sharing/",
+      method: "PUT",
+      body: { recipient_ids: [3], share_location: true },
+    });
+  });
+
+  it("reads the photos that wait for review and sends the decision", async () => {
+    const pending = fakeServer({ ...page([]), page: 1, page_size: 100, num_pages: 1 });
+    await expect(endpoints.fetchPersonSharingPending(pending.client, 7)).resolves.toMatchObject({ count: 0 });
+    const review = fakeServer({ ...sharing, pending_count: 0 });
+    await endpoints.reviewPersonSharing(review.client, 7, ["a"], ["b"]);
+    expect(defined(review.requests[0])).toEqual({
+      url: "https://demo.example.com/api/persons/7/sharing/review/",
+      method: "POST",
+      body: { approve: ["a"], decline: ["b"] },
+    });
+  });
+});

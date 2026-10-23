@@ -196,6 +196,8 @@ class CrossTenantReadTest(TestCase):
             ),
             ("/api/persons/", "VictimFriendName"),
             (f"/api/persons/{v.v_person.pk}/", "VictimFriendName"),
+            (f"/api/persons/{v.v_person.pk}/sharing/", None),
+            (f"/api/persons/{v.v_person.pk}/sharing/pending/", v.v_photo.image_hash),
             ("/api/person-groups/", "VictimGroupName"),
             (f"/api/persons/?group={v.v_group.pk}", "VictimFriendName"),
             (f"/api/faces/incomplete/?group={v.v_group.pk}", "VictimFriendName"),

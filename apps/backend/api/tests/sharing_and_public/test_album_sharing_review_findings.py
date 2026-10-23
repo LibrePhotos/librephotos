@@ -127,6 +127,34 @@ class LateAddAfterDemotionTest(TestCase):
         self.assertNotIn(str(photo.pk).encode(), body)
 
 
+class PersonReviewQueueBypassTest(TestCase):
+    """F4 (low): the "approve everything labelled at first share" rule keys
+    on "no share and no decision exists". A person first shared while it had
+    no labelled photo leaves no decision behind; photos labelled afterwards
+    wait for review, but switching the only recipient off and on again
+    approves every one of them without a review."""
+
+    def test_unshare_and_reshare_does_not_approve_waiting_photos(self):
+        from api.tests.utils import create_test_face, create_test_person
+
+        anna, clara = create_test_user(), create_test_user()
+        mila = create_test_person(name="Mila", cluster_owner=anna)
+        url = f"/api/persons/{mila.pk}/sharing/"
+        client = _client(anna)
+        self.assertEqual(
+            client.put(url, {"recipient_ids": [clara.pk]}, format="json").status_code,
+            200,
+        )
+        later = create_test_photo(owner=anna)
+        create_test_face(photo=later, person=mila)
+        self.assertEqual(client.get(url).json()["pending_count"], 1)
+        client.put(url, {"recipient_ids": []}, format="json")
+        body = client.put(url, {"recipient_ids": [clara.pk]}, format="json").json()
+        self.assertEqual(body["pending_count"], 1, body)
+        response = _client(clara).get(f"/api/photos/{later.pk}/")
+        self.assertEqual(response.status_code, 404)
+
+
 class _AlbumSharedWithClara(TestCase):
     """Anna's photo with a place, a thing and a named person, in an album
     she shares with Clara for viewing."""
@@ -200,3 +228,22 @@ class CeilingInSharedListsTest(_AlbumSharedWithClara):
         body = _client(self.clara).get("/api/photos/shared/tome/things/").content
         self.assertIn(b"dogthingtitle", body)
         self.assertEqual(self.rows(self.THING_PHOTOS)[0]["exif_gps_lat"], 47.1)
+
+
+class PersonListThroughAlbumTest(_AlbumSharedWithClara):
+    """F1 for the people list (#668): a person's photo Clara reads through
+    the album shows what the album allows, not everything."""
+
+    def test_the_album_ceiling_redacts_the_person_photo_rows(self):
+        self.members_see(location=False)
+        rows = self.rows(
+            f"/api/photos/shared/tome/people/photos/?person={self.sofia.pk}"
+        )
+        self.assertEqual([row["id"] for row in rows], [str(self.photo.pk)])
+        self.assertIsNone(rows[0]["exif_gps_lat"])
+        self.assertEqual(rows[0]["location"], "")
+
+    def test_names_off_hides_the_person(self):
+        self.members_see(faces=False)
+        body = _client(self.clara).get("/api/photos/shared/tome/people/").content
+        self.assertNotIn(b"SofiaKid", body)

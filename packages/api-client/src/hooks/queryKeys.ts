@@ -179,6 +179,10 @@ export const albumKeys = {
   peopleAlbums: () => [...albumRoot, "people"] as const,
   /** The people list as the server sends it. */
   peopleAlbumsRaw: () => [...albumKeys.peopleAlbums(), "raw"] as const,
+  /** Who one person is shared with (#668), under the people list. */
+  personSharing: (id: number) => [...albumKeys.peopleAlbums(), "sharing", id] as const,
+  /** The photos of a shared person that wait for review (#668). */
+  personSharingPending: (id: number) => [...albumKeys.peopleAlbums(), "sharing", id, "pending"] as const,
   /** One person (the person page's title), under the people list so a rename refreshes both. */
   person: (id: number) => [...albumKeys.peopleAlbums(), "person", id] as const,
   /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */

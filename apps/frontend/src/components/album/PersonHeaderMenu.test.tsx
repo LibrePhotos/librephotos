@@ -68,6 +68,8 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useCreatePersonGroupMutation: () => ({ mutateAsync: vi.fn<(name: string) => Promise<void>>(), isPending: false }),
   useSetPersonAlbumCoverMutation: () => ({ mutate: stubs.setCover }),
 }));
+// Share (#668) has its own test: SharePersonModal.test.tsx.
+vi.mock("./SharePersonModal", () => ({ SharePersonModal: () => null }));
 vi.mock("../modals/AlbumCoverPickerModal", () => ({
   AlbumCoverPickerModal: (props: CoverProps) => {
     stubs.cover = props;
@@ -165,7 +167,7 @@ async function pick(key: ParseKeys) {
 }
 
 describe("PersonHeaderMenu", () => {
-  it("offers rename, set as cover, groups, merge, manage faces and delete", async () => {
+  it("offers rename, set as cover, share, groups, merge, manage faces and delete", async () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
@@ -173,6 +175,7 @@ describe("PersonHeaderMenu", () => {
       "Rename",
       "Add birth date…",
       "Set as cover…",
+      "Share…",
       "Groups…",
       "Merge into…",
       "Manage Faces",

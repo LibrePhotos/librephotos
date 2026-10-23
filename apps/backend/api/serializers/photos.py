@@ -9,7 +9,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
-from api.albums.member_grants import NOTHING, album_grants
+from api.albums.member_grants import NOTHING
 from api.drf.params import (
     JsonBooleanField,
     JsonIntegerField,
@@ -50,6 +50,7 @@ from api.sharing.grants import (
     lookup_for,
     redact,
 )
+from api.sharing.indirect import indirect_grants
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -1012,7 +1013,8 @@ class PhotoSerializer(serializers.ModelSerializer):
         return [_face_entry(face) for face in faces_shown_to(obj, viewer)]
 
     def _album_grant(self, obj: Photo) -> LibraryGrant | None:
-        """What the requester sees of ``obj`` when only an album shows it.
+        """What the requester sees of ``obj`` when only an album (#464) or a
+        person shared with them (#668) shows it.
 
         None for its owner, someone it is shared with directly, a public
         photo, a photo of a library shared with them (that share decides),
@@ -1036,7 +1038,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             return None
         if obj.shared_to.filter(pk=viewer.pk).exists():
             return None
-        return album_grants(viewer, [obj.pk]).get(obj.pk, NOTHING)
+        return indirect_grants(viewer, [obj.pk]).get(obj.pk, NOTHING)
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file: File) -> dict[str, str]:

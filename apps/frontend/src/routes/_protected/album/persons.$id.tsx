@@ -9,6 +9,7 @@ import { personNotFoundState } from "../../../components/album/albumNotFound";
 import { PersonBirthDateLine } from "../../../components/album/PersonBirthDateLine";
 import { PersonBirthDateModal } from "../../../components/album/PersonBirthDateModal";
 import { PersonHeaderMenu } from "../../../components/album/PersonHeaderMenu";
+import { PersonShareReviewBanner } from "../../../components/album/PersonShareReviewBanner";
 import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
@@ -93,6 +94,8 @@ function AlbumPersonGallery(): React.JSX.Element {
           ) : undefined
         }
         groupNote={birthDate.groupNote}
+        // New photos of a shared person wait for review (#668)
+        banner={person ? <PersonShareReviewBanner person={person} /> : undefined}
         error={photosFailure ?? personFailure}
         emptyStateConfig={notFound ? personNotFoundState(t, <User size={40} />) : undefined}
         photoset={photosGroupedByDate ?? []}

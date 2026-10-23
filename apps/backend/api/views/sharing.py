@@ -206,6 +206,13 @@ class SharedToMePersonPhotoListViewSet(ListViewSet):
             raise NotFound("No such person on the photos shared with you")
         return with_photo_summary_relations(photos)
 
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        response = super().list(request, *args, **kwargs)
+        # Photos the requester reads through an album (#464) or a shared
+        # person (#668) show only what those allow.
+        redact_indirect_rows(response.data["results"], request_user(request))
+        return response
+
 
 class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     permission_classes = (IsAuthenticated,)

@@ -72,6 +72,7 @@ from api.views import (
     memories,
     password_reset,
     person_groups,
+    person_sharing,
     photo_dates,
     photo_locations,
     photo_metadata,
@@ -538,6 +539,18 @@ urlpatterns = [
     path(
         "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/likes/",
         album_comments.AlbumPhotoLikesView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/",
+        person_sharing.PersonSharingView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/pending/",
+        person_sharing.PersonSharingPendingView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/review/",
+        person_sharing.PersonSharingReviewView.as_view(),
     ),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),

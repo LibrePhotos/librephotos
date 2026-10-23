@@ -5972,6 +5972,215 @@
         }
       }
     },
+    "/api/persons/{person_id}/sharing/": {
+      "get": {
+        "operationId": "api_persons_sharing_retrieve",
+        "description": "Who one of your people is shared with, and what they see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "api_persons_sharing_update",
+        "description": "Share the person with exactly ``recipient_ids`` (none unshares).\n\nSharing a person nobody had before shows them the photos you labelled\nwith it now; later ones wait for your review.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/persons/{person_id}/sharing/pending/": {
+      "get": {
+        "operationId": "api_persons_sharing_pending_list",
+        "description": "The photos of one of your shared people that wait for your review.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharePendingPage"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/persons/{person_id}/sharing/review/": {
+      "post": {
+        "operationId": "api_persons_sharing_review_create",
+        "description": "Show photos of one of your shared people to its recipients, or keep\nthem back. Ids of photos not labelled with the person are ignored.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/persons/{id}/": {
       "get": {
         "operationId": "api_persons_retrieve",
@@ -21453,6 +21662,127 @@
           "photo_count",
           "removed",
           "write_error"
+        ]
+      },
+      "PersonSharePendingPage": {
+        "type": "object",
+        "description": "A page of the photos of a shared person that wait for review.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "previous",
+          "results"
+        ]
+      },
+      "PersonShareReviewRequestRequest": {
+        "type": "object",
+        "description": "Photos of the person to show its recipients, and photos to keep back.",
+        "properties": {
+          "approve": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          },
+          "decline": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          }
+        }
+      },
+      "PersonSharing": {
+        "type": "object",
+        "description": "Who a person is shared with, what they see, and what waits for review.",
+        "properties": {
+          "recipients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimpleUser"
+            }
+          },
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_other_people": {
+            "type": "boolean"
+          },
+          "shared_count": {
+            "type": "integer",
+            "description": "Photos the recipients see: labelled and approved"
+          },
+          "pending_count": {
+            "type": "integer",
+            "description": "Labelled photos that wait for your review"
+          }
+        },
+        "required": [
+          "pending_count",
+          "recipients",
+          "share_location",
+          "share_other_people",
+          "shared_count"
+        ]
+      },
+      "PersonSharingRequestRequest": {
+        "type": "object",
+        "description": "Share the person with exactly these users; absent switches are kept.",
+        "properties": {
+          "recipient_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxItems": 1000
+          },
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_other_people": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "recipient_ids"
         ]
       },
       "Photo": {
