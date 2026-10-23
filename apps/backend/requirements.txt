@@ -22,7 +22,6 @@ hdbscan==0.8.44; sys_platform != "linux" or platform_machine != "aarch64"
 hdbscan @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/hdbscan-0.8.44-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 markupsafe==3.0.4
 Pillow==13.0.0
-ImageHash==4.3.2
 # insightface has no wheels on PyPI. .github/workflows/prebuilt-wheels.yml builds them for
 # Windows and Linux (x86_64, aarch64) on the one Python requires-python allows
 # (pyproject.toml); anything else (macOS) compiles the sdist. Bump every line
