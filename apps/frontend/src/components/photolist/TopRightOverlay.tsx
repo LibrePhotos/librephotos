@@ -1,12 +1,13 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Avatar } from "@mantine/core";
 import { IconArchiveFilled as ArchiveFilled, IconStarFilled as StarFilled } from "@tabler/icons-react";
-import React from "react";
+import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { isFavorite, ratesWithStars } from "../../util/rating";
 import { sharerName } from "../sharing/sharerGroups";
+import { OwnerMarksContext } from "./ownerMarks";
 import { TileBadge } from "./TileBadge";
 import classes from "./TopRightOverlay.module.css";
 
@@ -38,14 +39,15 @@ function ArchivedMark() {
 }
 
 // Another user's photo, from a library they share with me (#2731): whose it is, so a mixed
-// timeline is never ambiguous.
+// timeline is never ambiguous. In the public gallery (#434) every photo, mine too.
 function OwnerMark({ item }: { item: PigPhoto }) {
   const { t } = useTranslation();
-  const { data: userDetails } = useCurrentUserSelfDetailsQuery();
+  const everyPhoto = useContext(OwnerMarksContext);
+  const { data: userDetails } = useCurrentUserSelfDetailsQuery(everyPhoto);
   const owner = item.owner;
-  if (!owner || !userDetails || owner.id === userDetails.id) return null;
+  if (!owner || (!everyPhoto && (!userDetails || owner.id === userDetails.id))) return null;
   const name = sharerName(owner, owner.username);
-  const label = t("librarySharing.photoOf", { name });
+  const label = t(everyPhoto ? "gallery.photoBy" : "librarySharing.photoOf", { name });
   return (
     <Avatar
       size={22}

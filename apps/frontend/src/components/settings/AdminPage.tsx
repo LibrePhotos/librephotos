@@ -18,6 +18,7 @@ import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
 import { FinishUpgradeCard } from "./FinishUpgradeCard";
 import { LookUpPlacesTool } from "./LookUpPlacesTool";
+import { PublicGallerySetting } from "./PublicGallerySetting";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
@@ -151,6 +152,7 @@ export function AdminPage() {
     ...(update ? [{ id: ADMIN_SECTIONS.update, label: t("updates.header") }] : []),
     ...(upgradeTasks.length ? [{ id: ADMIN_SECTIONS.upgrade, label: t("upgradetasks.header") }] : []),
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
+    { id: ADMIN_SECTIONS.gallery, label: t("sitesettings.publicGallery") },
     { id: ADMIN_SECTIONS.features, label: t("sitesettings.features_header") },
     { id: ADMIN_SECTIONS.email, label: t("emailsettings.header") },
     { id: ADMIN_SECTIONS.tools, label: t("adminarea.admintools") },
@@ -178,6 +180,9 @@ export function AdminPage() {
           ) : null}
           <SettingsSection id={ADMIN_SECTIONS.site}>
             <SiteSettings />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.gallery}>
+            <PublicGallerySetting />
           </SettingsSection>
           <SettingsSection id={ADMIN_SECTIONS.features}>
             <FeaturesCard />

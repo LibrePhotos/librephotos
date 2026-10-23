@@ -5,7 +5,7 @@ type NamedUser = Readonly<{ id: number; username: string; first_name: string; la
 /** The name a sharing user is shown by: their full name, else their username, else `fallback`. */
 export function sharerName(owner: NamedUser | undefined, fallback: string): string {
   if (owner && owner.last_name.length + owner.first_name.length > 0) {
-    return `${owner.first_name} ${owner.last_name}`;
+    return `${owner.first_name} ${owner.last_name}`.trim();
   }
   return owner ? owner.username : fallback;
 }

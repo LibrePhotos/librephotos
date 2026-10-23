@@ -110,6 +110,9 @@ These switches decide what public links show. Photo links always use them, inclu
 - `Share captions`: show photo descriptions.
 - `Share detected faces`: show the people recognised in photos.
 
+<a id="public-gallery-user"></a>
+<Since version="1.5.0" /> While the admin has the [public gallery](../sharing.md#public-gallery) open, a **Public gallery** card follows: `Show my public photos in the public gallery` (off by default) puts your public photos on the server's front page next to everyone else's. Next to it, **What visitors see of your photos** lists what the gallery shows, from the switches above.
+
 <Since version="1.5.0" /> Up to 1.4.0, these switches were not saved: after **Save Changes** they were off again on the next visit, and public links shared none of these details unless an album link turned them on.
 
 ### Duplicate Detection
@@ -145,6 +148,20 @@ These are settings that apply to the whole instance. Besides the panels below, t
   - **antelopev2** — High-accuracy model for the best recognition quality.
 
   Saving a new model queues a **Download models** job immediately (if the model pack is not already present). Only faces encoded *after* the switch use the new model — existing faces keep the embeddings they were created with. **Train faces** does not re-encode them; it only generates embeddings for faces that have none yet and then re-clusters. For this reason, choose a model before your first face scan: switching later leaves your library comparing embeddings produced by two different models. See [Face recognition](../face-recognition.md).
+
+### Public gallery
+
+<Since version="1.5.0" /> The **Public gallery** card decides who the [public gallery](../sharing.md#public-gallery) is open to: one page of the public photos of every user who takes part, at your server's address.
+
+- `Off` (the default): there is no gallery. The server's address opens the login page, and the gallery's pages and API answer "not found".
+- `Members only`: every signed-in user finds the gallery under **Sharing**, and sees it exactly as a visitor would. Use it to try the gallery out before anyone outside sees it.
+- `Everyone`: the server's address opens the gallery for anyone who is not signed in, without an account. **Log in** stays in its top right corner.
+
+Opening it to more people first asks, with how many photos of how many users it shows and the names of the users with the most photos. Users take part only after they turn on **Show my public photos in the public gallery** in their [settings](#public-gallery-user); nobody does by default. Their public photos stay public either way, on their own links.
+
+- `Let search engines index the public gallery`: Off by default. While it is off, the gallery's page and answers ask search engines not to list them (`noindex`).
+
+Visitors without an account are rate limited by `PUBLIC_GALLERY_THROTTLE_RATE` (see [Rate limits](../../installation/environment-variables.md#sign-in-rate-limits)).
 
 ### Features
 

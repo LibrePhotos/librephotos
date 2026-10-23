@@ -62,6 +62,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 // The library sections (#2731) have their own tests (components/libraryShare).
 vi.mock("../../../components/libraryShare/YourLibrarySection", () => ({ YourLibrarySection: () => null }));
+// The public gallery card (#434) has its own tests (GalleryPage).
+vi.mock("../../../components/gallery/GalleryLinkCard", () => ({ GalleryLinkCard: () => null }));
 vi.mock("../../../components/libraryShare/LibrariesSharedWithYouSection", () => ({
   LibrariesSharedWithYouSection: () => null,
 }));

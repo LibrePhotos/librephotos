@@ -2,6 +2,7 @@ import { IconUsers } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { GalleryLinkCard } from "../../../components/gallery/GalleryLinkCard";
 import { LibrariesSharedWithYouSection } from "../../../components/libraryShare/LibrariesSharedWithYouSection";
 import { YourLibrarySection } from "../../../components/libraryShare/YourLibrarySection";
 import { PageBody } from "../../../components/PageBody";
@@ -26,6 +27,7 @@ function SharingExplore() {
       <PageBody gap="md">
         <YourLibrarySection />
         <LibrariesSharedWithYouSection />
+        <GalleryLinkCard />
         <PublicUsersSection />
         <SharedWithYouSection />
         <YouSharedSection />
