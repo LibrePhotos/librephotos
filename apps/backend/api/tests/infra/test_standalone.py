@@ -177,6 +177,46 @@ class NuitkaCommandTest(SimpleTestCase):
         self.assertIn("--noinclude-custom-mode=faiss.swigfaiss:bytecode", command)
         self.assertEqual(command[-1], str(build.ENTRY))
 
+    def test_the_pure_python_frameworks_ship_as_bytecode(self):
+        # The C compile is most of a two-hour CI build; these do not need it.
+        build = load_build_script()
+
+        command = build.nuitka_command(Path("out"), None, "0.0.0")
+
+        for package in ("django", "allauth", "rest_framework"):
+            self.assertIn(f"--noinclude-custom-mode={package}:bytecode", command)
+
+    def test_our_own_code_stays_compiled(self):
+        # api, librephotos and the sidecars keep Nuitka's compiled C; only
+        # third-party packages are demoted.
+        build = load_build_script()
+
+        ours = {"api", "librephotos", "service", "image_similarity", "nextcloud"}
+
+        self.assertEqual(
+            [name for name in build.BYTECODE_MODULES if name.split(".")[0] in ours],
+            [],
+        )
+
+    def test_caches_stay_on_unless_turned_off(self):
+        # CI turns them off (they never hit across runner images); a local
+        # rebuild hits nearly every file.
+        build = load_build_script()
+
+        self.assertNotIn(
+            "--disable-cache=all", build.nuitka_command(Path("out"), None, "0.0.0")
+        )
+        self.assertIn(
+            "--disable-cache=all",
+            build.nuitka_command(Path("out"), None, "0.0.0", cache=False),
+        )
+
+    def test_optional_bloat_is_not_followed(self):
+        build = load_build_script()
+
+        for package in ("pip", "huggingface_hub", "pygments", "prompt_toolkit"):
+            self.assertIn(package, build.NOFOLLOW)
+
 
 class LazyModuleTargetsTest(SimpleTestCase):
     def test_every_lazy_import_is_named_to_nuitka(self):
@@ -187,7 +227,8 @@ class LazyModuleTargetsTest(SimpleTestCase):
         targets = build.lazy_module_targets()
         command = build.nuitka_command(Path("out"), None, "0.0.0")
 
-        self.assertIn("imagehash", targets)
+        # numpy, not imagehash: #2855 replaces imagehash with numpy code.
+        self.assertIn("numpy", targets)
         for name in targets:
             self.assertIn(f"--include-module={name}", command)
 

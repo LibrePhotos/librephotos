@@ -199,6 +199,8 @@ function PhotoListViewComponent({
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  // The sticky header the grid scrolls under: the scroll scrubber starts below it.
+  const headerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   // Skip user details query on public pages
   const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery(isPublic);
@@ -211,7 +213,7 @@ function PhotoListViewComponent({
   const isFirstTimeSetup = isFirstTimeSetupView(isLoading, location.pathname, auth, userSelfDetails);
 
   const preferences = usePhotoListPreferences(userSelfDetails);
-  const { localImageScale, localTextAlignment, localHeaderSize } = preferences;
+  const { localImageScale, localTextAlignment, localHeaderSize, localScrubberStyle } = preferences;
 
   const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef, { ready: !isLoading, isPublic });
   const slideshowState = usePhotoListSlideshow(idx2hash, lightbox, { slideshow, ready: !isLoading, onSlideshowClose });
@@ -264,7 +266,7 @@ function PhotoListViewComponent({
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
       {header !== null && (
-        <Box className={classes.header}>
+        <Box className={classes.header} ref={headerRef}>
           {header || (
             // The actions sit beside the title in the normal flow (they used to be
             // absolutely positioned over it). The 220px basis wraps a wide action
@@ -339,6 +341,8 @@ function PhotoListViewComponent({
           scrollToY={scrollToY}
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
+          variant={localScrubberStyle}
+          stickyHeader={headerRef}
         >
           <Box p={10} ref={gridRef}>
             <Pig<PigPhoto>

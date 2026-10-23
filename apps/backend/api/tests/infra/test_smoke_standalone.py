@@ -362,6 +362,16 @@ class ProcessNamesTest(SimpleTestCase):
             self.assertEqual([here], smoke.processes_in(program))
 
 
+def scan_job(finished, failed=False, result=None):
+    return {
+        "job_id": "j1",
+        "job_type": smoke.SCAN_JOB_TYPE,
+        "finished": finished,
+        "failed": failed,
+        "result": result,
+    }
+
+
 class ScanTest(SimpleTestCase):
     def test_three_photos_are_scanned_and_their_thumbnails_served(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -373,6 +383,7 @@ class ScanTest(SimpleTestCase):
                 {
                     ("PATCH", "/api/manage/user/5/"): {},
                     ("GET", "/api/photos/recentlyadded/"): {"results": photos},
+                    ("GET", "/api/jobs/"): {"results": [scan_job(finished=True)]},
                 }
             )
             api.request = MagicMock(
@@ -395,6 +406,42 @@ class ScanTest(SimpleTestCase):
                 [f"/media/thumbnails_big/h{index}" for index in range(3)],
                 [call.args[1] for call in api.request.call_args_list],
             )
+
+    def test_a_scan_with_a_failed_file_fails(self):
+        # The Windows build without imagehash: thumbnails, then every file
+        # failed halfway (#2854).
+        job = scan_job(
+            finished=True,
+            failed=True,
+            result={
+                "error_count": 3,
+                "errors": ["ModuleNotFoundError: No module named 'imagehash'"],
+            },
+        )
+
+        with self.assertRaisesRegex(smoke.SmokeError, "3 failed file.*imagehash"):
+            smoke.check_scan_errors([job])
+
+    def test_the_scan_job_type_is_the_models(self):
+        # The script stays Django-free, so it names the number itself.
+        from api.models import LongRunningJob
+
+        self.assertEqual(LongRunningJob.JOB_SCAN_PHOTOS, smoke.SCAN_JOB_TYPE)
+
+    def test_a_clean_scan_passes(self):
+        smoke.check_scan_errors([scan_job(finished=True, result={"new": 3})])
+
+    def test_the_scan_jobs_count_once_all_have_finished(self):
+        other = {"job_type": 99, "finished": False}
+        running = FakeApi(
+            {("GET", "/api/jobs/"): {"results": [scan_job(finished=False), other]}}
+        )
+        done = FakeApi(
+            {("GET", "/api/jobs/"): {"results": [scan_job(finished=True), other]}}
+        )
+
+        self.assertIsNone(smoke.finished_scan_jobs(running))
+        self.assertEqual([scan_job(finished=True)], smoke.finished_scan_jobs(done))
 
     def test_too_few_thumbnails_are_not_enough(self):
         api = FakeApi({("GET", "/api/photos/recentlyadded/"): {"results": [{}]}})

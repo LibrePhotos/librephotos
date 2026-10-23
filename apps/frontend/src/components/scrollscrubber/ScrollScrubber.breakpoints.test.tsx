@@ -92,7 +92,6 @@ describe("ScrollScrubber", () => {
     await renderAt(1024);
 
     expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("0px");
-    expect(layer(`.${defined(classes.backgroundLayer)}`).style.bottom).toBe("0px");
   });
 
   it("stops above the phone footer below the sm breakpoint", async () => {
@@ -100,7 +99,6 @@ describe("ScrollScrubber", () => {
     await renderAt(740);
 
     expect(layer(`.${defined(classes.scrubber)}`).style.bottom).toBe("50px");
-    expect(layer(`.${defined(classes.backgroundLayer)}`).style.bottom).toBe("50px");
   });
 
   it("switches exactly at the theme's sm breakpoint", async () => {

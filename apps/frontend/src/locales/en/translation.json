@@ -2899,7 +2899,14 @@
     "headerSize": "Header Size",
     "large": "Large",
     "normal": "Normal",
-    "small": "Small"
+    "small": "Small",
+    "scrubberStyle": "Scroll Bar",
+    "scrubberThumb": "Simple",
+    "scrubberDensity": "Photo Density"
+  },
+  "scrollscrubber": {
+    "bucket_one": "{{label}} · {{count}} photo",
+    "bucket_other": "{{label}} · {{count}} photos"
   },
   "library": {
     "exploredata": "Explore Data",
