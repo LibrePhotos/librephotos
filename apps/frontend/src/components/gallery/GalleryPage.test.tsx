@@ -232,10 +232,10 @@ describe("the public gallery page", () => {
     expect(tiles[1]?.querySelector("a")?.dataset.search).toBe(JSON.stringify({ owner: 3, person: 8 }));
   });
 
-  it("lists the photographers, each opening their own public page", async () => {
+  it("lists the photographers, each opening their photos on the timeline", async () => {
     await render({ tab: "photographers" });
     const links = [...container.querySelectorAll("[data-testid=tile] a")];
-    expect(links[0]?.getAttribute("data-params")).toBe(JSON.stringify({ users: "anna" }));
+    expect(links[0]?.getAttribute("data-search")).toBe(JSON.stringify({ owner: 2 }));
     expect(container.querySelectorAll("input[type=radio]")).toHaveLength(0);
   });
 

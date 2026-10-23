@@ -159,9 +159,9 @@ These are settings that apply to the whole instance. Besides the panels below, t
 
 Opening it to more people first asks, with how many photos of how many users it shows and the names of the users with the most photos. Users take part only after they turn on **Show my public photos in the public gallery** in their [settings](#public-gallery-user); nobody does by default. Their public photos stay public either way, on their own links.
 
-- `Let search engines index the public gallery`: Off by default. While it is off, the gallery's page and answers ask search engines not to list them (`noindex`).
+- `Let search engines index the public gallery`: Off by default. While it is off, the gallery's page and answers ask search engines not to list them (`noindex`): the API answers and, with the [unified image](../../installation/unified-deployment.md) and the [Windows app](../../installation/windows-standalone.md), the page itself carry an `X-Robots-Tag` header. With the separate frontend container of the default Docker Compose setup, the page says it in a `robots` meta tag that its script adds, which search engines that run scripts read; a reverse proxy in front can add `X-Robots-Tag: noindex` for `/` and `/public` as well.
 
-Visitors without an account are rate limited by `PUBLIC_GALLERY_THROTTLE_RATE` (see [Rate limits](../../installation/environment-variables.md#sign-in-rate-limits)).
+The gallery is rate limited per user and, without an account, per address by `PUBLIC_GALLERY_THROTTLE_RATE` (see [Rate limits](../../installation/environment-variables.md#sign-in-rate-limits)).
 
 ### Features
 

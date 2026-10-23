@@ -358,20 +358,22 @@ The **Public Links** row on the Sharing page shows your latest public photos and
 
 Users can make their profile publicly accessible by enabling **Public Sharing** in their profile settings. Other users on the instance can then find them in the **Public photos** section of the **Sharing** page, which lists every user with public sharing enabled along with their public photo count. A user's public photos are browsable at `https://your-instance/public/<username>`.
 
+<Since version="1.5.0" /> That page, and the API behind it, only work while the user's public profile is on (the user still sees their own public photos under **Public Links**). Up to 1.4.0 the API also answered without a username, with every user's public photos together, whatever their profile setting; everyone's public photos together are now the [public gallery](#public-gallery), which is off until an admin turns it on and shows only users who take part.
+
 ## Public gallery
 
 <Since version="1.5.0" />
 
 The public gallery puts the public photos of everyone who takes part on one page, at your server's address. It is off until an admin turns it on under **Admin Area > Public gallery** ([settings](./settings/index.md#public-gallery)): **Members only** shows it to every signed-in user under **Sharing**, **Everyone** opens it at the server's address for visitors without an account. While it is off, the server's address opens the login page as before.
 
-Nobody takes part by default. To show your public photos there, turn on **Settings > Public gallery > Show my public photos in the public gallery**. The card lists what visitors see of your photos. Turning it off takes them out of the gallery again; they stay public on their own links and your [public profile](#public-user-profiles) either way. Only photos you made public ([Make Public](#making-individual-photos-public)) are shown, never photos that are only in a public album or behind a photo link.
+Nobody takes part by default. To show your public photos there, turn on **Settings > Public gallery > Show my public photos in the public gallery**. Only you can turn it on or off for yourself; an admin cannot do it for you. The card lists what visitors see of your photos. Turning it off takes them out of the gallery again; they stay public on their own links and your [public profile](#public-user-profiles) either way. Only photos you made public ([Make Public](#making-individual-photos-public)) are shown, never photos that are only in a public album or behind a photo link.
 
 The gallery has four tabs:
 
 - **Timeline**: the days of everyone's photos, newest first, each photo marked with whose it is. Photos of people who do not share dates (or that have no date) come last, in one group without a date and in no particular order, so the order does not tell when they were taken. A day names its town only when every photo of the day is of someone who shares places.
 - **Places**: the towns the photos were taken in, with the photographers who took them. Only towns, never a street or a spot on a map, and only for people who share where their photos were taken. A town opens its photos on the timeline.
 - **People**: the people each photographer named, for photographers who share the names of the people on their photos. Two photographers' *Mia* stay two tiles, each saying whose photos they are. A person opens their photos on the timeline. Unnamed faces never show.
-- **Photographers**: everyone who takes part, each opening their public profile.
+- **Photographers**: everyone who takes part, each opening their photos on the timeline.
 
 The chips above the tabs narrow the timeline, places and people to one photographer. The address keeps the tab and the filters, so a link shows the same view to anyone.
 

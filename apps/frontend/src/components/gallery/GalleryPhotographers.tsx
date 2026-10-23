@@ -17,7 +17,10 @@ const CAPTION_HEIGHT = 56;
 
 const columnsFor = (width: number) => calculateGridCellSize(width).numEntrySquaresPerRow;
 
-/** A photographer's own public page, which lists all of their public photos. */
+/**
+ * A photographer's photos on the gallery's timeline. Not their public profile (/public/<username>),
+ * which is a page of its own that they may keep off.
+ */
 function PhotographerLink({
   photographer,
   children,
@@ -26,19 +29,15 @@ function PhotographerLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      to="/public/$users"
-      params={{ users: photographer.username }}
-      aria-label={sharerName(photographer, photographer.username)}
-    >
+    <Link to="/public" search={{ owner: photographer.id }} aria-label={sharerName(photographer, photographer.username)}>
       {children}
     </Link>
   );
 }
 
 /**
- * The gallery's photographers: the users who take part, most photos first. A card opens the
- * photographer's own public page.
+ * The gallery's photographers: the users who take part, most photos first. A card opens their
+ * photos on the timeline.
  */
 export function GalleryPhotographers({ photographers }: Readonly<{ photographers: GalleryPhotographer[] }>) {
   const { t } = useTranslation();
