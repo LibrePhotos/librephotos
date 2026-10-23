@@ -3589,7 +3589,38 @@
     "skipped": "{{version}} skipped. You will hear about the next release.",
     "privacy": "LibrePhotos asks github.com once a day which release is the newest. Nothing about this server is sent.",
     "sidebar": "Update available: {{version}}",
-    "versionlabel": "Version {{version}}, update available"
+    "versionlabel": "Version {{version}}, update available",
+    "install": {
+      "download": "Download update",
+      "retry": "Try again",
+      "downloadhint": "LibrePhotos downloads {{version}} from GitHub and checks it against the release's SHA-256 checksums. It keeps running meanwhile; you choose when to restart.",
+      "downloading": "Downloading {{version}}: {{received}} of {{total}}",
+      "downloadingunsized": "Downloading {{version}}: {{received}}",
+      "verifying": "Checking the download...",
+      "extracting": "Unpacking {{version}}...",
+      "ready": "{{version}} is downloaded and checked. Restarting takes a minute or two, and this page reloads when LibrePhotos is back. The release you have now stays in the librephotos-old folder.",
+      "restart": "Restart to update",
+      "restartanyway": "Restart anyway",
+      "restarting": "LibrePhotos is restarting to update to {{version}}. This page reloads when it is back.",
+      "failed": "The update could not be installed: {{reason}}",
+      "failure": {
+        "checksum_mismatch": "the download was damaged and has been deleted. Try again.",
+        "no_checksums": "this release has no checksums to check the download against. Update by hand instead.",
+        "bad_signature": "the download is not signed by LibrePhotos.",
+        "disk_full": "there is not enough free disk space next to the program folder. LibrePhotos needs 3 GB.",
+        "disk_error": "LibrePhotos could not write next to its program folder.",
+        "folder_in_the_way": "a folder with the new release's name is already next to the program folder. Move it away and try again.",
+        "network": "GitHub could not be reached, or the connection broke. Try again; the download goes on where it stopped.",
+        "restart_failed": "LibrePhotos could not start the new release. Try again, or update by hand.",
+        "bad_zip": "the downloaded zip could not be unpacked. Try again, or update by hand.",
+        "unknown": "something went wrong ({{code}}). Try again, or update by hand."
+      },
+      "unsupported": {
+        "read_only": "LibrePhotos cannot update itself here: it cannot write next to its program folder (for example in Program Files). Follow the update steps instead.",
+        "data_in_program_folder": "LibrePhotos cannot update itself here: the data folder is inside the program folder, which an update replaces. Follow the update steps instead.",
+        "library_in_program_folder": "LibrePhotos cannot update itself here: a photo folder (the photos folder, a scan directory, an upload or library folder) is inside the program folder, which an update replaces. Move the photos out of it, or follow the update steps instead."
+      }
+    }
   },
   "processingstatus": {
     "title": "Processing status",

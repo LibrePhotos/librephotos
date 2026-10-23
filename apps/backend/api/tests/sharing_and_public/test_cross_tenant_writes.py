@@ -119,6 +119,8 @@ NOT_PHOTO_SCOPED = {
     "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
     "api/updates/skip/": "admin-only, instance-wide update check state",
     "api/updates/snooze/": "admin-only, instance-wide update check state",
+    "api/updates/install/": "admin-only, downloads the newest release (#2788)",
+    "api/updates/restart/": "admin-only, restarts the instance into an update",
     "api/look-up-places/": "admin-only, instance-wide place name lookup job",
     "api/deduplicate-faces/": "admin-only, instance-wide face deduplication job",
     "api/check-file-contents/": "admin-only, instance-wide file contents check job",

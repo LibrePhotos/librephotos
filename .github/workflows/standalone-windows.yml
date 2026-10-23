@@ -34,8 +34,10 @@ on:
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
       - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/scripts/smoke_update.py'
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
       - 'apps/backend/librephotos/settings/standalone.py'
       - '.github/workflows/standalone-windows.yml'
   push:
@@ -46,8 +48,10 @@ on:
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
       - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/scripts/smoke_update.py'
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
       - 'apps/backend/librephotos/settings/standalone.py'
       - '.github/workflows/standalone-windows.yml'
   workflow_dispatch:
@@ -225,6 +229,25 @@ jobs:
         with:
           name: smoke-test-logs
           path: ${{ runner.temp }}/librephotos-smoke/data/logs
+          if-no-files-found: warn
+      # Restart to update in the built binary (#2788): the zip as the program
+      # folder and as a downloaded release, swapped by `finish-update`, which
+      # then starts the new one and waits until it is ready. Not yet a gate for
+      # a release, until it has passed on dispatched and pull request builds.
+      - name: Update smoke test
+        id: update-smoke
+        continue-on-error: ${{ github.event_name == 'release' }}
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          python scripts/smoke_update.py "build/standalone/$STABLE_ZIP" \
+            --work-dir "$RUNNER_TEMP/librephotos-update-smoke"
+      - name: Upload the update smoke test's logs
+        if: always() && steps.update-smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-smoke-test-logs
+          path: ${{ runner.temp }}/librephotos-update-smoke/data/logs
           if-no-files-found: warn
       # Also when the smoke test failed, to try the build by hand.
       - uses: actions/upload-artifact@v7

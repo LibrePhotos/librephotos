@@ -315,7 +315,9 @@ Where your library is
   --data-dir chooses another place), not in this program folder.
 
 Updating, backing up, uninstalling
-  Quit LibrePhotos from its tray icon first (Quit LibrePhotos).
+  LibrePhotos updates itself: when a new release is out, right-click its
+  tray icon and choose Download LibrePhotos <version>, then Restart to update.
+  By hand, and for the steps below, quit it first (tray: Quit LibrePhotos).
   Updating:     {WINDOWS_DOCS_URL}#updating
   Backing up:   {WINDOWS_DOCS_URL}#backing-up
   Uninstalling: {WINDOWS_DOCS_URL}#uninstalling
@@ -327,26 +329,40 @@ Commands
 """
 
 
-def stage_runtime_files(dist, frontend_build, static, version):
-    copy_tree(frontend_build, dist / "frontend_build")
-    copy_tree(static, dist / "static")
-    site_packages = Path(sysconfig.get_paths()["purelib"])
+def release_files(dist):
+    """The distribution's top-level entries, build_info.json included."""
+    return sorted({entry.name for entry in dist.iterdir()} | {"build_info.json"})
+
+
+def copy_bundled_binaries(site_packages, dist):
     for source, target in BUNDLED_BINARY_DIRS.items():
         source_dir = site_packages / Path(source)
         if not source_dir.is_dir():
             sys.exit(f"{source_dir} is missing; is requirements.txt installed?")
         copy_tree(source_dir, dist / target)
+
+
+def copy_source_files(site_packages, dist):
     for directory in SOURCE_FILES_ON_DISK:
         (dist / directory).mkdir(parents=True, exist_ok=True)
         for source in (site_packages / directory).glob("*.py"):
             shutil.copy(source, dist / directory / source.name)
+
+
+def stage_runtime_files(dist, frontend_build, static, version):
+    copy_tree(frontend_build, dist / "frontend_build")
+    copy_tree(static, dist / "static")
+    site_packages = Path(sysconfig.get_paths()["purelib"])
+    copy_bundled_binaries(site_packages, dist)
+    copy_source_files(site_packages, dist)
     for name in ("LICENSE", "README.md"):
         shutil.copy(BACKEND / name, dist / name)
-    # Read back by librephotos/standalone.py (BUILD_INFO_NAME).
-    (dist / "build_info.json").write_text(
-        json.dumps(build_info(version)), encoding="utf-8"
-    )
     (dist / "START_HERE.txt").write_text(START_HERE_TEXT, encoding="utf-8")
+    # Read back by librephotos/standalone.py (BUILD_INFO_NAME). Last, so its
+    # list of the release's top-level entries is complete: the updater deletes
+    # an old program folder only when it holds exactly those (#2788).
+    info = {**build_info(version), "files": release_files(dist)}
+    (dist / "build_info.json").write_text(json.dumps(info), encoding="utf-8")
 
 
 # Written next to the zips and attached to the release with them (#2317).

@@ -11,7 +11,7 @@ Every LibrePhotos release brings its own database migrations. The backend applie
 - [Standard Docker setup](standard-install.md#updating)
 - [Single container deployment](unified-deployment.md): pull `reallibrephotos/librephotos-unified` again and recreate the container.
 - [unRAID](unraid.md)
-- [Windows standalone](windows-standalone.md#updating): quit LibrePhotos from the tray, rename the old program folder, unzip the new release next to it and start it.
+- [Windows standalone](windows-standalone.md#updating): <Since version="1.5.0" /> **Download update** on the Update available card (or in the tray menu), then **Restart to update**. By hand, and up to 1.4.0: quit LibrePhotos from the tray, rename the old program folder, unzip the new release next to it and start it.
 - [Kubernetes](https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s#upgrading): the image tags in `kustomization.yaml` are pinned, so check out the new release's tag, whose manifests name its images. Since 1.3.0 the manifests run PostgreSQL 16 instead of 13, so an older install moves its database with a dump and restore first.
 
 <Since version="1.5.0" /> LibrePhotos needs PostgreSQL 15 or newer. The bundled Compose files (18) and the Kubernetes manifests (16) already run a newer one; if you point LibrePhotos at your own PostgreSQL 14 or older, upgrade that server before you update LibrePhotos, or the backend stops at start with an error naming the version.
@@ -59,7 +59,7 @@ With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `do
 
 <Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin Area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.
 
-- **How to update** opens the steps for your install: [Windows](windows-standalone.md#updating), or the top of this page for Docker and the rest.
+- **How to update** opens the steps for your install: [Windows](windows-standalone.md#updating), or the top of this page for Docker and the rest. The Windows app shows **Download update** instead, then **Restart to update**, and installs the release itself ([Updating from LibrePhotos](windows-standalone.md#update-from-the-app)).
 - **Release notes** opens the release on GitHub. Read them before you update: some releases ask you to do something once.
 - **Skip this release** hides the card and the dot until a newer release comes out. **Undo** in the message that follows, or **Show it again** under **Check for new releases** in Site Settings, brings it back.
 - The close button hides the card for a week.

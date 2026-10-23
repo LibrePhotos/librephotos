@@ -20,6 +20,26 @@ export type ImageTag = z.infer<typeof ImageTag>;
  * not_checked, failed, up_to_date, available or skipped. `notice`: show the Update available card
  * and the sidebar dot (a newer release, not skipped, the card not closed in the last week).
  */
+/**
+ * The Windows app's built-in updater (#2788), part of `GET /updates/`. `state`: idle, downloading,
+ * verifying, extracting, ready, restarting or failed (a string: a later server may add one).
+ */
+export const InstallState = z.object({
+  /** The Windows app, in a program folder it may replace. */
+  supported: z.boolean(),
+  /** Why not: not_windows_app, read_only or data_in_program_folder. */
+  reason: z.string().nullable(),
+  state: z.string(),
+  version: z.string().nullable(),
+  received_bytes: z.number(),
+  total_bytes: z.number().nullable(),
+  /** Why the last download failed (checksum_mismatch, disk_full, ...). */
+  error: z.string().nullable(),
+  /** Whether the download's signature is checked too; until #2317 only its SHA-256 is. */
+  signature_checked: z.boolean(),
+});
+export type InstallState = z.infer<typeof InstallState>;
+
 export const UpdateStatus = z.object({
   enabled: z.boolean(),
   locked: z.boolean(),
@@ -38,6 +58,8 @@ export const UpdateStatus = z.object({
   how_to_update_url: z.string(),
   skipped_release: z.string().nullable(),
   snoozed_until: z.string().nullable(),
+  /** Missing before the built-in updater (#2788). */
+  install: InstallState.optional(),
 });
 export type UpdateStatus = z.infer<typeof UpdateStatus>;
 

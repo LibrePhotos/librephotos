@@ -13,6 +13,7 @@ per-user data directory.
     librephotos.exe run --port 8000 --data-dir D:\\LibrePhotos --no-browser
     librephotos.exe manage <command>    any manage.py command, e.g. createadmin
     librephotos.exe service <name>      one sidecar (api.runtime.supervisor starts these)
+    librephotos.exe finish-update ...   (internal) an update's folder swap, see librephotos/updater.py
 
 The same module runs from source too (python librephotos_standalone.py), which
 is how it is tested; only the paths differ.
@@ -24,6 +25,7 @@ import argparse
 import errno
 import importlib
 import json
+import logging
 import os
 import re
 import subprocess
@@ -33,6 +35,7 @@ import time
 import webbrowser
 from collections import deque
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from librephotos import instance_lock, startup_page
@@ -44,6 +47,9 @@ if TYPE_CHECKING:
     from PIL import Image
 
     from librephotos.tray import Tray
+    from librephotos.updater import Launch
+
+logger = logging.getLogger(__name__)
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
@@ -56,7 +62,7 @@ CONSOLE_LOG_NAME = "console.log"
 # The previous start's console.log, kept so a failed start can still be
 # explained after the next attempt (#2316).
 PREVIOUS_CONSOLE_LOG_NAME = "console.previous.log"
-SUBCOMMANDS = ("run", "manage", "service")
+SUBCOMMANDS = ("run", "manage", "service", "finish-update")
 # Written next to the binary by scripts/build_standalone.py: the release and
 # commit it was built from, which the Docker images get from build arguments.
 BUILD_INFO_NAME = "build_info.json"
@@ -424,20 +430,20 @@ def _job_process_ids() -> set[int] | None:
     }
 
 
-def _take_children_down_with_us() -> None:
-    """Put this process in a Windows job that kills its descendants with it.
+_JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
+# Lets a child started with CREATE_BREAKAWAY_FROM_JOB leave the job: an
+# update's finisher (librephotos/updater.py) has to outlive this process.
+_JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x800
 
-    Closing the console, Task Manager and a crash all end this process without
-    running any cleanup, and the sidecars would live on holding their ports,
-    so the next start could not bind them. The job object is the one Windows
-    mechanism that follows the process tree regardless of how the root died.
-    """
+
+def _set_job_limits(flags: int, job: int | None = None) -> int | None:
+    """Give ``job`` (a new job when None) the limit ``flags``; returns its
+    handle, or None when Windows refused. Windows only."""
     if sys.platform != "win32":
-        return
+        return None
     import ctypes
     from ctypes import wintypes
 
-    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
     JobObjectExtendedLimitInformation = 9
 
     class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
@@ -476,9 +482,6 @@ def _take_children_down_with_us() -> None:
             ("PeakJobMemoryUsed", ctypes.c_size_t),
         ]
 
-    # Explicit signatures: with ctypes' int defaults the (HANDLE)-1 pseudo
-    # handle of GetCurrentProcess is truncated to 32 bits and the assignment
-    # fails without a word.
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.CreateJobObjectW.restype = wintypes.HANDLE
     kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
@@ -489,22 +492,43 @@ def _take_children_down_with_us() -> None:
         ctypes.c_void_p,
         wintypes.DWORD,
     ]
+    if job is None:
+        job = kernel32.CreateJobObjectW(None, None)
+    info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+    info.BasicLimitInformation.LimitFlags = flags
+    if not job or not kernel32.SetInformationJobObject(
+        job, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info)
+    ):
+        return None
+    return int(job)
+
+
+def _take_children_down_with_us() -> None:
+    """Put this process in a Windows job that kills its descendants with it.
+
+    Closing the console, Task Manager and a crash all end this process without
+    running any cleanup, and the sidecars would live on holding their ports,
+    so the next start could not bind them. The job object is the one Windows
+    mechanism that follows the process tree regardless of how the root died.
+    """
+    if sys.platform != "win32":
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    # Explicit signatures: with ctypes' int defaults the (HANDLE)-1 pseudo
+    # handle of GetCurrentProcess is truncated to 32 bits and the assignment
+    # fails without a word.
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
     kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
     kernel32.GetCurrentProcess.restype = wintypes.HANDLE
 
-    job = kernel32.CreateJobObjectW(None, None)
-    info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-    if (
-        not job
-        or not kernel32.SetInformationJobObject(
-            job,
-            JobObjectExtendedLimitInformation,
-            ctypes.byref(info),
-            ctypes.sizeof(info),
-        )
-        or not kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess())
+    job = _set_job_limits(
+        _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | _JOB_OBJECT_LIMIT_BREAKAWAY_OK
+    )
+    if job is None or not kernel32.AssignProcessToJobObject(
+        job, kernel32.GetCurrentProcess()
     ):
         print(
             "Could not bind child processes to this one "
@@ -516,6 +540,17 @@ def _take_children_down_with_us() -> None:
         # Kept for _job_process_ids: the job lists this instance's processes.
         _job_handles.append(job)
     # The handle is deliberately never closed: closing it is what kills the job.
+
+
+def _release_job() -> None:
+    """Let this instance's job outlive it: kill-on-close off.
+
+    Only for an update whose finisher could not leave the job (#2788): this
+    process exits right after, and the job would end the finisher with it.
+    The sidecars and the job cluster are stopped by then (_shutdown).
+    """
+    if _job_handles:
+        _set_job_limits(0, _job_handles[0])
 
 
 def _already_running(url: str) -> bool:
@@ -560,6 +595,8 @@ NOTICE_ALREADY_STARTING = (
     "LibrePhotos is already starting",
     "It opens in your browser when it is ready.",
 )
+# Restart to update: how long the server keeps answering before it quits.
+RESTART_DELAY_SECONDS = 1.0
 # How long a second start waits for the first one to answer, and how often it asks.
 OTHER_INSTANCE_TIMEOUT_SECONDS = 600.0
 _OTHER_INSTANCE_POLL_SECONDS = 2.0
@@ -587,6 +624,10 @@ class Startup:
         self._child: subprocess.Popen[str] | None = None
         self._cancelled = threading.Event()
         self._lock = threading.Lock()
+        # How main() was started, for the update's restart (#2788).
+        self.launch: Launch | None = None
+        # The update's finisher stayed in this instance's job (_release_job).
+        self.release_job_on_exit = False
 
     @property
     def cancelled(self) -> bool:
@@ -651,6 +692,24 @@ class Startup:
             from api.updates.tray import watch_updates
 
             watch_updates(self.tray, stop)
+
+    def restart_to_update(self, staged: Path, url: str) -> None:
+        """Restart to update (#2788): start the prepared release's finisher,
+        which waits for this instance to exit, then quit."""
+        from librephotos import updater
+
+        if self.launch is None:
+            raise OSError("LibrePhotos was not started through main()")
+        left_job = updater.start_finisher(
+            staged,
+            Path(install_root()),
+            url,
+            Path(os.environ["BASE_LOGS"]) / updater.LOG_NAME,
+            self.launch,
+        )
+        self.release_job_on_exit = not left_job
+        # A moment for the API to answer the request that asked for it.
+        threading.Timer(RESTART_DELAY_SECONDS, self.quit).start()
 
     def track(self, child: subprocess.Popen[str] | None) -> None:
         """The start-up child that Quit has to terminate, or None once it ended."""
@@ -726,6 +785,16 @@ def _report_failure(message: str) -> None:
             "LibrePhotos",
             0x10,
         )
+
+
+def _tell(message: str) -> None:
+    """A message for the user: printed, and in a message box when there is
+    no console window to read it in (the update's finisher, #2788)."""
+    print(message, flush=True)
+    if sys.platform == "win32" and not _has_console_window():
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(None, message, "LibrePhotos", 0x10)
 
 
 # A line of Django's system check output naming one of LibrePhotos' own errors
@@ -992,6 +1061,7 @@ def run_server(
     )
     cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
     startup.server = server
+    enable_updater(startup, url)
     _serve(server, cluster, url, startup)
 
 
@@ -1120,6 +1190,27 @@ def _serve(
     finally:
         stopped.set()
         _shutdown(cluster)
+        if startup.release_job_on_exit:
+            _release_job()
+
+
+def enable_updater(startup: Startup, url: str) -> None:
+    """The built-in updater (#2788, api/updates/install.py): only the
+    compiled app replaces its own program folder; from source it stays off."""
+    if standalone_executable() is None or startup.launch is None:
+        return
+    from api.updates import install
+
+    try:
+        install.enable(
+            Path(install_root()),
+            [Path(os.environ["BASE_DATA"]), Path(os.environ["BASE_LOGS"])],
+            lambda staged: startup.restart_to_update(staged, url),
+        )
+    except Exception:
+        # An updater problem must never keep LibrePhotos from starting: the
+        # update steps in the docs still work.
+        logger.exception("The built-in updater is off")
 
 
 def _say_when_running(
@@ -1211,6 +1302,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     service = sub.add_parser("service", help="run one sidecar")
     service.add_argument("name")
+
+    # Started by the release being replaced (librephotos/updater.py): only
+    # ever add options here, with defaults.
+    finish = sub.add_parser(
+        "finish-update", help="(internal) put a downloaded update in place"
+    )
+    finish.add_argument("--old-pid", type=int, required=True)
+    finish.add_argument("--old-dir", type=Path, required=True)
+    finish.add_argument("--url", required=True)
+    finish.add_argument("--log", type=Path, required=True)
+    finish.add_argument("--cwd", default="")
+    finish.add_argument("--relaunch", default="[]")
     return parser
 
 
@@ -1223,7 +1326,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> None:
-    args = parse_args(sys.argv[1:] if argv is None else argv)
+    argv = sys.argv[1:] if argv is None else argv
+    args = parse_args(argv)
+    if args.command == "finish-update":
+        # Before prepare_environment: the new release starts with the
+        # environment the old one had, not with this process's additions.
+        from librephotos import updater
+
+        request = updater.FinishRequest.from_arguments(args, Path(install_root()))
+        raise SystemExit(updater.finish_update(request, _tell))
+    from librephotos.updater import Launch
+
+    launch = Launch.capture(argv)
     prepare_environment(args.data_dir, args.photos)
 
     if args.command == "manage":
@@ -1232,6 +1346,7 @@ def main(argv: list[str] | None = None) -> None:
         run_service(args.name)
     else:
         startup = Startup()
+        startup.launch = launch
         try:
             run_server(
                 args.host, args.port, not args.no_browser, not args.no_tray, startup

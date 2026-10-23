@@ -7,8 +7,9 @@ and a notification says so once when that takes long. Before, the icon only
 appeared once migrations, startup commands and sidecars were done; after an
 update that was minutes of nothing, and users double-clicked again.
 
-Once the server runs, the menu also has Check for updates, and Update to
-1.5.0 available... while a newer release is known (#2311, api/updates/tray.py).
+Once the server runs, the menu also has Check for updates, and an update
+item while a newer release is known: it downloads it, then restarts into it
+(#2311, #2788, api/updates/tray.py).
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ class Tray:
     """The icon, its status line and its menu.
 
     Menu: the status (greyed), Open LibrePhotos (the default, a plain click),
-    Update to <version> available... (while one is known), Check for updates
+    the update item (while a newer release is known), Check for updates
     (once Django is set up), Open data folder, Open logs, Quit LibrePhotos.
     Every method is safe to call from any thread.
     """
@@ -63,7 +64,7 @@ class Tray:
         self.url = url
         self._status = status
         self._update_label: str | None = None
-        self._update_url = ""
+        self._update_action: Callable[[], None] | None = None
         self._on_check_updates: Callable[[], None] | None = None
         self._shown = threading.Event()
         data_folder, logs_folder = folders
@@ -93,7 +94,10 @@ class Tray:
                     default=True,
                 ),
                 pystray.MenuItem(
-                    self._update_text, self._open_update, visible=self._update_shown
+                    self._update_text,
+                    lambda icon, item: self._run_update(),
+                    visible=self._update_shown,
+                    enabled=self._update_enabled,
                 ),
                 pystray.MenuItem(
                     "Check for updates",
@@ -133,17 +137,36 @@ class Tray:
     def _update_shown(self, item: object) -> bool:
         return self._update_label is not None
 
-    def _open_update(self, icon: object, item: object) -> None:
-        webbrowser.open(self._update_url)
+    def _update_enabled(self, item: object) -> bool:
+        return self._update_action is not None
+
+    def _run_update(self) -> None:
+        # It may download, ask a question or restart: never on the thread
+        # that draws the menu.
+        action = self._update_action
+        if action is not None:
+            threading.Thread(target=action, daemon=True, name="tray-update").start()
 
     def _check_shown(self, item: object) -> bool:
         return self._on_check_updates is not None
 
-    def set_update(self, label: str | None, url: str) -> None:
-        """Show the update item with ``label`` (None hides it); it opens ``url``."""
+    def set_update(self, label: str | None, action: Callable[[], None] | None) -> None:
+        """Show the update item with ``label`` (None hides it); choosing it
+        runs ``action`` (None greys it out, as while a download runs)."""
         self._update_label = label
-        self._update_url = url
+        self._update_action = action
         self.icon.update_menu()
+
+    def confirm(self, title: str, text: str) -> bool:
+        """A Yes/No question in a message box; True for Yes."""
+        if sys.platform != "win32":
+            return False
+        import ctypes
+
+        yes, yes_no_question = 6, 0x04 | 0x20
+        return bool(
+            ctypes.windll.user32.MessageBoxW(None, text, title, yes_no_question) == yes
+        )
 
     def enable_update_check(self, on_check: Callable[[], None]) -> None:
         """Show Check for updates, which runs ``on_check`` in a thread of its own."""

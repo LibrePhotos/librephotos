@@ -193,6 +193,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ServerLogs: { schema: S.ServerLogs, components: ["ServerLogs"] },
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
   UpdateStatus: { schema: S.UpdateStatus, components: ["UpdateStatus"] },
+  InstallState: { schema: S.InstallState, components: ["InstallState"] },
   // stacks
   StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
   StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },

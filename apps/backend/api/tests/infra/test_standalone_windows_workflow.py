@@ -56,6 +56,23 @@ class StandaloneWindowsWorkflowTest(SimpleTestCase):
         self.assertIn('"build/standalone/$STABLE_ZIP"', smoke)
         self.assertIn("--tag", smoke)
 
+    def test_restart_to_update_is_tried_on_the_same_zip_before_the_upload(self):
+        # #2788. It does not hold up a release until it has passed elsewhere.
+        update = self.steps[self.step_index("Update smoke test")]
+
+        self.assertIn("scripts/smoke_update.py", update["run"])
+        self.assertIn('"build/standalone/$STABLE_ZIP"', update["run"])
+        self.assertLess(
+            self.step_index("Smoke test"), self.step_index("Update smoke test")
+        )
+        self.assertLess(
+            self.step_index("Update smoke test"),
+            self.step_index("Attach to the release"),
+        )
+        self.assertEqual(
+            "${{ github.event_name == 'release' }}", update["continue-on-error"]
+        )
+
     def test_assets_are_replaced_only_on_request(self):
         attach = self.run_of("Attach to the release")
 

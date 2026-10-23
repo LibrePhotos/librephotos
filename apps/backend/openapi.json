@@ -13096,6 +13096,103 @@
         }
       }
     },
+    "/api/updates/install/": {
+      "post": {
+        "operationId": "api_updates_install_create",
+        "description": "**Download update** in the Windows app: download the newest release in\nthe background, check its SHA-256 against the release's SHA256SUMS and\nunpack it next to the program folder. ``install`` in the answer, and in\n``GET /api/updates/``, follows it. 409 ``not_supported`` elsewhere.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallUpdateRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallUpdateRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallUpdateRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/updates/restart/": {
+      "post": {
+        "operationId": "api_updates_restart_create",
+        "description": "**Restart to update** in the Windows app, once the update is ready:\nLibrePhotos quits, and the new release replaces the program folder and\nstarts (the old one stays as ``librephotos-old``). 409 ``job_running``\nwhile a job runs, unless ``force``.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestartToUpdateRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RestartToUpdateRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RestartToUpdateRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/updates/skip/": {
       "post": {
         "operationId": "api_updates_skip_create",
@@ -18309,6 +18406,70 @@
           "kind",
           "name",
           "similarity_rank"
+        ]
+      },
+      "InstallState": {
+        "type": "object",
+        "description": "The Windows app's built-in updater (#2788).",
+        "properties": {
+          "supported": {
+            "type": "boolean",
+            "description": "This install can download a release and restart into it: the Windows app, in a program folder it may replace."
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why not, when supported is false: not_windows_app, read_only (the folder around the program folder is not writable) or data_in_program_folder."
+          },
+          "state": {
+            "type": "string",
+            "description": "idle, downloading, verifying, extracting, ready, restarting or failed"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true,
+            "description": "The release being downloaded or ready."
+          },
+          "received_bytes": {
+            "type": "integer"
+          },
+          "total_bytes": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The zip's size; null until the server says."
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the last download failed (checksum_mismatch, missing_sha256sums, disk_full, unreachable, ...); null otherwise."
+          },
+          "signature_checked": {
+            "type": "boolean",
+            "description": "Whether the download's signature is checked too; until a signing key is chosen (#2317) only its SHA-256 is."
+          }
+        },
+        "required": [
+          "error",
+          "reason",
+          "received_bytes",
+          "signature_checked",
+          "state",
+          "supported",
+          "total_bytes",
+          "version"
+        ]
+      },
+      "InstallUpdateRequestRequest": {
+        "type": "object",
+        "description": "The release to download: the newest one, as GET /api/updates/ names it.",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "The release version, such as 1.5.0."
+          }
+        },
+        "required": [
+          "version"
         ]
       },
       "JobStartedResponse": {
@@ -24562,6 +24723,17 @@
           "trashed_count"
         ]
       },
+      "RestartToUpdateRequestRequest": {
+        "type": "object",
+        "description": "Restart to update.",
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Restart even while a job runs (it stops)."
+          }
+        }
+      },
       "RestoreFaceLabelsRequestRequest": {
         "type": "object",
         "description": "POST /api/restore-face-labels/: the ``previous`` of a labelling to undo.",
@@ -27970,6 +28142,14 @@
             "format": "date-time",
             "nullable": true,
             "description": "Until when the closed card stays hidden; null when it is not."
+          },
+          "install": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InstallState"
+              }
+            ],
+            "description": "Downloading the newest release and restarting into it."
           }
         },
         "required": [
@@ -27978,6 +28158,7 @@
           "enabled",
           "error",
           "how_to_update_url",
+          "install",
           "install_type",
           "latest",
           "locked",

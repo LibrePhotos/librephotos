@@ -604,6 +604,8 @@ STAFF_ONLY_VIEWS = {
     "api.views.scan_triggers.TrashPhotosOutsideLibraryView",
     "api.views.services.ServiceViewSet",
     "api.views.site_settings.TrashRetentionPreviewView",
+    "api.views.updates.InstallUpdateView",
+    "api.views.updates.RestartToUpdateView",
     "api.views.updates.SkipReleaseView",
     "api.views.updates.SnoozeUpdateNoticeView",
     "api.views.updates.UpdateStatusView",
