@@ -264,6 +264,16 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SharedPerson: { schema: S.SharedPerson, components: ["SharedPerson"] },
   LibraryShare: { schema: S.LibraryShare, components: ["LibraryShare"] },
   LibraryGrant: { schema: S.LibraryGrant, components: ["LibraryGrant"] },
+  // the public gallery (#434)
+  Gallery: { schema: S.Gallery, components: ["Gallery"] },
+  GalleryDay: { schema: S.GalleryDay, components: ["GalleryDay"] },
+  GalleryDaysResponse: { schema: S.GalleryDaysResponse, components: ["GalleryDayList"] },
+  GalleryPhotosResponse: { schema: S.GalleryPhotosResponse, components: ["PaginatedPhotoSummaryList"] },
+  GalleryCover: { schema: S.GalleryCover, components: ["GalleryCover"] },
+  GalleryPlace: { schema: S.GalleryPlace, components: ["GalleryPlace"] },
+  GalleryPerson: { schema: S.GalleryPerson, components: ["GalleryPerson"] },
+  GalleryPhotographer: { schema: S.GalleryPhotographer, components: ["GalleryPhotographer"] },
+  GalleryPreview: { schema: S.GalleryPreview, components: ["GalleryPreview"] },
   // folders, search, geocode, memories, metadata
   FolderSubfolder: { schema: S.FolderSubfolder, components: ["FolderEntry"] },
   FolderSubfoldersResponse: { schema: S.FolderSubfoldersResponse, components: ["FolderSubfoldersPage"] },
@@ -289,6 +299,12 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
 
 /** Exported zod objects that are not compared, and why. */
 export const UNMAPPED: Readonly<Record<string, string>> = {
+  GalleryPlacesResponse:
+    "a {results} envelope around rows compared on their own (GalleryPlace); the client reads every page into it",
+  GalleryPeopleResponse:
+    "a {results} envelope around rows compared on their own (GalleryPerson); the client reads every page into it",
+  GalleryPhotographersResponse:
+    "a {results} envelope around rows compared on their own (GalleryPhotographer); the client reads every page into it",
   PhotoStackSummary:
     "nested in PhotoSummary.stacks, which the schema leaves untyped (PhotoSummarySerializer.get_stacks returns a bare list or dict)",
   LoginPost: "a request body",

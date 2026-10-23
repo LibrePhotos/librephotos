@@ -73,6 +73,10 @@ USER_UPDATE_FIELDS = (
         "share_people_names",
         "Updated share_people_names to {value} for user {username}",
     ),
+    (
+        "in_public_gallery",
+        "Updated in_public_gallery to {value} for user {username}",
+    ),
     ("min_cluster_size", None),
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
@@ -297,6 +301,7 @@ class UserSerializer(serializers.ModelSerializer):
             "default_license": {"required": False},
             "default_creator": {"required": False},
             "default_copyright": {"required": False},
+            "in_public_gallery": {"required": False},
             # The "What's new" card (#2305). A release tag, at most 32
             # characters (the model's max_length is the check).
             "last_seen_release": {"required": False},
@@ -347,6 +352,8 @@ class UserSerializer(serializers.ModelSerializer):
             "default_license",
             "default_creator",
             "default_copyright",
+            # Whether the user's public photos are in the public gallery (#434).
+            "in_public_gallery",
             "min_cluster_size",
             "confidence_unknown_face",
             "min_samples",

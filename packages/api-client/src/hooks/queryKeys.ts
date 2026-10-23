@@ -3,6 +3,7 @@ import type {
   DuplicateType,
   FaceAnalysisMethod,
   FaceOrderBy,
+  GalleryFilter,
   JobListParams,
   MetadataValueField,
   Photoset,
@@ -61,7 +62,9 @@ type PhotoGridKind =
   | "myPublicPhotos"
   | "sharedByMe"
   | "sharedWithMe"
-  | "sharedWithMeGroup";
+  | "sharedWithMeGroup"
+  | "galleryDays"
+  | "galleryDay";
 
 const gridRoot = ["photoGrid"] as const;
 const gridKind = <K extends PhotoGridKind>(kind: K) => [...gridRoot, kind] as const;
@@ -130,6 +133,13 @@ export const photoGridKeys = {
   /** The photos shared with me under one place or thing title, or showing one person (#2721, #2722). */
   sharedWithMeGroup: (kind: "places" | "things" | "people", key: string) =>
     [...gridKind("sharedWithMeGroup"), kind, key] as const,
+  /** The public gallery's timeline (#434) under one filter, with the web's placeholders. */
+  galleryDays: (filter: GalleryFilter) => [...gridKind("galleryDays"), filter] as const,
+  /** Every loaded day page of the gallery's timeline under one filter. */
+  galleryDayPages: (filter: GalleryFilter) => [...gridKind("galleryDay"), filter] as const,
+  /** One page of one day of the gallery's timeline under one filter. */
+  galleryDay: (filter: GalleryFilter, day: number, page: number) =>
+    [...photoGridKeys.galleryDayPages(filter), day, page] as const,
 };
 
 const photoRoot = ["photos"] as const;
@@ -420,6 +430,20 @@ export const tagKeys = {
   all: tagRoot,
   list: () => [...tagRoot, "list"] as const,
   photo: (photoId: string) => [...tagRoot, "photo", photoId] as const,
+};
+
+const galleryRoot = ["gallery"] as const;
+
+/** The public gallery (#434), apart from its timeline, which is a photo grid (`photoGridKeys`). */
+export const galleryKeys = {
+  all: galleryRoot,
+  /** Whether it is open to me and how much it shows. */
+  summary: () => [...galleryRoot, "summary"] as const,
+  places: (owner: number | undefined) => [...galleryRoot, "places", owner] as const,
+  people: (owner: number | undefined) => [...galleryRoot, "people", owner] as const,
+  photographers: () => [...galleryRoot, "photographers"] as const,
+  /** Admin: what opening it would publish. */
+  preview: () => [...galleryRoot, "preview"] as const,
 };
 
 const libraryShareRoot = ["libraryShares"] as const;

@@ -147,6 +147,17 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         required=False,
         help_text="Show each user a What's new card once after an update.",
     )
+    # The public gallery (#434).
+    public_gallery = serializers.ChoiceField(
+        choices=("off", "members", "everyone"),
+        required=False,
+        help_text="Who the public gallery is open to: nobody, signed-in users,"
+        " or everyone (the server's address opens it without an account).",
+    )
+    public_gallery_indexable = JsonBooleanField(
+        required=False,
+        help_text="Let search engines index the public gallery.",
+    )
 
     def validate_update_check(self, value: bool) -> bool:
         if value and update_check_locked():
@@ -371,6 +382,15 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     whats_new_enabled = serializers.BooleanField(
         help_text="Whether users see a What's new card once after an update"
         " (each user can also turn it off). Sent to everyone."
+    )
+    public_gallery = serializers.CharField(
+        help_text="Who the public gallery (#434) is open to: off, members or"
+        " everyone. Sent to everyone: the web app opens the gallery at / for a"
+        " visitor without an account when it is everyone."
+    )
+    public_gallery_indexable = serializers.BooleanField(
+        help_text="Whether search engines may index the public gallery. Sent to"
+        " everyone: the gallery page says noindex otherwise."
     )
 
 

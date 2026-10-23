@@ -4088,6 +4088,378 @@
         }
       }
     },
+    "/api/gallery/": {
+      "get": {
+        "operationId": "api_gallery_retrieve",
+        "description": "Whether the gallery is open to the requester, and how much it shows.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Gallery"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/days/": {
+      "get": {
+        "operationId": "api_gallery_days_list",
+        "description": "The gallery's timeline: its days, newest first, then one group of the\nphotos whose owners keep dates to themselves (or that have none).",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only this photographer's photos (a user id from the photographers list); another user's id matches nothing"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only photos of this person, from the people list"
+          },
+          {
+            "in": "query",
+            "name": "place",
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 512
+            },
+            "description": "Only photos taken in this town, as the places list names it"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GalleryDayList"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/people/": {
+      "get": {
+        "operationId": "api_gallery_people_list",
+        "description": "The named people on the gallery's photos whose owners share people's\nnames, one entry per owner and person.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only this photographer's photos (a user id from the photographers list); another user's id matches nothing"
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGalleryPersonList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/photographers/": {
+      "get": {
+        "operationId": "api_gallery_photographers_list",
+        "description": "The users who take part and have photos in the gallery.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGalleryPhotographerList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/photos/": {
+      "get": {
+        "operationId": "api_gallery_photos_list",
+        "description": "The photos of one day of the gallery's timeline (or of its undated\ngroup), a page at a time.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "day",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "A day's id from the day list (YYYYMMDD, or 1 for the photos without a date)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only this photographer's photos (a user id from the photographers list); another user's id matches nothing"
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only photos of this person, from the people list"
+          },
+          {
+            "in": "query",
+            "name": "place",
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 512
+            },
+            "description": "Only photos taken in this town, as the places list names it"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/places/": {
+      "get": {
+        "operationId": "api_gallery_places_list",
+        "description": "The towns of the gallery's photos whose owners share places.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only this photographer's photos (a user id from the photographers list); another user's id matches nothing"
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedGalleryPlaceList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gallery/preview/": {
+      "get": {
+        "operationId": "api_gallery_preview_retrieve",
+        "description": "What the gallery shows once it is open, whatever it is set to now: the\nadmin's confirm before turning it on names the photographers and counts.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/generate-captions/": {
       "post": {
         "operationId": "api_generate_captions_create",
@@ -18318,6 +18690,226 @@
           "results"
         ]
       },
+      "Gallery": {
+        "type": "object",
+        "description": "Whether the gallery is open and how much it shows.",
+        "properties": {
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GalleryStageEnum"
+              }
+            ],
+            "description": "Who may open it: signed-in users, or everyone\n\n* `members` - members\n* `everyone` - everyone"
+          },
+          "indexable": {
+            "type": "boolean",
+            "description": "Whether search engines may index it; noindex otherwise"
+          },
+          "photo_count": {
+            "type": "integer"
+          },
+          "photographer_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "indexable",
+          "photo_count",
+          "photographer_count",
+          "stage"
+        ]
+      },
+      "GalleryCover": {
+        "type": "object",
+        "properties": {
+          "image_hash": {
+            "type": "string"
+          },
+          "video": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image_hash",
+          "video"
+        ]
+      },
+      "GalleryDay": {
+        "type": "object",
+        "description": "A day of the gallery's timeline, or its group of undated photos.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "YYYYMMDD; 1 for the photos without a date, listed last"
+          },
+          "date": {
+            "type": "string",
+            "nullable": true,
+            "description": "The day (ISO date); null for the undated group"
+          },
+          "location": {
+            "type": "string",
+            "description": "The town, when every photo of the day is of an owner who shares places; empty otherwise"
+          },
+          "photo_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "id",
+          "location",
+          "photo_count"
+        ]
+      },
+      "GalleryDayList": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryDay"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "GalleryPerson": {
+        "type": "object",
+        "description": "A person a photographer named, on their photos in the gallery.\n\nOne entry per photographer and person: two photographers' \"Mia\" are two.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "description": "Whose photos and whose name it is"
+          },
+          "photo_count": {
+            "type": "integer"
+          },
+          "face_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "A face crop from one of those photos"
+          }
+        },
+        "required": [
+          "face_url",
+          "id",
+          "name",
+          "owner",
+          "photo_count"
+        ]
+      },
+      "GalleryPhotographer": {
+        "type": "object",
+        "description": "A user who takes part, with photos in the gallery.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryCover"
+            }
+          }
+        },
+        "required": [
+          "cover_photos",
+          "first_name",
+          "id",
+          "last_name",
+          "photo_count",
+          "username"
+        ]
+      },
+      "GalleryPlace": {
+        "type": "object",
+        "description": "A town of the photos of owners who share places, owners merged.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer"
+          },
+          "owner_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The photographers with photos taken there"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryCover"
+            }
+          }
+        },
+        "required": [
+          "cover_photos",
+          "name",
+          "owner_ids",
+          "photo_count"
+        ]
+      },
+      "GalleryPreview": {
+        "type": "object",
+        "description": "What the gallery would show if it were open: for the admin's confirm.",
+        "properties": {
+          "photo_count": {
+            "type": "integer"
+          },
+          "photographer_count": {
+            "type": "integer"
+          },
+          "photographers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryPhotographer"
+            },
+            "description": "The photographers with the most photos, at most 20"
+          }
+        },
+        "required": [
+          "photo_count",
+          "photographer_count",
+          "photographers"
+        ]
+      },
+      "GalleryStageEnum": {
+        "enum": [
+          "members",
+          "everyone"
+        ],
+        "type": "string",
+        "description": "* `members` - members\n* `everyone` - everyone"
+      },
       "GenerateCaptionsRequestRequest": {
         "type": "object",
         "properties": {
@@ -20350,6 +20942,150 @@
           }
         }
       },
+      "PaginatedGalleryPersonList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryPerson"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedGalleryPhotographerList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryPhotographer"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedGalleryPlaceList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryPlace"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedLibraryShareList": {
         "type": "object",
         "required": [
@@ -21801,6 +22537,9 @@
           },
           "default_copyright": {
             "type": "string"
+          },
+          "in_public_gallery": {
+            "type": "boolean"
           },
           "min_cluster_size": {
             "type": "integer",
@@ -24352,6 +25091,15 @@
           "results",
           "sharing_settings"
         ]
+      },
+      "PublicGalleryEnum": {
+        "enum": [
+          "off",
+          "members",
+          "everyone"
+        ],
+        "type": "string",
+        "description": "* `off` - off\n* `members` - members\n* `everyone` - everyone"
       },
       "PublicPhotoDetail": {
         "type": "object",
@@ -27209,6 +27957,14 @@
           "whats_new_enabled": {
             "type": "boolean",
             "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
+          },
+          "public_gallery": {
+            "type": "string",
+            "description": "Who the public gallery (#434) is open to: off, members or everyone. Sent to everyone: the web app opens the gallery at / for a visitor without an account when it is everyone."
+          },
+          "public_gallery_indexable": {
+            "type": "boolean",
+            "description": "Whether search engines may index the public gallery. Sent to everyone: the gallery page says noindex otherwise."
           }
         },
         "required": [
@@ -27230,6 +27986,8 @@
           "oidc_allow_signup",
           "oidc_button_label",
           "oidc_enabled",
+          "public_gallery",
+          "public_gallery_indexable",
           "remember_me_days",
           "scan_missing_max_fraction",
           "skip_patterns",
@@ -27357,6 +28115,18 @@
           "whats_new_enabled": {
             "type": "boolean",
             "description": "Show each user a What's new card once after an update."
+          },
+          "public_gallery": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicGalleryEnum"
+              }
+            ],
+            "description": "Who the public gallery is open to: nobody, signed-in users, or everyone (the server's address opens it without an account).\n\n* `off` - off\n* `members` - members\n* `everyone` - everyone"
+          },
+          "public_gallery_indexable": {
+            "type": "boolean",
+            "description": "Let search engines index the public gallery."
           }
         }
       },
@@ -29113,6 +29883,9 @@
           "default_copyright": {
             "type": "string"
           },
+          "in_public_gallery": {
+            "type": "boolean"
+          },
           "min_cluster_size": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -29192,6 +29965,7 @@
           "header_size",
           "id",
           "image_scale",
+          "in_public_gallery",
           "is_superuser",
           "last_name",
           "last_seen_release",

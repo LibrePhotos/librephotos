@@ -82,6 +82,7 @@ class UserTest(TestCase):
         "default_license",
         "default_creator",
         "default_copyright",
+        "in_public_gallery",
         "last_seen_release",
         "show_whats_new",
     ]

@@ -63,6 +63,7 @@ from api.views import (
     duplicates,
     email_config,
     faces,
+    gallery,
     geocode,
     health,
     jobs,
@@ -336,6 +337,22 @@ router.register(
     sharing.SharedToMePersonPhotoListViewSet,
     basename="shared_to_me_person_photos",
 )
+# The public gallery (#434): every taking-part user's public photos.
+router.register(r"api/gallery/days", gallery.GalleryDayViewSet, basename="gallery_days")
+router.register(
+    r"api/gallery/photos", gallery.GalleryPhotoViewSet, basename="gallery_photos"
+)
+router.register(
+    r"api/gallery/places", gallery.GalleryPlaceViewSet, basename="gallery_places"
+)
+router.register(
+    r"api/gallery/people", gallery.GalleryPersonViewSet, basename="gallery_people"
+)
+router.register(
+    r"api/gallery/photographers",
+    gallery.GalleryPhotographerViewSet,
+    basename="gallery_photographers",
+)
 # A whole library shared read-only (#2731).
 router.register(
     r"api/library-shares",
@@ -503,6 +520,8 @@ urlpatterns = [
         "api/sitesettings/trash-retention-preview/",
         site_settings.TrashRetentionPreviewView.as_view(),
     ),
+    path("api/gallery/", gallery.GalleryView.as_view()),
+    path("api/gallery/preview/", gallery.GalleryPreviewView.as_view()),
     re_path(r"^api/email-config/test/?$", email_config.EmailTestView.as_view()),
     re_path(r"^api/email-config/?$", email_config.EmailConfigView.as_view()),
     re_path(r"^api/firsttimesetup/?$", user.IsFirstTimeSetupView.as_view()),

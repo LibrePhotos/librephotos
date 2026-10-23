@@ -25,7 +25,11 @@ from typing import TYPE_CHECKING
 
 from django.contrib.auth import get_user_model
 from rest_framework.request import Request
-from rest_framework.throttling import SimpleRateThrottle, UserRateThrottle
+from rest_framework.throttling import (
+    AnonRateThrottle,
+    SimpleRateThrottle,
+    UserRateThrottle,
+)
 
 if TYPE_CHECKING:
     # Only for annotations: DRF imports the authentication classes, which use
@@ -141,3 +145,16 @@ class AlbumCommentRateThrottle(UserRateThrottle):
 
     scope = "album_comment"
     rate = "30/minute"
+
+
+class PublicGalleryRateThrottle(AnonRateThrottle):
+    """The public gallery's answers to visitors without an account (#434),
+    per client address: the ``public_gallery`` scope
+    (``PUBLIC_GALLERY_THROTTLE_RATE``). Signed-in users are not counted.
+
+    Not a credential throttle: it keeps one address from walking the whole
+    gallery's API in a loop. A visitor scrolling the timeline asks for a page
+    of photos per day on screen, so the rate stays well above that.
+    """
+
+    scope = "public_gallery"

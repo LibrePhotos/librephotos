@@ -1539,6 +1539,73 @@ export async function fetchSharedPersonPhotos(
   return parseResponse(S.SharedToMePhotosResponse, { results }, "shared person photos").results;
 }
 
+/* ---- public gallery (#434) --------------------------------------------- */
+
+/** The gallery's filters as query parameters; an unset one is left out. */
+function galleryQuery(filter: S.GalleryFilter, extra: Record<string, number> = {}): string {
+  return buildQuery({ owner: filter.owner, place: filter.place, person: filter.person, ...extra });
+}
+
+/** Whether the public gallery is open to me and how much it shows; a 404 ApiError while it is closed. */
+export async function fetchGallery(client: ApiClient): Promise<S.Gallery> {
+  const res = await client.get<unknown>("/gallery/");
+  return parseResponse(S.Gallery, res, "public gallery");
+}
+
+/**
+ * The gallery's timeline as day groups with no photos yet, the shape the photo lists lay out: a
+ * day's `numberOfItems` is its photo count, and the photos without a date come last (id 1).
+ */
+export async function fetchGalleryDays(
+  client: ApiClient,
+  filter: S.GalleryFilter = {}
+): Promise<S.IncompleteDatePhotosGroup[]> {
+  const res = await client.get<unknown>(`/gallery/days/${galleryQuery(filter)}`);
+  return parseResponse(S.GalleryDaysResponse, res, "gallery days").results.map(day => ({
+    id: day.id,
+    date: day.date,
+    location: day.location,
+    incomplete: true,
+    numberOfItems: day.photo_count,
+    items: [],
+  }));
+}
+
+/** One page (100 photos) of a day of the gallery's timeline. */
+export async function fetchGalleryDayPhotos(
+  client: ApiClient,
+  day: number,
+  page: number,
+  filter: S.GalleryFilter = {}
+): Promise<S.GalleryPhotosResponse> {
+  const res = await client.get<unknown>(`/gallery/photos/${galleryQuery(filter, { day, page })}`);
+  return parseResponse(S.GalleryPhotosResponse, res, "gallery photos");
+}
+
+/** The towns of the gallery's photos, most photos first. */
+export async function fetchGalleryPlaces(client: ApiClient, owner?: number): Promise<S.GalleryPlace[]> {
+  const results = await fetchAllPages(client, `/gallery/places/${buildQuery({ owner })}`);
+  return parseResponse(S.GalleryPlacesResponse, { results }, "gallery places").results;
+}
+
+/** The named people of the gallery's photos, one entry per photographer and person. */
+export async function fetchGalleryPeople(client: ApiClient, owner?: number): Promise<S.GalleryPerson[]> {
+  const results = await fetchAllPages(client, `/gallery/people/${buildQuery({ owner })}`);
+  return parseResponse(S.GalleryPeopleResponse, { results }, "gallery people").results;
+}
+
+/** The users who take part, most photos first. */
+export async function fetchGalleryPhotographers(client: ApiClient): Promise<S.GalleryPhotographer[]> {
+  const results = await fetchAllPages(client, "/gallery/photographers/");
+  return parseResponse(S.GalleryPhotographersResponse, { results }, "gallery photographers").results;
+}
+
+/** Admin: what the gallery shows once it is open, whatever it is set to now. */
+export async function fetchGalleryPreview(client: ApiClient): Promise<S.GalleryPreview> {
+  const res = await client.get<unknown>("/gallery/preview/");
+  return parseResponse(S.GalleryPreview, res, "gallery preview");
+}
+
 export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/shared/fromme/");
   return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
