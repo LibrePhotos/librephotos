@@ -172,6 +172,33 @@ class NuitkaCommandTest(SimpleTestCase):
         self.assertIn("--noinclude-custom-mode=faiss.swigfaiss:bytecode", command)
         self.assertEqual(command[-1], str(build.ENTRY))
 
+    def test_the_pure_python_frameworks_ship_as_bytecode(self):
+        # The C compile is most of a two-hour CI build; these do not need it.
+        build = load_build_script()
+
+        command = build.nuitka_command(Path("out"), None, "0.0.0")
+
+        for package in ("django", "allauth", "rest_framework"):
+            self.assertIn(f"--noinclude-custom-mode={package}:bytecode", command)
+
+    def test_our_own_code_stays_compiled(self):
+        # api, librephotos and the sidecars keep Nuitka's compiled C; only
+        # third-party packages are demoted.
+        build = load_build_script()
+
+        ours = {"api", "librephotos", "service", "image_similarity", "nextcloud"}
+
+        self.assertEqual(
+            [name for name in build.BYTECODE_MODULES if name.split(".")[0] in ours],
+            [],
+        )
+
+    def test_optional_bloat_is_not_followed(self):
+        build = load_build_script()
+
+        for package in ("pip", "huggingface_hub", "pygments", "prompt_toolkit"):
+            self.assertIn(package, build.NOFOLLOW)
+
 
 class ArchiveTest(SimpleTestCase):
     """The release zip under a versioned name and the stable alias, with
