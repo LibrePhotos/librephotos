@@ -66,7 +66,7 @@ When you download several photos at once, LibrePhotos builds the archive here an
 
 ### /matplotlib
 
-A font cache for matplotlib, which comes along as a dependency of the face recognition code. The backend points the cache here so it does not have to be rebuilt every time a process starts. Safe to delete; it is recreated automatically.
+<Since version="1.5.0" /> No longer used: it held a font cache for matplotlib, which came along with the face recognition code up to 1.4.0. Safe to delete.
 
 ## /db
 

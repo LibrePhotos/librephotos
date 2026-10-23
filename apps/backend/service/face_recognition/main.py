@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 import os
-import threading
-from collections.abc import Iterator
-from contextlib import contextmanager
-from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -13,16 +9,9 @@ from PIL import Image, UnidentifiedImageError
 
 from librephotos.env import data_models_root
 from service._common import create_app, json_fields, logger, serve_forever
-from service.onnx_session import inference_session
-
-if TYPE_CHECKING:
-    import onnxruntime as ort
-    from insightface.app import FaceAnalysis
-    from insightface.app.common import Face
+from service.face_recognition.face_analysis import Face, FaceAnalysis
 
 face_analysis_models: dict[str, FaceAnalysis] = {}
-# Guards the swap of insightface's session class while a model set loads.
-_model_zoo_lock = threading.Lock()
 DEFAULT_MODEL_NAME = "buffalo_sc"
 # How much a requested region (drawn by hand, or read from XMP) must overlap a
 # detected face to take its embedding. A drawn box is looser than the
@@ -51,44 +40,12 @@ def _normalize_model_name(model_name: str | None) -> str:
     return DEFAULT_MODEL_NAME
 
 
-@contextmanager
-def _sessions_from_onnx_session() -> Iterator[None]:
-    """Make insightface build its sessions with service.onnx_session.
-
-    insightface creates them in model_zoo by provider name and passes no
-    session options, so WebGPU would silently run on the CPU, and the thread
-    and arena settings would not apply. While the models load, its session
-    class is swapped for inference_session.
-    """
-    from insightface.model_zoo import model_zoo
-
-    def build(model_path: str, **_by_name: object) -> ort.InferenceSession:
-        return inference_session(model_path)
-
-    with _model_zoo_lock:
-        original = model_zoo.PickableInferenceSession
-        model_zoo.PickableInferenceSession = build
-        try:
-            yield
-        finally:
-            model_zoo.PickableInferenceSession = original
-
-
 def _get_face_analysis(model_name: str | None) -> FaceAnalysis:
     model_name = _normalize_model_name(model_name)
     if model_name not in face_analysis_models:
-        from insightface.app import FaceAnalysis
-
-        with _sessions_from_onnx_session():
-            face_analysis = FaceAnalysis(
-                name=model_name,
-                root=FACE_MODEL_ROOT,
-                allowed_modules=["detection", "recognition"],
-            )
-        # The sessions are already on the right device. A negative ctx_id
-        # would make insightface rebuild every one of them on the CPU.
-        face_analysis.prepare(ctx_id=0, det_size=(640, 640))
-        face_analysis_models[model_name] = face_analysis
+        face_analysis_models[model_name] = FaceAnalysis(
+            os.path.join(FACE_MODEL_ROOT, "models", model_name)
+        )
     return face_analysis_models[model_name]
 
 

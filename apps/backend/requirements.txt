@@ -23,16 +23,6 @@ hdbscan @ https://github.com/LibrePhotos/librephotos/releases/download/windows-w
 markupsafe==3.0.4
 Pillow==13.0.0
 ImageHash==4.3.2
-# insightface has no wheels on PyPI. .github/workflows/prebuilt-wheels.yml builds them for
-# Windows and Linux (x86_64, aarch64) on the one Python requires-python allows
-# (pyproject.toml); anything else (macOS) compiles the sdist. Bump every line
-# together (Renovate is off for it).
-insightface==0.7.3; sys_platform != "win32" and (sys_platform != "linux" or platform_machine not in "x86_64 aarch64")
-insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/insightface-0.7.3-cp314-cp314-win_amd64.whl ; sys_platform == "win32"
-insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
-insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
-# stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
-stringzilla==5.3.1; sys_platform == "win32"
 # ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
 # the Perl distribution elsewhere (needs a perl on PATH).
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
@@ -85,3 +75,6 @@ onnxruntime-ep-webgpu==0.4.0
 # pyclipper: polygon offsetting for the PP-OCRv6 detector's DBPostProcess
 # (unclip step).
 pyclipper==1.4.0
+# OpenCV: face detection and alignment (service/face_recognition/face_analysis.py)
+# and the OCR geometry (service/ocr/ppocr).
+opencv-python-headless==5.0.0.93

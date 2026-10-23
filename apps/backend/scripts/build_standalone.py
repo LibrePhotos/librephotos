@@ -87,7 +87,6 @@ INCLUDE_PACKAGE_DATA = [
     "timezonefinder",
     "tzdata",
     "certifi",
-    "insightface",
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
@@ -104,6 +103,12 @@ NOFOLLOW = [
     "tkinter",
     "silk",
     "coverage",
+    # Not a runtime dependency (face recognition no longer goes through the
+    # insightface package), and only plotting helpers of hdbscan, scipy and
+    # scikit-learn that never run import it: following it from there compiled
+    # matplotlib and its dependencies into the binary.
+    "matplotlib",
+    "mpl_toolkits",
 ]
 
 # Modules shipped as bytecode instead of compiled C. faiss.swigfaiss is SWIG's
@@ -194,11 +199,8 @@ def nuitka_command(output_dir, jobs, version):
         "--product-name=LibrePhotos",
         f"--product-version={version}",
         "--file-description=LibrePhotos standalone server",
-        # Docstrings stay: scikit-image edits its own __doc__ strings while it
-        # imports (skimage._shared.utils), and insightface needs that module.
         "--python-flag=-u",
         "--enable-plugin=gevent",
-        "--enable-plugin=matplotlib",
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",

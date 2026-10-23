@@ -1,7 +1,7 @@
 import os
 import tempfile
 from types import SimpleNamespace
-from unittest.mock import DEFAULT, patch
+from unittest.mock import patch
 
 import numpy as np
 from django.test import SimpleTestCase
@@ -15,7 +15,7 @@ from service.face_recognition.main import (
 
 
 def _detected(bbox, embedding):
-    """A face as insightface returns it: bbox is (left, top, right, bottom)."""
+    """A face as FaceAnalysis.get returns it: bbox is (left, top, right, bottom)."""
     return SimpleNamespace(bbox=bbox, embedding=np.array(embedding))
 
 
@@ -138,57 +138,28 @@ class FaceLocationsErrorStatusTest(SimpleTestCase):
         self.assertEqual(response.status_code, 500)
 
 
-class FaceAnalysisProvidersTest(SimpleTestCase):
-    """insightface's sessions come from service.onnx_session (issue #2445).
-
-    insightface builds them in model_zoo by provider name and passes no session
-    options, so a WebGPU session would silently run on the CPU.
-    """
+class FaceAnalysisCacheTest(SimpleTestCase):
+    """Each model pack is loaded once, from its directory under the model root."""
 
     def setUp(self):
         cache = patch.dict(face_main.face_analysis_models, clear=True)
         cache.start()
         self.addCleanup(cache.stop)
 
-    def _load(self):
-        from insightface.model_zoo import model_zoo
+    def test_a_pack_loads_once_from_its_directory(self):
+        with patch.object(face_main, "FaceAnalysis") as analysis:
+            first = face_main._get_face_analysis("buffalo_l")
+            second = face_main._get_face_analysis("buffalo_l")
 
-        built = []
+        analysis.assert_called_once_with(
+            os.path.join(face_main.FACE_MODEL_ROOT, "models", "buffalo_l")
+        )
+        self.assertIs(first, second)
 
-        def construct(**kwargs):
-            # What FaceAnalysis does for each .onnx file of the model set.
-            built.append(
-                model_zoo.PickableInferenceSession(
-                    "/models/det_10g.onnx",
-                    providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-                    provider_options=None,
-                )
-            )
-            return DEFAULT
+    def test_an_unknown_pack_loads_the_default(self):
+        with patch.object(face_main, "FaceAnalysis") as analysis:
+            face_main._get_face_analysis("not-a-model")
 
-        with (
-            patch.object(face_main, "inference_session") as session,
-            patch("insightface.app.FaceAnalysis", side_effect=construct) as analysis,
-        ):
-            face_main._get_face_analysis("buffalo_sc")
-        return analysis, session, built
-
-    def test_every_model_session_is_built_by_onnx_session(self):
-        from insightface.model_zoo import model_zoo
-
-        original = model_zoo.PickableInferenceSession
-        analysis, session, built = self._load()
-
-        session.assert_called_once_with("/models/det_10g.onnx")
-        self.assertEqual(built, [session.return_value])
-        self.assertNotIn("providers", analysis.call_args.kwargs)
-        # Swapped only while the models load.
-        self.assertIs(model_zoo.PickableInferenceSession, original)
-
-    def test_the_sessions_are_never_moved_back_to_the_cpu(self):
-        # A negative ctx_id makes insightface rebuild every session on the CPU.
-        analysis, _, _ = self._load()
-
-        analysis.return_value.prepare.assert_called_once_with(
-            ctx_id=0, det_size=(640, 640)
+        analysis.assert_called_once_with(
+            os.path.join(face_main.FACE_MODEL_ROOT, "models", "buffalo_sc")
         )

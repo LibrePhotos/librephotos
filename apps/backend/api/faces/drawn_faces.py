@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 # The margin around the drawn box, as a share of its width and height on each
 # side: a rough box may cut the face off.
 MARGIN = 0.5
-# The face service looks at a picture at about this size (insightface's
-# det_size); a smaller crop is enlarged to it.
+# The face service looks at a picture at about this size (DETECTION_SIZE in
+# service/face_recognition/face_analysis.py); a smaller crop is enlarged to it.
 DETECTION_SIZE = 640
 
 # (top, right, bottom, left) in big-thumbnail pixels.

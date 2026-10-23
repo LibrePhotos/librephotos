@@ -1,5 +1,5 @@
 # Runtime only: everything LibrePhotos needs comes from pip (libvips, LibRaw,
-# ExifTool, ffmpeg, libpq, ONNX Runtime, insightface as prebuilt wheels); perl runs
+# ExifTool, ffmpeg, libpq, ONNX Runtime, OpenCV as prebuilt wheels); perl runs
 # the ExifTool wheel.
 #
 # GPU: the ONNX Runtime WebGPU plugin (requirements.txt) runs the ML models on
