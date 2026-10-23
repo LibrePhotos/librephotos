@@ -55,6 +55,17 @@ export type PhotoRightsUpdate = {
   license?: PhotoLicenseId | null;
 };
 
+/**
+ * A photo's rights as visitors and other users see them (#425): its license (a `PhotoLicenseId`,
+ * narrowed by the client), creator and copyright notice, each null when not stated.
+ */
+export const PhotoRights = z.object({
+  license: z.string().nullable(),
+  creator: z.string().nullable(),
+  copyright: z.string().nullable(),
+});
+export type PhotoRights = z.infer<typeof PhotoRights>;
+
 /** `POST /photos/rights/`: the photos whose rights changed, and those that kept a value of theirs. */
 export const SetPhotosRightsResponse = z.object({
   count: z.number(),

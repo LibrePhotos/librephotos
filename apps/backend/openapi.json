@@ -22533,6 +22533,15 @@
             ],
             "nullable": true,
             "readOnly": true
+          },
+          "rights": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoRights"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
           }
         },
         "required": [
@@ -22578,6 +22587,7 @@
           "public",
           "rating",
           "removed",
+          "rights",
           "search_captions",
           "search_location",
           "shared_library",
@@ -23462,6 +23472,37 @@
             "format": "int64"
           }
         }
+      },
+      "PhotoRights": {
+        "type": "object",
+        "description": "A photo's rights (#425): the owner's statement of who made it and what\nothers may do with it. Sent with the photo's details to everyone who sees\nthe photo, public visitors included; no sharing switch hides it.",
+        "properties": {
+          "license": {
+            "nullable": true,
+            "description": "One of LibrePhotos' licenses; its deed is fixed per license\n\n* `all-rights-reserved` - All rights reserved\n* `cc-by-4.0` - CC BY 4.0\n* `cc-by-sa-4.0` - CC BY-SA 4.0\n* `cc-by-nc-4.0` - CC BY-NC 4.0\n* `cc-by-nc-sa-4.0` - CC BY-NC-SA 4.0\n* `cc-by-nd-4.0` - CC BY-ND 4.0\n* `cc-by-nc-nd-4.0` - CC BY-NC-ND 4.0\n* `cc0-1.0` - CC0 1.0\n* `pdm-1.0` - Public Domain Mark 1.0",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PhotoLicenseEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "creator": {
+            "type": "string",
+            "nullable": true
+          },
+          "copyright": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "copyright",
+          "creator",
+          "license"
+        ]
       },
       "PhotoSelectionRequestRequest": {
         "type": "object",
@@ -24419,6 +24460,15 @@
               "$ref": "#/components/schemas/PublicPhotoPerson"
             },
             "readOnly": true
+          },
+          "rights": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoRights"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
           }
         },
         "required": [
@@ -24436,6 +24486,7 @@
           "iso",
           "lens",
           "people",
+          "rights",
           "search_captions",
           "search_location",
           "shutter_speed",
@@ -26660,6 +26711,15 @@
             },
             "description": "With share_faces, else []"
           },
+          "rights": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoRights"
+              }
+            ],
+            "nullable": true,
+            "description": "Copyright, creator and license; always (#425)"
+          },
           "thumbnail_url": {
             "type": "string",
             "description": "The big thumbnail, under the link's slug"
@@ -26688,6 +26748,7 @@
           "iso",
           "lens",
           "people",
+          "rights",
           "search_captions",
           "search_location",
           "shutter_speed",

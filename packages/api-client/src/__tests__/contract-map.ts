@@ -159,6 +159,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   LocationSummaryResponse: { schema: S.LocationSummaryResponse, components: ["LocationSummaryResponse"] },
   LocatedPhoto: { schema: S.LocatedPhoto, components: ["LocatedPhoto"] },
   // photo rights (#425)
+  PhotoRights: { schema: S.PhotoRights, components: ["PhotoRights"] },
   SetPhotosRightsResponse: { schema: S.SetPhotosRightsResponse, components: ["SetPhotosRightsResponse"] },
   RightsFieldSummary: { schema: S.RightsFieldSummary, components: ["RightsFieldSummary"] },
   RightsSummaryResponse: { schema: S.RightsSummaryResponse, components: ["RightsSummaryResponse"] },

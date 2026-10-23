@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PublicSharingSettings, UserAlbumInfo } from "./albums";
 import { IntegerId, PigPhoto, SimpleUser } from "./common";
+import { PhotoRights } from "./photoRights";
 
 /** Photos shared WITH me — a bare PigPhoto list carrying the owner. */
 export const SharedToMePhotosResponse = z.object({
@@ -141,6 +142,9 @@ export const PublicPhotoDetail = z.object({
     })
     .array()
     .optional(),
+  // Copyright, creator and license (#425), whatever the sharing settings; null without any.
+  // Optional: older servers do not send it.
+  rights: PhotoRights.nullable().optional(),
 });
 export type PublicPhotoDetail = z.infer<typeof PublicPhotoDetail>;
 

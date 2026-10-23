@@ -12,6 +12,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { firstName, personName, type LibraryPhoto } from "../libraryShare/libraryShareFields";
+import { PublicRightsSection } from "../rights/PublicRightsSection";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { Description } from "./Description";
 import type { FaceLocationType } from "./lightbox.types";
@@ -89,6 +90,7 @@ export function LibraryPhotoDetails({ photo, setFaceLocation }: Props) {
       ) : (
         <HiddenNote icon={IconTextCaption} text={t("librarySharing.hiddenCaptions", { name: first })} />
       )}
+      <PublicRightsSection rights={photo.rights} />
       <Group gap="sm" wrap="nowrap">
         <Button
           component="a"

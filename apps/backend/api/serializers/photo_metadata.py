@@ -220,6 +220,20 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
         return []
 
 
+class PhotoRightsSerializer(serializers.Serializer[None]):
+    """A photo's rights (#425): the owner's statement of who made it and what
+    others may do with it. Sent with the photo's details to everyone who sees
+    the photo, public visitors included; no sharing switch hides it."""
+
+    license = serializers.ChoiceField(
+        choices=PhotoLicense.choices,
+        allow_null=True,
+        help_text="One of LibrePhotos' licenses; its deed is fixed per license",
+    )
+    creator = serializers.CharField(allow_null=True)
+    copyright = serializers.CharField(allow_null=True)
+
+
 class PhotoMetadataUpdateSerializer(serializers.Serializer):
     """The fields the metadata API edits, single and bulk.
 

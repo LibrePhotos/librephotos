@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0214_user_scrubber_style'),
+        ('api', '0215_user_photo_order'),
     ]
 
     operations = [

@@ -153,6 +153,30 @@ def rights_summary(photos: QuerySet[Photo]) -> RightsSummary:
     }
 
 
+class PhotoRightsData(TypedDict):
+    """A photo's rights as other people see them (``PhotoRightsSerializer``)."""
+
+    license: str | None
+    creator: str | None
+    copyright: str | None
+
+
+def rights_of(metadata: PhotoMetadata | None) -> PhotoRightsData | None:
+    """The rights ``metadata`` states, or None when it states none (#425).
+
+    Shown wherever the photo is: the owner's statement about reuse is meant
+    for whoever sees the photo, so it follows no sharing switch.
+    """
+    if metadata is None:
+        return None
+    rights: PhotoRightsData = {
+        "license": metadata.license or None,
+        "creator": metadata.creator or None,
+        "copyright": metadata.copyright or None,
+    }
+    return rights if any(rights.values()) else None
+
+
 def default_rights(user: User) -> dict[str, str]:
     """The rights ``user`` gives their photos, by field; a field without a
     default is left out."""

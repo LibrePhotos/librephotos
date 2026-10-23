@@ -15,6 +15,7 @@ from api.serializers.album_user import (
     AlbumUserListSerializer,
     AlbumUserPublicSerializer,
 )
+from api.serializers.photo_metadata import PhotoRightsSerializer
 from api.serializers.photos import PublicPhotoDetailSerializer
 
 # Fields of PublicPhotoDetailSerializer a photo link must not hand out: the
@@ -103,6 +104,9 @@ class SharedPhotoSerializer(serializers.Serializer[None]):
     )
     people = SharedPhotoPersonSerializer(
         many=True, help_text="With share_faces, else []"
+    )
+    rights = PhotoRightsSerializer(
+        allow_null=True, help_text="Copyright, creator and license; always (#425)"
     )
     thumbnail_url = serializers.CharField(
         help_text="The big thumbnail, under the link's slug"

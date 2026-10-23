@@ -296,6 +296,9 @@ DETAIL_FIELDS: FieldRules = {
     "original_mime_type": (ALWAYS, None),
     "projection_type": (ALWAYS, None),
     "shared_library": (ALWAYS, None),
+    # Copyright, creator and license (#425): the owner's statement about
+    # reuse, meant for whoever sees the photo.
+    "rights": (ALWAYS, None),
 }
 
 
@@ -462,6 +465,7 @@ PUBLIC_DETAIL_FIELDS: FieldRules = {
     "search_captions": (NEVER, ""),
     "captions_json": ("captions", {"im2txt": ""}),
     "people": ("people", []),
+    "rights": (ALWAYS, None),
 }
 
 # ``PhotoSuperSimpleSerializer``: the sample photos on a public user's card.

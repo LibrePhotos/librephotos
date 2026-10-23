@@ -1,4 +1,4 @@
-import { Button, Center, Group, Image, Stack, Text } from "@mantine/core";
+import { Box, Button, Center, Group, Image, Stack, Text } from "@mantine/core";
 import { IconAlertCircle, IconDownload } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
@@ -8,6 +8,7 @@ import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { serverAddress } from "../../api_client/urls";
 import { PageLoader } from "../../components/common/PageLoader";
 import { PageBody } from "../../components/PageBody";
+import { PublicRightsSection } from "../../components/rights/PublicRightsSection";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { PAGE_GUTTER, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
@@ -121,6 +122,9 @@ function PublicPhotoBySlug() {
           {detail}
         </Text>
       ))}
+      <Box w="100%" maw={560}>
+        <PublicRightsSection rights={photo.rights} />
+      </Box>
     </PageBody>
   );
 }

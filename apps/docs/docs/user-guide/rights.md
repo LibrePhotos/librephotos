@@ -72,6 +72,26 @@ When some of the selected photos have rights from their files, the dialog offers
   does not change photos that already have it, so a published photo is never relicensed behind your
   back.
 
+## On public pages
+
+The rights are your statement of who made a photo and what others may do with it, so they are meant
+to be seen: a public album, a [public photo](./sharing.md#making-individual-photos-public), a
+[photo link](./sharing.md#revocable-photo-links) and a [library you share](./sharing.md#sharing-your-whole-library)
+show them whatever the sharing switches say. This includes the copyright notice and the creator, which
+often name you; clear them in the **Rights** section if a file carries a name you do not want shown.
+
+Visitors see a **License** section first in the photo's details (under the photo on a photo link):
+
+- the license with its marks, the copyright notice and the creator;
+- one sentence on what they may do, and a row each for sharing, changing and commercial use, with
+  what the license asks of them (credit, the same license for adaptations);
+- a link to the license's deed;
+- for a license that asks for credit, **How to credit**: a line naming the creator, the page and the
+  license with its deed, with a copy button (on plain HTTP, where browsers do not allow copying, the
+  line can be selected).
+
+A photo without rights shows no License section.
+
 ## In your files
 
 LibrePhotos reads the rights from these tags, the first one a photo has:
