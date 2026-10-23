@@ -3,6 +3,5 @@
   "src/components/charts/FaceClusterGraph.tsx": { "lines": 448, "function": 395 },
   "src/components/lightbox/VideoPlayer.tsx": { "function": 343 },
   "src/components/lightbox/ContentViewer.tsx": { "function": 336 },
-  "src/components/scrollscrubber/ScrollScrubber.tsx": { "function": 332 },
   "src/components/react-pig/index.tsx": { "function": 318 }
 }

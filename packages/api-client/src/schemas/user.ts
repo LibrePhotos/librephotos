@@ -103,6 +103,9 @@ export const User = z.object({
   share_people_names: z.boolean().optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
+  // How the scroll scrubber beside a photo list looks. Optional: older servers do not send it, and
+  // the web app then shows the thumb.
+  scrubber_style: z.enum(["thumb", "density"]).optional(),
   slideshow_interval: z.number().default(5),
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),

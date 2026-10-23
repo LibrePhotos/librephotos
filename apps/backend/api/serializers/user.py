@@ -55,6 +55,7 @@ USER_UPDATE_FIELDS = (
     ("image_scale", "Updated image_scale for user {value}"),
     ("text_alignment", "Updated text_alignment for user {value}"),
     ("header_size", "Updated header_size for user {value}"),
+    ("scrubber_style", "Updated scrubber_style for user {value}"),
     ("datetime_rules", "Updated datetime_rules for user {value}"),
     ("burst_detection_rules", "Updated burst_detection_rules for user {username}"),
     ("default_timezone", "Updated default_timezone for user {value}"),
@@ -268,6 +269,7 @@ class UserSerializer(serializers.ModelSerializer):
             "save_face_tags_to_disk": {"required": False},
             "text_alignment": {"required": False},
             "header_size": {"required": False},
+            "scrubber_style": {"required": False},
             # Read-only since #2219: no scan reads them any more, and the
             # fields stay in the output so released clients keep parsing.
             # The model columns are dropped in a later release.
@@ -312,6 +314,7 @@ class UserSerializer(serializers.ModelSerializer):
             "image_scale",
             "text_alignment",
             "header_size",
+            "scrubber_style",
             "save_metadata_to_disk",
             "save_face_tags_to_disk",
             "datetime_rules",
