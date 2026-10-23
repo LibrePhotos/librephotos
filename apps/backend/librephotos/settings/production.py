@@ -8,7 +8,6 @@ from librephotos.env import (
     env_int,
     env_list,
     env_str,
-    export,
     protected_media_root,
 )
 from librephotos.logging_bootstrap import (
@@ -80,23 +79,6 @@ ensure_logs_root(LOGS_ROOT)
 # Releases up to 1.3.0 wrote ownphotos.log; move it (and its rotated backups)
 # to the new name before the handler below creates an empty one.
 rename_legacy_log_file(LOGS_ROOT)
-
-# Matplotlib comes along with insightface, which the face recognition service
-# imports. Left to itself it keeps its font cache under $HOME, and when the home
-# directory is not writable - it resolves to `/` in plenty of container setups -
-# it falls back to a fresh /tmp/matplotlib-XXXXXXXX directory and rebuilds the
-# font cache on *every* process start. Give it a directory we own instead. The
-# ML services are spawned with subprocess.Popen (see api/runtime/supervisor.py), so they
-# inherit this.
-MPLCONFIGDIR = env_str("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
-try:
-    os.makedirs(MPLCONFIGDIR, exist_ok=True)
-except OSError as e:
-    defer(
-        logging.WARNING,
-        f"could not create matplotlib cache directory {MPLCONFIGDIR}: {e}",
-    )
-export("MPLCONFIGDIR", MPLCONFIGDIR)
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
 AUTH_USER_MODEL = "api.User"

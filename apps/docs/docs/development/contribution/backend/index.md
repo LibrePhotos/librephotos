@@ -182,7 +182,7 @@ The caption is stored under the `"im2txt"` key in `PhotoCaption.captions_json`. 
 
 #### Face Recognition
 
-We use [InsightFace](https://github.com/deepinsight/insightface) to detect and recognise faces, running on ONNX Runtime: an SCRFD detector finds the faces and an ArcFace model turns each one into a 512-dimension embedding. This replaced the previous dlib / `face_recognition` pipeline (which produced 128-dimension encodings). The model is selectable via the `Face Recognition Model` site setting (`buffalo_sc` by default). Unknown faces are grouped with automatic clustering, and a separate classification step matches faces against already-labelled people.
+We use [InsightFace](https://github.com/deepinsight/insightface) to detect and recognise faces, running on ONNX Runtime: an SCRFD detector finds the faces and an ArcFace model turns each one into a 512-dimension embedding. The models are InsightFace's; the code that runs them is a port of the part of the `insightface` package we use (`service/face_recognition/face_analysis.py`), so the backend does not install the package and its matplotlib, scipy and scikit-image dependencies. It has to give the same boxes and embeddings as insightface 0.7.3, or new faces stop matching the ones already stored. This replaced the previous dlib / `face_recognition` pipeline (which produced 128-dimension encodings). The model is selectable via the `Face Recognition Model` site setting (`buffalo_sc` by default). Unknown faces are grouped with automatic clustering, and a separate classification step matches faces against already-labelled people.
 
 #### Tags, semantic search and similar photos: OpenCLIP
 

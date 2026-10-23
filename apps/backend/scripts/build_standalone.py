@@ -88,7 +88,6 @@ INCLUDE_PACKAGE_DATA = [
     "timezonefinder",
     "tzdata",
     "certifi",
-    "insightface",
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
@@ -105,13 +104,19 @@ NOFOLLOW = [
     "tkinter",
     "silk",
     "coverage",
-    # Optional imports nothing in LibrePhotos needs, about 1,000 modules of C
-    # (counted with --generate-c-only): insightface imports pip only inside a
-    # function that installs missing packages, albumentations guards
-    # huggingface_hub (and with it httpx2, httpcore2, anyio) with
-    # try/except ImportError, DRF guards pygments, and prompt_toolkit and ipdb
-    # serve django-extensions' shell_plus and runserver_plus, which the
-    # standalone build does not offer.
+    # Not a runtime dependency (face recognition no longer goes through the
+    # insightface package), and only plotting helpers of hdbscan, scipy and
+    # scikit-learn that never run import it: following it from there compiled
+    # matplotlib and its dependencies into the binary.
+    "matplotlib",
+    "mpl_toolkits",
+    # Optional imports nothing in LibrePhotos needs (counted with
+    # --generate-c-only): DRF guards pygments with try/except ImportError, and
+    # prompt_toolkit and ipdb serve django-extensions' shell_plus and
+    # runserver_plus, which the standalone build does not offer. pip and
+    # huggingface_hub (with httpx2, httpcore2, anyio) came in through
+    # insightface and albumentations, which are gone; they stay listed so a
+    # new optional importer does not compile them back in.
     "pip",
     "huggingface_hub",
     "pygments",
@@ -138,8 +143,6 @@ BYTECODE_MODULES = [
     "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
     "rest_framework",  # 73
     "django_q",  # 66
-    "albumentations",  # 59, insightface's augmentation import
-    "insightface",  # 37
     "drf_spectacular",  # 36
 ]
 
@@ -241,11 +244,8 @@ def nuitka_command(output_dir, jobs, version, cache=True):
         "--product-name=LibrePhotos",
         f"--product-version={version}",
         "--file-description=LibrePhotos standalone server",
-        # Docstrings stay: scikit-image edits its own __doc__ strings while it
-        # imports (skimage._shared.utils), and insightface needs that module.
         "--python-flag=-u",
         "--enable-plugin=gevent",
-        "--enable-plugin=matplotlib",
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",

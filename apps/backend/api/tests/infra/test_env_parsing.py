@@ -274,13 +274,6 @@ class EnvListTest(SimpleTestCase):
             self.assertEqual(["a", "b", "c"], env.env_list("X_LIST"))
 
 
-class ExportTest(SimpleTestCase):
-    def test_sets_the_variable_for_this_process(self):
-        with _environ("X_EXPORT", None):
-            env.export("X_EXPORT", "value")
-            self.assertEqual("value", env.env_str("X_EXPORT"))
-
-
 class LegacyFlagParityTest(SimpleTestCase):
     """Old and new parsing agree on every value in FLAG_VALUES, bar the pins."""
 
@@ -506,9 +499,3 @@ class ProductionSettingsThroughEnvTest(SimpleTestCase):
         module = self._reload(DB_PASS="")
         self.assertEqual("", module.DATABASES["default"]["PASSWORD"])
         self.assertTrue(module.DB_PASS_FROM_ENV)
-
-    def test_mplconfigdir_is_exported_for_the_sidecars(self):
-        environment = {k: v for k, v in os.environ.items() if k != "MPLCONFIGDIR"}
-        with patch.dict(os.environ, environment, clear=True):
-            importlib.reload(production)
-            self.assertEqual(production.MPLCONFIGDIR, os.environ.get("MPLCONFIGDIR"))

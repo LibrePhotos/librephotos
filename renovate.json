@@ -32,16 +32,6 @@
       "enabled": false
     },
     {
-      "description": "The standalone Windows build pins lazy_loader 0.5: lazy_loader 0.6 moved _StubVisitor, which Nuitka (4.2.2 included) reads to follow scikit-image's lazy imports, and the build crashes. #2161 bumped it back once already. Lift the pin by hand after a standalone build passes with a newer Nuitka.",
-      "matchPackageNames": ["lazy_loader", "lazy-loader"],
-      "enabled": false
-    },
-    {
-      "description": "insightface has no wheels on PyPI; requirements.txt pins wheels built by the prebuilt-wheels workflow next to the PyPI pin. Bump them together by hand and re-run the workflow.",
-      "matchPackageNames": ["insightface"],
-      "enabled": false
-    },
-    {
       "description": "Never bump requires-python in apps/backend/pyproject.toml. It is the supported range (floor = the oldest Python a build runs, 3.14 for the images and the Windows standalone build; ceiling = the first Python a dependency lacks wheels for, 3.15 for onnxruntime), not a dependency; api/tests/infra/test_python_versions.py keeps it in sync with the images and workflows. Renovate once proposed >=3.15,<3.16, which moved ruff's target version to 3.15 and failed the lint.",
       "matchDepTypes": ["requires-python"],
       "enabled": false

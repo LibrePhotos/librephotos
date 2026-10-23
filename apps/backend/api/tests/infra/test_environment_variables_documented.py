@@ -71,7 +71,6 @@ INTERNAL_ENV_VARS = {
     "IMAGE_TAG": "Build argument of the images, reported as the running version (api/views/server_info.py).",
     "LIBREPHOTOS_CONSOLE_LOG": "Set by the Windows standalone launcher to point its console log at a file.",
     "LOCALAPPDATA": "Windows only: the standalone launcher's default data folder comes from it.",
-    "MPLCONFIGDIR": "Matplotlib's cache directory; the images set it under BASE_DATA before anything imports matplotlib.",
     "NO_COVERAGE": "Test runs only: manage.py skips coverage when it is set.",
     "OCR_MODEL_DIR": "Test and local-export override for an OCR model bundle (service/ocr/ppocr/config.py).",
     "OPENCLIP_MODEL_DIR": "Test and local-export override for an OpenCLIP bundle (service/tags/openclip/openclip.py).",
