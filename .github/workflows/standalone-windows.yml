@@ -184,10 +184,37 @@ jobs:
           restore-keys: |
             nuitka-${{ runner.os }}-py3.14-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}-
             nuitka-${{ runner.os }}-py3.14-
+      # clcache keys an object on the preprocessed source, the command line and
+      # cl.exe's mtime and size. Nuitka writes the same C on every run, yet a
+      # build that restored the previous run's cache hit 3 of 5,737 files:
+      # these two steps show what was restored and which compiler ran.
+      - name: Show the compile cache and compiler (before)
+        shell: bash
+        run: |
+          cache="$LOCALAPPDATA/Nuitka/Nuitka/Cache"
+          echo "cache: $cache"
+          du -sh "$cache"/* 2>/dev/null || echo "(empty)"
+          echo "clcache objects: $(find "$cache/clcache/objects" -name object 2>/dev/null | wc -l)"
+          vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+          "$vswhere" -latest -products '*' -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/cl.exe' | tr -d '\r' | while read -r cl; do
+            stat -c '%n mtime=%Y size=%s' "$(cygpath -u "$cl")"
+          done
       - name: Build
         working-directory: apps/backend
         shell: bash
         run: python scripts/build_standalone.py --zip --version "$VERSION"
+      - name: Show the compile cache and compiler (after)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cache="$LOCALAPPDATA/Nuitka/Nuitka/Cache"
+          echo "cache: $cache"
+          du -sh "$cache"/* 2>/dev/null || echo "(empty)"
+          echo "clcache objects: $(find "$cache/clcache/objects" -name object 2>/dev/null | wc -l)"
+          vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+          "$vswhere" -latest -products '*' -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/cl.exe' | tr -d '\r' | while read -r cl; do
+            stat -c '%n mtime=%Y size=%s' "$(cygpath -u "$cl")"
+          done
       - name: Save the Nuitka cache
         if: ${{ !cancelled() && steps.nuitka-cache.outcome == 'success' }}
         uses: actions/cache/save@v6
