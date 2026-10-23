@@ -81,9 +81,11 @@ export function PhotoListToolbar({
             localImageScale={preferences.localImageScale}
             localTextAlignment={preferences.localTextAlignment}
             localHeaderSize={preferences.localHeaderSize}
+            localScrubberStyle={preferences.localScrubberStyle}
             onThumbnailSizeChange={preferences.handleThumbnailSizeChange}
             onTextAlignmentChange={preferences.handleTextAlignmentChange}
             onHeaderSizeChange={preferences.handleHeaderSizeChange}
+            onScrubberStyleChange={preferences.handleScrubberStyleChange}
           />
         )}
       </Group>

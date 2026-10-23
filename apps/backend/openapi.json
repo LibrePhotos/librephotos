@@ -21507,6 +21507,9 @@
           "header_size": {
             "$ref": "#/components/schemas/HeaderSizeEnum"
           },
+          "scrubber_style": {
+            "$ref": "#/components/schemas/ScrubberStyleEnum"
+          },
           "save_metadata_to_disk": {
             "$ref": "#/components/schemas/SaveMetadataToDiskEnum"
           },
@@ -25108,6 +25111,14 @@
           "status"
         ]
       },
+      "ScrubberStyleEnum": {
+        "enum": [
+          "thumb",
+          "density"
+        ],
+        "type": "string",
+        "description": "* `thumb` - Thumb\n* `density` - Density"
+      },
       "SearchResults": {
         "type": "object",
         "description": "``/api/photos/searchlist/``: the matches grouped by date.\n\nWith semantic search on, ``results`` is a flat list of photo summaries.",
@@ -28520,6 +28531,9 @@
           "header_size": {
             "$ref": "#/components/schemas/HeaderSizeEnum"
           },
+          "scrubber_style": {
+            "$ref": "#/components/schemas/ScrubberStyleEnum"
+          },
           "save_metadata_to_disk": {
             "$ref": "#/components/schemas/SaveMetadataToDiskEnum"
           },
@@ -28634,6 +28648,7 @@
           "save_face_tags_to_disk",
           "save_metadata_to_disk",
           "scan_directory",
+          "scrubber_style",
           "semantic_search_topk",
           "share_people_names",
           "show_whats_new",
