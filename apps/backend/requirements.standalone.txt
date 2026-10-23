@@ -4,10 +4,6 @@
 # in requirements.unified.txt.
 -r requirements.unified.txt
 nuitka==4.3.1
-# Nuitka (4.2.2 too) reads lazy_loader._StubVisitor to follow scikit-image's
-# lazy imports; lazy_loader 0.6 moved it inside attach_stub(), and the build
-# crashes on skimage. Drop the pin once Nuitka handles 0.6.
-lazy_loader==0.5
 ordered-set==4.1.0
 zstandard==0.25.0
 # Notification area (tray) icon of the standalone build.

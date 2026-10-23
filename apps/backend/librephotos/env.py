@@ -159,11 +159,6 @@ def env_list(name: str, default: Iterable[str] = ()) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-def export(name: str, value: str) -> None:
-    """Set ``name`` for this process and every child it starts afterwards."""
-    os.environ[name] = value
-
-
 def protected_media_root(base_data: str | None = None) -> str:
     """``BASE_DATA/protected_media``: thumbnails, caches and the models live here.
 

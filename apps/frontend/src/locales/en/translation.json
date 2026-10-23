@@ -970,7 +970,8 @@
     "photoscount_one": "{{count, number}} photo",
     "photoscount_other": "{{count, number}} photos",
     "videoscount_one": "{{count, number}} video",
-    "videoscount_other": "{{count, number}} videos"
+    "videoscount_other": "{{count, number}} videos",
+    "oldestfirst": "{{counts}} · Oldest first"
   },
   "selectionactions": {
     "photoactions": "Photo Actions",
@@ -2899,7 +2900,19 @@
     "headerSize": "Header Size",
     "large": "Large",
     "normal": "Normal",
-    "small": "Small"
+    "small": "Small",
+    "scrubberStyle": "Scroll Bar",
+    "scrubberThumb": "Simple",
+    "scrubberDensity": "Photo Density",
+    "order": "Order",
+    "newestFirst": "Newest first",
+    "oldestFirst": "Oldest first",
+    "orderHint": "By date taken, in every photo list. Events always read oldest first.",
+    "orderEvents": "Events always read oldest first."
+  },
+  "scrollscrubber": {
+    "bucket_one": "{{label}} · {{count}} photo",
+    "bucket_other": "{{label}} · {{count}} photos"
   },
   "library": {
     "exploredata": "Explore Data",

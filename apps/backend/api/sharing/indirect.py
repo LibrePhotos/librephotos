@@ -16,10 +16,16 @@ from uuid import UUID
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
-from api.albums.member_grants import album_grants, either, photos_seen_through_albums
+from api.albums.member_grants import album_grants, photos_seen_through_albums
 from api.faces.person_shares import person_grants, photos_seen_through_people
 from api.models import Photo, User
-from api.sharing.grants import SUMMARY_FIELDS, GrantLookup, LibraryGrant, redact
+from api.sharing.grants import (
+    SUMMARY_FIELDS,
+    GrantLookup,
+    LibraryGrant,
+    either,
+    redact,
+)
 
 
 def indirect_grants(

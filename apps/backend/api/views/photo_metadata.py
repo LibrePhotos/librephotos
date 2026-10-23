@@ -58,19 +58,24 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    def _get_photo(self, request: Request, photo_id: str) -> Photo:
-        """Get photo by ID or image_hash, checking permissions."""
+    def _get_photo(self, request: Request, photo_id: str, write: bool = False) -> Photo:
+        """Get photo by ID or image_hash, checking permissions.
+
+        Staff may read any photo's metadata; a change (``write``) is the
+        owner's alone, as on every other photo write.
+        """
         # UUID format is 36 chars with 4 hyphens (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
         # MD5 hashes are 32 hex chars without hyphens
         # Python's uuid.UUID() accepts both, so we need to check format explicitly
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
         user = request_user(request)
 
-        # Staff may read and edit any photo's metadata. Everyone else only
-        # looks among their own photos, so another user's photo is a 404 like
-        # an unknown one: a 403 would confirm it exists, and image_hash (the
-        # file's MD5 plus the owner id) is computable by anyone with the file.
-        if user.is_staff:
+        # Staff may read any photo's metadata. Everyone else, and every
+        # write, only looks among the requester's own photos, so another
+        # user's photo is a 404 like an unknown one: a 403 would confirm it
+        # exists, and image_hash (the file's MD5 plus the owner id) is
+        # computable by anyone with the file.
+        if user.is_staff and not write:
             photos = Photo.objects.all()
         else:
             photos = Photo.objects.owned_by(user)
@@ -125,7 +130,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
     )
     def partial_update(self, request: Request, photo_id: str) -> Response:
         """Update metadata with change tracking."""
-        photo = self._get_photo(request, photo_id)
+        photo = self._get_photo(request, photo_id, write=True)
         self._get_or_create_metadata(photo)
 
         serializer = PhotoMetadataUpdateSerializer(data=request.data)
@@ -166,7 +171,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
     @action(detail=True, methods=["post"], url_path=r"revert/(?P<edit_id>[^/.]+)")
     def revert(self, request: Request, photo_id: str, edit_id: str) -> Response:
         """Revert a specific metadata edit."""
-        photo = self._get_photo(request, photo_id)
+        photo = self._get_photo(request, photo_id, write=True)
         edit = get_object_or_404(MetadataEdit, pk=edit_id, photo=photo)
 
         # Only edits of a field the metadata API can write are revertible. An
@@ -212,7 +217,7 @@ class PhotoMetadataViewSet(PaginatedViewMixin, ViewSet):
     @action(detail=True, methods=["post"], url_path="revert-all")
     def revert_all(self, request: Request, photo_id: str) -> Response:
         """Revert all edits by re-reading the photo's file."""
-        photo = self._get_photo(request, photo_id)
+        photo = self._get_photo(request, photo_id, write=True)
         if photo.main_file is None:
             raise ValidationError({"photo": "The photo has no file to restore from."})
         edits.revert_all(photo, request_user(request))

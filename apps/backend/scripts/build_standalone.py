@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -87,7 +88,6 @@ INCLUDE_PACKAGE_DATA = [
     "timezonefinder",
     "tzdata",
     "certifi",
-    "insightface",
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
@@ -104,15 +104,44 @@ NOFOLLOW = [
     "tkinter",
     "silk",
     "coverage",
+    # Not installed any more: insightface, scikit-learn and hdbscan, whose
+    # plotting helpers imported it, are gone (#2856, #2858). Listed so an
+    # optional import never compiles it back in.
+    "matplotlib",
+    "mpl_toolkits",
+    # Optional imports nothing in LibrePhotos needs (counted with
+    # --generate-c-only): DRF guards pygments with try/except ImportError, and
+    # prompt_toolkit and ipdb serve django-extensions' shell_plus and
+    # runserver_plus, which the standalone build does not offer. pip and
+    # huggingface_hub (with httpx2, httpcore2, anyio) came in through
+    # insightface and albumentations, which are gone; they stay listed so a
+    # new optional importer does not compile them back in.
+    "pip",
+    "huggingface_hub",
+    "pygments",
+    "prompt_toolkit",
+    "ipdb",
 ]
 
-# Modules shipped as bytecode instead of compiled C. faiss.swigfaiss is SWIG's
-# 680 KB of generated proxy classes: Nuitka turns it into a 636k-line C file
-# that MSVC on a GitHub Windows runner (16 GB) cannot compile ("C1002: compiler
-# is out of heap space in pass 2", first seen with Python 3.14). Its methods only
-# forward to the _swigfaiss extension, so compiling them gains nothing.
+# Packages shipped as bytecode instead of compiled C. The C compile is most of
+# the build (5,713 files took 1 h 51 min on a 4-core GitHub runner) and its
+# cache does not carry over between CI runs, so every module of C costs every
+# build. These are pure Python that runs as fast as bytecode for a single-user
+# server (it is what the Docker images run), and Nuitka's own configuration
+# for them only decides what is included, which applies to bytecode too.
+# Module counts from --generate-c-only.
 BYTECODE_MODULES = [
+    # SWIG's 680 KB of generated proxy classes: Nuitka turns it into a 636k-line
+    # C file that MSVC on the runner (16 GB) cannot compile ("C1002: compiler is
+    # out of heap space in pass 2"). Its methods only forward to _swigfaiss.
     "faiss.swigfaiss",
+    "django",  # 907
+    "allauth",  # 838, mostly one module per login provider
+    "django_extensions",  # 103
+    "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
+    "rest_framework",  # 73
+    "django_q",  # 66
+    "drf_spectacular",  # 36
 ]
 
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
@@ -181,7 +210,26 @@ def collect_static():
     return BACKEND / "static"
 
 
-def nuitka_command(output_dir, jobs, version):
+# `name = LazyModule("pkg")` (api/lazy_import.py) imports pkg by a string on
+# first use, which Nuitka's import analysis never sees: imagehash was missing
+# from every build until 1.5.0, so the Windows binary computed no perceptual
+# hashes and found no duplicates. Each target is named to Nuitka explicitly.
+_LAZY_MODULE = re.compile(r"""\bLazyModule\(\s*["']([A-Za-z0-9_.]+)["']""")
+_LAZY_SOURCE_DIRS = ("api", "librephotos", "service", "image_similarity", "nextcloud")
+
+
+def lazy_module_targets():
+    """The modules the backend imports through LazyModule, sorted."""
+    targets = set()
+    for top in _LAZY_SOURCE_DIRS:
+        for path in (BACKEND / top).rglob("*.py"):
+            if "tests" in path.relative_to(BACKEND).parts:
+                continue
+            targets.update(_LAZY_MODULE.findall(path.read_text(encoding="utf-8")))
+    return sorted(targets)
+
+
+def nuitka_command(output_dir, jobs, version, cache=True):
     command = [
         sys.executable,
         "-m",
@@ -194,11 +242,8 @@ def nuitka_command(output_dir, jobs, version):
         "--product-name=LibrePhotos",
         f"--product-version={version}",
         "--file-description=LibrePhotos standalone server",
-        # Docstrings stay: scikit-image edits its own __doc__ strings while it
-        # imports (skimage._shared.utils), and insightface needs that module.
         "--python-flag=-u",
         "--enable-plugin=gevent",
-        "--enable-plugin=matplotlib",
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",
@@ -209,6 +254,8 @@ def nuitka_command(output_dir, jobs, version):
     ]
     if jobs:
         command.append(f"--jobs={jobs}")
+    if not cache:
+        command.append("--disable-cache=all")
     icon = FRONTEND / "public" / "favicon.ico"
     if sys.platform == "win32" and icon.exists():
         command.append(f"--windows-icon-from-ico={icon}")
@@ -224,6 +271,7 @@ def nuitka_command(output_dir, jobs, version):
     # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")
     command.append("--include-module=service._common")
+    command += [f"--include-module={name}" for name in lazy_module_targets()]
     # The tag vocabulary is looked up two directories above the tagger
     # modules, which compile as top-level packages: that is the distribution root.
     command.append(
@@ -233,7 +281,7 @@ def nuitka_command(output_dir, jobs, version):
     return command
 
 
-def compile_binary(output_dir, jobs, version):
+def compile_binary(output_dir, jobs, version, cache=True):
     env = {
         **os.environ,
         "PYTHONPATH": os.pathsep.join(
@@ -241,7 +289,7 @@ def compile_binary(output_dir, jobs, version):
             + [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
         ),
     }
-    run(nuitka_command(output_dir, jobs, version), cwd=BACKEND, env=env)
+    run(nuitka_command(output_dir, jobs, version, cache), cwd=BACKEND, env=env)
     built = output_dir / f"{ENTRY.stem}.dist"
     dist = output_dir / DIST_NAME
     shutil.rmtree(dist, ignore_errors=True)
@@ -440,6 +488,11 @@ def main():
     parser.add_argument(
         "--version", default="0.0.0", help="numeric X.Y.Z stamped into the executable"
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="build without Nuitka's caches; CI uses it, see standalone-windows.yml",
+    )
     args = parser.parse_args()
 
     if not args.skip_frontend:
@@ -448,7 +501,7 @@ def main():
     static = collect_static()
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    dist = compile_binary(output_dir, args.jobs, args.version)
+    dist = compile_binary(output_dir, args.jobs, args.version, cache=not args.no_cache)
     stage_runtime_files(dist, frontend_build, static, args.version)
     print(f"built: {dist}")
     if args.zip:

@@ -155,7 +155,7 @@ enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
 
 [[tool.mypy.overrides]]          # untyped third-party packages and sidecar-local imports
 module = ["allauth.*", "bulk_update.*", "constance.*", "cpuinfo.*", "diskcache.*", "django_q.*",
-          "exiftool.*", "filetype.*", "geopy.*", "insightface.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
+          "exiftool.*", "filetype.*", "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
           "owncloud.*", "pyclipper.*", "pystray.*", "pyvips.*", "tokenizers.*",
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]
 ignore_missing_imports = true

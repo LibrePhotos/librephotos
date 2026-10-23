@@ -26,6 +26,7 @@ from api.tests.utils import (
     create_test_file,
     create_test_photo,
     create_test_user,
+    every_public_switch_on,
 )
 from api.views.media import UnifiedMediaAccessView
 
@@ -126,7 +127,8 @@ class UnifiedZipAndAvatarTest(TestCase):
 
 class UnifiedEmbeddedMediaTest(TestCase):
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.other = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
         embedded_path = f"/tmp/{self.photo.image_hash}-embedded.mp4"
@@ -205,7 +207,8 @@ class UnifiedPublicAlbumIdTest(TestCase):
     """The ``album_id`` branch -- reachable only by calling the view directly."""
 
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.photo = create_test_photo(owner=self.owner)
         self.album = create_test_album_user(title="Trip", owner=self.owner)
         self.album.photos.add(self.photo)
@@ -256,7 +259,8 @@ class UnifiedThumbnailAccessTest(TestCase):
     """``path != "photos"``: thumbnails, faces and their permission gate."""
 
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.friend = create_test_user()
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
@@ -464,7 +468,8 @@ class UnifiedOriginalPhotoTest(TestCase):
     """``path == "photos"``: the untouched original."""
 
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.friend = create_test_user()
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
@@ -590,7 +595,10 @@ class UnifiedTranscodeBranchTest(TestCase):
     """A video plus ``transcode_videos`` goes through the cache/ffmpeg path."""
 
     def setUp(self):
-        self.owner = create_test_user(transcode_videos=True)
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(
+            transcode_videos=True, public_sharing_defaults=every_public_switch_on()
+        )
         self.video = create_test_photo(owner=self.owner, video=True)
 
     def test_cached_transcode_inside_media_root_is_redirected(self):
@@ -708,7 +716,8 @@ class UnifiedCookieAndHeaderAuthTest(TestCase):
     """
 
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.stranger = create_test_user()
         self.photo = create_test_photo(owner=self.owner)
 

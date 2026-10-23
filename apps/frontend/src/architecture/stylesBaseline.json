@@ -46,7 +46,6 @@
   "src/components/photolist/VideoOverlay.tsx": { "inlineStyles": 3 },
   "src/components/react-pig/components/GroupHeader/GroupHeader.tsx": { "inlineStyles": 2 },
   "src/components/react-pig/components/Tile/Tile.tsx": { "inlineStyles": 1 },
-  "src/components/scrollscrubber/ScrollScrubber.tsx": { "inlineStyles": 8 },
   "src/components/settings/LibraryActions.tsx": { "inlineStyles": 2 },
   "src/components/settings/PasswordEntry.tsx": { "inlineStyles": 1 },
   "src/components/settings/ScanLibraryRow.tsx": { "inlineStyles": 2 },

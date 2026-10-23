@@ -62,7 +62,6 @@ THIRD_PARTY_LEVELS = {
     "django_q": "INFO",
     "urllib3": "WARNING",
     "PIL": "INFO",
-    "matplotlib": "WARNING",
     "asyncio": "WARNING",
     "django.db.backends": "WARNING",
     # libvips narrates every decode and resize at INFO, ~35 lines per photo.
@@ -178,10 +177,9 @@ def resolve_logs_root(explicit: str | None = None) -> str:
 def ensure_logs_root(path: str) -> str:
     """Create the log directory, or stop with a message that names it.
 
-    Deliberately not the warn-and-continue treatment MPLCONFIGDIR gets in
-    production.py: the rotating file handler opens a file in this directory as
-    soon as logging is configured, so continuing here only turns a diagnosable
-    error into a bare FileNotFoundError from a line that says nothing about the
+    Not warn-and-continue: the rotating file handler opens a file in this
+    directory as soon as logging is configured, so continuing here only turns
+    a diagnosable error into a bare FileNotFoundError from a line that says nothing about the
     BASE_LOGS setting at all.
     """
     try:

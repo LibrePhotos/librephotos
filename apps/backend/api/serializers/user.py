@@ -22,11 +22,15 @@ from api.jobs.queue import enqueue_job
 from api.metadata.date_rule_checks import changed_rule_problem
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
-from api.models.user import get_default_public_sharing_settings
+from api.models.user import (
+    get_default_public_sharing_settings,
+    public_sharing_settings,
+)
 from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import declare_fields, loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
+from api.sharing.grants import SAMPLE_FIELDS, public_grant, redact
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 from service.exif.tag_validation import is_safe_tag_name
 
@@ -55,6 +59,8 @@ USER_UPDATE_FIELDS = (
     ("image_scale", "Updated image_scale for user {value}"),
     ("text_alignment", "Updated text_alignment for user {value}"),
     ("header_size", "Updated header_size for user {value}"),
+    ("scrubber_style", "Updated scrubber_style for user {value}"),
+    ("photo_order", "Updated photo_order to {value} for user {username}"),
     ("datetime_rules", "Updated datetime_rules for user {value}"),
     ("burst_detection_rules", "Updated burst_detection_rules for user {username}"),
     ("default_timezone", "Updated default_timezone for user {value}"),
@@ -191,8 +197,12 @@ def with_user_relations(queryset: QuerySet[User]) -> QuerySet[User]:
     # it), and ``public`` is never cleared when a photo is hidden, trashed or
     # removed later, while those are not served to visitors.
     visible = visible_photo_q("photo__")
-    samples = Photo.visible.filter(public=True).only(
-        *PhotoSuperSimpleSerializer.Meta.fields, "owner"
+    # By hash: an order that says nothing about when the photos were taken,
+    # which a card without the dates switch must not tell.
+    samples = (
+        Photo.visible.filter(public=True)
+        .only(*PhotoSuperSimpleSerializer.Meta.fields, "owner")
+        .order_by("image_hash")
     )
     return queryset.annotate(
         photo_count=Count("photo", filter=visible),
@@ -268,6 +278,8 @@ class UserSerializer(serializers.ModelSerializer):
             "save_face_tags_to_disk": {"required": False},
             "text_alignment": {"required": False},
             "header_size": {"required": False},
+            "scrubber_style": {"required": False},
+            "photo_order": {"required": False},
             # Read-only since #2219: no scan reads them any more, and the
             # fields stay in the output so released clients keep parsing.
             # The model columns are dropped in a later release.
@@ -312,6 +324,8 @@ class UserSerializer(serializers.ModelSerializer):
             "image_scale",
             "text_alignment",
             "header_size",
+            "scrubber_style",
+            "photo_order",
             "save_metadata_to_disk",
             "save_face_tags_to_disk",
             "datetime_rules",
@@ -505,7 +519,12 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
     def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
-        return public_photo_samples(obj)
+        # Seen by everyone: what the user's public sharing switches allow.
+        grant = public_grant(public_sharing_settings(obj))
+        samples = public_photo_samples(obj)
+        for sample in samples:
+            redact(sample, SAMPLE_FIELDS, grant)
+        return samples
 
     def get_avatar_url(self, obj: User) -> str | None:
         try:

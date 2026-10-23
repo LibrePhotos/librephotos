@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient, APITestCase
 
+from api.models.user import get_default_public_sharing_settings
 from api.stacks.live_photo import (
     GOOGLE_PIXEL_MP4_SIGNATURES,
     JPEG_EOI_MARKER,
@@ -93,6 +94,11 @@ class EmbeddedMediaTest(APITestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_fetch_embedded_media_as_anonymous_when_photo_is_public(self):
+        # The clip comes out of the original: only with every public switch on.
+        self.user.public_sharing_defaults = dict.fromkeys(
+            get_default_public_sharing_settings(), True
+        )
+        self.user.save()
         self.client.force_authenticate(user=None)
         embedded_media = create_test_file(self.test_video_path, self.user, MP4)
         photo = create_test_photo(owner=self.user, public=True)

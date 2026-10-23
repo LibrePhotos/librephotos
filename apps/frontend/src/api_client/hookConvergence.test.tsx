@@ -7,6 +7,7 @@
 import {
   albumKeys,
   ApiClientProvider,
+  authKeys,
   faceKeys,
   photoGridKeys,
   Photoset,
@@ -22,6 +23,7 @@ import {
   usePlaceAlbumQuery,
   usePlaceAlbumsQuery,
   useRecentlyAddedPhotosQuery,
+  userKeys,
   useSharedAlbumsByMeQuery,
   useSharedAlbumsWithMeQuery,
   useSharedPhotosByMeQuery,
@@ -37,7 +39,7 @@ import {
   useWorkerAvailabilityQuery,
   type ApiClient,
 } from "@librephotos/api-client";
-import { QueryClient, QueryClientProvider, type QueryKey } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, type QueryCache, type QueryKey } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -95,6 +97,12 @@ afterEach(() => {
   unmounts.splice(0).forEach(unmount => act(unmount));
 });
 
+// What a grid hook reads to know the photo order (#2712), signed out here: the token, and the user
+// lookup it leaves disabled. Not part of the answer the two hooks share.
+const ORDER_LOOKUPS = new Set([authKeys.accessToken(), userKeys.selfDetail("")].map(key => JSON.stringify(key)));
+const answers = (cache: QueryCache) =>
+  cache.getAll().filter(query => !ORDER_LOOKUPS.has(JSON.stringify(query.queryKey)));
+
 /** Renders the web hook and the package hook side by side and returns the cache. */
 async function renderBoth(webHook: () => unknown, packageHook: () => unknown) {
   const client = new QueryClient();
@@ -142,7 +150,7 @@ describe("a web hook and the package hook for the same answer", () => {
       () => useDateAlbumQuery(Photoset.FAVORITES, 4, 1),
     ],
   ])("shares one cache entry: %s", async (_name, webHook, packageHook) => {
-    expect((await renderBoth(webHook, packageHook)).getAll()).toHaveLength(1);
+    expect(answers(await renderBoth(webHook, packageHook))).toHaveLength(1);
   });
 });
 
@@ -182,7 +190,7 @@ describe("a web hook that reshapes the answer and the package hook", () => {
     ],
   ])("keys them apart under one family: %s", async (_name, webHook, packageHook, family) => {
     const cache = await renderBoth(webHook, packageHook);
-    expect(cache.getAll()).toHaveLength(2);
+    expect(answers(cache)).toHaveLength(2);
     expect(cache.findAll({ queryKey: family })).toHaveLength(2);
   });
 });

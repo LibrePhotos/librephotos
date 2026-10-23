@@ -212,7 +212,7 @@ class UserAlbumPublicQueryTest(TestCase):
     def setUp(self):
         self.owner = create_test_user(public_sharing=True)
         self.album = create_test_album_user(owner=self.owner)
-        AlbumUserShare.objects.create(album=self.album, enabled=True)
+        self.slug = AlbumUserShare.objects.create(album=self.album, enabled=True).slug
         self.url = f"/api/albums/user/{self.album.id}/"
         self.anonymous = APIClient()
         self.signed_in = APIClient()
@@ -221,13 +221,15 @@ class UserAlbumPublicQueryTest(TestCase):
     def test_public_spellings_open_the_public_link(self):
         for value in ("true", "1"):
             with self.subTest(public=value):
-                response = self.anonymous.get(self.url, {"public": value})
+                response = self.anonymous.get(
+                    self.url, {"public": value, "slug": self.slug}
+                )
                 self.assertEqual(200, response.status_code)
 
     def test_public_with_another_username_finds_nothing(self):
         other = create_test_user()
         response = self.anonymous.get(
-            self.url, {"public": "true", "username": other.username}
+            self.url, {"public": "true", "username": other.username, "slug": self.slug}
         )
         self.assertEqual(404, response.status_code)
 

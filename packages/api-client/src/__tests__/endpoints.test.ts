@@ -77,10 +77,10 @@ describe("album media filters", () => {
   it("reads a user album through its public link", async () => {
     const owner = { id: 1, username: "ann", first_name: "", last_name: "" };
     const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
-    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
+    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann", slug: "trip" });
     await endpoints.fetchUserAlbum(client, 9);
     expect(defined(calls[0]).url).toBe(
-      "https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann"
+      "https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann&slug=trip"
     );
     expect(defined(calls[1]).url).toBe("https://demo.example.com/api/albums/user/9/");
   });
@@ -385,5 +385,16 @@ describe("library share endpoints (#2731)", () => {
     expect(defined(timeline.calls[0]).url).toBe(
       "https://demo.example.com/api/albums/date/list/?archived=false&libraries=true"
     );
+  });
+
+  it("asks for oldest first only when it is not the newest-first default (#2712)", async () => {
+    const newest = harness({ results: [] });
+    await endpoints.fetchDateAlbumsList(newest.client, { order: "newest" });
+    expect(defined(newest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/list/");
+    const oldest = harness({
+      results: { id: 4, date: null, location: null, items: [], incomplete: false, numberOfItems: 0 },
+    });
+    await endpoints.fetchDateAlbum(oldest.client, 4, 2, { order: "oldest" });
+    expect(defined(oldest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/4/?order=oldest&page=2");
   });
 });

@@ -74,6 +74,8 @@ class UserTest(TestCase):
         "llm_settings",
         "text_alignment",
         "header_size",
+        "scrubber_style",
+        "photo_order",
         "save_face_tags_to_disk",
         "public_sharing_defaults",
         "share_people_names",

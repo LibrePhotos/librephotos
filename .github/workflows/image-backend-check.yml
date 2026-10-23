@@ -50,7 +50,7 @@ jobs:
         env:
           CHECK: |
             import sys
-            import django, onnxruntime, insightface, timezonefinder, faiss, rawpy, pyvips, cv2, psycopg
+            import django, onnxruntime, timezonefinder, faiss, rawpy, pyvips, cv2, psycopg
             print(sys.version)
             print("Django", django.__version__, "onnxruntime", onnxruntime.__version__)
             print("libvips", pyvips.version(0), pyvips.version(1), "LibRaw", rawpy.libraw_version)

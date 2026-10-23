@@ -28,15 +28,6 @@ if command -v nvidia-smi >/dev/null 2>&1; then
     export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 fi
 
-# Matplotlib comes along with insightface, which the face recognition service
-# imports. Left to itself it keeps its font cache under $HOME, and when the home
-# directory is not writable it falls back to a fresh /tmp directory and re-parses
-# every font on each start. Keep it on our own volume instead; this is the same
-# path librephotos/settings/production.py derives.
-mpl_data_root="${BASE_DATA:-/}"
-export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
-mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
-
 # BASE_LOGS is what librephotos/settings/production.py derives LOGS_ROOT from.
 # Export it so the tee targets below and Django's own log handlers cannot drift
 # apart; pinning the default here leaves the container's
@@ -47,8 +38,8 @@ export BASE_LOGS="${BASE_LOGS:-/logs}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 logs_dir="${BASE_LOGS%/}"
 
-# Unlike the matplotlib cache above, this directory is not optional: the
-# backend's log handler writes there, so stop here and name the path.
+# The backend's log handler writes to this directory, so stop here and name
+# the path when it cannot be created.
 if ! mkdir -p "$logs_dir"; then
     echo "Could not create $logs_dir - set BASE_LOGS to a writable directory" >&2
     exit 1

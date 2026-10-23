@@ -1,4 +1,4 @@
-import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PigPhoto, User } from "@librephotos/api-client";
+import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PhotoOrder, PigPhoto, User } from "@librephotos/api-client";
 import { Box, Flex, RemoveScroll } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import type { TablerIcon } from "@tabler/icons-react";
@@ -138,6 +138,8 @@ type Props = Readonly<{
   // `?slideshow=1`, #1457); onSlideshowClose runs when the viewer closes that slideshow.
   slideshow?: boolean;
   onSlideshowClose?: () => void;
+  // An event's days, which always read oldest first: the display menu shows the order fixed (#2712).
+  eventOrder?: boolean;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -155,6 +157,17 @@ function isFirstTimeSetupView(
 /** Whether the list can be selected: not a read-only view, except a contributor's album (#464). */
 function canSelectPhotos(isPublic: boolean, contributor: boolean | undefined): boolean {
   return !isPublic || contributor === true;
+}
+
+/** Days follow the user's photo order (#2712), an event's always read oldest first; a flat list has none. */
+function listPhotoOrder(isDateView: boolean, eventOrder: boolean | undefined): "setting" | "events" | undefined {
+  if (!isDateView) return undefined;
+  return eventOrder === true ? "events" : "setting";
+}
+
+/** The count line says "Oldest first" where the user's order puts the days that way. */
+function showsOldestFirst(listOrder: "setting" | "events" | undefined, userOrder: PhotoOrder): boolean {
+  return listOrder === "setting" && userOrder === "oldest";
 }
 
 /** Still loading: the parent's data, or (outside public pages) who is looking. */
@@ -195,10 +208,13 @@ function PhotoListViewComponent({
   banner,
   slideshow = false,
   onSlideshowClose,
+  eventOrder,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  // The sticky header the grid scrolls under: the scroll scrubber starts below it.
+  const headerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   // Skip user details query on public pages
   const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery(isPublic);
@@ -211,12 +227,13 @@ function PhotoListViewComponent({
   const isFirstTimeSetup = isFirstTimeSetupView(isLoading, location.pathname, auth, userSelfDetails);
 
   const preferences = usePhotoListPreferences(userSelfDetails);
-  const { localImageScale, localTextAlignment, localHeaderSize } = preferences;
+  const { localImageScale, localTextAlignment, localHeaderSize, localScrubberStyle } = preferences;
 
   const lightbox = usePhotoListLightbox(idx2hash, pigRef, gridRef, { ready: !isLoading, isPublic });
   const slideshowState = usePhotoListSlideshow(idx2hash, lightbox, { slideshow, ready: !isLoading, onSlideshowClose });
 
   const isDateView = photoset !== idx2hash;
+  const photoOrder = listPhotoOrder(isDateView, eventOrder);
   // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
   // only re-format the date groups when the photoset itself changes.
   const photos = useMemo(
@@ -264,7 +281,7 @@ function PhotoListViewComponent({
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
       {header !== null && (
-        <Box className={classes.header}>
+        <Box className={classes.header} ref={headerRef}>
           {header || (
             // The actions sit beside the title in the normal flow (they used to be
             // absolutely positioned over it). The 220px basis wraps a wide action
@@ -287,6 +304,7 @@ function PhotoListViewComponent({
                   countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
                   titleOrder={titleOrder}
                   filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
+                  oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
                 />
               </Box>
               {!isFirstTimeSetup && (
@@ -298,6 +316,7 @@ function PhotoListViewComponent({
                   publicLink={isAlbumPubliclyShared && isUserAlbum}
                   onOpenSharing={() => dialogs.albumShare.open()}
                   preferences={preferences}
+                  photoOrder={photoOrder}
                   selectMode={
                     selectable
                       ? {
@@ -339,6 +358,8 @@ function PhotoListViewComponent({
           scrollToY={scrollToY}
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
+          variant={localScrubberStyle}
+          stickyHeader={headerRef}
         >
           <Box p={10} ref={gridRef}>
             <Pig<PigPhoto>

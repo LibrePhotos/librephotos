@@ -12,6 +12,32 @@ LibrePhotos provides several ways to browse your photo library. You can switch b
 
 The default view showing all your photos grouped by date, from newest to oldest. A **scroll scrubber** on the right edge lets you quickly jump to any date — click or drag it to navigate through large libraries.
 
+#### Newest or oldest first {#photo-order}
+
+<Since version="1.5.0" /> Up to 1.4.0, every list was newest first.
+
+To read your photos the way they happened, for example a holiday from the first day to the last, pick **Oldest first** under **Order** in **Photo Display Settings** (the gear button above the photos). The order is by date taken, not by when a photo was added, and it changes nothing on your photos or in your albums. It is saved to your account, so your other devices and browsers follow it, and it applies to every list grouped by day:
+
+- the timeline and the Favorites, Photos, Videos, Screenshots, Documents, Hidden, Archive and Trash views,
+- your albums and the albums shared with you, people, places, things, tags and folders,
+- search results grouped by day (semantic search results stay in order of relevance),
+- a shared library's timeline and public pages you open while signed in. Visitors without an account see public pages newest first.
+
+The photos within a day follow the same order, and the scroll scrubber turns round with the list: its top is your oldest year. Photos without a date stay at the end in both orders. While the order is oldest first, the line under the page title ends with **Oldest first**.
+
+Events always read oldest first, as they happened: on an event the **Order** control shows that and cannot be changed.
+
+#### Scroll bar style
+
+<Since version="1.5.0" />
+
+The scroll scrubber appears when you point at the right edge or scroll a long way, and runs from just under the header to the bottom of the window. Pick how it looks under **Scroll Bar** in **Photo Display Settings** (the gear button above the photos). The choice is saved to your account and applies to every photo list:
+
+- **Simple**: a thin track with a handle you can drag. A bubble next to the handle shows the date you are at, and the years (or months) appear beside the track while you point at it.
+- **Photo Density**: one bar per month, as wide as the number of photos in it, so busy trips and quiet years stand out. A frame marks the part you are looking at, and pointing at a bar shows its month and how many photos it holds. Very long timelines show one bar per year instead.
+
+Click a year or month label to jump there.
+
 #### Filtering the timeline
 
 <Since version="1.3.0" />
@@ -431,7 +457,7 @@ Not every browser plays every video. H.265 (HEVC), which most phones record in, 
 
 LibrePhotos asks your browser, for each video, whether it can play it. If it can, you get the original at full resolution. If it cannot, the video is converted to H.264 for you as it plays, capped at 720 lines, and kept for the next time you watch it (see [Experimental options](./settings/index.md#experimental-options) for how converted copies are stored). A video your browser says it can play but then fails to decode is converted the same way, automatically. You do not need **Always transcode videos** for any of this.
 
-This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are always served the original.
+This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are never served a conversion: they get the original, or a copy without its metadata unless every [Photo Details](./sharing.md#photo-details) setting of the link is on.
 
 :::note
 <Since version="1.3.0" /> On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.

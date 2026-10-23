@@ -43,7 +43,6 @@
 "api/tests/duplicates/test_missing_data_robustness.py" = ["BLE001"]
 "api/tests/faces/test_face_cluster_visualization.py" = ["N803"]
 "api/tests/faces/test_face_clustering_and_training.py" = ["N803"]
-"api/tests/infra/test_issue_907_matplotlib_config_dir.py" = ["PLW1510"]
 "api/tests/infra/test_logging_configuration.py" = ["N802"]
 "api/tests/infra/test_requirements_windows_wheels.py" = ["PLW2901"]
 "api/tests/infra/test_sidecar_client.py" = ["N815"]

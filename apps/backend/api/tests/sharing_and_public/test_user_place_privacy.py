@@ -80,7 +80,8 @@ class UserPlacePrivacyTest(TestCase):
             "/api/photos/shared/tome/places/",
             f"/api/photos/shared/tome/places/photos/?title={PLACE_NAME}",
             f"/api/albums/user/{self.album.pk}/",
-            f"/api/albums/user/{self.album.pk}/?public=true&username={self.owner.username}",
+            f"/api/albums/user/{self.album.pk}/?public=true&slug=trip-link"
+            f"&username={self.owner.username}",
             "/api/albums/user/shared/tome/",
             f"/api/albums/auto/{self.event.pk}/",
             "/api/albums/auto/list/",

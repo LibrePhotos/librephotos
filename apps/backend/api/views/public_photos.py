@@ -21,13 +21,19 @@ from api.serializers.public_share import (
     SetPhotoShareResponseSerializer,
     SharedPhotoResponseSerializer,
 )
+from api.sharing.grants import public_grant
 from api.video import playback
-from api.views.media import MEDIA_FILE_RESPONSES, MediaServingView
+from api.views.media import (
+    MEDIA_FILE_RESPONSES,
+    MediaServingView,
+    public_copies_allowed,
+)
 
 # What an anonymous holder of a photo link gets to see: the big thumbnail,
-# plus the original file for videos because a <video> needs something it can
-# play (album shares stream the same file). Never the original of a still,
-# never face crops, never a URL derived from the content hash.
+# plus the video file because a <video> needs something it can play: its
+# copy without metadata unless every public switch of the owner is on, as on
+# a public album. Never the original of a still, never face crops, never a
+# URL derived from the content hash.
 SHARED_MEDIA_KINDS = ("thumbnail", "video")
 
 
@@ -229,7 +235,10 @@ class PublicPhotoMediaBySlug(MediaServingView):
                 photo, "thumbnails_big", photo.image_hash, False, use_proxy
             )
         elif photo.video:
-            response = self._generate_response_original(photo, use_proxy, False)
+            grant = public_grant(share.get_effective_sharing_settings())
+            response = self._library_original(
+                photo, grant, use_proxy, False, public_copies_allowed
+            )
         else:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 

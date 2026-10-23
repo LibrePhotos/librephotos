@@ -52,6 +52,21 @@ def get_default_public_sharing_settings() -> dict[str, bool]:
     }
 
 
+def public_sharing_settings(owner: object) -> dict[str, bool]:
+    """What ``owner``'s public pages share: the system defaults (all off)
+    under the owner's own defaults.
+
+    ``public_sharing_defaults`` is a JSON column: a switch counts as on only
+    when it holds ``true``, so a stored ``"no"`` or a missing key is off.
+    """
+    settings = get_default_public_sharing_settings()
+    saved = getattr(owner, "public_sharing_defaults", None)
+    if isinstance(saved, dict):
+        for key in settings:
+            settings[key] = saved.get(key) is True
+    return settings
+
+
 class User(AbstractUser):
     scan_directory = models.CharField(
         max_length=512, db_index=True, blank=True, default=""
@@ -146,6 +161,26 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
+
+    # How the scroll scrubber beside a photo list looks: a thumb with a date
+    # bubble, or a map of how many photos each month holds.
+    class ScrubberStyle(models.TextChoices):
+        THUMB = "thumb"
+        DENSITY = "density"
+
+    scrubber_style = models.TextField(
+        choices=ScrubberStyle.choices, default=ScrubberStyle.THUMB
+    )
+
+    # Which end of the date-grouped photo lists comes first (#2712): the
+    # newest day or the oldest, by date taken. See api.albums.photo_order.
+    class PhotoOrder(models.TextChoices):
+        NEWEST = "newest"
+        OLDEST = "oldest"
+
+    photo_order = models.TextField(
+        choices=PhotoOrder.choices, default=PhotoOrder.NEWEST
+    )
     # No longer read: every scan imports RAW files and groups a RAW with its
     # JPEG as file variants. The user API still returns both, read-only, so
     # released clients keep parsing the user object (#2219); the columns are

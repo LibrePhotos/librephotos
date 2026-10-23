@@ -127,6 +127,8 @@ export type DateAlbumFilter = {
   library?: number;
   /** Also the libraries I show in my timeline (#2731). */
   libraries?: boolean;
+  /** Oldest day first instead of newest (#2712); the undated day stays last. */
+  order?: S.PhotoOrder;
 };
 
 /** Map a Photoset onto the backend's boolean date-album filter params. */
@@ -167,6 +169,8 @@ function dateAlbumParams(filter: DateAlbumFilter) {
     folder: filter.folder,
     library: filter.library,
     libraries: filter.libraries ? "true" : undefined,
+    // Only when it differs from what every server does, so an older server reads the same request.
+    order: filter.order === "oldest" ? "oldest" : undefined,
   };
 }
 
@@ -439,9 +443,10 @@ function searchFiltersQuery(filter: SearchFilters) {
 }
 
 export type UserAlbumOptions = AlbumMediaFilter & {
-  /** Read the album through its public link, as `username`'s album. */
+  /** Read the album through its public link, as `username`'s album; `slug` is the link's, required then. */
   public?: boolean;
   username?: string;
+  slug?: string;
 };
 
 export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
@@ -464,6 +469,7 @@ export async function fetchUserAlbum(
     ...albumMediaQuery(options),
     public: options.public ? "true" : undefined,
     username: options.username,
+    slug: options.slug,
   });
   const res = await client.get<unknown>(`/albums/user/${id}/${query}`);
   return parseResponse(S.UserAlbum, res, "user album detail");

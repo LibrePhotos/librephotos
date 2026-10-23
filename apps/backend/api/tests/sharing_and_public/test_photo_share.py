@@ -9,6 +9,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models.photo_share import PhotoShare
+from api.models.user import get_default_public_sharing_settings
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -311,6 +312,12 @@ class SharedPhotoMediaTest(PhotoShareTestBase):
         )
 
     def test_video_is_playable_through_the_link(self):
+        # Every public switch on: the original itself (otherwise its copy
+        # without metadata, test_public_media_follow_sharing_switches).
+        self.owner.public_sharing_defaults = dict.fromkeys(
+            get_default_public_sharing_settings(), True
+        )
+        self.owner.save()
         video = create_test_photo(owner=self.owner, video=True)
         slug = self.post({"photo_id": str(video.pk)}).json()["share"]["slug"]
 

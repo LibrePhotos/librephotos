@@ -32,8 +32,8 @@ class PublicAlbumWriteProtectionTest(TestCase):
         self.owner = create_test_user()
         self.attacker = create_test_user()
         self.album = create_test_album_user(title="Holiday", owner=self.owner)
-        AlbumUserShare.objects.create(album=self.album, enabled=True)
-        self.url = f"/api/albums/user/{self.album.id}/?public=1"
+        share = AlbumUserShare.objects.create(album=self.album, enabled=True)
+        self.url = f"/api/albums/user/{self.album.id}/?public=1&slug={share.slug}"
 
     def test_public_album_still_readable_anonymously(self):
         # The legitimate read path must keep working.

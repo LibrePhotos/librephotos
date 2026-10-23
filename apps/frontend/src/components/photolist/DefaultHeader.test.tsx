@@ -104,6 +104,12 @@ describe("DefaultHeader counter", () => {
     expect(text).not.toContain("day");
   });
 
+  it("says when the days are oldest first (#2712)", async () => {
+    expect((await render({ numPhotosetItems: 2, numPhotos: 3, oldestFirst: true })).textContent).toContain(
+      "2 days, 3 photos · Oldest first"
+    );
+  });
+
   it("groups the digits of large counts", async () => {
     expect((await render({ numPhotosetItems: 1200, numPhotos: 25123 })).textContent).toContain(
       "1,200 days, 25,123 photos"

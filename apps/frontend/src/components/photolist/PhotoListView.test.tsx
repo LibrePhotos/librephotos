@@ -25,7 +25,7 @@
  * browsing; it shows only while selecting, and the header's Select button brings it up (#2240).
  */
 import { Media } from "@librephotos/api-client";
-import type { DatePhotosGroup, Photo, PigPhoto } from "@librephotos/api-client";
+import type { DatePhotosGroup, Photo, PhotoOrder, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -63,6 +63,7 @@ const details = vi.hoisted(() => ({
 const userHooks = vi.hoisted(() => ({
   self: { id: 1, image_scale: 1 } as Record<string, unknown>,
   mutate: vi.fn<UpdateUser>(),
+  setOrder: vi.fn<(request: { userId: number; order: PhotoOrder }) => void>(),
 }));
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
@@ -84,6 +85,9 @@ vi.mock("../../api_client/photos/hooks", () => ({
 vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: userHooks.self, isLoading: false }),
   useUpdateUserMutation: vi.fn(() => ({ mutate: userHooks.mutate })),
+}));
+vi.mock("../../api_client/user/hooks/usePhotoOrder", () => ({
+  useSetPhotoOrderMutation: () => ({ mutate: userHooks.setOrder }),
 }));
 // A fresh array per call, like the real formatter: that is what made Pig
 // re-lay-out the grid on every parent render.
@@ -279,6 +283,7 @@ async function cleanUp() {
   details.asked = [];
   userHooks.self = { id: 1, image_scale: 1 };
   userHooks.mutate.mockReset();
+  userHooks.setOrder.mockReset();
   vi.useRealTimers();
 }
 
@@ -579,6 +584,46 @@ describe("PhotoListView display preferences", () => {
     expect(defined(userHooks.mutate.mock.calls[0])[0]).toEqual({ id: 1, text_alignment: "left", header_size: "small" });
     // The saves are silent, so tweaking the grid does not pop an "Update user" toast.
     expect(vi.mocked(useUpdateUserMutation)).toHaveBeenCalledWith({ silent: true });
+  });
+});
+
+describe("PhotoListView photo order (#2712)", () => {
+  async function openSettingsMenu() {
+    await act(async () =>
+      defined(document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]')).click()
+    );
+    await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
+  }
+  const orderControl = () => document.querySelector('[aria-label="Order"]');
+  const option = (label: string) => Array.from(document.querySelectorAll("label")).find(o => o.textContent === label);
+
+  it("saves the order picked in a date list's display menu at once", async () => {
+    userHooks.self = { id: 1, image_scale: 1, photo_order: "newest", scan_directory: "/data" };
+    await render({});
+    await openSettingsMenu();
+    expect(orderControl()).not.toBeNull();
+
+    await act(async () => defined(option("Oldest first")).click());
+
+    expect(userHooks.setOrder).toHaveBeenCalledWith({ userId: 1, order: "oldest" });
+    expect(userHooks.mutate).not.toHaveBeenCalled();
+  });
+
+  it("offers no order on a flat list, which is not grouped by day", async () => {
+    await render({ photoset: items, idx2hash: items });
+    await openSettingsMenu();
+    expect(orderControl()).toBeNull();
+  });
+
+  it("shows an event's order fixed, with the reason, and never saves it", async () => {
+    userHooks.self = { id: 1, image_scale: 1, photo_order: "newest", scan_directory: "/data" };
+    await render({ eventOrder: true });
+    await openSettingsMenu();
+    expect(defined(orderControl()).getAttribute("aria-disabled")).toBe("true");
+    expect(document.body.textContent).toContain("Events always read oldest first.");
+
+    await act(async () => defined(option("Newest first")).click());
+    expect(userHooks.setOrder).not.toHaveBeenCalled();
   });
 });
 

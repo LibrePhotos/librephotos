@@ -12,10 +12,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from django.db.models import Count, F, Q, QuerySet
+from django.db.models import Count, Q, QuerySet
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
 
+from api.albums.photo_order import day_ordering, day_sort_key
 from api.models import AlbumDate, LibraryShare, Photo, User
 from api.sharing.grants import LibraryGrant, received_grants
 from api.sharing.library_photos import (
@@ -29,18 +30,14 @@ from api.sharing.library_photos import (
 )
 
 
-def _days(albums: QuerySet[AlbumDate], photos_q: Q) -> QuerySet[AlbumDate]:
-    """``albums`` with the number of their photos ``photos_q`` keeps, newest first."""
+def _days(albums: QuerySet[AlbumDate], photos_q: Q, order: str) -> QuerySet[AlbumDate]:
+    """``albums`` with the number of their photos ``photos_q`` keeps, in ``order``."""
     return (
         albums.filter(photos_q)
         .annotate(photo_count=Count("photos"))
         .filter(photo_count__gt=0)
-        .order_by(F("date").desc(nulls_last=True))
+        .order_by(day_ordering(order))
     )
-
-
-def _newest_first(day: AlbumDate) -> tuple[bool, float]:
-    return (day.date is None, -day.date.toordinal() if day.date else 0.0)
 
 
 def library_day_rows(user: User, params: Mapping[str, Any]) -> list[AlbumDate]:
@@ -51,7 +48,9 @@ def library_day_rows(user: User, params: Mapping[str, Any]) -> list[AlbumDate]:
     )
     if photos_q is None:
         return []
-    days = list(_days(AlbumDate.objects.owned_by(share.owner), photos_q))
+    days = list(
+        _days(AlbumDate.objects.owned_by(share.owner), photos_q, params["order"])
+    )
     set_shared_places(days, user, {share.owner_id: LibraryGrant.of(share)})
     return days
 
@@ -69,8 +68,11 @@ def timeline_day_rows(
             owner__in=shares.values("owner_id")  # owner-scope: library sharers
         ),
         photos_q,
+        params["order"],
     )
-    days = merge_days(sorted([*own_days, *others], key=_newest_first), user)
+    days = merge_days(
+        sorted([*own_days, *others], key=day_sort_key(params["order"])), user
+    )
     set_shared_places(days, user, received_grants(user))
     return days
 

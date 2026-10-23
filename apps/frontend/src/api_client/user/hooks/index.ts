@@ -8,3 +8,4 @@ export * from "./useSaveLastSeenReleaseMutation";
 export * from "./useUpdateAvatarMutation";
 export * from "./useUpdateUserMutation";
 export * from "./useUpdateUserScanDirectoryMutation";
+export * from "./usePhotoOrder";

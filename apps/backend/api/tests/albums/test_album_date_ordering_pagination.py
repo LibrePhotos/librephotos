@@ -1,4 +1,8 @@
+import datetime
+
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -89,3 +93,87 @@ class AlbumDatePageQueryTest(AlbumDatePhotoOrderingTest):
         self.assertIn("page_size=3", data["previous"])
         self.assertEqual(data["results"]["numberOfItems"], 4)
         self.assertEqual(len(data["results"]["items"]), 1)
+
+
+class PhotoOrderTest(TestCase):
+    """``?order=oldest`` (#2712): the day list and a day's pages oldest first,
+    the undated day last in either order."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.days = []
+        for day in (3, 1, 2):
+            taken = timezone.make_aware(datetime.datetime(2024, 5, day, 12))
+            album = create_test_album_date(owner=self.user, date=taken.date())
+            album.photos.add(create_test_photo(owner=self.user, exif_timestamp=taken))
+            self.days.append(album)
+        self.undated = create_test_album_date(owner=self.user)
+        self.undated.photos.add(create_test_photo(owner=self.user, exif_timestamp=None))
+        self.by_day = {album.date.day: album.pk for album in self.days}
+
+    def day_ids(self, **params):
+        response = self.client.get("/api/albums/date/list/", params)
+        self.assertEqual(response.status_code, 200)
+        return [day["id"] for day in response.json()["results"]]
+
+    def test_newest_first_is_the_default(self):
+        expected = [self.by_day[3], self.by_day[2], self.by_day[1], self.undated.pk]
+        self.assertEqual(self.day_ids(), expected)
+        self.assertEqual(self.day_ids(order="newest"), expected)
+
+    def test_oldest_first_keeps_the_undated_day_last(self):
+        self.assertEqual(
+            self.day_ids(order="oldest"),
+            [self.by_day[1], self.by_day[2], self.by_day[3], self.undated.pk],
+        )
+
+    def test_an_unknown_order_is_a_400_naming_it(self):
+        response = self.client.get("/api/albums/date/list/", {"order": "random"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["errors"][0]["field"], "order")
+
+    def test_the_order_costs_no_queries(self):
+        self.client.get("/api/albums/date/list/")  # warm the user's caches
+        with CaptureQueriesContext(connection) as newest:
+            self.client.get("/api/albums/date/list/")
+        with CaptureQueriesContext(connection) as oldest:
+            self.client.get("/api/albums/date/list/", {"order": "oldest"})
+        self.assertEqual(len(newest), len(oldest))
+
+
+class DayPageOrderTest(TestCase):
+    """A day's photos page in the order the day list was asked for."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.album = create_test_album_date(
+            owner=self.user, date=datetime.date(2024, 5, 1)
+        )
+        self.photos = []
+        for hour in (9, 15, 11, 13):
+            taken = timezone.make_aware(datetime.datetime(2024, 5, 1, hour))
+            photo = create_test_photo(owner=self.user, exif_timestamp=taken)
+            self.album.photos.add(photo)
+            self.photos.append((hour, photo.image_hash))
+
+    def pages(self, **params):
+        hashes = []
+        for page in (1, 2):
+            response = self.client.get(
+                f"/api/albums/date/{self.album.id}/",
+                {"page": page, "page_size": 2, **params},
+            )
+            self.assertEqual(response.status_code, 200)
+            hashes += [
+                item["image_hash"] for item in response.json()["results"]["items"]
+            ]
+        return hashes
+
+    def test_pages_follow_the_order(self):
+        by_time = [image_hash for _, image_hash in sorted(self.photos)]
+        self.assertEqual(self.pages(order="oldest"), by_time)
+        self.assertEqual(self.pages(), list(reversed(by_time)))

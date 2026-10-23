@@ -1,6 +1,6 @@
 """ONNX Runtime sessions for the ML sidecars: which device, how many threads.
 
-Every model the sidecars run (OpenCLIP, LFM2-VL, PP-OCR, insightface) gets
+Every model the sidecars run (OpenCLIP, LFM2-VL, PP-OCR, InsightFace) gets
 its session here. The device is the first of these that works:
 
 CUDA

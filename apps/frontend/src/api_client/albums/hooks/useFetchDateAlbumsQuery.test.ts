@@ -195,3 +195,19 @@ describe("the libraries shared with me (#2731)", () => {
     expect(dateAlbumsListKey({ photosetType: Photoset.NONE, withLibraries: true }).at(-1)).toBe("libraries");
   });
 });
+
+describe("the photo order (#2712)", () => {
+  test("is sent with the list and its day pages", () => {
+    expect(dateAlbumRequestFilter({ photosetType: Photoset.NONE, order: "oldest" }).order).toBe("oldest");
+  });
+
+  test("keys an oldest-first list apart, after whose days it holds, and leaves newest first as it was", () => {
+    const own = dateAlbumsListKey({ photosetType: Photoset.NONE });
+    expect(dateAlbumsListKey({ photosetType: Photoset.NONE, order: "newest" })).toEqual(own);
+    expect(dateAlbumsListKey({ photosetType: Photoset.NONE, order: "oldest" })).toEqual([...own, "order:oldest"]);
+    expect(dateAlbumsListKey({ photosetType: Photoset.NONE, library: 7, order: "oldest" }).slice(-2)).toEqual([
+      "library:7",
+      "order:oldest",
+    ]);
+  });
+});

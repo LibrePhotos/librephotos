@@ -35,6 +35,8 @@ type Props = Readonly<{
   // A line under the count saying what the page's media filter shows; also
   // shown when the filter matches nothing.
   filterHint?: React.ReactNode;
+  // The days are oldest first (#2712): the count line says so, as it is not the usual order.
+  oldestFirst?: boolean;
 }>;
 
 type PhotoCounterProps = Readonly<
@@ -47,6 +49,7 @@ type PhotoCounterProps = Readonly<
     | "countsVideos"
     | "filterHint"
     | "additionalSubHeader"
+    | "oldestFirst"
   >
 >;
 
@@ -65,6 +68,16 @@ function photoCountLine(
   return formatUnitList([t("defaultheader.dayscount", { count: numPhotosetItems }), items], locale);
 }
 
+// The count line, with "· Oldest first" when the days are in that order.
+function countLineWithOrder(
+  t: TFunction,
+  locale: string,
+  props: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst">
+): string {
+  const line = photoCountLine(t, locale, props);
+  return props.oldestFirst ? t("defaultheader.oldestfirst", { counts: line }) : line;
+}
+
 // The subtitle: loading, "No images found", or the day and photo counts, with
 // the media filter's hint and the page's own sub-header.
 function PhotoCounter({
@@ -75,6 +88,7 @@ function PhotoCounter({
   countsVideos,
   filterHint,
   additionalSubHeader,
+  oldestFirst,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
@@ -107,7 +121,7 @@ function PhotoCounter({
   return (
     <div>
       <Text ta="left" c="dimmed">
-        {photoCountLine(t, locale, { numPhotosetItems, numPhotos, countsVideos })}
+        {countLineWithOrder(t, locale, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
       </Text>
       {filterHint}
       {additionalSubHeader}
@@ -147,6 +161,7 @@ export function DefaultHeader(props: Props) {
     countsVideos,
     titleOrder,
     filterHint,
+    oldestFirst,
   } = props;
 
   // Don't fetch user data on public pages
@@ -187,6 +202,7 @@ export function DefaultHeader(props: Props) {
           countsVideos={countsVideos}
           filterHint={filterHint}
           additionalSubHeader={additionalSubHeader}
+          oldestFirst={oldestFirst}
         />
       }
       actions={

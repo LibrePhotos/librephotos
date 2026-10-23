@@ -174,6 +174,40 @@ class WaitUntilTest(SimpleTestCase):
         self.assertEqual(0.0, self.now[0])
 
 
+class PerceptualHashTest(SimpleTestCase):
+    def test_the_program_hashes_a_sample_photo(self):
+        app = MagicMock()
+        app.manage.return_value = (
+            "59 objects imported automatically\nphash=d1c4b0a3f0e1c2b3\n"
+        )
+
+        smoke.check_perceptual_hash(app)
+
+        command, flag, code = app.manage.call_args.args
+        self.assertEqual(("shell", "-c"), (command, flag))
+        self.assertIn(smoke.SAMPLE_NAMES[0], code)
+        self.assertIn("calculate_perceptual_hash", code)
+
+    def test_no_hash_fails(self):
+        # calculate_perceptual_hash logs and returns None on a decode error.
+        app = MagicMock()
+        app.manage.return_value = "phash=None\n"
+
+        with self.assertRaisesRegex(smoke.SmokeError, "no perceptual hash"):
+            smoke.check_perceptual_hash(app)
+
+    def test_a_missing_module_fails(self):
+        # The build without imagehash: the shell exits with ModuleNotFoundError.
+        app = MagicMock()
+        app.manage.side_effect = smoke.SmokeError("manage shell exited with 1")
+
+        with self.assertRaises(smoke.SmokeError):
+            smoke.check_perceptual_hash(app)
+
+    def test_the_probe_is_valid_python(self):
+        compile(smoke.PHASH_PROBE.format(path=r"C:\x\y.jpg"), "<probe>", "exec")
+
+
 class MigrationsTest(SimpleTestCase):
     def test_migrate_check_runs_against_the_data_folder(self):
         app = MagicMock()
@@ -328,6 +362,16 @@ class ProcessNamesTest(SimpleTestCase):
             self.assertEqual([here], smoke.processes_in(program))
 
 
+def scan_job(finished, failed=False, result=None):
+    return {
+        "job_id": "j1",
+        "job_type": smoke.SCAN_JOB_TYPE,
+        "finished": finished,
+        "failed": failed,
+        "result": result,
+    }
+
+
 class ScanTest(SimpleTestCase):
     def test_three_photos_are_scanned_and_their_thumbnails_served(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -339,6 +383,7 @@ class ScanTest(SimpleTestCase):
                 {
                     ("PATCH", "/api/manage/user/5/"): {},
                     ("GET", "/api/photos/recentlyadded/"): {"results": photos},
+                    ("GET", "/api/jobs/"): {"results": [scan_job(finished=True)]},
                 }
             )
             api.request = MagicMock(
@@ -361,6 +406,42 @@ class ScanTest(SimpleTestCase):
                 [f"/media/thumbnails_big/h{index}" for index in range(3)],
                 [call.args[1] for call in api.request.call_args_list],
             )
+
+    def test_a_scan_with_a_failed_file_fails(self):
+        # The Windows build without imagehash: thumbnails, then every file
+        # failed halfway (#2854).
+        job = scan_job(
+            finished=True,
+            failed=True,
+            result={
+                "error_count": 3,
+                "errors": ["ModuleNotFoundError: No module named 'imagehash'"],
+            },
+        )
+
+        with self.assertRaisesRegex(smoke.SmokeError, "3 failed file.*imagehash"):
+            smoke.check_scan_errors([job])
+
+    def test_the_scan_job_type_is_the_models(self):
+        # The script stays Django-free, so it names the number itself.
+        from api.models import LongRunningJob
+
+        self.assertEqual(LongRunningJob.JOB_SCAN_PHOTOS, smoke.SCAN_JOB_TYPE)
+
+    def test_a_clean_scan_passes(self):
+        smoke.check_scan_errors([scan_job(finished=True, result={"new": 3})])
+
+    def test_the_scan_jobs_count_once_all_have_finished(self):
+        other = {"job_type": 99, "finished": False}
+        running = FakeApi(
+            {("GET", "/api/jobs/"): {"results": [scan_job(finished=False), other]}}
+        )
+        done = FakeApi(
+            {("GET", "/api/jobs/"): {"results": [scan_job(finished=True), other]}}
+        )
+
+        self.assertIsNone(smoke.finished_scan_jobs(running))
+        self.assertEqual([scan_job(finished=True)], smoke.finished_scan_jobs(done))
 
     def test_too_few_thumbnails_are_not_enough(self):
         api = FakeApi({("GET", "/api/photos/recentlyadded/"): {"results": [{}]}})

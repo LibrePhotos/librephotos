@@ -62,7 +62,6 @@ LEGACY_CAMEL_CASE_FIELDS = frozenset(
 # Dict keys written by views and serializers that predate the rule.
 LEGACY_CAMEL_CASE_DICT_KEYS = frozenset(
     {
-        "birthTime",
         "isFirstTimeSetup",
         "numberOfItems",
     }

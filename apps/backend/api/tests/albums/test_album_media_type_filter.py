@@ -147,23 +147,29 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
     def test_user_album_public(self):
         album = create_test_album_user(title="Shared Album", owner=self.user)
         album.photos.add(*self.media)
-        AlbumUserShare.objects.create(album=album, enabled=True)
+        slug = AlbumUserShare.objects.create(album=album, enabled=True).slug
         anon = APIClient()
         base = f"/api/albums/user/{album.id}/"
         self.assertEqual(
-            self._hashes(anon.get(base, {"public": "1"})),
+            self._hashes(anon.get(base, {"public": "1", "slug": slug})),
             self.all_hashes | self.video_hashes,
         )
         self.assertEqual(
-            self._hashes(anon.get(base, {"public": "1", "photo": "true"})),
+            self._hashes(
+                anon.get(base, {"public": "1", "slug": slug, "photo": "true"})
+            ),
             self.all_hashes,
         )
         self.assertEqual(
-            self._hashes(anon.get(base, {"public": "1", "video": "true"})),
+            self._hashes(
+                anon.get(base, {"public": "1", "slug": slug, "video": "true"})
+            ),
             self.video_hashes,
         )
         self.assertEqual(
-            self._hashes(anon.get(base, {"public": "1", "is_screenshot": "true"})),
+            self._hashes(
+                anon.get(base, {"public": "1", "slug": slug, "is_screenshot": "true"})
+            ),
             self.screenshot_hashes,
         )
 

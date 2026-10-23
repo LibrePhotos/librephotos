@@ -2,10 +2,12 @@ from django.db.models import Prefetch, QuerySet
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import ISO_8601, serializers
 
+from api.albums.public_days import UNDATED_ATTR
 from api.drf.params import TristateFlagField
-from api.models import AlbumDate, Photo
+from api.models import AlbumDate, Photo, User
 from api.models.place_names import town_name
 from api.serializers.photos import PhotoSummarySerializer
+from api.sharing.grants import LibraryGrant, public_lookup_for
 from api.sharing.library_photos import SHARED_PLACE_ATTR
 
 PUBLIC_PHOTOS_ATTR = "public_photos"
@@ -49,15 +51,35 @@ def _public_place(obj: AlbumDate) -> str:
     return ""
 
 
+def _public_day_grant(
+    serializer: serializers.BaseSerializer, obj: AlbumDate
+) -> LibraryGrant | None:
+    """The owner's public sharing switches, for a day of the public view."""
+    if serializer.context.get("public") is not True:
+        return None
+    lookup = public_lookup_for(serializer)
+    return lookup.for_owner(obj.owner_id) if lookup is not None else None
+
+
 def _place(serializer: serializers.BaseSerializer, obj: AlbumDate) -> str:
     # A day of another user's library (#2731): the place of its visible
     # photos when the owner shares locations, else none.
     shared_place = getattr(obj, SHARED_PLACE_ATTR, None)
     if isinstance(shared_place, str):
         return shared_place
-    if serializer.context.get("public"):
-        return _public_place(obj)
+    public = _public_day_grant(serializer, obj)
+    if public is not None:
+        undated = getattr(obj, UNDATED_ATTR, False)
+        return _public_place(obj) if public.location and not undated else ""
     return _stored_place(obj)
+
+
+def _date(serializer: serializers.BaseSerializer, obj: AlbumDate) -> str | None:
+    """The day, unless the public view's owner keeps the time to themselves."""
+    public = _public_day_grant(serializer, obj)
+    if obj.date is None or (public is not None and not public.timestamps):
+        return None
+    return obj.date.isoformat()
 
 
 class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
@@ -72,10 +94,7 @@ class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
 
     def get_date(self, obj: AlbumDate) -> str | None:
-        if obj.date:
-            return obj.date.isoformat()
-        else:
-            return None
+        return _date(self, obj)
 
     def get_items(self, obj: AlbumDate) -> list:
         return []
@@ -107,10 +126,7 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         fields = ("id", "date", "location", "incomplete", "numberOfItems", "items")
 
     def get_date(self, obj: AlbumDate) -> str | None:
-        if obj.date:
-            return obj.date.isoformat()
-        else:
-            return None
+        return _date(self, obj)
 
     # AlbumDateViewSet.retrieve fills both in after serializing (a page of
     # photo summaries and their count), so the schema names those types: the
@@ -216,6 +232,47 @@ class DateAlbumFilterQuery(PublicViewQuery):
         "ignored by views of your own library only (hidden, trash, a person, "
         "a folder, favourites, a search)",
     )
+    order = serializers.ChoiceField(
+        choices=User.PhotoOrder.choices,
+        default=User.PhotoOrder.NEWEST,
+        help_text="newest (the default) or oldest day first, by date taken, "
+        "and a day's photos in the same order; the undated day comes last "
+        "either way",
+    )
+
+
+# What the public view ignores of a query: filters by what it does not show
+# (people, folders, favourites, archiving, the search text, when photos were
+# taken or changed) and the photos it never lists (hidden, in the trash,
+# another library's).
+PUBLIC_VIEW_NEUTRAL: dict[str, object] = {
+    "hidden": False,
+    "in_trashcan": False,
+    "folder": "",
+    "search": "",
+    "favorite": None,
+    "archived": None,
+    "libraries": False,
+}
+PUBLIC_VIEW_IGNORED = ("person", "library", "last_modified")
+
+
+def public_view_filters(params: dict[str, object]) -> dict[str, object]:
+    """``params`` of a date-album read, as the public view applies them.
+
+    The public view lists public photos only, by what their owners publish:
+    a filter on anything else would tell which public photo shows whom, sits
+    in which folder or is a favourite.
+    """
+    if params.get("public") is not True:
+        return params
+    neutral = {
+        key: value for key, value in params.items() if key not in PUBLIC_VIEW_IGNORED
+    }
+    neutral.update(
+        {key: value for key, value in PUBLIC_VIEW_NEUTRAL.items() if key in params}
+    )
+    return neutral
 
 
 class AlbumDateListQuery(DateAlbumFilterQuery):

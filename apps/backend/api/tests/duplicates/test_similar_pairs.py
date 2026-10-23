@@ -3,7 +3,6 @@
 import random
 from unittest.mock import patch
 
-import imagehash
 from django.test import SimpleTestCase
 
 from api.duplicates import detection
@@ -11,14 +10,19 @@ from api.duplicates.detection import _similar_pairs_bktree, similar_pairs
 from api.duplicates.perceptual_hash import hamming_distance
 
 
+def _bit_distance(hash1, hash2):
+    """Differing bits of two 64-bit hex hashes, one binary digit at a time."""
+    bits1, bits2 = f"{int(hash1, 16):064b}", f"{int(hash2, 16):064b}"
+    return sum(a != b for a, b in zip(bits1, bits2, strict=True))
+
+
 def _brute_force(hashes, threshold):
-    """Every pair, compared the way hamming_distance used to: through imagehash."""
-    parsed = [imagehash.hex_to_hash(h) for h in hashes]
+    """Every pair, compared bit by bit."""
     return {
         (i, j)
         for i in range(len(hashes))
         for j in range(i + 1, len(hashes))
-        if parsed[i] - parsed[j] <= threshold
+        if _bit_distance(hashes[i], hashes[j]) <= threshold
     }
 
 
@@ -72,20 +76,22 @@ class SimilarPairsTest(SimpleTestCase):
 
 
 class HammingDistanceFastPathTest(SimpleTestCase):
-    def test_agrees_with_imagehash(self):
+    def test_agrees_with_a_bit_by_bit_count(self):
         hashes = _library(80, seed=3)
         for a, b in zip(hashes, hashes[1:]):
-            self.assertEqual(
-                hamming_distance(a, b),
-                imagehash.hex_to_hash(a) - imagehash.hex_to_hash(b),
-            )
+            self.assertEqual(hamming_distance(a, b), _bit_distance(a, b))
 
     def test_upper_case_and_invalid_input(self):
         self.assertEqual(hamming_distance("FFFFFFFFFFFFFFFF", "ffffffffffffffff"), 0)
         self.assertEqual(hamming_distance(None, "ffffffffffffffff"), 64)
-        # Not 16 hex digits: left to imagehash, as before.
+        # Not 16 hex digits: read as imagehash's hex_to_hash did, a square of
+        # isqrt(4 * len) bits a side. "0x" + 14 digits is 56 one bits in 64.
         odd = "0x" + "f" * 14
-        self.assertEqual(
-            hamming_distance(odd, "f" * 16),
-            imagehash.hex_to_hash(odd) - imagehash.hex_to_hash("f" * 16),
-        )
+        self.assertEqual(hamming_distance(odd, "f" * 16), 8)
+        # 9 digits: a 6 x 6 square (36 bits), zero-padded on the left.
+        self.assertEqual(hamming_distance("00000000f", "00000000e"), 1)
+        self.assertEqual(hamming_distance("00000000f", "f" * 9), 32)
+        # Bits that do not fill whole rows, or squares of different sizes.
+        self.assertEqual(hamming_distance("f" * 8, "f" * 8), 64)
+        self.assertEqual(hamming_distance("f" * 4, "f" * 16), 64)
+        self.assertEqual(hamming_distance("-f" * 8, "f" * 16), 64)

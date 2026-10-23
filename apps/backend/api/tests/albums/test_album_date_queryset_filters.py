@@ -27,6 +27,7 @@ from api.tests.utils import (
     create_test_photo,
     create_test_stack,
     create_test_user,
+    every_public_switch_on,
 )
 from api.views.albums import AlbumDateViewSet
 
@@ -53,8 +54,9 @@ class AlbumDateGetQuerysetTestBase(TestCase):
 
 class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
     def setUp(self):
-        self.user = create_test_user()
-        self.other = create_test_user()
+        # Dates shared: the public view groups these photos by day.
+        self.user = create_test_user(public_sharing_defaults=every_public_switch_on())
+        self.other = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.timestamp = timezone.now()
         self.album = create_test_album_date(owner=self.user, date=self.timestamp.date())
 

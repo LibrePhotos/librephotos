@@ -16,8 +16,8 @@ name: standalone-windows
 # Pull requests and pushes to dev that change what goes into the build (the
 # requirements, the build script, the dispatcher, the smoke test or this file)
 # build and smoke-test it too, without a tag: the zip is a workflow artifact.
-# The first build compiles everything (50-75 min); later ones reuse Nuitka's
-# compile cache (clcache for MSVC) from the last run, also a failed one.
+# A build takes 1.5 to 3 hours on the 4-core runner, most of it the C compile
+# (see the Build step for why it is not cached).
 #
 # Dry run on a fork or a branch: push a numeric tag that points at the commit
 # to test (git tag 0.0.1 && git push origin 0.0.1), create a release for it
@@ -175,29 +175,18 @@ jobs:
         run: |
           python -m pip install -U pip wheel
           pip install -r requirements.txt -r requirements.standalone.txt
-      # Nuitka caches the C it compiled (clcache for MSVC) per module; the first
-      # run compiles everything, later runs mostly hit the cache. Restored from
-      # the newest run for this Python and saved right after the build, also
-      # when the build or a later step fails, so a retry does not start over.
-      - name: Restore the Nuitka cache
-        id: nuitka-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: ~\AppData\Local\Nuitka\Nuitka\Cache
-          key: nuitka-${{ runner.os }}-py3.14-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}-${{ github.run_id }}
-          restore-keys: |
-            nuitka-${{ runner.os }}-py3.14-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt', 'apps/backend/requirements.unified.txt') }}-
-            nuitka-${{ runner.os }}-py3.14-
+      # No Nuitka caches here: clcache keys an object on cl.exe and the Python
+      # headers, which change with the runner image (weekly) and the Python
+      # patch release, and a pull request compiles its merge with a moving dev.
+      # Measured on #2851: a run of identical C after restoring the previous
+      # run's cache hit 0 of 2,910 files; the earlier best was 3 of 5,737. The
+      # cache only cost a 0.5-1 GB save per run (against the repository's
+      # 10 GB cache quota) and an extra preprocessing pass per file. Local
+      # builds keep the caches (a rebuild hits nearly every file).
       - name: Build
         working-directory: apps/backend
         shell: bash
-        run: python scripts/build_standalone.py --zip --version "$VERSION"
-      - name: Save the Nuitka cache
-        if: ${{ !cancelled() && steps.nuitka-cache.outcome == 'success' }}
-        uses: actions/cache/save@v6
-        with:
-          path: ~\AppData\Local\Nuitka\Nuitka\Cache
-          key: ${{ steps.nuitka-cache.outputs.cache-primary-key }}
+        run: python scripts/build_standalone.py --zip --no-cache --version "$VERSION"
       - name: Check the checksums
         working-directory: apps/backend/build/standalone
         shell: bash

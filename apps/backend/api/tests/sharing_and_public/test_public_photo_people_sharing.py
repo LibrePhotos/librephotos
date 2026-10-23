@@ -1,6 +1,8 @@
 """Characterization tests for api/serializers/photos.py (CRAP unit 26).
 
-Pins the CURRENT behavior of ``PublicPhotoDetailSerializer.get_people``.
+Pins the behavior of the ``people`` field of ``PublicPhotoDetailSerializer``:
+its ``get_people`` and the ``share_faces`` gate the serializer applies
+(``api.sharing.grants.public_grant``).
 
 These are behavior snapshots taken before refactoring - they encode what the
 code does today, including the quirks noted in the docstrings below.
@@ -21,12 +23,12 @@ from api.tests.utils import (
 
 
 def _people(photo, sharing_settings=None, include_key=True):
-    """Call get_people through a serializer built the way the view builds it."""
+    """The people a serializer built the way the view builds it sends."""
     context = {}
     if include_key:
         context["sharing_settings"] = sharing_settings
     serializer = PublicPhotoDetailSerializer(photo, context=context)
-    return serializer.get_people(photo)
+    return serializer.data["people"]
 
 
 class GetPeopleSharingGateTestCase(TestCase):
@@ -48,15 +50,11 @@ class GetPeopleSharingGateTestCase(TestCase):
         self.assertEqual(_people(self.photo, {}), [])
 
     def test_missing_sharing_settings_context_key_returns_empty_list(self):
-        # _get_sharing_settings() falls back to {} when the key is absent.
+        # Without settings every switch is off.
         self.assertEqual(_people(self.photo, include_key=False), [])
 
-    def test_sharing_settings_none_raises_attribute_error(self):
-        # QUIRK: an explicit ``None`` in the context is NOT defended against -
-        # ``self.context.get("sharing_settings", {})`` returns None and .get()
-        # blows up. Pinned as current behavior, not as desired behavior.
-        with self.assertRaises(AttributeError):
-            _people(self.photo, None)
+    def test_sharing_settings_none_shares_nothing(self):
+        self.assertEqual(_people(self.photo, None), [])
 
     def test_share_faces_true_returns_the_face(self):
         result = _people(self.photo, {"share_faces": True})
@@ -64,8 +62,8 @@ class GetPeopleSharingGateTestCase(TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["name"], "Alice")
 
-    def test_truthy_non_boolean_share_faces_enables_sharing(self):
-        self.assertEqual(len(_people(self.photo, {"share_faces": "yes"})), 1)
+    def test_a_non_boolean_share_faces_counts_as_off(self):
+        self.assertEqual(_people(self.photo, {"share_faces": "yes"}), [])
 
 
 class GetPeopleNameResolutionTestCase(TestCase):
