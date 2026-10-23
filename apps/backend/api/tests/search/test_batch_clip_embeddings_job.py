@@ -180,6 +180,91 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         self.assertTrue(self.latest_job().finished)
         self.assertFalse(self.latest_job().failed)
 
+    # ------------------------------------------------------------------
+    # photos of an earlier model that cannot be converted
+    # ------------------------------------------------------------------
+
+    def _legacy_photos(self, number):
+        photos = create_test_photos(number_of_photos=number, owner=self.user)
+        for photo in photos:
+            photo.clip_embeddings = [9.0, 9.0]  # CLIP ViT-B/32 (model NULL)
+            photo.clip_embeddings_magnitude = 1.0
+            photo.save()
+        return photos
+
+    def test_an_unreadable_photo_drops_its_earlier_embedding(self):
+        """An empty thumbnail the sidecar cannot read used to keep its old
+        vector, so the conversion (and its upgrade task) never finished."""
+        unreadable, readable = self._legacy_photos(2)
+        unreadable_path = unreadable.thumbnail.thumbnail_big.path
+
+        def reject_one(imgs, with_tags=False):
+            embeddings = [
+                None if img == unreadable_path else np.array([1.0, 2.0]) for img in imgs
+            ]
+            return embeddings, [None if e is None else 3.0 for e in embeddings], None
+
+        self.run_job(embeddings_side_effect=reject_one)
+
+        unreadable.refresh_from_db()
+        readable.refresh_from_db()
+        self.assertIsNone(unreadable.clip_embeddings)
+        self.assertIsNone(unreadable.clip_embeddings_magnitude)
+        self.assertIsNone(unreadable.clip_embeddings_model)
+        self.assertEqual(readable.clip_embeddings_model, "openclip_vitb32")
+        self.assertFalse(embedding_jobs.photos_with_earlier_embeddings().exists())
+
+    def test_a_photo_without_a_thumbnail_drops_its_earlier_embedding(self):
+        (photo,) = self._legacy_photos(1)
+
+        m_embed, _ = self.run_job(path_exists=False)
+
+        m_embed.assert_not_called()
+        photo.refresh_from_db()
+        self.assertIsNone(photo.clip_embeddings)
+        self.assertFalse(embedding_jobs.photos_with_earlier_embeddings().exists())
+
+    def test_a_failed_batch_keeps_the_earlier_embeddings(self):
+        """The sidecar being down says nothing about the photos: they keep
+        their old vector, and the conversion stays open until it is back."""
+        photos = self._legacy_photos(2)
+
+        self.run_job(embeddings_side_effect=RuntimeError("clip sidecar down"))
+
+        for photo in photos:
+            photo.refresh_from_db()
+            self.assertEqual(photo.clip_embeddings, [9.0, 9.0])
+        self.assertEqual(embedding_jobs.photos_with_earlier_embeddings().count(), 2)
+
+    def test_a_dropped_photo_is_tried_again_without_rebuilding_for_a_conversion(self):
+        """The run after a drop is an ordinary one: one index rebuild at its
+        end, not the extra ones of a conversion, and the photo is sent again."""
+        (photo,) = self._legacy_photos(1)
+
+        def reject_all(imgs, with_tags=False):
+            return [None] * len(imgs), [None] * len(imgs), None
+
+        _, first_index = self.run_job(embeddings_side_effect=reject_all)
+        second_embed, second_index = self.run_job(embeddings_side_effect=reject_all)
+
+        self.assertEqual(first_index.call_count, 2)
+        self.assertEqual(second_index.call_count, 1)
+        self.assertEqual(
+            second_embed.call_args[0][0], [photo.thumbnail.thumbnail_big.path]
+        )
+
+    def test_dropping_never_touches_an_openclip_embedding(self):
+        (photo,) = create_test_photos(number_of_photos=1, owner=self.user)
+        photo.clip_embeddings = [7.0, 7.0]
+        photo.clip_embeddings_model = "openclip_vitb32"
+        photo.save()
+
+        embedding_jobs._drop_earlier_embeddings([photo])
+
+        photo.refresh_from_db()
+        self.assertEqual(photo.clip_embeddings, [7.0, 7.0])
+        self.assertEqual(photo.clip_embeddings_model, "openclip_vitb32")
+
     @override_settings(FEATURE_SCENE_CLASSIFICATION=True)
     def test_tags_are_asked_for_when_tagging_is_on(self):
         create_test_photos(number_of_photos=1, owner=self.user)

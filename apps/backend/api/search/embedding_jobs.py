@@ -32,7 +32,8 @@ def photos_missing_clip_embeddings(user: User) -> QuerySet[Photo]:
     """The user's photos without an OpenCLIP embedding.
 
     That includes photos embedded by an earlier model: they are re-embedded in
-    place, never cleared first.
+    place, never cleared first. One that cannot be converted loses its earlier
+    embedding instead (``_drop_earlier_embeddings``).
     """
     return Photo.objects.owned_by(user).filter(needs_search_embedding())
 
@@ -67,10 +68,12 @@ def _store_tags_if_missing(photo: Photo, tags: Iterable[str]) -> None:
     caption.store_tags(tags)
 
 
-def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
+def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> list[Photo]:
+    """Embed ``objs`` and store what comes back. Returns the unreadable ones."""
     imgs = [obj.thumbnail.thumbnail_big.path for obj in objs]
     imgs_emb, magnitudes, tags = create_clip_embeddings(imgs, with_tags=with_tags)
     tags = tags or [None] * len(objs)
+    unreadable: list[Photo] = []
 
     for obj, img_emb, magnitude, photo_tags in zip(objs, imgs_emb, magnitudes, tags):
         if img_emb is None:
@@ -79,6 +82,7 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
             logger.warning(
                 "No CLIP embedding for %s: unreadable thumbnail", obj.image_hash
             )
+            unreadable.append(obj)
             continue
         obj.clip_embeddings = img_emb.tolist()
         obj.clip_embeddings_magnitude = magnitude
@@ -98,6 +102,35 @@ def store_clip_embeddings(objs: list[Photo], with_tags: bool = False) -> None:
                 _store_tags_if_missing(obj, photo_tags)
             except Exception:
                 logger.exception("Could not store the tags of %s", obj.image_hash)
+    return unreadable
+
+
+def _drop_earlier_embeddings(objs: Iterable[Photo]) -> None:
+    """Clear the earlier model's embedding of photos this run cannot convert.
+
+    Nothing reads it any more: search and the similarity index take OpenCLIP
+    embeddings only. Kept, it would hold the semantic search conversion open
+    for good (``photos_with_earlier_embeddings`` is its check), with every later
+    run rebuilding the index for a conversion it cannot finish. Cleared, the
+    photo is one without an embedding, which every run tries again. An OpenCLIP
+    embedding is never touched.
+    """
+    pks = [obj.pk for obj in objs]
+    if not pks:
+        return
+    earlier = photos_with_earlier_embeddings().filter(pk__in=pks)
+    hashes = list(earlier.values_list("image_hash", flat=True))
+    if not hashes:
+        return
+    earlier.update(
+        clip_embeddings=None,
+        clip_embeddings_magnitude=None,
+        clip_embeddings_model=None,
+    )
+    logger.warning(
+        "Dropped the earlier model's search embedding of %s: could not convert it",
+        ", ".join(hashes),
+    )
 
 
 class _EmbedOptions(NamedTuple):
@@ -211,8 +244,13 @@ def _embed_batches(
 
         try:
             valid_objs = photos_with_existing_thumbnail(objs)
+            valid_pks = {obj.pk for obj in valid_objs}
+            unconvertible = [obj for obj in objs if obj.pk not in valid_pks]
             if valid_objs:
-                store_clip_embeddings(valid_objs, with_tags=options.with_tags)
+                unconvertible += store_clip_embeddings(
+                    valid_objs, with_tags=options.with_tags
+                )
+            _drop_earlier_embeddings(unconvertible)
         except Exception:
             # One failed batch (the sidecar down, a bad reply) must not end
             # the run; its photos stay missing and the next run retries them.
