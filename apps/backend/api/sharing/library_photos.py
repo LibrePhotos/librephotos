@@ -168,10 +168,10 @@ def with_shared_photos(albums: QuerySet[AlbumDate], photos_q: Q) -> QuerySet[Alb
 
 
 def merge_days(days: Iterable[AlbumDate], user: User) -> list[AlbumDate]:
-    """One row per date, newest first: the requester's own day where they
-    have one, with the other owners' photos of that date in its count.
+    """One row per date, in the order of ``days``: the requester's own day
+    where they have one, with the other owners' photos of that date in its count.
 
-    ``days`` is ordered by date (newest first, undated last) and annotated
+    ``days`` is ordered by date (either way, undated last) and annotated
     with ``photo_count``. A date only others have keeps the first of their
     rows; ``set_shared_places`` names its place.
     """

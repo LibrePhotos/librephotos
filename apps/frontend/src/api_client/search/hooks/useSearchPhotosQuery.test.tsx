@@ -12,7 +12,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { useSearchPhotosQuery } from "./useSearchPhotosQuery";
+import { tempPigPhoto } from "../../../util/util";
+import { orderSearchResult, useSearchPhotosQuery } from "./useSearchPhotosQuery";
 
 const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
@@ -199,5 +200,31 @@ describe("useSearchPhotosQuery", () => {
     await settle(() => result.isError);
 
     expect(stubs.get).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("orderSearchResult (#2712)", () => {
+  const photo = (id: string) => ({ ...tempPigPhoto(id), image_hash: id, isTemp: false });
+  const grouped = {
+    photosGroupedByDate: [
+      { date: "2024-05-02T09:00:00Z", location: "", items: [photo("b2"), photo("b1")] },
+      { date: "2024-05-01T09:00:00Z", location: "", items: [photo("a1")] },
+    ],
+    photosFlat: [photo("b2"), photo("b1"), photo("a1")],
+  };
+
+  it("puts date groups oldest first, and the lightbox's flat list with them", () => {
+    const ordered = orderSearchResult(grouped, "oldest");
+    expect(ordered.photosGroupedByDate.map(group => group.date)).toEqual([
+      "2024-05-01T09:00:00Z",
+      "2024-05-02T09:00:00Z",
+    ]);
+    expect(ordered.photosFlat.map(item => item.id)).toEqual(["a1", "b1", "b2"]);
+  });
+
+  it("leaves newest first and a semantic result, ordered by relevance, as they came", () => {
+    expect(orderSearchResult(grouped, "newest")).toBe(grouped);
+    const semantic = { photosGroupedByDate: [], photosFlat: [photo("x"), photo("y")] };
+    expect(orderSearchResult(semantic, "oldest")).toBe(semantic);
   });
 });
