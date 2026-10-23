@@ -178,6 +178,29 @@ class NuitkaCommandTest(SimpleTestCase):
         self.assertEqual(command[-1], str(build.ENTRY))
 
 
+class LazyModuleTargetsTest(SimpleTestCase):
+    def test_every_lazy_import_is_named_to_nuitka(self):
+        # Nuitka cannot see LazyModule("pkg"); imagehash was missing from the
+        # Windows build and perceptual hashing failed there (#2851 review).
+        build = load_build_script()
+
+        targets = build.lazy_module_targets()
+        command = build.nuitka_command(Path("out"), None, "0.0.0")
+
+        self.assertIn("imagehash", targets)
+        for name in targets:
+            self.assertIn(f"--include-module={name}", command)
+
+    def test_the_scan_reads_the_string_argument(self):
+        build = load_build_script()
+
+        found = build._LAZY_MODULE.findall(
+            "np = LazyModule(\"numpy\")\nx = LazyModule( 'a.b_c' )\nLazyModule(name)"
+        )
+
+        self.assertEqual(found, ["numpy", "a.b_c"])
+
+
 class ArchiveTest(SimpleTestCase):
     """The release zip under a versioned name and the stable alias, with
     SHA256SUMS for both (#2318, #2317)."""

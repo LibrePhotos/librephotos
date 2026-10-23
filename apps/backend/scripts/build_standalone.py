@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -181,6 +182,25 @@ def collect_static():
     return BACKEND / "static"
 
 
+# `name = LazyModule("pkg")` (api/lazy_import.py) imports pkg by a string on
+# first use, which Nuitka's import analysis never sees: imagehash was missing
+# from every build until 1.5.0, so the Windows binary computed no perceptual
+# hashes and found no duplicates. Each target is named to Nuitka explicitly.
+_LAZY_MODULE = re.compile(r"""\bLazyModule\(\s*["']([A-Za-z0-9_.]+)["']""")
+_LAZY_SOURCE_DIRS = ("api", "librephotos", "service", "image_similarity", "nextcloud")
+
+
+def lazy_module_targets():
+    """The modules the backend imports through LazyModule, sorted."""
+    targets = set()
+    for top in _LAZY_SOURCE_DIRS:
+        for path in (BACKEND / top).rglob("*.py"):
+            if "tests" in path.relative_to(BACKEND).parts:
+                continue
+            targets.update(_LAZY_MODULE.findall(path.read_text(encoding="utf-8")))
+    return sorted(targets)
+
+
 def nuitka_command(output_dir, jobs, version):
     command = [
         sys.executable,
@@ -224,6 +244,7 @@ def nuitka_command(output_dir, jobs, version):
     # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")
     command.append("--include-module=service._common")
+    command += [f"--include-module={name}" for name in lazy_module_targets()]
     # The tag vocabulary is looked up two directories above the tagger
     # modules, which compile as top-level packages: that is the distribution root.
     command.append(

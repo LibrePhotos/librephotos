@@ -174,6 +174,40 @@ class WaitUntilTest(SimpleTestCase):
         self.assertEqual(0.0, self.now[0])
 
 
+class PerceptualHashTest(SimpleTestCase):
+    def test_the_program_hashes_a_sample_photo(self):
+        app = MagicMock()
+        app.manage.return_value = (
+            "59 objects imported automatically\nphash=d1c4b0a3f0e1c2b3\n"
+        )
+
+        smoke.check_perceptual_hash(app)
+
+        command, flag, code = app.manage.call_args.args
+        self.assertEqual(("shell", "-c"), (command, flag))
+        self.assertIn(smoke.SAMPLE_NAMES[0], code)
+        self.assertIn("calculate_perceptual_hash", code)
+
+    def test_no_hash_fails(self):
+        # calculate_perceptual_hash logs and returns None on a decode error.
+        app = MagicMock()
+        app.manage.return_value = "phash=None\n"
+
+        with self.assertRaisesRegex(smoke.SmokeError, "no perceptual hash"):
+            smoke.check_perceptual_hash(app)
+
+    def test_a_missing_module_fails(self):
+        # The build without imagehash: the shell exits with ModuleNotFoundError.
+        app = MagicMock()
+        app.manage.side_effect = smoke.SmokeError("manage shell exited with 1")
+
+        with self.assertRaises(smoke.SmokeError):
+            smoke.check_perceptual_hash(app)
+
+    def test_the_probe_is_valid_python(self):
+        compile(smoke.PHASH_PROBE.format(path=r"C:\x\y.jpg"), "<probe>", "exec")
+
+
 class MigrationsTest(SimpleTestCase):
     def test_migrate_check_runs_against_the_data_folder(self):
         app = MagicMock()

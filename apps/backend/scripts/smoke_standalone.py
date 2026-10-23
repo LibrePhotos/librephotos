@@ -12,8 +12,10 @@ browser and the tray icon) on a fresh data folder and free ports, then uses it:
 3. checks that /api/imagetag reports ``--tag`` (the build_info.json the build wrote);
 4. checks that every enabled sidecar answers, through the API and on its own
    port, and, for a compiled build, runs under its own process name;
-5. scans three sample photos (deploy/e2e/photos) and waits for their thumbnails;
-6. kills the root process the way Task Manager's End task does (no tree kill)
+5. computes a perceptual hash inside the program (``manage shell -c``): the
+   build once shipped without imagehash, which is only imported by name;
+6. scans three sample photos (deploy/e2e/photos) and waits for their thumbnails;
+7. kills the root process the way Task Manager's End task does (no tree kill)
    and fails if any process of the build outlives it: that is the job object's
    promise in librephotos/standalone.py.
 
@@ -35,6 +37,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import secrets
 import shutil
 import socket
@@ -357,6 +360,22 @@ def check_migrations(app: App) -> None:
         raise SmokeError(f"unapplied migrations after the start: {error}") from error
 
 
+PHASH_PROBE = (
+    "from api.duplicates.perceptual_hash import calculate_perceptual_hash; "
+    "print('phash=%s' % calculate_perceptual_hash({path!r}))"
+)
+
+
+def check_perceptual_hash(app: App) -> None:
+    """The scan's duplicate detection works: imagehash is imported by name
+    (api/lazy_import.py), which a build can leave out without any error."""
+    step("computing a perceptual hash")
+    sample = str(SAMPLE_PHOTOS / SAMPLE_NAMES[0])
+    output = app.manage("shell", "-c", PHASH_PROBE.format(path=sample))
+    if not re.search(r"^phash=[0-9a-f]{16}$", output, re.MULTILINE):
+        raise SmokeError(f"no perceptual hash for {sample}:\n{output[-1000:]}")
+
+
 def log_in(app: App, api: Api) -> int:
     """Create the admin from the environment, as the e2e seed does, and log in.
     Returns the admin's user id."""
@@ -625,6 +644,7 @@ def run_checks(app: App, program: Path | None, tag: str | None) -> None:
     user_id = log_in(app, api)
     check_tag(api, tag)
     services = check_services(app, api, ports)
+    check_perceptual_hash(app)
     if program is not None:
         check_process_names(program, services)
     scan_samples(app, api, user_id)
