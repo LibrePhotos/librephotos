@@ -23475,7 +23475,7 @@
       },
       "PhotoRights": {
         "type": "object",
-        "description": "A photo's rights (#425): the owner's statement of who made it and what\nothers may do with it. Sent with the photo's details to everyone who sees\nthe photo, public visitors included; no sharing switch hides it.",
+        "description": "A photo's rights (#425): who made it and what others may do with it.\nSent with the photo's details to the users who see the photo; a public\npage's visitor gets them only for a photo with a license, whatever the\nsharing switches say.",
         "properties": {
           "license": {
             "nullable": true,
@@ -26718,7 +26718,7 @@
               }
             ],
             "nullable": true,
-            "description": "Copyright, creator and license; always (#425)"
+            "description": "Copyright, creator and license, when the photo has a license (#425)"
           },
           "thumbnail_url": {
             "type": "string",

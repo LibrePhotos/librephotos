@@ -74,11 +74,17 @@ When some of the selected photos have rights from their files, the dialog offers
 
 ## On public pages
 
-The rights are your statement of who made a photo and what others may do with it, so they are meant
-to be seen: a public album, a [public photo](./sharing.md#making-individual-photos-public), a
-[photo link](./sharing.md#revocable-photo-links) and a [library you share](./sharing.md#sharing-your-whole-library)
-show them whatever the sharing switches say. This includes the copyright notice and the creator, which
-often name you; clear them in the **Rights** section if a file carries a name you do not want shown.
+A license is your deliberate statement of what others may do with a photo, so a public album, a
+[public photo](./sharing.md#making-individual-photos-public) and a
+[photo link](./sharing.md#revocable-photo-links) show the rights of a photo **that has a license**,
+whatever the sharing switches say: the license, and with it the copyright notice and the creator. A
+photo without a license shows visitors no rights at all, not even a copyright or creator its file
+carries: cameras and apps often write your full name there, and you never chose to publish it. The
+license can be one you set, your [default rights](#default-rights-for-your-photos) or one the file
+states.
+
+People you [share your library](./sharing.md#sharing-your-whole-library) with see a photo's rights as
+you do, with or without a license.
 
 Visitors see a **License** section first in the photo's details (under the photo on a photo link):
 
@@ -90,7 +96,7 @@ Visitors see a **License** section first in the photo's details (under the photo
   license with its deed, with a copy button (on plain HTTP, where browsers do not allow copying, the
   line can be selected).
 
-A photo without rights shows no License section.
+A photo without a license shows visitors no License section.
 
 ## In your files
 

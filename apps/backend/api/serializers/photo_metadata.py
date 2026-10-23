@@ -221,9 +221,10 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
 
 
 class PhotoRightsSerializer(serializers.Serializer[None]):
-    """A photo's rights (#425): the owner's statement of who made it and what
-    others may do with it. Sent with the photo's details to everyone who sees
-    the photo, public visitors included; no sharing switch hides it."""
+    """A photo's rights (#425): who made it and what others may do with it.
+    Sent with the photo's details to the users who see the photo; a public
+    page's visitor gets them only for a photo with a license, whatever the
+    sharing switches say."""
 
     license = serializers.ChoiceField(
         choices=PhotoLicense.choices,

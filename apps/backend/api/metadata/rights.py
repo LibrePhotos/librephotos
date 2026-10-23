@@ -164,8 +164,8 @@ class PhotoRightsData(TypedDict):
 def rights_of(metadata: PhotoMetadata | None) -> PhotoRightsData | None:
     """The rights ``metadata`` states, or None when it states none (#425).
 
-    Shown wherever the photo is: the owner's statement about reuse is meant
-    for whoever sees the photo, so it follows no sharing switch.
+    Users who see the photo get it whole; a public page's visitor only when
+    the photo has a license (``api.sharing.grants.licensed_rights``).
     """
     if metadata is None:
         return None

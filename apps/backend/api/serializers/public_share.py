@@ -106,7 +106,8 @@ class SharedPhotoSerializer(serializers.Serializer[None]):
         many=True, help_text="With share_faces, else []"
     )
     rights = PhotoRightsSerializer(
-        allow_null=True, help_text="Copyright, creator and license; always (#425)"
+        allow_null=True,
+        help_text="Copyright, creator and license, when the photo has a license (#425)",
     )
     thumbnail_url = serializers.CharField(
         help_text="The big thumbnail, under the link's slug"

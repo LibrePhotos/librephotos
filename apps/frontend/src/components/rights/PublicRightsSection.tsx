@@ -95,8 +95,9 @@ function HowToCredit({ line }: Readonly<{ line: string }>) {
 
 /**
  * The License section of a public photo (#425): the license with its marks and deed, the copyright
- * notice and creator, what a visitor may do, and the line to credit the photo with. The owner's
- * statement about reuse, so it follows no sharing switch. Nothing when the photo states no rights.
+ * notice and creator, what a visitor may do, and the line to credit the photo with. It follows no
+ * sharing switch; the server sends a public page's visitor rights only for a photo with a license.
+ * Nothing when the photo states no rights.
  */
 export function PublicRightsSection({ rights }: Readonly<{ rights: Rights | null | undefined }>) {
   const { t } = useTranslation();

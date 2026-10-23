@@ -43,9 +43,13 @@ Switch = Literal[
     "originals",
     "timestamps",
     "users",
+    "licensed",
 ]
 ALWAYS: Final = "always"
 NEVER: Final = "never"
+# A photo's rights (#425): users always get them; a visitor only when the
+# photo has a license (``licensed_rights``).
+LICENSED: Final = "licensed"
 
 
 @dataclass(frozen=True)
@@ -79,7 +83,7 @@ class LibraryGrant:
             return True
         if switch == NEVER:
             return False
-        if switch == "users":
+        if switch in ("users", LICENSED):
             return not self.visitor
         return bool(getattr(self, switch))
 
@@ -296,9 +300,9 @@ DETAIL_FIELDS: FieldRules = {
     "original_mime_type": (ALWAYS, None),
     "projection_type": (ALWAYS, None),
     "shared_library": (ALWAYS, None),
-    # Copyright, creator and license (#425): the owner's statement about
-    # reuse, meant for whoever sees the photo.
-    "rights": (ALWAYS, None),
+    # Copyright, creator and license (#425): to a visitor only with a
+    # license (``licensed_rights``).
+    "rights": (LICENSED, None),
 }
 
 
@@ -317,6 +321,19 @@ def shown_captions(captions: object, grant: LibraryGrant) -> object:
     return captions
 
 
+def licensed_rights(rights: object) -> object:
+    """A photo's rights as a public page's visitor gets them: whole when the
+    photo has a license, else none (#425).
+
+    A license is the owner's deliberate statement about reuse. Without one,
+    the copyright and creator are only what a camera or app wrote into the
+    file, often a full name the owner never chose to publish.
+    """
+    if isinstance(rights, Mapping) and rights.get("license"):
+        return rights
+    return None
+
+
 def redact(
     data: MutableMapping[str, object], rules: FieldRules, grant: LibraryGrant
 ) -> None:
@@ -326,7 +343,9 @@ def redact(
     """
     for name in list(data):
         switch, hidden_value = rules.get(name, (NEVER, None))
-        if not grant.allows(switch):
+        if switch == LICENSED and not grant.allows(switch):
+            data[name] = licensed_rights(data[name])
+        elif not grant.allows(switch):
             data[name] = hidden_value
     if "captions_json" in data:
         data["captions_json"] = shown_captions(data["captions_json"], grant)
@@ -465,7 +484,7 @@ PUBLIC_DETAIL_FIELDS: FieldRules = {
     "search_captions": (NEVER, ""),
     "captions_json": ("captions", {"im2txt": ""}),
     "people": ("people", []),
-    "rights": (ALWAYS, None),
+    "rights": (LICENSED, None),
 }
 
 # ``PhotoSuperSimpleSerializer``: the sample photos on a public user's card.

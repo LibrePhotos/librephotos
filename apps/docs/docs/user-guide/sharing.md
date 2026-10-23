@@ -139,7 +139,7 @@ You can share your whole library with another user, read-only. They see your pho
 | **Camera information**: make, model, lens and exposure | Only with the switch on |
 | **Captions and descriptions**: your descriptions, generated captions and text found in photos | Only with the switch on. A generated caption can name the person and the place, so it also needs **Location** and **People names** |
 | **Download original files** | Only with the switch on. Off, a download is a full-size copy without the file's metadata |
-| <Since version="1.5.0" /> The photo's [copyright, creator and license](./rights.md) | Always |
+| <Since version="1.5.0" /> The photo's [copyright, creator and license](./rights.md) | Always, also without a license |
 | Hidden photos, the trash, albums, tags, favourites and ratings, edit history, file names and folders | Never |
 
 :::caution
@@ -246,7 +246,7 @@ The **Photo Details** panel fine-tunes what information visitors can see when th
 | **Share captions** | Whether captions are visible: yours, and the tags. A caption written by the captioning model can name the person and the place (see [Caption Context](./settings/index.md#caption-context)), so it is shown only when location information and detected faces are shared too. |
 | **Share detected faces** | Whether the names of the people you named are displayed. Faces you have not named and face groups are never shown. |
 
-<Since version="1.5.0" /> A photo's [copyright, creator and license](./rights.md#on-public-pages) follow none of these settings: they are shown on every public page, so visitors know what they may do with the photo.
+<Since version="1.5.0" /> A photo's [copyright, creator and license](./rights.md#on-public-pages) follow none of these settings: a photo with a license shows them on every public page, so visitors know what they may do with it. A photo without a license shows visitors none of them, not even a copyright or creator its file carries.
 
 Each of these settings can be toggled independently per album. When left unset, the **user-level defaults** from your settings are used; you can configure those in **Settings → Public Sharing Defaults**.
 

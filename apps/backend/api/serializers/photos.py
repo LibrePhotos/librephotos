@@ -1283,7 +1283,7 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
     search_captions = serializers.SerializerMethodField()
     captions_json = serializers.SerializerMethodField()
 
-    # Copyright, creator and license (#425): always, null without any.
+    # Copyright, creator and license (#425), when the photo has a license.
     rights = serializers.SerializerMethodField()
 
     # People/faces
