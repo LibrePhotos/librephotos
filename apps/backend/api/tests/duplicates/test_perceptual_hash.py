@@ -14,7 +14,6 @@ import tempfile
 import timeit
 from unittest.mock import patch
 
-import imagehash
 from django.test import TestCase
 from PIL import Image
 
@@ -81,8 +80,8 @@ class HammingDistanceTestCase(TestCase):
         hash1 = "a" * 16
         hash2 = "a" * 8  # Shorter hash
         distance = hamming_distance(hash1, hash2)
-        # imagehash may handle this differently - should not crash
-        self.assertIsInstance(distance, int)
+        # 8 digits are 32 bits, which make no square: not comparable
+        self.assertEqual(distance, 64)
 
     def test_real_phash_values(self):
         """Test with realistic pHash values."""
@@ -541,10 +540,9 @@ class EdgeCasesTestCase(TestCase):
     def test_hamming_distance_with_newlines_in_hash(self):
         """Should handle hashes that might have whitespace (edge case)."""
         # This tests robustness - real hashes shouldn't have whitespace
-        # imagehash's hex_to_hash is resilient and strips/ignores trailing chars
+        # int() strips the whitespace, as imagehash's hex_to_hash did
         distance = hamming_distance("a" * 16 + "\n", "a" * 16)
-        # The library handles this gracefully - doesn't crash
-        self.assertIsInstance(distance, int)
+        self.assertEqual(distance, 0)
 
     def test_find_similar_with_large_list(self):
         """Should handle large hash lists efficiently."""
@@ -624,9 +622,10 @@ class EdgeCasesTestCase(TestCase):
 class PerformanceTestCase(TestCase):
     """Performance-related tests for the perceptual hash module."""
 
-    # Wall-time budgets are measured against imagehash's own comparison on the
-    # same machine instead of a fixed number of seconds: an absolute "10,000
-    # calls in under 1 s" failed at 1.02 s on a Windows dev box, and a busy CI
+    # Wall-time budgets are measured against a bit-by-bit comparison of the
+    # two hashes (what ImageHash did) on the same machine instead of a fixed
+    # number of seconds: an absolute "10,000 calls in under 1 s" failed at
+    # 1.02 s on a Windows dev box, and a busy CI
     # runner is slower still. Best-of-five hides one-off stalls, and the ratio
     # still catches the wrapper taking on real per-call work (parsing twice,
     # logging, a query). The absolute ceiling is only a gross sanity check.
@@ -649,10 +648,11 @@ class PerformanceTestCase(TestCase):
 
     @staticmethod
     def _raw_distance(hash1, hash2):
-        return imagehash.hex_to_hash(hash1) - imagehash.hex_to_hash(hash2)
+        bits1, bits2 = f"{int(hash1, 16):064b}", f"{int(hash2, 16):064b}"
+        return sum(a != b for a, b in zip(bits1, bits2, strict=True))
 
     def test_hamming_distance_performance(self):
-        """Hamming distance should cost no more than imagehash's own comparison."""
+        """Hamming distance should cost no more than a bit-by-bit comparison."""
         hash1 = "a" * 16
         hash2 = "b" * 16
         calls = 1000
