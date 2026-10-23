@@ -6,7 +6,8 @@
 Starts librephotos.exe the way a user's double-click does (``run``, minus the
 browser and the tray icon) on a fresh data folder and free ports, then uses it:
 
-1. waits up to ten minutes for /api/healthz/ready;
+1. waits up to ten minutes for /api/healthz/ready, then checks with
+   ``manage migrate --check`` that the start applied every migration;
 2. creates an admin with ``manage createadmin`` and logs in with a token;
 3. checks that /api/imagetag reports ``--tag`` (the build_info.json the build wrote);
 4. checks that every enabled sidecar answers, through the API and on its own
@@ -45,7 +46,7 @@ import zipfile
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TextIO, TypeVar
+from typing import Any, TextIO
 
 import psutil
 import requests
@@ -59,8 +60,6 @@ if str(BACKEND) not in sys.path:
 
 from api.runtime.sidecars import SERVICES, port_variable  # noqa: E402
 from librephotos.standalone import PROCESS_NAMES  # noqa: E402
-
-T = TypeVar("T")
 
 EXECUTABLE = "librephotos.exe"
 ENTRY_SCRIPT = BACKEND / "librephotos_standalone.py"
@@ -197,7 +196,7 @@ def token_user_id(token: str) -> int:
         ) from error
 
 
-def wait_until(
+def wait_until[T](
     check: Callable[[], T | None],
     timeout: float,
     what: str,
@@ -304,6 +303,11 @@ class Api:
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
+        # A fresh connection per request. uvicorn closes a keep-alive
+        # connection after 5 idle seconds, and `manage scan` keeps the test
+        # away from the server about that long; a request on the closed socket
+        # then fails with WinError 10054 although the server is fine.
+        self.session.headers["Connection"] = "close"
 
     def authenticate(self, token: str) -> None:
         self.session.headers["Authorization"] = f"Bearer {token}"
@@ -341,6 +345,16 @@ def wait_ready(app: App, api: Api) -> None:
         "/api/healthz/ready",
         app.running,
     )
+
+
+def check_migrations(app: App) -> None:
+    """Every migration is applied: ``run`` migrates a fresh data folder before
+    it serves, and ``migrate --check`` exits non-zero on any it left out."""
+    step("checking that every migration ran")
+    try:
+        app.manage("migrate", "--check", "--no-input")
+    except SmokeError as error:
+        raise SmokeError(f"unapplied migrations after the start: {error}") from error
 
 
 def log_in(app: App, api: Api) -> int:
@@ -386,7 +400,7 @@ def sidecar_identity(port: int) -> str | None:
     try:
         response = requests.get(f"http://127.0.0.1:{port}/health", timeout=5)
         body = response.json() if response.status_code == 200 else None
-    except (requests.RequestException, ValueError):
+    except requests.RequestException, ValueError:
         return None
     service = body.get("service") if isinstance(body, dict) else None
     return service if isinstance(service, str) else None
@@ -607,6 +621,7 @@ def run_checks(app: App, program: Path | None, tag: str | None) -> None:
     step(f"starting {' '.join(app.command('run'))} on port {web_port}")
     app.start(web_port)
     wait_ready(app, api)
+    check_migrations(app)
     user_id = log_in(app, api)
     check_tag(api, tag)
     services = check_services(app, api, ports)

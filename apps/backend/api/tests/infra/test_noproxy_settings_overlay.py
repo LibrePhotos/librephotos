@@ -55,7 +55,7 @@ print(json.dumps({
     "middleware": list(noproxy.MIDDLEWARE),
     "installed_apps": list(noproxy.INSTALLED_APPS),
     "engine": noproxy.DATABASES["default"]["ENGINE"],
-    "email_backend": noproxy.EMAIL_BACKEND,
+    "email_backend": noproxy.MAILERS["default"]["BACKEND"],
     "allowed_hosts": list(noproxy.ALLOWED_HOSTS),
 }))
 """

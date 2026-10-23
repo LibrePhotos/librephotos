@@ -8,7 +8,7 @@
 # from the host through the NVIDIA container toolkit
 # (NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics). Without a GPU the
 # models run on the CPU, as before.
-FROM ubuntu:noble
+FROM ubuntu:resolute
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \

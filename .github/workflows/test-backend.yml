@@ -32,13 +32,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The Python of every image, on every pull request: 3.12 is the backend
-        # and unified images (ubuntu:noble). Pushes to dev add 3.14, the newest Python in requires-python
-        # (apps/backend/pyproject.toml). 3.11 (the Windows build) is not here:
-        # there is no Linux cp311 insightface wheel; standalone-windows.yml and
-        # prebuilt-wheels.yml install on it. api/tests/infra/test_python_versions.py
-        # fails when an image's Python is missing from either list.
-        python: ${{ github.event_name == 'push' && fromJSON('["3.12", "3.14"]') || fromJSON('["3.12"]') }}
+        # The Python of every image: 3.14 is the backend and unified images
+        # (ubuntu:resolute), the Windows standalone build and the only Python
+        # requires-python allows (apps/backend/pyproject.toml). A second Python
+        # joins this list when requires-python widens again.
+        # api/tests/infra/test_python_versions.py fails when an image's Python
+        # is missing from it.
+        python: ["3.14"]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,10 +100,10 @@ jobs:
         # regenerate it: `python scripts/openapi_schema.py` from apps/backend.
         # The script pins its own settings module (test_sqlite) and fails on a
         # stale file and on a drf-spectacular report missing from, or fixed
-        # but still in, openapi-baseline.txt. Once per run, in the 3.12 job:
+        # but still in, openapi-baseline.txt. Once per run, in the 3.14 job:
         # the schema does not depend on the interpreter. Runs even when the
         # checks above failed, so a stale schema reports with them.
-        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.python == '3.12' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.python == '3.14' }}
         working-directory: apps/backend
         run: |
           . .venv/bin/activate
@@ -113,7 +113,7 @@ jobs:
         # manage.py measures coverage while the suite runs unless NO_COVERAGE is
         # set, and saves it to apps/backend/.coverage. Running the suite under
         # `coverage run` as well would only double the tracing. Coverage is
-        # measured once, in the 3.12 job, which the gate below reads; the other
+        # measured once, in the 3.14 job, which the gate below reads; the other
         # jobs set NO_COVERAGE (manage.py only checks that it exists).
         working-directory: apps/backend
         env:
@@ -124,15 +124,15 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python }}
         run: |
           . .venv/bin/activate
-          if [ "$PYTHON_VERSION" != "3.12" ]; then export NO_COVERAGE=1; fi
+          if [ "$PYTHON_VERSION" != "3.14" ]; then export NO_COVERAGE=1; fi
           python manage.py test api.tests nextcloud
 
       - name: Coverage gate (fail_under in apps/backend/.coveragerc)
         # Reads the data file the test step saved; no tests run here. Exits
         # non-zero when the total is below fail_under. The step is skipped when
         # the tests fail, since there is then no data file to report on, and in
-        # every job but 3.12, which alone measures coverage.
-        if: ${{ matrix.python == '3.12' }}
+        # every job but 3.14, which alone measures coverage.
+        if: ${{ matrix.python == '3.14' }}
         working-directory: apps/backend
         run: |
           . .venv/bin/activate
@@ -141,9 +141,9 @@ jobs:
       - name: Type check (no new errors vs mypy-baseline.txt)
         # Runs even when tests failed, so type errors and test failures report
         # together; skipped only when the install itself failed. Once per run,
-        # in the 3.12 job: the result does not depend on the interpreter, since
+        # in the 3.14 job: the result does not depend on the interpreter, since
         # [tool.mypy] pins python_version.
-        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.python == '3.12' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.python == '3.14' }}
         working-directory: apps/backend
         env:
           BASE_LOGS: /tmp/librephotos/logs

@@ -161,7 +161,7 @@ def device_capture_time(
 def _zone(name: str) -> datetime.tzinfo:
     try:
         return ZoneInfo(name or "UTC")
-    except (ZoneInfoNotFoundError, ValueError):
+    except ZoneInfoNotFoundError, ValueError:
         return datetime.UTC
 
 

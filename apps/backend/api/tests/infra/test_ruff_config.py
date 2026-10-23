@@ -9,6 +9,7 @@ checked exactly as a file at that path would be, without writing one.
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -66,6 +67,7 @@ def read(path):
 
 PLANTED = """\
 import os
+import re
 import datetime
 
 
@@ -86,16 +88,23 @@ def finding(path, code, row=1):
 
 @unittest.skipUnless(HAS_RUFF, "ruff is not installed (requirements.dev.txt)")
 class PythonFloorSyntaxTests(unittest.TestCase):
-    def test_backend_parses_on_python_311(self):
-        # The Windows standalone build runs Python 3.11 (its prebuilt wheels are
-        # cp311). Syntax added later (PEP 701 f-strings, PEP 695 type
-        # statements, ...) is a SyntaxError there and the module fails to import.
+    def floor(self) -> str:
+        found = re.search(
+            r'(?m)^requires-python\s*=\s*">=3\.(\d+)', read("pyproject.toml")
+        )
+        assert found is not None
+        return f"py3{found.group(1)}"
+
+    def test_backend_parses_on_the_floor_python(self):
+        # The floor of requires-python is the oldest Python a build runs.
+        # Syntax added later is a SyntaxError there and the module fails to
+        # import.
         result = run_ruff(
             "check",
             "--no-cache",
             "--exit-zero",
             "--target-version",
-            "py311",
+            self.floor(),
             "--select",
             "E9",
             "--output-format",
@@ -109,15 +118,16 @@ class PythonFloorSyntaxTests(unittest.TestCase):
             for item in json.loads(result.stdout)
             if item["code"] in (None, "invalid-syntax")
         ]
-        self.assertEqual(syntax, [], "syntax Python 3.11 rejects")
+        self.assertEqual(syntax, [], f"syntax {self.floor()} rejects")
 
-    def test_config_targets_python_311(self):
-        # 3.11 APIs are fine (datetime.UTC); a 3.12 `type` statement is not, so
-        # pyupgrade must not ask for one.
+    def test_config_targets_the_requires_python_floor(self):
+        # ruff's own default target is py310, where pyupgrade never asks for a
+        # 3.12 `type` statement; with the floor taken from requires-python
+        # (3.14) it does.
         utc = "import datetime\n\nprint(datetime.timezone.utc)\n"
         self.assertIn("UP017", lint(utc, "scripts/_ruff_probe.py"))
         alias = "from typing import TypeAlias\n\nNumber: TypeAlias = int\n"
-        self.assertNotIn("UP040", lint(alias, "scripts/_ruff_probe.py"))
+        self.assertIn("UP040", lint(alias, "scripts/_ruff_probe.py"))
 
 
 @unittest.skipUnless(HAS_RUFF, "ruff is not installed (requirements.dev.txt)")
@@ -300,7 +310,7 @@ class GrowthTests(unittest.TestCase):
         # ruff derives its target version from requires-python (issue #2372).
         current = read("pyproject.toml")
         old_pyproject = current.replace(
-            'requires-python = ">=3.11', 'requires-python = ">=3.10'
+            'requires-python = ">=3.14', 'requires-python = ">=3.13'
         )
         self.assertNotEqual(old_pyproject, current)
         self.assertFalse(

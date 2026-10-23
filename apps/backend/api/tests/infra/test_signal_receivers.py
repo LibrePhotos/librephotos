@@ -116,7 +116,9 @@ def connects_without_dispatch_uid(source: str) -> list[int]:
 def connected_receivers() -> Iterator[tuple[object, object, Callable[..., object]]]:
     """(dispatch key, stored reference, receiver) of our live model receivers."""
     for signal in MODEL_SIGNALS:
-        for (key, _sender), ref, _is_async in list(signal.receivers):
+        # An entry is ((key, sender), reference, ...): Django 6.1 added the
+        # sender's weak reference before the is_async flag.
+        for (key, _sender), ref, *_ in list(signal.receivers):
             receiver = resolve(ref)
             if receiver is None:
                 continue

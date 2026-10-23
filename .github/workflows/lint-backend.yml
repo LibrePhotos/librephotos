@@ -25,7 +25,7 @@ jobs:
         with:
           # The floor of requires-python (apps/backend/pyproject.toml), so the
           # scripts below keep running on the oldest Python the backend supports.
-          python-version: "3.11"
+          python-version: "3.14"
       # Must match required-version in apps/backend/pyproject.toml, otherwise
       # ruff refuses to run.
       - run: pip install ruff==0.15.22
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           # The floor of requires-python, like the jobs above.
-          python-version: "3.11"
+          python-version: "3.14"
       # The pin lives in requirements.dev.txt, so CI and a local `lint-imports`
       # report the same. It reads the code statically: no backend dependencies.
       - run: pip install "$(grep '^import-linter==' apps/backend/requirements.dev.txt)"
@@ -82,8 +82,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           # The floor of requires-python: vulture parses the code with this
-          # interpreter, so syntax Python 3.11 rejects fails here too.
-          python-version: "3.11"
+          # interpreter, so syntax the floor rejects fails here too.
+          python-version: "3.14"
       # The vulture pin lives in requirements.dev.txt, so CI and a local
       # `python scripts/check_dead_code.py` report the same findings.
       - run: pip install "$(grep '^vulture==' apps/backend/requirements.dev.txt)"

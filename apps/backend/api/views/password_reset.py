@@ -93,7 +93,6 @@ class PasswordResetView(APIView):
                 body,
                 from_email,
                 [user.email],
-                fail_silently=False,
             )
         except Exception:
             # Never surface delivery failures to the caller (that would leak
@@ -140,5 +139,5 @@ class PasswordResetConfirmView(APIView):
         try:
             pk = force_str(urlsafe_base64_decode(uid))
             return User.objects.get(pk=pk)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        except TypeError, ValueError, OverflowError, User.DoesNotExist:
             return None

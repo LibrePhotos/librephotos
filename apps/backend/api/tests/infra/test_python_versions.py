@@ -34,6 +34,7 @@ TEST_WORKFLOW = WORKFLOWS_DIR / "test-backend.yml"
 # the test matrix in test-backend.yml covers it.
 DISTRO_PYTHON: dict[str, Version] = {
     "ubuntu:noble": (3, 12),
+    "ubuntu:resolute": (3, 14),
 }
 # Our own base images, which the application images build FROM, and the
 # Dockerfile each one is built from (image-backend-base*.yml).
@@ -194,8 +195,8 @@ def _compare(version: Version, operator: str, named: list[Version]) -> bool:
 
 
 # Standard-library names added after 3.10, with the version that added them.
-# Importing one newer than the floor at run time breaks the Windows build
-# (Python 3.11) at import; ruff's target version catches syntax, not missing names. Inside
+# Importing one newer than the floor at run time breaks the oldest Python a
+# build runs at import; ruff's target version catches syntax, not missing names. Inside
 # `if TYPE_CHECKING:` they are fine (with `from __future__ import annotations`
 # or a quoted annotation).
 NEWER_STDLIB: dict[str, dict[str, Version]] = {
@@ -382,6 +383,7 @@ class PlantedViolationTests(unittest.TestCase):
 
     def test_known_base_images_resolve(self):
         self.assertEqual(distro_python("ubuntu:noble"), (3, 12))
+        self.assertEqual(distro_python("ubuntu:resolute"), (3, 14))
 
     def test_an_unsupported_workflow_python_is_found(self):
         workflow = 'steps:\n  - uses: actions/setup-python@v7\n    with:\n      python-version: "3.9"\n'

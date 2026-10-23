@@ -43,7 +43,7 @@ class SunburstNode(TypedDict, total=False):
     name: str
     value: int
     hex: str
-    children: list["SunburstNode"]
+    children: list[SunburstNode]
 
 
 def jump_by_month(
@@ -568,7 +568,7 @@ def _location_cluster_row(feature: object) -> list[Any] | None:
         return None
     try:
         return [float(center[1]), float(center[0]), location_text]
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

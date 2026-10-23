@@ -10,7 +10,7 @@ transaction, so a delete that fails leaves everything as it was.
 Registered from :meth:`api.apps.ApiConfig.ready`.
 """
 
-from typing import Any, TypeAlias
+from typing import Any
 
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -32,7 +32,7 @@ from api.models import (
 from api.models.user import get_deleted_user
 
 # The models of GENERATED_ALBUMS plus the two that are handed over with them.
-OwnedRowModel: TypeAlias = (
+type OwnedRowModel = (
     type[AlbumAuto]
     | type[AlbumDate]
     | type[AlbumPlace]

@@ -289,7 +289,7 @@ def apply_build_info(root: str) -> None:
     try:
         with open(os.path.join(root, BUILD_INFO_NAME), encoding="utf-8") as handle:
             info = json.load(handle)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return
     if not isinstance(info, dict):
         return

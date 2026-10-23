@@ -116,7 +116,7 @@ def _get_photo_filter_kwargs(lookup_value: str) -> dict[str, str]:
         try:
             uuid.UUID(lookup_value)  # validate; raises ValueError if malformed
             return {"pk": lookup_value}
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
     return {"image_hash": lookup_value}
 

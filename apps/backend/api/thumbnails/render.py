@@ -867,7 +867,7 @@ def calculate_dominant_color(thumbnail: Thumbnail, palette_size: int = 16) -> No
     )
     try:
         dominant_color = _most_common_color(source.path, palette_size)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         # No file name (ValueError from .path), no file, not a picture or a
         # truncated one (OSError, PIL's UnidentifiedImageError included).
         dominant_color = None

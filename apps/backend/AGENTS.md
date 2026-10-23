@@ -1,6 +1,6 @@
 # LibrePhotos backend
 
-Django 5.2 + DRF on Postgres (SQLite for tests, the Windows dev server and the standalone build),
+Django 6.1 + DRF on Python 3.14 and Postgres 15+ (SQLite for tests, the Windows dev server and the standalone build),
 background jobs on django-q2, and ML in separate Flask sidecars running ONNX Runtime.
 
 ## Commands
@@ -19,7 +19,7 @@ Without Docker, install with `bash scripts/setup_test_env.sh` inside an activate
 `BASE_LOGS=/tmp/librephotos/logs BASE_DATA=/tmp/librephotos SECRET_KEY=x DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite`.
 Never export `PHOTOS` in that shell: a registration test creates and deletes `<PHOTOS>/family`.
 
-Windows, natively: Python 3.11 (the prebuilt Windows wheels are cp311), `py -3.11 -m venv .venv-win` and
+Windows, natively: Python 3.14 (the prebuilt Windows wheels are cp314), `py -3.14 -m venv .venv-win` and
 `pip install -r requirements.txt -r requirements.dev.txt` (the Windows wheels come from the
 `windows-wheels-*` release via markers in `requirements.txt`). `scripts/dev_windows.ps1 -DataDir C:\devdata`
 starts the exif sidecar, qcluster and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
@@ -37,7 +37,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   for a baselined code. Exceptions and banned APIs (TID251) go in `pyproject.toml` under
   `extend-per-file-ignores` (a `per-file-ignores` table there would drop the baseline).
 - Supported Python is `requires-python` in `pyproject.toml` (ruff targets its floor). Code must run on the
-  floor, 3.11, the Windows standalone build; `test-backend.yml` runs the suite on each image's Python, and
+  floor, 3.14, the oldest Python a build runs (images and the Windows standalone build); `test-backend.yml` runs the suite on each image's Python, and
   `api/tests/infra/test_python_versions.py` fails when an image, workflow or requirements marker leaves the range.
 - Scope owned rows through the manager (`api/models/scopes.py`), never an inline `owner=`/`cluster_owner=`/
   `started_by=`/`photo__owner=` filter: `Model.objects.owned_by(user)` or `get_owned(user, id=...)` to

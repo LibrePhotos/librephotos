@@ -1,12 +1,9 @@
-from typing import Any, TypeVar
+from typing import Any
 
 from django.db.models import Model, QuerySet
 from rest_framework import serializers
 
 from api.models import Photo
-
-M = TypeVar("M", bound=Model)
-S = TypeVar("S", bound=serializers.Serializer[None])
 
 
 class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
@@ -25,7 +22,7 @@ class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
         )
 
 
-def declare_fields(
+def declare_fields[S: serializers.Serializer[None]](
     serializer_class: type[S],
     **fields: serializers.Field[Any, Any, Any, Any],
 ) -> type[S]:
@@ -90,7 +87,7 @@ def loaded_count(obj: Model, name: str) -> int:
     return value
 
 
-def loaded_list(obj: Model, name: str, model: type[M]) -> list[M]:
+def loaded_list[M: Model](obj: Model, name: str, model: type[M]) -> list[M]:
     """The ``Prefetch(to_attr=name)`` list of ``obj``; see ``loaded``."""
     value = loaded(obj, name)
     if not isinstance(value, list):
@@ -98,7 +95,7 @@ def loaded_list(obj: Model, name: str, model: type[M]) -> list[M]:
     return [item for item in value if isinstance(item, model)]
 
 
-def prefetched(obj: Model, relation: str, model: type[M]) -> list[M]:
+def prefetched[M: Model](obj: Model, relation: str, model: type[M]) -> list[M]:
     """The rows of ``obj.<relation>`` from its ``prefetch_related`` cache.
 
     Raises ``MissingRelationsError`` instead of querying when the relation was

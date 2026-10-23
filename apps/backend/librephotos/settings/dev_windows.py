@@ -5,7 +5,7 @@ import os
 
 from librephotos.env import env_flag, env_int, env_str
 
-from ._sqlite import sqlite_database
+from ._sqlite import SQLITE_SILENCED_CHECKS, sqlite_database
 from .production import *  # noqa: E402,F401,F403
 
 # DEBUG=True makes Django re-interpolate migration SQL containing "%"; opt in.
@@ -31,6 +31,7 @@ os.makedirs(_DB_DIR, exist_ok=True)
 DATABASES = {
     "default": sqlite_database(os.path.join(_DB_DIR, "librephotos-dev.sqlite3"))
 }
+SILENCED_SYSTEM_CHECKS = SQLITE_SILENCED_CHECKS
 
 INSTALLED_APPS = [  # noqa: F405
     app

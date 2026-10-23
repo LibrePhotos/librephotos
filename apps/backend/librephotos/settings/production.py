@@ -823,7 +823,9 @@ DEFAULT_FAVORITE_MIN_RATING = 4
 # is unconfigured it is a safe no-op (or the console backend under DEBUG, so
 # reset links still appear in dev logs). This keeps the SMTP credential
 # encrypted at rest and editable without a redeploy. See api/accounts/mail.py.
-EMAIL_BACKEND = "api.accounts.mail.DynamicEmailBackend"
+# Django 6.1 configures mail through MAILERS; the EMAIL_* settings are
+# deprecated, and reading one raises once MAILERS is defined.
+MAILERS = {"default": {"BACKEND": "api.accounts.mail.DynamicEmailBackend"}}
 # Fallback from-address when the admin has not set one; the stored config value
 # takes precedence (see EmailConfig.effective_from_email).
 DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>")

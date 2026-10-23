@@ -14,6 +14,8 @@ Every LibrePhotos release brings its own database migrations. The backend applie
 - [Windows standalone](windows-standalone.md#updating): quit LibrePhotos from the tray, rename the old program folder, unzip the new release next to it and start it.
 - [Kubernetes](https://github.com/LibrePhotos/librephotos/tree/dev/deploy/k8s#upgrading): the image tags in `kustomization.yaml` are pinned, so check out the new release's tag, whose manifests name its images. Since 1.3.0 the manifests run PostgreSQL 16 instead of 13, so an older install moves its database with a dump and restore first.
 
+<Since version="1.5.0" /> LibrePhotos needs PostgreSQL 15 or newer. The bundled Compose files (18) and the Kubernetes manifests (16) already run a newer one; if you point LibrePhotos at your own PostgreSQL 14 or older, upgrade that server before you update LibrePhotos, or the backend stops at start with an error naming the version.
+
 Back up your database before any upgrade. It is the only way back if a migration fails halfway, and it is cheap:
 
 ```sh

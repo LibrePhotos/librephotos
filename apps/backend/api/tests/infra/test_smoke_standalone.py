@@ -174,6 +174,22 @@ class WaitUntilTest(SimpleTestCase):
         self.assertEqual(0.0, self.now[0])
 
 
+class MigrationsTest(SimpleTestCase):
+    def test_migrate_check_runs_against_the_data_folder(self):
+        app = MagicMock()
+
+        smoke.check_migrations(app)
+
+        app.manage.assert_called_once_with("migrate", "--check", "--no-input")
+
+    def test_unapplied_migrations_fail(self):
+        app = MagicMock()
+        app.manage.side_effect = smoke.SmokeError("manage migrate exited with 1")
+
+        with self.assertRaisesRegex(smoke.SmokeError, "unapplied migrations"):
+            smoke.check_migrations(app)
+
+
 class LogInTest(SimpleTestCase):
     def test_the_admin_is_created_from_the_environment_and_logged_in(self):
         token = access_token({"user_id": "3"})
@@ -453,6 +469,11 @@ class ApiTest(SimpleTestCase):
         response.json.return_value = body
         api.session.request = MagicMock(return_value=response, side_effect=error)
         return api
+
+    def test_no_connection_is_reused(self):
+        # uvicorn drops idle keep-alive connections after 5 s; a reused one
+        # after `manage scan` failed CI with WinError 10054.
+        self.assertEqual("close", smoke.Api("http://x").session.headers["Connection"])
 
     def test_a_2xx_answer_gives_its_body(self):
         api = self.api(200, {"a": 1})

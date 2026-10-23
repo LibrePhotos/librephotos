@@ -39,7 +39,7 @@ class FirstClassMLP:
     def __init__(self, **kwargs: Any) -> None:
         self.classes_ = np.array([])
 
-    def fit(self, encodings: np.ndarray, y: np.ndarray) -> "FirstClassMLP":
+    def fit(self, encodings: np.ndarray, y: np.ndarray) -> FirstClassMLP:
         self.classes_ = np.unique(np.asarray(y))
         return self
 

@@ -95,7 +95,7 @@ def is_video(path: str) -> bool:
     try:
         # Sniffed only: a corrupt file with a video extension must not become a video.
         return (sniffed_mime_type(path) or "").find("video") != -1
-    except (OSError, TypeError, ValueError):
+    except OSError, TypeError, ValueError:
         # A file that cannot be read, or a path the sniffer refuses.
         logger.error("Error while checking if file is video: %s", path)
         return False

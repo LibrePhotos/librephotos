@@ -433,7 +433,7 @@ Your photos in your own folders are not touched by any of this.
 
 ```powershell
 cd apps\backend
-py -3.11 -m venv .venv
+py -3.14 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.standalone.txt
 .\.venv\Scripts\python scripts\build_standalone.py --zip
 ```

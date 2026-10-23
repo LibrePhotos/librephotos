@@ -22,6 +22,12 @@ _INIT_COMMAND = """
 # server, so every SQLite deployment gets the 30 s that server needed.
 SQLITE_TIMEOUT_SECONDS = 30
 
+# SQLite has no covering indexes: it builds an Index(include=...) without the
+# included columns (the index-only scan they serve is a PostgreSQL one). Since
+# Django 6.1 `check` runs the database checks by default and warns about every
+# such index (models.W040); on SQLite that is the expected trade-off.
+SQLITE_SILENCED_CHECKS = ["models.W040"]
+
 
 def sqlite_database(path: str) -> dict[str, object]:
     """The ``DATABASES["default"]`` entry for an SQLite file at ``path``."""

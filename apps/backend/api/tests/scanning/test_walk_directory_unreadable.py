@@ -60,7 +60,7 @@ def _unreadable(directory: str, *, while_iterating: bool = False) -> Iterator[No
         def __iter__(self) -> Iterator[os.DirEntry[str]]:
             return self.entries
 
-        def __enter__(self) -> "FailingIterator":
+        def __enter__(self) -> FailingIterator:
             return self
 
         def __exit__(self, *exc: object) -> None:

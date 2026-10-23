@@ -89,7 +89,7 @@ def resolves(path: str) -> bool:
     try:
         apps.get_model(path)
         return True
-    except (LookupError, ValueError):
+    except LookupError, ValueError:
         return False
 
 

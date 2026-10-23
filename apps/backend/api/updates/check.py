@@ -85,7 +85,7 @@ class CheckResult:
         try:
             data = json.loads(text)
             return cls(**data) if isinstance(data, dict) else None
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
 
 

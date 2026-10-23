@@ -132,9 +132,13 @@ class SquashedMigrationHistoryCheckTest(TestCase):
         self.assertIn("librephotos.E001", [error.id for error in errors])
 
     def test_not_run_without_databases(self):
-        # Plain `manage.py check` and runserver must not touch the database.
+        # Plain `manage.py check` and runserver must not touch the database:
+        # they run the checks without tags or databases, which leaves out the
+        # database-tagged ones. (Since Django 6.1, run_checks() hands every
+        # other check all databases, and a database-tagged one all of them
+        # when its tag is asked for, so the call has to be the plain one.)
         self.forget(replaced_names()[-1:])
 
-        errors = checks.run_checks(tags=[checks.Tags.database])
+        errors = checks.run_checks()
 
         self.assertNotIn("librephotos.E001", [error.id for error in errors])

@@ -76,7 +76,7 @@ def remote_mtime(file_obj: _RemoteFile) -> float | None:
         return None
     try:
         return parsedate_to_datetime(value).timestamp()
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -152,7 +152,7 @@ def local_path_for(root: str, remote_path: str) -> str | None:
             os.path.commonpath([real_root, real_candidate]) == real_root
             and real_candidate != real_root
         )
-    except (ValueError, OSError):
+    except ValueError, OSError:
         return None
     return candidate if inside else None
 

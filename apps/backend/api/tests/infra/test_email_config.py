@@ -92,7 +92,7 @@ class EmailConfigModelTest(TestCase):
 class DynamicEmailBackendTest(TestCase):
     def test_unconfigured_backend_is_noop(self):
         EmailConfig.load()  # provider defaults to disabled
-        backend = DynamicEmailBackend()
+        backend = DynamicEmailBackend(alias="default")
         sent = backend.send_messages(
             [mail.EmailMessage("s", "b", "from@example.org", ["to@example.org"])]
         )
@@ -104,12 +104,14 @@ class DynamicEmailBackendTest(TestCase):
         c.host = "smtp.example.org"
         c.from_email = "no-reply@example.org"
         c.save()
-        backend = DynamicEmailBackend()
+        backend = DynamicEmailBackend(alias="default")
         delegate = backend._delegate()
         from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
 
         self.assertIsInstance(delegate, SMTPBackend)
         self.assertEqual(delegate.host, "smtp.example.org")
+        # Built as part of the mailer, so Django reads no EMAIL_* setting.
+        self.assertEqual(delegate.alias, "default")
 
 
 class EmailConfigApiTest(TestCase):

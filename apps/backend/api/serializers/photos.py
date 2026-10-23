@@ -574,7 +574,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     search_captions = serializers.SerializerMethodField()
     search_location = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
-    shared_to: "serializers.PrimaryKeyRelatedField[User]" = (
+    shared_to: serializers.PrimaryKeyRelatedField[User] = (
         serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     )
     image_path = serializers.SerializerMethodField()
@@ -852,7 +852,7 @@ class PhotoSerializer(serializers.ModelSerializer):
                         ]
                         for x, y in box
                     ]
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     continue
                 blocks.append(
                     {

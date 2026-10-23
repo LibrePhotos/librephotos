@@ -22,7 +22,7 @@ import binascii
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from django.db import models
@@ -83,7 +83,6 @@ ENVELOPE_VERSION = 1
 # One ``.values()`` row of a feed.
 Row = dict[str, Any]
 
-ModelT = TypeVar("ModelT", bound=models.Model)
 ViewT = TypeVar("ViewT", bound=APIView)
 
 
@@ -113,7 +112,7 @@ def decode_cursor(cursor: str) -> tuple[datetime, str]:
     return datetime.fromisoformat(iso), pk
 
 
-class BaseSyncView(APIView, Generic[ModelT]):
+class BaseSyncView[ModelT: models.Model](APIView):
     """Template for a single keyset-paginated delta feed."""
 
     permission_classes = (IsAuthenticated,)

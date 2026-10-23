@@ -443,7 +443,7 @@ def _restore_crop(face: api.models.face.Face) -> bool:
                 return False
             crop = big_thumbnail.crop((left, top, right, bottom))
             content = _jpeg(crop)
-    except (OSError, PIL.Image.DecompressionBombError):
+    except OSError, PIL.Image.DecompressionBombError:
         logger.warning("face %s: cannot cut its crop", face.id, exc_info=True)
         return False
     face.image.save(f"{photo.image_hash}_{face.id}.jpg", content, save=False)

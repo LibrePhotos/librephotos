@@ -54,7 +54,7 @@ def _inside_media_root(destination: str) -> bool:
     try:
         path = os.path.realpath(destination)
         return os.path.commonpath([root, path]) == root
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         # Not a path, or on another drive than the media root.
         return False
 

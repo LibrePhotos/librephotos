@@ -214,7 +214,7 @@ class PersonSerializer(serializers.ModelSerializer):
         if photo is None:
             try:
                 photo = own_photos.filter(pk=photo_ref).first()
-            except (ValueError, TypeError, DjangoValidationError):
+            except ValueError, TypeError, DjangoValidationError:
                 photo = None
 
         if photo is None:

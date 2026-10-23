@@ -63,7 +63,9 @@ def photo_id_columns(apps, connection):
     with connection.cursor() as cursor:
         for table in connection.introspection.table_names(cursor):
             relations = connection.introspection.get_relations(cursor, table)
-            for column, (target_column, target_table) in relations.items():
+            # (target column, target table), plus the ON DELETE action since
+            # Django 6.1.
+            for column, (target_column, target_table, *_) in relations.items():
                 if (target_table, target_column) == photo_pk:
                     columns.add((table, column))
     return columns

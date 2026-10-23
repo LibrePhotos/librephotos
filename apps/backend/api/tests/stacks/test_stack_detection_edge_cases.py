@@ -591,7 +591,7 @@ class MalformedRulesEdgeCasesTestCase(TestCase):
             count = detect_burst_sequences(self.user)
             # If it doesn't crash, it should return 0 (no valid rules)
             self.assertEqual(count, 0)
-        except (TypeError, AttributeError):
+        except TypeError, AttributeError:
             # This is expected if the code doesn't handle dict input
             pass
 
@@ -611,7 +611,7 @@ class MalformedRulesEdgeCasesTestCase(TestCase):
         try:
             count = detect_burst_sequences(self.user)
             self.assertEqual(count, 0)
-        except (KeyError, AttributeError):
+        except KeyError, AttributeError:
             # Expected if code doesn't validate input
             pass
 
