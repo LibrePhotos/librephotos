@@ -33,7 +33,7 @@ from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
-from api.metadata import photo_reader, takeout
+from api.metadata import edits, photo_reader, takeout
 from api.metadata.datetime_rules import CaptureTime
 from api.metadata.photo_datetime import extract_date_time
 from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
@@ -1161,6 +1161,7 @@ def _process_photo(
                 elapsed,
             )
 
+    first_read = photo.metadata_read_at is None
     try:
         _read_metadata(photo, path, job_id, start)
     except Exception:
@@ -1169,6 +1170,9 @@ def _process_photo(
         _set_metadata_read_at(photo, None)
         raise
     _set_metadata_read_at(photo, timezone.now())
+    if first_read:
+        # The owner's default rights where the file states none (#425).
+        edits.apply_rights_default_on_scan(photo)
 
     render.calculate_dominant_color(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()

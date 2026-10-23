@@ -39,6 +39,7 @@ from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import extract_exif_data, read_file_values
 from api.metadata.photo_writer import rotate_photo, write_photo_metadata
 from api.metadata.reader import existing_sidecars, get_metadata
+from api.metadata.rights import Keep
 from api.metadata.tags import Tags
 from api.metadata.writer import MetadataWriteError, write_metadata
 from api.models import LongRunningJob
@@ -46,7 +47,7 @@ from api.models.face import Face
 from api.models.person import Person
 from api.models.photo import LocationSource, Photo
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import description_of
+from api.models.photo_metadata import description_of, text_fields_of
 from api.models.tag import Tag
 from api.models.user import User
 from api.photos.zip_downloads import zip_photos_task
@@ -73,6 +74,7 @@ MODES = (SIDECAR, MEDIA_FILE)
 IMAGE_FORMATS = (".jpg", ".png", ".tif", ".heic")
 
 TIMESTAMP = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.UTC)
+RIGHTS_NOTICE = "(c) {year} Anna Berger"
 
 
 def run_now(func, *args):
@@ -1882,6 +1884,31 @@ class ScanReadsOnlyTest(RealExifToolTestCase):
 
                 self.assertEqual(4, Photo.objects.get(pk=photo.pk).rating)
 
+    def test_a_new_photo_gets_the_default_rights_without_a_write(self):
+        """The owner's default rights fill what the file does not state (#425),
+        on the first read only, and the file stays as it is."""
+        path = self.make_image(".jpg", "scan-rights")
+        self.tag(path, "-XMP-dc:Rights=(c) From the camera")
+        user = create_test_user(
+            save_metadata_to_disk=MEDIA_FILE,
+            default_license="cc-by-4.0",
+            default_copyright="(c) {year} Anna",
+        )
+        photo = self.photo_for(path, user, thumbnails=True, metadata_read_at=None)
+
+        with self.assertUntouched(path):
+            _process_photo(photo, path, "job", datetime.datetime.now())
+
+        metadata = Photo.objects.get(pk=photo.pk).metadata
+        self.assertEqual("(c) From the camera", metadata.copyright)
+        self.assertEqual("cc-by-4.0", metadata.license)
+
+        user.default_license = "cc0-1.0"
+        user.save()
+        rescanned = Photo.objects.get(pk=photo.pk)
+        _process_photo(rescanned, path, "job", datetime.datetime.now())
+        self.assertEqual("cc-by-4.0", Photo.objects.get(pk=photo.pk).metadata.license)
+
 
 # The web app's clockwise button sends -90 (``rotate_photo`` counts its angle
 # counter-clockwise as rendered).
@@ -2055,6 +2082,172 @@ class RotationRoundTripTest(RealExifToolTestCase):
                     rotate_photo(photo, CLOCKWISE)
 
                 self.assertEqual(TURNED_CLOCKWISE, self._thumbnail(photo))
+
+
+class RightsRoundTripTest(RealExifToolTestCase):
+    """A rights edit (#425) read back as the scan reads it: copyright, creator
+    and license, from ``text_fields_of``."""
+
+    def _photo(self, path, mode, **fields):
+        return self.photo_for(
+            path, create_test_user(save_metadata_to_disk=mode), **fields
+        )
+
+    def _set(self, photo, **values):
+        with (
+            patch("api.metadata.jobs.enqueue_task", run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            edits.set_rights(
+                Photo.objects.filter(id=photo.id), values, Keep.NONE, photo.owner
+            )
+
+    def _rights_the_scan_reads(self, photo):
+        found = text_fields_of(read_file_values(photo))
+        return found["copyright"], found["creator"], found["license"]
+
+    def _round_trip(self, path, mode, **fields):
+        photo = self._photo(path, mode, **fields)
+
+        self._set(
+            photo,
+            copyright=RIGHTS_NOTICE,
+            creator="Anna Berger",
+            license="cc-by-nc-4.0",
+        )
+
+        self.assertEqual(
+            ("(c) 2019 Anna Berger", "Anna Berger", "cc-by-nc-4.0"),
+            self._rights_the_scan_reads(photo),
+        )
+        self.assertWritesLanded(expected=1)
+        target = self.exiftool.writes[0].target
+        self.assertEqual(self.sidecar_of(path) if mode == SIDECAR else path, target)
+        return photo
+
+    def test_image_formats(self):
+        for extension in IMAGE_FORMATS:
+            for mode in MODES:
+                with self.subTest(extension=extension, mode=mode):
+                    self.exiftool.writes.clear()
+                    self._round_trip(
+                        self.make_image(extension, f"rights-{mode}"),
+                        mode,
+                        exif_timestamp=TIMESTAMP,
+                    )
+
+    def test_video(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                self._round_trip(
+                    self.make_video(f"rights-{mode}"),
+                    mode,
+                    video=True,
+                    exif_timestamp=TIMESTAMP,
+                )
+
+    def test_the_media_file_gets_the_exif_and_xmp_rights_tags(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-IPTC:CopyrightNotice=Old notice")
+        self._round_trip(path, MEDIA_FILE, exif_timestamp=TIMESTAMP)
+
+        found = self.read_tags(
+            path,
+            Tags.EXIF_COPYRIGHT,
+            Tags.ARTIST,
+            Tags.IPTC_COPYRIGHT,
+            Tags.IPTC_BYLINE,
+            Tags.WEB_STATEMENT,
+            Tags.MARKED,
+            "XMP:UsageTerms",
+        )
+        url = "https://creativecommons.org/licenses/by-nc/4.0/"
+        self.assertEqual("(c) 2019 Anna Berger", found[Tags.EXIF_COPYRIGHT])
+        self.assertEqual("Anna Berger", found[Tags.ARTIST])
+        # MWG keeps the IPTC block the file has in step.
+        self.assertEqual("(c) 2019 Anna Berger", found[Tags.IPTC_COPYRIGHT])
+        self.assertEqual("Anna Berger", found[Tags.IPTC_BYLINE])
+        self.assertEqual(url, found[Tags.WEB_STATEMENT])
+        self.assertIs(True, found[Tags.MARKED])
+        self.assertEqual(f"CC BY-NC 4.0 ({url})", found["XMP:UsageTerms"])
+
+    def test_a_line_break_is_written_as_a_space(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, MEDIA_FILE)
+
+        self._set(photo, copyright="(c) Anna\nBerger")
+
+        self.assertWritesLanded(expected=1)
+        self.assertEqual("(c) Anna Berger", self._rights_the_scan_reads(photo)[0])
+
+    def test_clearing_removes_the_tags(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"rights-clear-{mode}")
+                photo = self._round_trip(path, mode, exif_timestamp=TIMESTAMP)
+
+                self._set(photo, copyright=None, creator=None, license=None)
+
+                self.assertEqual((None, None, None), self._rights_the_scan_reads(photo))
+                self.assertWritesLanded(expected=2)
+
+    def test_all_rights_reserved_keeps_the_owners_rights_page(self):
+        path = self.make_image(".jpg")
+        self.tag(path, "-XMP-xmpRights:WebStatement=https://example.com/rights")
+        photo = self._photo(path, MEDIA_FILE)
+
+        self._set(photo, license="all-rights-reserved")
+
+        self.assertWritesLanded(expected=1)
+        self.assertEqual("all-rights-reserved", self._rights_the_scan_reads(photo)[2])
+        found = self.read_tags(path, Tags.WEB_STATEMENT, Tags.LICENSE)
+        self.assertEqual("https://example.com/rights", found[Tags.WEB_STATEMENT])
+        self.assertIsNone(found[Tags.LICENSE])
+
+    def test_a_creative_commons_web_statement_goes_with_the_license(self):
+        path = self.make_image(".jpg")
+        self.tag(
+            path,
+            "-XMP-xmpRights:WebStatement=https://creativecommons.org/licenses/by/4.0/",
+        )
+        photo = self._photo(path, MEDIA_FILE, license="cc-by-4.0")
+        self.assertEqual("cc-by-4.0", self._rights_the_scan_reads(photo)[2])
+
+        self._set(photo, license=None)
+
+        self.assertWritesLanded(expected=1)
+        self.assertIsNone(self._rights_the_scan_reads(photo)[2])
+
+    def test_nothing_is_written_when_off(self):
+        path = self.make_image(".jpg")
+        photo = self._photo(path, OFF)
+
+        with self.assertUntouched(path):
+            self._set(photo, license="cc0-1.0")
+
+    def test_the_write_metadata_job_writes_rights_set_in_librephotos(self):
+        user = create_test_user(save_metadata_to_disk=SIDECAR)
+        path = self.make_image(".jpg", "rights-job")
+        photo = self.photo_for(path, user, exif_timestamp=TIMESTAMP)
+        untouched = self.make_image(".jpg", "rights-none")
+        self.tag(untouched, "-Comment=other pixels")
+        self.photo_for(untouched, user)
+        with patch("api.metadata.jobs.enqueue_task"):
+            edits.set_rights(
+                Photo.objects.filter(id=photo.id),
+                {"license": "cc-by-sa-4.0"},
+                Keep.NONE,
+                user,
+            )
+
+        job = run_write_metadata_job(user, ["rights"])
+
+        self.assertWritesLanded(expected=1)
+        self.assertEqual(1, job.result["written"])
+        self.assertEqual("cc-by-sa-4.0", self._rights_the_scan_reads(photo)[2])
+        self.assertEqual([], existing_sidecars(untouched))
 
 
 # Every function that calls write_metadata, and the tests above that run it
@@ -2245,7 +2438,8 @@ EXERCISED_WRITERS = {
     "api.metadata.photo_writer._write_sidecar_orientation": "RotationRoundTripTest",
     "api.metadata.photo_writer._fold_rotation_into_file": "RotationRoundTripTest",
     "api.metadata.photo_writer._write_edit": (
-        "CaptionRoundTripTest, LocationRoundTripTest, KeywordRoundTripTest"
+        "CaptionRoundTripTest, LocationRoundTripTest, KeywordRoundTripTest, "
+        "RightsRoundTripTest"
     ),
 }
 
@@ -2354,6 +2548,13 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                 Tags.GPS_LATITUDE_REF,
                 Tags.GPS_COORDINATES_KEYS,
                 Tags.KEYWORDS_MWG,
+                Tags.RIGHTS_XMP,
+                Tags.COPYRIGHT_MWG,
+                Tags.CREATOR_MWG,
+                Tags.LICENSE_WRITE,
+                Tags.WEB_STATEMENT_WRITE,
+                Tags.MARKED_WRITE,
+                Tags.USAGE_TERMS,
             },
             emitted,
         )
@@ -2372,6 +2573,8 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                     edits.set_caption(photo, CAPTION, user)
                     edits.set_location(photo, LATITUDE, LONGITUDE, user)
                     edits.set_keywords(photo, ["Sunset"], user)
+                    edits.set_text_field(photo, "copyright", "(c) Anna", user)
+                    edits.set_text_field(photo, "license", "cc-by-4.0", user)
 
     def test_the_guard_fails_a_tag_exiftool_leaves_unchanged(self):
         path = self.make_image(".jpg")

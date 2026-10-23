@@ -57,6 +57,7 @@ vi.mock("./PeopleSection", () => ({
 }));
 vi.mock("./Description", () => ({ Description: () => null }));
 vi.mock("./AlbumsSection", () => ({ AlbumsSection: () => null }));
+vi.mock("../rights/RightsSection", () => ({ RightsSection: () => null }));
 vi.mock("./SimilarPhotosSection", () => ({ SimilarPhotosSection: () => null }));
 vi.mock("./TagsSection", () => ({
   TagsSection: ({ photoDetail }: { photoDetail: Photo }) => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PhotoLicenseId, RightsField } from "./photoRights";
 import { MetadataSourceEnum } from "./photos";
 
 /**
@@ -94,6 +95,12 @@ export const PhotoMetadata = z.object({
   rating: z.number().nullable(),
   copyright: z.string().nullable(),
   creator: z.string().nullable(),
+  // The license (#425, a `PhotoLicenseId`; a client narrows it, so a license a newer server knows
+  // does not fail the parse), its deed, and which rights fields are the file's rather than set in
+  // LibrePhotos. Optional: older servers send none of them.
+  license: z.string().nullable().optional(),
+  license_url: z.string().nullable().optional(),
+  rights_from_file: RightsField.array().optional(),
   // Tracking
   source: MetadataSourceEnum,
   version: z.number(),
@@ -111,8 +118,9 @@ export type PhotoMetadataUpdate = {
   caption?: string;
   keywords?: string[];
   rating?: number;
-  copyright?: string;
-  creator?: string;
+  copyright?: string | null;
+  creator?: string | null;
+  license?: PhotoLicenseId | null;
 };
 
 /** PATCH /photos/metadata/bulk: how many photos changed. */

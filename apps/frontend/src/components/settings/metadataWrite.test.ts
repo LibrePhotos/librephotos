@@ -1,7 +1,7 @@
 /**
  * The one list of edits that "Write edits to files" writes (#2281). It must say what
- * api/metadata/photo_writer.py writes: rating, date, rotation, caption, tags (#2289) and location in
- * both modes, nothing when Off.
+ * api/metadata/photo_writer.py writes: rating, date, rotation, caption, tags (#2289), location and
+ * rights (#425) in both modes, nothing when Off.
  */
 import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
@@ -12,8 +12,8 @@ describe("WRITTEN_FIELDS", () => {
   it("matches what the backend writes in each mode", () => {
     expect(WRITTEN_FIELDS).toEqual({
       OFF: [],
-      SIDECAR_FILE: ["rating", "date", "rotation", "caption", "tags", "location"],
-      MEDIA_FILE: ["rating", "date", "rotation", "caption", "tags", "location"],
+      SIDECAR_FILE: ["rating", "date", "rotation", "caption", "tags", "location", "rights"],
+      MEDIA_FILE: ["rating", "date", "rotation", "caption", "tags", "location", "rights"],
     });
   });
 });

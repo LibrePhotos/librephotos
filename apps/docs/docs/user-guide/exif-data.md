@@ -60,7 +60,8 @@ Where a field lists several tags, the first one the photo has is used.
 | Caption | `XMP:Description`, `XMP:Description-*`, `IPTC:Caption-Abstract`, `EXIF:ImageDescription` | The description's default-language entry first, else any language entry, then the IPTC caption (older Photoshop and Lightroom, Picasa, newsroom tools), then the EXIF one. Text cameras put there, such as `OLYMPUS DIGITAL CAMERA` or `SONY DSC`, and a description that only repeats the camera model are skipped. <Since version="1.4.0" /> Without any of them, the `description` of a [Google Takeout JSON](./google-takeout.md) next to the file. |
 | Title | `XMP:Title`, `XMP:Headline`, `IPTC:ObjectName` | Stored in the photo's metadata (`/api/photos/{id}/metadata/`). |
 | Creator | `XMP:Creator`, `IPTC:By-line`, `EXIF:Artist` | The first name when there are several. Stored in the photo's metadata. |
-| Copyright | `XMP:Rights`, `IPTC:CopyrightNotice`, `EXIF:Copyright` | Stored in the photo's metadata. |
+| Copyright | `XMP:Rights`, `IPTC:CopyrightNotice`, `EXIF:Copyright` | Stored in the photo's metadata. <Since version="1.5.0" /> Shown in the **Rights** section of the photo's details, see [Copyright and licenses](./rights.md). |
+| License | `XMP-cc:License`, `XMP-xmpRights:WebStatement`, `XMP-xmpRights:Marked` | <Since version="1.5.0" /> One of a fixed list (All rights reserved, the Creative Commons 4.0 licenses, CC0, Public Domain Mark): from `XMP-cc:License`, else a `WebStatement` that is a Creative Commons deed; `Marked` true without either is All rights reserved. See [Copyright and licenses](./rights.md#in-your-files). |
 | Faces and people | `XMP:RegionInfo` | MWG face regions (`XMP-mwg-rs:RegionInfo`) with normalized areas. A region with a name becomes a face of the person of that name. LibrePhotos' own face detection runs as well; a detected face that overlaps a region is the same face. |
 | Orientation | `EXIF:Orientation`; for HEIC and AVIF `QuickTime:Rotation` and `QuickTime:Mirroring` | An orientation of 5 to 8 turns the photo a quarter, so its width and height are swapped. A HEIC or AVIF photo is shown under its `irot` and `imir` properties, which ExifTool reports as `QuickTime:Rotation` and `QuickTime:Mirroring`, whatever its EXIF orientation says. Face regions are placed with the same orientation. |
 | Width, height | `ImageWidth`, `ImageHeight`; for videos also `Composite:Rotation` | The size the photo is shown at, used for its aspect ratio. A video recorded upright on a phone is stored landscape with a rotation of 90 or 270 degrees; its width and height are swapped. |
@@ -189,7 +190,8 @@ library by a moment.
 | Location | `XMP-exif:GPSLatitude`, `XMP-exif:GPSLongitude` | In an image `GPS:GPSLatitude`, `GPS:GPSLatitudeRef`, `GPS:GPSLongitude`, `GPS:GPSLongitudeRef`; in an MP4 or MOV `Keys:GPSCoordinates` |
 | Tags | `XMP-dc:Subject` | `XMP-dc:Subject`, and `IPTC:Keywords` if the file already has IPTC data |
 | Faces and their names, only with **Write face tags to image files** | `XMP-mwg-rs:RegionInfo`, names added to `XMP-dc:Subject` | the same, in the file |
-| Title, creator, copyright | not written | not written |
+| Copyright, creator, license | <Since version="1.5.0" /> `XMP-dc:Rights`, `XMP-dc:Creator`, `XMP-cc:License`, `XMP-xmpRights:WebStatement`, `XMP-xmpRights:UsageTerms`, `XMP-xmpRights:Marked` | the same, and `EXIF:Copyright`, `EXIF:Artist`, and `IPTC:CopyrightNotice`, `IPTC:By-line` if the file already has IPTC data; see [Copyright and licenses](./rights.md#in-your-files) |
+| Title | not written | not written |
 
 Never written: the place name (city, country), which is looked up from the position again; a
 generated caption; albums, hidden and archived photos; and every other tag on this page. The

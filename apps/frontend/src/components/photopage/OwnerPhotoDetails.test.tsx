@@ -88,6 +88,7 @@ vi.mock("../lightbox/LocationSection", () => ({
 vi.mock("../lightbox/AlbumsSection", () => ({ AlbumsSection: () => <div data-section="albums" /> }));
 vi.mock("../lightbox/SimilarPhotosSection", () => ({ SimilarPhotosSection: () => <div data-section="similar" /> }));
 vi.mock("./FileCard", () => ({ FileCard: () => <div data-section="file" /> }));
+vi.mock("../rights/RightsSection", () => ({ RightsSection: () => <div data-section="rights" /> }));
 vi.mock("../modals/ModalPersonEdit", () => ({
   ModalPersonEdit: (props: React.ComponentProps<typeof ModalPersonEdit>) => {
     stubs.personEdit.push(props);
@@ -166,7 +167,7 @@ const full = makePhoto({
 describe("owner's photo details", () => {
   it("folds a bare photo's missing details into one card of buttons", async () => {
     const container = await renderDetails(bare);
-    expect(sections(container)).toEqual(["file"]);
+    expect(sections(container)).toEqual(["file", "rights"]);
     for (const offer of ["photopage.add.caption", "photopage.add.tags", "photopage.add.place", "photopage.add.face"]) {
       expect(button(container, offer)).toBeDefined();
     }
@@ -177,7 +178,7 @@ describe("owner's photo details", () => {
     stubs.tags = [{ id: 1, name: "family", photo_count: 1 }];
     stubs.albums = [{ id: 7 }];
     const container = await renderDetails(full);
-    expect(sections(container)).toEqual(["people", "caption", "tags", "place", "file", "albums", "similar"]);
+    expect(sections(container)).toEqual(["people", "caption", "tags", "place", "file", "rights", "albums", "similar"]);
     expect(container.textContent).not.toContain("photopage.add.title");
     expect(container.textContent).toContain("photopage.camera.title");
     // Each section shows the card's heading next to its own edit controls.
@@ -189,7 +190,7 @@ describe("owner's photo details", () => {
   it("opens the editor of a detail picked from Add details", async () => {
     const container = await renderDetails(bare);
     await act(async () => button(container, "photopage.add.caption").click());
-    expect(sections(container)).toEqual(["caption", "file"]);
+    expect(sections(container)).toEqual(["caption", "file", "rights"]);
     expect(last(stubs.caption).startEditing).toBe(true);
 
     await act(async () => button(container, "photopage.add.tags").click());

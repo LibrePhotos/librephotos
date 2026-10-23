@@ -22,6 +22,7 @@ import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../..
 import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
+import { RightsSection } from "../rights/RightsSection";
 import { AlbumsSection } from "./AlbumsSection";
 import { AlbumThreadSection } from "./AlbumThreadSection";
 import { CameraInfoSection } from "./CameraInfoSection";
@@ -380,6 +381,7 @@ function OwnerSidebar({
         {/* Tags stay owner-only: public shares have no flag for them. The file's
             keywords are tags too (a scan makes one of each), marked as such. */}
         <TagsSection photoDetail={photoDetail} />
+        <RightsSection photo={photoDetail} />
         <AlbumsSection imageHash={photoDetail.image_hash} />
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
         <AlbumThreadSection photoKey={id} />

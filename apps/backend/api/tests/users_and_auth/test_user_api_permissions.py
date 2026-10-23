@@ -79,6 +79,9 @@ class UserTest(TestCase):
         "save_face_tags_to_disk",
         "public_sharing_defaults",
         "share_people_names",
+        "default_license",
+        "default_creator",
+        "default_copyright",
         "last_seen_release",
         "show_whats_new",
     ]

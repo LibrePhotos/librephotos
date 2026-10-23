@@ -20,6 +20,7 @@ import { FaceOptionsCard } from "./FaceOptionsCard";
 import { InterfaceCard } from "./InterfaceCard";
 import { MetadataOptionsCard } from "./MetadataOptionsCard";
 import { PublicSharingDefaultsCard } from "./PublicSharingDefaultsCard";
+import { RightsDefaultCard } from "./RightsDefaultCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanOptionsCard } from "./ScanOptionsCard";
 import { SETTINGS_SECTIONS } from "./sectionIds";
@@ -90,6 +91,7 @@ export function Settings() {
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.metadata}>
             <MetadataOptionsCard {...cardProps} saved={userSelfDetails} />
+            <RightsDefaultCard {...cardProps} saved={userSelfDetails} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.faces}>
             <FaceOptionsCard {...cardProps} />

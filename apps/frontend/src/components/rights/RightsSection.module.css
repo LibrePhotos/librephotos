@@ -1,0 +1,4 @@
+/* A copyright notice or a name can be one long word (a URL); it wraps instead of widening the panel. */
+.value {
+  overflow-wrap: anywhere;
+}

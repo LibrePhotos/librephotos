@@ -18,7 +18,8 @@ keywords                   the photo's ``Tag`` rows, the list in
                            ``PhotoMetadata.edited_keywords``;
                            ``PhotoMetadata.keywords`` stays the file's
                            keywords at the last read (#2783)
-title, copyright, creator  ``PhotoMetadata``
+title, copyright, creator, ``PhotoMetadata``
+license
 =========================  ===================================================
 
 A setter writes the store, records a ``MetadataEdit`` per changed photo (the
@@ -27,7 +28,8 @@ mobile delta feed and the clients' caches see the change, refreshes
 ``PhotoSearch`` where the field is indexed, and writes the value back to the
 file or sidecar when the owner syncs metadata to disk. Write-back covers the
 rating, the capture date, the caption, the keywords (#2289) and the location
-(#2290); the text fields are not written to files yet. Tags are the keywords
+(#2290), and the rights: copyright, creator and license (#425); the title is
+not written to files yet. Tags are the keywords
 the user edits (#2230): ``tags_changed`` writes the tags an edit of the tag
 endpoints touched, which have no edit history.
 
@@ -61,6 +63,14 @@ from api.metadata.photo_datetime import extract_date_time
 from api.metadata.photo_reader import read_file_values
 from api.metadata.photo_writer import write_photo_metadata_on_commit
 from api.metadata.reader import get_metadata, sidecar_files_for_photo
+from api.metadata.rights import (
+    RIGHTS_FIELDS,
+    Keep,
+    default_rights,
+    is_license,
+    replaces,
+    resolved,
+)
 from api.metadata.tags import Tags
 from api.metadata.takeout import takeout_metadata_of
 from api.models.album_place import AlbumPlace, get_album_place
@@ -72,6 +82,7 @@ from api.models.photo_metadata import (
     MetadataEdit,
     PhotoMetadata,
     description_of,
+    fields_edited_by_user_of,
     file_rating_of,
     text_fields_of,
 )
@@ -90,7 +101,10 @@ CAPTION = "caption"
 KEYWORDS = "keywords"
 # Free-text PhotoMetadata columns a user may set. The scan fills them from the
 # file too, but never over a value the user set (``_apply_text_fields``).
-TEXT_FIELDS = ("title", "copyright", "creator")
+TEXT_FIELDS = ("title", "copyright", "creator", "license")
+#: The write of a photo's rights (copyright, creator and license, #425) to its
+#: file: one ``FIELD_WRITERS`` entry for the three.
+RIGHTS = "rights"
 # The Photo columns a location edit writes. Not a whole-row save: a job may
 # have written other columns since the row was loaded (geolocate_photo).
 LOCATION_COLUMNS = [
@@ -601,16 +615,183 @@ def tags_changed(
 
 
 def set_text_field(photo: Photo, field: str, value: str | None, user: User) -> None:
-    """Set ``title``, ``copyright`` or ``creator``."""
+    """Set ``title``, ``copyright``, ``creator`` or ``license``.
+
+    A changed copyright, creator or license is written to the file or
+    sidecar (#425).
+    """
+    if _apply_text_field(photo, field, value, user) and field in RIGHTS_FIELDS:
+        queue_field_write(user, [photo.id], RIGHTS)
+
+
+def _apply_text_field(photo: Photo, field: str, value: str | None, user: User) -> bool:
+    """``set_text_field`` without the write-back; whether the value changed.
+
+    A license is one of ``PhotoLicense`` or None (empty clears it too).
+    """
     if field not in TEXT_FIELDS:
         raise ValueError(f"{field} is not a free-text metadata field")
+    if field == "license":
+        value = value or None
+        if value is not None and not is_license(value):
+            raise InvalidEditValueError(f"'{value}' is not a license")
     metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
     old = getattr(metadata, field)
     if old == value:
-        return
+        return False
     setattr(metadata, field, value)
     metadata.save(update_fields=[field, "updated_at"])
     _record(user, field, [Change(photo.id, old, value)])
+    return True
+
+
+# ---------------------------------------------------------------------- rights
+
+
+@dataclass(frozen=True)
+class RightsResult:
+    """What ``set_rights`` did: the photos it changed, and the photos that
+    kept a value it would have replaced (``Keep``)."""
+
+    count: int
+    kept: int
+
+
+#: Photos per transaction in ``set_rights``, as in ``set_capture_times``.
+RIGHTS_BATCH_SIZE = 200
+
+
+def _check_rights_values(values: Mapping[str, str | None]) -> None:
+    for field, value in values.items():
+        if field not in RIGHTS_FIELDS:
+            raise ValueError(f"{field} is not a rights field")
+        if field == "license" and value and not is_license(value):
+            raise ValueError(f"'{value}' is not a license")
+
+
+def set_rights(
+    photos: QuerySet[Photo],
+    values: Mapping[str, str | None],
+    keep: Keep,
+    user: User,
+) -> RightsResult:
+    """Give ``photos`` the rights ``values`` (#425), field by field.
+
+    ``values`` maps ``copyright``, ``creator`` and ``license`` to the new
+    value (None or "" clears it); a field left out stays as each photo has
+    it. A copyright's ``{year}`` becomes each photo's year. Under ``keep`` a
+    photo keeps a value it has (``Keep.ANY``) or one its file gives
+    (``Keep.FILE``). Each change is an edit in the photo's history, and one
+    job writes the changed photos' rights to their files.
+    """
+    _check_rights_values(values)
+    photo_ids = list(photos.order_by().values_list("id", flat=True).distinct())
+    changed: list[uuid.UUID] = []
+    kept = 0
+    try:
+        for start in range(0, len(photo_ids), RIGHTS_BATCH_SIZE):
+            with transaction.atomic():
+                batch_changed, batch_kept = _set_rights_batch(
+                    photo_ids[start : start + RIGHTS_BATCH_SIZE], values, keep, user
+                )
+            changed += batch_changed
+            kept += batch_kept
+    finally:
+        # The batches committed before a failure are written all the same.
+        queue_field_write(user, changed, RIGHTS)
+    return RightsResult(count=len(changed), kept=kept)
+
+
+def _metadata_rows(photo_ids: list[uuid.UUID]) -> list[PhotoMetadata]:
+    """The ``PhotoMetadata`` of each photo, created where missing, with its photo."""
+    existing = set(
+        PhotoMetadata.objects.filter(photo_id__in=photo_ids).values_list(
+            "photo_id", flat=True
+        )
+    )
+    PhotoMetadata.objects.bulk_create(
+        [PhotoMetadata(photo_id=pk) for pk in photo_ids if pk not in existing]
+    )
+    return list(
+        PhotoMetadata.objects.filter(photo_id__in=photo_ids).select_related("photo")
+    )
+
+
+def _rights_changes(
+    row: PhotoMetadata,
+    values: Mapping[str, str | None],
+    keep: Keep,
+    edited: Collection[str],
+) -> tuple[dict[str, Change], bool]:
+    """Set ``values`` on ``row``; the changes by field, and whether ``keep``
+    left any of them out."""
+    changes: dict[str, Change] = {}
+    kept = False
+    for field, value in values.items():
+        current = getattr(row, field)
+        if not replaces(keep, current, field in edited):
+            kept = True
+            continue
+        new = resolved(field, value, row.photo)
+        if new != current:
+            setattr(row, field, new)
+            changes[field] = Change(row.photo_id, current, new)
+    return changes, kept
+
+
+def _set_rights_batch(
+    photo_ids: list[uuid.UUID],
+    values: Mapping[str, str | None],
+    keep: Keep,
+    user: User,
+) -> tuple[list[uuid.UUID], int]:
+    """``set_rights`` for one batch, inside its transaction: the photos
+    changed and how many kept a value."""
+    edited = fields_edited_by_user_of(photo_ids, RIGHTS_FIELDS)
+    by_field: dict[str, list[Change]] = {field: [] for field in values}
+    changed_rows: list[PhotoMetadata] = []
+    kept = 0
+    for row in _metadata_rows(photo_ids):
+        changes, row_kept = _rights_changes(
+            row, values, keep, edited.get(row.photo_id, set())
+        )
+        kept += row_kept
+        for field, change in changes.items():
+            by_field[field].append(change)
+        if changes:
+            changed_rows.append(row)
+    if changed_rows:
+        PhotoMetadata.objects.bulk_update(changed_rows, list(values), batch_size=500)
+    for field, field_changes in by_field.items():
+        _record(user, field, field_changes)
+    return [row.photo_id for row in changed_rows], kept
+
+
+def apply_rights_default(
+    photos: QuerySet[Photo], keep: Keep, user: User
+) -> RightsResult:
+    """Give ``photos`` their owner's default rights (``default_rights``):
+    "Apply" in Settings > Metadata. Nothing without a default."""
+    values = default_rights(user)
+    if not values:
+        return RightsResult(count=0, kept=0)
+    return set_rights(photos, values, keep, user)
+
+
+def apply_rights_default_on_scan(photo: Photo) -> None:
+    """Fill the rights a newly scanned photo's file does not state from its
+    owner's default (#425), as an edit by the owner.
+
+    Not written to the file: a scan never writes to the library. "Write
+    metadata to files" or a later edit puts them there.
+    """
+    owner = photo.owner
+    if owner is None:
+        return
+    values = default_rights(owner)
+    if values:
+        with transaction.atomic():
+            _set_rights_batch([photo.id], values, Keep.ANY, owner)
 
 
 # ------------------------------------------------- several fields, many photos
@@ -633,6 +814,7 @@ def apply_updates(
         set_rating(Photo.objects.filter(id__in=[p.id for p in targets]), rating, user)
     captioned: list[uuid.UUID] = []
     tagged: list[uuid.UUID] = []
+    righted: list[uuid.UUID] = []
     changed_tags: set[str] = set()
     for photo in targets:
         if CAPTION in updates:
@@ -646,15 +828,28 @@ def apply_updates(
             if changed := _apply_keywords(photo, keywords, user):
                 tagged.append(photo.id)
                 changed_tags |= changed
-        for field in TEXT_FIELDS:
-            if field in updates:
-                value = updates[field]
-                assert value is None or isinstance(value, str)
-                set_text_field(photo, field, value, user)
-    # One job writes every changed caption, one every changed tag.
+        if _apply_text_updates(photo, updates, user):
+            righted.append(photo.id)
+    # One job writes every changed caption, one every changed tag, one the
+    # changed rights.
     queue_field_write(user, captioned, CAPTION)
     queue_keyword_write(user, tagged, changed_tags)
+    queue_field_write(user, righted, RIGHTS)
     return targets
+
+
+def _apply_text_updates(
+    photo: Photo, updates: Mapping[str, object], user: User
+) -> bool:
+    """Apply the text fields of ``updates`` to ``photo``; whether its rights changed."""
+    rights_changed = False
+    for field in TEXT_FIELDS:
+        if field in updates:
+            value = updates[field]
+            assert value is None or isinstance(value, str)
+            changed = _apply_text_field(photo, field, value, user)
+            rights_changed |= changed and field in RIGHTS_FIELDS
+    return rights_changed
 
 
 # ---------------------------------------------------------------------- revert

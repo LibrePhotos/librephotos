@@ -78,6 +78,7 @@ from api.views import (
     photo_metadata,
     photo_moves,
     photo_renames,
+    photo_rights,
     photos,
     places_map,
     processing_status,
@@ -395,7 +396,8 @@ urlpatterns = [
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
     # "public", "date-summary", "map-points", "in-bounds", "reapply-date-rules",
-    # "rescan", "move", "rename" and the two location routes below them, and
+    # "rescan", "move", "rename", the two location routes and the rights
+    # routes below them, and
     # its api/albums/place/<pk>/ route "in-bounds".
     path(
         "api/photos/no-album/",
@@ -436,6 +438,21 @@ urlpatterns = [
         "api/photos/location-summary/",
         photo_locations.LocationSummaryView.as_view(),
         name="photos_location_summary",
+    ),
+    path(
+        "api/photos/rights-summary/",
+        photo_rights.RightsSummaryView.as_view(),
+        name="photos_rights_summary",
+    ),
+    path(
+        "api/photos/rights/",
+        photo_rights.SetPhotosRightsView.as_view(),
+        name="photos_rights",
+    ),
+    path(
+        "api/photos/rights/apply-default/",
+        photo_rights.ApplyRightsDefaultView.as_view(),
+        name="photos_rights_apply_default",
     ),
     path(
         "api/photos/move/",

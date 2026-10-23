@@ -1,4 +1,7 @@
-/** The selection's edit dialogs mount only while open; the move dialog marks the folder page's folder (#352). */
+/**
+ * The selection's edit dialogs (Set rights, #425, among them) mount only while open; the move dialog
+ * marks the folder page's folder (#352).
+ */
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -26,6 +29,12 @@ vi.mock("../movephotos/RenamePhotosModal", () => ({
 vi.mock("../map/BulkLocationModal", () => ({
   BulkLocationModal: () => {
     stubs.mounted.push("location");
+    return null;
+  },
+}));
+vi.mock("../rights/SetRightsModal", () => ({
+  SetRightsModal: () => {
+    stubs.mounted.push("rights");
     return null;
   },
 }));
@@ -59,20 +68,20 @@ async function render(dialogs: SelectionEditDialogState, pathname: string) {
 
 describe("SelectionEditDialogs", () => {
   it("mounts nothing while every dialog is closed", async () => {
-    await render({ dateTime: closed, location: closed, move: closed, rename: closed }, "/");
+    await render({ dateTime: closed, location: closed, move: closed, rename: closed, rights: closed }, "/");
     expect([stubs.mounted, stubs.move]).toEqual([[], []]);
   });
 
   it("marks the folder of a folder page in the move dialog", async () => {
     const open = { ...closed, opened: true };
     await render(
-      { dateTime: open, location: open, move: open, rename: open },
+      { dateTime: open, location: open, move: open, rename: open, rights: open },
       `/album/folder/${encodeURIComponent("/p/2025 Porto")}`
     );
-    expect(stubs.mounted).toEqual(["datetime", "location", "rename"]);
+    expect(stubs.mounted).toEqual(["datetime", "location", "rename", "rights"]);
     expect(stubs.move.at(-1)).toMatchObject({ currentFolder: "/p/2025 Porto", selection: { image_hashes: ["h1"] } });
 
-    await render({ dateTime: closed, location: closed, move: open, rename: closed }, "/");
+    await render({ dateTime: closed, location: closed, move: open, rename: closed, rights: closed }, "/");
     expect(stubs.move.at(-1)?.currentFolder).toBeUndefined();
   });
 });

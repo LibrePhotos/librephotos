@@ -213,7 +213,8 @@
         "rotation": "rotations",
         "caption": "captions",
         "tags": "tags",
-        "location": "locations"
+        "location": "locations",
+        "rights": "rights"
       }
     },
     "writeexisting": {
@@ -222,7 +223,7 @@
       "sidecar_other": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photos to their .xmp files.",
       "mediafile_one": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photo into the photo file itself.",
       "mediafile_other": "Edits you made before turning this on are only in LibrePhotos. This writes the {{fields}} of {{count}} photos into the photo files themselves.",
-      "nothing": "Your photos have no edits to write: no ratings, dates, rotations, captions, tags or locations set in LibrePhotos.",
+      "nothing": "Your photos have no edits to write: no ratings, dates, rotations, captions, tags, locations or rights set in LibrePhotos.",
       "off": "Turn on Save to sidecar or Save to media file above first.",
       "unsaved": "Save your changes first; this writes with the saved setting.",
       "button": "Write now",
@@ -234,7 +235,8 @@
         "captions": "captions",
         "locations": "locations",
         "keywords": "tags",
-        "face_tags": "face tags"
+        "face_tags": "face tags",
+        "rights": "rights"
       },
       "typecounts": {
         "ratings": "Ratings",
@@ -243,7 +245,8 @@
         "captions": "Captions",
         "locations": "Locations you set",
         "keywords": "Tags, as keywords",
-        "face_tags": "Face tags"
+        "face_tags": "Face tags",
+        "rights": "Rights you set"
       },
       "photos_one": "{{count}} photo",
       "photos_other": "{{count}} photos",
@@ -1028,7 +1031,8 @@
     "nomanualstack": "None of the selected photos is in a manual stack",
     "setlocation": "Set location…",
     "movetofolder": "Move to folder…",
-    "renamefiles": "Rename files…"
+    "renamefiles": "Rename files…",
+    "setrights": "Set rights…"
   },
   "fileactions": {
     "files": "Files",
@@ -1190,7 +1194,8 @@
         "date": "date",
         "caption": "caption",
         "tags": "tags",
-        "location": "location"
+        "location": "location",
+        "rights": "rights"
       }
     },
     "original": {
@@ -2820,7 +2825,13 @@
     "saveuserplace_other": "{{count}} photos are in {{name}} now.",
     "saveuserplacetitle": "{{name}} saved",
     "deleteuserplace": "{{name}} is deleted. Its photos stay in your library.",
-    "deleteuserplacetitle": "Place deleted"
+    "deleteuserplacetitle": "Place deleted",
+    "setrightstitle": "Rights",
+    "setrights_one": "Set the rights of {{count}} photo.",
+    "setrights_other": "Set the rights of {{count}} photos.",
+    "setrightskept_one": "{{count}} photo kept its own.",
+    "setrightskept_other": "{{count}} photos kept their own.",
+    "setrightsnone": "Nothing changed."
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -4067,6 +4078,125 @@
       "overlapSmaller_other": "{{count}} photos are inside {{name}} too. They show {{name}}, the smaller place.",
       "overlapLarger_one": "{{count}} photo is inside {{name}} too. It shows this place, the smaller one.",
       "overlapLarger_other": "{{count}} photos are inside {{name}} too. They show this place, the smaller one."
+    }
+  },
+  "rights": {
+    "title": "Rights",
+    "copyright": "Copyright",
+    "creator": "Creator",
+    "license": "License",
+    "noLicense": "No license stated",
+    "copyrightPlaceholder": "© 2026 Your Name",
+    "fromFile": "From file",
+    "none": "No copyright or license yet. Public pages show nothing about rights.",
+    "useDefault": "Use my default rights",
+    "useDefaultLicense": "Use my default: {{license}}",
+    "deedLink": "What {{license}} allows",
+    "edit": "Edit rights",
+    "creatorTooLong": "At most {{max}} characters",
+    "groups": {
+      "reserved": "Reserved",
+      "creativeCommons": "Creative Commons",
+      "publicDomain": "Public domain"
+    },
+    "licenses": {
+      "allRightsReserved": {
+        "name": "All rights reserved",
+        "title": "No reuse without permission",
+        "summary": "You may look at this photo, but not reuse it without the creator's permission."
+      },
+      "ccBy": {
+        "name": "CC BY 4.0",
+        "title": "Attribution 4.0 International",
+        "summary": "You may share and adapt this photo, also commercially, if you credit the creator."
+      },
+      "ccBySa": {
+        "name": "CC BY-SA 4.0",
+        "title": "Attribution-ShareAlike 4.0 International",
+        "summary": "You may share and adapt this photo, also commercially, if you credit the creator and share your adaptation under the same license."
+      },
+      "ccByNc": {
+        "name": "CC BY-NC 4.0",
+        "title": "Attribution-NonCommercial 4.0 International",
+        "summary": "You may share and adapt this photo for non-commercial use if you credit the creator."
+      },
+      "ccByNcSa": {
+        "name": "CC BY-NC-SA 4.0",
+        "title": "Attribution-NonCommercial-ShareAlike 4.0 International",
+        "summary": "You may share and adapt this photo for non-commercial use if you credit the creator and share your adaptation under the same license."
+      },
+      "ccByNd": {
+        "name": "CC BY-ND 4.0",
+        "title": "Attribution-NoDerivatives 4.0 International",
+        "summary": "You may share this photo unchanged, also commercially, if you credit the creator."
+      },
+      "ccByNcNd": {
+        "name": "CC BY-NC-ND 4.0",
+        "title": "Attribution-NonCommercial-NoDerivatives 4.0 International",
+        "summary": "You may share this photo unchanged for non-commercial use if you credit the creator."
+      },
+      "cc0": {
+        "name": "CC0 1.0",
+        "title": "CC0 1.0 Universal",
+        "summary": "The creator gave up their rights: you may use this photo for anything, without asking or crediting."
+      },
+      "pdm": {
+        "name": "Public domain",
+        "title": "Public Domain Mark 1.0",
+        "summary": "This photo is free of known copyright: you may use it for anything."
+      }
+    },
+    "bulk": {
+      "title_one": "Set rights for {{count}} photo",
+      "title_other": "Set rights for {{count}} photos",
+      "titlePending": "Set rights",
+      "mixed": "Mixed: keep each photo's",
+      "keep": "Leave empty to keep each photo's",
+      "yearHint": "{year} becomes the year each photo was taken.",
+      "replaceFileValues_one": "Also change {{count}} photo whose rights come from its file",
+      "replaceFileValues_other": "Also change {{count}} photos whose rights come from their files",
+      "replaceFileValuesHint": "Otherwise a copyright, creator or license that a file states stays.",
+      "nothingChanged": "Change a field first",
+      "save_one": "Set rights for {{count}} photo",
+      "save_other": "Set rights for {{count}} photos"
+    },
+    "default": {
+      "title": "Rights for your photos",
+      "description": "Used for photos whose files state no copyright, creator or license. Visitors see them on public pages.",
+      "copyright": "Copyright notice",
+      "copyrightPlaceholder": "© {year} Your Name",
+      "newPhotos": "New photos get these when they are scanned. Photos you already have keep theirs until you apply them.",
+      "apply": "Apply to my photos…",
+      "unsaved": "Save your changes first; this applies the saved default.",
+      "noDefault": "Set a creator, a copyright notice or a license first.",
+      "applyTitle": "Apply your default rights?",
+      "reachMissing_one": "Only fill in what is missing: {{count}} photo",
+      "reachMissing_other": "Only fill in what is missing: {{count}} photos",
+      "reachMissingHint": "A copyright, creator or license a photo already has stays.",
+      "reachAll_one": "Every photo: {{count}} photo",
+      "reachAll_other": "Every photo: {{count}} photos",
+      "reachAllHint": "Replaces the rights of every photo, also those from its file. Anyone who already reused a public photo under its old license keeps that right.",
+      "applyNote": "Each change is recorded in the photo's edit history.",
+      "applyConfirm_one": "Apply to {{count}} photo",
+      "applyConfirm_other": "Apply to {{count}} photos",
+      "nothingToApply": "No photo would change"
+    },
+    "public": {
+      "title": "License",
+      "by": "By {{creator}}",
+      "share": "Share it unchanged",
+      "shareAdapt": "Share and adapt it",
+      "adaptNo": "No changes",
+      "commercial": "Commercial use allowed",
+      "commercialNo": "No commercial use",
+      "credit": "Credit the creator and link the license",
+      "shareAlike": "Share adaptations under the same license",
+      "reuseNo": "No reuse without permission",
+      "howToCredit": "How to credit",
+      "copy": "Copy",
+      "copied": "Copied",
+      "creditLine": "Photo by {{creator}} ({{source}}), licensed under {{license}}",
+      "creditLineNoCreator": "Photo from {{source}}, licensed under {{license}}"
     }
   }
 }

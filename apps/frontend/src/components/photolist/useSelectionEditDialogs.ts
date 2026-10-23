@@ -8,6 +8,7 @@ export type SelectionEditDialogState = Readonly<{
   location: Disclosure;
   move: Disclosure;
   rename: Disclosure;
+  rights: Disclosure;
 }>;
 
 function useDialog(): Disclosure {
@@ -16,9 +17,15 @@ function useDialog(): Disclosure {
 }
 
 /**
- * Change date and time (#2278), Set location (#2279), Move to folder (#352) and Rename files (#2773),
- * each closed at first.
+ * Change date and time (#2278), Set location (#2279), Move to folder (#352), Rename files (#2773) and
+ * Set rights (#425), each closed at first.
  */
 export function useSelectionEditDialogs(): SelectionEditDialogState {
-  return { dateTime: useDialog(), location: useDialog(), move: useDialog(), rename: useDialog() };
+  return {
+    dateTime: useDialog(),
+    location: useDialog(),
+    move: useDialog(),
+    rename: useDialog(),
+    rights: useDialog(),
+  };
 }

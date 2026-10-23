@@ -654,6 +654,8 @@ SPECTACULAR_SETTINGS = {
         "KindEnum": "api.serializers.face.PERSON_KINDS",
         # The icon of a user's place (#1365).
         "UserPlaceIconEnum": "api.models.user_place.UserPlaceIcon",
+        # The license of a photo and a user's default one (#425).
+        "PhotoLicenseEnum": "api.models.photo_license.PhotoLicense",
         # Where a user's upload follow-ups stand (#2739).
         "UploadFollowupStateEnum": "api.serializers.upload.FOLLOWUP_STATES",
         # A file of the All metadata view: the media file or a sidecar.

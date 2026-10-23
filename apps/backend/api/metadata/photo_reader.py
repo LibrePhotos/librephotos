@@ -68,6 +68,10 @@ EXIF_FIELDS: tuple[tuple[str, str], ...] = (
     ("xmp_rights", Tags.XMP_RIGHTS),
     ("iptc_copyright", Tags.IPTC_COPYRIGHT),
     ("exif_copyright", Tags.EXIF_COPYRIGHT),
+    # The license (#425), see api.models.photo_license.license_of.
+    ("xmp_license", Tags.LICENSE),
+    ("xmp_web_statement", Tags.WEB_STATEMENT),
+    ("xmp_marked", Tags.MARKED),
     ("person_in_image", Tags.PERSON_IN_IMAGE),
     ("hierarchical_subject", Tags.HIERARCHICAL_SUBJECT),
     ("gps_latitude", Tags.LATITUDE),

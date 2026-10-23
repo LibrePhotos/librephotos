@@ -16,12 +16,14 @@ import math
 import numbers
 import re
 import uuid
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from typing import TYPE_CHECKING
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
+from django.db.models import QuerySet
 
+from api.models.photo_license import LICENSE_MAX_LENGTH, PhotoLicense, license_of
 from api.models.tag import link_tags_from_keywords, tag_names
 from api.models.user import User, get_deleted_user
 
@@ -320,7 +322,8 @@ def description_of(values: Mapping[str, object]) -> str | None:
 
 def text_fields_of(values: Mapping[str, object]) -> dict[str, str | None]:
     """The file's title, creator and copyright, each from the first of its
-    ``TEXT_FIELD_SOURCES`` that has one, cut to the column's length.
+    ``TEXT_FIELD_SOURCES`` that has one, cut to the column's length, and its
+    license (``license_of``, #425).
 
     A repeated tag (several XMP creators, say) gives its first entry.
     """
@@ -330,6 +333,7 @@ def text_fields_of(values: Mapping[str, object]) -> dict[str, str | None]:
         text = texts[0] if texts else None
         limit = _TEXT_FIELD_MAX_LENGTH.get(field)
         found[field] = text[:limit] if text is not None and limit else text
+    found["license"] = license_of(values)
     return found
 
 
@@ -506,6 +510,13 @@ class PhotoMetadata(models.Model):
     # Copyright info
     copyright = models.TextField(null=True, blank=True)
     creator = models.CharField(max_length=CREATOR_MAX_LENGTH, null=True, blank=True)
+    # The license the photo is offered under (#425), None when not stated.
+    license = models.CharField(
+        max_length=LICENSE_MAX_LENGTH,
+        choices=PhotoLicense.choices,
+        null=True,
+        blank=True,
+    )
 
     # ==================== Tracking ====================
     # Which source this metadata came from
@@ -762,8 +773,9 @@ class PhotoMetadata(models.Model):
     def _apply_text_fields(
         metadata: PhotoMetadata, values: Mapping[str, object]
     ) -> None:
-        """Fill title, creator and copyright from the file, except a field the
-        user edited (and did not revert all) since: a rescan keeps theirs."""
+        """Fill title, creator, copyright and license from the file, except a
+        field the user edited (and did not revert all) since: a rescan keeps
+        theirs."""
         found = {field: text for field, text in text_fields_of(values).items() if text}
         if not found:
             return
@@ -840,6 +852,34 @@ def _fields_edited_by_user(metadata: PhotoMetadata, fields: Iterable[str]) -> se
         if field_name == REVERT_ALL:
             break
         edited.add(field_name)
+    return edited
+
+
+def fields_edited_by_user_of(
+    photo_ids: Collection[uuid.UUID] | QuerySet[Photo, uuid.UUID],
+    fields: Iterable[str],
+) -> dict[uuid.UUID, set[str]]:
+    """``_fields_edited_by_user`` for many photos in one query.
+
+    For each of ``photo_ids`` (a list, or a ``values_list`` query) that has
+    any, the ``fields`` the user edited after the photo's latest revert-all.
+    """
+    edits = (
+        MetadataEdit.objects.filter(
+            photo_id__in=photo_ids, field_name__in=[*fields, REVERT_ALL]
+        )
+        .order_by("photo_id", "-created_at", "-id")
+        .values_list("photo_id", "field_name")
+    )
+    edited: dict[uuid.UUID, set[str]] = {}
+    reverted: set[uuid.UUID] = set()
+    for photo_id, field_name in edits:
+        if photo_id in reverted:
+            continue
+        if field_name == REVERT_ALL:
+            reverted.add(photo_id)
+        else:
+            edited.setdefault(photo_id, set()).add(field_name)
     return edited
 
 
