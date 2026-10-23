@@ -12,6 +12,17 @@ LibrePhotos provides several ways to browse your photo library. You can switch b
 
 The default view showing all your photos grouped by date, from newest to oldest. A **scroll scrubber** on the right edge lets you quickly jump to any date — click or drag it to navigate through large libraries.
 
+#### Scroll bar style
+
+<Since version="1.5.0" />
+
+The scroll scrubber appears when you point at the right edge or scroll a long way, and runs from just under the header to the bottom of the window. Pick how it looks under **Scroll Bar** in **Photo Display Settings** (the gear button above the photos). The choice is saved to your account and applies to every photo list:
+
+- **Simple**: a thin track with a handle you can drag. A bubble next to the handle shows the date you are at, and the years (or months) appear beside the track while you point at it.
+- **Photo Density**: one bar per month, as wide as the number of photos in it, so busy trips and quiet years stand out. A frame marks the part you are looking at, and pointing at a bar shows its month and how many photos it holds. Very long timelines show one bar per year instead.
+
+Click a year or month label to jump there.
+
 #### Filtering the timeline
 
 <Since version="1.3.0" />

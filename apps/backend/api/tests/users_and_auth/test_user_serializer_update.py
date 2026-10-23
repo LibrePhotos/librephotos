@@ -195,6 +195,35 @@ class UserSerializerUpdateTest(TestCase):
         self.assertTrue(reloaded.public_sharing)
         self.assertEqual(reloaded.llm_settings, {"enabled": True})
 
+    def test_scrubber_style_defaults_to_thumb_and_is_saved_through_the_api(self):
+        self.assertEqual(self.user.scrubber_style, "thumb")
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"scrubber_style": "density"},
+            format="json",
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(response.json()["scrubber_style"], "density")
+        self.assertEqual(User.objects.get(id=self.user.id).scrubber_style, "density")
+
+    def test_unknown_scrubber_style_is_rejected(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"scrubber_style": "rainbow"},
+            format="json",
+        )
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(response.json()["errors"][0]["field"], "scrubber_style")
+        self.assertEqual(User.objects.get(id=self.user.id).scrubber_style, "thumb")
+
     def test_burst_detection_rules_are_saved(self):
         rules = [{"id": 3, "enabled": False}, {"id": 1, "enabled": True}]
         self._update(burst_detection_rules=rules)
