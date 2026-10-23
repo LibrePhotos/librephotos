@@ -193,6 +193,19 @@ class NuitkaCommandTest(SimpleTestCase):
             [],
         )
 
+    def test_caches_stay_on_unless_turned_off(self):
+        # CI turns them off (they never hit across runner images); a local
+        # rebuild hits nearly every file.
+        build = load_build_script()
+
+        self.assertNotIn(
+            "--disable-cache=all", build.nuitka_command(Path("out"), None, "0.0.0")
+        )
+        self.assertIn(
+            "--disable-cache=all",
+            build.nuitka_command(Path("out"), None, "0.0.0", cache=False),
+        )
+
     def test_optional_bloat_is_not_followed(self):
         build = load_build_script()
 

@@ -208,7 +208,7 @@ def collect_static():
     return BACKEND / "static"
 
 
-def nuitka_command(output_dir, jobs, version):
+def nuitka_command(output_dir, jobs, version, cache=True):
     command = [
         sys.executable,
         "-m",
@@ -236,6 +236,8 @@ def nuitka_command(output_dir, jobs, version):
     ]
     if jobs:
         command.append(f"--jobs={jobs}")
+    if not cache:
+        command.append("--disable-cache=all")
     icon = FRONTEND / "public" / "favicon.ico"
     if sys.platform == "win32" and icon.exists():
         command.append(f"--windows-icon-from-ico={icon}")
@@ -260,7 +262,7 @@ def nuitka_command(output_dir, jobs, version):
     return command
 
 
-def compile_binary(output_dir, jobs, version):
+def compile_binary(output_dir, jobs, version, cache=True):
     env = {
         **os.environ,
         "PYTHONPATH": os.pathsep.join(
@@ -268,7 +270,7 @@ def compile_binary(output_dir, jobs, version):
             + [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
         ),
     }
-    run(nuitka_command(output_dir, jobs, version), cwd=BACKEND, env=env)
+    run(nuitka_command(output_dir, jobs, version, cache), cwd=BACKEND, env=env)
     built = output_dir / f"{ENTRY.stem}.dist"
     dist = output_dir / DIST_NAME
     shutil.rmtree(dist, ignore_errors=True)
@@ -451,6 +453,11 @@ def main():
     parser.add_argument(
         "--version", default="0.0.0", help="numeric X.Y.Z stamped into the executable"
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="build without Nuitka's caches; CI uses it, see standalone-windows.yml",
+    )
     args = parser.parse_args()
 
     if not args.skip_frontend:
@@ -459,7 +466,7 @@ def main():
     static = collect_static()
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    dist = compile_binary(output_dir, args.jobs, args.version)
+    dist = compile_binary(output_dir, args.jobs, args.version, cache=not args.no_cache)
     stage_runtime_files(dist, frontend_build, static, args.version)
     print(f"built: {dist}")
     if args.zip:
