@@ -443,9 +443,10 @@ function searchFiltersQuery(filter: SearchFilters) {
 }
 
 export type UserAlbumOptions = AlbumMediaFilter & {
-  /** Read the album through its public link, as `username`'s album. */
+  /** Read the album through its public link, as `username`'s album; `slug` is the link's, required then. */
   public?: boolean;
   username?: string;
+  slug?: string;
 };
 
 export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
@@ -468,6 +469,7 @@ export async function fetchUserAlbum(
     ...albumMediaQuery(options),
     public: options.public ? "true" : undefined,
     username: options.username,
+    slug: options.slug,
   });
   const res = await client.get<unknown>(`/albums/user/${id}/${query}`);
   return parseResponse(S.UserAlbum, res, "user album detail");

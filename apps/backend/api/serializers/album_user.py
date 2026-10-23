@@ -788,6 +788,12 @@ class AlbumUserQuery(PublicViewQuery):
         trim_whitespace=False,
         help_text="With public: the album must be this user's",
     )
+    slug = serializers.CharField(
+        default="",
+        allow_blank=True,
+        max_length=64,
+        help_text="With public: the slug of the album's public link (required)",
+    )
 
 
 class ShareExpiryField(serializers.DateTimeField):

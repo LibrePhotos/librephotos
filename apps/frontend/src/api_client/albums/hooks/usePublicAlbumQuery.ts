@@ -25,7 +25,8 @@ export const usePublicAlbumQuery = (slug: string) => {
         throw error;
       }
     },
-    enabled: ready,
+    // No slug, no album: the user page without ?album= reads none.
+    enabled: ready && Boolean(slug),
     select,
   });
 };

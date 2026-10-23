@@ -200,6 +200,8 @@ You can create a public link for any user album, making it accessible to anyone 
 
 The public album is accessible at `https://your-instance/public/s/{slug}`.
 
+On your public profile, `https://your-instance/public/<username>?album={slug}` shows the same album. A link always needs the slug: the album's number alone opens nothing for a visitor.
+
 The dialog shows it as the **Album link**, with buttons to copy it and to open it in a new tab.
 
 ### Slideshow Link

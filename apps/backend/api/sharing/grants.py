@@ -42,6 +42,7 @@ Switch = Literal[
     "captions",
     "originals",
     "timestamps",
+    "users",
 ]
 ALWAYS: Final = "always"
 NEVER: Final = "never"
@@ -59,6 +60,9 @@ class LibraryGrant:
     # When the photo was taken: always shared with users; on public pages
     # only with the owner's "share_timestamps" switch.
     timestamps: bool = True
+    # A public page's visitor rather than a user something was shared with:
+    # the "users" fields (how the owner files the photo) are not for them.
+    visitor: bool = False
 
     @classmethod
     def of(cls, share: LibraryShare) -> LibraryGrant:
@@ -75,6 +79,8 @@ class LibraryGrant:
             return True
         if switch == NEVER:
             return False
+        if switch == "users":
+            return not self.visitor
         return bool(getattr(self, switch))
 
     def as_dict(self) -> dict[str, bool]:
@@ -210,7 +216,7 @@ SUMMARY_FIELDS: FieldRules = {
     "exif_gps_lon": ("location", None),
     "removed": (ALWAYS, None),
     "in_trashcan": (ALWAYS, None),
-    "archived": (ALWAYS, None),
+    "archived": ("users", False),
     "trashed_at": (NEVER, None),
     "stacks": (NEVER, None),
     "has_raw_variant": (NEVER, False),
@@ -262,7 +268,7 @@ DETAIL_FIELDS: FieldRules = {
     "public": (NEVER, False),
     "removed": (ALWAYS, None),
     "in_trashcan": (ALWAYS, None),
-    "archived": (ALWAYS, None),
+    "archived": ("users", False),
     "trashed_at": (NEVER, None),
     "shared_to": (NEVER, []),
     "similar_photos": (ALWAYS, None),
@@ -349,7 +355,7 @@ def public_grant(settings: Mapping[str, object] | None) -> LibraryGrant:
     """
     values: Mapping[str, object] = settings if isinstance(settings, Mapping) else {}
     switches = {name: values.get(key) is True for name, key in PUBLIC_SWITCHES.items()}
-    return LibraryGrant(originals=all(switches.values()), **switches)
+    return LibraryGrant(originals=all(switches.values()), visitor=True, **switches)
 
 
 def owner_public_grant(owner_id: int | None) -> LibraryGrant:
@@ -364,10 +370,10 @@ def owner_public_grant(owner_id: int | None) -> LibraryGrant:
 
 def either(a: LibraryGrant, b: LibraryGrant) -> LibraryGrant:
     """What two ways to a photo (two albums, two links) show between them:
-    each field either allows."""
-    return LibraryGrant(
-        **{f.name: getattr(a, f.name) or getattr(b, f.name) for f in fields(a)}
-    )
+    each field either allows, and a user's way beats a visitor's."""
+    shown = {f.name: getattr(a, f.name) or getattr(b, f.name) for f in fields(a)}
+    shown["visitor"] = a.visitor and b.visitor
+    return LibraryGrant(**shown)
 
 
 class PublicLookup(GrantLookup):

@@ -4,7 +4,7 @@ import { IconGlobe as Globe } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, usePublicAlbumQuery } from "../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import type { PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -46,14 +46,16 @@ function UserPublicPage() {
     { skip: !group.id }
   );
 
-  // If a specific user album is requested via ?album=ID, fetch it and display instead
+  // ?album= names one of the user's public albums by its link slug: show it instead. The
+  // album's id alone opens nothing for a visitor.
   const params = new URLSearchParams(window.location.search);
-  const albumId = params.get("album") ?? "";
-  const { data: userAlbum } = useFetchUserAlbumQuery(albumId, albumId ? { public: true, username: users } : undefined);
+  const albumSlug = params.get("album") ?? "";
+  const { data: publicAlbum } = usePublicAlbumQuery(albumSlug);
+  const userAlbum = publicAlbum && publicAlbum.owner.username === users ? publicAlbum : undefined;
 
   const pageTitle =
     currentUser?.username === users ? t("sidemenu.mypublicphotos") : t("sharing.publicPhotosOf", { name: users });
-  usePublicPageTitle(albumId && userAlbum ? userAlbum.title : pageTitle);
+  usePublicPageTitle(albumSlug && userAlbum ? userAlbum.title : pageTitle);
 
   const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
     visibleGroups.reverse().forEach(photoGroup => {
@@ -68,7 +70,7 @@ function UserPublicPage() {
   };
 
   // If a specific album is requested and loaded, render it directly
-  if (albumId && userAlbum) {
+  if (albumSlug && userAlbum) {
     const albumPhotos = getPhotosFlatFromGroupedByDate(userAlbum.grouped_photos);
     return (
       <PhotoListView

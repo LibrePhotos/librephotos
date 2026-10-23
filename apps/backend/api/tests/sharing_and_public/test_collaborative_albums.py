@@ -537,7 +537,7 @@ class NeverOutsideTheAlbumTest(CollaborativeAlbumBase):
         )
         anonymous = _client(None)
         for url, key in (
-            (f"/api/albums/user/{self.album.pk}/?public=true", None),
+            (f"/api/albums/user/{self.album.pk}/?public=true&slug={share.slug}", None),
             (f"/api/public/albums/s/{share.slug}/", "results"),
         ):
             with self.subTest(url=url):

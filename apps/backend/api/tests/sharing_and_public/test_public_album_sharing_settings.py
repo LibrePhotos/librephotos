@@ -47,7 +47,9 @@ class PublicAlbumSharingSettingsTest(TestCase):
         return response.json()["results"]
 
     def _public_retrieve_payload(self):
-        response = self.anonymous.get(f"/api/albums/user/{self.album.id}/?public=true")
+        response = self.anonymous.get(
+            f"/api/albums/user/{self.album.id}/?public=true&slug={self.share.slug}"
+        )
         self.assertEqual(200, response.status_code)
         return response.json()
 

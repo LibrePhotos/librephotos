@@ -366,3 +366,114 @@ class StaffMetadataTest(TestCase):
         stranger.force_authenticate(create_test_user())
         response = stranger.get(f"/api/photos/{photo.pk}/metadata/")
         self.assertEqual(response.status_code, 404)
+
+
+class PublicViewFilterTest(TestCase):
+    """The public view filters by nothing it keeps from visitors."""
+
+    def setUp(self):
+        self.owner = create_test_user(public_sharing=True)
+        early = datetime.datetime(2020, 3, 1, 12, 0, tzinfo=datetime.UTC)
+        self.early = create_test_photo(
+            owner=self.owner, public=True, exif_timestamp=early
+        )
+        self.late = create_test_photo(
+            owner=self.owner, public=True, exif_timestamp=TAKEN
+        )
+        self.day1 = create_test_album_date(self.owner, date=early.date())
+        self.day1.photos.add(self.early)
+        self.day2 = create_test_album_date(self.owner, date=TAKEN.date())
+        self.day2.photos.add(self.late)
+        self.base = {"public": "true", "username": self.owner.username}
+        self.client = APIClient()
+
+    def test_last_modified_does_not_split_the_undated_group(self):
+        listing = self.client.get("/api/albums/date/list/", self.base).json()["results"]
+        self.assertEqual(len(listing), 1)
+        group = listing[0]["id"]
+        for day in (self.day1, self.day2):
+            with self.subTest(day=day.pk):
+                response = self.client.get(
+                    f"/api/albums/date/{day.pk}/",
+                    {**self.base, "last_modified": "2022-01-01"},
+                )
+                if day.pk != group:
+                    self.assertEqual(response.status_code, 404)
+                    continue
+                items = response.json()["results"]["items"]
+                self.assertEqual(len(items), 2)
+
+    def test_last_modified_does_not_change_the_counts(self):
+        url = "/api/albums/date/list/"
+        everything = self.client.get(url, self.base).json()["results"]
+        later = self.client.get(url, {**self.base, "last_modified": "2999-01-01"})
+        self.assertEqual(later.json()["results"], everything)
+
+    def test_archived_is_neither_sent_nor_a_filter(self):
+        self.late.archived = True
+        self.late.save()
+        self.switch_dates_on()
+        url = f"/api/albums/date/{self.day2.pk}/"
+        items = self.client.get(url, self.base).json()["results"]["items"]
+        self.assertEqual([item["archived"] for item in items], [False])
+        only_archived = self.client.get(url, {**self.base, "archived": "true"})
+        self.assertEqual(len(only_archived.json()["results"]["items"]), 1)
+        days = self.client.get(
+            "/api/albums/date/list/", {**self.base, "archived": "false"}
+        ).json()["results"]
+        self.assertEqual(len(days), 2)
+
+    def switch_dates_on(self):
+        settings = get_default_public_sharing_settings()
+        settings["share_timestamps"] = True
+        self.owner.public_sharing_defaults = settings
+        self.owner.save()
+
+    def test_the_day_of_a_hidden_public_photo_is_a_404(self):
+        self.switch_dates_on()
+        self.early.hidden = True
+        self.early.save()
+        response = self.client.get(f"/api/albums/date/{self.day1.pk}/", self.base)
+        self.assertEqual(response.status_code, 404)
+
+
+class PublicAlbumByIdTest(TestCase):
+    """An album's public link is its slug; its id, which counts up, opens
+    nothing for a visitor."""
+
+    def setUp(self):
+        self.owner = create_test_user()
+        self.album = create_test_album_user(self.owner, title="Private trip")
+        self.album.photos.add(create_test_photo(owner=self.owner))
+        self.share = AlbumUserShare.objects.create(  # raw-create: a public link
+            album=self.album, enabled=True
+        )
+
+    def test_the_id_alone_is_a_404(self):
+        response = APIClient().get(
+            f"/api/albums/user/{self.album.pk}/", {"public": "true"}
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_another_albums_slug_is_a_404(self):
+        other = create_test_album_user(self.owner)
+        other_share = AlbumUserShare.objects.create(album=other, enabled=True)
+        response = APIClient().get(
+            f"/api/albums/user/{self.album.pk}/",
+            {"public": "true", "slug": other_share.slug},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_the_slug_opens_it(self):
+        response = APIClient().get(
+            f"/api/albums/user/{self.album.pk}/",
+            {"public": "true", "slug": self.share.slug},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["title"], "Private trip")
+
+    def test_the_owner_still_opens_it_by_id(self):
+        client = APIClient()
+        client.force_authenticate(self.owner)
+        response = client.get(f"/api/albums/user/{self.album.pk}/")
+        self.assertEqual(response.status_code, 200)

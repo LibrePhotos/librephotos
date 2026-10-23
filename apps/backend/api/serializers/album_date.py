@@ -242,17 +242,19 @@ class DateAlbumFilterQuery(PublicViewQuery):
 
 
 # What the public view ignores of a query: filters by what it does not show
-# (people, folders, favourites, the search text) and the photos it never
-# lists (hidden, in the trash, another library's).
+# (people, folders, favourites, archiving, the search text, when photos were
+# taken or changed) and the photos it never lists (hidden, in the trash,
+# another library's).
 PUBLIC_VIEW_NEUTRAL: dict[str, object] = {
     "hidden": False,
     "in_trashcan": False,
     "folder": "",
     "search": "",
     "favorite": None,
+    "archived": None,
     "libraries": False,
 }
-PUBLIC_VIEW_IGNORED = ("person", "library")
+PUBLIC_VIEW_IGNORED = ("person", "library", "last_modified")
 
 
 def public_view_filters(params: dict[str, object]) -> dict[str, object]:

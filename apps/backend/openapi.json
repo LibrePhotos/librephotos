@@ -1788,6 +1788,16 @@
           },
           {
             "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 64
+            },
+            "description": "With public: the slug of the album's public link (required)"
+          },
+          {
+            "in": "query",
             "name": "username",
             "schema": {
               "type": "string",

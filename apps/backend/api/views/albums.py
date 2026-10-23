@@ -447,13 +447,17 @@ class AlbumUserViewSet(
         # public album id can't be mutated or deleted through this unscoped
         # queryset. See issue #1861.
         if self._public_read():
-            # Anyone can view a public album if the album itself is marked public and active (not expired)
-            username = parse_query(self.request, AlbumUserQuery)["username"]
+            # Anyone holding an album's active public link: its slug, never
+            # the album's id alone, which counts up and would list them all.
+            query = parse_query(self.request, AlbumUserQuery)
+            username = query["username"]
             from django.utils import timezone
 
-            # Use share model exclusively
+            if not query["slug"]:
+                return AlbumUser.objects.none()
             base_qs = AlbumUser.objects.filter(
                 Q(share__enabled=True)
+                & Q(share__slug=query["slug"])
                 & (
                     Q(share__expires_at__isnull=True)
                     | Q(share__expires_at__gte=timezone.now())
@@ -643,7 +647,8 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         if params["public"]:
             if params["username"]:
                 albums = albums.filter(owner__username=params["username"])
-            albums = albums.filter(photos__public=True)
+            # The photos the day list counts: never a hidden or trashed one.
+            albums = albums.filter(photos__in=Photo.visible.filter(public=True))
         else:
             # Only reached with an authenticated user: get_permissions requires
             # it unless ``public`` is set.

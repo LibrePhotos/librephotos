@@ -77,10 +77,10 @@ describe("album media filters", () => {
   it("reads a user album through its public link", async () => {
     const owner = { id: 1, username: "ann", first_name: "", last_name: "" };
     const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
-    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
+    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann", slug: "trip" });
     await endpoints.fetchUserAlbum(client, 9);
     expect(defined(calls[0]).url).toBe(
-      "https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann"
+      "https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann&slug=trip"
     );
     expect(defined(calls[1]).url).toBe("https://demo.example.com/api/albums/user/9/");
   });
