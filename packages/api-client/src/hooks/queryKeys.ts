@@ -207,6 +207,10 @@ export const albumKeys = {
   folder: (path: string | undefined) => [...albumKeys.folders(), "page", path] as const,
   /** The same listing as an infinite query, one page at a time. */
   folderPages: (path: string | undefined) => [...albumKeys.folders(), "infinite", path] as const,
+  /** The comments on one photo in one shared album (#262). */
+  photoComments: (albumId: string, photoId: string) => [...albumRoot, "comments", albumId, photoId] as const,
+  /** The hearts on one photo in one shared album (#262). */
+  photoLikes: (albumId: string, photoId: string) => [...albumRoot, "likes", albumId, photoId] as const,
   /** Which album, if any, already uses a public link slug. */
   slugOwner: (slug: string) => [...albumRoot, "slugOwner", slug] as const,
 };

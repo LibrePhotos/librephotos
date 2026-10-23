@@ -547,3 +547,55 @@ describe("album collections", () => {
     expect(defined(older).collection_ids).toEqual([]);
   });
 });
+
+describe("comments and likes in shared albums (#262)", () => {
+  const ben = { id: 9, username: "ben", first_name: "Ben", last_name: "Okafor" };
+  const comment = {
+    id: 3,
+    author: ben,
+    text: "<b>not bold</b>",
+    created_at: "2026-10-22T10:00:00Z",
+    edited_at: null,
+    can_edit: true,
+    can_delete: true,
+  };
+  const photo = "11111111-1111-1111-1111-111111111111";
+
+  it("reads every page of a thread and keeps the text as it came", async () => {
+    const { client, requests } = fakeServer(page([comment]));
+    const thread = await endpoints.fetchAlbumPhotoComments(client, 4, photo);
+    expect(defined(requests[0]).url).toBe(`https://demo.example.com/api/albums/user/4/photos/${photo}/comments/`);
+    expect(defined(thread[0]).text).toBe("<b>not bold</b>");
+  });
+
+  it("adds, edits and deletes a comment", async () => {
+    const added = fakeServer(comment);
+    await endpoints.addAlbumPhotoComment(added.client, 4, photo, "Hi");
+    expect(defined(added.requests[0])).toMatchObject({ method: "POST", body: { text: "Hi" } });
+    const edited = fakeServer({ ...comment, edited_at: "2026-10-22T11:00:00Z" });
+    await endpoints.editAlbumPhotoComment(edited.client, 4, photo, 3, "Hello");
+    expect(defined(edited.requests[0])).toEqual({
+      url: `https://demo.example.com/api/albums/user/4/photos/${photo}/comments/3/`,
+      method: "PATCH",
+      body: { text: "Hello" },
+    });
+    const deleted = fakeServer(null);
+    await endpoints.deleteAlbumPhotoComment(deleted.client, 4, photo, 3);
+    expect(defined(deleted.requests[0]).method).toBe("DELETE");
+  });
+
+  it("hearts and un-hearts a photo", async () => {
+    const likes = { count: 1, liked_by_me: true, users: [ben] };
+    const put = fakeServer(likes);
+    await expect(endpoints.setAlbumPhotoLiked(put.client, 4, photo, true)).resolves.toEqual(likes);
+    expect(defined(put.requests[0])).toMatchObject({
+      url: `https://demo.example.com/api/albums/user/4/photos/${photo}/likes/`,
+      method: "PUT",
+    });
+    const removed = fakeServer({ count: 0, liked_by_me: false, users: [] });
+    await endpoints.setAlbumPhotoLiked(removed.client, 4, photo, false);
+    expect(defined(removed.requests[0]).method).toBe("DELETE");
+    const read = fakeServer(likes);
+    await expect(endpoints.fetchAlbumPhotoLikes(read.client, 4, photo)).resolves.toEqual(likes);
+  });
+});

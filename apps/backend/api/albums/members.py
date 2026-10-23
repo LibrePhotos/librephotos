@@ -17,13 +17,22 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from typing import Any
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
-from api.models import AlbumRole, AlbumUser, AlbumUserMember, AlbumUserPhoto, Photo
+from api.models import (
+    AlbumComment,
+    AlbumLike,
+    AlbumRole,
+    AlbumUser,
+    AlbumUserMember,
+    AlbumUserPhoto,
+    Photo,
+)
 from api.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -82,6 +91,7 @@ def take_out_contributions(album: AlbumUser, user: User) -> int:
     )
     if photo_ids:
         album.photos.remove(*photo_ids)
+        drop_threads(album, photo_ids)
         logger.info(
             "Took %s photos of user %s out of album %s",
             len(photo_ids),
@@ -200,4 +210,17 @@ def remove_photos(album: AlbumUser, user: User, photo_ids: Iterable[object]) -> 
     ids: list[Any] = list(links.values_list("photo_id", flat=True))
     if ids:
         album.photos.remove(*ids)
+        drop_threads(album, ids)
     return len(ids)
+
+
+def drop_threads(album: AlbumUser, photo_ids: Iterable[UUID]) -> None:
+    """Delete the comments and likes (#262) on photos that left ``album``.
+
+    A thread belongs to the photo in this album only; it goes with the photo.
+    """
+    ids = list(photo_ids)
+    if not ids:
+        return
+    AlbumComment.objects.filter(album=album, photo_id__in=ids).delete()
+    AlbumLike.objects.filter(album=album, photo_id__in=ids).delete()

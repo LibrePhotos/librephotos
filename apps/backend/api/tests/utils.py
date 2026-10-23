@@ -28,6 +28,7 @@ from faker import Faker
 from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
 from api.models.album_collection import AlbumCollection
+from api.models.album_comment import AlbumComment, AlbumLike
 from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
@@ -245,6 +246,20 @@ def create_test_album_user(
     """A user album for ``owner``. Titles are unique per owner, so the default is random."""
     title = title or f"{fake.catch_phrase()} {uuid.uuid4().hex[:8]}"
     return AlbumUser.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_album_comment(
+    album: AlbumUser, photo: Photo, author: User, text: str = "Lovely", **kwargs: Any
+) -> AlbumComment:
+    """A comment by ``author`` on ``photo`` in ``album`` (#262); the photo should be in it."""
+    return AlbumComment.objects.create(
+        album=album, photo=photo, author=author, text=text, **kwargs
+    )
+
+
+def create_test_album_like(album: AlbumUser, photo: Photo, user: User) -> AlbumLike:
+    """``user``'s heart on ``photo`` in ``album`` (#262)."""
+    return AlbumLike.objects.create(album=album, photo=photo, user=user)
 
 
 def create_test_album_collection(

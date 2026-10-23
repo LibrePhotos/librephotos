@@ -57,6 +57,8 @@ class AlbumUser(models.Model):
     members_share_camera_info = models.BooleanField(default=True)
     members_share_captions = models.BooleanField(default=True)
     members_share_originals = models.BooleanField(default=True)
+    # Whether members may comment on its photos (#262); the owner turns it off.
+    comments_enabled = models.BooleanField(default=True)
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on save and on
     # membership / sharing changes via m2m_changed receivers (api/sync_signals.py).
     last_modified = models.DateTimeField(auto_now=True, db_index=True)

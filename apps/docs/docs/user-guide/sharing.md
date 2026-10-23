@@ -70,6 +70,18 @@ The same choices hold under **Shared with you**: the album's photos appear under
 
 When the photo's owner also shares their whole library with you, that share's choices decide what you see of their photos, in albums too.
 
+### Comments and likes
+
+<Since version="1.5.0" />
+
+Everyone in a shared album, its owner included, can comment on its photos and like them. Open a photo from the album's page and open the details panel (**Toggle info panel**): under **Comments** you see the comments, the heart and who liked the photo, and a box to write in. **Enter** sends, **Shift+Enter** starts a new line.
+
+- Comments belong to the album, not the photo: the same photo in another album has its own comments, and only the people in that album see them.
+- A comment is plain text, at most 1000 characters. Links and formatting are shown as typed.
+- You edit and delete your own comments from their **⋮**. The album's owner can delete anyone's comment, and turn comments and likes off with **Members can comment and like** in the album's **Sharing** dialog. While they are off, the existing comments stay visible and nobody can add one.
+- When a photo leaves the album, or a contributor leaves and takes their photos with them, the comments and likes on those photos are deleted.
+- To keep one person from flooding an album, each user can post at most 30 comments or likes a minute.
+
 ### Where a contributor's photos show
 
 Only in the album itself. They are not in the album owner's timeline, search, places or downloads, not in anyone's **Shared with you** places, things and people, and never on the album's **public link**, which shows only the owner's own photos.

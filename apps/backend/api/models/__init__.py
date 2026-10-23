@@ -1,5 +1,6 @@
 from api.models.album_auto import AlbumAuto
 from api.models.album_collection import AlbumCollection
+from api.models.album_comment import AlbumComment, AlbumLike
 from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
@@ -39,6 +40,8 @@ from api.models.user_place import UserPlace
 __all__ = [
     "AlbumAuto",
     "AlbumCollection",
+    "AlbumComment",
+    "AlbumLike",
     "AlbumDate",
     "AlbumPlace",
     "AlbumThing",

@@ -1622,6 +1622,75 @@ export async function setAlbumMembership(
   return parseResponse(S.AlbumMemberSwitches, res, "set album membership");
 }
 
+function threadPath(albumId: number | string, photoId: string) {
+  return `/albums/user/${albumId}/photos/${photoId}/`;
+}
+
+/** The comments on a photo in an album you own or are a member of (#262), oldest first, every page. */
+export async function fetchAlbumPhotoComments(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string
+): Promise<S.AlbumComment[]> {
+  const rows = await fetchAllPages(client, `${threadPath(albumId, photoId)}comments/`);
+  return parseResponse(S.AlbumComment.array(), rows, "album photo comments");
+}
+
+/** Comment on a photo in an album; plain text. 403 `comments_off` when the owner turned comments off. */
+export async function addAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  text: string
+): Promise<S.AlbumComment> {
+  const res = await client.post<unknown>(`${threadPath(albumId, photoId)}comments/`, { text });
+  return parseResponse(S.AlbumComment, res, "add album photo comment");
+}
+
+/** Rewrite your own comment. */
+export async function editAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  commentId: number,
+  text: string
+): Promise<S.AlbumComment> {
+  const res = await client.patch<unknown>(`${threadPath(albumId, photoId)}comments/${commentId}/`, { text });
+  return parseResponse(S.AlbumComment, res, "edit album photo comment");
+}
+
+/** Delete a comment: your own, or any in an album you own. */
+export async function deleteAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  commentId: number
+): Promise<void> {
+  await client.delete(`${threadPath(albumId, photoId)}comments/${commentId}/`);
+}
+
+/** The hearts on a photo in an album. */
+export async function fetchAlbumPhotoLikes(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string
+): Promise<S.AlbumLikes> {
+  const res = await client.get<unknown>(`${threadPath(albumId, photoId)}likes/`);
+  return parseResponse(S.AlbumLikes, res, "album photo likes");
+}
+
+/** Heart (true) or un-heart a photo in an album; answers the hearts after the change. */
+export async function setAlbumPhotoLiked(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  liked: boolean
+): Promise<S.AlbumLikes> {
+  const path = `${threadPath(albumId, photoId)}likes/`;
+  const res = await client.request<unknown>(path, { method: liked ? "PUT" : "DELETE" });
+  return parseResponse(S.AlbumLikes, res, "set album photo liked");
+}
+
 /** The album owner's ceiling: what members may see of the album's photos (#464). */
 export async function setAlbumMemberCeiling(
   client: ApiClient,

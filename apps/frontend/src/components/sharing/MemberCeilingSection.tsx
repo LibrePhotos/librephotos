@@ -33,6 +33,15 @@ export function MemberCeilingSection({ albumID, album }: Props) {
           }
         />
       ))}
+      {/* Comments and likes (#262): the owner turns them off for everyone. */}
+      <Switch
+        size="sm"
+        label={t("collab.allowComments")}
+        checked={album?.comments_enabled ?? true}
+        onChange={event =>
+          setCeiling.mutate({ albumId: albumID, ceiling: { comments_enabled: event.currentTarget.checked } })
+        }
+      />
     </Stack>
   );
 }

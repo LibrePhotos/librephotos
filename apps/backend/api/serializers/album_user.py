@@ -18,7 +18,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from api.albums.member_grants import NOTHING, album_grants
-from api.albums.members import MEMBER_SWITCHES
+from api.albums.members import MEMBER_SWITCHES, drop_threads
 from api.drf.params import JsonBooleanField
 from api.drf.request_user import request_user
 from api.models import (
@@ -195,6 +195,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "members_share_camera_info",
             "members_share_captions",
             "members_share_originals",
+            "comments_enabled",
         )
 
     def _members(self, obj: AlbumUser) -> list[AlbumUserMember]:
@@ -412,13 +413,17 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if "removedPhotos" in validated_data.keys():
             image_hashes = validated_data["removedPhotos"]
             photos_already_in_album = instance.photos.all()
-            cnt = 0
+            removed = []
             for obj in photos_already_in_album:
                 if obj.image_hash in image_hashes:
-                    cnt += 1
+                    removed.append(obj.pk)
                     instance.photos.remove(obj)
+            # Their comments and likes (#262) leave with them.
+            drop_threads(instance, removed)
 
-            logger.info("Removed %s photos from user album %s", cnt, instance.id)
+            logger.info(
+                "Removed %s photos from user album %s", len(removed), instance.id
+            )
 
         if "cover_photo" in validated_data.keys():
             cover_photo = validated_data["cover_photo"]

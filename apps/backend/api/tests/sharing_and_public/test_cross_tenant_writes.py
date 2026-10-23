@@ -58,6 +58,7 @@ from api.tests.utils import (
     TEST_MEDIA_ROOT,
     create_test_album_auto,
     create_test_album_collection,
+    create_test_album_comment,
     create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
@@ -335,6 +336,9 @@ class CrossTenantWriteTest(TestCase):
 
         self.v_album = create_test_album_user(title="Victim Trip", owner=self.victim)
         self.v_album.photos.add(self.v_pub, self.v_priv)
+        self.v_comment = create_test_album_comment(
+            self.v_album, self.v_pub, self.victim
+        )
         self.v_collection = create_test_album_collection(
             name="Victim Collection", owner=self.victim, albums=[self.v_album]
         )
@@ -671,6 +675,21 @@ class CrossTenantWriteTest(TestCase):
                 "patch",
                 f"/api/albums/user/{self.v_album.pk}/membership/",
                 {"share_location": True},
+            ),
+            # comments and likes in an album the attacker is not in (#262)
+            *(
+                (method, f"{thread}{suffix}", body)
+                for thread in (
+                    f"/api/albums/user/{self.v_album.pk}/photos/{self.v_pub.pk}/",
+                    f"/api/albums/user/{self.a_album.pk}/photos/{self.v_pub.pk}/",
+                )
+                for method, suffix, body in (
+                    ("post", "comments/", {"text": "pwned"}),
+                    ("patch", f"comments/{self.v_comment.pk}/", {"text": "pwned"}),
+                    ("delete", f"comments/{self.v_comment.pk}/", None),
+                    ("put", "likes/", None),
+                    ("delete", "likes/", None),
+                )
             ),
             # per-photo share links, by id and by hash, for every action
             *(

@@ -23,6 +23,7 @@ import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
 import { AlbumsSection } from "./AlbumsSection";
+import { AlbumThreadSection } from "./AlbumThreadSection";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { CategoryBadge } from "./CategoryBadge";
 import { Description } from "./Description";
@@ -274,6 +275,7 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: 
         <Text size="sm" c="dimmed">
           {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
         </Text>
+        <AlbumThreadSection photoKey={id} />
       </Stack>
     </SidebarPanel>
   );
@@ -380,6 +382,7 @@ function OwnerSidebar({
         <TagsSection photoDetail={photoDetail} />
         <AlbumsSection imageHash={photoDetail.image_hash} />
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
+        <AlbumThreadSection photoKey={id} />
       </Stack>
 
       <ModalPersonEdit isOpen={personEditOpen} onRequestClose={handleModalClose} selectedFaces={selectedFaces} />

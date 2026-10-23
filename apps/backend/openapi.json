@@ -1234,6 +1234,391 @@
         }
       }
     },
+    "/api/albums/user/{album_id}/photos/{photo_id}/comments/": {
+      "get": {
+        "operationId": "api_album_photo_comments_list",
+        "description": "The comments on a photo in an album you own or are a member of.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumCommentPage"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_albums_user_photos_comments_create",
+        "description": "Comment on the photo; refused while the owner has comments off.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumComment"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/{photo_id}/comments/{comment_id}/": {
+      "patch": {
+        "operationId": "api_albums_user_photos_comments_partial_update",
+        "description": "One comment: its author edits it; its author or the album's owner deletes it.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "comment_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumComment"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_albums_user_photos_comments_destroy",
+        "description": "One comment: its author edits it; its author or the album's owner deletes it.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "comment_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/{photo_id}/likes/": {
+      "get": {
+        "operationId": "api_album_photo_likes_retrieve",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumLikes"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "api_albums_user_photos_likes_update",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumLikes"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_albums_user_photos_likes_destroy",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
     "/api/albums/user/{album_id}/photos/add/": {
       "post": {
         "operationId": "api_albums_user_photos_add_create",
@@ -13923,6 +14308,114 @@
           "name"
         ]
       },
+      "AlbumComment": {
+        "type": "object",
+        "description": "One comment: plain text, which clients show as text, never as markup.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "author": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "readOnly": true
+          },
+          "text": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "edited_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "can_edit": {
+            "type": "boolean",
+            "description": "Only its author edits a comment.",
+            "readOnly": true
+          },
+          "can_delete": {
+            "type": "boolean",
+            "description": "Its author, or the album's owner.",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "author",
+          "can_delete",
+          "can_edit",
+          "created_at",
+          "edited_at",
+          "id",
+          "text"
+        ]
+      },
+      "AlbumCommentPage": {
+        "type": "object",
+        "description": "A page of a photo's thread in one album, oldest first.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumComment"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "previous",
+          "results"
+        ]
+      },
+      "AlbumCommentRequestRequest": {
+        "type": "object",
+        "description": "The text of a comment: plain text, trimmed, not empty.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain text, at most 1000 characters",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "AlbumDate": {
         "type": "object",
         "properties": {
@@ -13962,6 +14455,29 @@
           "items",
           "location",
           "numberOfItems"
+        ]
+      },
+      "AlbumLikes": {
+        "type": "object",
+        "description": "The hearts on a photo in one album.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "liked_by_me": {
+            "type": "boolean"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimpleUser"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "liked_by_me",
+          "users"
         ]
       },
       "AlbumMember": {
@@ -14342,10 +14858,14 @@
           },
           "members_share_originals": {
             "type": "boolean"
+          },
+          "comments_enabled": {
+            "type": "boolean"
           }
         },
         "required": [
           "collection_ids",
+          "comments_enabled",
           "date",
           "grouped_photos",
           "id",
@@ -20016,6 +20536,18 @@
           }
         }
       },
+      "PatchedAlbumCommentRequestRequest": {
+        "type": "object",
+        "description": "The text of a comment: plain text, trimmed, not empty.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain text, at most 1000 characters",
+            "maxLength": 2000
+          }
+        }
+      },
       "PatchedAlbumMembershipRequestRequest": {
         "type": "object",
         "description": "Your own switches in an album shared with you (#464): what the other\nmembers see of the photos you add. Absent ones are kept.",
@@ -20118,6 +20650,9 @@
             "type": "boolean"
           },
           "members_share_originals": {
+            "type": "boolean"
+          },
+          "comments_enabled": {
             "type": "boolean"
           }
         }

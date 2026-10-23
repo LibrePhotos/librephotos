@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 
 from django.contrib.auth import get_user_model
 from rest_framework.request import Request
-from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import SimpleRateThrottle, UserRateThrottle
 
 if TYPE_CHECKING:
     # Only for annotations: DRF imports the authentication classes, which use
@@ -130,3 +130,14 @@ class TokenRefreshRateThrottle(SimpleRateThrottle):
             "scope": self.scope,
             "ident": self.get_ident(request),
         }
+
+
+class AlbumCommentRateThrottle(UserRateThrottle):
+    """Writing comments and hearts in shared albums (#262), per signed-in user.
+
+    Not a credential throttle: it keeps one member from flooding an album's
+    threads. A fixed rate, so it needs no setting.
+    """
+
+    scope = "album_comment"
+    rate = "30/minute"

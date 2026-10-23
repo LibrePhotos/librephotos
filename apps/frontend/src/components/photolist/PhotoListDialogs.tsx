@@ -1,5 +1,6 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import type { SelectionState } from "../../api_client/photos/types";
+import { AlbumThreadContext } from "../lightbox/albumThread";
 import { Lightbox } from "../lightbox/Lightbox";
 import { videoStartOf } from "../lightbox/videoStart";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
@@ -67,16 +68,19 @@ export function PhotoListDialogs({
   return (
     <>
       {lightbox.lightboxOpen && (
-        <Lightbox
-          isPublic={isPublic}
-          publicAlbumSlug={publicAlbumSlug}
-          idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash, title)}
-          selectedImage={lightbox.lightboxImageId}
-          onChangedIndex={lightbox.handleLightboxIndexChange}
-          onCloseRequest={slideshow.close}
-          onImageChange={lightbox.handleLightboxImageChange}
-          startSlideshow={slideshow.active}
-        />
+        // A user album's photos carry its comments and likes (#262).
+        <AlbumThreadContext.Provider value={isUserAlbum ? albumID : undefined}>
+          <Lightbox
+            isPublic={isPublic}
+            publicAlbumSlug={publicAlbumSlug}
+            idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash, title)}
+            selectedImage={lightbox.lightboxImageId}
+            onChangedIndex={lightbox.handleLightboxIndexChange}
+            onCloseRequest={slideshow.close}
+            onImageChange={lightbox.handleLightboxImageChange}
+            startSlideshow={slideshow.active}
+          />
+        </AlbumThreadContext.Provider>
       )}
       {!isPublic && (
         <AlbumEditModal

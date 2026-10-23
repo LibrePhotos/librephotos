@@ -54,6 +54,7 @@ from api.models import User
 from api.views import (
     album_auto,
     album_collections,
+    album_comments,
     album_folder,
     album_members,
     albums,
@@ -525,6 +526,18 @@ urlpatterns = [
     path(
         "api/albums/user/<int:album_id>/membership/",
         album_members.AlbumMembershipView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/comments/",
+        album_comments.AlbumPhotoCommentsView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/comments/<int:comment_id>/",
+        album_comments.AlbumPhotoCommentView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/likes/",
+        album_comments.AlbumPhotoLikesView.as_view(),
     ),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),

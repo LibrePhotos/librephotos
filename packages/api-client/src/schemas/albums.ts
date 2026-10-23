@@ -94,6 +94,29 @@ export const AlbumMemberSwitches = z.object({
 });
 export type AlbumMemberSwitches = z.infer<typeof AlbumMemberSwitches>;
 
+/**
+ * A comment on a photo in a shared album (#262). `text` is plain text: show it as text, never as
+ * markup. `can_edit`/`can_delete` say what the requester may do with it.
+ */
+export const AlbumComment = z.object({
+  id: z.number(),
+  author: SimpleUser,
+  text: z.string(),
+  created_at: z.string(),
+  edited_at: z.string().nullable(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
+});
+export type AlbumComment = z.infer<typeof AlbumComment>;
+
+/** The hearts on a photo in one album (#262). */
+export const AlbumLikes = z.object({
+  count: z.number(),
+  liked_by_me: z.boolean(),
+  users: SimpleUser.array(),
+});
+export type AlbumLikes = z.infer<typeof AlbumLikes>;
+
 /** POST /albums/user/{id}/photos/add/ and .../remove/: how many photos the request changed. */
 export const AlbumPhotosChanged = z.object({ count: z.number() });
 export type AlbumPhotosChanged = z.infer<typeof AlbumPhotosChanged>;
@@ -162,6 +185,8 @@ export const UserAlbum = UserAlbumDetails.extend({
   members_share_camera_info: z.boolean().optional(),
   members_share_captions: z.boolean().optional(),
   members_share_originals: z.boolean().optional(),
+  // Whether members may comment on its photos (#262); absent from older servers.
+  comments_enabled: z.boolean().optional(),
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
 
@@ -174,6 +199,7 @@ export type AlbumMemberCeiling = Partial<
     | "members_share_camera_info"
     | "members_share_captions"
     | "members_share_originals"
+    | "comments_enabled"
   >
 >;
 
@@ -188,6 +214,7 @@ export const PublicAlbum = UserAlbum.omit({
   members_share_camera_info: true,
   members_share_captions: true,
   members_share_originals: true,
+  comments_enabled: true,
 });
 export type PublicAlbum = z.infer<typeof PublicAlbum>;
 
