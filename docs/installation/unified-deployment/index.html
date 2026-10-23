@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.c3fb1003.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.bf86a6b0.js" defer="defer"></script>
 <script src="/assets/js/main.d9763df3.js" defer="defer"></script>
 </head>
 <body>
@@ -48,6 +48,7 @@
 <p><strong>Best for: Cloud deployments, existing PostgreSQL, production setups</strong></p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="1-postgresql-setup">1. PostgreSQL Setup<a href="#1-postgresql-setup" class="hash-link" aria-label="Direct link to 1. PostgreSQL Setup" title="Direct link to 1. PostgreSQL Setup" translate="no">​</a></h3>
 <p><strong>Existing PostgreSQL:</strong></p>
+<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> LibrePhotos needs PostgreSQL 15 or newer (Django 6.1 dropped 14). Up to 1.4.0, PostgreSQL 14 worked. Upgrade an older server before you update LibrePhotos; the bundled Compose setup already runs 18.</p>
 <p>Create the database and a user that owns it. On first start the container runs <code>manage.py migrate</code> as this user, so it must be able to create tables — and since PostgreSQL 15, <code>GRANT ALL PRIVILEGES ON DATABASE</code> no longer conveys that. Make the app user the database owner instead:</p>
 <div class="language-sql codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-sql codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><div class="token-line" style="color:#393A34"><span class="token keyword" style="color:#00009f">CREATE</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">USER</span><span class="token plain"> librephotos_user </span><span class="token keyword" style="color:#00009f">WITH</span><span class="token plain"> PASSWORD </span><span class="token string" style="color:#e3116c">&#x27;your_secure_password&#x27;</span><span class="token punctuation" style="color:#393A34">;</span><span class="token plain"></span><br></div><div class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token keyword" style="color:#00009f">CREATE</span><span class="token plain"> </span><span class="token keyword" style="color:#00009f">DATABASE</span><span class="token plain"> librephotos OWNER librephotos_user</span><span class="token punctuation" style="color:#393A34">;</span><br></div></code></pre></div></div>
 <p>If the database already exists, run <code>ALTER DATABASE librephotos OWNER TO librephotos_user;</code>. For a database carried over from PostgreSQL 14 or earlier, also connect to it (<code>\c librephotos</code>) and run <code>GRANT ALL ON SCHEMA public TO librephotos_user;</code>.</p>
