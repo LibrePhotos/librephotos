@@ -1,11 +1,12 @@
 import { Text } from "@mantine/core";
-import React from "react";
+import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
 import { autoTagsOf } from "../../api_client/photos/captions";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { sharerName } from "../sharing/sharerGroups";
+import { AlbumThreadContext } from "./albumThread";
 import type { FaceLocationType } from "./lightbox.types";
 import { PeopleSection } from "./PeopleSection";
 import { ThingBadges } from "./ThingBadges";
@@ -28,6 +29,8 @@ export function SharedPhotoDetails({ id, setFaceLocation }: Props) {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: photo } = useFetchPhotoDetailsQuery(id, !isAuthenticated);
   const { data: siteSettings } = useGetSettingsQuery();
+  // In a shared album (#464), a member's photo was added by them, not shared.
+  const inAlbum = useContext(AlbumThreadContext) !== undefined;
   if (!photo) return null;
 
   const things = autoTagsOf(photo.captions_json, siteSettings?.tagging_model ?? "openclip_vitb32") ?? [];
@@ -45,7 +48,9 @@ export function SharedPhotoDetails({ id, setFaceLocation }: Props) {
       {things.length > 0 && <ThingBadges things={things} imageHash={photo.image_hash} isPublic inCard={false} />}
       {photo.owner && (
         <Text size="sm" c="dimmed">
-          {t("sharing.sharedByLine", { name: sharerName(photo.owner, photo.owner.username) })}
+          {t(inAlbum ? "collab.addedBy" : "sharing.sharedByLine", {
+            name: sharerName(photo.owner, photo.owner.username),
+          })}
         </Text>
       )}
     </>

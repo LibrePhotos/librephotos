@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from api.drf.exceptions import Conflict
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
-from api.models import AlbumUser
+from api.models import AlbumUser, AlbumUserPhoto, Photo
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.album_user import (
     AlbumUserPublicSerializer,
@@ -192,18 +192,18 @@ class PublicPhotoDetailBySlug(APIView):
         # UUID format is 36 chars with hyphens, image_hash is 32 hex chars
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
 
+        # The link's own photos only: the album owner's (never another
+        # user's, GHSA-phvg-g65q-rhq3, nor a contributor's, #464), not hidden
+        # or trashed.
+        photos = Photo.objects.filter(
+            pk__in=AlbumUserPhoto.objects.of_album_owner()
+            .filter(albumuser=album)
+            .values("photo_id")
+        )
         if is_uuid_format:
-            photo = album.photos.filter(
-                pk=photo_id,
-                hidden=False,
-                in_trashcan=False,
-            ).first()
+            photo = photos.filter(pk=photo_id).first()
         else:
-            photo = album.photos.filter(
-                image_hash=photo_id,
-                hidden=False,
-                in_trashcan=False,
-            ).first()
+            photo = photos.filter(image_hash=photo_id).first()
 
         if not photo:
             raise NotFound("Photo not found in album")

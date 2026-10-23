@@ -1559,19 +1559,185 @@ export async function setPhotosShared(
   return parseResponse(S.BulkPhotoMutationResponse, res, "share photos");
 }
 
-/** Share (or unshare) a user album to another user; answers the album's card. */
+/**
+ * Share (or unshare) a user album to another user; answers the album's card. With `role` (#464)
+ * the user can view, or also add their own photos; leaving the contributors takes the photos they
+ * added out of the album. Without it, a member keeps their role and a new one only views.
+ */
 export async function setUserAlbumShared(
   client: ApiClient,
   albumId: number | string,
   targetUserId: number | string,
-  shared: boolean
+  shared: boolean,
+  role?: S.AlbumRole
 ): Promise<S.UserAlbumInfo> {
   const res = await client.post<unknown>("/useralbum/share/", {
     album_id: String(albumId),
     target_user_id: String(targetUserId),
     shared,
+    ...(role === undefined ? {} : { role }),
   });
   return parseResponse(S.UserAlbumInfo, res, "share user album");
+}
+
+/**
+ * Add photos of your own to an album you own or contribute to (#464); they stay yours, the album
+ * only links them. Any id that is not your photo refuses the whole request (400).
+ */
+export async function addPhotosToAlbum(
+  client: ApiClient,
+  albumId: number | string,
+  photoIds: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.AlbumPhotosChanged> {
+  const body = selectAll
+    ? { select_all: true, query: selectAll.query ?? {}, excluded_hashes: selectAll.excludedHashes ?? [] }
+    : { photos: photoIds };
+  const res = await client.post<unknown>(`/albums/user/${albumId}/photos/add/`, body);
+  return parseResponse(S.AlbumPhotosChanged, res, "add photos to album");
+}
+
+/**
+ * Take photos out of an album (#464); they stay in their owner's library. The owner takes out any
+ * photo, a contributor only their own (403 otherwise).
+ */
+export async function removePhotosFromAlbum(
+  client: ApiClient,
+  albumId: number | string,
+  photoIds: string[]
+): Promise<S.AlbumPhotosChanged> {
+  const res = await client.post<unknown>(`/albums/user/${albumId}/photos/remove/`, {
+    photos: photoIds,
+  });
+  return parseResponse(S.AlbumPhotosChanged, res, "remove photos from album");
+}
+
+/** Set your own switches in an album shared with you: what members see of the photos you add. */
+export async function setAlbumMembership(
+  client: ApiClient,
+  albumId: number | string,
+  switches: Partial<S.AlbumMemberSwitches>
+): Promise<S.AlbumMemberSwitches> {
+  const res = await client.patch<unknown>(`/albums/user/${albumId}/membership/`, switches);
+  return parseResponse(S.AlbumMemberSwitches, res, "set album membership");
+}
+
+/** Who one of your people is shared with (#668). */
+export async function fetchPersonSharing(client: ApiClient, personId: number): Promise<S.PersonSharing> {
+  const res = await client.get<unknown>(`/persons/${personId}/sharing/`);
+  return parseResponse(S.PersonSharing, res, "person sharing");
+}
+
+/**
+ * Share one of your people with exactly `recipientIds` (none unshares). Sharing a person nobody had
+ * shows the photos labelled with it now; later ones wait for your review.
+ */
+export async function setPersonSharing(
+  client: ApiClient,
+  personId: number,
+  body: { recipient_ids: number[]; share_location?: boolean; share_other_people?: boolean }
+): Promise<S.PersonSharing> {
+  const res = await client.request<unknown>(`/persons/${personId}/sharing/`, { method: "PUT", body });
+  return parseResponse(S.PersonSharing, res, "set person sharing");
+}
+
+/** The first page of the photos of a shared person that wait for your review. */
+export async function fetchPersonSharingPending(
+  client: ApiClient,
+  personId: number
+): Promise<S.PersonSharePendingPage> {
+  const res = await client.get<unknown>(`/persons/${personId}/sharing/pending/`);
+  return parseResponse(S.PersonSharePendingPage, res, "person sharing pending");
+}
+
+/** Show photos of a shared person to its recipients (`approve`), or keep them back (`decline`). */
+export async function reviewPersonSharing(
+  client: ApiClient,
+  personId: number,
+  approve: string[],
+  decline: string[]
+): Promise<S.PersonSharing> {
+  const res = await client.post<unknown>(`/persons/${personId}/sharing/review/`, { approve, decline });
+  return parseResponse(S.PersonSharing, res, "review person sharing");
+}
+
+function threadPath(albumId: number | string, photoId: string) {
+  return `/albums/user/${albumId}/photos/${photoId}/`;
+}
+
+/** The comments on a photo in an album you own or are a member of (#262), oldest first, every page. */
+export async function fetchAlbumPhotoComments(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string
+): Promise<S.AlbumComment[]> {
+  const rows = await fetchAllPages(client, `${threadPath(albumId, photoId)}comments/`);
+  return parseResponse(S.AlbumComment.array(), rows, "album photo comments");
+}
+
+/** Comment on a photo in an album; plain text. 403 `comments_off` when the owner turned comments off. */
+export async function addAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  text: string
+): Promise<S.AlbumComment> {
+  const res = await client.post<unknown>(`${threadPath(albumId, photoId)}comments/`, { text });
+  return parseResponse(S.AlbumComment, res, "add album photo comment");
+}
+
+/** Rewrite your own comment. */
+export async function editAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  commentId: number,
+  text: string
+): Promise<S.AlbumComment> {
+  const res = await client.patch<unknown>(`${threadPath(albumId, photoId)}comments/${commentId}/`, { text });
+  return parseResponse(S.AlbumComment, res, "edit album photo comment");
+}
+
+/** Delete a comment: your own, or any in an album you own. */
+export async function deleteAlbumPhotoComment(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  commentId: number
+): Promise<void> {
+  await client.delete(`${threadPath(albumId, photoId)}comments/${commentId}/`);
+}
+
+/** The hearts on a photo in an album. */
+export async function fetchAlbumPhotoLikes(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string
+): Promise<S.AlbumLikes> {
+  const res = await client.get<unknown>(`${threadPath(albumId, photoId)}likes/`);
+  return parseResponse(S.AlbumLikes, res, "album photo likes");
+}
+
+/** Heart (true) or un-heart a photo in an album; answers the hearts after the change. */
+export async function setAlbumPhotoLiked(
+  client: ApiClient,
+  albumId: number | string,
+  photoId: string,
+  liked: boolean
+): Promise<S.AlbumLikes> {
+  const path = `${threadPath(albumId, photoId)}likes/`;
+  const res = await client.request<unknown>(path, { method: liked ? "PUT" : "DELETE" });
+  return parseResponse(S.AlbumLikes, res, "set album photo liked");
+}
+
+/** The album owner's ceiling: what members may see of the album's photos (#464). */
+export async function setAlbumMemberCeiling(
+  client: ApiClient,
+  albumId: number | string,
+  ceiling: S.AlbumMemberCeiling
+): Promise<S.UserAlbumRenameResponse> {
+  const res = await client.patch<unknown>(`/albums/user/${albumId}/`, ceiling);
+  return parseResponse(S.UserAlbumRenameResponse, res, "set what album members see");
 }
 
 /**

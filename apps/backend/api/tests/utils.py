@@ -28,6 +28,7 @@ from faker import Faker
 from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
 from api.models.album_collection import AlbumCollection
+from api.models.album_comment import AlbumComment, AlbumLike
 from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
@@ -37,6 +38,7 @@ from api.models.library_folder import LibraryFolder
 from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
+from api.models.person_share import PersonShare, PersonSharePhoto
 from api.models.photo_metadata import MetadataEdit
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
@@ -145,6 +147,18 @@ def create_test_person_group(
     return group
 
 
+def create_test_person_share(person: Person, recipient: User) -> PersonShare:
+    """``person`` shared with ``recipient`` (#668); no photo approved by it."""
+    return PersonShare.objects.create(person=person, recipient=recipient)
+
+
+def create_test_person_share_photo(
+    person: Person, photo: Photo, status: str = PersonSharePhoto.APPROVED
+) -> PersonSharePhoto:
+    """The owner's decision on ``photo`` of a shared ``person`` (#668)."""
+    return PersonSharePhoto.objects.create(person=person, photo=photo, status=status)
+
+
 def create_test_face(
     photo: Photo | None = None,
     image: str | None = "test.jpg",
@@ -245,6 +259,20 @@ def create_test_album_user(
     """A user album for ``owner``. Titles are unique per owner, so the default is random."""
     title = title or f"{fake.catch_phrase()} {uuid.uuid4().hex[:8]}"
     return AlbumUser.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_album_comment(
+    album: AlbumUser, photo: Photo, author: User, text: str = "Lovely", **kwargs: Any
+) -> AlbumComment:
+    """A comment by ``author`` on ``photo`` in ``album`` (#262); the photo should be in it."""
+    return AlbumComment.objects.create(
+        album=album, photo=photo, author=author, text=text, **kwargs
+    )
+
+
+def create_test_album_like(album: AlbumUser, photo: Photo, user: User) -> AlbumLike:
+    """``user``'s heart on ``photo`` in ``album`` (#262)."""
+    return AlbumLike.objects.create(album=album, photo=photo, user=user)
 
 
 def create_test_album_collection(

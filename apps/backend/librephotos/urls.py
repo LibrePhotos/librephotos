@@ -54,7 +54,9 @@ from api.models import User
 from api.views import (
     album_auto,
     album_collections,
+    album_comments,
     album_folder,
+    album_members,
     albums,
     dataviz,
     date_rules,
@@ -70,6 +72,7 @@ from api.views import (
     memories,
     password_reset,
     person_groups,
+    person_sharing,
     photo_dates,
     photo_locations,
     photo_metadata,
@@ -513,6 +516,42 @@ urlpatterns = [
     path("api/photosedit/location/", photo_locations.SetPhotosLocationView.as_view()),
     re_path(r"^api/useralbum/share/?$", sharing.SetUserAlbumShared.as_view()),
     path("api/useralbum/leave/", sharing.LeaveSharedAlbum.as_view()),
+    path(
+        "api/albums/user/<int:album_id>/photos/add/",
+        album_members.AlbumPhotosAddView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/remove/",
+        album_members.AlbumPhotosRemoveView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/membership/",
+        album_members.AlbumMembershipView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/comments/",
+        album_comments.AlbumPhotoCommentsView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/comments/<int:comment_id>/",
+        album_comments.AlbumPhotoCommentView.as_view(),
+    ),
+    path(
+        "api/albums/user/<int:album_id>/photos/<uuid:photo_id>/likes/",
+        album_comments.AlbumPhotoLikesView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/",
+        person_sharing.PersonSharingView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/pending/",
+        person_sharing.PersonSharingPendingView.as_view(),
+    ),
+    path(
+        "api/persons/<int:person_id>/sharing/review/",
+        person_sharing.PersonSharingReviewView.as_view(),
+    ),
     re_path(r"^api/trainfaces/?$", faces.TrainFaceView.as_view()),
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),

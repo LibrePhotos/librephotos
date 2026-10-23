@@ -2,6 +2,7 @@ import { Modal } from "@mantine/core";
 import { MotionConfig } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
+import { useAuth } from "../../hooks/useAuth";
 import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
 import { ContentViewer } from "./ContentViewer";
 import { DiscardDraftsModal } from "./DiscardDraftsModal";
@@ -59,6 +60,11 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   );
 }
 
+/** Whether a photo whose owner is known belongs to someone other than the viewer. */
+function isSomeoneElses(ownerId: number | undefined, userId: number | null): boolean {
+  return ownerId !== undefined && userId !== null && ownerId !== userId;
+}
+
 function LightboxViewer(props: ExtendedLightBoxProps) {
   const {
     idx2hash,
@@ -103,6 +109,10 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
   // Skip this query on public pages since we don't have authenticated access to photo details
   const currentImageHash = getImageHashForId(lightboxImageId) || lightboxImageId;
   const { data: photoDetails } = useFetchPhotoDetailsQuery(currentImageHash, isPublic);
+  // Someone else's photo is read only: one a member added to your album (#464), one from a library
+  // shared with you (#2731).
+  const { userId } = useAuth();
+  const readOnly = isPublic || Boolean(photoDetails?.shared_library) || isSomeoneElses(photoDetails?.owner?.id, userId);
 
   // Initialize and handle navigation context
   useEffect(() => {
@@ -234,8 +244,6 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     [guard, onImageChange]
   );
 
-  // Another user's photo in my timeline, from a library they share with me (#2731): read only.
-  const readOnly = isPublic || Boolean(photoDetails?.shared_library);
   // A viewer who is not the owner gets no photo details, only what the grid knows.
   const gridItem = readOnly ? getEffectiveNavigation().idx2hash.find(photo => photo.id === lightboxImageId) : undefined;
 

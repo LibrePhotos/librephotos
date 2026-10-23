@@ -16,18 +16,40 @@ type TogglePublic = (
   variables: { albumId: string; public: boolean },
   options?: { onSuccess?: () => Promise<unknown> | void }
 ) => void;
+type Share = (
+  variables: { albumId: string; userId: string; share: boolean; role?: string },
+  options?: { onSuccess?: () => void }
+) => void;
+type SetCeiling = (variables: { albumId: string; ceiling: Record<string, boolean> }) => void;
+
+type StubAlbum = {
+  public: boolean;
+  public_slug: string;
+  title?: string;
+  members?: { user: { id: number }; role: "viewer" | "contributor"; photo_count: number }[];
+  shared_to?: { id: number }[];
+  members_share_location?: boolean;
+};
+
+const ben = { id: 2, username: "ben", first_name: "Ben", last_name: "Okafor", date_joined: null };
+const clara = { id: 3, username: "clara", first_name: "Clara", last_name: "Ruiz", date_joined: null };
 
 const stubs = vi.hoisted(() => ({
   togglePublic: vi.fn<TogglePublic>(),
-  album: { public: true, public_slug: "summer-in-lisbon" },
+  share: vi.fn<Share>(),
+  setCeiling: vi.fn<SetCeiling>(),
+  album: { public: true, public_slug: "summer-in-lisbon" } as StubAlbum,
+  users: [] as unknown[],
 }));
 
 vi.mock("../../api_client/albums/hooks", () => ({
   useToggleUserAlbumPublicMutation: () => ({ mutate: stubs.togglePublic, isPending: false }),
   useFetchUserAlbumQuery: () => ({ data: stubs.album, refetch: () => Promise.resolve() }),
+  useShareUserAlbumMutation: () => ({ mutate: stubs.share, isPending: false }),
+  useSetAlbumMemberCeilingMutation: () => ({ mutate: stubs.setCeiling, isPending: false }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
-  useFetchUserListQuery: () => ({ data: [], isFetching: false, isSuccess: true }),
+  useFetchUserListQuery: () => ({ data: stubs.users, isFetching: false, isSuccess: true }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { id: 1 } }),
@@ -63,8 +85,11 @@ beforeAll(async () => {
 beforeEach(() => {
   document.body.innerHTML = "";
   stubs.togglePublic.mockReset();
+  stubs.share.mockReset();
+  stubs.setCeiling.mockReset();
   onRequestClose.mockReset();
   stubs.album = { public: true, public_slug: "summer-in-lisbon" };
+  stubs.users = [];
 });
 
 describe("ModalAlbumShare public sharing switch", () => {
@@ -138,5 +163,92 @@ describe("ModalAlbumShare public links (#1457)", () => {
     await renderShareDialog();
 
     expect(links()).toBeNull();
+  });
+});
+
+describe("ModalAlbumShare roles (#464)", () => {
+  /** The role select of one user, by its accessible name. */
+  function roleSelect(name: string): HTMLInputElement {
+    return defined(
+      document.querySelector<HTMLInputElement>(`input[aria-label="Role for ${name}"]`),
+      `the role select of ${name}`
+    );
+  }
+
+  async function pick(name: string, option: string) {
+    const input = roleSelect(name);
+    await click(input);
+    const listbox = document.getElementById(input.getAttribute("aria-controls") ?? "");
+    const choice = [...(listbox?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find(
+      element => element.textContent === option
+    );
+    await click(defined(choice, `the option ${option}`));
+  }
+
+  beforeAll(() => {
+    // jsdom has no scrollIntoView, which the Select's dropdown calls on the picked option
+    Element.prototype.scrollIntoView = () => {};
+  });
+
+  beforeEach(() => {
+    stubs.users = [ben, clara];
+    stubs.album = {
+      public: false,
+      public_slug: "",
+      title: "Bruno and Mila",
+      members: [{ user: { id: 2 }, role: "contributor", photo_count: 34 }],
+      shared_to: [{ id: 2 }],
+      members_share_location: false,
+    };
+  });
+
+  it("shows each user's role", async () => {
+    await renderShareDialog();
+
+    expect(roleSelect("Ben Okafor").value).toBe("Can add photos");
+    expect(roleSelect("Clara Ruiz").value).toBe("No access");
+  });
+
+  it("gives a role at once", async () => {
+    await renderShareDialog();
+
+    await pick("Clara Ruiz", "Can view");
+
+    expect(stubs.share).toHaveBeenCalledWith(
+      { albumId: "5", userId: "3", share: true, role: "viewer" },
+      expect.anything()
+    );
+  });
+
+  it("asks before taking a contributor's photos out, saying how many", async () => {
+    await renderShareDialog();
+
+    await pick("Ben Okafor", "No access");
+
+    expect(stubs.share).not.toHaveBeenCalled();
+    expect(openDialog()?.textContent).toContain("Remove Ben Okafor from Bruno and Mila?");
+    expect(openDialog()?.textContent).toContain("The 34 photos Ben Okafor added leave the album");
+
+    await click(dialogButton("Remove"));
+
+    expect(stubs.share).toHaveBeenCalledWith(
+      { albumId: "5", userId: "2", share: false, role: undefined },
+      expect.anything()
+    );
+  });
+
+  it("shows the owner's ceiling and saves a change at once", async () => {
+    await renderShareDialog();
+    const location = defined(
+      [...document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+        input => input.closest("label")?.textContent === "Location"
+      ),
+      "the Location switch"
+    );
+    expect(location.checked).toBe(false);
+
+    await click(location);
+
+    expect(stubs.setCeiling).toHaveBeenCalledWith({ albumId: "5", ceiling: { members_share_location: true } });
   });
 });

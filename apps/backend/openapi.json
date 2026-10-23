@@ -1176,6 +1176,566 @@
         }
       }
     },
+    "/api/albums/user/{album_id}/membership/": {
+      "patch": {
+        "operationId": "api_albums_user_membership_partial_update",
+        "description": "Your own switches in an album shared with you.\n\nWhat the other members may see of the photos you add: each field shows\nonly where the album's owner allows it too. A 404 for an album that is\nnot shared with you, your own included.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumMembershipRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumMemberSwitches"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/{photo_id}/comments/": {
+      "get": {
+        "operationId": "api_album_photo_comments_list",
+        "description": "The comments on a photo in an album you own or are a member of.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumCommentPage"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_albums_user_photos_comments_create",
+        "description": "Comment on the photo; refused while the owner has comments off.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumCommentRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumComment"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/{photo_id}/comments/{comment_id}/": {
+      "patch": {
+        "operationId": "api_albums_user_photos_comments_partial_update",
+        "description": "One comment: its author edits it; its author or the album's owner deletes it.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "comment_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedAlbumCommentRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumComment"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_albums_user_photos_comments_destroy",
+        "description": "One comment: its author edits it; its author or the album's owner deletes it.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "comment_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/{photo_id}/likes/": {
+      "get": {
+        "operationId": "api_album_photo_likes_retrieve",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumLikes"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "api_albums_user_photos_likes_update",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumLikes"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_albums_user_photos_likes_destroy",
+        "description": "The hearts on a photo in an album: read them, heart it (PUT), take it back (DELETE).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/add/": {
+      "post": {
+        "operationId": "api_albums_user_photos_add_create",
+        "description": "Add photos of your own to an album you own or contribute to.\n\nThe photos stay yours: the album only links them, and its members see\nthem with the fields both you and the album's owner allow. Refused for a\nviewer and while the album is locked; an album you are not in is a 404.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosAddRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumPhotosChanged"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/user/{album_id}/photos/remove/": {
+      "post": {
+        "operationId": "api_albums_user_photos_remove_create",
+        "description": "Take photos out of an album; they stay in their owner's library.\n\nThe owner takes out any photo, a contributor only the photos they added.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "album_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPhotosRemoveRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumPhotosChanged"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/albums/user/{id}/": {
       "get": {
         "operationId": "api_albums_user_retrieve",
@@ -5404,6 +5964,215 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedPersonList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/persons/{person_id}/sharing/": {
+      "get": {
+        "operationId": "api_persons_sharing_retrieve",
+        "description": "Who one of your people is shared with, and what they see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "api_persons_sharing_update",
+        "description": "Share the person with exactly ``recipient_ids`` (none unshares).\n\nSharing a person nobody had before shows them the photos you labelled\nwith it now; later ones wait for your review.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonSharingRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/persons/{person_id}/sharing/pending/": {
+      "get": {
+        "operationId": "api_persons_sharing_pending_list",
+        "description": "The photos of one of your shared people that wait for your review.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Page number (default 1)."
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Rows per page (default 100, at most 1000)."
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharePendingPage"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/persons/{person_id}/sharing/review/": {
+      "post": {
+        "operationId": "api_persons_sharing_review_create",
+        "description": "Show photos of one of your shared people to its recipients, or keep\nthem back. Ids of photos not labelled with the person are ignored.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonShareReviewRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSharing"
                 }
               }
             },
@@ -13165,7 +13934,7 @@
     "/api/useralbum/leave/": {
       "post": {
         "operationId": "api_useralbum_leave_create",
-        "description": "A recipient takes an album someone shared with them off their list (#2210).\n\nOnly the caller leaves: the owner and the other recipients keep the album.\nAn album that is not shared with the caller, their own included, is a 404,\nso the answer does not tell whether the id exists.",
+        "description": "A recipient takes an album someone shared with them off their list (#2210).\n\nOnly the caller leaves: the owner and the other recipients keep the album.\nThe photos the caller added leave with them (#464); they stay in their\nlibrary. An album that is not shared with the caller, their own included,\nis a 404, so the answer does not tell whether the id exists.",
         "tags": [
           "api"
         ],
@@ -13255,6 +14024,7 @@
     "/api/useralbum/share/": {
       "post": {
         "operationId": "api_useralbum_share_create",
+        "description": "Share your album with a user as a viewer or contributor, or unshare it.\n\nUnsharing, or making a contributor a viewer, takes the photos they added\nout of the album (#464); they stay in their library.",
         "tags": [
           "api"
         ],
@@ -13747,6 +14517,114 @@
           "name"
         ]
       },
+      "AlbumComment": {
+        "type": "object",
+        "description": "One comment: plain text, which clients show as text, never as markup.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "author": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "readOnly": true
+          },
+          "text": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "edited_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "can_edit": {
+            "type": "boolean",
+            "description": "Only its author edits a comment.",
+            "readOnly": true
+          },
+          "can_delete": {
+            "type": "boolean",
+            "description": "Its author, or the album's owner.",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "author",
+          "can_delete",
+          "can_edit",
+          "created_at",
+          "edited_at",
+          "id",
+          "text"
+        ]
+      },
+      "AlbumCommentPage": {
+        "type": "object",
+        "description": "A page of a photo's thread in one album, oldest first.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumComment"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "previous",
+          "results"
+        ]
+      },
+      "AlbumCommentRequestRequest": {
+        "type": "object",
+        "description": "The text of a comment: plain text, trimmed, not empty.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain text, at most 1000 characters",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "AlbumDate": {
         "type": "object",
         "properties": {
@@ -13786,6 +14664,137 @@
           "items",
           "location",
           "numberOfItems"
+        ]
+      },
+      "AlbumLikes": {
+        "type": "object",
+        "description": "The hearts on a photo in one album.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "liked_by_me": {
+            "type": "boolean"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimpleUser"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "liked_by_me",
+          "users"
+        ]
+      },
+      "AlbumMember": {
+        "type": "object",
+        "description": "A member of a shared album, their role and how many photos they added.",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SimpleUser"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleEnum"
+          },
+          "photo_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "photo_count",
+          "role",
+          "user"
+        ]
+      },
+      "AlbumMemberSwitches": {
+        "type": "object",
+        "description": "A contributor's own switches: what members see of the photos they add.",
+        "properties": {
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_faces": {
+            "type": "boolean"
+          },
+          "share_camera_info": {
+            "type": "boolean"
+          },
+          "share_captions": {
+            "type": "boolean"
+          },
+          "share_originals": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "share_camera_info",
+          "share_captions",
+          "share_faces",
+          "share_location",
+          "share_originals"
+        ]
+      },
+      "AlbumPhotosAddRequestRequest": {
+        "type": "object",
+        "description": "Photos of your own to add to an album you own or contribute to (#464).",
+        "properties": {
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Ids of your own photos; any other id is refused",
+            "maxItems": 10000
+          },
+          "select_all": {
+            "type": "boolean",
+            "default": false
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        }
+      },
+      "AlbumPhotosChanged": {
+        "type": "object",
+        "description": "How many photos a request added to or took out of an album.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "AlbumPhotosRemoveRequestRequest": {
+        "type": "object",
+        "description": "Photos to take out of an album (#464). They stay in their owner's library.",
+        "properties": {
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "photos"
         ]
       },
       "AlbumPlace": {
@@ -13981,6 +14990,7 @@
           },
           "location": {
             "type": "string",
+            "description": "Where the album owner's photos were taken, if members may see it.",
             "readOnly": true
           },
           "grouped_photos": {
@@ -14018,15 +15028,66 @@
             },
             "description": "The ids of the owner's collections holding the album (#1009); one\nquery, as this serializer renders a single album.",
             "readOnly": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumMember"
+            },
+            "readOnly": true
+          },
+          "my_role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyRoleEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "my_switches": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AlbumMemberSwitches"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "members_share_location": {
+            "type": "boolean"
+          },
+          "members_share_faces": {
+            "type": "boolean"
+          },
+          "members_share_camera_info": {
+            "type": "boolean"
+          },
+          "members_share_captions": {
+            "type": "boolean"
+          },
+          "members_share_originals": {
+            "type": "boolean"
+          },
+          "comments_enabled": {
+            "type": "boolean"
           }
         },
         "required": [
           "collection_ids",
+          "comments_enabled",
           "date",
           "grouped_photos",
           "id",
           "location",
           "locked",
+          "members",
+          "members_share_camera_info",
+          "members_share_captions",
+          "members_share_faces",
+          "members_share_location",
+          "members_share_originals",
+          "my_role",
+          "my_switches",
           "owner",
           "public",
           "public_expires_at",
@@ -14226,6 +15287,14 @@
             },
             "description": "The ids of the owner's collections holding the album (#1009), for\nthe owner only (``_viewer_owns``).",
             "readOnly": true
+          },
+          "my_role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyRoleEnum"
+              }
+            ],
+            "readOnly": true
           }
         },
         "required": [
@@ -14236,6 +15305,7 @@
           "first_photo_date",
           "id",
           "locked",
+          "my_role",
           "owner",
           "photo_count",
           "public",
@@ -18617,6 +19687,16 @@
         "type": "string",
         "description": "* `nextcloud` - nextcloud\n* `shared_file` - shared_file\n* `not_on_disk` - not_on_disk"
       },
+      "MyRoleEnum": {
+        "enum": [
+          "owner",
+          "contributor",
+          "viewer",
+          "none"
+        ],
+        "type": "string",
+        "description": "* `owner` - owner\n* `contributor` - contributor\n* `viewer` - viewer\n* `none` - none"
+      },
       "NullEnum": {
         "enum": [
           null
@@ -19665,6 +20745,39 @@
           }
         }
       },
+      "PatchedAlbumCommentRequestRequest": {
+        "type": "object",
+        "description": "The text of a comment: plain text, trimmed, not empty.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain text, at most 1000 characters",
+            "maxLength": 2000
+          }
+        }
+      },
+      "PatchedAlbumMembershipRequestRequest": {
+        "type": "object",
+        "description": "Your own switches in an album shared with you (#464): what the other\nmembers see of the photos you add. Absent ones are kept.",
+        "properties": {
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_faces": {
+            "type": "boolean"
+          },
+          "share_camera_info": {
+            "type": "boolean"
+          },
+          "share_captions": {
+            "type": "boolean"
+          },
+          "share_originals": {
+            "type": "boolean"
+          }
+        }
+      },
       "PatchedAlbumUserEditRequest": {
         "type": "object",
         "properties": {
@@ -19731,6 +20844,24 @@
             "maxLength": 512
           },
           "locked": {
+            "type": "boolean"
+          },
+          "members_share_location": {
+            "type": "boolean"
+          },
+          "members_share_faces": {
+            "type": "boolean"
+          },
+          "members_share_camera_info": {
+            "type": "boolean"
+          },
+          "members_share_captions": {
+            "type": "boolean"
+          },
+          "members_share_originals": {
+            "type": "boolean"
+          },
+          "comments_enabled": {
             "type": "boolean"
           }
         }
@@ -20531,6 +21662,127 @@
           "photo_count",
           "removed",
           "write_error"
+        ]
+      },
+      "PersonSharePendingPage": {
+        "type": "object",
+        "description": "A page of the photos of a shared person that wait for review.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "previous",
+          "results"
+        ]
+      },
+      "PersonShareReviewRequestRequest": {
+        "type": "object",
+        "description": "Photos of the person to show its recipients, and photos to keep back.",
+        "properties": {
+          "approve": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          },
+          "decline": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 10000
+          }
+        }
+      },
+      "PersonSharing": {
+        "type": "object",
+        "description": "Who a person is shared with, what they see, and what waits for review.",
+        "properties": {
+          "recipients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimpleUser"
+            }
+          },
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_other_people": {
+            "type": "boolean"
+          },
+          "shared_count": {
+            "type": "integer",
+            "description": "Photos the recipients see: labelled and approved"
+          },
+          "pending_count": {
+            "type": "integer",
+            "description": "Labelled photos that wait for your review"
+          }
+        },
+        "required": [
+          "pending_count",
+          "recipients",
+          "share_location",
+          "share_other_people",
+          "shared_count"
+        ]
+      },
+      "PersonSharingRequestRequest": {
+        "type": "object",
+        "description": "Share the person with exactly these users; absent switches are kept.",
+        "properties": {
+          "recipient_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxItems": 1000
+          },
+          "share_location": {
+            "type": "boolean"
+          },
+          "share_other_people": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "recipient_ids"
         ]
       },
       "Photo": {
@@ -23373,6 +24625,14 @@
         "type": "string",
         "description": "* `pending` - Pending Review\n* `resolved` - Resolved\n* `dismissed` - Dismissed"
       },
+      "RoleEnum": {
+        "enum": [
+          "viewer",
+          "contributor"
+        ],
+        "type": "string",
+        "description": "* `viewer` - Can view\n* `contributor` - Can add photos"
+      },
       "RotatePhotoRequestRequest": {
         "type": "object",
         "properties": {
@@ -24525,6 +25785,14 @@
           },
           "album_id": {
             "type": "integer"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RoleEnum"
+              }
+            ],
+            "description": "With shared: what the user may do (#464). Absent keeps a member's role and makes a new one a viewer. Leaving the contributors takes the photos they added out of the album.\n\n* `viewer` - Can view\n* `contributor` - Can add photos"
           }
         },
         "required": [

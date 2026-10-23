@@ -81,6 +81,70 @@ describe("user album sharing", () => {
     expect(album.shared_to.map(user => user.username)).toEqual(["bob"]);
   });
 
+  it("shares an album with a role (#464), and reads back the requester's role", async () => {
+    const { client, requests } = fakeServer({ ...card, my_role: "owner" });
+    const album = await endpoints.setUserAlbumShared(client, 4, 2, true, "contributor");
+    expect(defined(requests[0]).body).toEqual({
+      album_id: "4",
+      target_user_id: "2",
+      shared: true,
+      role: "contributor",
+    });
+    expect(album.my_role).toBe("owner");
+  });
+
+  it("adds my photos to an album I contribute to, by id and by select-all", async () => {
+    const { client, requests } = fakeServer({ count: 2 });
+    const changed = await endpoints.addPhotosToAlbum(client, 4, ["p1", "p2"]);
+    expect(changed).toEqual({ count: 2 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/photos/add/",
+      method: "POST",
+      body: { photos: ["p1", "p2"] },
+    });
+    const all = fakeServer({ count: 9 });
+    await endpoints.addPhotosToAlbum(all.client, 4, [], { query: { favorite: true }, excludedHashes: ["h"] });
+    expect(defined(all.requests[0]).body).toEqual({
+      select_all: true,
+      query: { favorite: true },
+      excluded_hashes: ["h"],
+    });
+  });
+
+  it("takes photos out of an album", async () => {
+    const { client, requests } = fakeServer({ count: 1 });
+    await expect(endpoints.removePhotosFromAlbum(client, 4, ["p1"])).resolves.toEqual({ count: 1 });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/photos/remove/",
+      method: "POST",
+      body: { photos: ["p1"] },
+    });
+  });
+
+  it("sets my own switches in an album shared with me, and the owner's ceiling", async () => {
+    const switches = {
+      share_location: true,
+      share_faces: false,
+      share_camera_info: false,
+      share_captions: false,
+      share_originals: false,
+    };
+    const mine = fakeServer(switches);
+    await expect(endpoints.setAlbumMembership(mine.client, 4, { share_location: true })).resolves.toEqual(switches);
+    expect(defined(mine.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/membership/",
+      method: "PATCH",
+      body: { share_location: true },
+    });
+    const ceiling = fakeServer({ id: 4, title: "Berlin 2024" });
+    await endpoints.setAlbumMemberCeiling(ceiling.client, 4, { members_share_location: false });
+    expect(defined(ceiling.requests[0])).toEqual({
+      url: "https://demo.example.com/api/albums/user/4/",
+      method: "PATCH",
+      body: { members_share_location: false },
+    });
+  });
+
   it("leaves an album shared with me", async () => {
     const { client, requests } = fakeServer(null);
     await expect(endpoints.leaveSharedAlbum(client, 4)).resolves.toBeUndefined();
@@ -481,5 +545,92 @@ describe("album collections", () => {
     );
     expect(defined(filed).collection_ids).toEqual([3]);
     expect(defined(older).collection_ids).toEqual([]);
+  });
+});
+
+describe("comments and likes in shared albums (#262)", () => {
+  const ben = { id: 9, username: "ben", first_name: "Ben", last_name: "Okafor" };
+  const comment = {
+    id: 3,
+    author: ben,
+    text: "<b>not bold</b>",
+    created_at: "2026-10-22T10:00:00Z",
+    edited_at: null,
+    can_edit: true,
+    can_delete: true,
+  };
+  const photo = "11111111-1111-1111-1111-111111111111";
+
+  it("reads every page of a thread and keeps the text as it came", async () => {
+    const { client, requests } = fakeServer(page([comment]));
+    const thread = await endpoints.fetchAlbumPhotoComments(client, 4, photo);
+    expect(defined(requests[0]).url).toBe(`https://demo.example.com/api/albums/user/4/photos/${photo}/comments/`);
+    expect(defined(thread[0]).text).toBe("<b>not bold</b>");
+  });
+
+  it("adds, edits and deletes a comment", async () => {
+    const added = fakeServer(comment);
+    await endpoints.addAlbumPhotoComment(added.client, 4, photo, "Hi");
+    expect(defined(added.requests[0])).toMatchObject({ method: "POST", body: { text: "Hi" } });
+    const edited = fakeServer({ ...comment, edited_at: "2026-10-22T11:00:00Z" });
+    await endpoints.editAlbumPhotoComment(edited.client, 4, photo, 3, "Hello");
+    expect(defined(edited.requests[0])).toEqual({
+      url: `https://demo.example.com/api/albums/user/4/photos/${photo}/comments/3/`,
+      method: "PATCH",
+      body: { text: "Hello" },
+    });
+    const deleted = fakeServer(null);
+    await endpoints.deleteAlbumPhotoComment(deleted.client, 4, photo, 3);
+    expect(defined(deleted.requests[0]).method).toBe("DELETE");
+  });
+
+  it("hearts and un-hearts a photo", async () => {
+    const likes = { count: 1, liked_by_me: true, users: [ben] };
+    const put = fakeServer(likes);
+    await expect(endpoints.setAlbumPhotoLiked(put.client, 4, photo, true)).resolves.toEqual(likes);
+    expect(defined(put.requests[0])).toMatchObject({
+      url: `https://demo.example.com/api/albums/user/4/photos/${photo}/likes/`,
+      method: "PUT",
+    });
+    const removed = fakeServer({ count: 0, liked_by_me: false, users: [] });
+    await endpoints.setAlbumPhotoLiked(removed.client, 4, photo, false);
+    expect(defined(removed.requests[0]).method).toBe("DELETE");
+    const read = fakeServer(likes);
+    await expect(endpoints.fetchAlbumPhotoLikes(read.client, 4, photo)).resolves.toEqual(likes);
+  });
+});
+
+describe("sharing a person (#668)", () => {
+  const sharing = {
+    recipients: [{ id: 3, username: "clara", first_name: "Clara", last_name: "" }],
+    share_location: false,
+    share_other_people: false,
+    shared_count: 4,
+    pending_count: 1,
+  };
+
+  it("reads and sets who a person is shared with", async () => {
+    const read = fakeServer(sharing);
+    await expect(endpoints.fetchPersonSharing(read.client, 7)).resolves.toEqual(sharing);
+    expect(defined(read.requests[0]).url).toBe("https://demo.example.com/api/persons/7/sharing/");
+    const put = fakeServer(sharing);
+    await endpoints.setPersonSharing(put.client, 7, { recipient_ids: [3], share_location: true });
+    expect(defined(put.requests[0])).toEqual({
+      url: "https://demo.example.com/api/persons/7/sharing/",
+      method: "PUT",
+      body: { recipient_ids: [3], share_location: true },
+    });
+  });
+
+  it("reads the photos that wait for review and sends the decision", async () => {
+    const pending = fakeServer({ ...page([]), page: 1, page_size: 100, num_pages: 1 });
+    await expect(endpoints.fetchPersonSharingPending(pending.client, 7)).resolves.toMatchObject({ count: 0 });
+    const review = fakeServer({ ...sharing, pending_count: 0 });
+    await endpoints.reviewPersonSharing(review.client, 7, ["a"], ["b"]);
+    expect(defined(review.requests[0])).toEqual({
+      url: "https://demo.example.com/api/persons/7/sharing/review/",
+      method: "POST",
+      body: { approve: ["a"], decline: ["b"] },
+    });
   });
 });

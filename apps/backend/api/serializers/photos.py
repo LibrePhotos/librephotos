@@ -9,6 +9,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
+from api.albums.member_grants import NOTHING
 from api.drf.params import (
     JsonBooleanField,
     JsonIntegerField,
@@ -49,6 +50,7 @@ from api.sharing.grants import (
     lookup_for,
     redact,
 )
+from api.sharing.indirect import indirect_grants
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -759,7 +761,9 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Photo) -> dict[str, Any]:
         data = super().to_representation(instance)
-        grant = self._library_grant(instance)
+        # A library share decides for its owner's photos (#2731); otherwise
+        # an album the viewer sees the photo in (#464).
+        grant = self._library_grant(instance) or self._album_grant(instance)
         if grant is not None:
             redact(data, DETAIL_FIELDS, grant)
             if not grant.originals and not instance.video:
@@ -915,6 +919,10 @@ class PhotoSerializer(serializers.ModelSerializer):
         return {"text": ocr.text or "", "blocks": blocks}
 
     def get_similar_photos(self, obj: Photo) -> list:
+        if self._album_grant(obj) is not None:
+            # Matches come from the owner's whole library; an album shows
+            # none of it (and the sidecar call would be thrown away).
+            return []
         res = search_similar_image(obj.owner, obj)
         arr: list[str] = []
         # The sidecar answers with its JSON object; without an index it is [].
@@ -994,9 +1002,43 @@ class PhotoSerializer(serializers.ModelSerializer):
         photo. Without a request no viewer is known, so only what a public
         visitor would see.
         """
+        grant = self._album_grant(obj)
+        if grant is not None:
+            # Someone who reads the photo only in an album (#464): the named
+            # people where the album's "both must allow" rule lets them.
+            named = [face for face in obj.faces.all() if is_named(face)]
+            return [_face_entry(face) for face in named] if grant.people else []
         request = self.context.get("request")
         viewer = getattr(request, "user", None)
         return [_face_entry(face) for face in faces_shown_to(obj, viewer)]
+
+    def _album_grant(self, obj: Photo) -> LibraryGrant | None:
+        """What the requester sees of ``obj`` when only an album (#464) or a
+        person shared with them (#668) shows it.
+
+        None for its owner, someone it is shared with directly, a public
+        photo, a photo of a library shared with them (that share decides),
+        and without a request (no viewer to tell; ``lookup_for`` redacts
+        then). Anyone else reads it through an album they own or are a
+        member of, so the album's grant decides (``api/albums/member_grants``);
+        no grant at all hides every optional field.
+        """
+        cache: dict[object, LibraryGrant | None] = self.__dict__.setdefault(
+            "_album_grants", {}
+        )
+        if obj.pk not in cache:
+            cache[obj.pk] = self._lookup_album_grant(obj)
+        return cache[obj.pk]
+
+    def _lookup_album_grant(self, obj: Photo) -> LibraryGrant | None:
+        viewer = getattr(self.context.get("request"), "user", None)
+        if not isinstance(viewer, User) or viewer.pk == obj.owner_id or obj.public:
+            return None
+        if self._library_grant(obj) is not None:
+            return None
+        if obj.shared_to.filter(pk=viewer.pk).exists():
+            return None
+        return indirect_grants(viewer, [obj.pk]).get(obj.pk, NOTHING)
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file: File) -> dict[str, str]:

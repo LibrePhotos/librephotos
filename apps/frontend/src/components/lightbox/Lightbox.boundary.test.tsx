@@ -20,6 +20,8 @@ vi.mock("./ContentViewer", () => ({
   },
 }));
 
+// The viewer: user 1 (the photo details below are theirs unless a test says otherwise).
+vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1, isAuthenticated: true }) }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoDetailsQuery: () => ({ data: undefined }),
 }));

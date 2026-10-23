@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DatePhotosGroup, IntegerId } from "./common";
+import { DatePhotosGroup, IntegerId, PageFields, PigPhoto, SimpleUser } from "./common";
 
 export const Person = z.object({
   name: z.string(),
@@ -82,3 +82,23 @@ export const PersonGroupsResponse = z.object({
   group_ids: z.number().array(),
 });
 export type PersonGroupsResponse = z.infer<typeof PersonGroupsResponse>;
+
+/**
+ * GET/PUT /persons/{id}/sharing/ (#668): who one of your people is shared with, what they see
+ * besides the photos and dates, and how many photos they see or wait for your review.
+ */
+export const PersonSharing = z.object({
+  recipients: SimpleUser.array(),
+  share_location: z.boolean(),
+  share_other_people: z.boolean(),
+  shared_count: z.number(),
+  pending_count: z.number(),
+});
+export type PersonSharing = z.infer<typeof PersonSharing>;
+
+/** GET /persons/{id}/sharing/pending/: a page of the photos that wait for your review. */
+export const PersonSharePendingPage = z.object({
+  ...PageFields,
+  results: PigPhoto.array(),
+});
+export type PersonSharePendingPage = z.infer<typeof PersonSharePendingPage>;

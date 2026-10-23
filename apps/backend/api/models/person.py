@@ -69,6 +69,15 @@ class Person(models.Model):
     # The person page shows ages from it (#2751); face training suggests nobody
     # for a face on a photo taken before it (#2752).
     birth_date = models.DateField(null=True, blank=True)
+    # What the users this person is shared with (#668) see of its photos,
+    # besides the photos and their dates: where they were taken, and the
+    # names of the other people on them. Off until the owner turns them on.
+    share_location = models.BooleanField(default=False)
+    share_other_people = models.BooleanField(default=False)
+    # When the person was first shared (#668): the photos labelled by then
+    # were approved at once; every later one waits for review, also after
+    # the person was unshared and shared again.
+    first_shared_at = models.DateTimeField(null=True, blank=True)
     # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
     last_modified = models.DateTimeField(auto_now=True, db_index=True)
 

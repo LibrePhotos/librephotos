@@ -12,7 +12,11 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { AlbumSlugSection } from "./AlbumSlugSection";
+import { MemberCeilingSection } from "./MemberCeilingSection";
+import { MemberRoleConfirmModal } from "./MemberRoleConfirmModal";
+import { memberRoleOf } from "./memberRoles";
 import { publicAlbumLink } from "./publicAlbum";
+import { useMemberRoleChange } from "./useMemberRoleChange";
 import { UserEntry } from "./UserEntry";
 import filterUsers from "./utils";
 
@@ -36,6 +40,7 @@ export function ModalAlbumShare(props: Props) {
   // Turning sharing off drops the slug for good (the backend never hands an old link out
   // again), so that direction asks first; turning it on saves at once.
   const [turnOffOpened, turnOffDialog] = useDisclosure(false);
+  const roleChange = useMemberRoleChange(albumID, album);
 
   const setPublic = (makePublic: boolean, onSuccess?: () => void) =>
     toggleAlbumPublic.mutate(
@@ -54,7 +59,7 @@ export function ModalAlbumShare(props: Props) {
         opened={isOpen}
         title={t("modalalbumsshare.title")}
         // Escape belongs to the confirmation while it is open; both would close otherwise.
-        closeOnEscape={!turnOffOpened}
+        closeOnEscape={!turnOffOpened && !roleChange.opened}
         onClose={() => {
           onRequestClose();
           setUserNameFilter("");
@@ -101,6 +106,9 @@ export function ModalAlbumShare(props: Props) {
                 >
                   {showSettings ? t("modalalbumsshare.hidesettings") : t("modalalbumsshare.showsettings")}
                 </Button>
+                <Text size="xs" c="dimmed">
+                  {t("collab.publicLinkOwnOnly")}
+                </Text>
               </Stack>
             )}
 
@@ -128,11 +136,18 @@ export function ModalAlbumShare(props: Props) {
                 <ScrollArea>
                   <Stack>
                     {filterUsers(userNameFilter, currentUser?.id ?? 0, users).map(item => (
-                      <UserEntry key={item.id} item={item} albumID={albumID} />
+                      <UserEntry
+                        key={item.id}
+                        item={item}
+                        role={memberRoleOf(album, item)}
+                        onChange={role => roleChange.request(item, role)}
+                      />
                     ))}
                   </Stack>
                 </ScrollArea>
               )}
+              <Divider />
+              <MemberCeilingSection albumID={albumID} album={album} />
             </Stack>
           </Paper>
           <Group justify="flex-end">
@@ -156,6 +171,7 @@ export function ModalAlbumShare(props: Props) {
         confirmLabel={t("confirmdialog.publicoff.confirm")}
         cancelLabel={t("confirmdialog.publicoff.cancel")}
       />
+      <MemberRoleConfirmModal roleChange={roleChange} albumTitle={album?.title ?? ""} />
     </>
   );
 }

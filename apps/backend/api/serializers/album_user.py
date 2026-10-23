@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -16,9 +17,18 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.request import Request
 
+from api.albums.member_grants import NOTHING, album_grants
+from api.albums.members import MEMBER_SWITCHES, drop_threads
 from api.drf.params import JsonBooleanField
 from api.drf.request_user import request_user
-from api.models import AlbumCollection, AlbumUser, Photo
+from api.models import (
+    AlbumCollection,
+    AlbumRole,
+    AlbumUser,
+    AlbumUserMember,
+    AlbumUserPhoto,
+    Photo,
+)
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.user import User, get_default_public_sharing_settings
 from api.photos.selection import build_photo_queryset
@@ -28,6 +38,7 @@ from api.serializers.fields import (
     loaded,
     loaded_count,
     loaded_list,
+    prefetched,
     shared_serializer,
 )
 from api.serializers.photos import (
@@ -40,6 +51,7 @@ from api.serializers.PhotosGroupedByDate import (
     get_photos_ordered_by_date,
 )
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
+from api.sharing.grants import SUMMARY_FIELDS, GrantLookup, lookup_for, redact
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +64,70 @@ def _album_photos(
 ) -> list[Photo]:
     """The album's photos the library lists, newest first, loaded once.
 
-    Hidden and trashed photos stay out, as on every other album, also for the
-    users it is shared with. Date, location and the grid all read this one
-    list, keyed by album because a ``many=True`` serializer serves them all.
+    Only along vouched links (``AlbumUserPhoto.vouched``): the owner's photos
+    and those of current contributors (#464). Hidden and trashed photos stay
+    out, as on every other album, also for the users it is shared with. Date,
+    location and the grid all read this one list, keyed by album because a
+    ``many=True`` serializer serves them all.
     """
     cache = serializer.__dict__.setdefault("_album_photos", {})
     if album.pk not in cache:
+        links = AlbumUserPhoto.objects.vouched().filter(albumuser=album)
         cache[album.pk] = list(
             with_photo_summary_relations(
-                album.photos.filter(visible_photo_q()).order_by("-exif_timestamp")
+                Photo.objects.filter(pk__in=links.values("photo_id"))
+                .filter(visible_photo_q())
+                .order_by("-exif_timestamp")
             )
         )
     return cache[album.pk]
+
+
+def _viewer(serializer: serializers.BaseSerializer) -> User | None:
+    viewer = getattr(serializer.context.get("request"), "user", None)
+    return viewer if isinstance(viewer, User) else None
+
+
+def _role_in(
+    album: AlbumUser, viewer: User | None, members: list[AlbumUserMember]
+) -> str:
+    """The viewer's role: ``owner``, ``contributor``, ``viewer`` or ``none``."""
+    if viewer is None:
+        return "none"
+    if viewer.pk == album.owner_id:
+        return "owner"
+    for member in members:
+        if member.user_id == viewer.pk:
+            return member.role
+    return "none"
+
+
+def _redact_items(
+    groups: list[dict[str, Any]],
+    album: AlbumUser,
+    viewer: User | None,
+    library: GrantLookup,
+) -> None:
+    """Redact, in place, the grid items of photos ``viewer`` does not own.
+
+    Each by what the album shows of it (``api/albums/member_grants``): the
+    owner's ceiling and, for a contributor's photo, their own switches. The
+    photos of an owner who shares their library with ``viewer`` are already
+    redacted by that share (``PhotoSummarySerializer``), which decides.
+    """
+    items = [
+        item
+        for group in groups
+        for item in group["items"]
+        if (viewer is None or item["owner"]["id"] != viewer.pk)
+        and library.for_owner(item["owner"]["id"]) is None
+    ]
+    if not items:
+        return
+    grants = album_grants(viewer, [item["id"] for item in items], album=album)
+    for item in items:
+        grant = grants.get(uuid.UUID(str(item["id"])), NOTHING)
+        redact(item, SUMMARY_FIELDS, grant)
 
 
 def _viewer_owns(serializer: serializers.BaseSerializer, album: AlbumUser) -> bool:
@@ -76,9 +140,28 @@ def _viewer_owns(serializer: serializers.BaseSerializer, album: AlbumUser) -> bo
     return isinstance(viewer, User) and viewer.pk == album.owner_id
 
 
+class AlbumMemberSerializer(serializers.Serializer[None]):
+    """A member of a shared album, their role and how many photos they added."""
+
+    user = SimpleUserSerializer()
+    role = serializers.ChoiceField(choices=AlbumRole.choices)
+    photo_count = serializers.IntegerField()
+
+
+class AlbumMemberSwitchesSerializer(serializers.ModelSerializer):
+    """A contributor's own switches: what members see of the photos they add."""
+
+    class Meta:
+        model = AlbumUserMember
+        fields = MEMBER_SWITCHES
+
+
 class AlbumUserSerializer(serializers.ModelSerializer):
     owner = SimpleUserSerializer(many=False, read_only=True)
     shared_to = SimpleUserSerializer(many=True, read_only=True)
+    members = serializers.SerializerMethodField()
+    my_role = serializers.SerializerMethodField()
+    my_switches = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
@@ -104,7 +187,60 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "public_expires_at",
             "public_sharing_options",
             "collection_ids",
+            "members",
+            "my_role",
+            "my_switches",
+            "members_share_location",
+            "members_share_faces",
+            "members_share_camera_info",
+            "members_share_captions",
+            "members_share_originals",
+            "comments_enabled",
         )
+
+    def _members(self, obj: AlbumUser) -> list[AlbumUserMember]:
+        cache = self.__dict__.setdefault("_member_cache", {})
+        if obj.pk not in cache:
+            cache[obj.pk] = list(
+                obj.memberships.select_related("user").order_by("user__username")
+            )
+        return cache[obj.pk]
+
+    @extend_schema_field(AlbumMemberSerializer(many=True))
+    def get_members(self, obj: AlbumUser) -> list[dict[str, Any]]:
+        """Everyone the album is shared with, by username (#464)."""
+        counts = dict(
+            AlbumUserPhoto.objects.contributed()
+            .filter(albumuser=obj)
+            .order_by()
+            .values_list("photo__owner_id")
+            .annotate(total=Count("pk"))
+        )
+        rows = [
+            {"user": m.user, "role": m.role, "photo_count": counts.get(m.user_id, 0)}
+            for m in self._members(obj)
+        ]
+        return list(
+            serializers.ListSerializer(
+                child=AlbumMemberSerializer(), instance=rows
+            ).data
+        )
+
+    @extend_schema_field(
+        serializers.ChoiceField(choices=["owner", "contributor", "viewer", "none"])
+    )
+    def get_my_role(self, obj: AlbumUser) -> str:
+        """What the requester may do here; ``none`` through a public link."""
+        return _role_in(obj, _viewer(self), self._members(obj))
+
+    @extend_schema_field(AlbumMemberSwitchesSerializer(allow_null=True))
+    def get_my_switches(self, obj: AlbumUser) -> dict[str, Any] | None:
+        """The requester's own switches as a member; null for the owner."""
+        viewer = _viewer(self)
+        for member in self._members(obj):
+            if viewer is not None and member.user_id == viewer.pk:
+                return dict(AlbumMemberSwitchesSerializer(member).data)
+        return None
 
     @extend_schema_field(GroupedPhotosSerializer(many=True))
     def get_grouped_photos(self, obj: AlbumUser) -> list[dict[str, Any]]:
@@ -119,10 +255,18 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             instance=grouped_photos,
             context=self.context,
         ).data
+        _redact_items(res, obj, _viewer(self), lookup_for(self))
         return res
 
     def get_location(self, obj: AlbumUser) -> str:
+        """Where the album owner's photos were taken, if members may see it."""
+        viewer = _viewer(self)
+        is_owner = viewer is not None and viewer.pk == obj.owner_id
+        if not (is_owner or obj.members_share_location):
+            return ""
         for photo in _album_photos(self, obj):
+            if photo.owner_id != obj.owner_id:
+                continue
             # The reverse one-to-one raises AttributeError when the row is missing.
             search = getattr(photo, "search_instance", None)
             if search and search.search_location:
@@ -269,13 +413,17 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if "removedPhotos" in validated_data.keys():
             image_hashes = validated_data["removedPhotos"]
             photos_already_in_album = instance.photos.all()
-            cnt = 0
+            removed = []
             for obj in photos_already_in_album:
                 if obj.image_hash in image_hashes:
-                    cnt += 1
+                    removed.append(obj.pk)
                     instance.photos.remove(obj)
+            # Their comments and likes (#262) leave with them.
+            drop_threads(instance, removed)
 
-            logger.info("Removed %s photos from user album %s", cnt, instance.id)
+            logger.info(
+                "Removed %s photos from user album %s", len(removed), instance.id
+            )
 
         if "cover_photo" in validated_data.keys():
             cover_photo = validated_data["cover_photo"]
@@ -311,21 +459,19 @@ def with_album_user_list_relations(
     # A subquery rather than Count("photos"): callers filter on other
     # relations of the album (shared_to), whose join would multiply it.
     # Counted from the photo side, which the type checker can follow.
+    links = AlbumUserPhoto.objects.vouched().filter(
+        albumuser=OuterRef("pk"), photo__thumbnail__aspect_ratio__isnull=False
+    )
     visible_photo_count = (
-        Photo.visible.filter(albumuser=OuterRef("pk"))
-        .order_by()
-        .values("albumuser")
-        .annotate(total=Count("pk"))
-        .values("total")
+        links.order_by().values("albumuser").annotate(total=Count("pk")).values("total")
     )
     # When the album's oldest visible photo was taken, for sorting My Albums by
     # date (#620). Over the same photos as the count, so a trashed or hidden
     # photo does not move the album; null when none has a date.
     first_photo_date = (
-        Photo.visible.filter(albumuser=OuterRef("pk"))
-        .order_by()
+        links.order_by()
         .values("albumuser")
-        .annotate(first=Min("exif_timestamp"))
+        .annotate(first=Min("photo__exif_timestamp"))
         .values("first")
     )
     return (
@@ -339,13 +485,21 @@ def with_album_user_list_relations(
         .defer(*(f"cover_photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
         .prefetch_related(
             "shared_to",
+            # The roles, for ``my_role`` (#464).
+            "memberships",
             # Fallback cover for albums without an explicit one, by pk as the
             # unordered relation's ``.first()`` was. Only a photo the album
-            # detail shows, not a hidden or trashed one.
+            # detail shows, not a hidden or trashed one, and only one of the
+            # album owner's: the card is also shown on the public albums page,
+            # which never shows a contributor's photo.
             Prefetch(
-                "photos",
-                queryset=Photo.visible.defer(*HEAVY_PHOTO_COLUMNS).order_by("pk")[:1],
-                to_attr="first_photos",
+                "photo_links",
+                queryset=AlbumUserPhoto.objects.of_album_owner()
+                .filter(photo__thumbnail__aspect_ratio__isnull=False)
+                .select_related("photo")
+                .defer(*(f"photo__{name}" for name in HEAVY_PHOTO_COLUMNS))
+                .order_by("photo_id")[:1],
+                to_attr="first_links",
             ),
         )
         # The owner's collections holding the album (#1009); only ids. A call
@@ -362,6 +516,7 @@ def with_album_user_list_relations(
 
 class AlbumUserListSerializer(serializers.ModelSerializer):
     cover_photo = serializers.SerializerMethodField()
+    my_role = serializers.SerializerMethodField()
     photo_count = serializers.SerializerMethodField()
     first_photo_date = serializers.SerializerMethodField()
     shared_to = SimpleUserSerializer(many=True, read_only=True)
@@ -390,7 +545,16 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "public_expires_at",
             "public_sharing_options",
             "collection_ids",
+            "my_role",
         )
+
+    @extend_schema_field(
+        serializers.ChoiceField(choices=["owner", "contributor", "viewer", "none"])
+    )
+    def get_my_role(self, obj: AlbumUser) -> str:
+        """What the requester may do in the album (#464)."""
+        members = prefetched(obj, "memberships", AlbumUserMember)
+        return _role_in(obj, _viewer(self), members)
 
     @extend_schema_field(PhotoSuperSimpleSerializer(allow_null=True))
     def get_cover_photo(self, obj: AlbumUser) -> dict[str, Any] | None:
@@ -399,12 +563,12 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
                 self, PhotoSuperSimpleSerializer
             ).to_representation(obj.cover_photo)
         # The prefetched fallback cover (``with_album_user_list_relations``).
-        first_photos = loaded_list(obj, "first_photos", Photo)
-        if not first_photos:
+        first_links = loaded_list(obj, "first_links", AlbumUserPhoto)
+        if not first_links:
             # An empty album (#612) has no cover, rather than one with blank fields.
             return None
         return shared_serializer(self, PhotoSuperSimpleSerializer).to_representation(
-            first_photos[0]
+            first_links[0].photo
         )
 
     def get_photo_count(self, obj: AlbumUser) -> int:
@@ -480,8 +644,10 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
         fields = ("id", "title", "owner", "date", "location", "grouped_photos")
 
     def _filtered_photos(self, obj: AlbumUser) -> list[Photo]:
-        # Public albums should not expose hidden or trash photos
-        return _album_photos(self, obj)
+        # Public albums should not expose hidden or trash photos, and a
+        # public link shows the album owner's own photos only: never a
+        # contributor's (#464).
+        return [p for p in _album_photos(self, obj) if p.owner_id == obj.owner_id]
 
     def _sharing_settings(self, obj: AlbumUser) -> dict[str, bool]:
         # What the owner chose to publish. The grid used to ignore it and hand
@@ -546,6 +712,58 @@ class SetUserAlbumSharedRequest(serializers.Serializer[None]):
     shared = JsonBooleanField(help_text="true shares, false unshares")
     target_user_id = serializers.IntegerField()
     album_id = serializers.IntegerField()
+    role = serializers.ChoiceField(
+        choices=AlbumRole.choices,
+        required=False,
+        help_text=(
+            "With shared: what the user may do (#464). Absent keeps a member's "
+            "role and makes a new one a viewer. Leaving the contributors takes "
+            "the photos they added out of the album."
+        ),
+    )
+
+
+class AlbumPhotosAddRequest(serializers.Serializer[None]):
+    """Photos of your own to add to an album you own or contribute to (#464)."""
+
+    photos = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list,
+        max_length=10000,
+        help_text="Ids of your own photos; any other id is refused",
+    )
+    # Server-side "Select All", as on the other bulk endpoints.
+    select_all = JsonBooleanField(required=False, default=False)
+    query = serializers.DictField(required=False, default=dict)
+    excluded_hashes = serializers.ListField(
+        child=serializers.CharField(max_length=100), required=False, default=list
+    )
+
+
+class AlbumPhotosRemoveRequest(serializers.Serializer[None]):
+    """Photos to take out of an album (#464). They stay in their owner's library."""
+
+    photos = serializers.ListField(
+        child=serializers.UUIDField(), allow_empty=False, max_length=10000
+    )
+
+
+class AlbumPhotosChangedSerializer(serializers.Serializer[None]):
+    """How many photos a request added to or took out of an album."""
+
+    count = serializers.IntegerField()
+
+
+class AlbumMembershipRequest(serializers.Serializer[None]):
+    """Your own switches in an album shared with you (#464): what the other
+    members see of the photos you add. Absent ones are kept."""
+
+    share_location = JsonBooleanField(required=False)
+    share_faces = JsonBooleanField(required=False)
+    share_camera_info = JsonBooleanField(required=False)
+    share_captions = JsonBooleanField(required=False)
+    share_originals = JsonBooleanField(required=False)
 
 
 class LeaveSharedAlbumRequest(serializers.Serializer[None]):

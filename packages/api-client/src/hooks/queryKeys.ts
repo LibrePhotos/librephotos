@@ -179,6 +179,10 @@ export const albumKeys = {
   peopleAlbums: () => [...albumRoot, "people"] as const,
   /** The people list as the server sends it. */
   peopleAlbumsRaw: () => [...albumKeys.peopleAlbums(), "raw"] as const,
+  /** Who one person is shared with (#668), under the people list. */
+  personSharing: (id: number) => [...albumKeys.peopleAlbums(), "sharing", id] as const,
+  /** The photos of a shared person that wait for review (#668). */
+  personSharingPending: (id: number) => [...albumKeys.peopleAlbums(), "sharing", id, "pending"] as const,
   /** One person (the person page's title), under the people list so a rename refreshes both. */
   person: (id: number) => [...albumKeys.peopleAlbums(), "person", id] as const,
   /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */
@@ -207,6 +211,10 @@ export const albumKeys = {
   folder: (path: string | undefined) => [...albumKeys.folders(), "page", path] as const,
   /** The same listing as an infinite query, one page at a time. */
   folderPages: (path: string | undefined) => [...albumKeys.folders(), "infinite", path] as const,
+  /** The comments on one photo in one shared album (#262). */
+  photoComments: (albumId: string, photoId: string) => [...albumRoot, "comments", albumId, photoId] as const,
+  /** The hearts on one photo in one shared album (#262). */
+  photoLikes: (albumId: string, photoId: string) => [...albumRoot, "likes", albumId, photoId] as const,
   /** Which album, if any, already uses a public link slug. */
   slugOwner: (slug: string) => [...albumRoot, "slugOwner", slug] as const,
 };

@@ -1,0 +1,5 @@
+/* A comment is plain text: keep its line breaks and break long words. */
+.text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

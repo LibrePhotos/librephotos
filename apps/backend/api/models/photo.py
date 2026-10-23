@@ -62,20 +62,39 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
             ).values("pk")
         )
 
-    def shared_with_me(self, user: User | AnonymousUser | None) -> Self:
+    def shared_with_me(
+        self, user: User | AnonymousUser | None, album_switch: str | None = None
+    ) -> Self:
         """Photos someone else shared with ``user``, directly or in an album.
 
-        Directly through ``shared_to``, or as a photo of a user album shared
-        to ``user``. Not public photos, and never ``user``'s own. The
-        "Shared with you" places, things and people (#2721, #2722) are built
-        from it; call it on ``Photo.visible`` to leave out hidden, trashed
-        and removed photos. Subqueries rather than joins, so a photo shared
-        both ways is one row without ``distinct()``.
+        Directly through ``shared_to``, or as the album owner's own photo in
+        a user album shared to ``user`` (an album vouches for its owner's
+        photos, GHSA-phvg-g65q-rhq3). A contributor's photo in a
+        collaborative album (#464) stays out: it is shown in that album only,
+        with the album's redaction, never in these lists. Not public photos,
+        and never ``user``'s own. The "Shared with you" places, things and
+        people (#2721, #2722) are built from it; call it on ``Photo.visible``
+        to leave out hidden, trashed and removed photos. Subqueries rather
+        than joins, so a photo shared both ways is one row without
+        ``distinct()``.
+
+        ``album_switch`` names what a list shows of the photos (``location``
+        for places, ``faces`` for people, ``captions`` for things): an album
+        whose owner keeps that from its members (``members_share_<switch>``)
+        then adds none of its photos (#464).
         """
         if not (isinstance(user, User) and user.is_authenticated):
             return self.none()
         through_share = self.model.shared_to.through.objects.filter(user=user)
-        in_shared_album = self.model.objects.filter(albumuser__shared_to=user)
+        album_q = Q(
+            album_user_links__albumuser__shared_to=user,
+            album_user_links__albumuser__owner=F("owner"),
+        )
+        if album_switch is not None:
+            album_q &= Q(
+                **{f"album_user_links__albumuser__members_share_{album_switch}": True}
+            )
+        in_shared_album = self.model.objects.filter(album_q)
         return self.filter(
             Q(pk__in=through_share.values("photo_id"))
             | Q(pk__in=in_shared_album.values("pk"))

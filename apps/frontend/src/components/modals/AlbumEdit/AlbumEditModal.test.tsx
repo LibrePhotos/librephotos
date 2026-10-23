@@ -5,13 +5,17 @@
  * modal mounted, so a typed title must not survive into the next opening.
  * A locked album (#867) is listed but cannot take new photos.
  */
-import type { UserAlbumInfo } from "@librephotos/api-client";
+import type { UserAlbum, UserAlbumInfo } from "@librephotos/api-client";
 import { Media } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { useAddPhotoToUserAlbumMutation, useCreateUserAlbumMutation } from "../../../api_client/albums/hooks";
+import type {
+  useAddPhotosToSharedAlbumMutation,
+  useAddPhotoToUserAlbumMutation,
+  useCreateUserAlbumMutation,
+} from "../../../api_client/albums/hooks";
 import i18n from "../../../i18n";
 import { defined } from "../../../util/defined.test-utils";
 import { AlbumEditModal } from "./AlbumEditModal";
@@ -19,15 +23,24 @@ import { AlbumEditModal } from "./AlbumEditModal";
 const stubs = vi.hoisted(() => ({
   create: vi.fn<ReturnType<typeof useCreateUserAlbumMutation>["mutate"]>(),
   add: vi.fn<ReturnType<typeof useAddPhotoToUserAlbumMutation>["mutate"]>(),
+  contribute: vi.fn<ReturnType<typeof useAddPhotosToSharedAlbumMutation>["mutate"]>(),
+  setMembership: vi.fn<(variables: { albumId: string; switches: Record<string, boolean> }) => void>(),
   close: vi.fn<() => void>(),
   albums: [] as UserAlbumInfo[],
+  shared: [] as UserAlbumInfo[],
+  detail: undefined as UserAlbum | undefined,
 }));
 
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchUserAlbumsQuery: () => ({ data: stubs.albums }),
   useCreateUserAlbumMutation: () => ({ mutate: stubs.create }),
   useAddPhotoToUserAlbumMutation: () => ({ mutate: stubs.add }),
+  useFetchSharedAlbumsWithMeQuery: () => ({ data: [{ user_id: 1, albums: stubs.shared }] }),
+  useFetchUserAlbumQuery: () => ({ data: stubs.detail }),
+  useAddPhotosToSharedAlbumMutation: () => ({ mutate: stubs.contribute, isPending: false }),
+  useSetAlbumMembershipMutation: () => ({ mutate: stubs.setMembership }),
 }));
+vi.mock("../../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 9, isAuthenticated: true }) }));
 vi.mock("../../album/AlbumListItem", () => ({
   AlbumListItem: ({ album }: { album: { title: string } }) => <span className="album">{album.title}</span>,
 }));
@@ -78,8 +91,9 @@ function renderModal(isOpen: boolean) {
   });
 }
 
-function mount(albums: UserAlbumInfo[]) {
+function mount(albums: UserAlbumInfo[], shared: UserAlbumInfo[] = []) {
   stubs.albums = albums;
+  stubs.shared = shared;
   const container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -178,5 +192,84 @@ describe("AlbumEditModal locked albums", () => {
     act(() => defined(lockedAlbum).click());
     expect(stubs.add).not.toHaveBeenCalled();
     expect(stubs.close).not.toHaveBeenCalled();
+  });
+});
+
+describe("AlbumEditModal albums shared with you (#464)", () => {
+  const anna = { id: 1, username: "anna", first_name: "Anna", last_name: "Berger" };
+  const ben = { id: 9, username: "ben", first_name: "Ben", last_name: "Okafor" };
+  const clara = { id: 3, username: "clara", first_name: "Clara", last_name: "Ruiz" };
+  const dogs: UserAlbumInfo = {
+    ...album(40, "Bruno and Mila"),
+    owner: anna,
+    shared_to: [ben, clara],
+    my_role: "contributor",
+  };
+  const lookOnly: UserAlbumInfo = { ...album(41, "Wedding"), owner: anna, my_role: "viewer" };
+
+  beforeEach(() => {
+    stubs.detail = {
+      id: 40,
+      title: "Bruno and Mila",
+      owner: anna,
+      locked: false,
+      date: "",
+      location: "",
+      grouped_photos: [],
+      collection_ids: [],
+      members: [
+        { user: ben, role: "contributor", photo_count: 0 },
+        { user: clara, role: "viewer", photo_count: 0 },
+      ],
+      my_role: "contributor",
+      my_switches: {
+        share_location: false,
+        share_faces: true,
+        share_camera_info: false,
+        share_captions: false,
+        share_originals: false,
+      },
+      members_share_location: true,
+      members_share_faces: true,
+      members_share_camera_info: false,
+      members_share_captions: true,
+      members_share_originals: true,
+    };
+    mount([album(1, "Trip")], [dogs, lookOnly]);
+  });
+
+  it("lists only the albums you can add to, under their own heading", () => {
+    expect(document.body.textContent).toContain("Shared with you, you can add");
+    expect(listedAlbums()).toEqual(["Trip", "Bruno and Mila"]);
+  });
+
+  it("says who will see the photos and what, before adding them", () => {
+    const shared = found(
+      [...document.querySelectorAll(".mantine-Modal-body .album")].find(el => el.textContent === "Bruno and Mila"),
+      "the shared album"
+    );
+    act(() => found(shared.closest("button"), "its button").click());
+
+    const body = document.body.textContent ?? "";
+    expect(body).toContain("Add 1 photo to Bruno and Mila");
+    expect(body).toContain("Who will see them: Anna Berger, Clara Ruiz");
+    expect(stubs.contribute).not.toHaveBeenCalled();
+    const names = found(
+      document.querySelector<HTMLInputElement>('input[aria-label="Allow Names of people for your photos"]'),
+      "the names switch"
+    );
+    expect(names.checked).toBe(true);
+
+    const add = found(
+      [...document.querySelectorAll("button")].find(button => button.textContent === "Add to Bruno and Mila"),
+      "the add button"
+    );
+    act(() => add.click());
+
+    expect(stubs.contribute).toHaveBeenCalledWith(
+      { albumId: "40", title: "Bruno and Mila", photoIds: ["a1"], selectAll: undefined },
+      expect.anything()
+    );
+    expect(stubs.add).not.toHaveBeenCalled();
   });
 });

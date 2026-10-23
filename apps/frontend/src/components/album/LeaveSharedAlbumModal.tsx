@@ -1,12 +1,20 @@
-import type { SimpleUser } from "@librephotos/api-client";
+import type { AlbumMyRole, SimpleUser } from "@librephotos/api-client";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useLeaveSharedAlbumMutation } from "../../api_client/albums/hooks";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { sharerName } from "../sharing/sharerGroups";
 
-/** The album being left: named in the question, its owner in what happens next. */
-export type LeavableAlbum = Readonly<{ id: number | string; title: string; owner: SimpleUser }>;
+/**
+ * The album being left: named in the question, its owner in what happens next. A contributor's
+ * photos leave with them (#464).
+ */
+export type LeavableAlbum = Readonly<{
+  id: number | string;
+  title: string;
+  owner: SimpleUser;
+  my_role?: AlbumMyRole;
+}>;
 
 type Props = Readonly<{
   opened: boolean;
@@ -40,7 +48,12 @@ export function LeaveSharedAlbumModal({ opened, onClose, album, onLeft }: Props)
       }
       loading={leave.isPending}
       title={t("useralbum.leavealbumtitle", { title: album.title })}
-      message={t("useralbum.leavealbummessage", { owner: sharerName(album.owner, album.owner.username) })}
+      message={
+        <>
+          {t("useralbum.leavealbummessage", { owner: sharerName(album.owner, album.owner.username) })}
+          {album.my_role === "contributor" && ` ${t("collab.leaveWithPhotos")}`}
+        </>
+      }
       confirmLabel={t("useralbum.leavealbum")}
     />
   );
