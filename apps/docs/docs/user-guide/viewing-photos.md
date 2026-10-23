@@ -457,7 +457,7 @@ Not every browser plays every video. H.265 (HEVC), which most phones record in, 
 
 LibrePhotos asks your browser, for each video, whether it can play it. If it can, you get the original at full resolution. If it cannot, the video is converted to H.264 for you as it plays, capped at 720 lines, and kept for the next time you watch it (see [Experimental options](./settings/index.md#experimental-options) for how converted copies are stored). A video your browser says it can play but then fails to decode is converted the same way, automatically. You do not need **Always transcode videos** for any of this.
 
-This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are always served the original.
+This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are never served a conversion: they get the original, or a copy without its metadata unless every [Photo Details](./sharing.md#photo-details) setting of the link is on.
 
 :::note
 <Since version="1.3.0" /> On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.

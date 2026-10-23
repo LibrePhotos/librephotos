@@ -51,7 +51,7 @@ from api.models.album_thing import (
     album_thing_ids_for_photos,
     refresh_album_thing_photo_counts,
 )
-from api.models.photo import restore_photos, trash_photos
+from api.models.photo import restore_photos, shared_library_q, trash_photos
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photos
@@ -627,6 +627,15 @@ class SetPhotosCategory(BulkPhotoMutationView):
         return len(reset)
 
 
+def seen_only_as_public(user: User | None, photos: QuerySet[Photo]) -> bool:
+    """Whether ``user`` reads ``photos`` only because they are public: not
+    their own, not shared with them, not in a library shared with them."""
+    if user is None:
+        return True
+    reached = Photo.objects.owner_q(user) | Q(shared_to=user) | shared_library_q(user)
+    return not photos.filter(reached).exists()
+
+
 class PhotoViewSet(
     # Every verb ModelViewSet gave it; trimming them to what the clients call
     # is a change of its own (#2328 only made them explicit).
@@ -692,9 +701,14 @@ class PhotoViewSet(
         if not queryset.exists():
             raise NotFound()
 
-        # Serializer expects a queryset (calls .get() internally)
+        # Serializer expects a queryset (calls .get() internally). A photo
+        # read only as a public one shows what its public switches allow.
+        context = {
+            "request": request,
+            "public": seen_only_as_public(scope_user(request), queryset),
+        }
         serializer = PhotoDetailsSummarySerializer(
-            queryset, many=False, context={"request": request}
+            queryset, many=False, context=context
         )
         return Response(serializer.data)
 

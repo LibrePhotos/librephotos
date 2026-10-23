@@ -36,6 +36,7 @@ from api.accounts.authentication import (
 from api.drf.params import parse_query
 from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, AlbumUserPhoto, Photo
+from api.models.album_user_share import AlbumUserShare
 from api.models.photo import HEAVY_PHOTO_COLUMNS
 from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS
 from api.models.user import User
@@ -49,7 +50,13 @@ from api.sharing.copies import (
     allow_album_copy,
     ensure_copy,
 )
-from api.sharing.grants import LibraryGrant, library_grant
+from api.sharing.grants import (
+    LibraryGrant,
+    either,
+    library_grant,
+    owner_public_grant,
+    public_grant,
+)
 from api.sharing.indirect import indirect_grants
 from api.video import color, ffmpeg_budget, transcode_cache
 from api.video.no_metadata import NO_METADATA
@@ -130,6 +137,15 @@ def _within_media_root(candidate: str) -> bool:
     except ValueError:
         # Raised when the two are on different drives (Windows): not inside.
         return False
+
+
+def public_copies_allowed() -> bool:
+    """Whether a visitor of a public page may have a new copy made: always.
+
+    A copy is made once per photo and kept, so visitors can cause at most one
+    for each photo the owner made public; there is nobody to count per hour.
+    """
+    return True
 
 
 def build_live_command(path: str, transfer: str | None = None) -> list[str]:
@@ -786,6 +802,36 @@ class MediaServingView(APIView):
             .exists()
         )
 
+    def _public_grant(self, photo: Photo) -> LibraryGrant | None:
+        """What a visitor of a public page may fetch of ``photo``; None when
+        no public page shows it.
+
+        Each active public link of one of its owner's albums holding it
+        allows what that link's switches allow, a public photo what the
+        owner's defaults allow (``api.sharing.grants.public_grant``); a photo
+        on several shows what any of them allows.
+        """
+        albums = (
+            AlbumUserPhoto.objects.of_album_owner()
+            .filter(photo=photo)
+            .filter(self._public_album_active_q("albumuser__"))
+            .values("albumuser_id")
+        )
+        shares = AlbumUserShare.objects.filter(album_id__in=albums).select_related(
+            "album__owner"
+        )
+        grants = [
+            public_grant(share.get_effective_sharing_settings()) for share in shares
+        ]
+        if self._is_public_photo(photo):
+            grants.append(owner_public_grant(photo.owner_id))
+        if not grants:
+            return None
+        combined = grants[0]
+        for grant in grants[1:]:
+            combined = either(combined, grant)
+        return combined
+
     @staticmethod
     def _is_public_photo(photo: Photo) -> bool:
         """Whether ``photo`` is public in the sense the photo API uses.
@@ -804,7 +850,8 @@ class MediaServingView(APIView):
         only hides the people list in the public album API). The original is
         what the lightbox plays a video from, so a public video would not play
         without it. A public photo therefore never grants more than the same
-        photo in a publicly shared album would.
+        photo in a publicly shared album would. Whether the original itself
+        or its copy without metadata is served is ``_public_grant``'s call.
         """
         return Photo.visible.visible_to(None).filter(pk=photo.pk).exists()
 
@@ -864,7 +911,9 @@ class MediaServingView(APIView):
         a person shared with them (#668), and the bytes of the
         original file (``original``) only where the album's grant allows
         them: a contributor's original carries every field of its metadata
-        (``_album_copy`` serves the metadata-free copy instead).
+        (``_album_copy`` serves the metadata-free copy instead). A public
+        album or a public photo is not access of its own here: its visitors
+        get what ``_public_grant`` allows.
         """
         if user is None:
             return False
@@ -873,9 +922,7 @@ class MediaServingView(APIView):
         grant = indirect_grants(user, [photo.pk]).get(photo.pk)
         if grant is not None and (grant.originals or not original):
             return True
-        if Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists():
-            return True
-        return self._in_public_album(photo)
+        return Photo.objects.in_shared_libraries(user).filter(pk=photo.pk).exists()
 
     def _album_copy(
         self, photo: Photo, user: User | None, use_proxy: bool
@@ -949,6 +996,19 @@ class MediaServingView(APIView):
         )
         return response
 
+    def _metadata_free_media(
+        self, photo: Photo, path: str, fname: str, use_proxy: bool
+    ) -> HttpResponseBase | None:
+        """Thumbnails, posters and face crops, which carry no metadata; a 404
+        for a still's other paths; None for a video's own file."""
+        if "thumbnail" in path or "faces" in path:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        if self._video_poster_name(photo, path, fname) is not None:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        if not photo.video:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        return None
+
     def _library_media(
         self,
         photo: Photo,
@@ -959,15 +1019,29 @@ class MediaServingView(APIView):
     ) -> HttpResponseBase:
         """A derived file of a library photo: thumbnails, posters and face
         crops carry no metadata; a video's own file only as originals allow."""
-        if "thumbnail" in path or "faces" in path:
-            return self._generate_response(photo, path, fname, False, use_proxy)
-        if self._video_poster_name(photo, path, fname) is not None:
-            return self._generate_response(photo, path, fname, False, use_proxy)
-        if not photo.video:
-            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        response = self._metadata_free_media(photo, path, fname, use_proxy)
+        if response is not None:
+            return response
         if grant.originals:
             return self._generate_response(photo, path, fname, False, use_proxy)
         return self._library_copy_response(photo, use_proxy)
+
+    def _public_media(
+        self,
+        photo: Photo,
+        grant: LibraryGrant,
+        path: str,
+        fname: str,
+        use_proxy: bool,
+    ) -> HttpResponseBase:
+        """``_library_media`` for a visitor of a public page: a video's own
+        file only with every public switch on, else its copy."""
+        response = self._metadata_free_media(photo, path, fname, use_proxy)
+        if response is not None:
+            return response
+        if grant.originals:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+        return self._library_copy_response(photo, use_proxy, public_copies_allowed)
 
     @staticmethod
     def _is_uuid_format(value: str) -> bool:
@@ -1084,12 +1158,13 @@ class MediaServingView(APIView):
         # serving one that was hidden or trashed later.
         user = self._requester(request)
         photo = self._lookup_photo(fname, user, allow_uuid=True)
-        if photo is None or not (
-            self._may_access(photo, user, original=True)
-            or self._in_public_album(photo)
-            or self._is_public_photo(photo)
-        ):
+        if photo is None:
             return self._refuse(user)
+        if not self._may_access(photo, user, original=True):
+            # A public page's visitor: only with every switch on.
+            public = self._public_grant(photo)
+            if public is None or not public.originals:
+                return self._refuse(user)
         # A motion photo's video comes out of the original file (#2731).
         grant = self._library_grant(photo, user)
         if grant is not None and not grant.originals:
@@ -1120,6 +1195,7 @@ class MediaServingView(APIView):
         album = (
             AlbumUser.objects.filter(id=album_id)
             .filter(self._public_album_active_q())
+            .select_related("share", "owner")
             .first()
         )
         if album is None:
@@ -1132,6 +1208,7 @@ class MediaServingView(APIView):
                 Photo.objects.filter(pk__in=own_links.values("photo_id"))
                 .only(
                     "image_hash",
+                    "owner",
                     "video",
                     "video_color_transfer",
                     "main_file",
@@ -1144,18 +1221,10 @@ class MediaServingView(APIView):
 
         if "thumbnail" in path or "thumbnails" in path or "faces" in path:
             return self._generate_response(photo, path, fname, False, use_proxy)
-
-        content_type = self._original_content_type(photo)
-        if not use_proxy:
-            return self._serve_file_direct(_original_path(photo), content_type)
-        response = HttpResponse()
-        response["Content-Type"] = content_type
-        if _original_path(photo).startswith(settings.PHOTOS):
-            internal_path = "/original" + _original_path(photo)[len(settings.PHOTOS) :]
-        else:
-            internal_path = _original_path(photo)
-        response["X-Accel-Redirect"] = iri_to_uri(internal_path)
-        return response
+        grant = public_grant(album.share.get_effective_sharing_settings())
+        return self._library_original(
+            photo, grant, use_proxy, False, public_copies_allowed
+        )
 
     def _refuse(self, user: User | None) -> HttpResponseBase:
         """Refuse a photo the requester may not see, or a hash matching nothing.
@@ -1195,9 +1264,6 @@ class MediaServingView(APIView):
         if grant is not None:
             return self._library_media(photo, grant, path, fname, use_proxy)
 
-        if self._in_public_album(photo):
-            return self._generate_response(photo, path, fname, False, use_proxy)
-
         if user is not None and self._may_access(
             photo, user, original=self._carries_original(path)
         ):
@@ -1210,13 +1276,13 @@ class MediaServingView(APIView):
             if copy is not None:
                 return copy
 
-        # The lightbox's "Make public and copy link" action sets
-        # ``Photo.public`` and copies a link to this route, which used to
-        # consult only album shares, so that link always came back 403
-        # (#2029). Checked after the requester's own access so that an owner
-        # keeps their transcoding setting on a photo they made public.
-        if self._is_public_photo(photo):
-            return self._generate_response(photo, path, fname, False, use_proxy)
+        # A public album's or a public photo's visitor (#2029: the "Make
+        # public and copy link" action links here). Checked after the
+        # requester's own access so that an owner keeps their transcoding
+        # setting on a photo they made public.
+        public = self._public_grant(photo)
+        if public is not None:
+            return self._public_media(photo, public, path, fname, use_proxy)
 
         return self._refuse(user)
 
@@ -1259,20 +1325,27 @@ class MediaServingView(APIView):
             if copy is not None:
                 return copy
 
-        if self._in_public_album(photo):
-            return self._generate_response_original(photo, use_proxy, False)
-
         # Same grant, and same placement, as on the derived-media route: a
-        # public video plays from here (see ``_is_public_photo``).
-        if self._is_public_photo(photo):
-            return self._generate_response_original(photo, use_proxy, False)
+        # public video plays from here (see ``_is_public_photo``), from its
+        # copy without metadata unless every public switch is on.
+        public = self._public_grant(photo)
+        if public is not None:
+            return self._library_original(
+                photo, public, use_proxy, False, public_copies_allowed
+            )
 
         return self._refuse(user)
 
     def _library_original(
-        self, photo: Photo, grant: LibraryGrant, use_proxy: bool, transcode: bool
+        self,
+        photo: Photo,
+        grant: LibraryGrant,
+        use_proxy: bool,
+        transcode: bool,
+        allow_new: Callable[[], bool] | None = None,
     ) -> HttpResponseBase:
-        """The original of a library photo, as its owner allows (#2731).
+        """The original of a library photo, as its owner allows (#2731), or
+        of a public page's photo (counted by ``allow_new``).
 
         Never with the file's name. Without the originals switch, a still or
         a video is the metadata-free copy, never a conversion: one cached
@@ -1280,7 +1353,7 @@ class MediaServingView(APIView):
         """
         if grant.originals:
             return self._generate_response_original(photo, use_proxy, transcode)
-        return self._library_copy_response(photo, use_proxy)
+        return self._library_copy_response(photo, use_proxy, allow_new)
 
 
 class UnifiedMediaAccessView(MediaServingView):

@@ -32,6 +32,7 @@ from api.tests.utils import (
     create_test_file,
     create_test_photo,
     create_test_user,
+    every_public_switch_on,
 )
 from api.video import playback, transcode_cache
 
@@ -128,7 +129,8 @@ class SerializerFieldTest(TestCase):
 
 class TranscodeOnRequestTest(TestCase):
     def setUp(self):
-        self.owner = create_test_user()
+        # Every public switch on: visitors get the original files.
+        self.owner = create_test_user(public_sharing_defaults=every_public_switch_on())
         self.photo = create_test_photo(owner=self.owner, video=True)
         path = f"/tmp/{self.photo.image_hash}.mp4"
         self.photo.main_file = create_test_file(path, self.owner, MP4_BYTES)
@@ -199,12 +201,14 @@ class TranscodeOnRequestTest(TestCase):
         self.assertFalse(converted)
         ensure_cached.assert_not_called()
 
-    def test_a_signed_in_viewer_of_a_public_album_can_ask(self):
-        """Any user may already convert their own videos, so this grants nothing."""
+    def test_a_signed_in_viewer_of_a_public_album_is_a_visitor(self):
+        """Someone the album is not shared with reads it as a public page's
+        visitor does: the file as the public switches allow, never a
+        conversion (an older cached one may still carry the metadata)."""
         self._public_album()
         response, converted = self._get(create_test_user(), "?transcode=1")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(converted)
+        self.assertFalse(converted)
 
     def test_a_stranger_is_still_refused(self):
         response, converted = self._get(create_test_user(), "?transcode=1")

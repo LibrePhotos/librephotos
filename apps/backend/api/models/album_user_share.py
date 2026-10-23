@@ -50,20 +50,14 @@ class AlbumUserShare(models.Model):
             self.ensure_slug()
         super().save(*args, **kwargs)
 
-    def get_effective_sharing_settings(self) -> dict:
+    def get_effective_sharing_settings(self) -> dict[str, bool]:
         """Resolve effective sharing settings.
 
         Priority: album override > user defaults > system defaults (all False)
         """
-        from api.models.user import get_default_public_sharing_settings
+        from api.models.user import public_sharing_settings
 
-        # Start with system defaults (all False)
-        defaults = get_default_public_sharing_settings()
-
-        # Apply user defaults if available
-        user_defaults = getattr(self.album.owner, "public_sharing_defaults", None)
-        if user_defaults:
-            defaults.update(user_defaults)
+        defaults = public_sharing_settings(self.album.owner)
 
         # Apply album-level overrides (only non-None values)
         overrides = {
@@ -76,6 +70,6 @@ class AlbumUserShare(models.Model):
 
         for key, value in overrides.items():
             if value is not None:
-                defaults[key] = value
+                defaults[key] = bool(value)
 
         return defaults

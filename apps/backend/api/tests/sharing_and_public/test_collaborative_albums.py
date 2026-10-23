@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 
 from api.models import AlbumRole, AlbumUserMember, AlbumUserPhoto, Photo
 from api.models.album_user_share import AlbumUserShare
+from api.models.user import get_default_public_sharing_settings
 from api.sharing.copies import COPIES_DIR
 from api.tests.utils import (
     create_test_album_place,
@@ -528,7 +529,12 @@ class NeverOutsideTheAlbumTest(CollaborativeAlbumBase):
     def test_a_public_link_shows_only_the_owners_photos(self):
         self.ben_adds()
         self.set_switches(self.ben, share_location=True, share_originals=True)
-        share = AlbumUserShare.objects.create(album=self.album, enabled=True)
+        # Every Photo Details switch on: the link hands out the original.
+        share = AlbumUserShare.objects.create(  # raw-create: a public link
+            album=self.album,
+            enabled=True,
+            **dict.fromkeys(get_default_public_sharing_settings(), True),
+        )
         anonymous = _client(None)
         for url, key in (
             (f"/api/albums/user/{self.album.pk}/?public=true", None),

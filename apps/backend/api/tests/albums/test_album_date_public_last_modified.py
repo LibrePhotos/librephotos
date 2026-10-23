@@ -16,12 +16,20 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import Photo
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_photo,
+    create_test_user,
+    every_public_switch_on,
+)
 
 
 class AlbumDatePublicLastModifiedTest(TestCase):
     def setUp(self):
-        self.owner = create_test_user(public_sharing=True)
+        # Dates and places shared: these tests are about which photos.
+        self.owner = create_test_user(
+            public_sharing=True, public_sharing_defaults=every_public_switch_on()
+        )
         self.viewer = create_test_user()
         self.taken = timezone.now()
         self.day = create_test_album_date(owner=self.owner, date=self.taken.date())

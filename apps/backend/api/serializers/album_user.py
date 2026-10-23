@@ -51,7 +51,14 @@ from api.serializers.PhotosGroupedByDate import (
     get_photos_ordered_by_date,
 )
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
-from api.sharing.grants import SUMMARY_FIELDS, GrantLookup, lookup_for, redact
+from api.sharing.grants import (
+    PUBLIC_GRANT,
+    SUMMARY_FIELDS,
+    GrantLookup,
+    lookup_for,
+    public_grant,
+    redact,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -668,26 +675,18 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             grouped_photos = get_photos_ordered_by_date(photos)
         else:
             # Day groups would publish the capture date as the group header,
-            # so without timestamps everything goes into one undated group.
-            photos = list(photos)
+            # so without timestamps everything goes into one undated group,
+            # in an order that says nothing about when they were taken.
+            photos = sorted(photos, key=lambda photo: str(photo.pk))
             grouped_photos = [PhotosGroupedByDate("", None, photos)] if photos else []
         # ``.data`` of a many=True serializer is a ReturnList; build it through
-        # ListSerializer so the static type matches the runtime value.
-        groups = serializers.ListSerializer(
+        # ListSerializer so the static type matches the runtime value. Each
+        # photo shows what the link's switches allow (``api.sharing.grants``).
+        return serializers.ListSerializer(
             child=GroupedPhotosSerializer(),
             instance=grouped_photos,
-            context=self.context,
+            context={**self.context, PUBLIC_GRANT: public_grant(sharing)},
         ).data
-        for group in groups:
-            for item in group["items"]:
-                if not sharing.get("share_location"):
-                    item["exif_gps_lat"] = None
-                    item["exif_gps_lon"] = None
-                    item["location"] = ""
-                if not sharing.get("share_timestamps"):
-                    item["date"] = ""
-                    item["birthTime"] = ""
-        return groups
 
     def get_location(self, obj: AlbumUser) -> str:
         if not self._sharing_settings(obj).get("share_location"):
