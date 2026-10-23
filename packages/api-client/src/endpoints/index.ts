@@ -127,6 +127,8 @@ export type DateAlbumFilter = {
   library?: number;
   /** Also the libraries I show in my timeline (#2731). */
   libraries?: boolean;
+  /** Oldest day first instead of newest (#2712); the undated day stays last. */
+  order?: S.PhotoOrder;
 };
 
 /** Map a Photoset onto the backend's boolean date-album filter params. */
@@ -167,6 +169,8 @@ function dateAlbumParams(filter: DateAlbumFilter) {
     folder: filter.folder,
     library: filter.library,
     libraries: filter.libraries ? "true" : undefined,
+    // Only when it differs from what every server does, so an older server reads the same request.
+    order: filter.order === "oldest" ? "oldest" : undefined,
   };
 }
 

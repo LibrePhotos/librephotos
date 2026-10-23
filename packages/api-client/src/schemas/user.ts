@@ -39,6 +39,10 @@ export type TimelineFilterDefault = z.infer<typeof TimelineFilterDefault>;
 export const RatingMode = z.enum(["favorite", "stars"]);
 export type RatingMode = z.infer<typeof RatingMode>;
 
+/** Which end of the date-grouped photo lists comes first (#2712): the newest day or the oldest, by date taken. */
+export const PhotoOrder = z.enum(["newest", "oldest"]);
+export type PhotoOrder = z.infer<typeof PhotoOrder>;
+
 export const User = z.object({
   id: z.number(),
   username: z.string(),
@@ -106,6 +110,9 @@ export const User = z.object({
   // How the scroll scrubber beside a photo list looks. Optional: older servers do not send it, and
   // the web app then shows the thumb.
   scrubber_style: z.enum(["thumb", "density"]).optional(),
+  // Newest or oldest day first in the date-grouped photo lists (#2712). Optional: older servers do
+  // not send it, and their lists are newest first.
+  photo_order: PhotoOrder.optional(),
   slideshow_interval: z.number().default(5),
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),

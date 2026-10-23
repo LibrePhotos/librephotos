@@ -2,7 +2,7 @@ import logging
 from functools import cached_property
 from typing import Any
 
-from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery
+from django.db.models import Count, Exists, OuterRef, Prefetch, Q, QuerySet, Subquery
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -23,6 +23,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.albums.collections import set_album_collections
+from api.albums.photo_order import day_ordering, photo_ordering
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.pagination import (
     PAGE_PARAMETERS,
@@ -671,9 +672,9 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         album_date, day_photos = self._day_and_photos()
 
         photo_qs = _with_photo_summary_relations(
-            day_photos.distinct().order_by(  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
-                "-exif_timestamp", "main_file__path"
-            )
+            # distinct(): filtering through a reverse foreign key (faces of a
+            # person) repeats a photo.
+            day_photos.distinct().order_by(*photo_ordering(self._query["order"]))
         )
         if "person" in self._query:
             # A person's video opens where the person is (#2762).
@@ -833,7 +834,7 @@ class AlbumDateListViewSet(ListViewSet):
             AlbumDate.objects.filter(*filter)
             .annotate(photo_count=Count("photos", distinct=repeats_photos))
             .filter(Q(photo_count__gt=0))
-            .order_by(F("date").desc(nulls_last=True))
+            .order_by(day_ordering(params["order"]))
         )
 
         return qs

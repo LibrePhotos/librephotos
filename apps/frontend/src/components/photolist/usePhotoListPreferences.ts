@@ -1,9 +1,10 @@
 import { userKeys } from "@librephotos/api-client";
-import type { User } from "@librephotos/api-client";
+import type { PhotoOrder, User } from "@librephotos/api-client";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import { useSetPhotoOrderMutation } from "../../api_client/user/hooks/usePhotoOrder";
 import { ScrubberStyle } from "../scrollscrubber/scrollScrubberTypes";
 
 export type HeaderSize = "large" | "normal" | "small";
@@ -15,9 +16,12 @@ export const isScrubberStyle = (value: string): value is ScrubberStyle => Scrubb
 
 // The display preferences of a photo list (thumbnail size, text alignment, header
 // size, scroll scrubber style). The menu shows the local values at once; the profile is saved debounced.
+// The photo order (#2712) is saved at once instead: every list reads it from the cached user, which
+// the save updates before it is sent, and each change reloads the list.
 export const usePhotoListPreferences = (userSelfDetails: User | undefined) => {
   // Silent: the debounced grid preference saves would otherwise pop an "Update user" toast.
   const updateUser = useUpdateUserMutation({ silent: true });
+  const setPhotoOrder = useSetPhotoOrderMutation();
   const queryClient = useQueryClient();
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
@@ -82,11 +86,18 @@ export const usePhotoListPreferences = (userSelfDetails: User | undefined) => {
     debouncedSavePreferences({ scrubber_style: style });
   };
 
+  const handlePhotoOrderChange = (order: PhotoOrder) => {
+    if (userSelfDetails) setPhotoOrder.mutate({ userId: userSelfDetails.id, order });
+  };
+
   return {
     localImageScale,
     localTextAlignment,
     localHeaderSize,
     localScrubberStyle,
+    // An older server does not send it, and its lists are newest first.
+    photoOrder: userSelfDetails?.photo_order ?? "newest",
+    handlePhotoOrderChange,
     handleThumbnailSizeChange,
     handleTextAlignmentChange,
     handleHeaderSizeChange,

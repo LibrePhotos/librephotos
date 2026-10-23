@@ -12,6 +12,21 @@ LibrePhotos provides several ways to browse your photo library. You can switch b
 
 The default view showing all your photos grouped by date, from newest to oldest. A **scroll scrubber** on the right edge lets you quickly jump to any date — click or drag it to navigate through large libraries.
 
+#### Newest or oldest first {#photo-order}
+
+<Since version="1.5.0" /> Up to 1.4.0, every list was newest first.
+
+To read your photos the way they happened, for example a holiday from the first day to the last, pick **Oldest first** under **Order** in **Photo Display Settings** (the gear button above the photos). The order is by date taken, not by when a photo was added, and it changes nothing on your photos or in your albums. It is saved to your account, so your other devices and browsers follow it, and it applies to every list grouped by day:
+
+- the timeline and the Favorites, Photos, Videos, Screenshots, Documents, Hidden, Archive and Trash views,
+- your albums and the albums shared with you, people, places, things, tags and folders,
+- search results grouped by day (semantic search results stay in order of relevance),
+- a shared library's timeline and public pages you open while signed in. Visitors without an account see public pages newest first.
+
+The photos within a day follow the same order, and the scroll scrubber turns round with the list: its top is your oldest year. Photos without a date stay at the end in both orders. While the order is oldest first, the line under the page title ends with **Oldest first**.
+
+Events always read oldest first, as they happened: on an event the **Order** control shows that and cannot be changed.
+
 #### Scroll bar style
 
 <Since version="1.5.0" />

@@ -24,6 +24,8 @@ type Props = Readonly<{
   publicLink: boolean;
   onOpenSharing: () => void;
   preferences: ReturnType<typeof usePhotoListPreferences>;
+  /** On a list of days: they follow the user's photo order, or always read oldest first (events). */
+  photoOrder?: "setting" | "events";
   /** The Select button (#2240), on a list whose photos can be selected. */
   selectMode?: React.ComponentProps<typeof SelectModeButton>;
 }>;
@@ -45,6 +47,7 @@ export function PhotoListToolbar({
   publicLink,
   onOpenSharing,
   preferences,
+  photoOrder,
   selectMode,
 }: Props) {
   const { t } = useTranslation();
@@ -86,6 +89,13 @@ export function PhotoListToolbar({
             onTextAlignmentChange={preferences.handleTextAlignmentChange}
             onHeaderSizeChange={preferences.handleHeaderSizeChange}
             onScrubberStyleChange={preferences.handleScrubberStyleChange}
+            photoOrder={
+              photoOrder && {
+                order: preferences.photoOrder,
+                onChange: preferences.handlePhotoOrderChange,
+                eventOrder: photoOrder === "events",
+              }
+            }
           />
         )}
       </Group>

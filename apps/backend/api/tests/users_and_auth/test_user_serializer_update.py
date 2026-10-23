@@ -195,6 +195,35 @@ class UserSerializerUpdateTest(TestCase):
         self.assertTrue(reloaded.public_sharing)
         self.assertEqual(reloaded.llm_settings, {"enabled": True})
 
+    def test_photo_order_defaults_to_newest_and_is_saved_through_the_api(self):
+        self.assertEqual(self.user.photo_order, "newest")
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"photo_order": "oldest"},
+            format="json",
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(response.json()["photo_order"], "oldest")
+        self.assertEqual(User.objects.get(id=self.user.id).photo_order, "oldest")
+
+    def test_unknown_photo_order_is_rejected(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.patch(
+            f"/api/user/{self.user.id}/",
+            data={"photo_order": "random"},
+            format="json",
+        )
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(response.json()["errors"][0]["field"], "photo_order")
+        self.assertEqual(User.objects.get(id=self.user.id).photo_order, "newest")
+
     def test_scrubber_style_defaults_to_thumb_and_is_saved_through_the_api(self):
         self.assertEqual(self.user.scrubber_style, "thumb")
         client = APIClient()

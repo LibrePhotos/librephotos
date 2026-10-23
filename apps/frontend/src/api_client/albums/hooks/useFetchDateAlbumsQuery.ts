@@ -5,7 +5,7 @@ import {
   type DateAlbumFilter,
   type DateAlbumsListKey,
 } from "@librephotos/api-client";
-import type { IncompleteDatePhotosGroup, MediaType, PigPhoto } from "@librephotos/api-client";
+import type { IncompleteDatePhotosGroup, MediaType, PhotoOrder, PigPhoto } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
   timelineFilterKey,
@@ -14,6 +14,7 @@ import {
 } from "../../../components/photolist/timelineFilter";
 import { addTempElementsToGroups } from "../../../util/util";
 import { apiClient, queryClient } from "../../api";
+import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
 
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
@@ -119,6 +120,8 @@ type AlbumDateListOptions = {
   library?: number;
   // My timeline with the libraries I show in it (#2731). Only "/" sets it.
   withLibraries?: boolean;
+  // Newest or oldest day first (#2712); the hooks fill it in from the user's photo order.
+  order?: PhotoOrder;
 };
 
 // Whose days a list holds, for its key: left out for my own library alone.
@@ -138,6 +141,7 @@ export function dateAlbumRequestFilter(options: AlbumDateListOptions): DateAlbum
     folder: options.folder,
     library: options.library,
     libraries: options.withLibraries,
+    order: options.order,
   };
 }
 
@@ -152,13 +156,18 @@ export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsList
     options.mediaType ?? "all",
     timelineFilterKey(options.timelineFilter),
   ];
-  // Only when set, so the keys of my own lists stay as they were.
+  // Only when set, so the keys of my own newest-first lists stay as they were.
   if (library !== undefined) key.push(library);
+  if (options.order === "oldest") key.push("order:oldest");
   return key;
 }
 
 // Fetch date albums
-export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
+// In the user's photo order (#2712), and only once it is known, so a list never loads in the
+// other order first.
+export const useFetchDateAlbumsQuery = (listOptions: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
+  const photoOrder = usePhotoOrder();
+  const options = { ...listOptions, order: photoOrder.order };
   return useQuery({
     queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {
@@ -168,6 +177,6 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions, queryOpti
       hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));
       return results;
     },
-    enabled: !queryOptions?.skip,
+    enabled: !queryOptions?.skip && photoOrder.ready,
   });
 };

@@ -367,6 +367,30 @@ class TimelineTest(LibraryShareFixture):
         items = self.day_items(self.own_day.pk, favorite="true")["items"]
         self.assertEqual([i["image_hash"] for i in items], [self.own.image_hash])
 
+    def test_oldest_first_merges_the_libraries_in_that_order(self):
+        """#2712: the merged days of several libraries follow ``order`` too."""
+        self.switch(show_in_timeline=True)
+        newest = [d["id"] for d in self.timeline()]
+        oldest = [d["id"] for d in self.timeline(order="oldest")]
+        self.assertEqual(newest, [self.own_day.pk, self.their_day.pk])
+        self.assertEqual(oldest, [self.their_day.pk, self.own_day.pk])
+
+    def test_a_shared_library_lists_its_days_oldest_first(self):
+        earlier = create_test_photo(
+            owner=self.owner,
+            exif_timestamp=timezone.make_aware(datetime.datetime(2025, 10, 1, 9)),
+        )
+        earlier_day = create_test_album_date(
+            owner=self.owner, date=earlier.exif_timestamp.date()
+        )
+        earlier_day.photos.add(earlier)
+        query = {"library": self.owner.pk, "order": "oldest"}
+        response = client_for(self.recipient).get("/api/albums/date/list/", query)
+        self.assertEqual(
+            [d["id"] for d in response.json()["results"]],
+            [earlier_day.pk, self.their_day.pk, self.day.pk],
+        )
+
     def test_a_partner_day_is_not_reachable_after_leaving(self):
         self.switch(show_in_timeline=True)
         self.share.delete()

@@ -1,8 +1,10 @@
 import { ActionIcon, Box, Menu, SegmentedControl, Slider, Stack, Switch, Text, Tooltip } from "@mantine/core";
 import { IconSettings } from "@tabler/icons-react";
+import type React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import type { ScrubberStyle } from "../scrollscrubber/scrollScrubberTypes";
+import { PhotoOrderSection } from "./PhotoOrderSection";
 import { isHeaderSize, isScrubberStyle, type HeaderSize } from "./usePhotoListPreferences";
 
 type Props = Readonly<{
@@ -17,9 +19,11 @@ type Props = Readonly<{
   onTextAlignmentChange: (alignment: "left" | "right") => void;
   onHeaderSizeChange: (size: HeaderSize) => void;
   onScrubberStyleChange: (style: ScrubberStyle) => void;
+  /** The Order section, on a list whose days it orders (#2712); left out on the others. */
+  photoOrder?: React.ComponentProps<typeof PhotoOrderSection>;
 }>;
 
-// The photo size, text alignment, header size and scroll bar menu in a photo list's toolbar.
+// The order, photo size, text alignment, header size and scroll bar menu in a photo list's toolbar.
 export function PhotoListDisplayMenu({
   displayMenuOpened,
   openDisplayMenu,
@@ -32,6 +36,7 @@ export function PhotoListDisplayMenu({
   onTextAlignmentChange,
   onHeaderSizeChange,
   onScrubberStyleChange,
+  photoOrder,
 }: Props) {
   const { t } = useTranslation();
   return (
@@ -51,6 +56,7 @@ export function PhotoListDisplayMenu({
         </Tooltip>
       </Menu.Target>
       <Menu.Dropdown>
+        {photoOrder && <PhotoOrderSection {...photoOrder} />}
         <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
         <Box p="xs">
           <Stack gap={6}>

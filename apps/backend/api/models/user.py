@@ -156,6 +156,16 @@ class User(AbstractUser):
     scrubber_style = models.TextField(
         choices=ScrubberStyle.choices, default=ScrubberStyle.THUMB
     )
+
+    # Which end of the date-grouped photo lists comes first (#2712): the
+    # newest day or the oldest, by date taken. See api.albums.photo_order.
+    class PhotoOrder(models.TextChoices):
+        NEWEST = "newest"
+        OLDEST = "oldest"
+
+    photo_order = models.TextField(
+        choices=PhotoOrder.choices, default=PhotoOrder.NEWEST
+    )
     # No longer read: every scan imports RAW files and groups a RAW with its
     # JPEG as file variants. The user API still returns both, read-only, so
     # released clients keep parsing the user object (#2219); the columns are

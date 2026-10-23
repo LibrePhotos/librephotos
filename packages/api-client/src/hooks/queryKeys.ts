@@ -34,10 +34,11 @@ export type DateAlbumsListKey = [
   mediaType: MediaType | "all",
   timelineFilter: string,
   /**
-   * Whose days (#2731): a shared library's `library:<owner id>`, `libraries` for my timeline with
-   * the libraries I show in it, left out for my own library only.
+   * Each left out when it is the default, so the keys of my own newest-first lists stay as they
+   * were: whose days (#2731), a shared library's `library:<owner id>` or `libraries` for my
+   * timeline with the libraries I show in it; then `order:oldest` for oldest first (#2712).
    */
-  library?: string,
+  ...extras: string[],
 ];
 
 /** The grids a photo can show up in; each is a kind under `photoGridKeys.all`. */

@@ -4,13 +4,16 @@ import {
   photoGridKeys,
   type UserPlaceCircle,
   type UserPlaceFields,
+  type UserPlacePhotos,
 } from "@librephotos/api-client";
 import type { MediaType } from "@librephotos/api-client";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mediaTypeToBulkQuery } from "../../../components/photolist/mediaTypeFilter";
 import { notification } from "../../../service/notifications";
+import { withOrderedGroups } from "../../../util/photoOrder";
 import { apiClient } from "../../api";
 import { mutationErrorMeta, type MutationErrorOptions } from "../../mutationErrors";
+import { usePhotoOrderSelect } from "../../user/hooks/usePhotoOrder";
 
 /** My places (#1365), by name, each with its photo count. */
 export const useUserPlacesQuery = () =>
@@ -34,11 +37,16 @@ export const useUserPlacePreviewQuery = (circle: UserPlaceCircle | null) =>
   });
 
 /** A place's photos by day, for its page. */
-export const useUserPlacePhotosQuery = (placeId: number, mediaType?: MediaType) =>
-  useQuery({
+// The place's days in the user's photo order (#2712).
+export const useUserPlacePhotosQuery = (placeId: number, mediaType?: MediaType) => {
+  const { select, ready } = usePhotoOrderSelect<UserPlacePhotos>(withOrderedGroups);
+  return useQuery({
     queryKey: photoGridKeys.userPlace(placeId, mediaType ?? "all"),
     queryFn: () => endpoints.fetchUserPlacePhotos(apiClient, placeId, mediaTypeToBulkQuery(mediaType)),
+    enabled: ready,
+    select,
   });
+};
 
 /** A new place (no `id`), or the changes to one. */
 export type SaveUserPlaceParams = Readonly<{ id?: number; fields: UserPlaceFields }>;
