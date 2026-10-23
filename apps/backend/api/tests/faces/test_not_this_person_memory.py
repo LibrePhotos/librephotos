@@ -37,7 +37,7 @@ class FixedMLP:
     def __init__(self, **kwargs: Any) -> None:
         self.classes_ = np.array([])
 
-    def fit(self, encodings: np.ndarray, y: np.ndarray) -> "FixedMLP":
+    def fit(self, encodings: np.ndarray, y: np.ndarray) -> FixedMLP:
         self.classes_ = np.unique(np.asarray(y))
         return self
 
