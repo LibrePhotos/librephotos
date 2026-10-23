@@ -57,6 +57,7 @@ vi.mock("./PeopleSection", () => ({
 }));
 vi.mock("./Description", () => ({ Description: () => null }));
 vi.mock("./AlbumsSection", () => ({ AlbumsSection: () => null }));
+vi.mock("../rights/RightsSection", () => ({ RightsSection: () => null }));
 vi.mock("./SimilarPhotosSection", () => ({ SimilarPhotosSection: () => null }));
 vi.mock("./TagsSection", () => ({
   TagsSection: ({ photoDetail }: { photoDetail: Photo }) => {
@@ -283,6 +284,18 @@ describe("Sidebar on a public album page", () => {
 
     expect(container.textContent).not.toContain("Berlin, Germany");
     expect(container.textContent).toContain(i18n.t("lightbox.sidebar.noAdditionalDetails"));
+  });
+
+  it("shows the photo's license whatever the album shares (#425)", async () => {
+    stubs.publicAlbumPhoto = {
+      results: { ...publicPhoto, rights: { license: "cc-by-4.0", creator: "Ada", copyright: null } },
+      sharing_settings: sharing({}),
+    };
+
+    const container = await renderSidebar(undefined, true, "slug");
+
+    expect(container.textContent).toContain("CC BY 4.0");
+    expect(container.textContent).not.toContain(i18n.t("lightbox.sidebar.noAdditionalDetails"));
   });
 
   it("says so when the photo could not be loaded", async () => {

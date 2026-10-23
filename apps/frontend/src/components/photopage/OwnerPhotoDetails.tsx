@@ -1,6 +1,6 @@
 import type { Photo } from "@librephotos/api-client";
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
-import { IconBookmark, IconMapPin, IconNote, IconPhoto, IconTag, IconUsers } from "@tabler/icons-react";
+import { IconBookmark, IconCopyright, IconMapPin, IconNote, IconPhoto, IconTag, IconUsers } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDrawnFaceResult, useSetFacesPersonLabelMutation } from "../../api_client/faces";
@@ -17,6 +17,7 @@ import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
 import { TagsSection } from "../lightbox/TagsSection";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
+import { RightsSection } from "../rights/RightsSection";
 import type { AddableDetail } from "./AddDetailsCard";
 import { AddDetailsCard } from "./AddDetailsCard";
 import { CameraCard } from "./CameraCard";
@@ -131,6 +132,9 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
       {addable.length > 0 && <AddDetailsCard missing={addable} onAdd={add} />}
       <CameraCard photo={photo} />
       <FileCard photo={photo} />
+      <PhotoCard icon={IconCopyright} color="grape" title={t("rights.title")}>
+        {heading => <RightsSection photo={photo} heading={heading} />}
+      </PhotoCard>
       {!!albums && albums.length > 0 && (
         <PhotoCard icon={IconBookmark} color="indigo" title={t("lightbox.sidebar.albums")} count={albums.length}>
           <AlbumsSection imageHash={photo.image_hash} showTitle={false} />

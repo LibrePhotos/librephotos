@@ -1,4 +1,4 @@
-import type { SetPhotosLocationResponse } from "@librephotos/api-client";
+import type { SetPhotosLocationResponse, SetPhotosRightsResponse } from "@librephotos/api-client";
 import i18n from "../../i18n";
 import { toast } from "./toast";
 
@@ -234,6 +234,17 @@ function photosLocationSet({ count, skipped_with_location: skipped, geocoded }: 
   }
 }
 
+/** Rights were set on photos (#425): how many changed, and how many kept a value of theirs. */
+function photosRightsSet({ count, kept }: SetPhotosRightsResponse) {
+  const title = i18n.t("toasts.setrightstitle");
+  const keptNote = kept > 0 ? ` ${i18n.t("toasts.setrightskept", { count: kept })}` : "";
+  if (count === 0) {
+    toast.warning(`${i18n.t("toasts.setrightsnone")}${keptNote}`, { title });
+  } else {
+    toast.success(`${i18n.t("toasts.setrights", { count })}${keptNote}`, { title });
+  }
+}
+
 /** A photo's location was removed: it left the map and Places (#2209). */
 function locationRemoved() {
   toast.success(i18n.t("toasts.locationremoved"), { title: i18n.t("toasts.locationremovedtitle") });
@@ -287,6 +298,7 @@ export const photos = {
   photoRotated,
   photosDateChanged,
   photosLocationSet,
+  photosRightsSet,
   removePhotos,
   rescanPhotosFailed,
   rescanPhotosStarted,

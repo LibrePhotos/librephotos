@@ -44,6 +44,7 @@ vi.mock("./ConfigBurstDetection", () => ({ ConfigBurstDetection: () => null }));
 vi.mock("./ConfigDateTime", () => ({ ConfigDateTime: () => null }));
 // Its own test: WriteExistingEditsRow.test.tsx.
 vi.mock("./WriteExistingEditsRow", () => ({ WriteExistingEditsRow: () => null }));
+vi.mock("./RightsDefaultCard", () => ({ RightsDefaultCard: () => null }));
 vi.mock("./SaveChangesDialog", () => ({ SaveChangesDialog: () => null }));
 
 beforeAll(async () => {
@@ -207,10 +208,10 @@ describe("Settings write edits to files (#2281)", () => {
   it("says what each option writes, from the one list of written fields", () => {
     expect(optionText("Off")).toContain("Your files are never changed.");
     expect(optionText("Save to sidecar")).toContain(
-      "Writes ratings, dates, rotations, captions, tags, and locations to an .xmp file next to the photo. The photo itself is not changed."
+      "Writes ratings, dates, rotations, captions, tags, locations, and rights to an .xmp file next to the photo. The photo itself is not changed."
     );
     expect(optionText("Save to media file")).toContain(
-      "Writes ratings, dates, rotations, captions, tags, and locations into the photo file itself."
+      "Writes ratings, dates, rotations, captions, tags, locations, and rights into the photo file itself."
     );
   });
 

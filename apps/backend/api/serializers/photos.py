@@ -22,6 +22,7 @@ from api.faces.recipients import faces_shown_to, is_named
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
 from api.metadata.library_write import WRITE_TYPES
+from api.metadata.rights import PhotoRightsData, rights_of
 from api.mime import original_mime_type
 from api.models import AlbumDate, Face, File, Person, Photo, User
 from api.models.photo_caption import PhotoCaption
@@ -36,7 +37,10 @@ from api.serializers.fields import (
     prefetched,
     shared_serializer,
 )
-from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
+from api.serializers.photo_metadata import (
+    PhotoMetadataSummarySerializer,
+    PhotoRightsSerializer,
+)
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import (
     SimpleUserSerializer,
@@ -635,6 +639,9 @@ class PhotoSerializer(serializers.ModelSerializer):
     # client can tell whether it can draw the original; null without one (#2742).
     original_mime_type = serializers.SerializerMethodField()
 
+    # Copyright, creator and license (#425); null without any.
+    rights = serializers.SerializerMethodField()
+
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
     width = serializers.SerializerMethodField()
@@ -732,6 +739,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             # in its panorama viewer, null for a flat photo (#483).
             "projection_type",
             "shared_library",
+            "rights",
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
@@ -856,6 +864,10 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_subjectDistance(self, obj: Photo) -> float | None:
         metadata = self._get_metadata(obj)
         return metadata.subject_distance if metadata else None
+
+    @extend_schema_field(PhotoRightsSerializer(allow_null=True))
+    def get_rights(self, obj: Photo) -> PhotoRightsData | None:
+        return rights_of(self._get_metadata(obj))
 
     def get_exposure_compensation(self, obj: Photo) -> float | None:
         metadata = self._get_metadata(obj)
@@ -1271,6 +1283,9 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
     search_captions = serializers.SerializerMethodField()
     captions_json = serializers.SerializerMethodField()
 
+    # Copyright, creator and license (#425), when the photo has a license.
+    rights = serializers.SerializerMethodField()
+
     # People/faces
     people = serializers.SerializerMethodField()
 
@@ -1298,6 +1313,7 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
             "search_captions",
             "captions_json",
             "people",
+            "rights",
         )
 
     def to_representation(self, instance: Photo) -> dict[str, Any]:
@@ -1305,6 +1321,10 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         grant = public_grant(self.context.get("sharing_settings"))
         redact(data, PUBLIC_DETAIL_FIELDS, grant)
         return data
+
+    @extend_schema_field(PhotoRightsSerializer(allow_null=True))
+    def get_rights(self, obj: Photo) -> PhotoRightsData | None:
+        return rights_of(self._get_metadata(obj))
 
     def _get_metadata(self, obj: Photo) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata."""

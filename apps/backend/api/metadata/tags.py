@@ -120,6 +120,24 @@ class Tags:
     XMP_RIGHTS = "XMP:Rights"
     IPTC_COPYRIGHT = "IPTC:CopyrightNotice"
     EXIF_COPYRIGHT = "EXIF:Copyright"
+    # Where a copyright or creator edit is written (#425): the dc: tag in a
+    # sidecar; in a media file the MWG composite, which also sets the EXIF tag
+    # and an IPTC one the file already has (written with WriteOption.MWG).
+    RIGHTS_XMP = "XMP-dc:Rights"
+    COPYRIGHT_MWG = "MWG:Copyright"
+    CREATOR_XMP = "XMP-dc:Creator"
+    CREATOR_MWG = "MWG:Creator"
+    # The license (#425): Creative Commons' XMP-cc:License, and the
+    # XMP-xmpRights tags Lightroom and digiKam write. A WebStatement can also
+    # be a link to any rights page, which is not a license. Marked is a
+    # boolean: True is "copyrighted", False "public domain".
+    LICENSE = "XMP:License"
+    WEB_STATEMENT = "XMP:WebStatement"
+    MARKED = "XMP:Marked"
+    LICENSE_WRITE = "XMP-cc:License"
+    WEB_STATEMENT_WRITE = "XMP-xmpRights:WebStatement"
+    MARKED_WRITE = "XMP-xmpRights:Marked"
+    USAGE_TERMS = "XMP-xmpRights:UsageTerms"
     # XMP-iptcExt:PersonInImage (names of people shown, no regions) and
     # XMP-lr:HierarchicalSubject ("Places|USA|San Francisco"), imported as keywords.
     PERSON_IN_IMAGE = "XMP:PersonInImage"

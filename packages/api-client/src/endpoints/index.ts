@@ -2257,6 +2257,50 @@ export async function fetchLocationSummary(
   return parseResponse(S.LocationSummaryResponse, res, "location summary");
 }
 
+/* ---- photo rights (#425) ------------------------------------------------ */
+
+/**
+ * Give the selected photos (by hash, or a selected-all set) a copyright notice, a creator and a
+ * license. A field left out of `rights` stays as each photo has it; `keep` says which existing values
+ * stay. `{year}` in the copyright becomes the year each photo was taken.
+ */
+export async function setPhotosRights(
+  client: ApiClient,
+  imageHashes: string[],
+  rights: S.PhotoRightsUpdate,
+  keep: S.RightsKeep,
+  selectAll?: SelectAllPhotos
+): Promise<S.SetPhotosRightsResponse> {
+  const res = await client.post<unknown>("/photos/rights/", {
+    ...photoSelection(imageHashes, selectAll),
+    ...rights,
+    keep,
+  });
+  return parseResponse(S.SetPhotosRightsResponse, res, "set photos rights");
+}
+
+/** The selected photos' rights: each field's common value (or that it is mixed), and how many come from files. */
+export async function fetchRightsSummary(
+  client: ApiClient,
+  imageHashes: string[],
+  selectAll?: SelectAllPhotos
+): Promise<S.RightsSummaryResponse> {
+  const res = await client.post<unknown>("/photos/rights-summary/", photoSelection(imageHashes, selectAll));
+  return parseResponse(S.RightsSummaryResponse, res, "rights summary");
+}
+
+/** How many of my photos "Apply" of my default rights would reach. */
+export async function fetchRightsDefaultCounts(client: ApiClient): Promise<S.RightsDefaultCountsResponse> {
+  const res = await client.get<unknown>("/photos/rights/apply-default/");
+  return parseResponse(S.RightsDefaultCountsResponse, res, "default rights counts");
+}
+
+/** Give my photos my default rights (Settings > Metadata), keeping what `keep` says. */
+export async function applyRightsDefault(client: ApiClient, keep: S.RightsKeep): Promise<S.SetPhotosRightsResponse> {
+  const res = await client.post<unknown>("/photos/rights/apply-default/", { keep });
+  return parseResponse(S.SetPhotosRightsResponse, res, "apply default rights");
+}
+
 /** The user's geotagged photos taken from `from` to `to` (ISO date-times), nearest to the middle first. */
 export async function fetchLocatedNearbyInTime(
   client: ApiClient,

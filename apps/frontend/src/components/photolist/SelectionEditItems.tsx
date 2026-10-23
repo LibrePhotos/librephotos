@@ -1,6 +1,7 @@
 import { Menu } from "@mantine/core";
 import {
   IconCalendarTime as CalendarTime,
+  IconCopyright as Copyright,
   IconFolderSymlink as FolderMove,
   IconMapPin as MapPin,
   IconCursorText as Rename,
@@ -17,11 +18,12 @@ type Props = Readonly<{
   onChangeDateTime: () => void;
   onMoveToFolder: () => void;
   onRenameFiles: () => void;
+  onSetRights: () => void;
 }>;
 
 /**
  * The photo actions that open a dialog to edit the selection: its location (#2279), its date (#2278),
- * its folder (#352) and its file names (#2773).
+ * its folder (#352), its file names (#2773) and its rights (#425).
  */
 export function SelectionEditItems({
   disabledReason,
@@ -29,6 +31,7 @@ export function SelectionEditItems({
   onChangeDateTime,
   onMoveToFolder,
   onRenameFiles,
+  onSetRights,
 }: Props) {
   const { t } = useTranslation();
   return (
@@ -51,6 +54,11 @@ export function SelectionEditItems({
       <DisabledReason reason={disabledReason} position="left">
         <Menu.Item leftSection={<Rename size={ICON_SIZE.menu} />} onClick={onRenameFiles}>
           {t("selectionactions.renamefiles")}
+        </Menu.Item>
+      </DisabledReason>
+      <DisabledReason reason={disabledReason} position="left">
+        <Menu.Item leftSection={<Copyright size={ICON_SIZE.menu} />} onClick={onSetRights}>
+          {t("selectionactions.setrights")}
         </Menu.Item>
       </DisabledReason>
     </>

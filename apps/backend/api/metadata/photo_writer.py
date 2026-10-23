@@ -1,7 +1,7 @@
 """Writing a photo's LibrePhotos edits back to its file or XMP sidecar.
 
-Ratings, capture dates, captions, locations, tags (as keywords), face regions
-and rotations.
+Ratings, capture dates, captions, locations, tags (as keywords), rights
+(copyright, creator and license), face regions and rotations.
 Moved out of ``Photo``; every function takes the photo as its first argument. ``Photo.save()`` only
 saves: a caller that applies a user's edit calls the writer itself, for the
 fields it changed (#2336).
@@ -26,6 +26,7 @@ from api.metadata.reader import (
     sidecar_files_for_photo,
     sidecar_for_write,
 )
+from api.metadata.rights import single_line
 from api.metadata.tags import Tags
 from api.metadata.takeout import takeout_metadata_of
 from api.metadata.writer import (
@@ -38,6 +39,7 @@ from api.metadata.writer import (
 )
 from api.models.file import File
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_license import PhotoLicense, license_from_url, license_url
 from api.models.photo_metadata import (
     FILE_DESCRIPTION_SOURCES,
     IMPORTED_DESCRIPTION_KEY,
@@ -374,6 +376,95 @@ def _write_edit(
     return True
 
 
+# ----------------------------------------------------------------------- rights
+
+#: The licenses that waive or mark the absence of copyright: ``Marked`` False.
+_PUBLIC_DOMAIN = frozenset({PhotoLicense.CC0, PhotoLicense.PUBLIC_DOMAIN_MARK})
+
+
+def _text_tag(value: str | None) -> str:
+    """A free-text value as one tag argument: one line, "" removes the tag."""
+    return single_line(value) if value else ""
+
+
+def license_tags(code: str | None, clears_web_statement: bool) -> dict[str, TagValue]:
+    """The XMP tags that state the license ``code`` (#425); None removes them.
+
+    A license with a deed gets it in ``XMP-cc:License`` and in
+    ``XMP-xmpRights:WebStatement`` (where Lightroom and digiKam look), the
+    license's name and deed in ``UsageTerms``, and ``Marked`` True (False for
+    CC0 and the Public Domain Mark). All rights reserved is ``Marked`` True
+    without a deed. A ``WebStatement`` is only removed when
+    ``clears_web_statement``: when it names a Creative Commons license, not
+    when it links to the owner's own rights page.
+    """
+    url = license_url(code)
+    tags: dict[str, TagValue] = {
+        Tags.LICENSE_WRITE: url or "",
+        Tags.USAGE_TERMS: "",
+        Tags.MARKED_WRITE: "",
+    }
+    if url or clears_web_statement:
+        tags[Tags.WEB_STATEMENT_WRITE] = url or ""
+    if code:
+        label = PhotoLicense(code).label
+        tags[Tags.USAGE_TERMS] = f"{label} ({url})" if url else label
+        tags[Tags.MARKED_WRITE] = "False" if code in _PUBLIC_DOMAIN else "True"
+    return tags
+
+
+def rights_tags(
+    metadata: PhotoMetadata | None, use_sidecar: bool, clears_web_statement: bool
+) -> dict[str, TagValue]:
+    """The tags that say the photo's copyright, creator and license (#425).
+
+    Into a sidecar as ``XMP-dc:Rights`` and ``XMP-dc:Creator``; into a media
+    file through ExifTool's MWG composites, which also set ``EXIF:Copyright``
+    and ``EXIF:Artist`` and keep an ``IPTC`` copy the file already has in
+    step (a file without IPTC gains none). Empty values remove the tags. Each
+    value is written on one line (``single_line``): ExifTool's argument
+    stream refuses line breaks.
+    """
+    copyright_ = metadata.copyright if metadata else None
+    creator = metadata.creator if metadata else None
+    tags: dict[str, TagValue] = {
+        Tags.RIGHTS_XMP if use_sidecar else Tags.COPYRIGHT_MWG: _text_tag(copyright_),
+        Tags.CREATOR_XMP if use_sidecar else Tags.CREATOR_MWG: _text_tag(creator),
+    }
+    tags.update(
+        license_tags(metadata.license if metadata else None, clears_web_statement)
+    )
+    return tags
+
+
+def _states_a_license(photo: Photo) -> bool:
+    """Whether the photo's file or sidecar has a Creative Commons ``WebStatement``."""
+    assert photo.main_file is not None
+    (web_statement,) = get_metadata(
+        photo.main_file.path,
+        tags=[Tags.WEB_STATEMENT],
+        sidecar_files=sidecar_files_for_photo(photo),
+    )
+    return license_from_url(web_statement) is not None
+
+
+def write_rights(photo: Photo, use_sidecar: bool) -> None:
+    """Write the photo's copyright, creator and license as they are now (#425).
+
+    Raises ``MetadataWriteError`` when ExifTool did not write them.
+    """
+    if not keeps_edits(photo):
+        return
+    metadata = PhotoMetadata.objects.filter(photo=photo).first()
+    options = () if use_sidecar else (WriteOption.MWG,)
+    _write_edit(
+        photo,
+        rights_tags(metadata, use_sidecar, _states_a_license(photo)),
+        use_sidecar,
+        options=options,
+    )
+
+
 # --------------------------------------------------------------------- keywords
 
 
@@ -570,6 +661,7 @@ FIELD_WRITERS: dict[str, Callable[[Photo, bool], None]] = {
     "date_taken": _write_capture_time,
     "caption": write_caption,
     "location": write_location,
+    "rights": write_rights,
 }
 
 

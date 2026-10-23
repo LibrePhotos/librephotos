@@ -250,6 +250,8 @@ class CrossTenantReadTest(TestCase):
             ("/api/photos/public/", None),
             # The folders a move can go to: the requester's own library (#352).
             ("/api/photos/move/folders/", None),
+            # "Apply" of the default rights counts the requester's own photos (#425).
+            ("/api/photos/rights/apply-default/", None),
             (f"/api/photos/{v.v_photo.pk}/albums/", "VictimTripTitle"),
             # The file is not on disk here, so the owner's read is a 404 too;
             # api/tests/metadata/test_raw_metadata.py reads real files.

@@ -500,6 +500,10 @@ def create_test_photo(**kwargs):
         "aperture": "aperture",
         "focal_length_35mm": "focal_length_35mm",
         "serial_number": "serial_number",
+        # The rights (#425)
+        "copyright": "copyright",
+        "creator": "creator",
+        "license": "license",
     }
     # The coordinates live on the photo itself (#2252).
     for old_name, photo_field in (

@@ -22,6 +22,8 @@ import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../..
 import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
+import { PublicRightsSection } from "../rights/PublicRightsSection";
+import { RightsSection } from "../rights/RightsSection";
 import { AlbumsSection } from "./AlbumsSection";
 import { AlbumThreadSection } from "./AlbumThreadSection";
 import { CameraInfoSection } from "./CameraInfoSection";
@@ -168,9 +170,12 @@ type PublicAlbumSidebarProps = {
 function SharedSections({
   photo,
   sharing,
+  rights,
 }: {
   photo: ReturnType<typeof toSectionPhoto>;
   sharing: PublicPhotoDetailResponse["sharing_settings"];
+  /** The photo's rights (#425): shown whatever the album shares. */
+  rights: PublicPhotoDetail["rights"];
 }) {
   const { t } = useTranslation();
   const sharesAnything =
@@ -182,6 +187,7 @@ function SharedSections({
 
   return (
     <>
+      <PublicRightsSection rights={rights} />
       {sharing.share_timestamps && <TimestampItem photoDetail={photo} isPublic />}
       {sharing.share_location && <LocationSection photoDetail={photo} mapHeight={200} isPublic />}
       {sharing.share_camera_info && photo.camera && <CameraInfoSection photoDetail={photo} />}
@@ -195,7 +201,7 @@ function SharedSections({
           notThisPerson={() => {}}
         />
       )}
-      {!sharesAnything && (
+      {!sharesAnything && !rights && (
         <Text size="sm" c="dimmed">
           {t("lightbox.sidebar.noAdditionalDetails")}
         </Text>
@@ -215,7 +221,11 @@ function PublicAlbumSidebar({ slug, id, closeSidepanel }: PublicAlbumSidebarProp
         <SidebarHeader closeSidepanel={closeSidepanel} />
         {isLoading && <Loader size="sm" />}
         {!isLoading && publicPhotoData && (
-          <SharedSections photo={toSectionPhoto(publicPhotoData.results)} sharing={publicPhotoData.sharing_settings} />
+          <SharedSections
+            photo={toSectionPhoto(publicPhotoData.results)}
+            sharing={publicPhotoData.sharing_settings}
+            rights={publicPhotoData.results.rights}
+          />
         )}
         {!isLoading && !publicPhotoData && (
           <Text size="sm" c="dimmed">
@@ -229,6 +239,8 @@ function PublicAlbumSidebar({ slug, id, closeSidepanel }: PublicAlbumSidebarProp
 
 type SharedViewerSidebarProps = {
   id: string;
+  /** The photo's rights (#425), when its details could be read. */
+  rights?: PublicPhotoDetail["rights"];
   gridItem?: LightboxItem;
   closeSidepanel: () => void;
   setFaceLocation: (location: FaceLocationType) => void;
@@ -241,7 +253,7 @@ type SharedViewerSidebarProps = {
 function ViewerSidebar(props: SharedViewerSidebarProps) {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: photo } = useFetchPhotoDetailsQuery(props.id, !isAuthenticated);
-  if (!photo || !isLibraryPhoto(photo)) return <SharedViewerSidebar {...props} />;
+  if (!photo || !isLibraryPhoto(photo)) return <SharedViewerSidebar {...props} rights={photo?.rights} />;
   return (
     <SidebarPanel>
       <Stack>
@@ -253,7 +265,7 @@ function ViewerSidebar(props: SharedViewerSidebarProps) {
 }
 
 /** Public pages without a slug, and shared albums: anyone who is not the owner. */
-function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: SharedViewerSidebarProps) {
+function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation, rights }: SharedViewerSidebarProps) {
   const { t } = useTranslation();
   // The grid already shows these viewers the date and place (the server
   // leaves out what it may not share), so the panel does too.
@@ -272,6 +284,7 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: 
           />
         )}
         <SharedPhotoDetails id={id} setFaceLocation={setFaceLocation} />
+        <PublicRightsSection rights={rights} />
         <Text size="sm" c="dimmed">
           {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
         </Text>
@@ -380,6 +393,7 @@ function OwnerSidebar({
         {/* Tags stay owner-only: public shares have no flag for them. The file's
             keywords are tags too (a scan makes one of each), marked as such. */}
         <TagsSection photoDetail={photoDetail} />
+        <RightsSection photo={photoDetail} />
         <AlbumsSection imageHash={photoDetail.image_hash} />
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
         <AlbumThreadSection photoKey={id} />

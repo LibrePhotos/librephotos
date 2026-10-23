@@ -80,10 +80,12 @@ WRITE_LANDED = (b"1 image files updated", b"1 image files created")
 # A tag a write names that the check reads back under another name. The
 # shared reader never loads ExifTool's MWG module (it would change the batched
 # reads); MWG:Description always writes XMP-dc:Description, MWG:Keywords
-# XMP-dc:Subject.
+# XMP-dc:Subject, MWG:Copyright XMP-dc:Rights and MWG:Creator XMP-dc:Creator.
 READ_BACK_AS = {
     "MWG:Description": "XMP-dc:Description",
     "MWG:Keywords": "XMP-dc:Subject",
+    "MWG:Copyright": "XMP-dc:Rights",
+    "MWG:Creator": "XMP-dc:Creator",
 }
 
 # Family 1 groups whose tags ExifTool's JSON files under another family 0

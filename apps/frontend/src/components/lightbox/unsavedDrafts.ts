@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect } from "react";
 
 /** The editors that hold a draft until their own Save: what a draft is named by in the dialog. */
-const DRAFT_FIELDS = ["date", "caption", "tags", "location"] as const;
+const DRAFT_FIELDS = ["date", "caption", "tags", "location", "rights"] as const;
 
 export type DraftField = (typeof DRAFT_FIELDS)[number];
 

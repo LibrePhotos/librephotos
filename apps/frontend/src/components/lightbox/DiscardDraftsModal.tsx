@@ -9,6 +9,7 @@ const FIELD_NAME_KEYS: Record<DraftField, ParseKeys> = {
   caption: "lightbox.unsaved.fields.caption",
   tags: "lightbox.unsaved.fields.tags",
   location: "lightbox.unsaved.fields.location",
+  rights: "lightbox.unsaved.fields.rights",
 };
 
 /** The fields as the language lists things: "the date and caption". */

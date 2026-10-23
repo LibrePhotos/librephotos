@@ -152,6 +152,10 @@ export const photoKeys = {
     [...photoRoot, "dateSummary", imageHashes, selectAll] as const,
   /** Where a selection stands before its location is set, keyed by the selection. */
   locationSummary: (selection: Record<string, unknown>) => [...photoRoot, "locationSummary", selection] as const,
+  /** A selection's rights before "Set rights…" changes them (#425), keyed by the selection. */
+  rightsSummary: (selection: Record<string, unknown>) => [...photoRoot, "rightsSummary", selection] as const,
+  /** How many of my photos "Apply" of my default rights would reach (#425). */
+  rightsDefaultCounts: () => [...photoRoot, "rightsDefaultCounts"] as const,
   /** The geotagged photos taken in a window, to copy a location from. */
   locatedNearby: (from: string, to: string) => [...photoRoot, "locatedNearby", from, to] as const,
   /**

@@ -16,8 +16,10 @@ from rest_framework import serializers
 from api.drf.params import JsonStringField, QueryFlagField
 from api.metadata.edits import MAX_RATING
 from api.metadata.raw import RawMetadata
+from api.metadata.rights import rights_from_file
 from api.models import User
 from api.models.photo import Photo
+from api.models.photo_license import PhotoLicense, license_url
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 
 
@@ -46,6 +48,9 @@ class MetadataEditSerializer(serializers.ModelSerializer):
         if user:
             return user.username
         return "Unknown"
+
+
+RIGHTS_FIELD_CHOICES = ("copyright", "creator", "license")
 
 
 def _has_location(photo: Photo) -> bool:
@@ -84,6 +89,9 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
     location_address = serializers.SerializerMethodField()
     caption = serializers.SerializerMethodField()
     rating = serializers.IntegerField(source="photo.rating", read_only=True)
+    # The deed of the license (#425), from LibrePhotos' fixed list.
+    license_url = serializers.SerializerMethodField()
+    rights_from_file = serializers.SerializerMethodField()
 
     # Related data
     edit_history = serializers.SerializerMethodField()
@@ -142,6 +150,9 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
             "rating",
             "copyright",
             "creator",
+            "license",
+            "license_url",
+            "rights_from_file",
             # Tracking
             "source",
             "version",
@@ -155,6 +166,19 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
 
     def get_has_location(self, obj: PhotoMetadata) -> bool:
         return _has_location(obj.photo)
+
+    def get_license_url(self, obj: PhotoMetadata) -> str | None:
+        return license_url(obj.license)
+
+    @extend_schema_field(
+        serializers.ListField(
+            child=serializers.ChoiceField(choices=RIGHTS_FIELD_CHOICES),
+            help_text="The rights fields whose value is the file's, not set in "
+            "LibrePhotos",
+        )
+    )
+    def get_rights_from_file(self, obj: PhotoMetadata) -> list[str]:
+        return rights_from_file(obj)
 
     # Always null: the location parts were dropped (migration 0155). Typed as a
     # nullable string so the schema says what clients get.
@@ -196,13 +220,28 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
         return []
 
 
+class PhotoRightsSerializer(serializers.Serializer[None]):
+    """A photo's rights (#425): who made it and what others may do with it.
+    Sent with the photo's details to the users who see the photo; a public
+    page's visitor gets them only for a photo with a license, whatever the
+    sharing switches say."""
+
+    license = serializers.ChoiceField(
+        choices=PhotoLicense.choices,
+        allow_null=True,
+        help_text="One of LibrePhotos' licenses; its deed is fixed per license",
+    )
+    creator = serializers.CharField(allow_null=True)
+    copyright = serializers.CharField(allow_null=True)
+
+
 class PhotoMetadataUpdateSerializer(serializers.Serializer):
     """The fields the metadata API edits, single and bulk.
 
     Each goes to its one store through ``api.metadata.edits``: ``rating`` to
     ``Photo.rating``, ``caption`` to the lightbox caption, ``keywords`` to the
     photo's tags (a tag added by hand stays), ``title``, ``copyright`` and
-    ``creator`` to ``PhotoMetadata``. The ``keywords`` read back stay the
+    ``creator`` and ``license`` to ``PhotoMetadata``. The ``keywords`` read back stay the
     file's keywords at the last scan. The date and
     the location are edited through ``PATCH /api/photos/edit/{image_hash}/``;
     sending them here is a 400 rather than an edit nobody sees.
@@ -236,6 +275,13 @@ class PhotoMetadataUpdateSerializer(serializers.Serializer):
     copyright = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     creator = serializers.CharField(
         max_length=200, required=False, allow_null=True, allow_blank=True
+    )
+    license = serializers.ChoiceField(
+        choices=PhotoLicense.choices,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The license (#425); null or empty clears it",
     )
 
     def to_internal_value(self, data: object) -> dict[str, Any]:

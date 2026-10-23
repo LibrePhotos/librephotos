@@ -96,6 +96,9 @@ USER_UPDATE_FIELDS = (
     ),
     ("last_seen_release", None),
     ("show_whats_new", None),
+    ("default_license", None),
+    ("default_creator", None),
+    ("default_copyright", None),
 )
 
 
@@ -290,6 +293,10 @@ class UserSerializer(serializers.ModelSerializer):
             "duplicate_clear_existing": {"required": False},
             "default_timeline_filter": {"required": False},
             "share_people_names": {"required": False},
+            # The rights for the user's photos (#425), Settings > Metadata.
+            "default_license": {"required": False},
+            "default_creator": {"required": False},
+            "default_copyright": {"required": False},
             # The "What's new" card (#2305). A release tag, at most 32
             # characters (the model's max_length is the check).
             "last_seen_release": {"required": False},
@@ -337,6 +344,9 @@ class UserSerializer(serializers.ModelSerializer):
             # Whether the users this user shares with see the people they
             # named (#2722); public links follow public_sharing_defaults.
             "share_people_names",
+            "default_license",
+            "default_creator",
+            "default_copyright",
             "min_cluster_size",
             "confidence_unknown_face",
             "min_samples",

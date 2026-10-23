@@ -105,6 +105,11 @@ export const User = z.object({
   // Whether the users this user shares with see the people they named (#2722). Optional: older
   // servers do not send it, and off is what they do.
   share_people_names: z.boolean().optional(),
+  // The rights the user gives their photos (#425): Settings > Metadata. Optional: older servers have
+  // none. "" is no default license; a client narrows the value to a `PhotoLicenseId`.
+  default_license: z.string().optional(),
+  default_creator: z.string().optional(),
+  default_copyright: z.string().optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
   // How the scroll scrubber beside a photo list looks. Optional: older servers do not send it, and

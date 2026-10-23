@@ -9,6 +9,7 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON
+from api.models.photo_license import LICENSE_MAX_LENGTH, PhotoLicense
 from api.stacks.burst_rules import get_default_burst_detection_rules
 
 
@@ -136,6 +137,19 @@ class User(AbstractUser):
     # recipients then see no people at all. Public links follow
     # ``public_sharing_defaults["share_faces"]`` instead.
     share_people_names = models.BooleanField(default=False)
+    # The rights this user gives their photos (#425): Settings > Metadata
+    # "Rights for your photos". A photo whose file states none gets them when
+    # it is first scanned, and "Apply" sets them on photos already there
+    # (``api.metadata.edits.apply_rights_default``). "{year}" in the
+    # copyright becomes the year the photo was taken.
+    default_license = models.CharField(
+        max_length=LICENSE_MAX_LENGTH,
+        choices=PhotoLicense.choices,
+        blank=True,
+        default="",
+    )
+    default_creator = models.CharField(max_length=200, blank=True, default="")
+    default_copyright = models.TextField(blank=True, default="")
 
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)

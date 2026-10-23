@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Media, PageFields, PigPhoto, ProjectionType, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { PhotoRights } from "./photoRights";
 import { FileTypeFilter } from "./search";
 
 /** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
@@ -204,6 +205,9 @@ export const Photo = z.object({
   // client can say why a field is empty. Null for my own photos and every other way in. Optional:
   // older backends do not send it.
   shared_library: LibraryGrant.nullable().optional(),
+  // Copyright, creator and license (#425), null without any; sent to everyone who sees the photo.
+  // Optional: older backends do not send it.
+  rights: PhotoRights.nullable().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 

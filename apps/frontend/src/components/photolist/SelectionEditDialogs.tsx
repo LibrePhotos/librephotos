@@ -3,6 +3,7 @@ import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import { BulkLocationModal } from "../map/BulkLocationModal";
 import { MovePhotosModal } from "../movephotos/MovePhotosModal";
 import { RenamePhotosModal } from "../movephotos/RenamePhotosModal";
+import { SetRightsModal } from "../rights/SetRightsModal";
 import { ChangeDateTimeModal } from "./ChangeDateTimeModal";
 import type { SelectionEditDialogState } from "./useSelectionEditDialogs";
 
@@ -23,11 +24,12 @@ const folderOfPage = (pathname: string): string | undefined =>
   pathname.startsWith(FOLDER_PAGE) ? decodeURIComponent(pathname.slice(FOLDER_PAGE.length)) : undefined;
 
 /**
- * The dialogs that edit the selection: its date, its location, its folder and its file names. Each is mounted only
+ * The dialogs that edit the selection: its date, its location, its folder, its file names and its
+ * rights. Each is mounted only
  * while open, because each asks the server about the selection when it opens.
  */
 export function SelectionEditDialogs({ dialogs, selection, onDone, pathname }: Props) {
-  const { dateTime, location, move, rename } = dialogs;
+  const { dateTime, location, move, rename, rights } = dialogs;
   return (
     <>
       {dateTime.opened && (
@@ -44,6 +46,7 @@ export function SelectionEditDialogs({ dialogs, selection, onDone, pathname }: P
         />
       )}
       {rename.opened && <RenamePhotosModal opened onClose={rename.close} selection={selection()} onDone={onDone} />}
+      {rights.opened && <SetRightsModal opened onClose={rights.close} selection={selection()} onDone={onDone} />}
     </>
   );
 }

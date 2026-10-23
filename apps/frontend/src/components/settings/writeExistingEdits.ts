@@ -10,6 +10,7 @@ const TYPE_NAME_KEYS: Partial<Record<string, ParseKeys>> = {
   captions: "settings.writeexisting.types.captions",
   locations: "settings.writeexisting.types.locations",
   keywords: "settings.writeexisting.types.keywords",
+  rights: "settings.writeexisting.types.rights",
   face_tags: "settings.writeexisting.types.face_tags",
 };
 
@@ -20,6 +21,7 @@ const TYPE_LABEL_KEYS: Partial<Record<string, ParseKeys>> = {
   captions: "settings.writeexisting.typecounts.captions",
   locations: "settings.writeexisting.typecounts.locations",
   keywords: "settings.writeexisting.typecounts.keywords",
+  rights: "settings.writeexisting.typecounts.rights",
   face_tags: "settings.writeexisting.typecounts.face_tags",
 };
 

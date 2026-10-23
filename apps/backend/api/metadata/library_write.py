@@ -7,9 +7,9 @@ write is verified and recorded as LibrePhotos' own, so the next scan does not
 read the photo again for it (#2678).
 
 Only a value that says something is written: a rating above 0, a date or
-position set by hand, a turn, a caption, tags, faces. A photo with none of
-the chosen kinds is not part of the job, so an unrated library gets no
-sidecar per photo. ``manage.py save_metadata`` writes through ``write_photos``
+position set by hand, a turn, a caption, tags, rights set in LibrePhotos
+(#425), faces. A photo with none of the chosen kinds is not part of the job,
+so an unrated library gets no sidecar per photo. ``manage.py save_metadata`` writes through ``write_photos``
 as well.
 """
 
@@ -34,6 +34,7 @@ from api.metadata.photo_writer import (
     write_rotation,
     write_target,
 )
+from api.metadata.rights import RIGHTS_FIELDS
 from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.models import LongRunningJob, Photo, Tag, User
 from api.models.photo import LocationSource
@@ -97,6 +98,10 @@ WRITE_TYPES: dict[str, WriteType] = {
         write_location,
     ),
     "keywords": WriteType(Q(tags__isnull=False), _write_keywords),
+    # Rights set in LibrePhotos (#425), by hand or from the owner's default.
+    "rights": WriteType(
+        Q(metadata_edits__field_name__in=RIGHTS_FIELDS), FIELD_WRITERS["rights"]
+    ),
     "face_tags": WriteType(Q(faces__deleted=False), _write_face_regions),
 }
 

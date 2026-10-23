@@ -101,6 +101,9 @@ NOT_PHOTO_SCOPED = {
     "api/upload/complete/": "completes only the requester's own upload; its album_id is owner-scoped (UploadIntoAlbumCrossTenantTest)",
     "api/upload/seal/": "seals only the requester's own import jobs (SealUploadImportsTest)",
     "api/savemetadata/": "queues a job writing the requester's own photos' metadata to disk",
+    "api/photos/rights/apply-default/": (
+        "sets the requester's own default rights on the requester's own photos"
+    ),
     "api/trainfaces/": "queues a job on the requester's own faces",
     "api/clusterfaces/": "queues a job on the requester's own faces",
     "api/scanphotos/": "scans the requester's own library",
@@ -485,6 +488,12 @@ class CrossTenantWriteTest(TestCase):
             "/api/photosedit/location/", lat=41.1, lon=-8.6, overwrite=True
         )
         cases += self._bulk("/api/photos/location-summary/")
+        # Set rights (#425): every keep mode, and the summary it opens with.
+        cases += self._bulk("/api/photos/rights/", license="cc-by-4.0")
+        cases += self._bulk(
+            "/api/photos/rights/", copyright="(c) {year} Loot", keep="none"
+        )
+        cases += self._bulk("/api/photos/rights-summary/")
         cases += self._bulk("/api/photos/move/preview/", target_folder=TEST_MEDIA_ROOT)
         cases += self._bulk(
             "/api/photos/move/", target_folder=TEST_MEDIA_ROOT, on_conflict="rename"
