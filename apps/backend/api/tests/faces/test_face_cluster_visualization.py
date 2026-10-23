@@ -2,7 +2,7 @@
 
 These pin the CURRENT behaviour of ``cluster_faces`` before it is refactored.
 
-Nothing heavy runs here: the only "ML" involved is ``sklearn.decomposition.PCA``
+Nothing heavy runs here: the only "ML" involved is ``api.faces.pca.PCA``
 on a handful of tiny vectors, and several tests patch it out entirely so the
 projected coordinates are deterministic.
 
@@ -33,7 +33,7 @@ def enc_hex(seed, length=128):
 
 
 class FakePCA:
-    """Deterministic stand-in for ``sklearn.decomposition.PCA``."""
+    """Deterministic stand-in for ``api.faces.pca.PCA``."""
 
     last_input = None
 

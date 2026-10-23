@@ -155,8 +155,8 @@ enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
 
 [[tool.mypy.overrides]]          # untyped third-party packages and sidecar-local imports
 module = ["allauth.*", "bulk_update.*", "constance.*", "cpuinfo.*", "diskcache.*", "django_q.*",
-          "exiftool.*", "filetype.*", "geopy.*", "hdbscan.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
-          "owncloud.*", "pyclipper.*", "pystray.*", "pyvips.*", "sklearn.*", "tokenizers.*",
+          "exiftool.*", "filetype.*", "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
+          "owncloud.*", "pyclipper.*", "pystray.*", "pyvips.*", "tokenizers.*",
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]
 ignore_missing_imports = true
 
@@ -165,6 +165,7 @@ ignore_missing_imports = true
 # the strict flags on for every module, not just the listed ones.
 module = ["api.dataviz.color_palettes", "api.metadata.tags", "api.runtime.http_timeouts",
           "api.drf.pagination", "api.serializers.site_settings", "librephotos.env",
+          "api.faces.hdbscan", "api.faces.mlp", "api.faces.pca",
           "typecheck", "ruff_baseline"]
 disallow_any_generics = true
 disallow_untyped_calls = true

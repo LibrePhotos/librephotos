@@ -72,7 +72,7 @@ Step-by-step installation instructions are available in our [documentation](http
 ### Machine Learning
 
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition)
-- **Face classification/clustering:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
+- **Face classification/clustering:** [hdbscan](https://github.com/scikit-learn-contrib/hdbscan) clustering and a [scikit-learn](https://scikit-learn.org/) multilayer perceptron, both ported to numpy
 - **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt)
 - **Scene classification:** [places365](http://places.csail.mit.edu/)
 - **Reverse geocoding:** [geopy](https://github.com/geopy/geopy)

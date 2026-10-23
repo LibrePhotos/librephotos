@@ -104,10 +104,9 @@ NOFOLLOW = [
     "tkinter",
     "silk",
     "coverage",
-    # Not a runtime dependency (face recognition no longer goes through the
-    # insightface package), and only plotting helpers of hdbscan, scipy and
-    # scikit-learn that never run import it: following it from there compiled
-    # matplotlib and its dependencies into the binary.
+    # Not installed any more: insightface, scikit-learn and hdbscan, whose
+    # plotting helpers imported it, are gone (#2856, #2858). Listed so an
+    # optional import never compiles it back in.
     "matplotlib",
     "mpl_toolkits",
     # Optional imports nothing in LibrePhotos needs (counted with
@@ -138,7 +137,6 @@ BYTECODE_MODULES = [
     "faiss.swigfaiss",
     "django",  # 907
     "allauth",  # 838, mostly one module per login provider
-    "narwhals",  # 151, scikit-learn's dataframe layer
     "django_extensions",  # 103
     "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
     "rest_framework",  # 73

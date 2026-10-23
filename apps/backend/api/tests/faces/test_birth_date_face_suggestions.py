@@ -37,7 +37,7 @@ from api.tests.utils import (
 )
 
 if TYPE_CHECKING:
-    from sklearn.neural_network import MLPClassifier
+    from api.faces.mlp import MLPClassifier
 
 TAKEN = datetime.datetime(2018, 2, 12, 10, 0, tzinfo=datetime.UTC)
 
