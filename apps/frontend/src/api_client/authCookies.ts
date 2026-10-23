@@ -1,4 +1,6 @@
+import { jwtDecode } from "jwt-decode";
 import { Cookies } from "react-cookie";
+import { fromUnixSeconds } from "../util/dateUtils";
 
 /**
  * The web keeps its JWTs in script-readable cookies, and every one of them
@@ -65,6 +67,29 @@ export function getAuthCookie(name: "access" | "refresh"): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+/**
+ * When a "Remember me" sign-in ends: the `remember_until` claim (seconds since
+ * the epoch) the backend writes into the refresh token and into every access
+ * token minted from it (apps/backend/api/accounts/tokens.py). Undefined for a
+ * plain or SSO sign-in, and for a value that is not a JWT.
+ */
+function rememberedUntil(token: string): Date | undefined {
+  try {
+    const payload: object = jwtDecode(token);
+    const claim = "remember_until" in payload ? payload.remember_until : undefined;
+    return typeof claim === "number" ? fromUnixSeconds(claim).toJSDate() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Store a token at `/`. A token from a "Remember me" sign-in gets an expiry,
+ * so it outlives the browser session and goes when the sign-in ends; any other
+ * stays a session cookie, gone when the browser closes. The claim travels in
+ * every refreshed access token, so a silent refresh keeps the lifetime with
+ * nothing else to remember.
+ */
 export function setAuthCookie(name: "access" | "refresh", value: string) {
   const cookies = new Cookies();
   // A copy an earlier version scoped to a folder is listed before the `/` one
@@ -73,7 +98,7 @@ export function setAuthCookie(name: "access" | "refresh", value: string) {
   for (const folder of visibleCookieFolders().slice(1)) {
     cookies.remove(name, { path: folder });
   }
-  cookies.set(name, value, authCookieOptions());
+  cookies.set(name, value, { ...authCookieOptions(), expires: rememberedUntil(value) });
 }
 
 export function clearAuthCookies() {

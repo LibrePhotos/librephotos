@@ -22,6 +22,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
 from api.accounts.authentication import JWTCookieAuthentication
@@ -30,24 +31,35 @@ from api.albums.user_albums import (
     add_photo_to_user_album,
     upload_target_album,
 )
-from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
-from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
+from api.directory_watcher import create_new_image, is_valid_media
+from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
-from api.faces.photo_faces import extract_faces
-from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
-from api.jobs.queue import Task, enqueue_task_chain
-from api.jobs.upload_followups import request_upload_followups
+from api.jobs.queue import enqueue_task
+from api.jobs.upload_import import (
+    attach_upload,
+    import_uploaded_photo,
+    release_upload,
+    seal_upload_imports,
+)
+from api.jobs.upload_status import upload_status
 from api.metadata.datetime_rules import CaptureTime
-from api.models import Photo
+from api.models import LongRunningJob, Photo
 from api.models.album_user import AlbumUser
-from api.models.photo_caption import PhotoCaption
 from api.models.user import User
 from api.photos.media_files import calculate_hash
-from api.search import semantic
-from api.serializers.upload import UploadCompleteRequest, UploadExistsSerializer
+from api.serializers.job import with_job_relations
+from api.serializers.upload import (
+    UploadCompleteRequest,
+    UploadExistsSerializer,
+    UploadSealRequest,
+    UploadSealResponse,
+    UploadStatusQuery,
+    UploadStatusSerializer,
+)
 from chunked_upload.constants import http_status
 from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
+from chunked_upload.response import Response as ChunkedResponse
 from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 
 logger = logging.getLogger(__name__)
@@ -151,12 +163,6 @@ def _zone(name: str) -> datetime.tzinfo:
         return ZoneInfo(name or "UTC")
     except ZoneInfoNotFoundError, ValueError:
         return datetime.UTC
-
-
-def generate_captions_wrapper(photo: Photo, commit: bool = True) -> None:
-    """Wrapper function to generate captions for use in chain"""
-    caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-    semantic.generate_photo_tags(caption_instance, commit=commit)
 
 
 def _forbidden(detail: str) -> ChunkedUploadError:
@@ -278,12 +284,53 @@ class UploadPhotoExists(viewsets.ViewSet):
         # hashes would tell anyone which files someone else has uploaded.
         photo_id = (
             Photo.objects.owned_by(request_user(request))
-            .filter(image_hash=pk)
+            .holding_content(pk)
             .values_list("id", flat=True)
             .first()
         )
         # The id lets a client file a file it already has into an album (#612).
         return Response({"exists": photo_id is not None, "photo_id": photo_id})
+
+
+class SealUploadImportsView(APIView):
+    """``POST /api/upload/seal/``: the caller's upload run is over (#2737).
+
+    The import jobs it names take no more files and finish once their files
+    are processed, which starts the follow-ups. Without this call a job is
+    sealed after a few idle minutes (``api.jobs.upload_import``).
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=UploadSealRequest, responses=UploadSealResponse)
+    def post(self, request: Request) -> Response:
+        job_ids = parse_body(request, UploadSealRequest)["job_ids"]
+        jobs = LongRunningJob.objects.owned_by(request_user(request)).filter(
+            job_id__in=job_ids
+        )
+        return Response({"sealed_job_ids": seal_upload_imports(jobs)})
+
+
+class UploadStatusView(APIView):
+    """``GET /api/upload/status/``: what the caller's uploads are doing on the server (#2739).
+
+    The caller's upload imports still open or processing, the named ones even
+    once finished, which named photos are ready, and the follow-ups' state.
+    Every part is the caller's own, staff included.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(parameters=[UploadStatusQuery], responses=UploadStatusSerializer)
+    def get(self, request: Request) -> Response:
+        query = parse_query(request, UploadStatusQuery)
+        status = upload_status(
+            with_job_relations(LongRunningJob.objects.all()),
+            request_user(request),
+            query["job_id"],
+            query["photo_id"],
+        )
+        return Response(UploadStatusSerializer(status).data)
 
 
 class UploaderScopedMixin:
@@ -336,6 +383,9 @@ class UploadPhotosChunked(UploaderScopedMixin, ChunkedUploadView):
 @method_decorator(csrf_exempt, name="dispatch")
 class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView):
     model = ChunkedUpload
+    # Set by import_photo for the response (get_response_data).
+    import_job_id: str | None = None
+    photo_id: str | None = None
 
     def delete_chunked_upload(
         self, request: HttpRequest, uploaded_file: UploadedFile
@@ -353,7 +403,7 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self, user: User, device: str, filename: str, image_hash: str
     ) -> str:
         """Destination for the upload, or "" when it is a known duplicate."""
-        if Photo.objects.filter(image_hash=image_hash).exists():
+        if Photo.objects.owned_by(user).holding_content(image_hash).exists():
             logger.info("Photo %s duplicated with hash %s ", filename, image_hash)
             return ""
 
@@ -376,31 +426,33 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self,
         user: User,
         photo_path: str,
-        image_hash: str,
         device_time: CaptureTime | None = None,
         album: AlbumUser | None = None,
     ) -> None:
+        """Make the photo and queue its processing, counted on the user's
+        Import Uploads job (#2737), whose id the response carries.
+
+        A file that makes no photo (a sidecar, embedded media) has nothing
+        to process and is not counted.
+        """
         photo = create_new_image(user, photo_path)
-        # Filed right after the import, so the photo shows in the album while
-        # captions, places and faces are still being worked out.
-        filing = [Task(add_photo_to_user_album, (photo, album.id))] if album else []
-        enqueue_task_chain(
-            [
-                Task(handle_new_image, (user, photo_path, image_hash, photo)),
-                *filing,
-                Task(
-                    apply_device_timestamp_fallback,
-                    (photo, device_time),
-                ),
-                Task(generate_captions_wrapper, (photo, True)),
-                Task(geolocate_photo, (photo,)),
-                Task(add_location_to_album_dates, (photo,)),
-                Task(extract_faces, (photo,)),
-                # Last, so the library-level steps (search index, face
-                # encodings) see this photo done; one run per burst (#2735).
-                Task(request_upload_followups, (user,)),
-            ]
-        )
+        if photo is None:
+            return
+        job = attach_upload(user)
+        try:
+            enqueue_task(
+                import_uploaded_photo,
+                str(photo.pk),
+                photo_path,
+                job.job_id,
+                device_time=device_time,
+                album_id=album.id if album else None,
+            )
+        except Exception:
+            release_upload(job.job_id)
+            raise
+        self.import_job_id = job.job_id
+        self.photo_id = str(photo.pk)
 
     def on_completion(
         self, uploaded_file: UploadedFile, request: HttpRequest
@@ -434,10 +486,18 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self.delete_chunked_upload(request, uploaded_file)
 
         if not photo_path:
-            if album:
-                self.file_existing_photo(user, image_hash, album)
-            return Response(
-                {"detail": "Photo duplicated. No new import performed."},
+            existing = self.existing_photo(user, image_hash)
+            if album and existing:
+                # A file the library already holds still goes into the album
+                # it was uploaded to (#612).
+                add_photo_to_user_album(existing, album.id)
+            # The chunked-upload views are plain Django views: their own
+            # Response renders itself, a DRF one would not.
+            return ChunkedResponse(
+                {
+                    "detail": "Photo duplicated. No new import performed.",
+                    "photo_id": existing.pk if existing else None,
+                },
                 status=http_status.HTTP_200_OK,
             )
 
@@ -446,7 +506,6 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         self.import_photo(
             user,
             photo_path,
-            image_hash,
             device_time=device_capture_time(request.POST, user.default_timezone),
             album=album,
         )
@@ -467,11 +526,13 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
             uploaded_file.close()
             raise
 
-    def file_existing_photo(
-        self, user: User, image_hash: str, album: AlbumUser
-    ) -> None:
-        """A file the library already holds still goes into the album it was
-        uploaded to: the existing photo is added (#612)."""
-        photo = Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
-        if photo is not None:
-            add_photo_to_user_album(photo, album.id)
+    def existing_photo(self, user: User, image_hash: str) -> Photo | None:
+        """The user's photo of a duplicate upload, if the library has one."""
+        return Photo.objects.owned_by(user).holding_content(image_hash).first()
+
+    def get_response_data(
+        self, chunked_upload: ChunkedUpload, request: HttpRequest
+    ) -> Mapping[str, object]:
+        """The import job counting this upload and the photo it made (#2737),
+        ``None`` when the file made no photo."""
+        return {"job_id": self.import_job_id, "photo_id": self.photo_id}

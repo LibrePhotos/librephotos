@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PublicSharingSettings, UserAlbumInfo } from "./albums";
-import { PigPhoto, SimpleUser } from "./common";
+import { IntegerId, PigPhoto, SimpleUser } from "./common";
 
 /** Photos shared WITH me — a bare PigPhoto list carrying the owner. */
 export const SharedToMePhotosResponse = z.object({
@@ -20,6 +20,47 @@ export const SharedPhotosResponse = z.object({
   results: SharedFromMePhoto.array(),
 });
 export type SharedPhotosResponse = z.infer<typeof SharedPhotosResponse>;
+
+/** One of the up to four newest photos a "Shared with you" place or thing shows. */
+export const SharedGroupCover = z.object({
+  image_hash: z.string(),
+  video: z.boolean(),
+});
+export type SharedGroupCover = z.infer<typeof SharedGroupCover>;
+
+/**
+ * A place or thing of the photos shared with me (#2721): one entry per title, owners merged.
+ * The count and covers come from those photos only.
+ */
+export const SharedGroup = z.object({
+  title: z.string(),
+  photo_count: z.number(),
+  cover_photos: SharedGroupCover.array(),
+});
+export type SharedGroup = z.infer<typeof SharedGroup>;
+
+export const SharedGroupsResponse = z.object({
+  results: SharedGroup.array(),
+});
+export type SharedGroupsResponse = z.infer<typeof SharedGroupsResponse>;
+
+/**
+ * A person an owner named, on photos they shared with me (#2722): one entry per owner and
+ * person. Only owners who share people's names are listed.
+ */
+export const SharedPerson = z.object({
+  id: IntegerId,
+  name: z.string(),
+  owner: SimpleUser,
+  photo_count: z.number(),
+  face_url: z.string().nullable(),
+});
+export type SharedPerson = z.infer<typeof SharedPerson>;
+
+export const SharedPeopleResponse = z.object({
+  results: SharedPerson.array(),
+});
+export type SharedPeopleResponse = z.infer<typeof SharedPeopleResponse>;
 
 /** Albums shared by-me / with-me reuse the UserAlbumInfo row shape. */
 export const SharedAlbumsResponse = z.object({

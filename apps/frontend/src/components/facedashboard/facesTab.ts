@@ -26,7 +26,8 @@ export function isUnknownGroup(group: Readonly<{ name: string }>): boolean {
 
 /**
  * The order of the people (groups) on the dashboard (its `personOrder` URL parameter): by name, as
- * the server sends them, or the people with the most faces first (#764).
+ * the server sends them, the people with the most faces first (#764), or groups that look alike
+ * next to each other (#622).
  */
-export const FacesPersonOrder = z.enum(["name", "count"]);
+export const FacesPersonOrder = z.enum(["name", "count", "similar"]);
 export type FacesPersonOrder = z.infer<typeof FacesPersonOrder>;

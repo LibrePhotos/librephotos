@@ -64,6 +64,8 @@ Computes the numeric encoding for faces that have been detected but not yet enco
 
 Clusters the faces into known and unknown groups.
 
+<Since version="1.5.0" /> Uploads start it too, once enough new faces came in: at least 20, and at least 2% of all your faces. So that it does not renumber the "Unknown" groups while you work through them, it waits until 30 minutes after your last upload and 15 minutes after you last labelled, deleted or restored a face, runs at most once an hour, and waits while a scan, a face scan, **Train Faces** or an upload of yours is still running. Any run, also one a scan or the **Train** button started, counts as the last one. Up to 1.4.0, faces of uploaded photos stayed among the unknown faces until you trained by hand.
+
 ### Download Models
 
 This downloads the needed machine learning models to data/protected_media/data_models/.
@@ -76,6 +78,10 @@ Packs a multi-photo download into a zip file in the background. It starts when y
 
 Runs after each scan to fix RAW files that were scanned as their own photos. For each photo whose main file is a RAW file, it either merges it into the matching image photo (such as a JPEG or HEIC) in the same folder and removes the leftover RAW-only entry, or — if an image file is already attached — promotes that image to be the main file. It does not re-pair Live Photo videos that were scanned separately; those are only paired during a scan. See [Stacks & File Variants](./stacks-and-file-variants.md) for more details.
 
+### Import Uploads
+
+<Since version="1.5.0" /> Shows the photos and videos you uploaded, from the web app, the mobile app or another client, while LibrePhotos processes them: thumbnails, dates, tags, places and faces. Uploads made close together count in one job, so its progress reads "12 of 40" for all of them. It ends a few minutes after your last upload, once every upload is processed, and then starts the search and face steps described under **Calculate Clip Embeddings**. A photo whose processing failed is listed in the job with the file name and the step that failed. It runs next to other jobs and never keeps you from starting a scan, and it cannot be cancelled or removed while it runs. Up to 1.4.0, uploads showed no job at all.
+
 ### Probe Videos
 
 Checks the videos that were added to your library before LibrePhotos recorded each video's colour, codec and pixel format during the scan. It runs by itself after a scan, only while such videos are left, so most scans never show it. It rebuilds the thumbnails of every HDR video, which an older version made washed out (see [HDR Videos](./viewing-photos.md#hdr-videos)). It does the same for every video not stored as ordinary 8-bit 4:2:0, such as 10-bit clips or the 4:2:2 Motion JPEG files older cameras record, whose animated thumbnails an older version made in a form no browser plays. For each of these videos it also drops any converted copy kept from before, so the next playback converts it again. If a rebuild fails, the old thumbnail is kept. A video whose file cannot be read at the time — for example on a drive that is not mounted — is simply tried again after the next scan. Since 1.3.0.
@@ -84,7 +90,7 @@ Checks the videos that were added to your library before LibrePhotos recorded ea
 
 ### Extract Text (OCR)
 
-Reads the text on your photos so that search can find it, and uses it to detect documents. It only runs when you click **Extract** (or **Extract text again for all photos**) on the Library page, never after a scan by itself, and only while an administrator has selected a text recognition model. See [Text Recognition](./text-recognition.md).
+Reads the text on your photos so that search can find it, and uses it to detect documents. It runs only while an administrator has selected a text recognition model: when you click **Extract** (or **Extract text again for all photos**) on the Library page, and <Since version="1.5.0" /> by itself after a scan or an upload, for the photos still without text. Up to 1.4.0 it never ran by itself. See [Text Recognition](./text-recognition.md).
 
 ### Generate Captions
 
@@ -125,6 +131,31 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 ### Move Photos
 
 <Since version="1.4.0" /> Started with **Move to folder…** for a selection of more than 100 photos. Moves your photos, with all their files, to another folder of your library, one photo after the other; a photo whose name is taken there is renamed or skipped as you chose. A cancel stops after the photo it is on, and the photos moved until then stay moved. It ends with how many photos moved and how many stayed where they were. See [Moving photos to another folder](./library.md#moving-photos-to-another-folder).
+
+<Since version="1.5.0" /> With **Sort into folders by date** each photo goes into the folder of its capture date, and photos without a date are counted as staying.
+
+### Remove duplicate faces
+
+<Since version="1.5.0" /> Deletes the faces that were saved twice on the same photo, across every user's library: where two faces of a photo overlap, the one with a name stays (the older one, when both or neither have a name). An admin starts it with **Remove duplicate faces** under **Admin Area > Admin Tools**, after a confirmation; the deleted duplicates do not go to the Deleted tab and cannot be restored. It ends with how many photos it checked and how many faces it deleted. The same work runs from the command line, for every user or one:
+
+```bash
+docker compose exec backend python manage.py deduplicate_faces
+docker compose exec backend python manage.py deduplicate_faces --user anna --chunk-size 200
+```
+
+`--chunk-size` (default 500) is how many photos are compared at a time. Up to 1.4.0, only the **Deduplicate faces** action on selected photos in the Django admin did this.
+
+### Make Video Posters
+
+<Since version="1.5.0" /> Gives the videos added before 1.5.0 the still picture the photo grid shows until you point at a video, across every user's library. It runs by itself once after the update and shows on the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade). Each picture is made from the video's big thumbnail, so it is quick and no video is decoded or changed. A video without a big thumbnail is skipped, and one whose picture cannot be made is listed in the job; both keep playing their clip in the grid as before. See [Video previews in the grid](./feature-toggles.md#animated-video-previews).
+
+### Check File Contents
+
+<Since version="1.5.0" /> Reads every file of every user's library again and compares it with what LibrePhotos has, to find files that were replaced while keeping their old modification date (`cp -p`, `rsync --times`, some sync apps), which a scan does not notice. An admin starts it with **Check file contents** under **Admin Area > Admin Tools**, for all users or one user and, optionally, one folder of that user's library; the `rehash_files` command does the same. A changed file is imported again as a scan would (see [Files replaced in place](./library.md#files-replaced-in-place)), and the photos holding it are then read again by a scan of their owner's. The job's page shows how many files were read, what became of the changed ones, per user, and the files that could not be read. It reads every byte, so it takes hours on a large library, and other jobs wait until it finishes.
+
+### Rename Photos
+
+<Since version="1.5.0" /> Started with **Rename files…** for a selection of more than 100 photos. Gives your photos, with all their files, the name made from their capture date, one photo after the other; a taken name gets ` (1)`, ` (2)`. A cancel stops after the photo it is on, and the photos renamed until then keep their new names. It ends with how many photos were renamed, how many kept their names, and how many could not be renamed (their files keep their old names). See [Renaming photos by their date](./library.md#renaming-photos-by-their-date).
 
 ## Where to get information about previous run jobs
 

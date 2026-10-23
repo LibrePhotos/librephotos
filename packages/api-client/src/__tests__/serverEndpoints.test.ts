@@ -81,6 +81,58 @@ describe("statistics", () => {
   });
 });
 
+const updateStatus = {
+  enabled: true,
+  locked: false,
+  status: "available",
+  current: "1.4.0",
+  latest: "1.5.0",
+  update_available: true,
+  notice: true,
+  release_url: "https://github.com/LibrePhotos/librephotos/releases/tag/1.5.0",
+  published_at: "2026-11-14T10:00:00Z",
+  checked_at: "2026-11-15T06:12:00Z",
+  error: null,
+  install_type: "docker",
+  how_to_update_url: "https://docs.librephotos.com/docs/installation/upgrading",
+  skipped_release: null,
+  snoozed_until: null,
+};
+
+describe("update check", () => {
+  it("reads the stored result", async () => {
+    const { client, requests } = fakeServer(updateStatus);
+    const status = await endpoints.fetchUpdateStatus(client);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/`, method: "GET" });
+    expect(status.latest).toBe("1.5.0");
+  });
+
+  it("keeps a state this client does not know", async () => {
+    const { client } = fakeServer({ ...updateStatus, status: "paused" });
+    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({ status: "paused" });
+  });
+
+  it("skips a release and shows it again", async () => {
+    const { client, requests } = fakeServer({ ...updateStatus, status: "skipped", notice: false });
+    const status = await endpoints.skipRelease(client, "1.5.0");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/updates/skip/`,
+      method: "POST",
+      body: { version: "1.5.0" },
+    });
+    expect(status.notice).toBe(false);
+    await endpoints.skipRelease(client, "");
+    expect(defined(requests[1]).body).toEqual({ version: "" });
+  });
+
+  it("closes the card for a week", async () => {
+    const { client, requests } = fakeServer({ ...updateStatus, snoozed_until: "2026-11-22T10:00:00Z" });
+    const status = await endpoints.snoozeUpdateNotice(client);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/snooze/`, method: "POST" });
+    expect(status.snoozed_until).not.toBeNull();
+  });
+});
+
 describe("server", () => {
   it("reads the build tag, also outside Docker where it is blank", async () => {
     const { client, requests } = fakeServer({ image_tag: "", git_hash: "05d973e83" });

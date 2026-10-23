@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Anchor,
   Button,
   Collapse,
   Grid,
@@ -13,14 +14,18 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconAdjustments as Adjustments,
   IconChevronDown as ChevronDown,
   IconQuestionMark as QuestionMark,
   IconRefresh as Refresh,
 } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { DisabledReason } from "../common/DisabledReason";
 import { ACTION_MIN_WIDTH } from "./libraryLayout";
+import { ADMIN_SECTIONS } from "./sectionIds";
 
 type ScanLibraryRowProps = {
   /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
@@ -37,6 +42,8 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
   const { t } = useTranslation();
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
+  // Scan directories are set in the Admin Area's users table: superusers get a link to it (#2037).
+  const adminLink = useCurrentUserSelfDetailsQuery().data?.is_superuser === true;
   const scanReason = busyReason ?? (scanBlocked ? t("toasts.scan_directory_required") : undefined);
 
   return (
@@ -61,6 +68,14 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
           <Text fz="sm" c="dimmed">
             {t("settings.scanphotosdescription")}
           </Text>
+          {adminLink && (
+            <Anchor fz="sm" renderRoot={props => <Link to="/admin" hash={ADMIN_SECTIONS.users} {...props} />}>
+              <Group gap={4} component="span" wrap="nowrap">
+                <Adjustments size={14} />
+                {t("settings.changescandirectories")}
+              </Group>
+            </Anchor>
+          )}
           {scanBlocked && (
             <Text fz="sm" c="orange">
               {t("toasts.scan_directory_required")}
@@ -124,6 +139,11 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
                 <List.Item>
                   <Text fz="sm" c="dimmed">
                     <Trans i18nKey="settings.scannextclouddescription.item11" />
+                  </Text>
+                </List.Item>
+                <List.Item>
+                  <Text fz="sm" c="dimmed">
+                    <Trans i18nKey="settings.scannextclouddescription.item12" />
                   </Text>
                 </List.Item>
               </List>

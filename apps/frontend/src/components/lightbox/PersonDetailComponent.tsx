@@ -1,5 +1,5 @@
 import type { PhotoPerson } from "@librephotos/api-client";
-import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Badge, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff, IconUserQuestion } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -11,6 +11,7 @@ import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceLocationType } from "./lightbox.types";
+import { VideoTimeButton } from "./VideoTimeButton";
 
 type Props = {
   /** One face on the photo, as the photo detail lists it. */
@@ -19,9 +20,11 @@ type Props = {
   setFaceLocation: (location: FaceLocationType) => void;
   onPersonEdit: (faceId: number, faceUrl: string) => void;
   notThisPerson: (faceId: number) => void;
+  /** Found by the Detect faces again just run on this photo (#1117). */
+  isNew?: boolean;
 };
 
-export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
+export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson, isNew = false }: Props) {
   const { t } = useTranslation();
   const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
@@ -113,6 +116,12 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
           {label}
         </Button>
       )}
+      {isNew && (
+        <Badge size="xs" color="green" variant="light" miw="auto">
+          {t("lightbox.detectfaces.new")}
+        </Badge>
+      )}
+      {typeof person.video_time === "number" && <VideoTimeButton seconds={person.video_time} name={person.name} />}
       {!isPublic && !isUnnamed && !isClusterLabel && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon

@@ -593,50 +593,75 @@ def _video_square_extension() -> str:
     return ".mp4" if feature_enabled("VIDEO_PREVIEWS") else ".webp"
 
 
-def _video_square_exists(output_path: str, photo_hash: str, extension: str) -> bool:
-    if extension == ".mp4":
-        return does_video_thumbnail_exist(output_path, photo_hash)
-    return does_static_thumbnail_exist(output_path, photo_hash)
+def create_video_posters(thumbnail: Thumbnail) -> None:
+    """Make a video's WebP stills, those missing, and mark them made.
+
+    One per square size, resized from the big thumbnail (the first frame): no
+    ffmpeg run. They are the squares with the animated previews off (#649) and
+    the grid's poster beside the clips with them on (#2026). The caller saves
+    ``video_poster``.
+    """
+    photo_hash = thumbnail.photo.image_hash
+    missing = [
+        output_path
+        for output_path in ANIMATED_THUMBNAIL_DIRS
+        if not does_static_thumbnail_exist(output_path, photo_hash)
+    ]
+    if missing:
+        create_static_thumbnails(
+            input_path=_media_path("thumbnails_big", photo_hash, ".webp"),
+            hash=photo_hash,
+            output_paths=missing,
+        )
+    thumbnail.video_poster = True
+
+
+def _try_video_posters(thumbnail: Thumbnail) -> None:
+    """The clips' poster, which a video can do without: its tile plays the clip."""
+    try:
+        create_video_posters(thumbnail)
+    except (pyvips.Error, OSError) as error:
+        logger.warning(
+            "could not make the poster of video %s: %s",
+            thumbnail.photo.image_hash,
+            error,
+        )
 
 
 def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
     """Make the square thumbnails of a video that are missing in ``extension``.
 
-    The big thumbnail exists by now: the stills are resized from it.
+    The big thumbnail exists by now: the stills are resized from it. A video
+    gets them in either format, as the squares or as the clips' poster.
     """
-    photo = thumbnail.photo
-    photo_hash = photo.image_hash
-    missing = [
-        output_path
-        for output_path in ANIMATED_THUMBNAIL_DIRS
-        if not _video_square_exists(output_path, photo_hash, extension)
-    ]
-    if missing and extension == ".webp":
-        create_static_thumbnails(
-            input_path=thumbnail.main_file_path(),
-            hash=photo_hash,
-            output_paths=missing,
-        )
+    if extension != ".mp4":
+        create_video_posters(thumbnail)
         return
-    for output_path in missing:
+    _try_video_posters(thumbnail)
+    photo = thumbnail.photo
+    for output_path in ANIMATED_THUMBNAIL_DIRS:
+        if does_video_thumbnail_exist(output_path, photo.image_hash):
+            continue
         create_animated_thumbnail(
             input_path=thumbnail.main_file_path(),
             output_height=SQUARE_THUMBNAIL_HEIGHTS[output_path],
             output_path=output_path,
-            hash=photo_hash,
+            hash=photo.image_hash,
             transfer=photo.video_color_transfer,
         )
 
 
 def _remove_replaced_video_squares(photo_hash: str, extension: str) -> None:
-    """Delete the video squares of the other format, once the new ones are saved.
+    """Delete a video's clips once its WebP squares are saved in their place.
 
     A rescan after the animated previews were switched off replaces each clip
-    with a still and frees its space; switched on again, the other way round.
+    with a still and frees its space. Switched on again, the stills stay: they
+    are the clips' poster (#2026).
     """
-    replaced = ".webp" if extension == ".mp4" else ".mp4"
+    if extension == ".mp4":
+        return
     paths = [
-        _media_path(output_path, photo_hash, replaced)
+        _media_path(output_path, photo_hash, ".mp4")
         for output_path in ANIMATED_THUMBNAIL_DIRS
     ]
 
@@ -683,13 +708,15 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
 
     A thumbnail that exists is kept. The files are named after the photo's
     ``image_hash``, which the frontend relies on. A video's squares are made
-    in the format ``_video_square_extension`` names, and the ones of the other
-    format are deleted once the new names are saved.
+    in the format ``_video_square_extension`` names, plus its WebP stills
+    (the clips' poster); clips are deleted once WebP squares replace them.
     """
     photo = thumbnail.photo
     try:
         photo_hash = photo.image_hash
         square_extension = ".webp"
+        # Set again when a video's stills are there (create_video_posters).
+        thumbnail.video_poster = False
         if photo.video:
             square_extension = _video_square_extension()
             _create_missing_video_thumbnails(thumbnail, square_extension)

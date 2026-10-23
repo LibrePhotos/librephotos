@@ -45,6 +45,7 @@ from api.search.embedding_jobs import (
     photos_with_earlier_embeddings,
 )
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
+from api.thumbnails.posters import make_video_posters_job
 from api.video import color
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,18 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
         start=_probe_each_owner,
         seeded=True,
         count=lambda: unprobed_videos().count(),
+    ),
+    # Videos scanned by 1.4.0 or older have no still poster, so their grid
+    # tiles mount a player each (#2026). Seeded by migration 0198 when there
+    # are videos; resizes each poster from the big thumbnail, no ffmpeg.
+    UpgradeTask(
+        key="make_video_posters",
+        kind="automatic",
+        job_type=LongRunningJob.JOB_MAKE_VIDEO_POSTERS,
+        check=_until_clean_run(LongRunningJob.JOB_MAKE_VIDEO_POSTERS),
+        start=_as_admin(LongRunningJob.JOB_MAKE_VIDEO_POSTERS, make_video_posters_job),
+        seeded=True,
+        autostart=True,
     ),
 )
 
@@ -363,7 +376,7 @@ def _refuse_while_busy(task: UpgradeTask) -> None:
     Its own job running is ``job_already_running`` with that job's id, so the
     card follows it; another job is ``queue_busy``.
     """
-    running = LongRunningJob.objects.running()
+    running = LongRunningJob.objects.holding_the_queue()
     own = running.filter(job_type=task.job_type).order_by("queued_at").first()
     if own is not None:
         raise JobAlreadyRunning(own.job_id, own.get_job_type_display())

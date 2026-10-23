@@ -53,6 +53,15 @@
   flex-grow: 2;
 }
 
+/* After the version, for admins, while a newer release is out (#2311). */
+.update_dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--mantine-color-blue-filled);
+}
+
 .progress {
   /* Line up with the link rows (icon edge) instead of a fixed 10px inset. */
   margin: 0 var(--mantine-spacing-sm) var(--mantine-spacing-xs);
@@ -75,4 +84,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* The version line as a button that opens What's new (#2305): a link row, not a form button. */
+.link_button {
+  width: 100%;
+  border: 0;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
 }

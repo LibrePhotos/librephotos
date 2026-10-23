@@ -20,6 +20,8 @@ export const SiteFeatures = z.object({
   scene_classification: SiteFeatureState,
   // Animated grid previews of videos (#649). Optional: older backends do not have the switch.
   video_previews: SiteFeatureState.optional(),
+  // Faces in a video's later frames, not only its first (#2761). Optional: older backends do not have the switch.
+  face_detection_in_videos: SiteFeatureState.optional(),
 });
 export type SiteFeatures = z.infer<typeof SiteFeatures>;
 export type SiteFeatureName = keyof SiteFeatures;
@@ -95,6 +97,9 @@ export const SiteSettings = z.object({
   // (#2203). Sent to every user for the trash page; older backends lack it.
   trash_retention_days: z.number().optional(),
   email_configured: z.boolean().optional(),
+  // Days a "Remember me" sign-in lasts (#2024); 0 = the login page does not offer it. Sent to
+  // everyone; older backends lack it and have no such option.
+  remember_me_days: z.number().optional(),
   // Single sign-on (#2725); older backends lack them. The label is trimmed, at most 64 characters.
   oidc_enabled: z.boolean().optional(),
   oidc_button_label: z.string().optional(),
@@ -115,6 +120,12 @@ export const SiteSettings = z.object({
   auto_scan_time: z.string().optional(),
   auto_scan_days: z.number().array().optional(),
   auto_scan_status: SiteAutoScanStatus.optional(),
+  // The daily update check's switch (#2311), staff only; its state is GET /updates/. A 400
+  // `update_check_locked` when UPDATE_CHECK=false in the server environment refuses to turn it on.
+  update_check: z.boolean().optional(),
+  // Whether users see the What's new card once after an update (#2305). Sent to everyone; older
+  // backends lack it, and have no place to remember that a user closed the card either.
+  whats_new_enabled: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 

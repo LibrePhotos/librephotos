@@ -16,10 +16,19 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { ConfigDateTime } from "./ConfigDateTime";
+import type { DateRuleDraft } from "./DateRuleFormModal";
 
 // SortableTbody hands its onMove here, so a test can drop a row without dragging it in jsdom.
 const sortable = vi.hoisted(() => {
   const holder: { ids: string[]; onMove?: (from: number, to: number) => void } = { ids: [] };
+  return holder;
+});
+// What the rule form was opened with, and its save (#2272).
+const ruleForm = vi.hoisted(() => {
+  const holder: { opened: boolean; draft: DateRuleDraft | null; onSave?: (rule: DateTimeRule) => void } = {
+    opened: false,
+    draft: null,
+  };
   return holder;
 });
 
@@ -32,6 +41,21 @@ const predefinedRules: DateTimeRule[] = [
 
 vi.mock("../../api_client/settings/hooks/useFetchPredefinedRulesQuery", () => ({
   useFetchPredefinedRulesQuery: () => ({ data: predefinedRules }),
+}));
+vi.mock("../../api_client/settings/hooks/useDateRuleOptionsQuery", () => ({
+  useDateRuleOptionsQuery: () => ({ data: { date_tags: [], condition_tags: [], first_custom_id: 1000 } }),
+}));
+vi.mock("./DateRuleFormModal", () => ({
+  DateRuleFormModal: ({
+    opened,
+    draft,
+    onSave,
+  }: Readonly<{ opened: boolean; draft: DateRuleDraft | null; onSave: (rule: DateTimeRule) => void }>) => {
+    ruleForm.opened = opened;
+    ruleForm.draft = draft;
+    ruleForm.onSave = onSave;
+    return null;
+  },
 }));
 vi.mock("./SortableTableRows", () => ({
   SortableTbody: ({
@@ -126,9 +150,13 @@ const unreadableRows = () => [
 
 const deleteButton = (id: number) =>
   found(
-    container.querySelector<HTMLButtonElement>(`tr[data-sortable-id="${id}"] button[aria-label]`),
+    container.querySelector<HTMLButtonElement>(
+      `tr[data-sortable-id="${id}"] button[aria-label="${i18n.t("settings.delete_rule")}"]`
+    ),
     `delete button of rule ${id}`
   );
+const buttonLabelled = (label: string) =>
+  found(container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`), label);
 const addButton = () =>
   found(container.querySelector<HTMLButtonElement>('[data-testid="add-offered-rules"]'), "add button");
 
@@ -268,5 +296,91 @@ describe("ConfigDateTime", () => {
     await renderList("[{");
 
     expect(rowIds()).toEqual([]);
+  });
+
+  describe("custom rules (#2272)", () => {
+    const customRule: DateTimeRule = {
+      id: 1000,
+      name: "Copied phone files",
+      custom: true,
+      rule_type: "path",
+      date_pattern: "YYYY-MM-DD HH.mm.ss",
+    };
+
+    it("offers no edit on a predefined rule; Duplicate and edit opens the form prefilled as a new rule", async () => {
+      await renderList(JSON.stringify([legacyRule]));
+
+      expect(
+        container.querySelector(`button[aria-label^="${i18n.t("daterules.edit_rule", { name: "" })}"]`)
+      ).toBeNull();
+      await click(buttonLabelled(i18n.t("daterules.duplicate_rule", { name: "Date taken" })));
+
+      expect(ruleForm.opened).toBe(true);
+      const draft = found(ruleForm.draft, "draft");
+      expect(draft.editing).toBe(false);
+      expect(draft.id).toBe(1000);
+      expect(draft.values).toMatchObject({
+        source: "exif",
+        exifTag: "EXIF:DateTimeOriginal",
+        recordedInUtc: false,
+        name: "Date taken (copy)",
+      });
+    });
+
+    it("edits a custom rule in its place in the list", async () => {
+      const onChange = vi.fn<(rules: string) => void>();
+      await renderList(JSON.stringify([customRule, legacyRule]), onChange);
+      expect(container.textContent).toContain("File name pattern: YYYY-MM-DD HH.mm.ss");
+
+      await click(buttonLabelled(i18n.t("daterules.edit_rule", { name: "Copied phone files" })));
+      const draft = found(ruleForm.draft, "draft");
+      expect(draft).toMatchObject({ id: 1000, editing: true });
+      expect(draft.values).toMatchObject({
+        source: "path",
+        fileNamePattern: "custom",
+        datePattern: "YYYY-MM-DD HH.mm.ss",
+      });
+
+      const edited = { ...customRule, date_pattern: "YYYYMMDD" };
+      await act(async () => found(ruleForm.onSave, "onSave")(edited));
+      expect(onChange).toHaveBeenLastCalledWith(JSON.stringify([edited, legacyRule]));
+    });
+
+    it("shows a rule's conditions as the text they look for", async () => {
+      await renderList(
+        JSON.stringify([
+          {
+            ...customRule,
+            condition_path: "Moscow_Visit \\(1\\)",
+            condition_filename: "IMG",
+            condition_exif: "EXIF:Model//iPhone 15\\.",
+            condition_other: 3,
+          },
+        ])
+      );
+
+      expect(container.textContent).toContain("Only when the path contains: Moscow_Visit (1)");
+      expect(container.textContent).toContain("Only when the file name contains: IMG");
+      expect(container.textContent).toContain("Only when EXIF:Model contains iPhone 15.");
+      expect(container.textContent).not.toContain("custom");
+    });
+
+    it("adds a new rule at the end, with the next free id from 1000 up", async () => {
+      const onChange = vi.fn<(rules: string) => void>();
+      await renderList(JSON.stringify([customRule, legacyRule]), onChange);
+
+      await click(
+        found(
+          [...container.querySelectorAll("button")].find(b => b.textContent === i18n.t("daterules.new_rule")),
+          "New Rule"
+        )
+      );
+      const draft = found(ruleForm.draft, "draft");
+      expect(draft).toMatchObject({ id: 1001, editing: false });
+
+      const added = { ...customRule, id: 1001, name: "Another" };
+      await act(async () => found(ruleForm.onSave, "onSave")(added));
+      expect(onChange).toHaveBeenLastCalledWith(JSON.stringify([customRule, legacyRule, added]));
+    });
   });
 });

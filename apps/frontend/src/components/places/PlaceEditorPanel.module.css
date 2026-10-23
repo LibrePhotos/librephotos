@@ -1,0 +1,10 @@
+/* Over the top left of the Places map while a place is drawn, on a wide screen. */
+.floating {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  width: 320px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+}

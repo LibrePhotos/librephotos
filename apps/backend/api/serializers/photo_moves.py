@@ -1,11 +1,30 @@
 """Request input and answers of moving photos to another folder (#352,
-``api/views/photo_moves.py``)."""
+``api/views/photo_moves.py``), and of sorting them into dated folders (#2774)."""
+
+from collections.abc import Callable
 
 from rest_framework import serializers
 
 from api.drf.params import required_string
 from api.photos.moves import REFUSAL_REASONS
+from api.photos.naming import InvalidPatternError, check_folder_pattern
 from api.serializers.photos import PhotoSelectionRequest
+
+
+def pattern_validator(check: Callable[[str], None]) -> Callable[[str], None]:
+    """A field validator from a pattern check of ``api.photos.naming``: its
+    refusal is a 400 ``invalid_pattern`` on the field."""
+
+    def validate(value: str) -> None:
+        try:
+            check(value)
+        except InvalidPatternError as error:
+            raise serializers.ValidationError(
+                str(error), code="invalid_pattern"
+            ) from error
+
+    return validate
+
 
 #: ``on_conflict``: what to do with a photo whose name is taken in the folder.
 ON_CONFLICT_CHOICES = ["rename", "skip"]
@@ -20,6 +39,16 @@ class MovePreviewRequest(PhotoSelectionRequest):
         "target_folder is required",
         help_text="An absolute folder inside the requester's library; it is "
         "created when it does not exist",
+    )
+    folder_pattern = serializers.CharField(
+        required=False,
+        validators=[pattern_validator(check_folder_pattern)],
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="Sort by date (#2774): each photo goes into this folder "
+        "inside target_folder, made from its capture date with the tokens "
+        "{year} {month} {day} {hour} {minute} {second}, levels separated by "
+        '"/" ("{year}/{month}"). Photos without a date stay where they are',
     )
 
 
@@ -60,6 +89,16 @@ class MoveClashSerializer(serializers.Serializer[None]):
     )
 
 
+class MoveFolderCountSerializer(serializers.Serializer[None]):
+    """What a move sorted by date does in one of its folders."""
+
+    path = serializers.CharField()
+    photos = serializers.IntegerField(help_text="Photos that move into it")
+    unchanged = serializers.IntegerField(help_text="Photos already in it")
+    clashes = serializers.IntegerField(help_text="Photos whose name is taken in it")
+    new = serializers.BooleanField(help_text="The move makes the folder")
+
+
 class MovePreviewResponse(serializers.Serializer[None]):
     """What a move to ``target_folder`` would do; nothing changed yet."""
 
@@ -72,6 +111,17 @@ class MovePreviewResponse(serializers.Serializer[None]):
     refused = RefusedCountSerializer(many=True, help_text="Photos that cannot move")
     clashes = MoveClashSerializer(
         many=True, help_text="Photos whose name is taken in the folder"
+    )
+    undated = serializers.IntegerField(
+        help_text="Photos without a capture date, left out by folder_pattern"
+    )
+    undated_hashes = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="The image hashes of those photos, to set their date",
+    )
+    folders = MoveFolderCountSerializer(
+        many=True,
+        help_text="With folder_pattern: each folder the photos go to; else empty",
     )
 
 
@@ -87,6 +137,9 @@ class MovePhotosResponse(serializers.Serializer[None]):
     refused = serializers.IntegerField(help_text="Photos that cannot move")
     failed = serializers.IntegerField(
         help_text="Photos whose files could not be moved; they stay where they were"
+    )
+    undated = serializers.IntegerField(
+        help_text="Photos without a capture date, left out by folder_pattern"
     )
 
 

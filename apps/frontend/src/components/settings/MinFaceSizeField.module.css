@@ -1,0 +1,56 @@
+.illustration {
+  flex: 0 1 320px;
+  max-width: 100%;
+}
+
+.scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.sky {
+  fill: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-8));
+}
+
+.ground {
+  fill: light-dark(var(--mantine-color-green-2), var(--mantine-color-dark-4));
+}
+
+.head {
+  fill: light-dark(var(--mantine-color-orange-2), var(--mantine-color-gray-5));
+}
+
+.body {
+  fill: light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-8));
+}
+
+/* Solid for a kept face, dashed for a skipped one: the line says it as well as the colour. */
+.kept,
+.skipped {
+  fill: none;
+  stroke-width: 3;
+}
+
+.kept {
+  stroke: var(--mantine-color-green-6);
+}
+
+.skipped {
+  stroke: var(--mantine-color-red-6);
+  stroke-dasharray: 6 4;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--mantine-color-green-6);
+  border-radius: 2px;
+}
+
+.swatchSkipped {
+  border-color: var(--mantine-color-red-6);
+  border-style: dashed;
+}

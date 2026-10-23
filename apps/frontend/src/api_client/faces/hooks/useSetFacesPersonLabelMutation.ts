@@ -25,9 +25,22 @@ export const useSetFacesPersonLabelMutation = () => {
     onSuccess: (data, { personName }) => {
       const undo = undoOf(data.previous);
       if (personName === UNKNOWN_PERSON_NAME) {
-        notification.removeFacesFromPerson(data.results.length, undo);
+        // Who training no longer suggests for the faces (#2747); older servers do not say
+        const rejectedNames = (data.rejected_people ?? []).map(person => person.name);
+        if (rejectedNames.length > 0) {
+          notification.rejectFacesFromPeople(rejectedNames, data.results.length, undo);
+        } else {
+          notification.removeFacesFromPerson(data.results.length, undo);
+        }
       } else {
-        notification.addFacesToPerson(data.results[0]?.person_name ?? "unknown", data.results.length, undo);
+        // The twins in other frames of a burst or duplicate group are in `results` too (#2754)
+        const twins = data.twin_ids?.length ?? 0;
+        notification.addFacesToPerson(
+          data.results[0]?.person_name ?? "unknown",
+          data.results.length - twins,
+          undo,
+          twins
+        );
       }
 
       // Every tagging path funnels through this mutation, so this is the one

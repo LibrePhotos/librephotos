@@ -52,12 +52,12 @@ const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is 
   photoset.every(entry => "items" in entry);
 
 // Pig passes a tile's `image_hash`.
-const getTileUrl = (imageHash: string, pxHeight: number) => {
+const getTileUrl = (imageHash: string, pxHeight: number, poster = false) => {
   if (pxHeight < 250) {
-    return mediaUrl.squareThumbnailSmall(imageHash);
+    return poster ? mediaUrl.squarePosterSmall(imageHash) : mediaUrl.squareThumbnailSmall(imageHash);
   }
   // Always use the highest quality thumbnails for better image quality
-  return mediaUrl.squareThumbnail(imageHash);
+  return poster ? mediaUrl.squarePoster(imageHash) : mediaUrl.squareThumbnail(imageHash);
 };
 
 export type { PhotoGroup } from "./photoGroup";
@@ -375,6 +375,7 @@ function PhotoListViewComponent({
         isUserAlbum={isUserAlbum}
         albumID={albumID}
         idx2hash={idx2hash}
+        title={title}
         totalCount={totalCount}
         selectionState={selectionState}
         updateSelectionState={updateSelectionState}

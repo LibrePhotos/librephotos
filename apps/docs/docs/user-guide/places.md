@@ -102,12 +102,48 @@ This setting is global. Choosing **None** hides the map in every map view, inclu
 
 ## The Places Page
 
-The Places page (`/album/places`) shows the places in your library on an interactive map. The map plots one marker per detected place name, not one per photo — reverse geocoding records several levels for each photo (country, region, city, point of interest), so a single photo can contribute several markers, and each distinct place name appears only once.
+The Places page (`/album/places`) shows your photos on an interactive map, each where it was taken, and under the map the places (Places albums) that have a photo in the part of the world the map shows.
 
-- **Clustered markers**: When zoomed out, nearby places are grouped into clusters; the number shown on a cluster is how many distinct places it contains, not how many photos
-- **Click to zoom**: Click on a cluster to zoom in and see individual locations
-- **Filtered albums**: As you pan and zoom the map, the album grid below updates to show places visible in the current view
-- **Navigation controls**: Use the +/- buttons or scroll to zoom, drag to pan
+<Since version="1.5.0" /> The map shows photos, not place names:
+
+- **Photos where they were taken**: every photo with a position is a point at that position. Photos taken within about a metre of each other are one point, with their number on it.
+- **Clusters count photos**: when zoomed out, nearby points are grouped into a cluster, and the number on it is how many photos it holds. A photo counts once, whatever number of place names it has.
+- **Click to zoom**: click a cluster to zoom in until it splits.
+- **Click to open**: click a point, or a cluster once you are zoomed in to street level, to see how many photos were taken there and the newest few. Click a thumbnail, or **Open N photos**, to step through them in the photo viewer.
+- **Places in view**: as you pan and zoom, the grid below lists the places with at least one photo inside the map. A country or a region stays in the list while one of its photos is in view. The line under the title says how many photos are on the map and how many places are in view.
+- **A taller map**: drag the grip under the map down to make it taller (up to 560 pixels), or focus it and use the arrow keys. The page remembers the height.
+
+Up to 1.4.0 the map drew one marker per place name at the centre of that place: a photo showed up once for its street, once for its town and once for its region, a cluster counted place names rather than photos, and markers sat at the centre of a county where no photo was taken.
+
+The map and its counts only ever show your own photos. Hidden photos and photos in the trash are left out, and photos other users shared with you are not on it.
+
+## Your places
+
+<Since version="1.5.0" /> Name the places that matter to you, such as *Home*, *Office* or *Grandma's*, and LibrePhotos files every photo taken there under that name, whatever the map provider calls the street.
+
+### Adding a place
+
+1. Open **Albums → Places** and click **Add place** above the map. The map grows so there is room to draw.
+2. Click the map where the place is. A circle appears around that spot; the map zooms in if it is too small to see. Click elsewhere to move it.
+3. Drag the white dot on the circle's edge, or the **Radius** slider, to make it the size of the place: from 25 m (a house) to 2 km (a village).
+4. Type a **Name**, pick an icon, and leave **Use the name in event titles** on to have events taken there called "Sunday at Home" rather than "Sunday in Munich".
+5. While you draw, the editor says how many of your photos were taken inside the circle and shows the newest few. When the circle overlaps another of your places, it says how many photos are inside both.
+6. Click **Save place**. The photos taken inside are filed under the place at once.
+
+Your places are drawn on the map as blue circles with their names, and listed under **Your places** above the places in view, whatever part of the map you look at. Click one to open its page with its photos by day and its circle on a small map; **Edit place** there opens the editor on the Places map again, and **⋮ → Delete place** deletes it. Deleting a place keeps its photos and their place names from the map provider.
+
+### Which photos are in a place
+
+- A photo is in a place when its position lies inside the circle. A photo inside two of your places is in the smaller one: a photo of the garden is in *Home*, not in the neighbourhood around it.
+- Photos join and leave on their own: when a scan finds a new or changed position in a file, and when you set or remove a location by hand (for one photo or many). Moving or resizing a place files your photos again.
+- A photo without a position is in no place. Give it a location first (see [Setting a Location Manually](#setting-a-location-manually)).
+- A photo in one of your places shows the place's name first in the photo's details, with the map provider's name under it, and searching for the place's name finds it.
+- An event mostly taken in one of your places (at least half of its photos) is called after it, such as "Sunday at Home" or "Saturday with Anna at Home", once its title is generated: new events right away, existing ones after **Regenerate Event Titles**. Turn **Use the name in event titles** off to keep the town in the title. The web app shows these titles; the mobile app still shows the town.
+- You can have up to 100 places.
+
+### Your places stay yours
+
+A place called *Home* tells where you live, so your places are private. Their names and circles are never shown to anyone else: not in albums or events you share, not in photos shared with other users (their **Shared with you** page groups them by the map provider's place names only), not on public links, and not in another user's search. The titles of shared events keep the town. Your places are not written to your photo files either.
 
 ## Setting Up Places
 
@@ -151,7 +187,7 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 4. Check the place name under the map: it is the name the photo gets when you save. It reads **Place name unavailable** when the server has no name for the spot (the coordinates are saved anyway), and says so when place names are turned off on the server.
 5. Click **Save**.
 
-The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work.
+The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work. <Since version="1.5.0" /> Up to 1.4.0, the place-name search found nothing when the Map Provider was OpenCage, Mapbox or MapTiler.
 
 A photo without a location opens the dialog where the nearest geotagged photo taken within a day of it was taken, or on a world map when there is none. The browser only asks for your position when you click the crosshair button. <Since version="1.4.0" /> Up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission.
 

@@ -1,60 +1,42 @@
 import type { MoveOnConflict, MovePhotosAnswer, MovePhotosResponse } from "@librephotos/api-client";
-import {
-  albumKeys,
-  ApiError,
-  endpoints,
-  folderKeys,
-  jobKeys,
-  photoKeys,
-  POLL_ACTIVE_MS,
-  pollUntil,
-} from "@librephotos/api-client";
+import { albumKeys, ApiError, endpoints, folderKeys, jobKeys, photoKeys } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { folderName } from "../../../util/folderPaths";
 import { apiClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { selectionArgs, type PhotoSelection } from "../photoSelection";
+import { countIn, ownJobResult } from "./ownJobResult";
 
 export type MovePhotosRequest = Readonly<{
   selection: PhotoSelection;
   targetFolder: string;
+  /** Sort by date (#2774): each photo goes into this folder of its date inside `targetFolder`. */
+  folderPattern?: string;
   /** What to do with a taken name; without it a taken name is a 409 `name_conflict` and nothing moves. */
   onConflict?: MoveOnConflict;
 }>;
 
 /** What a move did: its counts, read from the request's answer or from its job's result. */
-export type MoveCounts = Pick<MovePhotosResponse, "moved" | "skipped" | "refused" | "failed" | "target_folder">;
-
-const countIn = (result: Record<string, unknown> | null | undefined, key: string): number => {
-  const value = result?.[key];
-  return typeof value === "number" ? value : 0;
-};
+export type MoveCounts = Pick<
+  MovePhotosResponse,
+  "moved" | "skipped" | "refused" | "failed" | "undated" | "target_folder"
+>;
 
 /** The server's answer when a name is taken in the folder and no `onConflict` was sent: the dialog asks. */
 export const isNameConflict = (error: unknown): boolean =>
   error instanceof ApiError && error.status === 409 && error.serverCode === "name_conflict";
 
-/** The counts of the "Move Photos" job `jobId` once it has ended, followed through the user's jobs. */
+/** The counts of the "Move Photos" job `jobId` once it has ended. */
 async function waitForMoveJob(jobId: string, targetFolder: string): Promise<MoveCounts> {
-  const page = await pollUntil(() => endpoints.fetchJobs(apiClient, 1, 10, { mine: true }), {
-    isDone: jobs => {
-      const job = jobs.results.find(candidate => candidate.job_id === jobId);
-      return job === undefined || job.finished;
-    },
-    intervalMs: POLL_ACTIVE_MS,
-  });
-  const job = page.results.find(candidate => candidate.job_id === jobId);
-  if (job === undefined || job.failed || job.cancelled) {
-    throw new Error(`The move job ${jobId} did not finish`);
-  }
-  const { result } = job;
+  const result = await ownJobResult(jobId);
   return {
     target_folder: targetFolder,
     moved: countIn(result, "moved"),
     skipped: countIn(result, "skipped"),
     refused: countIn(result, "refused"),
     failed: countIn(result, "failed"),
+    undated: countIn(result, "undated"),
   };
 }
 
@@ -72,9 +54,10 @@ async function countsOf(answer: MovePhotosAnswer): Promise<MoveCounts> {
 export const useMovePhotosMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ selection, targetFolder, onConflict }: MovePhotosRequest) => {
+    mutationFn: async ({ selection, targetFolder, folderPattern, onConflict }: MovePhotosRequest) => {
       const [imageHashes, selectAll] = selectionArgs(selection);
-      const answer = await endpoints.movePhotos(apiClient, imageHashes, { targetFolder, onConflict }, selectAll);
+      const target = { targetFolder, folderPattern, onConflict };
+      const answer = await endpoints.movePhotos(apiClient, imageHashes, target, selectAll);
       return countsOf(answer);
     },
     onSuccess: counts => {

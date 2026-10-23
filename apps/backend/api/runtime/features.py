@@ -32,6 +32,9 @@ Feature = Literal[
     # The animated grid previews of videos (#649); off, a video's square
     # thumbnails are a still frame. Needs VIDEO to matter at all.
     "VIDEO_PREVIEWS",
+    # Faces in a video's later frames, not only its first (#2761). Needs
+    # FACE_DETECTION to matter at all.
+    "FACE_DETECTION_IN_VIDEOS",
 ]
 FEATURES: tuple[Feature, ...] = get_args(Feature)
 

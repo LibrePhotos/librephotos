@@ -256,7 +256,7 @@ async function processItem(
     // is only a fallback, because a hash recorded during the hash pass can be
     // stale by the time the bytes go out and the server rejects the mismatch
     // with a permanent 400 (see UploadResult.md5).
-    await opts.transport.complete({
+    const completed = await opts.transport.complete({
       uploadId,
       filename,
       md5: uploadedMd5 ?? fetchedMd5 ?? rawMd5(hash, opts.userId),
@@ -265,7 +265,7 @@ async function processItem(
       deviceModifiedAt: item.modified_at ?? null,
     });
 
-    markDone(db, assetId);
+    markDone(db, assetId, completed.photoId);
     res.uploaded += 1;
     opts.onUploaded?.(assetId);
   } catch (err) {

@@ -14,6 +14,13 @@ export const DOCS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 export const BLOG_DIR = path.join(DOCS_DIR, "blog");
 export const SHOTS_DIR = path.join(DOCS_DIR, "static", "img", "shots");
 export const RELEASES_JSON = path.join(DOCS_DIR, "src", "data", "releases.json");
+/**
+ * The web app's copy for its "What's new" card (#2305). It lives in the frontend because the
+ * frontend image is built from apps/frontend alone, and the app never asks the docs site at runtime.
+ */
+export const WHATS_NEW_JSON = path.resolve(DOCS_DIR, "..", "frontend", "src", "components", "whatsnew", "releases.json");
+/** How many releases the app's copy keeps: enough for someone who skipped a few updates. */
+export const WHATS_NEW_RELEASES = 5;
 export const SITE_URL = "https://docs.librephotos.com";
 
 /** Posts for this release and later follow .github/release-notes-template.md and get every check. */
@@ -119,6 +126,87 @@ export function readShots(shotsDir = SHOTS_DIR) {
   );
 }
 
+/** One entry of static/img/shots/manifest.json, read by the <Screenshot> component (src/data/shots.ts). */
+export const shotSchema = z.strictObject({
+  id: kebab,
+  alt: z.string().trim().min(1, "needs alt text that says what the shot shows"),
+  width: z.int().positive(),
+  height: z.int().positive(),
+  release: version.optional(),
+  /** Size of the phone variant, `<id>-phone-light.webp` and `<id>-phone-dark.webp`, when there is one. */
+  phone: z.strictObject({ width: z.int().positive(), height: z.int().positive() }).optional(),
+});
+
+const SHOT_FILE = /-(light|dark)\.webp$/;
+
+function manifestIssue(raw, issue) {
+  const [index, ...field] = issue.path;
+  const where = typeof index === "number" ? `entry ${index} ("${raw[index]?.id ?? "?"}")` : "(root)";
+  return `manifest.json ${[where, ...field].join(" ")}: ${issue.message}`;
+}
+
+/** The parsed manifest, or the problems that stop it from being read. */
+function readShotsManifest(file) {
+  let raw;
+  try {
+    raw = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    return { errors: [`manifest.json: ${error.message}`] };
+  }
+  const parsed = z.array(shotSchema).safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.issues.map((issue) => manifestIssue(raw, issue)) };
+  }
+  return { shots: parsed.data, errors: [] };
+}
+
+function duplicateShotErrors(shots) {
+  const ids = shots.map((s) => s.id);
+  return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].map((id) => `manifest.json: "${id}" is listed twice`);
+}
+
+/** The files a manifest entry needs: `<id>-light.webp` and `<id>-dark.webp`, and the phone pair with `phone`. */
+function shotFiles(shot) {
+  const stems = shot.phone ? [shot.id, `${shot.id}-phone`] : [shot.id];
+  return stems.flatMap((stem) => ["light", "dark"].map((theme) => `${stem}-${theme}.webp`));
+}
+
+function missingShotFileErrors(shots, files) {
+  return shots.flatMap((shot) =>
+    shotFiles(shot)
+      .filter((name) => !files.has(name))
+      .map((name) => `manifest.json "${shot.id}": ${name} is missing`),
+  );
+}
+
+function unlistedShotFileErrors(shots, files) {
+  const listed = new Set(shots.flatMap(shotFiles));
+  return [...files]
+    .filter((name) => SHOT_FILE.test(name) && !listed.has(name))
+    .map((name) => `${name} has no entry in manifest.json`);
+}
+
+/**
+ * Problems of static/img/shots: every manifest entry needs alt text and a light and a dark file
+ * (and the phone pair when it has `phone`), and every `*-light.webp`/`*-dark.webp` needs an entry.
+ * The screens run (apps/frontend/e2e, `yarn screens`) writes the files and the manifest.
+ */
+export function shotsErrors(shotsDir = SHOTS_DIR) {
+  if (!fs.existsSync(shotsDir)) {
+    return [];
+  }
+  const manifest = path.join(shotsDir, "manifest.json");
+  if (!fs.existsSync(manifest)) {
+    return ["static/img/shots/manifest.json is missing"];
+  }
+  const { shots, errors } = readShotsManifest(manifest);
+  if (!shots) {
+    return errors;
+  }
+  const files = new Set(fs.readdirSync(shotsDir));
+  return [...duplicateShotErrors(shots), ...missingShotFileErrors(shots, files), ...unlistedShotFileErrors(shots, files)];
+}
+
 /** Shot ids a post uses: highlight `shot`s and `<Screenshot id="...">` in the body. */
 export function shotIdsInPost(post) {
   const ids = (post.data.highlights ?? []).map((h) => h.shot).filter(Boolean);
@@ -212,6 +300,27 @@ function absolute(url) {
   return url.startsWith("/") && !url.startsWith("//") ? `${SITE_URL}${url}` : url;
 }
 
+/**
+ * The app's "What's new" data: the newest releases of the index, newest first, with absolute links
+ * to the docs. Screenshots stay on the docs site for now, so `shot` is left out.
+ */
+export function buildWhatsNew(index) {
+  return {
+    releases: index.releases.slice(0, WHATS_NEW_RELEASES).map((release) => ({
+      release: release.release,
+      versions: release.versions,
+      date: release.date,
+      title: release.title,
+      summary: release.summary,
+      url: absolute(release.permalink),
+      highlights: release.highlights.map(({ shot: _shot, learn_more, ...highlight }) => ({
+        ...highlight,
+        learn_more: absolute(learn_more),
+      })),
+    })),
+  };
+}
+
 function screenshotHtml(attributes, shots) {
   const id = /\bid="([^"]+)"/.exec(attributes)?.[1];
   const alt = /\balt="([^"]*)"/.exec(attributes)?.[1] ?? shots.get(id) ?? "";
@@ -255,15 +364,28 @@ export function linksToVerify(posts) {
   return [...links].sort();
 }
 
-/** Every problem of the posts and of src/data/releases.json, before the build. */
-export function sourceErrors(posts, shots = readShots(), releasesJson = RELEASES_JSON) {
+function readText(file) {
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n") : "";
+}
+
+/**
+ * Every problem of the posts, of src/data/releases.json and of the app's What's new copy, before the
+ * build. Both files are generated by `node scripts/build-releases.mjs`.
+ */
+export function sourceErrors(posts, shots = readShots(), releasesJson = RELEASES_JSON, whatsNewJson = WHATS_NEW_JSON) {
   const errors = posts.flatMap((post) => validatePost(post, shots).map((e) => `${post.file}: ${e}`));
   errors.push(...validateCollection(posts));
-  if (errors.length === 0) {
-    const expected = serializeReleaseIndex(buildReleaseIndex(posts));
-    const actual = fs.existsSync(releasesJson) ? fs.readFileSync(releasesJson, "utf8").replace(/\r\n/g, "\n") : "";
-    if (actual !== expected) {
-      errors.push("src/data/releases.json is out of date: run `node scripts/build-releases.mjs` and commit it");
+  if (errors.length > 0) {
+    return errors;
+  }
+  const index = buildReleaseIndex(posts);
+  const generated = [
+    [releasesJson, serializeReleaseIndex(index), "src/data/releases.json"],
+    [whatsNewJson, serializeReleaseIndex(buildWhatsNew(index)), "apps/frontend/src/components/whatsnew/releases.json"],
+  ];
+  for (const [file, expected, label] of generated) {
+    if (readText(file) !== expected) {
+      errors.push(`${label} is out of date: run \`node scripts/build-releases.mjs\` and commit it`);
     }
   }
   return errors;

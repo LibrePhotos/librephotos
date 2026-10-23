@@ -11,7 +11,11 @@ const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize:
 
 type PhotoItem = ReturnType<typeof photoItem>;
 
-function photoItem(overrides: Partial<Pick<ImageItem, "type" | "date" | "is_hdr" | "animated_preview">> = {}) {
+function photoItem(
+  overrides: Partial<
+    Pick<ImageItem, "type" | "date" | "is_hdr" | "animated_preview" | "video_length" | "projection_type">
+  > = {}
+) {
   return {
     id: "photo-1",
     image_hash: "hash1",
@@ -120,6 +124,27 @@ describe("react-pig Tile accessibility", () => {
     );
   });
 
+  it("says how long a video is: the duration on the tile is drawn for sighted users only", () => {
+    expect(renderTile(photoItem({ type: "video", video_length: "42.4" })).button.getAttribute("aria-label")).toMatch(
+      /^Video taken .*2024.*, 42 seconds$/
+    );
+  });
+
+  it("leaves an unknown or zero length out of the label, and a photo's", () => {
+    for (const item of [
+      photoItem({ type: "video", date: null, video_length: "None" }),
+      photoItem({ type: "video", date: null, video_length: "0.2" }),
+      photoItem({ date: null, video_length: "42" }),
+    ]) {
+      const { button } = renderTile(item);
+      expect(button.getAttribute("aria-label")).toMatch(/^(Video|Photo)$/);
+      act(() => defined(root).unmount());
+      defined(container).remove();
+      root = null;
+      container = null;
+    }
+  });
+
   it("names an undated HDR video, and leaves SDR videos alone", () => {
     expect(renderTile(photoItem({ type: "video", is_hdr: true, date: null })).button.getAttribute("aria-label")).toBe(
       "HDR video"
@@ -129,6 +154,18 @@ describe("react-pig Tile accessibility", () => {
     root = null;
     expect(renderTile(photoItem({ type: "video", is_hdr: false })).button.getAttribute("aria-label")).toMatch(
       /^Video taken /
+    );
+  });
+
+  it("names a 360° photo sphere, whose badge is hidden from screen readers (#483)", () => {
+    expect(
+      renderTile(photoItem({ projection_type: "equirectangular", date: null })).button.getAttribute("aria-label")
+    ).toBe("360° photo");
+    act(() => defined(root).unmount());
+    defined(container).remove();
+    root = null;
+    expect(renderTile(photoItem({ projection_type: "equirectangular" })).button.getAttribute("aria-label")).toMatch(
+      /^360° photo taken /
     );
   });
 
@@ -177,6 +214,19 @@ describe("react-pig Tile media", () => {
     expect(sources).toEqual(["/media/hash1?h=20", "/media/hash1?h=400"]);
   });
 
+  it("unblurs the placeholder once the grid image has loaded", () => {
+    const { button } = renderTile(photoItem());
+    const [placeholder, grid] = Array.from(button.querySelectorAll("img"));
+    expect(defined(placeholder).className).not.toMatch(/pigThumbnailLoaded/);
+
+    act(() => {
+      defined(grid).dispatchEvent(new Event("load"));
+    });
+
+    expect(defined(placeholder).className).toMatch(/pigThumbnailLoaded/);
+    expect(defined(grid).className).toMatch(/pigFullLoaded/);
+  });
+
   it("expands the tile whose id is active, and loads its full size image", () => {
     const { button } = renderTile(photoItem(), { activeTileId: "photo-1" });
 
@@ -206,7 +256,7 @@ describe("react-pig Tile media", () => {
     expect(videos).toEqual(["/media/hash1?h=400", "/media/hash1?h=1000"]);
   });
 
-  it("shows a video with a still square as an image with a play icon (#649)", () => {
+  it("shows a video with a still square as an image (#649)", () => {
     const { button } = renderTile(photoItem({ type: "video", animated_preview: false }), { activeTileId: "photo-1" });
 
     expect(button.querySelector("video")).toBeNull();
@@ -215,7 +265,7 @@ describe("react-pig Tile media", () => {
       "/media/hash1?h=400",
       "/media/hash1?h=1000",
     ]);
-    expect(button.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+    // The overlay's play icon and the label say it is a video.
     expect(button.getAttribute("aria-label")).toMatch(/^Video taken /);
   });
 

@@ -14,7 +14,10 @@ location                   ``Photo.exif_gps_lat`` / ``exif_gps_lon``, with
                            and the Places albums derived from it
 rating / favorite          ``Photo.rating``
 caption                    ``PhotoCaption.captions_json["user_caption"]``
-keywords                   ``PhotoMetadata.keywords``, projected onto ``Tag``
+keywords                   the photo's ``Tag`` rows, the list in
+                           ``PhotoMetadata.edited_keywords``;
+                           ``PhotoMetadata.keywords`` stays the file's
+                           keywords at the last read (#2783)
 title, copyright, creator  ``PhotoMetadata``
 =========================  ===================================================
 
@@ -73,8 +76,9 @@ from api.models.photo_metadata import (
     text_fields_of,
 )
 from api.models.photo_search import PhotoSearch, place_label
-from api.models.tag import sync_tags_from_keywords, tag_names
+from api.models.tag import Tag, sync_tags_from_keywords, tag_names
 from api.models.user import User
+from api.places.membership import refresh_photo_places
 
 logger = logging.getLogger(__name__)
 
@@ -145,12 +149,6 @@ def _record(user: User, field_name: str, changes: list[Change]) -> None:
         updated_at=now,
     )
     Photo.objects.filter(id__in=photo_ids).update(last_modified=now)
-
-
-def _recreate_search_captions(photo: Photo) -> None:
-    search_instance, _ = PhotoSearch.objects.get_or_create(photo=photo)
-    search_instance.recreate_search_captions()
-    search_instance.save()
 
 
 # ---------------------------------------------------------------- capture date
@@ -396,6 +394,8 @@ def _clear_location(photo: Photo, source: LocationSource) -> None:
     clear_location(photo)
     photo.location_source = source
     photo.save(update_fields=LOCATION_COLUMNS)
+    # Out of the user's places (#1365) with its position
+    refresh_photo_places([photo])
 
 
 def _move_photos(
@@ -420,6 +420,8 @@ def _move_photos(
         photo.geocoded_lat, photo.geocoded_lon = position if place else (None, None)
         photo.last_modified = now
     Photo.objects.bulk_update(photos, LOCATION_COLUMNS, batch_size=500)
+    # Into the user's place at the new position (#1365), whatever the geocoder said
+    refresh_photo_places(photos)
     _set_search_locations(photos, place)
     if place:
         _join_album_places(photos, place)
@@ -539,9 +541,14 @@ def _apply_caption(photo: Photo, text: str, user: User) -> tuple[str, bool]:
 
 
 def set_keywords(photo: Photo, keywords: list[str] | None, user: User) -> None:
-    """Replace the photo's keywords; the tags and the search index follow.
+    """Replace the photo's keywords; its tags follow (#2230).
 
-    The tags that changed are written to the file or sidecar (#2289).
+    The edit is kept in ``PhotoMetadata.edited_keywords`` and leaves
+    ``PhotoMetadata.keywords`` alone: that is the file's keywords at the last
+    read, which a rescan compares with (#2783), so a keyword removed here is
+    not new on the next rescan and stays removed, also with "Write edits to
+    files" Off. A tag added by hand stays. The tags that changed are written
+    to the file or sidecar (#2289).
     """
     changed = _apply_keywords(photo, keywords, user)
     queue_keyword_write(user, [photo.id], changed)
@@ -550,15 +557,27 @@ def set_keywords(photo: Photo, keywords: list[str] | None, user: User) -> None:
 def _apply_keywords(photo: Photo, keywords: list[str] | None, user: User) -> set[str]:
     """``set_keywords`` without the write-back; the tag names that changed."""
     metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
-    old = metadata.keywords
-    if old == keywords:
+    old = _current_keywords(photo, metadata)
+    changed = tag_names(old) ^ tag_names(keywords)
+    if not changed:
         return set()
-    metadata.keywords = keywords
-    metadata.save(update_fields=["keywords", "updated_at"])
+    metadata.edited_keywords = keywords
+    metadata.save(update_fields=["edited_keywords", "updated_at"])
     sync_tags_from_keywords(photo, keywords, old)
-    _recreate_search_captions(photo)
     _record(user, KEYWORDS, [Change(photo.id, old, keywords)])
-    return tag_names(old) ^ tag_names(keywords)
+    return changed
+
+
+def _current_keywords(photo: Photo, metadata: PhotoMetadata) -> list[str] | None:
+    """The photo's keywords as an edit replaces them: its tags that stand for
+    a keyword of the file (``keywords``) or of the last keyword edit
+    (``edited_keywords``). A tag added by hand is none of them, and a keyword
+    whose tag the user removed is gone. Sorted; None for none."""
+    names = tag_names(metadata.keywords) | tag_names(metadata.edited_keywords)
+    if not names or photo.owner is None:
+        return None
+    tagged = Tag.objects.owned_by(photo.owner).filter(photos=photo, name__in=names)
+    return sorted(tagged.values_list("name", flat=True)) or None
 
 
 # ------------------------------------------------------------------------ tags
@@ -735,11 +754,12 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     # First, so the date rules below see the file's position.
     _restore_location_from_file(photo)
     values = read_file_values(photo)
-    # The keywords before the restore, whose tags the restore takes away.
-    previous_keywords = (
-        PhotoMetadata.objects.filter(photo=photo)
-        .values_list("keywords", flat=True)
-        .first()
+    # The keywords before the restore, whose tags the restore takes away:
+    # the file's at the last read and those of the last keyword edit.
+    previous_keywords = sorted(
+        tag_names(previous.keywords) | tag_names(previous.edited_keywords)
+        if (previous := PhotoMetadata.objects.filter(photo=photo).first())
+        else ()
     )
     # Also stores the file's keywords (``merged_keywords_of``).
     metadata = PhotoMetadata.apply_file_values(photo, values, commit=False)
@@ -755,6 +775,7 @@ def revert_all(photo: Photo, user: User) -> PhotoMetadata:
     file_text = text_fields_of(values)
     for field in TEXT_FIELDS:
         setattr(metadata, field, file_text[field])
+    metadata.edited_keywords = None
     metadata.source = PhotoMetadata.Source.EMBEDDED
     metadata.version += 1
     metadata.save()

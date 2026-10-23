@@ -72,3 +72,26 @@ class FolderSubfoldersPageSerializer(serializers.Serializer[None]):
     parent_path = serializers.CharField(
         allow_null=True, help_text="null at the top the caller may see"
     )
+
+
+class CreateFolderRequest(serializers.Serializer[None]):
+    """``POST /api/dirtree/folders/``: a new folder for the folder picker (#2035)."""
+
+    parent_path = serializers.CharField(
+        trim_whitespace=False,
+        help_text="Absolute path of an existing folder inside the data root",
+    )
+    name = serializers.CharField(
+        trim_whitespace=False,
+        max_length=255,
+        help_text="The new folder's name: one folder, no separators",
+    )
+
+
+class CreatedFolderSerializer(serializers.Serializer[None]):
+    """The folder ``POST /api/dirtree/folders/`` made, and its parent listed again."""
+
+    absolute_path = serializers.CharField(help_text="The new folder")
+    parent = DirTreeSerializer(
+        help_text="The parent folder with its subfolders, the new one among them"
+    )

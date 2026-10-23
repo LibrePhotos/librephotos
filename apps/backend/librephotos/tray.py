@@ -6,6 +6,9 @@ menu line say what LibrePhotos is doing ("Updating the database (3 of 7)"),
 and a notification says so once when that takes long. Before, the icon only
 appeared once migrations, startup commands and sidecars were done; after an
 update that was minutes of nothing, and users double-clicked again.
+
+Once the server runs, the menu also has Check for updates, and Update to
+1.5.0 available... while a newer release is known (#2311, api/updates/tray.py).
 """
 
 from __future__ import annotations
@@ -42,8 +45,9 @@ class Tray:
     """The icon, its status line and its menu.
 
     Menu: the status (greyed), Open LibrePhotos (the default, a plain click),
-    Open data folder, Open logs, Quit LibrePhotos. Every method is safe to call
-    from any thread.
+    Update to <version> available... (while one is known), Check for updates
+    (once Django is set up), Open data folder, Open logs, Quit LibrePhotos.
+    Every method is safe to call from any thread.
     """
 
     def __init__(
@@ -58,6 +62,9 @@ class Tray:
 
         self.url = url
         self._status = status
+        self._update_label: str | None = None
+        self._update_url = ""
+        self._on_check_updates: Callable[[], None] | None = None
         self._shown = threading.Event()
         data_folder, logs_folder = folders
 
@@ -85,6 +92,14 @@ class Tray:
                     lambda icon, item: webbrowser.open(url),
                     default=True,
                 ),
+                pystray.MenuItem(
+                    self._update_text, self._open_update, visible=self._update_shown
+                ),
+                pystray.MenuItem(
+                    "Check for updates",
+                    lambda icon, item: self._check_updates(),
+                    visible=self._check_shown,
+                ),
                 pystray.MenuItem("Open data folder", open_folder(data_folder)),
                 pystray.MenuItem("Open logs", open_folder(logs_folder)),
                 pystray.Menu.SEPARATOR,
@@ -111,6 +126,36 @@ class Tray:
         self._status = status
         self.icon.title = self._tooltip()
         self.icon.update_menu()
+
+    def _update_text(self, item: object) -> str:
+        return self._update_label or ""
+
+    def _update_shown(self, item: object) -> bool:
+        return self._update_label is not None
+
+    def _open_update(self, icon: object, item: object) -> None:
+        webbrowser.open(self._update_url)
+
+    def _check_shown(self, item: object) -> bool:
+        return self._on_check_updates is not None
+
+    def set_update(self, label: str | None, url: str) -> None:
+        """Show the update item with ``label`` (None hides it); it opens ``url``."""
+        self._update_label = label
+        self._update_url = url
+        self.icon.update_menu()
+
+    def enable_update_check(self, on_check: Callable[[], None]) -> None:
+        """Show Check for updates, which runs ``on_check`` in a thread of its own."""
+        self._on_check_updates = on_check
+        self.icon.update_menu()
+
+    def _check_updates(self) -> None:
+        # It asks GitHub: never on the thread that draws the menu.
+        if self._on_check_updates is not None:
+            threading.Thread(
+                target=self._on_check_updates, daemon=True, name="tray-check"
+            ).start()
 
     def notify(self, title: str, message: str) -> None:
         """A Windows notification ("toast") from the icon."""

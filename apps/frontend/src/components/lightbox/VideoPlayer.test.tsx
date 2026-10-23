@@ -19,7 +19,8 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
-import { classifyVideoFailure, factToText, formatSeekDistance, VideoPlayer } from "./VideoPlayer";
+import { classifyVideoFailure, factToText, formatSeekDistance } from "./videoFailure";
+import { VideoPlayer } from "./VideoPlayer";
 
 /** The lightbox the player is in; its seek commands are what the shortcuts send. */
 const lightbox = createLightboxCommands();

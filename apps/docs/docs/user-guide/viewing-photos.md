@@ -163,8 +163,9 @@ On a [public album](./sharing.md#the-public-album-experience) the same works for
 The toolbar at the top provides quick actions. From left to right:
 
 - **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
+- **360° view** - <Since version="1.5.0" /> Look around in a [360° photo sphere](#photo-spheres) instead of seeing it flat. Shown only for photo spheres.
 - **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
-- **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
+- **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
 - **Hide / Show** (eye icon) - Hide the photo everywhere but the Hidden page, or unhide it.
@@ -178,9 +179,38 @@ The toolbar at the top provides quick actions. From left to right:
 
 The Hide, Archive, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
 
-There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+There is no download or share button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
 To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
+
+### Zooming into the original
+
+<Since version="1.5.0" /> The viewer shows a display-size version of each photo, 1080 pixels high by default. When you zoom in (the zoom button, a double-click, `z` or a pinch), it loads the original file in the background and switches to it once it is there, so the details stay sharp. Up to 1.4.0, zooming only enlarged the display-size version.
+
+A small label in the photo's lower-left corner says what you are looking at while you are zoomed in:
+
+- **Loading original** while the file is on its way. The display-size version stays on screen until then.
+- **Original · 6000 × 4000** once the original is shown, which shrinks to **Original** after two seconds. The viewer keeps the original until you move to another photo.
+- **Preview** with the reason when the browser cannot show the original: RAW, HEIC, TIFF and JPEG XL files, and photos you turned with the rotate buttons (the file itself is not turned). The **Original** link next to it downloads the file.
+- **The original did not load** with **Try again** when loading it failed.
+
+Photos no bigger than the display-size version need nothing more, and animated GIFs always show the original. The original loads only when you are signed in and may download it anyway: your own photos and photos shared with you. Visitors of a [public album](./sharing.md#the-public-album-experience) or a public photo link keep the display-size version.
+
+### 360° photo spheres {#photo-spheres}
+
+<Since version="1.5.0" /> A photo sphere is a 360° panorama: a phone's Photo Sphere or Panorama 360 mode, a 360° camera (Ricoh Theta, Insta360, GoPro Max) or a stitching program saves it as one picture twice as wide as tall. LibrePhotos marks one in the grid with a **360°** badge in the lower right corner of its tile, and the viewer shows it flat, like any photo, until you ask for the 360° view:
+
+- Press the **360° view** button in the toolbar, or `v`. The photo becomes a sphere you are standing in: drag (or swipe) to look around, pinch or scroll to zoom. With the keyboard, the arrow keys look around and `+` and `-` zoom, so while the view is on, the arrow keys do not step to the next photo: use the arrows on the sides or the thumbnail bar, or leave the view first.
+- The bar at the bottom of the sphere has **Zoom out**, **Zoom in** and **Face forward**, which turns back to the direction the photo was taken facing.
+- Press **360° view** again, `v` or `Escape` to see the photo flat again. The next photo always opens flat.
+
+The view loads the original file, so the sphere stays sharp when you zoom in; this can take a moment for a large panorama. It loads only when you turn the view on, so stepping through photo spheres costs no more than stepping through other photos. Where the [original is not offered](#zooming-into-the-original) (visitors of a public album, a HEIC file, a photo you turned with the rotate buttons), the view uses the display-size version, which looks softer. The view does not turn by itself, and with **Reduce motion** set in your system it also stops at once when you let go.
+
+The 360° view needs WebGL. In a browser without it, the button stays visible, greyed out, and says so when you point at it or focus it. If a photo cannot be shown as a sphere, the viewer goes back to the flat photo and says so.
+
+**Which photos are photo spheres**: the scan reads the panorama information Google's Photo Sphere format puts in the file (`GPano:ProjectionType` is `equirectangular`; see [what LibrePhotos reads](./exif-data.md#what-librephotos-reads)). Phones, 360° cameras and most stitching programs write it. A photo without it counts as a sphere when it is exactly twice as wide as tall and at least 6000 pixels wide, which is what a stitched sphere without that information looks like; narrower ones are left flat, since some phones take photos twice as wide as tall. Flat panoramas (`cylindrical`) and 360° videos are not shown in the viewer.
+
+Photo spheres you added before 1.5.0 are found when they are scanned again: run a **Rescan** once after updating (on the [Library page](./library.md#library-actions), in the dropdown next to **Scan**).
 
 ### Rotating Photos
 
@@ -318,7 +348,7 @@ Every photo also has a page of its own at `/photo/<id>`. You get there from a li
 <Since version="1.4.0" /> Up to 1.3.0 the page was titled with the file name and its full folder path and had no actions.
 :::
 
-The photo or video is shown as large as the window allows on a neutral background, with **Back** above it (to where you came from, or to the timeline when you opened a link) and **Open in viewer** below it. Open in viewer shows the photo in the [lightbox](#photo-viewer-lightbox), for zoom, fullscreen, the slideshow and the keyboard shortcuts. When [text recognition](./text-recognition.md) found text in one of your photos, a **Select text in photo** button lays it over the photo there too.
+The photo or video is shown as large as the window allows on a neutral background, with **Back** above it (to where you came from, or to the timeline when you opened a link) and **Open in viewer** below it. Open in viewer shows the photo in the [lightbox](#photo-viewer-lightbox), for zoom, fullscreen, the slideshow and the keyboard shortcuts. When [text recognition](./text-recognition.md) found text in one of your photos, a **Select text in photo** button lays it over the photo there too. <Since version="1.5.0" /> A [photo sphere](#photo-spheres) has a **360° view** button there as well, which shows it as a sphere on the page; opening the viewer shows it flat again.
 
 Beside the photo (below it on a phone), the page title is the date the photo was taken, with the time and the place under it. On your own photos the pencil next to the date opens the date editor described under [Timestamp](#timestamp).
 
@@ -347,6 +377,21 @@ Details a photo does not have yet are not listed as empty cards: they are button
 
 On a photo someone shared with you, the page shows the photo, its date and the name of its place, **Open in viewer** and **Copy image**, and says who shared it. Everything else stays with the owner, as in the lightbox.
 
+## Going to a page with the keyboard
+
+<Since version="1.5.0" /> Anywhere in the app, press `g` and then a letter to go to a page. After `g`, a hint at the bottom of the window lists the letters; it goes away after a moment or on any other key.
+
+| Keys | Page |
+|------|------|
+| `g` then `p` | Photos |
+| `g` then `l` | Library |
+| `g` then `s` | Settings |
+| `g` then `a` | Admin Area (admins only) |
+| `g` then `j` | My Jobs |
+| `?` | The list of keyboard shortcuts |
+
+The account menu shows the same keys next to its pages, and **Keyboard shortcuts** in it opens the list. The keys do nothing while you type in a field or while a dialog or the photo viewer is open: the viewer has its own keys, listed below, where `g` toggles fullscreen.
+
 ## Keyboard Shortcuts
 
 | Key | Action |
@@ -357,6 +402,7 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `Escape` | Close photo viewer |
 | `Space` | Play / pause (videos only) |
 | `z` | Toggle zoom (still images only) |
+| `v` | Toggle the [360° view](#photo-spheres) (photo spheres only); while it is on, the arrow keys look around and `+` / `-` zoom |
 | `i` | Toggle sidebar |
 | `f` | Toggle favorite (favorites mode) |
 | `0` - `5` | Set the star rating, `0` clears it (stars mode) |

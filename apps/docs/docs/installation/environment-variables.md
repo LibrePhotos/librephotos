@@ -184,6 +184,7 @@ Number variables (worker counts, the `TRANSCODE_*` limits, `REFRESH_TOKEN_DAYS` 
 | --- | --- | --- |
 | `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. The motion video inside a "live photo" is not extracted either, so those stay ordinary still images. |
 | `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded. <Since version="1.4.0" /> The model is not downloaded either. |
+| `FEATURE_FACE_DETECTION_IN_VIDEOS` | `featureFaceDetectionInVideos` | <Since version="1.5.0" /> Videos are read for faces on their first frame only, as up to 1.4.0, instead of on up to 8 more frames across the video (see [Faces in videos](../user-guide/face-recognition.md#faces-in-videos)). The face scan of a video then takes one face recognition call instead of up to nine. `FEATURE_FACE_DETECTION` has to be on as well. |
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
 | `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started. <Since version="1.4.0" /> The captioning model is not downloaded either. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no lookups run, offline or at an online map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
@@ -231,7 +232,7 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 | `FEATURE_FACE_DETECTION` | `face_recognition` |
 | `FEATURE_IMAGE_CAPTIONING` | `image_captioning` |
 
-The remaining services — `exif`, `thumbnail`, `tags` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. `tags` runs OpenCLIP, which makes the tags and the semantic-search embeddings alike, so `FEATURE_SCENE_CLASSIFICATION` stops the tagging but not the service (since 1.3.0). The other feature flags (`FEATURE_VIDEO`, `FEATURE_VIDEO_PREVIEWS`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+The remaining services — `exif`, `thumbnail`, `tags` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. `tags` runs OpenCLIP, which makes the tags and the semantic-search embeddings alike, so `FEATURE_SCENE_CLASSIFICATION` stops the tagging but not the service (since 1.3.0). The other feature flags (`FEATURE_VIDEO`, `FEATURE_VIDEO_PREVIEWS`, `FEATURE_FACE_DETECTION_IN_VIDEOS`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
 
 `ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
 
@@ -305,6 +306,18 @@ Once an hour, LibrePhotos marks a job failed when it has made no progress for a 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `STUCK_JOB_HOURS` | `stuckJobHours` | `24` | Hours without progress after which a job counts as stuck. Raise it only if a single photo can take longer than this on your machine. |
+
+### Checking for new releases {#update-check}
+
+<Since version="1.5.0" /> Once a day, and right after the first start, the backend asks GitHub which LibrePhotos release is the newest and tells admins when it is newer than the one they run: an **Update available** card in the Admin Area, a dot next to the version in the sidebar, and on the [Windows app](windows-standalone.md#update-notifications) a tray menu item and one notification. Users who are not admins see nothing.
+
+What is sent: one plain `GET https://api.github.com/repos/LibrePhotos/librephotos/releases` request, without a login, cookie or anything about your server, its users or its photos. GitHub sees your server's IP address, as with any request. The answer is kept in the database, so the pages that show it never contact GitHub. Development builds (`dev`, a source checkout) have no release to compare and never ask.
+
+Admins can turn the check off in **Admin Area > Site Settings > Check for new releases**. To turn it off for good, for example on a server without internet access, set the variable below; the switch is then locked off.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `UPDATE_CHECK` | `updateCheck` | `true` | `false` sends no request to GitHub at all and locks **Check for new releases** off. On the Windows app, set it in a small `.cmd` file that starts LibrePhotos, as [Using another port](windows-standalone.md#using-another-port) shows for the service ports. |
 
 ### Internal service address
 
@@ -473,6 +486,19 @@ The backend already marks the cookies `Secure` when a request reaches it over HT
 - **Reached over plain HTTP**, also only sometimes (`http://192.168.1.10` on the LAN): leave it off. Browsers refuse a `Secure` cookie over plain HTTP; signing in still works, but photos and videos stop loading.
 
 The other flags are fixed: see [Cookie flags](../user-guide/api-authentication.md#cookie-flags).
+
+### Sign-in sessions
+
+How long a sign-in lasts. Every sign-in uses an access token that expires after 5 minutes and is renewed in the background with a refresh token; when the refresh token expires, the user has to sign in again.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `REFRESH_TOKEN_DAYS` | `7` | Days the refresh token of a normal sign-in lasts. In the browser such a sign-in also ends when the browser is closed. |
+| `REMEMBER_ME_DAYS` | `30` | Days a sign-in with **Remember me** ticked lasts, closing the browser included. `0` removes the checkbox from the login page. |
+
+<Since version="1.5.0" /> Up to 1.4.0 there was no **Remember me**: every browser sign-in ended when the browser was closed or after `REFRESH_TOKEN_DAYS`.
+
+Single sign-on always signs in like a normal sign-in. A sign-in does not get longer by being used: after `REMEMBER_ME_DAYS` the user signs in again. Logging out ends a remembered sign-in on that browser at once.
 
 ### Database password
 

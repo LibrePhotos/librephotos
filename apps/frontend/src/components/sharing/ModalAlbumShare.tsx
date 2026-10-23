@@ -111,6 +111,9 @@ export function ModalAlbumShare(props: Props) {
                 <Text size="xs" c="dimmed" mb={4}>
                   {t("modalalbumsshare.sharewithusersdesc")}
                 </Text>
+                <Text size="xs" c="dimmed" mb={4}>
+                  {t("sharing.whatRecipientsSee")}
+                </Text>
               </div>
               <TextInput
                 onChange={event => {

@@ -26,6 +26,8 @@ export type MergedTimelineRow = {
   image_hash: string | null;
   local_uri: string | null;
   dominant_color: string | null;
+  /** 1 for a camera-roll row the server is still processing after upload (#2740). */
+  processing: number; // 0 | 1
 };
 
 /** A section header / scrubber bucket, doc 02 §4. */

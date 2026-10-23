@@ -20,8 +20,11 @@ function show(color: string, message: ReactNode, { title, id, autoClose }: Toast
   showNotification({ message, color, title, id, autoClose });
 }
 
-/** What a counted toast on screen shows, by id: the total, and how to undo what it reports. */
-type CountedToast = { total: number; undos: ReadonlyArray<() => Promise<unknown>> };
+/**
+ * What a counted toast on screen shows, by id: the total, a second total some toasts add up beside
+ * it, and how to undo what it reports.
+ */
+type CountedToast = { total: number; extra: number; undos: ReadonlyArray<() => Promise<unknown>> };
 
 /** The counted toasts on screen, by id. */
 const countedToasts = new Map<string, CountedToast>();
@@ -36,6 +39,8 @@ type CountedToastOptions = Omit<ToastOptions, "id"> & {
    * 8 s. A repeat adds its own undo, and Undo runs them all, the latest first.
    */
   undo?: () => Promise<unknown>;
+  /** A second number the toast adds up and passes to its message, e.g. the twins labelled along (#2754). */
+  extra?: number;
 };
 
 /**
@@ -45,17 +50,16 @@ type CountedToastOptions = Omit<ToastOptions, "id"> & {
 function successCounted(
   id: string,
   count: number,
-  message: (total: number) => ReactNode,
-  { title, autoClose, undo }: CountedToastOptions = {}
+  message: (total: number, extra: number) => ReactNode,
+  { title, autoClose, undo, extra = 0 }: CountedToastOptions = {}
 ): void {
   const shown = countedToasts.get(id);
   const undos = [...(shown?.undos ?? []), ...(undo ? [undo] : [])];
   const total = (shown?.total ?? 0) + count;
-  countedToasts.set(id, { total, undos });
-  const body =
-    undos.length > 0
-      ? createElement(ToastWithUndo, { message: message(total), onUndo: () => undoCounted(id) })
-      : message(total);
+  const extraTotal = (shown?.extra ?? 0) + extra;
+  countedToasts.set(id, { total, extra: extraTotal, undos });
+  const text = message(total, extraTotal);
+  const body = undos.length > 0 ? createElement(ToastWithUndo, { message: text, onUndo: () => undoCounted(id) }) : text;
   const closesAfter = undos.length > 0 ? (autoClose ?? UNDO_TOAST_MS) : autoClose;
   if (shown === undefined) {
     const onClose = () => countedToasts.delete(id);

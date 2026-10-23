@@ -12,7 +12,7 @@ from uuid import UUID
 
 import requests
 from django import db
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 
 from api.classification import captioning
 from api.classification.documents import classify_document
@@ -21,6 +21,7 @@ from api.directory_watcher.utils import (
     is_job_cancelled,
     update_scan_counter,
 )
+from api.drf.exceptions import JobAlreadyRunning
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.photo_faces import extract_faces
@@ -30,7 +31,7 @@ from api.geocode.photo_location import (
     geolocate_photo,
     needs_geocoding,
 )
-from api.jobs.queue import enqueue_task
+from api.jobs.queue import enqueue_job, enqueue_task
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import AlbumDate, Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
@@ -59,9 +60,15 @@ def _encode_face(face: Face, job_id: UUID | str) -> None:
     update_scan_counter(job_id, failed, error)
 
 
-def _faces_missing_encoding(user: User) -> QuerySet[Face]:
-    """Faces on ``user``'s photos that have no encoding yet."""
-    return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
+def faces_missing_encoding(user: User) -> QuerySet[Face]:
+    """Faces on ``user``'s photos that have no encoding yet.
+
+    Not a face from a video's later frames: the scan saves it with its
+    encoding, and its frame is gone to make one again from (#2761).
+    """
+    return Face.objects.filter(
+        photo__in=Photo.objects.owned_by(user), encoding="", video_time__isnull=True
+    )
 
 
 def generate_face_embeddings(
@@ -80,7 +87,7 @@ def generate_face_embeddings(
         heartbeat: Called after every face; the upload follow-ups renew
             their lease with it
     """
-    if not _faces_missing_encoding(user).exists():
+    if not faces_missing_encoding(user).exists():
         LongRunningJob.complete_unclaimed(job_id)
         return
 
@@ -92,7 +99,7 @@ def generate_face_embeddings(
     job_id = lrj.job_id
 
     try:
-        faces = _faces_missing_encoding(user)
+        faces = faces_missing_encoding(user)
         lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
@@ -192,13 +199,26 @@ def _record_photo_error(photo: Photo, err: Exception) -> str:
     return f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
 
 
-def _untagged_photos(user: User) -> QuerySet[Photo]:
-    """Photos of ``user`` that carry no OpenCLIP tags."""
-    return Photo.objects.owned_by(user).filter(
+# A photo without a big thumbnail (no Thumbnail row, or its file never made).
+MISSING_BIG_THUMBNAIL = Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
+
+
+def needs_things() -> Q:
+    """Photos that carry no OpenCLIP tags: what an incremental Things run reads.
+
+    Over one-to-one relations only, so the library processing status can
+    count it in one aggregate with the other stages (#2741).
+    """
+    return (
         Q(caption_instance__isnull=True)
         | Q(caption_instance__captions_json__isnull=True)
         | Q(**{f"caption_instance__captions_json__{OPENCLIP}__isnull": True})
     )
+
+
+def _untagged_photos(user: User) -> QuerySet[Photo]:
+    """Photos of ``user`` that carry no OpenCLIP tags."""
+    return Photo.objects.owned_by(user).filter(needs_things())
 
 
 def photos_to_tag(user: User, full_scan: bool) -> QuerySet[Photo]:
@@ -209,9 +229,7 @@ def photos_to_tag(user: User, full_scan: bool) -> QuerySet[Photo]:
     """
     if not full_scan:
         return _untagged_photos(user)
-    return Photo.objects.owned_by(user).exclude(
-        Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
-    )
+    return Photo.objects.owned_by(user).exclude(MISSING_BIG_THUMBNAIL)
 
 
 def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
@@ -283,14 +301,18 @@ def photos_to_caption(user: User, full_scan: bool) -> QuerySet[Photo]:
     in the trash. Without ``full_scan`` only the ones without a generated
     caption; a caption the user wrote does not count, it is never replaced.
     """
-    photos = (
-        Photo.objects.owned_by(user)
-        .filter(video=False, in_trashcan=False, removed=False)
-        .exclude(Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big=""))
+    return Photo.objects.owned_by(user).filter(
+        _CAPTIONABLE if full_scan else needs_caption()
     )
-    if full_scan:
-        return photos
-    return photos.filter(
+
+
+# Photos the captioner can read: a big thumbnail, no video, not in the trash.
+_CAPTIONABLE = Q(video=False, in_trashcan=False, removed=False) & ~MISSING_BIG_THUMBNAIL
+
+
+def needs_caption() -> Q:
+    """Photos an incremental caption run reads: captionable, no generated caption."""
+    return _CAPTIONABLE & (
         Q(caption_instance__isnull=True)
         | Q(caption_instance__captions_json__isnull=True)
         | Q(caption_instance__captions_json__im2txt__isnull=True)
@@ -386,62 +408,98 @@ def ocr_image_source(photo: Photo) -> str | None:
         return None
 
 
+# A photo whose OCR call failed this many times is no longer picked up by an
+# incremental run (scan and upload follow-ups, a manual Extract); a full run
+# ("Extract text again for all photos") still tries it.
+OCR_MAX_FAILURES = 3
+
+
+def active_ocr_model() -> str | None:
+    """The selected OCR model, or None while OCR is off.
+
+    The same semantics as ml_models ("", None and any-case "none" are off), so
+    a value like "none" cannot fan out and store rows with a bogus engine
+    while ml_models refuses to download the model.
+    """
+    from constance import config as site_config
+
+    from api.runtime.ml_models import _is_model_not_selected
+
+    ocr_model = site_config.OCR_MODEL
+    if _is_model_not_selected(ocr_model):
+        return None
+    return str(ocr_model)
+
+
+def photos_needing_ocr(user: User, ocr_model: str) -> QuerySet[Photo]:
+    """The user's photos an incremental OCR run reads.
+
+    Selected by need, not by when they were added (#2736): no text stored by
+    ``ocr_model`` yet (so a model switch reads them again), a big thumbnail to
+    read (a photo whose thumbnail is not ready waits for a later run), and
+    fewer than ``OCR_MAX_FAILURES`` failed calls.
+    """
+    return Photo.objects.owned_by(user).filter(needs_ocr(ocr_model))
+
+
+def needs_ocr(ocr_model: str) -> Q:
+    """``photos_needing_ocr`` as a ``Q`` (one-to-one relations only, #2741)."""
+    return (
+        Q(video=False, ocr_failures__lt=OCR_MAX_FAILURES)
+        & ~MISSING_BIG_THUMBNAIL
+        & ~Q(ocr__engine=ocr_model)
+    )
+
+
+def ocr_has_work(user: User) -> bool:
+    """Whether an OCR model is selected and some photo of ``user`` needs it."""
+    ocr_model = active_ocr_model()
+    return ocr_model is not None and photos_needing_ocr(user, ocr_model).exists()
+
+
+def queue_ocr_followup(user: User) -> bool:
+    """Queue Extract Text for ``user`` unless one is queued or running already.
+
+    For the scan and upload follow-ups. Returns whether a job was queued.
+    """
+    try:
+        enqueue_job(user, LongRunningJob.JOB_GENERATE_OCR, generate_ocr, user)
+    except JobAlreadyRunning:
+        return False
+    return True
+
+
 def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
     """
     Extract text (OCR) from photos via the OCR sidecar.
 
     Mirrors :func:`generate_tags`: fans work out to per-photo AsyncTasks that
-    each bump the shared job counter. Idempotent per active model -- a photo
-    whose stored ``PhotoOcr.engine`` already equals the active ``OCR_MODEL`` is
-    skipped, so switching tier (engine mismatch) naturally reprocesses.
+    each bump the shared job counter.
 
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
         full_scan: If True, reprocess every (non-video) photo regardless of
-            what OCR data already exists
+            what OCR data already exists or how often it failed; otherwise
+            the photos ``photos_needing_ocr`` selects
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_OCR, job_id)
     if lrj is None:
         return
 
     try:
-        from constance import config as site_config
-
-        from api.runtime.ml_models import _is_model_not_selected
-
-        ocr_model = site_config.OCR_MODEL
-
-        # OCR disabled: finish cleanly with nothing to do. Use the same
-        # semantics as ml_models (treats "", None and any-case "none" as
-        # disabled) so a value like "" or "none" cannot fan out and store rows
-        # with a bogus engine while ml_models refuses to download the model.
-        if _is_model_not_selected(ocr_model):
+        ocr_model = active_ocr_model()
+        if ocr_model is None:
+            # OCR disabled: finish cleanly with nothing to do.
             lrj.update_progress(current=0, target=0)
             lrj.complete()
             return
 
-        # Baseline for the incremental delta: the most recent OCR run that
-        # went through its work and actually had some. Zero-target runs (a
-        # disabled no-op, or a pass over an empty/fully-done library) never
-        # establish a watermark -- otherwise enabling OCR later, then running
-        # incrementally, would skip every pre-existing photo because they all
-        # predate the placeholder job. A stale (older-than-ideal) baseline can
-        # only widen the candidate scan; the engine-exclude below still prevents
-        # any already-done photo from being reprocessed, so this is safe.
-        last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_GENERATE_OCR)
-
-        existing_photos = Photo.objects.owned_by(user).filter(video=False)
-        if not full_scan:
-            # Skip photos already OCR'd with the active model (idempotency).
-            existing_photos = existing_photos.exclude(ocr__engine=ocr_model)
-            if last_scan:
-                # Incremental run: limit to photos added since the last run, but
-                # always keep photos carrying a stale engine so a tier switch
-                # reprocesses them even outside the new-photo window.
-                existing_photos = existing_photos.filter(
-                    Q(added_on__gt=last_scan.started_at) | Q(ocr__isnull=False)
-                )
+        existing_photos: QuerySet[Photo]
+        if full_scan:
+            existing_photos = Photo.objects.owned_by(user).filter(video=False)
+        else:
+            existing_photos = photos_needing_ocr(user, ocr_model)
 
         if not _begin_photo_scan(lrj, existing_photos):
             return
@@ -472,10 +530,22 @@ def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
         _run_ocr_for_photo(photo)
     except Exception as err:
         logger.exception("An error occurred: %s", photo.image_hash)
+        _count_ocr_failure(photo, err)
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
     update_scan_counter(job_id, failed, error)
+
+
+def _count_ocr_failure(photo: Photo, err: Exception) -> None:
+    """Count a failed OCR call against the photo (see ``OCR_MAX_FAILURES``).
+
+    An unreachable service says nothing about the photo, so that is not
+    counted: a stopped sidecar must not use up every photo's attempts.
+    """
+    if isinstance(err, requests.ConnectionError):
+        return
+    Photo.objects.filter(pk=photo.pk).update(ocr_failures=F("ocr_failures") + 1)
 
 
 def _get_photo_ocr(photo: Photo) -> PhotoOcr | None:
@@ -556,13 +626,10 @@ def _run_ocr_for_photo(photo: Photo) -> None:
     Raises on a non-OK service response so the caller records a per-photo
     failure (the job continues with the remaining photos).
     """
-    from constance import config as site_config
-
     from api.runtime.http_timeouts import OCR
-    from api.runtime.ml_models import _is_model_not_selected
 
-    ocr_model = site_config.OCR_MODEL
-    if _is_model_not_selected(ocr_model):
+    ocr_model = active_ocr_model()
+    if ocr_model is None:
         return
 
     image_path = ocr_image_source(photo)
@@ -603,6 +670,9 @@ def _run_ocr_for_photo(photo: Photo) -> None:
             "text_area_fraction": text_area_fraction,
         },
     )
+
+    if photo.ocr_failures:
+        Photo.objects.filter(pk=photo.pk).update(ocr_failures=0)
 
     # Derive the document category from the fresh OCR evidence + tag labels
     # (unless the user has pinned the category). The text cap (20k chars) never
@@ -940,7 +1010,7 @@ def _faces_to_scan(
     last two. ``path`` narrows them to the photos with a file in that folder
     or below it, ``photo_ids`` to those photos (#524).
     """
-    photos = Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False)
+    photos = Photo.objects.owned_by(user).filter(_FACE_SCANNABLE)
     if path:
         photos = photos.filter(
             pk__in=Photo.objects.owned_by(user)
@@ -951,7 +1021,17 @@ def _faces_to_scan(
         photos = photos.filter(pk__in=photo_ids)
     if full_scan:
         return photos
-    return photos.filter(faces_scanned_at__isnull=True)
+    return photos.filter(_FACES_NOT_SCANNED)
+
+
+# Photos Scan Faces can read (a Thumbnail row), and those it has not read yet.
+_FACE_SCANNABLE = Q(thumbnail__thumbnail_big__isnull=False)
+_FACES_NOT_SCANNED = Q(faces_scanned_at__isnull=True)
+
+
+def needs_face_scan() -> Q:
+    """The photos an incremental Scan Faces reads, as a ``Q`` (#2741)."""
+    return _FACE_SCANNABLE & _FACES_NOT_SCANNED
 
 
 def scan_faces(

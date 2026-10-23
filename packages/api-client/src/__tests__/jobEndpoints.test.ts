@@ -87,12 +87,31 @@ describe("job triggers", () => {
     ["regenerateEventAlbumTitles", "/autoalbumtitlegen/", endpoints.regenerateEventAlbumTitles],
     ["stripThumbnailMetadata", "/strip-thumbnail-metadata/", endpoints.stripThumbnailMetadata],
     ["lookUpPlaces", "/look-up-places/", endpoints.lookUpPlaces],
+    ["deduplicateFaces", "/deduplicate-faces/", endpoints.deduplicateFaces],
     ["emptyTrash", "/photosedit/empty-trash/", endpoints.emptyTrash],
     ["reapplyDateRules", "/photos/reapply-date-rules/", endpoints.reapplyDateRules],
   ] as const)("%s POSTs %s", async (_name, path, trigger) => {
     const { client, requests } = fakeServer(started);
     const answer = await trigger(client);
     expect(defined(requests[0])).toMatchObject({ url: `${API}${path}`, method: "POST", body: {} });
+    expect(answer.job_id).toBe("j1");
+  });
+
+  it("scans another user's library through the admin route (#2037)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.scanUserPhotos(client, 7);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/manage/user/7/scan/`, method: "POST", body: {} });
+    expect(answer.job_id).toBe("j1");
+  });
+
+  it("moves a user's photos outside their library to the trash (#2036)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.trashPhotosOutsideLibrary(client, 7);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/manage/user/7/trash-photos-outside-library/`,
+      method: "POST",
+      body: {},
+    });
     expect(answer.job_id).toBe("j1");
   });
 
@@ -154,6 +173,18 @@ describe("job triggers", () => {
     expect(result).toEqual(answer);
   });
 
+  it("sends whose file contents are checked (#2040)", async () => {
+    const { client, requests } = fakeServer(started);
+    const answer = await endpoints.checkFileContents(client, { user_id: 3, folder: "Phone/2025" });
+    await endpoints.checkFileContents(client, { user_id: null, folder: "" });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/check-file-contents/`, method: "POST" });
+    expect(requests.map(request => request.body)).toEqual([
+      { user_id: 3, folder: "Phone/2025" },
+      { user_id: null, folder: "" },
+    ]);
+    expect(answer).toEqual(started);
+  });
+
   it("follows the job already running instead of failing on a 409", async () => {
     for (const trigger of [
       endpoints.scanNextcloudPhotos,
@@ -161,8 +192,12 @@ describe("job triggers", () => {
       endpoints.regenerateEventAlbumTitles,
       endpoints.stripThumbnailMetadata,
       endpoints.lookUpPlaces,
+      endpoints.deduplicateFaces,
       endpoints.emptyTrash,
       endpoints.reapplyDateRules,
+      (client: Parameters<typeof endpoints.scanUserPhotos>[0]) => endpoints.scanUserPhotos(client, 7),
+      (client: Parameters<typeof endpoints.trashPhotosOutsideLibrary>[0]) =>
+        endpoints.trashPhotosOutsideLibrary(client, 7),
       (client: Parameters<typeof endpoints.rescanPhotos>[0]) => endpoints.rescanPhotos(client, ["p1"]),
       (client: Parameters<typeof endpoints.scanFiles>[0]) => endpoints.scanFiles(client, ["/a.jpg"]),
       (client: Parameters<typeof endpoints.generateOcr>[0]) => endpoints.generateOcr(client, false),
@@ -171,6 +206,8 @@ describe("job triggers", () => {
       endpoints.detectStacks,
       endpoints.detectDuplicates,
       endpoints.writeMetadataToFiles,
+      (client: Parameters<typeof endpoints.checkFileContents>[0]) =>
+        endpoints.checkFileContents(client, { user_id: null, folder: "" }),
     ]) {
       const { client } = fakeServer(alreadyRunning, 409);
       await expect(trigger(client)).resolves.toEqual({ status: true, job_id: "j0", already_running: true });
@@ -319,5 +356,56 @@ describe("upgrade tasks (#2322)", () => {
       method: "POST",
     });
     expect(answer.tasks).toEqual([]);
+  });
+});
+
+describe("library processing status (#2741)", () => {
+  const status = {
+    photo_count: 12,
+    stages: [
+      {
+        key: "things",
+        remaining: 4,
+        running_job: { job_id: "j1", progress_current: 2, progress_target: 4 },
+        last_run: null,
+      },
+      {
+        key: "text",
+        remaining: 7,
+        running_job: null,
+        last_run: { job_id: "j2", finished_at: "2026-10-22T10:00:00Z", failed: false, error_count: 3 },
+      },
+    ],
+  };
+
+  it("reads what each stage has left, a stage this client does not know included", async () => {
+    const newer = { ...status, stages: [...status.stages, { ...defined(status.stages[0]), key: "music" }] };
+    const { client, requests } = fakeServer(newer);
+    const answer = await endpoints.fetchProcessingStatus(client);
+    expect(defined(requests[0]).url).toBe(`${API}/library/processing-status/`);
+    expect(answer.stages.map(stage => stage.key)).toEqual(["things", "text", "music"]);
+  });
+
+  it("refuses an answer without its counts", async () => {
+    const { client } = fakeServer({ stages: [] });
+    await expect(endpoints.fetchProcessingStatus(client)).rejects.toBeInstanceOf(ResponseParseError);
+  });
+
+  it("runs a stage, and follows its job when it already runs", async () => {
+    const { client, requests } = fakeServer({ status: true, job_id: "j3", job_ids: ["j3"] });
+    const answer = await endpoints.runProcessingStage(client, "places");
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/library/processing-status/run/`,
+      method: "POST",
+      body: { stage: "places" },
+    });
+    expect(answer.job_id).toBe("j3");
+
+    const running = fakeServer(alreadyRunning, 409);
+    await expect(endpoints.runProcessingStage(running.client, "places")).resolves.toEqual({
+      status: true,
+      job_id: "j0",
+      already_running: true,
+    });
   });
 });

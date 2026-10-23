@@ -1,12 +1,23 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { DateTimeRule } from "@librephotos/api-client";
-import { Button, CloseButton, Group, ScrollArea, Table, Text, Title } from "@mantine/core";
+import { Button, Group, ScrollArea, Table, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
+import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus, IconPlus as Plus } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useDateRuleOptionsQuery } from "../../api_client/settings/hooks/useDateRuleOptionsQuery";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
+import {
+  emptyFormValues,
+  isCustomRule,
+  isEditableKind,
+  nextCustomId,
+  ruleToFormValues,
+  suggestedName,
+} from "./dateRuleForm";
+import { DateRuleFormModal, type DateRuleDraft } from "./DateRuleFormModal";
+import { DateRuleRowActions } from "./DateRuleRowActions";
 import { describeRuleType, getRuleExtraInfo } from "./dateTimeSettings";
 import classes from "./RuleTable.module.css";
 import { readSavedList, savedIds, withRuleOrder } from "./savedRuleList";
@@ -21,6 +32,9 @@ type ConfigDateTimeProps = Readonly<{
   notice?: React.ReactNode;
 }>;
 
+// Where custom rule ids start until the server says (GET /api/datetime-rules/options/).
+const FIRST_CUSTOM_ID = 1000;
+
 function isDateTimeRule(entry: unknown): entry is DateTimeRule {
   return DateTimeRule.safeParse(entry).success;
 }
@@ -34,6 +48,11 @@ export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps)
   const [availableRules, setAvailableRules] = useState<DateTimeRule[]>([]);
   const [resetButtonDisabled, setResetButtonDisabled] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
+  // The custom rule form (#2272): what it opens with.
+  const { data: ruleOptions } = useDateRuleOptionsQuery();
+  const firstCustomId = ruleOptions?.first_custom_id ?? FIRST_CUSTOM_ID;
+  const [draft, setDraft] = useState<DateRuleDraft | null>(null);
+  const [formOpened, ruleForm] = useDisclosure(false);
 
   useEffect(() => {
     if (value) {
@@ -67,6 +86,31 @@ export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps)
 
   function addRules(newRules: DateTimeRule[]) {
     save([...entries, ...newRules]);
+  }
+
+  function openForm(next: DateRuleDraft) {
+    setDraft(next);
+    ruleForm.open();
+  }
+
+  function newRule() {
+    const values = emptyFormValues();
+    openForm({
+      values: { ...values, name: suggestedName(values, t) },
+      id: nextCustomId(savedIds(entries), firstCustomId),
+      editing: false,
+    });
+  }
+
+  function duplicateRule(rule: DateTimeRule) {
+    const values = { ...ruleToFormValues(rule), name: t("daterules.copy_name", { name: rule.name }) };
+    openForm({ values, id: nextCustomId(savedIds(entries), firstCustomId), editing: false });
+  }
+
+  // An edited rule keeps its place in the list; a new one goes to the end, like an added one.
+  function saveCustomRule(rule: DateTimeRule) {
+    const index = entries.findIndex(entry => isDateTimeRule(entry) && entry.id === rule.id);
+    save(index < 0 ? [...entries, rule] : entries.map((entry, i) => (i === index ? rule : entry)));
   }
 
   function deleteRule(rule: DateTimeRule) {
@@ -105,12 +149,14 @@ export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps)
           {getRuleExtraInfo(rule, t)}
         </Text>
       </Table.Td>
-      <Table.Td width={40}>
-        <CloseButton
-          title={t("settings.delete_rule")}
-          aria-label={t("settings.delete_rule")}
-          size="md"
-          onClick={() => deleteRule(rule)}
+      <Table.Td width={80}>
+        <DateRuleRowActions
+          rule={rule}
+          custom={isCustomRule(rule, firstCustomId)}
+          editable={isEditableKind(rule)}
+          onEdit={() => openForm({ values: ruleToFormValues(rule), id: rule.id, editing: true })}
+          onDuplicate={() => duplicateRule(rule)}
+          onDelete={() => deleteRule(rule)}
         />
       </Table.Td>
     </SortableTr>
@@ -127,13 +173,21 @@ export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps)
         {t("settings.configdatetime_order_hint")}
       </Text>
 
-      <Text size="sm" c="dimmed" mb="md">
+      <Text size="sm" c="dimmed" mb="xs">
         {t("settings.configdatetime_manual_hint")}
+      </Text>
+
+      <Text size="sm" c="dimmed" mb="md">
+        {t("daterules.test_hint")}
       </Text>
 
       <Group mb="md">
         <Button leftSection={<CodePlus />} onClick={open}>
           {t("settings.add_rule")}
+        </Button>
+
+        <Button variant="default" leftSection={<Plus />} onClick={newRule}>
+          {t("daterules.new_rule")}
         </Button>
 
         <Button
@@ -170,6 +224,8 @@ export function ConfigDateTime({ value, onChange, notice }: ConfigDateTimeProps)
         onClose={close}
         onAddRules={rules => addRules(rules)}
       />
+
+      <DateRuleFormModal opened={formOpened} onClose={ruleForm.close} draft={draft} onSave={saveCustomRule} />
     </>
   );
 }

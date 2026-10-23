@@ -3,7 +3,7 @@ import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { IconBookmark, IconMapPin, IconNote, IconPhoto, IconTag, IconUsers } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useDrawnFaceResult, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { autoTagsOf, userCaptionOf } from "../../api_client/photos/captions";
 import { useFetchPhotoAlbumsQuery } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
@@ -16,6 +16,7 @@ import { PeopleSection } from "../lightbox/PeopleSection";
 import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
 import { TagsSection } from "../lightbox/TagsSection";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { useYourPlaceAt } from "../places/useYourPlaceAt";
 import type { AddableDetail } from "./AddDetailsCard";
 import { AddDetailsCard } from "./AddDetailsCard";
 import { CameraCard } from "./CameraCard";
@@ -59,11 +60,14 @@ function useMissingDetails(photo: Photo) {
 export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFaceBlockedReason }: Props) {
   const { t } = useTranslation();
   const missing = useMissingDetails(photo);
+  // A box drawn on a photo without faces yet: People shows what became of it (#1117)
+  const drawn = useDrawnFaceResult(photo.image_hash);
   // The details the user chose to add: their cards show although still empty.
   const [adding, setAdding] = useState<AddableDetail[]>([]);
   const [editedFace, setEditedFace] = useState<{ face_id: number; face_url: string } | null>(null);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const { data: albums } = useFetchPhotoAlbumsQuery(photo.image_hash);
+  const yourPlace = useYourPlaceAt(photo.exif_gps_lat, photo.exif_gps_lon);
   const similarCount = photo.similar_photos.filter(similar => similar.image_hash !== photo.image_hash).length;
 
   const shows = (detail: AddableDetail) => missing[detail] === false || adding.includes(detail);
@@ -80,7 +84,7 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
 
   return (
     <>
-      {(shows("face") || faceDrawing.isDrawing) && (
+      {(shows("face") || faceDrawing.isDrawing || drawn !== null) && (
         <PhotoCard icon={IconUsers} color="blue" title={t("lightbox.sidebar.people")} count={photo.people.length}>
           {heading => (
             <PeopleSection
@@ -114,7 +118,13 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
       {shows("place") && (
         <PhotoCard icon={IconMapPin} color="red" title={t("photopage.place")}>
           {heading => (
-            <LocationSection photoDetail={photo} mapHeight={200} heading={heading} startEditing={missing.place} />
+            <LocationSection
+              photoDetail={photo}
+              mapHeight={200}
+              heading={heading}
+              startEditing={missing.place}
+              yourPlace={yourPlace}
+            />
           )}
         </PhotoCard>
       )}

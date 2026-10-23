@@ -131,6 +131,13 @@ Backup continues in the background within the limits your phone's operating
 system allows; keeping the app in the foreground is the fastest way to clear a
 large backlog.
 
+<Since version="1.5.0" /> After an upload the server still has to make the
+photo's thumbnails before it shows up in your timeline. Until the app's next
+sync brings it in, the Backup tab counts it as *processing on the server*, its
+queue row says **Processing on server**, and its grid tile shows an hourglass
+instead of the upload arrow. The Backup tab only says everything is backed up
+once the server has finished.
+
 ## Sync status and repair
 
 Open **Sync status** (from Settings) to see what the app is doing:

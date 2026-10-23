@@ -19,8 +19,10 @@ from api.accounts.directories import (
 from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
+from api.metadata.date_rule_checks import changed_rule_problem
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
+from api.models.user import get_default_public_sharing_settings
 from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import declare_fields, loaded_count, loaded_list
@@ -57,9 +59,18 @@ USER_UPDATE_FIELDS = (
     ("burst_detection_rules", "Updated burst_detection_rules for user {username}"),
     ("default_timezone", "Updated default_timezone for user {value}"),
     ("public_sharing", None),
+    (
+        "public_sharing_defaults",
+        "Updated public_sharing_defaults to {value} for user {username}",
+    ),
+    (
+        "share_people_names",
+        "Updated share_people_names to {value} for user {username}",
+    ),
     ("min_cluster_size", None),
     ("min_samples", None),
     ("cluster_selection_epsilon", None),
+    ("min_face_size", None),
     ("llm_settings", None),
     (
         "slideshow_interval",
@@ -77,7 +88,30 @@ USER_UPDATE_FIELDS = (
         "default_timeline_filter",
         "Updated default_timeline_filter to {value} for user {username}",
     ),
+    ("last_seen_release", None),
+    ("show_whats_new", None),
 )
+
+
+def merged_public_sharing_defaults(value: object, saved: object) -> dict[str, bool]:
+    """``value``, a Public Sharing Defaults update, on top of ``saved``.
+
+    Only the known switches, each a boolean; a switch ``value`` leaves out
+    keeps its saved value (or its default). Raises ``ValueError`` otherwise.
+    """
+    if not isinstance(value, Mapping):
+        raise ValueError("must be an object")
+    defaults = get_default_public_sharing_settings()
+    unknown = sorted(set(value) - set(defaults))
+    if unknown:
+        raise ValueError(f"has unknown switches: {', '.join(map(str, unknown))}")
+    if not all(isinstance(on, bool) for on in value.values()):
+        raise ValueError("switches must be true or false")
+    current = saved if isinstance(saved, Mapping) else {}
+    return {
+        key: bool(value.get(key, current.get(key, default)))
+        for key, default in defaults.items()
+    }
 
 
 def validate_rule_exif_tag_names(value: object, field_label: str) -> object:
@@ -243,6 +277,11 @@ class UserSerializer(serializers.ModelSerializer):
             "duplicate_sensitivity": {"required": False},
             "duplicate_clear_existing": {"required": False},
             "default_timeline_filter": {"required": False},
+            "share_people_names": {"required": False},
+            # The "What's new" card (#2305). A release tag, at most 32
+            # characters (the model's max_length is the check).
+            "last_seen_release": {"required": False},
+            "show_whats_new": {"required": False},
         }
         fields = (
             "id",
@@ -281,16 +320,22 @@ class UserSerializer(serializers.ModelSerializer):
             "default_timezone",
             "public_sharing",
             "public_sharing_defaults",
+            # Whether the users this user shares with see the people they
+            # named (#2722); public links follow public_sharing_defaults.
+            "share_people_names",
             "min_cluster_size",
             "confidence_unknown_face",
             "min_samples",
             "cluster_selection_epsilon",
+            "min_face_size",
             "skip_raw_files",
             "stack_raw_jpeg",
             "slideshow_interval",
             "duplicate_sensitivity",
             "duplicate_clear_existing",
             "default_timeline_filter",
+            "last_seen_release",
+            "show_whats_new",
         )
 
     def validate_nextcloud_app_password(self, value: str) -> str:
@@ -314,10 +359,26 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_datetime_rules(self, value: object) -> object:
-        return validate_rule_exif_tag_names(value, "datetime_rules")
+        value = validate_rule_exif_tag_names(value, "datetime_rules")
+        # A rule saved before is not checked again (#2272): the settings page
+        # sends the whole list back, and an older rule must not block a save.
+        saved = self.instance.datetime_rules if self.instance is not None else None
+        problem = changed_rule_problem(value, saved)
+        if problem:
+            raise ValidationError(problem, code="invalid_date_rule")
+        return value
 
     def validate_burst_detection_rules(self, value: object) -> object:
         return validate_rule_exif_tag_names(value, "burst_detection_rules")
+
+    def validate_public_sharing_defaults(self, value: object) -> dict[str, bool]:
+        saved = (
+            self.instance.public_sharing_defaults if self.instance is not None else None
+        )
+        try:
+            return merged_public_sharing_defaults(value, saved)
+        except ValueError as error:
+            raise ValidationError(f"public_sharing_defaults {error}.") from error
 
     def validate_default_timeline_filter(self, value: object) -> dict[str, object]:
         try:
@@ -705,3 +766,27 @@ declare_fields(
         help_text="True while no superuser exists"
     ),
 )
+
+
+class ScanDirectoryImpactQuery(serializers.Serializer[None]):
+    """``GET /api/manage/user/<id>/scan-directory-impact/``: a library not saved yet."""
+
+    scan_directory = serializers.CharField(
+        trim_whitespace=False, help_text="The scan directory the admin is choosing"
+    )
+    upload_directory = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="The upload folder with it; the stored one when left out, "
+        "the default ('uploads' in the scan directory) when blank",
+    )
+
+
+class ScanDirectoryImpactSerializer(serializers.Serializer[None]):
+    """How many of a user's photos a new scan directory leaves outside it (#2036)."""
+
+    outside_count = serializers.IntegerField(
+        help_text="Photos whose files lie outside the library the user would "
+        "have: they stay the user's unless moved to the trash"
+    )

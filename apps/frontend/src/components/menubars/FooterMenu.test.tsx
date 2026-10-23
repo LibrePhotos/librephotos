@@ -1,3 +1,4 @@
+import type { ImportJob } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -10,6 +11,7 @@ import { FooterMenu } from "./FooterMenu";
 const stubs = vi.hoisted(() => ({
   logout: vi.fn<() => void>(),
   queue: null as UploadQueue | null,
+  openImports: [] as ImportJob[],
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -25,6 +27,7 @@ vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: true 
 vi.mock("../upload/UploadContext", async importOriginal => ({
   ...(await importOriginal<typeof import("../upload/UploadContext")>()),
   useOptionalUpload: () => stubs.queue,
+  useOptionalUploadProcessing: () => ({ openImports: stubs.openImports }),
 }));
 
 const queue = (isUploading: boolean): UploadQueue => ({
@@ -40,7 +43,7 @@ const queue = (isUploading: boolean): UploadQueue => ({
 let root: Root;
 let container: HTMLDivElement;
 
-const logOutFromMenu = async () => {
+const openMenu = async () => {
   await act(async () => {
     root.render(
       // env="test" renders the menu and the dialog inline and without transitions.
@@ -52,6 +55,10 @@ const logOutFromMenu = async () => {
   await act(async () =>
     defined(container.querySelector<HTMLButtonElement>('button[aria-label="Account menu"]')).click()
   );
+};
+
+const logOutFromMenu = async () => {
+  await openMenu();
   const logout = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(el =>
     el.textContent?.includes("Log out")
   );
@@ -75,6 +82,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  stubs.openImports = [];
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -97,5 +105,31 @@ describe("FooterMenu log out", () => {
     await logOutFromMenu();
     expect(stubs.logout).not.toHaveBeenCalled();
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Log out while uploading?");
+  });
+});
+
+describe("FooterMenu upload imports (#2739)", () => {
+  it("shows the uploads the server is still importing at the top of the menu", async () => {
+    stubs.queue = queue(false);
+    stubs.openImports = [
+      {
+        id: 3,
+        job_id: "j1",
+        queued_at: "2026-10-22T10:00:00Z",
+        started_at: null,
+        finished_at: null,
+        finished: false,
+        failed: false,
+        cancelled: false,
+        job_type: 20,
+        job_type_str: "Import Uploads",
+        started_by: { id: 1, username: "admin", first_name: "", last_name: "" },
+        progress_current: 3,
+        progress_target: 8,
+        result: { stages: {} },
+      },
+    ];
+    await openMenu();
+    expect(document.querySelector('[data-testid="import-job-section"]')?.textContent).toContain("3 / 8 ready");
   });
 });

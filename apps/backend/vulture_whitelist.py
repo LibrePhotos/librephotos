@@ -37,6 +37,7 @@ _.scheduled_library_scans  # function in api/directory_watcher/scan_schedule.py 
 _.cleanup_stuck_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 _.run_upload_followups  # function in api/jobs/upload_followups.py (schedule_upload_followups)
+_.sweep_upload_imports  # function in api/jobs/upload_import.py (start_job_cleanup_service)
 
 # drf-spectacular extensions: defining one registers it, nothing names it.
 _.ThrottledBasicScheme  # class in api/drf/openapi.py (OpenApiAuthenticationExtension)

@@ -97,6 +97,13 @@ services:
       - WEB_CONCURRENCY=1
       - WORKER_CONCURRENCY=2
       - ALLOW_UPLOAD=true
+      # The version the sidebar shows instead of "dev", passed through from the shell that starts
+      # the stack (the screenshots workflow sets it); unset there, the backend shows "dev". Not
+      # interpolated from a .env file: it is a build argument of the images (INTERNAL_ENV_VARS in
+      # api/tests/infra/test_environment_variables_documented.py), not an operator .env key.
+      - IMAGE_TAG
+      # A release image asks github.com for newer releases once a day; the suite needs no network.
+      - UPDATE_CHECK=false
       # The smoke suite needs no ML; keep the sidecars and their models out of it.
       - FEATURE_FACE_DETECTION=false
       - FEATURE_FACE_CLUSTER=false

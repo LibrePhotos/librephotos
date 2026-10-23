@@ -18,13 +18,18 @@ export * as endpoints from "./endpoints";
 // Endpoint parameter types that callers need at the top level.
 export type {
   AlbumMediaFilter,
+  CheckFileContentsScope,
   DateAlbumFilter,
   DateTimeChange,
+  MapBounds,
   PhotoCategory,
   SearchFilters,
   SelectAllPhotos,
+  SharedGroupKind,
   SyncPullParams,
   UserAlbumOptions,
+  UserPlaceCircle,
+  UserPlaceFields,
 } from "./endpoints";
 export * from "./hooks";
 export * from "./polling";

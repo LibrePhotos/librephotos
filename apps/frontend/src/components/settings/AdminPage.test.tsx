@@ -6,6 +6,8 @@
  * - The users table reads name first, actions last, like the worker jobs table, without the
  *   user's own scene confidence, and a long scan directory stays on one line (#2244).
  * - The Finish the upgrade card heads the page only while an update left work (#2322).
+ * - The Update available card heads it while a newer release is out, for admins only (#2311).
+ * - Scan now sits next to every user's scan directory (#2037).
  */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -35,6 +37,9 @@ const mocks = vi.hoisted(() => {
     users,
     upgradeTasks,
     upgradeTasksEnabled: [] as boolean[],
+    // What useUpdateNotice answers an admin; the flag it was asked with.
+    updateNotice: null as { latest: string } | null,
+    updateNoticeAsked: [] as boolean[],
     // What the theme's sm breakpoint query answers: true is the desktop layout.
     desktop: false,
     deleteAll: vi.fn<(variables: undefined, options?: { onSettled?: () => void }) => void>(),
@@ -49,7 +54,13 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("../../api_client/albums/hooks", () => ({
   useDeleteAllAutoAlbumsMutation: () => ({ mutate: mocks.deleteAll, isPending: false }),
 }));
-vi.mock("../../api_client/server/hooks", () => ({ useFetchServerStatsQuery: () => ({ data: {}, isLoading: false }) }));
+vi.mock("../../api_client/server/hooks", () => ({
+  useFetchServerStatsQuery: () => ({ data: {}, isLoading: false }),
+  useUpdateNotice: (isAdmin: boolean) => {
+    mocks.updateNoticeAsked.push(isAdmin);
+    return isAdmin ? mocks.updateNotice : null;
+  },
+}));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => ({ data: mocks.users, isFetching: false }),
 }));
@@ -63,6 +74,9 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
   },
 }));
 vi.mock("./FinishUpgradeCard", () => ({ FinishUpgradeCard: () => "finish-upgrade-card" }));
+vi.mock("./UpdateAvailableCard", () => ({
+  UpdateAvailableCard: ({ status }: { status: { latest: string } }) => `update-card ${status.latest}`,
+}));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../job/JobList", () => ({ JobList: () => null }));
 vi.mock("../modals/ModalUserDelete", () => ({ ModalUserDelete: () => null }));
@@ -74,6 +88,11 @@ vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
 vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
 vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
+vi.mock("./DeduplicateFacesTool", () => ({ DeduplicateFacesTool: () => "deduplicate-faces-tool" }));
+vi.mock("./CheckFileContentsTool", () => ({ CheckFileContentsTool: () => "check-file-contents-tool" }));
+vi.mock("./ScanUserButton", () => ({
+  ScanUserButton: ({ username }: { username: string }) => <button type="button" data-scan-user={username} />,
+}));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -103,6 +122,8 @@ beforeEach(() => {
   mocks.users = [];
   mocks.upgradeTasks = [];
   mocks.upgradeTasksEnabled = [];
+  mocks.updateNotice = null;
+  mocks.updateNoticeAsked = [];
   mocks.desktop = false;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -207,6 +228,33 @@ describe("AdminPage", () => {
     expect(mocks.upgradeTasksEnabled.every(enabled => !enabled)).toBe(true);
   });
 
+  it("puts the Update available card first while a newer release is out (#2311)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    mocks.updateNotice = { latest: "1.5.0" };
+    mocks.upgradeTasks = [{ key: "probe_videos" }];
+    await render();
+
+    expect(document.getElementById("admin-update")?.textContent).toBe("update-card 1.5.0");
+    const toc = defined(container.querySelector("nav"), "the section navigation");
+    expect([...toc.querySelectorAll("a")].slice(0, 2).map(link => link.getAttribute("href"))).toEqual([
+      "#admin-update",
+      "#admin-upgrade",
+    ]);
+  });
+
+  it("has no Update available card without a notice, and asks for none for a non-admin", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+    expect(document.getElementById("admin-update")).toBeNull();
+
+    mocks.selfDetails = { data: { is_superuser: false }, isPending: false };
+    mocks.updateNotice = { latest: "1.5.0" };
+    mocks.updateNoticeAsked = [];
+    await render();
+    expect(document.getElementById("admin-update")).toBeNull();
+    expect(mocks.updateNoticeAsked.every(isAdmin => !isAdmin)).toBe(true);
+  });
+
   it("offers the thumbnail metadata cleanup among the admin tools (#2321)", async () => {
     mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
     await render();
@@ -219,6 +267,13 @@ describe("AdminPage", () => {
     await render();
 
     expect(document.getElementById("admin-tools")?.textContent).toContain("look-up-places-tool");
+  });
+
+  it("offers checking the file contents among the admin tools (#2040)", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    await render();
+
+    expect(document.getElementById("admin-tools")?.textContent).toContain("check-file-contents-tool");
   });
 
   it("asks before deleting all auto created albums", async () => {
@@ -299,6 +354,17 @@ describe("AdminPage", () => {
       });
       const tooltip = defined(document.body.querySelector('[role="tooltip"]'), "the tooltip");
       expect(tooltip.textContent).toBe(longPath);
+    });
+
+    it("offers Scan now next to a user's scan directory, not where none is set (#2037)", async () => {
+      await render();
+
+      const rows = [...usersTable().querySelectorAll("tbody tr")];
+      expect(
+        rows.map(row =>
+          row.querySelectorAll("td")[1]?.querySelector("[data-scan-user]")?.getAttribute("data-scan-user")
+        )
+      ).toEqual(["admin", undefined]);
     });
 
     it("says not set only for a user without a scan directory", async () => {

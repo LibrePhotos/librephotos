@@ -9,7 +9,7 @@
     "/api/addface/": {
       "post": {
         "operationId": "api_addface_create",
-        "description": "Create a face from a box the user drew on a photo.\n\nUntil now every Face row came from the detector or from an XMP region already\nwritten into the file, so a face the detector missed could not be recorded at\nall -- someone turned away from the camera, a child, a face behind a hat. This\nis the manual way in.\n\nThe box arrives normalized to the displayed image (each side a fraction of the\nwidth or height) because fractions are what the browser can measure. Face rows\nstore pixels in big-thumbnail space, and the big thumbnail is the image the\nlightbox displays, so converting is a multiplication by the thumbnail's own\nsize -- no separate coordinate mapping is involved.\n\nA manually added face is a user label: it gets ``person`` set with\n``KIND_USER`` and no cluster, so classification trains on it like any other\nface the user named, but it never seeds a cluster of its own.",
+        "description": "Create a face from a box the user drew on a photo.\n\nUntil now every Face row came from the detector or from an XMP region already\nwritten into the file, so a face the detector missed could not be recorded at\nall -- someone turned away from the camera, a child, a face behind a hat. This\nis the manual way in.\n\nThe box arrives normalized to the displayed image (each side a fraction of the\nwidth or height) because fractions are what the browser can measure. Face rows\nstore pixels in big-thumbnail space, and the big thumbnail is the image the\nlightbox displays, so converting is a multiplication by the thumbnail's own\nsize -- no separate coordinate mapping is involved.\n\nA manually added face is a user label: it gets ``person`` set with\n``KIND_USER`` and no cluster, so classification trains on it like any other\nface the user named, but it never seeds a cluster of its own.\n\nWith ``fit`` the box only says where to look (#1117): the face service\nlooks at that part of the photo alone, and the face it finds there is\nsaved with its own box and encoding, so a rough box is enough.",
         "tags": [
           "api"
         ],
@@ -900,6 +900,85 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AlbumPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/albums/place/in-bounds/": {
+      "get": {
+        "operationId": "api_albums_place_in_bounds_retrieve",
+        "description": "The requester's place albums with a photo inside a map's view: the\nPlaces grid lists those under the map.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "east",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Eastern edge, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "north",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Northern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "south",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Southern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "west",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Western edge, longitude",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceAlbumsInBounds"
                 }
               }
             },
@@ -1889,6 +1968,54 @@
         }
       }
     },
+    "/api/check-file-contents/": {
+      "post": {
+        "operationId": "api_check_file_contents_create",
+        "description": "Read every indexed file again and re-index the ones whose contents\nchanged with their date kept (#2040).\n\nFor files replaced by a tool that keeps the modification time (``cp -p``,\n``rsync --times``), which the scan never reads again. Every user's\nlibrary, or ``user_id``'s; ``folder`` (relative to that user's scan\ndirectory) narrows it to one folder. It reads every byte, so only an\nadmin may start it. A 400 for an unknown user or a folder outside the\nscan directory, a 409 while one runs.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckFileContentsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckFileContentsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckFileContentsRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/classifymedia/": {
       "post": {
         "operationId": "api_classifymedia_create",
@@ -1965,6 +2092,154 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClusterFacesResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/datetime-rules/check/": {
+      "post": {
+        "operationId": "api_datetime_rules_check_create",
+        "description": "Whether one date rule can be saved, as the settings save checks it.\nEach param that cannot is a 400 entry with the param as its field, so the\nrule form shows the message next to it. Nothing is saved.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRuleCheckRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRuleCheckResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/datetime-rules/options/": {
+      "get": {
+        "operationId": "api_datetime_rules_options_retrieve",
+        "description": "The tags a custom date rule may read and check, and where custom rule\nids start. Another tag cannot be saved.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRuleOptionsResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/datetime-rules/test/": {
+      "get": {
+        "operationId": "api_datetime_rules_test_retrieve",
+        "description": "What each of the requester's saved date rules reads from one of their\nphotos now, and which one a scan takes the date from: \"Why this date?\".\nIt runs the saved rules, not ones sent along, so it shows exactly what a\nscan would do; nothing is changed. Another user's photo is a 404.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "One of the requester's own photos",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateRulesTestResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/deduplicate-faces/": {
+      "post": {
+        "operationId": "api_deduplicate_faces_create",
+        "description": "Delete the duplicate faces of every photo, as a job (#2030).\n\nTwo overlapping faces of one photo are one face found twice; the\nlabelled one stays. The photos of every user are walked, so only an\nadmin may start it; ``manage.py deduplicate_faces`` does the same. A\nsecond start while one runs is a 409.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
                 }
               }
             },
@@ -2232,6 +2507,55 @@
                   "items": {
                     "$ref": "#/components/schemas/DirTree"
                   }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/dirtree/folders/": {
+      "post": {
+        "operationId": "api_dirtree_folders_create",
+        "description": "Make a folder for the folder picker, inside the data root (#2035).\n\nFor an admin giving a user a fresh, empty library without a shell on the\nhost. One folder, in an existing folder inside ``DATA_ROOT``; its name may\nnot hold a separator, ``..`` or anything Windows refuses. Answers the new\nfolder and its parent listed again (one level), for the picker's tree.\n400 for a bad name or parent, or a folder the server cannot write to; 409\nwhen the name is taken.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedFolder"
                 }
               }
             },
@@ -3722,6 +4046,232 @@
         }
       }
     },
+    "/api/library-folders/": {
+      "get": {
+        "operationId": "api_library_folders_retrieve",
+        "description": "The folders of the requester's own library, the scan directory first.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library-folders/excluded/": {
+      "put": {
+        "operationId": "api_library_folders_excluded_update",
+        "description": "Leave folders out of the requester's own library (#791).\n\nPUT replaces the list. Each folder must lie inside one of the library\nfolders and not hold the upload folder; 400 names ``excluded_folders``\notherwise. Scans skip them from now on; the photos already imported from\nthem count as outside the library (``outside_count``) and stay until the\nuser moves them to the trash (``POST /api/library-folders/trash-outside/``).",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcludedFoldersRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcludedFoldersRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcludedFoldersRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExcludedFoldersSaved"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library-folders/subfolders/": {
+      "get": {
+        "operationId": "api_library_folders_subfolders_retrieve",
+        "description": "The folders inside a folder of the requester's library, for leaving some out.\n\n404 for a path outside the library or inside a folder left out.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Absolute path of a folder in the library",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibrarySubfolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library-folders/trash-outside/": {
+      "post": {
+        "operationId": "api_library_folders_trash_outside_create",
+        "description": "Move the requester's photos outside their library to their trash, as a job.\n\nAfter leaving folders out of the library (#791). Only the requester's own\nphotos; files are not touched and the photos can be restored from the\ntrash. 409 while one runs.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library/processing-status/": {
+      "get": {
+        "operationId": "api_library_processing_status_retrieve",
+        "description": "What each processing stage that is turned on still has to do in the\ncaller's library: photos without a big thumbnail, things, search\nembedding, place (with a position), face scan or text, faces without\nrecognition data, photos without a generated caption. Only the caller's\nown photos and jobs, staff included.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessingStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library/processing-status/run/": {
+      "post": {
+        "operationId": "api_library_processing_status_run_create",
+        "description": "Start the job that catches a processing stage up, on the caller's photos.\n\nThe same job its own trigger or the scan's follow-ups start, for what is\nleft only. 403 (``stage_off``) while the stage is turned off, 400\n(``no_files_to_scan``) when no photo without a thumbnail has a file to\nread, 409 ``job_already_running`` with the running job's ``job_id``.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RunProcessingStageRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/locationsunburst/": {
       "get": {
         "operationId": "api_locationsunburst_retrieve",
@@ -3905,6 +4455,277 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ManageUser"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/library-folders/": {
+      "get": {
+        "operationId": "api_manage_user_library_folders_retrieve",
+        "description": "A user's library folders, for the user edit dialog: list and add.\n\nPOST adds a folder: an existing folder inside the data root that overlaps\nno folder of another user's library (#2034) nor of this one. 400 names\nthe ``path`` field otherwise. The next scan reads it. Admins only; 404\nfor an unknown or deactivated user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_manage_user_library_folders_create",
+        "description": "A user's library folders, for the user edit dialog: list and add.\n\nPOST adds a folder: an existing folder inside the data root that overlaps\nno folder of another user's library (#2034) nor of this one. 400 names\nthe ``path`` field otherwise. The next scan reads it. Admins only; 404\nfor an unknown or deactivated user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLibraryFolderRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFolders"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/library-folders/{folder_id}/": {
+      "delete": {
+        "operationId": "api_manage_user_library_folders_destroy",
+        "description": "Remove a further folder from a user's library.\n\nIts photos stay the user's, outside the library now; the user edit dialog\noffers to move them to the user's trash\n(``POST /api/manage/user/<id>/trash-photos-outside-library/``). Files on\ndisk are never touched. The scan directory is not a row here and cannot\nbe removed. Admins only; 404 for another user's folder.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/scan/": {
+      "post": {
+        "operationId": "api_manage_user_scan_create",
+        "description": "Scan another user's library from the Admin Area (#2037).\n\nThe same scan as that user's own Scan button: the job is started as them,\nso it reads only their library (the scan directory and every further\nlibrary folder, #123), shows in their job list and counts as their scan\n(a second one while it runs is a 409). Admins only, since\nan admin is who sets the scan directory. 404 for an unknown or\ndeactivated user, 400 when the user has no scan directory or it is gone.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/scan-directory-impact/": {
+      "get": {
+        "operationId": "api_manage_user_scan_directory_impact_retrieve",
+        "description": "How many of a user's photos another scan directory leaves outside (#2036).\n\nAsked by the user edit dialog while the admin picks a folder, before Save:\nphotos whose files are outside the library the user would have stay the\nuser's, unless the admin moves them to the user's trash\n(``POST /api/manage/user/<id>/trash-photos-outside-library/``). Read only.\nAdmins only; 404 for an unknown user, 400 for a folder outside the data\nroot.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scan_directory",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "The scan directory the admin is choosing",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "upload_directory",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The upload folder with it; the stored one when left out, the default ('uploads' in the scan directory) when blank"
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanDirectoryImpact"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/manage/user/{user_id}/trash-photos-outside-library/": {
+      "post": {
+        "operationId": "api_manage_user_trash_photos_outside_library_create",
+        "description": "Move a user's photos outside their library to their trash, as a job (#2036).\n\nThe user edit dialog starts it after the admin saved another scan\ndirectory and chose to move the photos left outside it. Nothing changes\nowner and no file is touched: the photos can be restored from the user's\ntrash until it is emptied. The job is started as the user and reads their\nlibrary when it runs. Admins only; 404 for an unknown or deactivated user,\n409 while one runs for them.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
                 }
               }
             },
@@ -5985,6 +6806,103 @@
         }
       }
     },
+    "/api/photos/in-bounds/": {
+      "get": {
+        "operationId": "api_photos_in_bounds_list",
+        "description": "The requester's photos taken inside a map's view, newest first, a page\nat a time: what a point or a cluster of the Places map opens.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "east",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Eastern edge, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "north",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Northern edge, latitude",
+            "required": true
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "south",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Southern edge, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "west",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Western edge, longitude",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/located-nearby-in-time/": {
       "get": {
         "operationId": "api_photos_located_nearby_in_time_list",
@@ -6079,6 +6997,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LocationSummaryResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/map-points/": {
+      "get": {
+        "operationId": "api_photos_map_points_retrieve",
+        "description": "Where the requester's photos were taken: one point per spot with the\nnumber of photos there. Hidden, trashed and removed photos are left out.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoMapPoints"
                 }
               }
             },
@@ -6208,7 +7155,7 @@
     "/api/photos/move/": {
       "post": {
         "operationId": "api_photos_move_create",
-        "description": "Move the selected photos, with all their files, to ``target_folder``.\n\nOnly the requester's own photos, only inside their library folders.\nWithout ``on_conflict`` a taken name is a 409 ``name_conflict`` and\nnothing moves. Up to ``SYNC_MOVE_LIMIT`` photos move within the request\n(200 with the counts); more queue the \"Move Photos\" job (202). A scan of\nthe library running meanwhile is a 409 ``scan_running``: it reads the\npaths a move changes.",
+        "description": "Move the selected photos, with all their files, to ``target_folder``.\n\nOnly the requester's own photos, only inside their library folders.\nWith ``folder_pattern`` each photo goes into the folder of its capture\ndate inside ``target_folder``; photos without a date stay (``undated``).\nWithout ``on_conflict`` a taken name is a 409 ``name_conflict`` and\nnothing moves. Up to ``SYNC_MOVE_LIMIT`` photos move within the request\n(200 with the counts); more queue the \"Move Photos\" job (202). A scan of\nthe library running meanwhile is a 409 ``scan_running``: it reads the\npaths a move changes.",
         "tags": [
           "api"
         ],
@@ -6307,7 +7254,7 @@
     "/api/photos/move/preview/": {
       "post": {
         "operationId": "api_photos_move_preview_create",
-        "description": "What moving the selected photos to ``target_folder`` would do: the\nphotos and files that move, those already there or refused, and each name\nthat is taken there with the name \"rename\" would give it. A POST because a\nselection can be a whole query; it changes nothing.",
+        "description": "What moving the selected photos to ``target_folder`` would do: the\nphotos and files that move, those already there or refused, and each name\nthat is taken there with the name \"rename\" would give it. With\n``folder_pattern`` also the photos without a date and each folder they go\nto. A POST because a selection can be a whole query; it changes nothing.",
         "tags": [
           "api"
         ],
@@ -6755,6 +7702,114 @@
         }
       }
     },
+    "/api/photos/rename/": {
+      "post": {
+        "operationId": "api_photos_rename_create",
+        "description": "Rename the selected photos, with all their files, to the name\n``pattern`` makes from each one's capture date.\n\nOnly the requester's own photos; the files stay in their folder. A name\nthat is taken gets \" (1)\", \" (2)\", ...; nothing is overwritten. Photos\nwithout a capture date keep their names. Up to ``SYNC_MOVE_LIMIT``\nphotos are renamed within the request (200 with the counts); more queue\nthe \"Rename Photos\" job (202). A scan of the library running meanwhile\nis a 409 ``scan_running``: it reads the paths a rename changes.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenamePhotosResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenamePhotosStartedResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/rename/preview/": {
+      "post": {
+        "operationId": "api_photos_rename_preview_create",
+        "description": "What renaming the selected photos with ``pattern`` would do: the\nphotos and files that get a new name, those that have it already, have\nno capture date or are refused, and the first photos one by one with\ntheir new names. A POST because a selection can be a whole query; it\nchanges nothing.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePhotosRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenamePreviewResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photos/rescan/": {
       "post": {
         "operationId": "api_photos_rescan_create",
@@ -7120,6 +8175,332 @@
             "schema": {
               "type": "integer"
             }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/people/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_people_list",
+        "description": "The named people on the photos shared with you (#2722).\n\nOne entry per owner and person, only for owners who share people's\nnames; counts and crops from the shared photos only.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedPersonList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/people/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_people_photos_list",
+        "description": "The photos shared with you that show one of the shared people.\n\nA person on none of them (or not shared, or not named) is a 404.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "A person from the shared people list",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/places/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_places_list",
+        "description": "The places of the photos shared with you, one entry per place name.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/places/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_places_photos_list",
+        "description": "The photos shared with you from one place; a 404 when there are none.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "The place or thing, as the list names it",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPhotoSummaryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/things/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_things_list",
+        "description": "The things of the photos shared with you, one entry per thing.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSharedGroupList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/photos/shared/tome/things/photos/": {
+      "get": {
+        "operationId": "api_photos_shared_tome_things_photos_list",
+        "description": "The photos shared with you that show one thing; a 404 when there are none.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "The place or thing, as the list names it",
+            "required": true
           }
         ],
         "tags": [
@@ -10697,6 +12078,113 @@
         }
       }
     },
+    "/api/updates/": {
+      "get": {
+        "operationId": "api_updates_retrieve",
+        "description": "The newest release the last check found, and what to do about it.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/updates/skip/": {
+      "post": {
+        "operationId": "api_updates_skip_create",
+        "description": "**Skip this release**: no card, dot or tray notification for it; an\nempty version undoes it.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipReleaseRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/updates/snooze/": {
+      "post": {
+        "operationId": "api_updates_snooze_create",
+        "description": "Closing the Update available card: it comes back in a week.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/upgrade-tasks/": {
       "get": {
         "operationId": "api_upgrade_tasks_retrieve",
@@ -10806,6 +12294,113 @@
         }
       }
     },
+    "/api/upload/seal/": {
+      "post": {
+        "operationId": "api_upload_seal_create",
+        "description": "``POST /api/upload/seal/``: the caller's upload run is over (#2737).\n\nThe import jobs it names take no more files and finish once their files\nare processed, which starts the follow-ups. Without this call a job is\nsealed after a few idle minutes (``api.jobs.upload_import``).",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSealRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSealRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSealRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSealResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/upload/status/": {
+      "get": {
+        "operationId": "api_upload_status_retrieve",
+        "description": "``GET /api/upload/status/``: what the caller's uploads are doing on the server (#2739).\n\nThe caller's upload imports still open or processing, the named ones even\nonce finished, which named photos are ready, and the follow-ups' state.\nEvery part is the caller's own, staff included.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "job_id",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 36
+              },
+              "maxItems": 100
+            },
+            "description": "Repeatable. Import jobs POST /api/upload/complete/ answered, listed even once they finished; someone else's id is ignored"
+          },
+          {
+            "in": "query",
+            "name": "photo_id",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 100
+            },
+            "description": "Repeatable. Uploaded photos to check for being ready; someone else's id is ignored"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/": {
       "get": {
         "operationId": "api_user_list",
@@ -10893,6 +12488,356 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SignupUser"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user-places/": {
+      "get": {
+        "operationId": "api_user_places_list",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to return per page.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUserPlaceList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "api_user_places_create",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPlaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user-places/{id}/": {
+      "get": {
+        "operationId": "api_user_places_retrieve",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "api_user_places_partial_update",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserPlaceRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlace"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_user_places_destroy",
+        "description": "The requester's places, by name. Saving or deleting one files the\nrequester's photos into the places they were taken in at once.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/user-places/{id}/photos/": {
+      "get": {
+        "operationId": "api_user_places_photos_retrieve",
+        "description": "The place's visible photos, by day, newest first.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this user place.",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlacePhotos"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user-places/preview/": {
+      "get": {
+        "operationId": "api_user_places_preview_retrieve",
+        "description": "How many of the requester's photos were taken inside a circle being\ndrawn, the newest few, and the places that share some of them.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "exclude",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The place being edited, left out of the overlaps"
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 90,
+              "minimum": -90
+            },
+            "description": "Centre, latitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 180,
+              "minimum": -180
+            },
+            "description": "Centre, longitude",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            },
+            "description": "Radius in metres (25 to 2000)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlacePreview"
                 }
               }
             },
@@ -11254,6 +13199,11 @@
           },
           "box": {
             "description": "top, right, bottom and left as fractions of the displayed image"
+          },
+          "fit": {
+            "type": "boolean",
+            "default": false,
+            "description": "Look for the face inside the box and save the face found there, with its own box and encoding (#1117). No face in the box is a 400 with code no_face_in_box; send the box again without fit to keep it as drawn. With the face service off or failing, the box is kept"
           }
         },
         "required": [
@@ -11273,14 +13223,34 @@
             "nullable": true,
             "description": "Why the edit, saved in LibrePhotos, was not written to the file or its sidecar; null when it was written or writing is off (#2294)"
           },
+          "fitted": {
+            "type": "boolean",
+            "description": "The face was found in the drawn box: its location is the found face's box (#1117). False when the box is saved as drawn"
+          },
           "face": {
             "$ref": "#/components/schemas/AddedFace"
           }
         },
         "required": [
           "face",
+          "fitted",
           "status",
           "write_error"
+        ]
+      },
+      "AddLibraryFolderRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/manage/user/<id>/library-folders/``: a folder to add.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Absolute path of an existing folder inside the data root",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "path"
         ]
       },
       "AddToStackResponse": {
@@ -12397,6 +14367,22 @@
         "type": "string",
         "description": "* `photo` - photo\n* `screenshot` - screenshot\n* `document` - document\n* `auto` - auto"
       },
+      "CheckFileContentsRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/check-file-contents/``: whose files, and which folder of them.",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Only this user's library; every user's when left out"
+          },
+          "folder": {
+            "type": "string",
+            "default": "",
+            "description": "Only this folder, relative to the user's scan directory; needs user_id"
+          }
+        }
+      },
       "ClusterFacePoint": {
         "type": "object",
         "description": "One face on the face cluster chart (``api.faces.classify.build_scatter_point``).",
@@ -12640,6 +14626,27 @@
           "python_version"
         ]
       },
+      "CreateFolderRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/dirtree/folders/``: a new folder for the folder picker (#2035).",
+        "properties": {
+          "parent_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Absolute path of an existing folder inside the data root"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The new folder's name: one folder, no separators",
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "name",
+          "parent_path"
+        ]
+      },
       "CreateManualStackRequestRequest": {
         "type": "object",
         "properties": {
@@ -12675,9 +14682,37 @@
           "status"
         ]
       },
+      "CreatedFolder": {
+        "type": "object",
+        "description": "The folder ``POST /api/dirtree/folders/`` made, and its parent listed again.",
+        "properties": {
+          "absolute_path": {
+            "type": "string",
+            "description": "The new folder"
+          },
+          "parent": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirTree"
+              }
+            ],
+            "description": "The parent folder with its subfolders, the new one among them"
+          }
+        },
+        "required": [
+          "absolute_path",
+          "parent"
+        ]
+      },
       "CustomTokenObtainPairRequest": {
         "type": "object",
         "properties": {
+          "remember_me": {
+            "type": "boolean",
+            "writeOnly": true,
+            "default": false,
+            "description": "Stay signed in: a refresh token for REMEMBER_ME_DAYS instead of REFRESH_TOKEN_DAYS, and auth cookies that outlive the browser session. Ignored when REMEMBER_ME_DAYS is 0."
+          },
           "username": {
             "type": "string",
             "writeOnly": true,
@@ -12692,6 +14727,100 @@
         "required": [
           "password",
           "username"
+        ]
+      },
+      "DateRuleCheckRequestRequest": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "One date rule as datetime_rules holds it; a 400 names each of its params that cannot be saved as the error's field"
+          }
+        },
+        "required": [
+          "rule"
+        ]
+      },
+      "DateRuleCheckResponse": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The rule, which can be saved"
+          }
+        },
+        "required": [
+          "rule"
+        ]
+      },
+      "DateRuleOptionsResponse": {
+        "type": "object",
+        "description": "What a custom date rule may use.",
+        "properties": {
+          "date_tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DateTag"
+            },
+            "description": "The tags a rule may read"
+          },
+          "condition_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The tags an 'Only when the tag contains' condition may check"
+          },
+          "first_custom_id": {
+            "type": "integer",
+            "description": "Custom rules take ids from here up"
+          }
+        },
+        "required": [
+          "condition_tags",
+          "date_tags",
+          "first_custom_id"
+        ]
+      },
+      "DateRulesTestResponse": {
+        "type": "object",
+        "description": "What each of the requester's saved date rules reads from the photo's\nfiles now. Nothing is changed.",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "exif_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "The date the photo has now"
+          },
+          "date_set_by_user": {
+            "type": "boolean",
+            "description": "The date was set by hand, which wins over every rule"
+          },
+          "winner": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The index in outcomes of the rule a scan takes the date from; null when none applies"
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleOutcome"
+            },
+            "description": "One per rule, in order"
+          }
+        },
+        "required": [
+          "date_set_by_user",
+          "exif_timestamp",
+          "outcomes",
+          "photo_id",
+          "winner"
         ]
       },
       "DateSummaryResponse": {
@@ -12730,6 +14859,23 @@
           "newest",
           "oldest",
           "without_date"
+        ]
+      },
+      "DateTag": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The ExifTool tag, such as EXIF:CreateDate"
+          },
+          "utc": {
+            "type": "boolean",
+            "description": "Its value is usually in UTC, so a rule on it converts the time"
+          }
+        },
+        "required": [
+          "name",
+          "utc"
         ]
       },
       "DatedPhoto": {
@@ -14181,6 +16327,12 @@
             "type": "string",
             "readOnly": true,
             "description": "The album's grouping date, YYYY-MM-DD"
+          },
+          "user_place": {
+            "type": "integer",
+            "readOnly": true,
+            "nullable": true,
+            "description": "The id of the owner's place most photos were taken in, for \"<when> at <place>\" (#1365); only the owner's own places name it. Null without one, or before the titles are regenerated"
           }
         },
         "required": [
@@ -14189,8 +16341,56 @@
           "places",
           "span_days",
           "time_of_day",
+          "user_place",
           "weekday",
           "weekend"
+        ]
+      },
+      "ExcludedFoldersRequestRequest": {
+        "type": "object",
+        "description": "``PUT /api/library-folders/excluded/``: every folder to leave out (#791).",
+        "properties": {
+          "excluded_folders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Absolute paths of folders inside the library folders; replaces the list, an empty one takes every folder back in",
+            "maxItems": 500
+          }
+        },
+        "required": [
+          "excluded_folders"
+        ]
+      },
+      "ExcludedFoldersSaved": {
+        "type": "object",
+        "description": "The library after a change of the folders left out of it.",
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryFolderEntry"
+            }
+          },
+          "excluded_folders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Folders inside them the user left out of the library (#791)"
+          },
+          "outside_count": {
+            "type": "integer",
+            "description": "The user's photos now outside the library, those in the folders left out included; they stay until moved to the trash"
+          }
+        },
+        "required": [
+          "excluded_folders",
+          "folders",
+          "outside_count"
         ]
       },
       "FaceBoxPixels": {
@@ -14335,6 +16535,11 @@
           "person_name": {
             "type": "string",
             "readOnly": true
+          },
+          "video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "required": [
@@ -14345,7 +16550,8 @@
           "person_label_probability",
           "person_name",
           "photo",
-          "timestamp"
+          "timestamp",
+          "video_time"
         ]
       },
       "FindThingsRequestRequest": {
@@ -14767,13 +16973,20 @@
           "face_count": {
             "type": "integer",
             "readOnly": true
+          },
+          "similarity_rank": {
+            "type": "integer",
+            "nullable": true,
+            "readOnly": true,
+            "description": "The group's place when groups that look alike sit together (#622): a chain from the group with the most faces to each next closest one; groups without a cluster come after it. Null above 3000 groups and for Unknown - Other"
           }
         },
         "required": [
           "face_count",
           "id",
           "kind",
-          "name"
+          "name",
+          "similarity_rank"
         ]
       },
       "JobStartedResponse": {
@@ -14822,6 +17035,7 @@
           17,
           18,
           19,
+          20,
           22,
           23,
           24,
@@ -14830,10 +17044,15 @@
           27,
           28,
           29,
-          30
+          30,
+          31,
+          32,
+          33,
+          34,
+          35
         ],
         "type": "integer",
-        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names\n* `30` - Move Photos"
+        "description": "* `1` - Scan Photos\n* `2` - Generate Event Albums\n* `3` - Regenerate Event Titles\n* `4` - Train Faces\n* `5` - Delete Missing Photos\n* `7` - Scan Faces\n* `6` - Calculate Clip Embeddings\n* `8` - Find Similar Faces\n* `9` - Download Selected Photos\n* `10` - Download Models\n* `11` - Add Geolocation\n* `12` - Generate Tags\n* `13` - Generate Face Embeddings\n* `14` - Scan Missing Photos\n* `15` - Detect Duplicate Photos\n* `16` - Repair File Variants\n* `17` - Classify Media Categories\n* `18` - Extract Text (OCR)\n* `19` - Probe Videos\n* `20` - Import Uploads\n* `22` - Detect Stacks\n* `23` - Remove Photo Details from Thumbnails\n* `24` - Empty Trash\n* `25` - Generate Captions\n* `26` - Apply Date Rules\n* `27` - Write Metadata to Files\n* `28` - Read Shutter Speeds Again\n* `29` - Look Up Place Names\n* `30` - Move Photos\n* `31` - Deduplicate Faces\n* `32` - Check File Contents\n* `33` - Trash Photos Outside the Library\n* `34` - Make Video Posters\n* `35` - Rename Photos"
       },
       "KindEnum": {
         "enum": [
@@ -14875,6 +17094,53 @@
           "path"
         ]
       },
+      "LibraryFolderEntry": {
+        "type": "object",
+        "description": "One folder of a user's library.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The further folder's id, to remove it; null for the scan directory and the upload folder"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path on the server"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LibraryFolderEntryKindEnum"
+              }
+            ],
+            "description": "main: the scan directory; folder: a further library folder; upload: the upload folder, when it lies outside the others\n\n* `main` - main\n* `folder` - folder\n* `upload` - upload"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "The folder can be read now; a scan skips it otherwise and does not flag its photos missing"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The user's photos in it, outside the trash"
+          }
+        },
+        "required": [
+          "available",
+          "id",
+          "kind",
+          "path",
+          "photo_count"
+        ]
+      },
+      "LibraryFolderEntryKindEnum": {
+        "enum": [
+          "main",
+          "folder",
+          "upload"
+        ],
+        "type": "string",
+        "description": "* `main` - main\n* `folder` - folder\n* `upload` - upload"
+      },
       "LibraryFolderListing": {
         "type": "object",
         "description": "The folders a move can go to, one level at a time.",
@@ -14898,6 +17164,83 @@
         "required": [
           "folders",
           "path",
+          "truncated"
+        ]
+      },
+      "LibraryFolders": {
+        "type": "object",
+        "description": "Every folder of a user's library, the scan directory first.",
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibraryFolderEntry"
+            }
+          },
+          "excluded_folders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Folders inside them the user left out of the library (#791)"
+          }
+        },
+        "required": [
+          "excluded_folders",
+          "folders"
+        ]
+      },
+      "LibrarySubfolder": {
+        "type": "object",
+        "description": "A folder inside a library folder, for the tree the user leaves folders out in.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "excluded": {
+            "type": "boolean",
+            "description": "Left out of the library itself"
+          },
+          "has_subfolders": {
+            "type": "boolean"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The user's photos in it and below it, outside the trash"
+          }
+        },
+        "required": [
+          "excluded",
+          "has_subfolders",
+          "name",
+          "path",
+          "photo_count"
+        ]
+      },
+      "LibrarySubfolders": {
+        "type": "object",
+        "description": "The folders inside one folder of the library (at most 500).",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "subfolders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibrarySubfolder"
+            }
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "More folders than listed"
+          }
+        },
+        "required": [
+          "path",
+          "subfolders",
           "truncated"
         ]
       },
@@ -15660,6 +18003,38 @@
           "renamed_to"
         ]
       },
+      "MoveFolderCount": {
+        "type": "object",
+        "description": "What a move sorted by date does in one of its folders.",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "integer",
+            "description": "Photos that move into it"
+          },
+          "unchanged": {
+            "type": "integer",
+            "description": "Photos already in it"
+          },
+          "clashes": {
+            "type": "integer",
+            "description": "Photos whose name is taken in it"
+          },
+          "new": {
+            "type": "boolean",
+            "description": "The move makes the folder"
+          }
+        },
+        "required": [
+          "clashes",
+          "new",
+          "path",
+          "photos",
+          "unchanged"
+        ]
+      },
       "MoveOnConflictEnum": {
         "enum": [
           "rename",
@@ -15701,6 +18076,10 @@
             "minLength": 1,
             "description": "An absolute folder inside the requester's library; it is created when it does not exist"
           },
+          "folder_pattern": {
+            "type": "string",
+            "description": "Sort by date (#2774): each photo goes into this folder inside target_folder, made from its capture date with the tokens {year} {month} {day} {hour} {minute} {second}, levels separated by \"/\" (\"{year}/{month}\"). Photos without a date stay where they are"
+          },
           "on_conflict": {
             "allOf": [
               {
@@ -15739,6 +18118,10 @@
           "failed": {
             "type": "integer",
             "description": "Photos whose files could not be moved; they stay where they were"
+          },
+          "undated": {
+            "type": "integer",
+            "description": "Photos without a capture date, left out by folder_pattern"
           }
         },
         "required": [
@@ -15747,7 +18130,8 @@
           "refused",
           "skipped",
           "target_folder",
-          "unchanged"
+          "unchanged",
+          "undated"
         ]
       },
       "MovePhotosStartedResponse": {
@@ -15798,6 +18182,10 @@
             "type": "string",
             "minLength": 1,
             "description": "An absolute folder inside the requester's library; it is created when it does not exist"
+          },
+          "folder_pattern": {
+            "type": "string",
+            "description": "Sort by date (#2774): each photo goes into this folder inside target_folder, made from its capture date with the tokens {year} {month} {day} {hour} {minute} {second}, levels separated by \"/\" (\"{year}/{month}\"). Photos without a date stay where they are"
           }
         },
         "required": [
@@ -15837,15 +18225,36 @@
               "$ref": "#/components/schemas/MoveClash"
             },
             "description": "Photos whose name is taken in the folder"
+          },
+          "undated": {
+            "type": "integer",
+            "description": "Photos without a capture date, left out by folder_pattern"
+          },
+          "undated_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The image hashes of those photos, to set their date"
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MoveFolderCount"
+            },
+            "description": "With folder_pattern: each folder the photos go to; else empty"
           }
         },
         "required": [
           "clashes",
           "files",
+          "folders",
           "photos",
           "refused",
           "target_folder",
-          "unchanged"
+          "unchanged",
+          "undated",
+          "undated_hashes"
         ]
       },
       "MoveRefusalReasonEnum": {
@@ -15861,6 +18270,15 @@
         "enum": [
           null
         ]
+      },
+      "OutcomeEnum": {
+        "enum": [
+          "applies",
+          "not_applicable",
+          "error"
+        ],
+        "type": "string",
+        "description": "* `applies` - applies\n* `not_applicable` - not_applicable\n* `error` - error"
       },
       "PaginatedAlbumAutoListList": {
         "type": "object",
@@ -16582,6 +19000,102 @@
           }
         }
       },
+      "PaginatedSharedGroupList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedGroup"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedSharedPersonList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPerson"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "PaginatedTagListList": {
         "type": "object",
         "required": [
@@ -16614,6 +19128,54 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagList"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 100
+          },
+          "num_pages": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "PaginatedUserPlaceList": {
+        "type": "object",
+        "required": [
+          "count",
+          "next",
+          "previous",
+          "results",
+          "page",
+          "page_size",
+          "num_pages"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserPlace"
             }
           },
           "page": {
@@ -16979,7 +19541,7 @@
       },
       "PatchedPhotoMetadataUpdateRequest": {
         "type": "object",
-        "description": "The fields the metadata API edits, single and bulk.\n\nEach goes to its one store through ``api.metadata.edits``: ``rating`` to\n``Photo.rating``, ``caption`` to the lightbox caption, ``keywords``,\n``title``, ``copyright`` and ``creator`` to ``PhotoMetadata``. The date and\nthe location are edited through ``PATCH /api/photos/edit/{image_hash}/``;\nsending them here is a 400 rather than an edit nobody sees.",
+        "description": "The fields the metadata API edits, single and bulk.\n\nEach goes to its one store through ``api.metadata.edits``: ``rating`` to\n``Photo.rating``, ``caption`` to the lightbox caption, ``keywords`` to the\nphoto's tags (a tag added by hand stays), ``title``, ``copyright`` and\n``creator`` to ``PhotoMetadata``. The ``keywords`` read back stay the\nfile's keywords at the last scan. The date and\nthe location are edited through ``PATCH /api/photos/edit/{image_hash}/``;\nsending them here is a 400 rather than an edit nobody sees.",
         "properties": {
           "title": {
             "type": "string",
@@ -17085,6 +19647,43 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512
+          }
+        }
+      },
+      "PatchedUserPlaceRequest": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
           }
         }
       },
@@ -17209,6 +19808,9 @@
             "type": "boolean"
           },
           "public_sharing_defaults": {},
+          "share_people_names": {
+            "type": "boolean"
+          },
           "min_cluster_size": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -17225,6 +19827,12 @@
             "type": "number",
             "format": "double"
           },
+          "min_face_size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 0.5,
+            "minimum": 0
+          },
           "slideshow_interval": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -17237,7 +19845,14 @@
           "duplicate_clear_existing": {
             "type": "boolean"
           },
-          "default_timeline_filter": {}
+          "default_timeline_filter": {},
+          "last_seen_release": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "show_whats_new": {
+            "type": "boolean"
+          }
         }
       },
       "Person": {
@@ -17334,6 +19949,11 @@
             "type": "number",
             "format": "double",
             "readOnly": true
+          },
+          "video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "required": [
@@ -17343,7 +19963,8 @@
           "person_label_probability",
           "photo",
           "photo_image_hash",
-          "timestamp"
+          "timestamp",
+          "video_time"
         ]
       },
       "PersonGroup": {
@@ -17557,6 +20178,7 @@
           "people": {
             "type": "array",
             "items": {},
+            "description": "The faces on the photo the requester may see (``faces_shown_to``).\n\nThe owner sees every live face with its person, cluster or suggestion.\nAnyone else sees only the people the owner named, and only where the\nowner allows it: ``share_people_names`` for the users the photo is\nshared with, the public link default ``share_faces`` for a public\nphoto. Without a request no viewer is known, so only what a public\nvisitor would see.",
             "readOnly": true
           },
           "image_hash": {
@@ -17780,6 +20402,16 @@
             "maximum": 9223372036854775807,
             "minimum": -9223372036854775808,
             "format": "int64"
+          },
+          "original_mime_type": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -17818,8 +20450,10 @@
           "metadata",
           "metering_mode",
           "ocr",
+          "original_mime_type",
           "owner",
           "people",
+          "projection_type",
           "public",
           "rating",
           "removed",
@@ -18122,6 +20756,33 @@
         "required": [
           "image_hash",
           "video"
+        ]
+      },
+      "PhotoMapPoints": {
+        "type": "object",
+        "description": "Where the requester's photos were taken, for the Places map (#343).",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "description": "[latitude, longitude, photos taken there], one per spot; photos within about a metre of each other are one spot"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos on the map"
+          }
+        },
+        "required": [
+          "photo_count",
+          "points"
         ]
       },
       "PhotoMetadata": {
@@ -18804,6 +21465,15 @@
           "animated_preview": {
             "type": "boolean",
             "readOnly": true
+          },
+          "video_poster": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -18817,11 +21487,13 @@
           "id",
           "image_hash",
           "is_hdr",
+          "projection_type",
           "public",
           "rating",
           "square_thumbnail",
           "video",
-          "video_length"
+          "video_length",
+          "video_poster"
         ]
       },
       "PhotoSimpleRequest": {
@@ -19129,6 +21801,17 @@
             "type": "boolean",
             "readOnly": true
           },
+          "video_poster": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "person_video_time": {
+            "type": "number",
+            "format": "double",
+            "nullable": true,
+            "description": "The second the person of a person's photo list is first seen at (#2762).\n\nAnnotated by ``with_person_video_time`` on that list only; None\neverywhere else, for a photo, and for a video where the person is on\nthe first frame.",
+            "readOnly": true
+          },
           "rating": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -19179,6 +21862,11 @@
             "maximum": 9223372036854775807,
             "minimum": -9223372036854775808,
             "format": "int64"
+          },
+          "projection_type": {
+            "type": "string",
+            "readOnly": true,
+            "nullable": true
           }
         },
         "required": [
@@ -19198,13 +21886,16 @@
           "local_orientation",
           "location",
           "owner",
+          "person_video_time",
+          "projection_type",
           "rating",
           "removed",
           "stacks",
           "trashed_at",
           "type",
           "url",
-          "video_length"
+          "video_length",
+          "video_poster"
         ]
       },
       "PhotoSuperSimple": {
@@ -19244,6 +21935,22 @@
           "video"
         ]
       },
+      "PlaceAlbumsInBounds": {
+        "type": "object",
+        "description": "The place albums with a photo inside a map's view (#343).",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Place album ids, ascending"
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
       "PlaceCount": {
         "type": "object",
         "properties": {
@@ -19257,6 +21964,149 @@
         "required": [
           "count",
           "place"
+        ]
+      },
+      "PreviewOverlap": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos inside both"
+          },
+          "smaller": {
+            "type": "boolean",
+            "description": "That place is the smaller one, so the photos inside both show it"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "photo_count",
+          "smaller"
+        ]
+      },
+      "ProcessingStage": {
+        "type": "object",
+        "description": "One processing stage that is turned on.",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ProcessingStageEnum"
+          },
+          "remaining": {
+            "type": "integer",
+            "description": "What the stage still has to do: photos, or faces for face_recognition. Photos in the trash or whose file is gone are not counted"
+          },
+          "running_job": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageRunningJob"
+              }
+            ],
+            "nullable": true
+          },
+          "last_run": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageLastRun"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "last_run",
+          "remaining",
+          "running_job"
+        ]
+      },
+      "ProcessingStageEnum": {
+        "enum": [
+          "thumbnails",
+          "things",
+          "search",
+          "places",
+          "face_detection",
+          "face_recognition",
+          "text",
+          "captions"
+        ],
+        "type": "string",
+        "description": "* `thumbnails` - thumbnails\n* `things` - things\n* `search` - search\n* `places` - places\n* `face_detection` - face_detection\n* `face_recognition` - face_recognition\n* `text` - text\n* `captions` - captions"
+      },
+      "ProcessingStageLastRun": {
+        "type": "object",
+        "description": "The newest finished run of the stage's job the caller started.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failed": {
+            "type": "boolean",
+            "description": "The run failed as a whole"
+          },
+          "error_count": {
+            "type": "integer",
+            "description": "Items (photos, files, faces) the run could not process"
+          }
+        },
+        "required": [
+          "error_count",
+          "failed",
+          "finished_at",
+          "job_id"
+        ]
+      },
+      "ProcessingStageRunningJob": {
+        "type": "object",
+        "description": "The stage's job while it is queued or running.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "progress_current": {
+            "type": "integer"
+          },
+          "progress_target": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id",
+          "progress_current",
+          "progress_target"
+        ]
+      },
+      "ProcessingStatus": {
+        "type": "object",
+        "description": "``GET /api/library/processing-status/``: what is left per stage.",
+        "properties": {
+          "photo_count": {
+            "type": "integer",
+            "description": "The caller's photos, not counting removed or trashed ones"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProcessingStage"
+            },
+            "description": "The stages that are turned on, in pipeline order; a stage that is off is left out"
+          }
+        },
+        "required": [
+          "photo_count",
+          "stages"
         ]
       },
       "ProviderEnum": {
@@ -19693,6 +22543,24 @@
           "reason"
         ]
       },
+      "RejectedPerson": {
+        "type": "object",
+        "description": "A named person a face was sent away from (\"Not Anna\", #2747).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The person's id"
+          },
+          "name": {
+            "type": "string",
+            "description": "The person's name"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "RemoveFromStackResponse": {
         "type": "object",
         "description": "``updated``, or ``deleted`` (with a message) when fewer than 2 photos were left.",
@@ -19717,6 +22585,222 @@
           "removed_count",
           "status"
         ]
+      },
+      "RenamePhotosRequestRequest": {
+        "type": "object",
+        "description": "The photos (as every bulk photo action names them) and their new name.",
+        "properties": {
+          "select_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to every photo the query matches"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "The photo filter, with select_all"
+          },
+          "excluded_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Photos the query matches that are left out, with select_all"
+          },
+          "image_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The photos, without select_all"
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The new name without extension, made from the capture date with the tokens {year} {month} {day} {hour} {minute} {second} and {name} (the current name without extension). No path separators, no characters Windows refuses, at most 200 characters"
+          }
+        },
+        "required": [
+          "pattern"
+        ]
+      },
+      "RenamePhotosResponse": {
+        "type": "object",
+        "description": "What the rename did, in photos (200: it ran in the request).",
+        "properties": {
+          "renamed": {
+            "type": "integer"
+          },
+          "unchanged": {
+            "type": "integer",
+            "description": "They had the name already"
+          },
+          "undated": {
+            "type": "integer",
+            "description": "No capture date: not renamed"
+          },
+          "refused": {
+            "type": "integer",
+            "description": "Photos that cannot be renamed"
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Photos whose files could not be renamed; they keep their names"
+          }
+        },
+        "required": [
+          "failed",
+          "refused",
+          "renamed",
+          "unchanged",
+          "undated"
+        ]
+      },
+      "RenamePhotosStartedResponse": {
+        "type": "object",
+        "description": "202: more photos than a request renames; the \"Rename Photos\" job does it.",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ]
+      },
+      "RenamePreviewResponse": {
+        "type": "object",
+        "description": "What renaming the selection would do; nothing changed yet.",
+        "properties": {
+          "photos": {
+            "type": "integer",
+            "description": "Photos that get a new name"
+          },
+          "files": {
+            "type": "integer",
+            "description": "Their files, variants and XMP sidecars included"
+          },
+          "unchanged": {
+            "type": "integer",
+            "description": "Photos that have the name already"
+          },
+          "undated": {
+            "type": "integer",
+            "description": "Photos without a capture date"
+          },
+          "undated_hashes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The image hashes of those photos, to set their date"
+          },
+          "numbered": {
+            "type": "integer",
+            "description": "Photos whose name was taken and that get \" (1)\", \" (2)\", ..."
+          },
+          "no_free_name": {
+            "type": "integer",
+            "description": "Photos for which every numbered name is taken"
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefusedCount"
+            },
+            "description": "Photos that cannot be renamed"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RenameRow"
+            },
+            "description": "The first photos, one by one; the rest are counted"
+          }
+        },
+        "required": [
+          "files",
+          "no_free_name",
+          "numbered",
+          "photos",
+          "refused",
+          "rows",
+          "unchanged",
+          "undated",
+          "undated_hashes"
+        ]
+      },
+      "RenameRow": {
+        "type": "object",
+        "description": "One photo of the preview.",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "image_hash": {
+            "type": "string",
+            "description": "For the photo's thumbnail"
+          },
+          "name": {
+            "type": "string",
+            "description": "The main file's name now"
+          },
+          "new_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "The main file's new name; null when it keeps it"
+          },
+          "other_files": {
+            "type": "integer",
+            "description": "More files renamed with it: RAW, Live Photo video, XMP sidecars"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RenameStatusEnum"
+              }
+            ],
+            "description": "rename; unchanged: it has the name already; undated: no capture date; refused: see reason; no_free_name: every numbered name is taken\n\n* `rename` - rename\n* `unchanged` - unchanged\n* `undated` - undated\n* `refused` - refused\n* `no_free_name` - no_free_name"
+          },
+          "number": {
+            "type": "integer",
+            "description": "The \" (n)\" the new name got because the name was taken; 0: none"
+          },
+          "reason": {
+            "nullable": true,
+            "description": "Why a refused photo keeps its name\n\n* `nextcloud` - nextcloud\n* `shared_file` - shared_file\n* `not_on_disk` - not_on_disk",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MoveRefusalReasonEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        },
+        "required": [
+          "image_hash",
+          "name",
+          "new_name",
+          "number",
+          "other_files",
+          "photo_id",
+          "reason",
+          "status"
+        ]
+      },
+      "RenameStatusEnum": {
+        "enum": [
+          "rename",
+          "unchanged",
+          "undated",
+          "refused",
+          "no_free_name"
+        ],
+        "type": "string",
+        "description": "* `rename` - rename\n* `unchanged` - unchanged\n* `undated` - undated\n* `refused` - refused\n* `no_free_name` - no_free_name"
       },
       "RescanPhotosRequestRequest": {
         "type": "object",
@@ -19909,6 +22993,69 @@
           "write_error"
         ]
       },
+      "RuleOutcome": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The rule's id; null when it has none"
+          },
+          "name": {
+            "type": "string",
+            "description": "The rule's name; empty when it has none"
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutcomeEnum"
+              }
+            ],
+            "description": "applies: the rule found a date; error: it could not run\n\n* `applies` - applies\n* `not_applicable` - not_applicable\n* `error` - error"
+          },
+          "local_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "What it found: the local wall-clock time, tagged UTC like exif_timestamp"
+          },
+          "utc_offset": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Minutes east of UTC, when the rule knows them"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why it could not run"
+          }
+        },
+        "required": [
+          "error",
+          "local_time",
+          "name",
+          "outcome",
+          "rule_id",
+          "utc_offset"
+        ]
+      },
+      "RunProcessingStageRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/library/processing-status/run/``.",
+        "properties": {
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStageEnum"
+              }
+            ],
+            "description": "The stage to catch up\n\n* `thumbnails` - thumbnails\n* `things` - things\n* `search` - search\n* `places` - places\n* `face_detection` - face_detection\n* `face_recognition` - face_recognition\n* `text` - text\n* `captions` - captions"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
       "SSOConfig": {
         "type": "object",
         "description": "``GET /api/auth/sso/config/``: whether to show the SSO login button.",
@@ -19992,6 +23139,19 @@
         "required": [
           "caption",
           "image_hash"
+        ]
+      },
+      "ScanDirectoryImpact": {
+        "type": "object",
+        "description": "How many of a user's photos a new scan directory leaves outside it (#2036).",
+        "properties": {
+          "outside_count": {
+            "type": "integer",
+            "description": "Photos whose files lie outside the library the user would have: they stay the user's unless moved to the trash"
+          }
+        },
+        "required": [
+          "outside_count"
         ]
       },
       "ScanFacesRequestRequest": {
@@ -20308,6 +23468,20 @@
             },
             "description": "Each relabelled face's people before this request; POST them to /api/restore-face-labels/ to undo it"
           },
+          "twin_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "The faces labelled along with the ones sent: the same face in the other frames of a burst or bracket stack or a duplicate group (#2754). They are in results and previous too; empty when the faces went back to unknown"
+          },
+          "rejected_people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectedPerson"
+            },
+            "description": "The named people the faces were sent away from: training never suggests them for these faces again (#2747). Empty unless the faces went back to unknown"
+          },
           "write_error": {
             "type": "string",
             "nullable": true,
@@ -20317,8 +23491,10 @@
         "required": [
           "not_updated",
           "previous",
+          "rejected_people",
           "results",
           "status",
+          "twin_ids",
           "updated",
           "write_error"
         ]
@@ -20954,6 +24130,82 @@
           "user_id"
         ]
       },
+      "SharedGroup": {
+        "type": "object",
+        "description": "A place or thing of the photos shared with you, owners merged by title.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The photos shared with you under this title"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedGroupCover"
+            },
+            "description": "Up to four of those photos, newest first"
+          }
+        },
+        "required": [
+          "cover_photos",
+          "photo_count",
+          "title"
+        ]
+      },
+      "SharedGroupCover": {
+        "type": "object",
+        "properties": {
+          "image_hash": {
+            "type": "string"
+          },
+          "video": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image_hash",
+          "video"
+        ]
+      },
+      "SharedPerson": {
+        "type": "object",
+        "description": "A person the owner named, on photos they shared with you.\n\nOne entry per owner and person: two owners' \"Mom\" are two entries. Only\nowners who share people's names (``share_people_names``) are listed.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SimpleUser"
+              }
+            ],
+            "description": "Who named the person and shared the photos"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "The photos shared with you that show this person"
+          },
+          "face_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "A face crop from one of those photos; null without one"
+          }
+        },
+        "required": [
+          "face_url",
+          "id",
+          "name",
+          "owner",
+          "photo_count"
+        ]
+      },
       "SharedPhoto": {
         "type": "object",
         "description": "A photo behind a photo link: what ``PublicPhotoDetailSerializer`` sends,\nwithout ``HASH_DERIVED_FIELDS`` and with slug-scoped media URLs instead.\n\nWhat the owner's settings leave out is null, \"\" or 0, as in the album's\nphoto detail.",
@@ -21362,11 +24614,15 @@
           },
           "video_previews": {
             "$ref": "#/components/schemas/SiteFeatureState"
+          },
+          "face_detection_in_videos": {
+            "$ref": "#/components/schemas/SiteFeatureState"
           }
         },
         "required": [
           "face_cluster",
           "face_detection",
+          "face_detection_in_videos",
           "image_captioning",
           "reverse_geocoding",
           "scene_classification",
@@ -21401,7 +24657,7 @@
       },
       "SiteSettings": {
         "type": "object",
-        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
+        "description": "What GET (and a successful POST) answers.\n\n``features``, ``model_download``, the ``auto_scan`` fields, ``update_check``,\n``sso_providers`` and ``public_url_configured`` are sent to staff only; the\nGET is anonymous (the login page reads it).",
         "properties": {
           "allow_registration": {
             "type": "boolean"
@@ -21469,6 +24725,10 @@
           "email_configured": {
             "type": "boolean"
           },
+          "remember_me_days": {
+            "type": "integer",
+            "description": "Days a sign-in with Remember me lasts (REMEMBER_ME_DAYS); 0 means the login page does not offer it. Sent to everyone: the login page reads it."
+          },
           "oidc_enabled": {
             "type": "boolean"
           },
@@ -21510,6 +24770,10 @@
           "auto_scan_status": {
             "$ref": "#/components/schemas/SiteAutoScanStatus"
           },
+          "update_check": {
+            "type": "boolean",
+            "description": "The update check's site switch (GET /api/updates/ has its state). Staff only."
+          },
           "model_download": {
             "allOf": [
               {
@@ -21517,6 +24781,10 @@
               }
             ],
             "nullable": true
+          },
+          "whats_new_enabled": {
+            "type": "boolean",
+            "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
           }
         },
         "required": [
@@ -21538,11 +24806,13 @@
           "oidc_allow_signup",
           "oidc_button_label",
           "oidc_enabled",
+          "remember_me_days",
           "scan_missing_max_fraction",
           "skip_patterns",
           "tagging_model",
           "things_available",
-          "trash_retention_days"
+          "trash_retention_days",
+          "whats_new_enabled"
         ]
       },
       "SiteSettingsRequestRequest": {
@@ -21641,6 +24911,9 @@
           "video_previews_enabled": {
             "type": "boolean"
           },
+          "face_detection_in_videos_enabled": {
+            "type": "boolean"
+          },
           "oidc_enabled": {
             "type": "boolean",
             "description": "Show the single sign-on button; off also stops SSO logins."
@@ -21652,6 +24925,14 @@
           "oidc_allow_signup": {
             "type": "boolean",
             "description": "Let a first SSO login with an unknown email create an account; needs email to be set up as well."
+          },
+          "update_check": {
+            "type": "boolean",
+            "description": "Ask github.com once a day for the newest release and tell admins about a newer one; turning it on checks at once."
+          },
+          "whats_new_enabled": {
+            "type": "boolean",
+            "description": "Show each user a What's new card once after an update."
           }
         }
       },
@@ -21670,6 +24951,19 @@
         "required": [
           "name",
           "on_this_site"
+        ]
+      },
+      "SkipReleaseRequestRequest": {
+        "type": "object",
+        "description": "The release to stop telling admins about.",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "A release version such as 1.5.0; empty shows the newest release again."
+          }
+        },
+        "required": [
+          "version"
         ]
       },
       "SocialGraph": {
@@ -22903,6 +26197,98 @@
           "unlinked_count"
         ]
       },
+      "UpdateStatus": {
+        "type": "object",
+        "description": "The update check as admins see it.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the daily check runs: the site setting is on and the environment does not turn it off."
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "UPDATE_CHECK=false in the environment: the site setting cannot turn it on."
+          },
+          "status": {
+            "type": "string",
+            "description": "locked, off, development (no version to compare), not_checked, failed, up_to_date, available or skipped"
+          },
+          "current": {
+            "type": "string",
+            "description": "The release this server runs; empty for a source checkout."
+          },
+          "latest": {
+            "type": "string",
+            "nullable": true,
+            "description": "The newest release the last check found for this install; null before the first check or while the check is off."
+          },
+          "update_available": {
+            "type": "boolean",
+            "description": "latest is newer than current."
+          },
+          "notice": {
+            "type": "boolean",
+            "description": "Show the Update available card and the sidebar dot: an update is available, not skipped, and the card was not closed in the last week."
+          },
+          "release_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The release's page on GitHub."
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the last check ran; null before the first."
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the last check failed (timeout, unreachable, http_<status>, bad_response); null when it worked."
+          },
+          "install_type": {
+            "type": "string",
+            "description": "windows, docker or source"
+          },
+          "how_to_update_url": {
+            "type": "string",
+            "description": "The update steps for this install type in the docs."
+          },
+          "skipped_release": {
+            "type": "string",
+            "nullable": true,
+            "description": "The release Skip this release hid."
+          },
+          "snoozed_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Until when the closed card stays hidden; null when it is not."
+          }
+        },
+        "required": [
+          "checked_at",
+          "current",
+          "enabled",
+          "error",
+          "how_to_update_url",
+          "install_type",
+          "latest",
+          "locked",
+          "notice",
+          "published_at",
+          "release_url",
+          "skipped_release",
+          "snoozed_until",
+          "status",
+          "update_available"
+        ]
+      },
       "UpgradeTask": {
         "type": "object",
         "description": "One row of the Admin page's Finish the upgrade card (``api.jobs.upgrade_tasks``).",
@@ -23027,6 +26413,103 @@
         "required": [
           "exists",
           "photo_id"
+        ]
+      },
+      "UploadFollowupStateEnum": {
+        "enum": [
+          "idle",
+          "pending",
+          "running"
+        ],
+        "type": "string",
+        "description": "* `idle` - idle\n* `pending` - pending\n* `running` - running"
+      },
+      "UploadFollowups": {
+        "type": "object",
+        "description": "The library-level work after uploads (search embeddings, faces, text).",
+        "properties": {
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UploadFollowupStateEnum"
+              }
+            ],
+            "description": "running: a follow-up run is working; pending: one starts within a few minutes; idle: neither\n\n* `idle` - idle\n* `pending` - pending\n* `running` - running"
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the next follow-up run is scheduled; a run waiting for a quiet period (face clustering) can be hours ahead"
+          }
+        },
+        "required": [
+          "next_run_at",
+          "state"
+        ]
+      },
+      "UploadSealRequestRequest": {
+        "type": "object",
+        "description": "``POST /api/upload/seal/``: the import jobs an upload run is done with (#2737).",
+        "properties": {
+          "job_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 36
+            },
+            "description": "The job_id values POST /api/upload/complete/ answered in the run",
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "job_ids"
+        ]
+      },
+      "UploadSealResponse": {
+        "type": "object",
+        "description": "``POST /api/upload/seal/``: what the call sealed.",
+        "properties": {
+          "sealed_job_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The jobs this call sealed. A job that was sealed already, has finished or is not the caller's is left out"
+          }
+        },
+        "required": [
+          "sealed_job_ids"
+        ]
+      },
+      "UploadStatus": {
+        "type": "object",
+        "description": "``GET /api/upload/status/``: the caller's upload imports and follow-ups.",
+        "properties": {
+          "imports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LongRunningJob"
+            },
+            "description": "The caller's unfinished Import Uploads jobs (from any client) and the named ones, newest first"
+          },
+          "ready_photo_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The named photos that have their thumbnails and show in the timeline"
+          },
+          "followups": {
+            "$ref": "#/components/schemas/UploadFollowups"
+          }
+        },
+        "required": [
+          "followups",
+          "imports",
+          "ready_photo_ids"
         ]
       },
       "User": {
@@ -23171,6 +26654,9 @@
             "type": "boolean"
           },
           "public_sharing_defaults": {},
+          "share_people_names": {
+            "type": "boolean"
+          },
           "min_cluster_size": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -23192,6 +26678,12 @@
             "type": "number",
             "format": "double"
           },
+          "min_face_size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 0.5,
+            "minimum": 0
+          },
           "skip_raw_files": {
             "type": "boolean",
             "readOnly": true
@@ -23212,7 +26704,14 @@
           "duplicate_clear_existing": {
             "type": "boolean"
           },
-          "default_timeline_filter": {}
+          "default_timeline_filter": {},
+          "last_seen_release": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "show_whats_new": {
+            "type": "boolean"
+          }
         },
         "required": [
           "avatar",
@@ -23236,8 +26735,10 @@
           "image_scale",
           "is_superuser",
           "last_name",
+          "last_seen_release",
           "llm_settings",
           "min_cluster_size",
+          "min_face_size",
           "min_samples",
           "nextcloud_scan_directory",
           "nextcloud_server_address",
@@ -23252,6 +26753,8 @@
           "save_metadata_to_disk",
           "scan_directory",
           "semantic_search_topk",
+          "share_people_names",
+          "show_whats_new",
           "skip_raw_files",
           "slideshow_interval",
           "stack_raw_jpeg",
@@ -23290,6 +26793,179 @@
         },
         "required": [
           "collection_ids"
+        ]
+      },
+      "UserPlace": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
+          },
+          "photo_count": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "The visible photos taken inside it"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoHashList"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "center_lat",
+          "center_lon",
+          "cover_photos",
+          "icon",
+          "id",
+          "name",
+          "photo_count",
+          "radius_m",
+          "use_in_titles"
+        ]
+      },
+      "UserPlaceIconEnum": {
+        "enum": [
+          "pin",
+          "home",
+          "work",
+          "school",
+          "heart",
+          "star"
+        ],
+        "type": "string",
+        "description": "* `pin` - Pin\n* `home` - Home\n* `work` - Work\n* `school` - School\n* `heart` - Heart\n* `star` - Star"
+      },
+      "UserPlacePhotos": {
+        "type": "object",
+        "description": "A place's visible photos by day, for its page: prefetched newest first\nwith the photo summary relations (the view does it).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "grouped_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupedPhotos"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "grouped_photos",
+          "id",
+          "name"
+        ]
+      },
+      "UserPlacePreview": {
+        "type": "object",
+        "description": "What the circle would hold.",
+        "properties": {
+          "photo_count": {
+            "type": "integer",
+            "description": "The visible photos taken inside the circle"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoHashList"
+            },
+            "description": "The newest few"
+          },
+          "overlaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreviewOverlap"
+            },
+            "description": "Your other places that share some of these photos"
+          }
+        },
+        "required": [
+          "cover_photos",
+          "overlaps",
+          "photo_count"
+        ]
+      },
+      "UserPlaceRequest": {
+        "type": "object",
+        "description": "One of the requester's places: create and edit write the circle, the\nname, the icon and whether event titles use it.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "icon": {
+            "$ref": "#/components/schemas/UserPlaceIconEnum"
+          },
+          "center_lat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "description": "Centre, latitude"
+          },
+          "center_lon": {
+            "type": "number",
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "description": "Centre, longitude"
+          },
+          "radius_m": {
+            "type": "integer",
+            "maximum": 2000,
+            "minimum": 25,
+            "description": "Radius in metres (25 to 2000)"
+          },
+          "use_in_titles": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "center_lat",
+          "center_lon",
+          "name",
+          "radius_m"
         ]
       },
       "UserStats": {

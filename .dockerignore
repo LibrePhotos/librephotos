@@ -47,9 +47,6 @@ apps/backend/static
 .env.*
 !.env.development.example
 
-# Screenshots / docs assets that don't belong in images
-apps/backend/screenshots
-
 # Compose files and other docker configs are not needed inside images
 deploy/compose
 deploy/k8s

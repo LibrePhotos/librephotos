@@ -7,6 +7,7 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
+import type { ImportJob } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +18,10 @@ const stubs = vi.hoisted(() => ({
   components: {} as Record<string, React.ComponentType | undefined>,
   auth: undefined as { access: { is_admin: boolean } } | undefined,
   user: undefined as { scan_directory: string } | undefined,
-  emptyStateConfig: undefined as { description: string; actionLink?: string } | undefined,
+  emptyStateConfig: undefined as
+    | { title?: string; description: string; actionLink?: string; progress?: { current: number; target: number } }
+    | undefined,
+  openImports: [] as ImportJob[],
   // One stable result, like a real query: a fresh array per render would loop
   // the routes' "flatten the groups" effect.
   emptyTimeline: { data: [], isLoading: false, refetch: () => {} },
@@ -50,11 +54,15 @@ vi.mock("../../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
   useSaveDefaultTimelineFilterMutation: () => ({ mutate: () => {}, isPending: false }),
 }));
+vi.mock("../../components/upload/UploadContext", async importOriginal => ({
+  ...(await importOriginal<typeof import("../../components/upload/UploadContext")>()),
+  useOptionalUploadProcessing: () => ({ openImports: stubs.openImports }),
+}));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: null }) }));
 // Pulls in the slideshow and its lightbox, which these tests never open.
 vi.mock("../../components/memories/MemoriesStrip", () => ({ MemoriesStrip: () => null }));
 vi.mock("../../components/photolist/PhotoListView", () => ({
-  PhotoListView: ({ emptyStateConfig }: { emptyStateConfig?: { description: string; actionLink?: string } }) => {
+  PhotoListView: ({ emptyStateConfig }: { emptyStateConfig?: typeof stubs.emptyStateConfig }) => {
     stubs.emptyStateConfig = emptyStateConfig;
     return null;
   },
@@ -73,6 +81,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   stubs.emptyStateConfig = undefined;
+  stubs.openImports = [];
 });
 
 async function renderRoute(path: string) {
@@ -110,5 +119,35 @@ describe.each([
     stubs.auth = { access: { is_admin: true } };
     stubs.user = { scan_directory: "" };
     expect((await renderRoute(path)).actionLink).toBe("/library");
+  });
+});
+
+describe("the empty timeline while uploads are imported (#2739)", () => {
+  it("says the uploads are on their way, like a running scan", async () => {
+    stubs.auth = { access: { is_admin: false } };
+    stubs.user = { scan_directory: "/photos/mara" };
+    stubs.openImports = [
+      {
+        id: 3,
+        job_id: "j1",
+        queued_at: "2026-10-22T10:00:00Z",
+        started_at: "2026-10-22T10:00:00Z",
+        finished_at: null,
+        finished: false,
+        failed: false,
+        cancelled: false,
+        job_type: 20,
+        job_type_str: "Import Uploads",
+        started_by: { id: 1, username: "mara", first_name: "", last_name: "" },
+        progress_current: 2,
+        progress_target: 5,
+        result: { stages: {} },
+      },
+    ];
+
+    const config = await renderRoute("/_protected/");
+
+    expect(config.title).toBe(i18n.t("emptystate.importing.title"));
+    expect(config.progress).toEqual({ current: 2, target: 5 });
   });
 });

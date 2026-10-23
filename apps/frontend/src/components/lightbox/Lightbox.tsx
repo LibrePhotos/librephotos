@@ -8,6 +8,7 @@ import { DiscardDraftsModal } from "./DiscardDraftsModal";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 import { UnsavedDraftsContext } from "./unsavedDrafts";
 import { useLightboxDraftsGuard } from "./useUnsavedDraftsGuard";
+import { VideoStartContext, videoStartFor } from "./videoStart";
 
 type ExtendedLightBoxProps = {
   onImageChange?: (imageId: string) => void;
@@ -238,24 +239,26 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
 
   return (
     <UnsavedDraftsContext.Provider value={drafts}>
-      <ContentViewer
-        mainSrc={lightboxImageId}
-        mainSrcHash={currentImageHash}
-        nextSrc={getNextId()}
-        nextSrcHash={getImageHashForId(getNextId())}
-        prevSrc={getPreviousId()}
-        prevSrcHash={getImageHashForId(getPreviousId())}
-        isPublic={isPublic}
-        publicAlbumSlug={publicAlbumSlug}
-        type={mediaType}
-        enableZoom={mediaType === "photo"}
-        onCloseRequest={handleCloseRequest}
-        onMovePrevRequest={onMovePrevRequest}
-        onMoveNextRequest={onMoveNextRequest}
-        onPhotoSelect={handlePhotoSelect}
-        startSlideshow={startSlideshow}
-        gridItem={gridItem}
-      />
+      <VideoStartContext.Provider value={videoStartFor(getEffectiveNavigation().idx2hash, lightboxImageId)}>
+        <ContentViewer
+          mainSrc={lightboxImageId}
+          mainSrcHash={currentImageHash}
+          nextSrc={getNextId()}
+          nextSrcHash={getImageHashForId(getNextId())}
+          prevSrc={getPreviousId()}
+          prevSrcHash={getImageHashForId(getPreviousId())}
+          isPublic={isPublic}
+          publicAlbumSlug={publicAlbumSlug}
+          type={mediaType}
+          enableZoom={mediaType === "photo"}
+          onCloseRequest={handleCloseRequest}
+          onMovePrevRequest={onMovePrevRequest}
+          onMoveNextRequest={onMoveNextRequest}
+          onPhotoSelect={handlePhotoSelect}
+          startSlideshow={startSlideshow}
+          gridItem={gridItem}
+        />
+      </VideoStartContext.Provider>
       <DiscardDraftsModal
         opened={dialog.opened}
         onClose={dialog.onKeepEditing}

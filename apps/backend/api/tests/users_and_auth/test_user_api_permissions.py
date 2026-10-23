@@ -62,6 +62,7 @@ class UserTest(TestCase):
         "min_cluster_size",
         "confidence_unknown_face",
         "min_samples",
+        "min_face_size",
         "burst_detection_rules",
         "skip_raw_files",
         "stack_raw_jpeg",
@@ -75,6 +76,9 @@ class UserTest(TestCase):
         "header_size",
         "save_face_tags_to_disk",
         "public_sharing_defaults",
+        "share_people_names",
+        "last_seen_release",
+        "show_whats_new",
     ]
 
     def setUp(self):

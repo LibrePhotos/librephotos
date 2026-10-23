@@ -7,14 +7,18 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import {
   RELEASES_JSON,
+  WHATS_NEW_JSON,
+  WHATS_NEW_RELEASES,
   buildErrors,
   buildReleaseIndex,
+  buildWhatsNew,
   linksToVerify,
   parseFrontMatter,
   readReleasePosts,
   readShots,
   releaseSlug,
   serializeReleaseIndex,
+  shotsErrors,
   sourceErrors,
   toGithubMarkdown,
   validateCollection,
@@ -176,6 +180,44 @@ describe("buildReleaseIndex", () => {
   });
 });
 
+describe("buildWhatsNew", () => {
+  it("keeps the newest releases with absolute links and without shots", () => {
+    const releases = ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"].map((release) =>
+      post({
+        release,
+        highlights: [
+          {
+            id: "thing",
+            audience: "admin",
+            title: "A thing",
+            body: "Does things.",
+            shot: "timeline",
+            learn_more: "/docs/user-guide/search#filters",
+            open_in_app: "/search",
+          },
+        ],
+      }),
+    );
+    const { releases: kept } = buildWhatsNew(buildReleaseIndex(releases));
+    assert.equal(kept.length, WHATS_NEW_RELEASES);
+    assert.deepEqual(
+      kept.map((r) => r.release),
+      ["1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"],
+    );
+    assert.equal(kept[0].url, "https://docs.librephotos.com/blog/1-5-0");
+    assert.deepEqual(kept[0].highlights, [
+      {
+        id: "thing",
+        audience: "admin",
+        title: "A thing",
+        body: "Does things.",
+        learn_more: "https://docs.librephotos.com/docs/user-guide/search#filters",
+        open_in_app: "/search",
+      },
+    ]);
+  });
+});
+
 describe("toGithubMarkdown", () => {
   it("drops MDX-only parts, makes site links absolute and links the post", () => {
     const body = [
@@ -230,6 +272,72 @@ describe("readShots", () => {
   });
 });
 
+describe("shotsErrors", () => {
+  const entry = (id, extra = {}) => ({ id, alt: `${id} shot`, width: 1600, height: 1000, ...extra });
+
+  function shotsDir(t, manifest, files) {
+    const dir = tempDir(t);
+    for (const name of files) {
+      fs.writeFileSync(path.join(dir, name), "");
+    }
+    if (manifest !== undefined) {
+      fs.writeFileSync(path.join(dir, "manifest.json"), typeof manifest === "string" ? manifest : JSON.stringify(manifest));
+    }
+    return dir;
+  }
+
+  it("accepts a manifest whose entries have alt text and both files", (t) => {
+    const dir = shotsDir(t, [entry("a"), entry("b", { release: "1.4.0" })], ["a-light.webp", "a-dark.webp", "b-light.webp", "b-dark.webp", "CREDITS.md"]);
+    assert.deepEqual(shotsErrors(dir), []);
+  });
+
+  it("rejects an entry without alt text, naming the entry", (t) => {
+    const files = ["a-light.webp", "a-dark.webp", "b-light.webp", "b-dark.webp"];
+    const dir = shotsDir(t, [entry("a", { alt: " " }), { id: "b", width: 1, height: 1 }, { alt: "x", width: 1, height: 1 }], files);
+    const errors = shotsErrors(dir);
+    assert.equal(errors.length, 3);
+    assert.match(errors[0], /^manifest\.json entry 0 \("a"\) alt: needs alt text/);
+    assert.match(errors[1], /^manifest\.json entry 1 \("b"\) alt:/);
+    assert.match(errors[2], /^manifest\.json entry 2 \("\?"\) id:/);
+  });
+
+  it("rejects a missing light or dark file", (t) => {
+    const dir = shotsDir(t, [entry("a"), entry("b")], ["a-light.webp", "b-dark.webp"]);
+    assert.deepEqual(shotsErrors(dir), [
+      'manifest.json "a": a-dark.webp is missing',
+      'manifest.json "b": b-light.webp is missing',
+    ]);
+  });
+
+  it("asks for both phone files of an entry with a phone size, and for an entry for phone files", (t) => {
+    const phone = { phone: { width: 412, height: 839 } };
+    const files = ["a-light.webp", "a-dark.webp", "a-phone-light.webp", "b-light.webp", "b-dark.webp", "b-phone-dark.webp"];
+    assert.deepEqual(shotsErrors(shotsDir(t, [entry("a", phone), entry("b")], files)), [
+      'manifest.json "a": a-phone-dark.webp is missing',
+      "b-phone-dark.webp has no entry in manifest.json",
+    ]);
+    assert.match(shotsErrors(shotsDir(t, [entry("a", { phone: { width: 0, height: 1 } })], files)).join(), /entry 0 \("a"\) phone width:/);
+  });
+
+  it("rejects a shot file without a manifest entry", (t) => {
+    const dir = shotsDir(t, [entry("a")], ["a-light.webp", "a-dark.webp", "c-light.webp", "d-dark.webp"]);
+    assert.deepEqual(shotsErrors(dir), ["c-light.webp has no entry in manifest.json", "d-dark.webp has no entry in manifest.json"]);
+  });
+
+  it("rejects duplicate ids, unknown fields and a manifest that is not a list", (t) => {
+    const files = ["a-light.webp", "a-dark.webp"];
+    assert.deepEqual(shotsErrors(shotsDir(t, [entry("a"), entry("a")], files)), ['manifest.json: "a" is listed twice']);
+    assert.match(shotsErrors(shotsDir(t, [entry("a", { zoom: true })], files)).join(), /entry 0 \("a"\): Unrecognized key/);
+    assert.match(shotsErrors(shotsDir(t, { a: entry("a") }, files)).join(), /^manifest\.json \(root\): /);
+  });
+
+  it("asks for a manifest and reports one that is not JSON", (t) => {
+    assert.deepEqual(shotsErrors(shotsDir(t, undefined, ["a-light.webp"])), ["static/img/shots/manifest.json is missing"]);
+    assert.match(shotsErrors(shotsDir(t, "{ nope", [])).join(), /^manifest\.json: /);
+    assert.deepEqual(shotsErrors(path.join(tempDir(t), "missing")), []);
+  });
+});
+
 describe("Since", () => {
   const index = buildReleaseIndex([post({ release: "1.3.0" }), post({ release: "1.0.0", covers: ["1.0.1"] })]);
 
@@ -265,9 +373,18 @@ describe("the release posts in blog/", () => {
     assert.deepEqual(validateCollection(posts), []);
   });
 
+  it("use shots that pass the shots check", () => {
+    assert.deepEqual(shotsErrors(), []);
+  });
+
   it("match src/data/releases.json", () => {
     const actual = fs.readFileSync(RELEASES_JSON, "utf8").replace(/\r\n/g, "\n");
     assert.equal(actual, serializeReleaseIndex(buildReleaseIndex(posts)));
+  });
+
+  it("match the web app's What's new copy", () => {
+    const actual = fs.readFileSync(WHATS_NEW_JSON, "utf8").replace(/\r\n/g, "\n");
+    assert.equal(actual, serializeReleaseIndex(buildWhatsNew(buildReleaseIndex(posts))));
   });
 });
 
@@ -285,18 +402,36 @@ function writeFile(file, text) {
 describe("sourceErrors", () => {
   const posts = [post({ release: "1.3.0" })];
 
-  it("passes when releases.json matches the posts", (t) => {
-    const json = path.join(tempDir(t), "releases.json");
-    fs.writeFileSync(json, serializeReleaseIndex(buildReleaseIndex(posts)).replace(/\n/g, "\r\n"));
-    assert.deepEqual(sourceErrors(posts, NO_SHOTS, json), []);
+  /** Both generated files, as build-releases.mjs writes them, in a temporary folder. */
+  function writeGenerated(t) {
+    const dir = tempDir(t);
+    const json = path.join(dir, "releases.json");
+    const whatsNew = path.join(dir, "whatsnew.json");
+    const index = buildReleaseIndex(posts);
+    fs.writeFileSync(json, serializeReleaseIndex(index).replace(/\n/g, "\r\n"));
+    fs.writeFileSync(whatsNew, serializeReleaseIndex(buildWhatsNew(index)));
+    return { dir, json, whatsNew };
+  }
+
+  it("passes when releases.json and the app's copy match the posts", (t) => {
+    const { json, whatsNew } = writeGenerated(t);
+    assert.deepEqual(sourceErrors(posts, NO_SHOTS, json, whatsNew), []);
   });
 
   it("asks to regenerate a stale or missing releases.json", (t) => {
-    const dir = tempDir(t);
-    const json = path.join(dir, "releases.json");
+    const { dir, json, whatsNew } = writeGenerated(t);
     fs.writeFileSync(json, "{}\n");
-    assert.match(sourceErrors(posts, NO_SHOTS, json).join(), /out of date/);
-    assert.match(sourceErrors(posts, NO_SHOTS, path.join(dir, "none.json")).join(), /out of date/);
+    assert.match(sourceErrors(posts, NO_SHOTS, json, whatsNew).join(), /src\/data\/releases\.json is out of date/);
+    const missing = path.join(dir, "none.json");
+    assert.match(sourceErrors(posts, NO_SHOTS, missing, whatsNew).join(), /out of date/);
+  });
+
+  it("asks to regenerate a stale What's new copy in the web app", (t) => {
+    const { json, whatsNew } = writeGenerated(t);
+    fs.writeFileSync(whatsNew, '{ "releases": [] }\n');
+    const errors = sourceErrors(posts, NO_SHOTS, json, whatsNew);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /^apps\/frontend\/src\/components\/whatsnew\/releases\.json is out of date/);
   });
 
   it("reports post problems with the file name and skips the JSON check then", (t) => {

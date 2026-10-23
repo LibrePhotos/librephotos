@@ -4,7 +4,8 @@ An upload gets its thumbnails, tags, place and faces per photo, in its own
 chain (``api.views.upload``). What a scan's follow-ups do for the whole
 library never ran for uploads: the similarity index was not rebuilt, photos
 got no search embedding when tagging was off, and faces from XMP regions got
-no encoding. This module runs those steps, once per burst of uploads.
+no encoding; nor was OCR queued for them (#2736). This module runs those
+steps, once per burst of uploads.
 
 - ``request_upload_followups(user)``: something added photos for ``user``. It
   marks ``photos_added`` and, unless a run holds the lease (which then loops
@@ -15,15 +16,16 @@ no encoding. This module runs those steps, once per burst of uploads.
   the long ones), and releases it; a request that came in meanwhile makes it
   go round once more.
 - ``schedule_upload_followups(user, at)``: (re-)arm the run for ``at`` or
-  sooner, for a step that has to wait (#2738's clustering quiet period).
+  sooner, for a step that has to wait (``cluster_new_faces``' quiet periods).
 - ``backfill_upload_followups()``: once per instance, at startup, a staggered
   request for every user with photos, for the uploads made before this ran.
 
 Seam for the rest of #2191: an upload import job (#2737) calls
 ``request_upload_followups`` when it finishes, instead of the upload chain's
-last task; a new step (#2738's clustering, #2736's OCR) is a function taking a
-``FollowupRun``, appended to ``FOLLOWUP_STEPS``. Each step decides itself
-whether it has work and must be safe to repeat.
+last task; a new step is a function taking a ``FollowupRun``, appended to
+``FOLLOWUP_STEPS`` (as #2738's ``cluster_new_faces`` and #2736's
+``extract_text``). Each step decides itself whether it has work and must be
+safe to repeat.
 """
 
 from __future__ import annotations
@@ -33,14 +35,21 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Literal, TypedDict
 
 from constance import config as site_config
 from django.db.models import Q
 from django.utils import timezone
 
-from api.directory_watcher.processing_jobs import generate_face_embeddings
-from api.jobs.queue import schedule_once_by
-from api.models import Photo, UploadFollowupState, User
+from api.directory_watcher.processing_jobs import (
+    generate_face_embeddings,
+    ocr_has_work,
+    queue_ocr_followup,
+)
+from api.faces.classify import cluster_all_faces
+from api.faces.clustering_gate import clustering_allowed_at, enough_new_faces
+from api.jobs.queue import enqueue_followup, next_scheduled_run, schedule_once_by
+from api.models import LongRunningJob, Photo, UploadFollowupState, User
 from api.models.upload_followup_state import UploadFollowupStateQuerySet
 from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import (
@@ -58,8 +67,16 @@ DEBOUNCE = timedelta(minutes=2)
 # after every step and every batch of a step, so it measures liveness, not
 # how long a run takes.
 LEASE = timedelta(minutes=15)
+# When Extract Text is still busy, look again this much later.
+OCR_RETRY = timedelta(minutes=10)
 # The backfill spreads its requests this far apart, one user after another.
 BACKFILL_SPACING = timedelta(minutes=1)
+# A scheduled run due within this is the follow-up of uploads just made
+# (``followup_status``). A later one waits for a quiet period
+# (``cluster_new_faces``), and one overdue by more than ``OVERDUE`` has no
+# scheduler picking it up: neither is "pending" work a client should wait for.
+PENDING_WITHIN = DEBOUNCE + timedelta(minutes=1)
+OVERDUE = timedelta(minutes=5)
 
 RUN_FUNC = "api.jobs.upload_followups.run_upload_followups"
 
@@ -70,9 +87,39 @@ def _states(user: User) -> UploadFollowupStateQuerySet:
     return UploadFollowupState.objects.owned_by(user)
 
 
+def _schedule_name(user: User) -> str:
+    return f"upload-followups-{user.id}"
+
+
 def schedule_upload_followups(user: User, at: datetime) -> None:
     """Make the user's follow-up run start at ``at`` or sooner."""
-    schedule_once_by(f"upload-followups-{user.id}", RUN_FUNC, user.id, at=at)
+    schedule_once_by(_schedule_name(user), RUN_FUNC, user.id, at=at)
+
+
+class FollowupStatus(TypedDict):
+    """Where the user's follow-ups stand, for the upload UI (#2739)."""
+
+    state: Literal["idle", "pending", "running"]
+    next_run_at: datetime | None
+
+
+def followup_status(user: User) -> FollowupStatus:
+    """``running`` while a run holds the lease, ``pending`` while one is due soon.
+
+    The lease and the schedule are the two signals #2790 named; a run's steps
+    also write job rows of their own (Calculate Clip Embeddings, Generate Face
+    Embeddings), which carry their progress.
+    """
+    now = timezone.now()
+    next_run = next_scheduled_run(_schedule_name(user), RUN_FUNC)
+    # Read only: a user who never uploaded has no row, and a status read
+    # does not make one.
+    states = UploadFollowupState.objects.owned_by(user)
+    if states.filter(lease_expires_at__gt=now).exists():
+        return {"state": "running", "next_run_at": next_run}
+    if next_run is not None and now - OVERDUE <= next_run <= now + PENDING_WITHIN:
+        return {"state": "pending", "next_run_at": next_run}
+    return {"state": "idle", "next_run_at": next_run}
 
 
 def request_upload_followups(user: User, delay: timedelta = DEBOUNCE) -> None:
@@ -185,13 +232,56 @@ def encode_faces(run: FollowupRun) -> None:
     generate_face_embeddings(run.user, heartbeat=run.heartbeat)
 
 
+def _clusters_faces() -> bool:
+    return feature_enabled("FACE_DETECTION") and feature_enabled("FACE_CLUSTER")
+
+
+def cluster_new_faces(run: FollowupRun) -> None:
+    """Queue Find Similar Faces once enough new faces came in (#2738).
+
+    The gates are in ``api.faces.clustering_gate``. When there are enough new
+    faces but it is too soon (the last clustering, an upload or a labelling
+    was recent, or a face job is running), the run is re-armed for the
+    earliest time it may cluster; a sooner pending run wins and looks again.
+    """
+    if not _clusters_faces():
+        return
+    state = _states(run.user).get()
+    if not enough_new_faces(run.user, state):
+        return
+    now = timezone.now()
+    allowed_at = clustering_allowed_at(run.user, state, now)
+    if allowed_at > now:
+        schedule_upload_followups(run.user, allowed_at)
+        return
+    enqueue_followup(
+        run.user, LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces, run.user
+    )
+
+
+def extract_text(run: FollowupRun) -> None:
+    """Queue Extract Text for the photos without text, while a model is selected.
+
+    It fans out per photo, so it is queued rather than run here. When one is
+    queued or running already, its selection may predate these uploads: the
+    run is re-armed to look again later.
+    """
+    if not ocr_has_work(run.user):
+        return
+    if not queue_ocr_followup(run.user):
+        schedule_upload_followups(run.user, timezone.now() + OCR_RETRY)
+
+
 FollowupStep = Callable[[FollowupRun], None]
 
-# In order: the index first, so uploads are searchable as soon as possible.
+# In order: the index first, so uploads are searchable as soon as possible;
+# the faces are encoded before they are counted for clustering.
 FOLLOWUP_STEPS: tuple[FollowupStep, ...] = (
     embed_missing_photos,
     rebuild_similarity_index,
     encode_faces,
+    cluster_new_faces,
+    extract_text,
 )
 
 

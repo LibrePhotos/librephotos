@@ -69,10 +69,12 @@ data_models/
 
 ### Step 4: Turn Off the Online Map Services
 
-Even with every model stored locally, two settings still reach the Internet by default:
+Even with every model stored locally, these settings still reach the Internet by default:
 
 - **Site Settings → Map Tiles** defaults to **PhotoPrism (default)**, which loads the map background from `https://cdn.photoprism.app/maps/default.json` every time a map is shown. The **OpenStreetMap** option is not an offline alternative either — it fetches tiles from `tile.openstreetmap.org` and fonts from `fonts.openmaptiles.org`. On an offline install, select **None (hide map)**, which turns off map rendering and makes no external requests.
 - **Site Settings → Map Provider** (reverse geocoding) is **ExifTool (offline, built in)** on a new install: it looks place names up in a database that ships with LibrePhotos and needs no Internet access. It names towns, not streets; see [Offline place names with ExifTool](./places.md#offline-place-names-with-exiftool). An install set up before 1.4.0 keeps the provider it had, usually **Nominatim (OpenStreetMap)**, which calls the public Nominatim service during scans; without Internet access these calls fail and are only logged as a warning, so photos keep their coordinates but get no place names. Select ExifTool there, then **Look up place names again** under **Admin Area → Admin Tools** (see [Switching the provider](./places.md#switching-the-provider)). The place search in the location picker still needs Nominatim, so it does not work offline; clicking the map and pasting coordinates do. <Since version="1.4.0" /> Up to 1.3.0 there was no offline provider, so place names were unavailable offline.
+
+- <Since version="1.5.0" /> **Site Settings → Check for new releases** asks `api.github.com` once a day which release is the newest. Offline that request fails, and the switch only says so. To send nothing at all, set `UPDATE_CHECK=false` (`updateCheck=false` in `.env`), which also locks the switch off; see [Checking for new releases](../installation/environment-variables.md#update-check).
 
 ### Step 5: Run LibrePhotos
 

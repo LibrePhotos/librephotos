@@ -23,6 +23,20 @@ export const RefusedCount = z.object({
 });
 export type RefusedCount = z.infer<typeof RefusedCount>;
 
+/** What a move sorted by date (#2774) does in one of its target folders. */
+export const MoveFolderCount = z.object({
+  path: z.string(),
+  /** Photos that move into it. */
+  photos: z.number(),
+  /** Photos already in it. */
+  unchanged: z.number(),
+  /** Photos whose name is taken in it. */
+  clashes: z.number(),
+  /** The move makes the folder. */
+  new: z.boolean(),
+});
+export type MoveFolderCount = z.infer<typeof MoveFolderCount>;
+
 /** `POST /photos/move/preview/`: what moving the selection to `target_folder` would do. Changes nothing. */
 export const MovePreviewResponse = z.object({
   target_folder: z.string(),
@@ -31,6 +45,12 @@ export const MovePreviewResponse = z.object({
   unchanged: z.number(),
   refused: RefusedCount.array(),
   clashes: MoveClash.array(),
+  /** With `folder_pattern`: photos without a capture date, left where they are. Absent on older servers. */
+  undated: z.number().optional(),
+  /** Their image hashes, to set their date. Absent on older servers. */
+  undated_hashes: z.string().array().optional(),
+  /** With `folder_pattern`: each folder the photos go to; empty otherwise. Absent on older servers. */
+  folders: MoveFolderCount.array().optional(),
 });
 export type MovePreviewResponse = z.infer<typeof MovePreviewResponse>;
 
@@ -42,6 +62,8 @@ export const MovePhotosResponse = z.object({
   unchanged: z.number(),
   refused: z.number(),
   failed: z.number(),
+  /** With `folder_pattern`: photos without a capture date, not moved. Absent on older servers. */
+  undated: z.number().optional(),
 });
 export type MovePhotosResponse = z.infer<typeof MovePhotosResponse>;
 

@@ -25,6 +25,7 @@ const facePage = {
       photo_image_hash: "82d63ece5bcca091897a1d06d477dd6e1",
       timestamp: "2023-05-05T10:00:00Z",
       person_label_probability: 0.9,
+      video_time: 42.5,
     },
     {
       id: 7,
@@ -53,11 +54,22 @@ describe("face schemas", () => {
     const parsed = PersonFaceListResponse.parse(facePage);
     expect(defined(parsed.results[0]).person_label_probability).toBe(0.9);
     expect(defined(parsed.results[1]).person).toBeUndefined();
+    // Where in its video the face was found (#2762); older servers leave it out.
+    expect(defined(parsed.results[0]).video_time).toBe(42.5);
+    expect(defined(parsed.results[1]).video_time).toBeUndefined();
   });
 
   it("reads the incomplete list with its Unknown - Other entry", () => {
     const parsed = IncompleteFacesResponse.parse(incomplete);
     expect(parsed.map(person => person.name)).toEqual(["Alice", "Carol", "Unknown - Other"]);
+  });
+
+  it("reads each group's place in the similar order (#622)", () => {
+    const parsed = IncompleteFacesResponse.parse([
+      { id: 1, name: "Unknown 001", kind: "CLUSTER", face_count: 2, similarity_rank: 0 },
+      { id: 0, name: "Unknown - Other", face_count: 2, kind: "Unknown - Other", similarity_rank: null },
+    ]);
+    expect(parsed.map(group => group.similarity_rank)).toEqual([0, null]);
   });
 
   it("rejects a person without a name: the serializer always sends one", () => {
@@ -155,6 +167,18 @@ describe("face writes", () => {
     expect(added.face.location.right).toBe(480);
   });
 
+  it("asks the server to find the face in a rough box (#1117)", async () => {
+    const face = { face_id: 11, face_url: "/f.jpg", person: 4, person_name: "Dave" };
+    const location = { top: 160, right: 470, bottom: 430, left: 330 };
+    const { client, requests } = fakeServer({ status: true, fitted: true, face: { ...face, location } }, 201);
+    const box = { top: 0.25, right: 0.6, bottom: 0.75, left: 0.4 };
+
+    const added = await endpoints.addFace(client, "h1", "Dave", box, true);
+
+    expect(defined(requests[0]).body).toEqual({ photo: "h1", person_name: "Dave", box, fit: true });
+    expect(added.fitted).toBe(true);
+  });
+
   it("keeps why a face edit did not reach the file (#2564)", async () => {
     const reason = "the folder /photos is read-only";
     const face = { id: 3, person: 4, person_name: "Dave" };
@@ -236,6 +260,11 @@ describe("undoing face edits (#127)", () => {
   it("keeps a labelling's previous people for its undo", async () => {
     const { client } = fakeServer({ status: true, results: [], updated: [], not_updated: [], previous: [labels] });
     expect((await endpoints.labelFaces(client, [3], "Dave")).previous).toEqual([labels]);
+  });
+
+  it("reads the twins a labelling took along (#2754)", async () => {
+    const { client } = fakeServer({ status: true, results: [], updated: [], not_updated: [], twin_ids: [7, 8] });
+    expect((await endpoints.labelFaces(client, [3], "Dave")).twin_ids).toEqual([7, 8]);
   });
 
   it("restores deleted faces", async () => {

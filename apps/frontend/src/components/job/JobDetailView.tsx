@@ -1,3 +1,4 @@
+import type { JobDetail } from "@librephotos/api-client";
 import { Badge, Box, Button, Card, Code, Container, Space, Stack, Table, Text, Title } from "@mantine/core";
 import {
   IconAlertTriangle,
@@ -18,6 +19,8 @@ import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { PageHeader } from "../PageHeader";
 import { CancelJobButton } from "./CancelJobButton";
+import { CHECK_FILE_CONTENTS_JOB_TYPE, parseCheckFileContentsResult } from "./checkFileContentsResult";
+import { CheckFileContentsResults } from "./CheckFileContentsResults";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { formatJobDuration } from "./JobDuration";
 import { JobProgress } from "./JobProgress";
@@ -41,6 +44,18 @@ const STATUS_ICONS = {
   partial_failure: IconAlertTriangle,
   completed: IconCheck,
 };
+
+/** Who started the job: their full name, or their username without one. */
+function startedByName({ started_by: user }: Pick<JobDetail, "started_by">): string {
+  return user.first_name || user.last_name ? `${user.first_name} ${user.last_name}`.trim() : user.username;
+}
+
+/** The report of a finished job whose type has one of its own, shown above the raw result. */
+function JobReport({ job }: Readonly<{ job: JobDetail }>) {
+  if (job.job_type !== CHECK_FILE_CONTENTS_JOB_TYPE || !job.finished) return null;
+  const contentCheck = parseCheckFileContentsResult(job.result);
+  return contentCheck ? <CheckFileContentsResults result={contentCheck} /> : null;
+}
 
 export function JobDetailView({ jobId, backTo }: IJobDetailView) {
   const navigate = useNavigate();
@@ -175,11 +190,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
               </Table.Tr>
               <Table.Tr>
                 <Table.Td fw={600}>{t("joblist.startedby")}</Table.Td>
-                <Table.Td>
-                  {job.started_by.first_name || job.started_by.last_name
-                    ? `${job.started_by.first_name} ${job.started_by.last_name}`.trim()
-                    : job.started_by.username}
-                </Table.Td>
+                <Table.Td>{startedByName(job)}</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td fw={600}>{t("joblist.progress")}</Table.Td>
@@ -198,6 +209,8 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
             </Table.Tbody>
           </Table>
         </Card>
+
+        <JobReport job={job} />
 
         {outcome === "failed" && (
           <Card shadow="md" style={{ border: "1px solid var(--mantine-color-red-6)" }}>

@@ -29,6 +29,16 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
     schema: S.PhotosNotInAlbumResponse,
     components: ["PaginatedPhotoSummaryList"],
   },
+  PhotosInBoundsResponse: {
+    schema: S.PhotosInBoundsResponse,
+    components: ["PaginatedPhotoSummaryList"],
+  },
+  PhotoMapPoints: { schema: S.PhotoMapPoints, components: ["PhotoMapPoints"] },
+  PlaceAlbumsInBounds: { schema: S.PlaceAlbumsInBounds, components: ["PlaceAlbumsInBounds"] },
+  UserPlace: { schema: S.UserPlace, components: ["UserPlace"] },
+  UserPlaceOverlap: { schema: S.UserPlaceOverlap, components: ["PreviewOverlap"] },
+  UserPlacePreview: { schema: S.UserPlacePreview, components: ["UserPlacePreview"] },
+  UserPlacePhotos: { schema: S.UserPlacePhotos, components: ["UserPlacePhotos"] },
   MyPublicPhotosResponse: {
     schema: S.MyPublicPhotosResponse,
     components: ["PaginatedPhotoSummaryList"],
@@ -74,6 +84,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
   RestoreFacesResponse: { schema: S.RestoreFacesResponse, components: ["RestoreFacesResponse"] },
   FaceLabels: { schema: S.FaceLabels, components: ["FaceLabels"] },
+  RejectedPerson: { schema: S.RejectedPerson, components: ["RejectedPerson"] },
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs
@@ -89,6 +100,8 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   WriteMetadataPreview: { schema: S.WriteMetadataPreview, components: ["WriteMetadataPreview"] },
   WriteTypeCount: { schema: S.WriteTypeCount, components: ["WriteTypeCount"] },
   UpgradeTask: { schema: S.UpgradeTask, components: ["UpgradeTask"] },
+  ProcessingStage: { schema: S.ProcessingStage, components: ["ProcessingStage"] },
+  ProcessingStatus: { schema: S.ProcessingStatus, components: ["ProcessingStatus"] },
   UpgradeTaskList: { schema: S.UpgradeTaskList, components: ["UpgradeTaskList"] },
   RescanPhotosResponse: { schema: S.RescanPhotosResponse, components: ["RescanPhotosResponse"] },
   ScanFilesResponse: { schema: S.ScanFilesResponse, components: ["ScanFilesResponse"] },
@@ -105,6 +118,13 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   User: { schema: S.User, components: ["User"] },
   PublicPhotoSample: { schema: S.PublicPhotoSample, components: ["PhotoSuperSimple"] },
   ManageUser: { schema: S.ManageUser, components: ["ManageUser"] },
+  ScanDirectoryImpact: { schema: S.ScanDirectoryImpact, components: ["ScanDirectoryImpact"] },
+  LibraryFolders: { schema: S.LibraryFolders, components: ["LibraryFolders"] },
+  LibraryFolderEntry: { schema: S.LibraryFolderEntry, components: ["LibraryFolderEntry"] },
+  ExcludedFoldersSaved: { schema: S.ExcludedFoldersSaved, components: ["ExcludedFoldersSaved"] },
+  LibrarySubfolders: { schema: S.LibrarySubfolders, components: ["LibrarySubfolders"] },
+  LibrarySubfolder: { schema: S.LibrarySubfolder, components: ["LibrarySubfolder"] },
+  CreatedFolder: { schema: S.CreatedFolder, components: ["CreatedFolder"] },
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
   SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
   // site settings
@@ -116,6 +136,11 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SiteAutoScanStatus: { schema: S.SiteAutoScanStatus, components: ["SiteAutoScanStatus"] },
   SiteSsoProvider: { schema: S.SiteSsoProvider, components: ["SiteSsoProvider"] },
   TrashRetentionPreview: { schema: S.TrashRetentionPreview, components: ["TrashRetentionPreview"] },
+  DateTag: { schema: S.DateTag, components: ["DateTag"] },
+  DateRuleOptions: { schema: S.DateRuleOptions, components: ["DateRuleOptionsResponse"] },
+  DateRuleCheck: { schema: S.DateRuleCheck, components: ["DateRuleCheckResponse"] },
+  DateRuleOutcome: { schema: S.DateRuleOutcome, components: ["RuleOutcome"] },
+  DateRulesTest: { schema: S.DateRulesTest, components: ["DateRulesTestResponse"] },
   // search
   MetadataValue: { schema: S.MetadataValue, components: ["MetadataValue"] },
   MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },
@@ -134,6 +159,12 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   MovePhotosStartedResponse: { schema: S.MovePhotosStartedResponse, components: ["MovePhotosStartedResponse"] },
   LibraryFolder: { schema: S.LibraryFolder, components: ["LibraryFolder"] },
   LibraryFolderListing: { schema: S.LibraryFolderListing, components: ["LibraryFolderListing"] },
+  MoveFolderCount: { schema: S.MoveFolderCount, components: ["MoveFolderCount"] },
+  // renaming photos after their date (#2773)
+  RenameRow: { schema: S.RenameRow, components: ["RenameRow"] },
+  RenamePreviewResponse: { schema: S.RenamePreviewResponse, components: ["RenamePreviewResponse"] },
+  RenamePhotosResponse: { schema: S.RenamePhotosResponse, components: ["RenamePhotosResponse"] },
+  RenamePhotosStartedResponse: { schema: S.RenamePhotosStartedResponse, components: ["RenamePhotosStartedResponse"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
   CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },
@@ -154,6 +185,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   StorageStats: { schema: S.StorageStats, components: ["StorageStats"] },
   ServerLogs: { schema: S.ServerLogs, components: ["ServerLogs"] },
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
+  UpdateStatus: { schema: S.UpdateStatus, components: ["UpdateStatus"] },
   // stacks
   StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
   StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },
@@ -210,6 +242,9 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PhotoShareListResponse: { schema: S.PhotoShareListResponse, components: ["PhotoShareList"] },
   SharedPhoto: { schema: S.SharedPhoto, components: ["SharedPhoto"] },
   SharedPhotoResponse: { schema: S.SharedPhotoResponse, components: ["SharedPhotoResponse"] },
+  SharedGroupCover: { schema: S.SharedGroupCover, components: ["SharedGroupCover"] },
+  SharedGroup: { schema: S.SharedGroup, components: ["SharedGroup"] },
+  SharedPerson: { schema: S.SharedPerson, components: ["SharedPerson"] },
   // folders, search, geocode, memories, metadata
   FolderSubfolder: { schema: S.FolderSubfolder, components: ["FolderEntry"] },
   FolderSubfoldersResponse: { schema: S.FolderSubfoldersResponse, components: ["FolderSubfoldersPage"] },
@@ -222,6 +257,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   PhotoDownloadStart: { schema: S.PhotoDownloadStart, components: ["ZipDownloadStarted"] },
   PhotoDownloadStatus: { schema: S.PhotoDownloadStatus, components: ["ZipDownloadFinished", "ZipDownloadPending"] },
   UploadExistsResponse: { schema: S.UploadExistsResponse, components: ["UploadExists"] },
+  UploadSealResponse: { schema: S.UploadSealResponse, components: ["UploadSealResponse"] },
+  UploadStatus: { schema: S.UploadStatus, components: ["UploadStatus"] },
+  UploadFollowups: { schema: S.UploadFollowups, components: ["UploadFollowups"] },
+  ImportJob: { schema: S.ImportJob, components: ["LongRunningJob"] },
   // services, serving diagnostics
   ServicesList: { schema: S.ServicesList, components: ["Services"] },
   ServiceHealth: { schema: S.ServiceHealth, components: ["ServiceHealth"] },
@@ -285,6 +324,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   FetchPlaceAlbumResponse: "the {results} envelope of PlaceAlbum (see there)",
   FetchPeopleAlbumsResponse:
     "a {results} envelope around rows compared on their own (Person); the view's wrapper is not a component",
+  UserPlaceList:
+    "a {results} envelope around rows compared on their own (UserPlace), read whole with fetchAllPages; the page envelope is not compared",
   PersonGroupList:
     "a {results} envelope around rows compared on their own (PersonGroup), read whole with fetchAllPages; the page envelope is not compared",
   PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",
@@ -301,6 +342,10 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (SharedFromMePhoto); the view's wrapper is not a component",
   SharedAlbumsResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
+  SharedGroupsResponse:
+    "a {results} envelope around rows compared on their own (SharedGroup); the client reads every page into it",
+  SharedPeopleResponse:
+    "a {results} envelope around rows compared on their own (SharedPerson); the client reads every page into it",
   ListUser:
     "one shape for two serializers: UserViewSet lists User rows for admins and PublicUser rows for everyone else",
   UploadOptions: "a request body",
@@ -314,4 +359,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
   UploadCompleteResponse:
     "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
+  ImportJobResult: "the result of an Import Uploads job; the schema types a job's result as a free-form object",
+  UploadFailedFile: "an entry of an Import Uploads job's result, which the schema types as a free-form object",
 };

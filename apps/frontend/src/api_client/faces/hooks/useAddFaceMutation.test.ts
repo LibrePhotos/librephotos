@@ -32,6 +32,13 @@ describe("reportAddFaceError", () => {
     expect(requestFailed).toHaveBeenCalledWith(i18n.t("toasts.addfacefailedtitle"), i18n.t("toasts.addfacefailed"));
   });
 
+  it("leaves a box with no face in it to the drawing, which offers to keep it (#1117)", () => {
+    reportAddFaceError(
+      new ApiError("x", 400, "No face was found in this box.", "", { errors: [{ code: "no_face_in_box" }] })
+    );
+    expect(requestFailed).not.toHaveBeenCalled();
+  });
+
   it("stays quiet where another toast already fired", () => {
     reportAddFaceError(new ApiError("x", 500));
     reportAddFaceError(new ApiError("x", 401));

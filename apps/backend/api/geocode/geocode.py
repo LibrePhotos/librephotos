@@ -8,7 +8,12 @@ from api.models.photo_search import place_label
 from api.runtime.features import feature_enabled
 
 from . import exiftool_provider
-from .config import get_provider_config, get_provider_parser, language_args
+from .config import (
+    get_provider_config,
+    get_provider_parser,
+    language_args,
+    search_limit_args,
+)
 from .rate_limit import wait as wait_for_provider
 
 logger = logging.getLogger(__name__)
@@ -26,6 +31,7 @@ def no_place() -> dict[str, object]:
 
 class Geocode:
     def __init__(self, provider: str) -> None:
+        self._provider = provider
         self._provider_config = get_provider_config(provider)
         self._parser = get_provider_parser(provider)
         self._geocoder = geopy.get_geocoder_for_service(provider)(
@@ -59,11 +65,18 @@ class Geocode:
         return self._parser(location)
 
     def search(self, query: str, limit: int = 5) -> list[dict]:
-        """Forward geocoding: search for locations by name/address."""
+        """Forward geocoding: search for locations by name/address.
+
+        At most ``limit`` places: asked of the provider where geopy can ask
+        for it, cut from the answer everywhere (``search_limit_args``).
+        """
         if self._missing_api_key():
             return []
         locations = self._geocoder.geocode(
-            query, exactly_one=False, limit=limit, **self._language_args
+            query,
+            exactly_one=False,
+            **search_limit_args(self._provider, limit),
+            **self._language_args,
         )
         if not locations:
             return []
@@ -73,7 +86,7 @@ class Geocode:
                 "lat": loc.latitude,
                 "lon": loc.longitude,
             }
-            for loc in locations
+            for loc in locations[:limit]
         ]
 
 

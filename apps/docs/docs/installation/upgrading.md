@@ -55,6 +55,29 @@ The page never shows error messages or file paths, only the reason code; the det
 
 With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `docker compose ps` shows the backend as `starting` while it updates, `healthy` once it serves, and `unhealthy` after a failed update (the healthcheck gives an update 15 minutes before it counts). `/api/healthz` answers from the first seconds on, so scripts that wait for LibrePhotos to serve should ask `/api/healthz/ready` instead.
 
+## The Update available card {#update-available}
+
+<Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin Area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.
+
+- **How to update** opens the steps for your install: [Windows](windows-standalone.md#updating), or the top of this page for Docker and the rest.
+- **Release notes** opens the release on GitHub. Read them before you update: some releases ask you to do something once.
+- **Skip this release** hides the card and the dot until a newer release comes out. **Undo** in the message that follows, or **Show it again** under **Check for new releases** in Site Settings, brings it back.
+- The close button hides the card for a week.
+
+Only admins see it. The card comes from a daily check that can be turned off; see [Checking for new releases](environment-variables.md#update-check). Docker installs that run the `dev` image, and installs from source, have no release to compare and never show it.
+
+## The What's new card {#whats-new}
+
+<Since version="1.5.0" /> After an update, each user sees a small **What's new** card once, in the bottom left corner of the first page they open (on a phone, above the menu at the bottom). It lists the highlights of the new version, the same ones as the "What's new for you" part of the release notes. When you skipped a few updates, it shows the highlights of up to three of them.
+
+- **See what's new** opens every highlight with a **Learn more** link to these docs and, where it fits, **Open** to go to the place in the app. Several versions have a switch at the top.
+- **Release notes** opens the release post on this site.
+- The close button hides the card.
+
+Closing the card or opening **See what's new** counts as seen, on every browser and device of that user, so the card does not come back until the next update. **Account menu > What's new** and the version line at the bottom of the sidebar show the highlights again at any time (while a newer release is out, the version line takes admins to the [Update available card](#update-available) instead). Admins also see how many tasks the [Finish the upgrade card](#finish-the-upgrade) still has.
+
+The highlights are part of the app, so nothing is downloaded and nothing about your server is sent. They are in English for now. Someone who joins after an update does not get the card for that version, and installs that run the `dev` image never show it. Each user can turn the card off under **Settings** > **Interface**, and admins can turn it off for everyone under **Site Settings** with **Show users what's new after an update**.
+
 ## The Finish the upgrade card {#finish-the-upgrade}
 
 <Since version="1.4.0" /> Up to 1.3.0, the work an update left was only described in the release notes, and some of it needed a terminal.
@@ -73,6 +96,7 @@ When a task is done, its row says so for a day, then goes; the card goes with it
 | Update search for the new search model | Automatic | Photos still have search data from an earlier search model. Search results may be incomplete until it finishes. |
 | Remove photo details from old thumbnails | Automatic | After updating a server that already had photos: thumbnails from 1.2.1 or older carry the photo's location ([details](#strip-thumbnail-metadata)). |
 | Read shutter speeds again | Automatic | After updating from 1.3.0 or older with shutter speeds stored wrongly ([details](#refresh-exposure-time)). |
+| Make still pictures of older videos | Automatic | <Since version="1.5.0" /> After updating a server that already had videos: the photo grid shows a still picture of each video and plays it only while you point at it ([Make Video Posters](../user-guide/job-system.md#make-video-posters)). |
 | Read colour information of older videos | Optional | Videos added before LibrePhotos checked their colours when scanning, while ffprobe is available ([Probe Videos](../user-guide/job-system.md#probe-videos)). |
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}

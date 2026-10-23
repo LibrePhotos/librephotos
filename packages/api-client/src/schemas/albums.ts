@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, IntegerId, PhotoHash, SimpleUser, UuidString } from "./common";
+import {
+  DatePhotosGroup,
+  IncompleteDatePhotosGroup,
+  IntegerId,
+  PhotoHash,
+  ProjectionType,
+  SimpleUser,
+  UuidString,
+} from "./common";
 import { Person } from "./persons";
 
 /* ---- Date albums (the timeline) ---------------------------------------- */
@@ -185,6 +193,11 @@ export const EventTitleParts = z.object({
   places: z.string().array(),
   /** The album's grouping date (YYYY-MM-DD), for the "Album from" fallback. */
   date: z.string(),
+  /**
+   * The id of the owner's place most photos were taken in (#1365), for "<when> at <place>". Only
+   * the owner's own places name it; null without one, absent from older backends.
+   */
+  user_place: z.number().nullish(),
 });
 export type EventTitleParts = z.infer<typeof EventTitleParts>;
 
@@ -230,6 +243,10 @@ export const PhotoSimple = z.object({
   is_hdr: z.boolean().optional(),
   // A video whose grid square is an animated clip, not a still (#649); older backends lack it.
   animated_preview: z.boolean().optional(),
+  // A video with a still poster beside its clip (#2026); older backends lack it.
+  video_poster: z.boolean().optional(),
+  // A 360° photo sphere gets a badge on its tile (#483).
+  projection_type: ProjectionType,
 });
 export type PhotoSimple = z.infer<typeof PhotoSimple>;
 

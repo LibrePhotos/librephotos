@@ -7,6 +7,9 @@ import { useTranslation } from "react-i18next";
 import type { FaceLocationType } from "../lightbox/lightbox.types";
 import { MediaDisplay } from "../lightbox/MediaDisplay";
 import type { usePhotoRotation } from "../lightbox/usePhotoRotation";
+import { PanoramaToggle } from "../panorama/PanoramaToggle";
+import { isPhotoSphere } from "../panorama/photoSphere";
+import { usePanoramaMode } from "../panorama/usePanoramaMode";
 import classes from "./PhotoPage.module.css";
 
 type Props = Readonly<{
@@ -41,7 +44,7 @@ function useBack() {
 /**
  * The photo (or video) as large as the window allows, on a neutral mat that
  * frames it in both colour schemes, with Back above it and the view tools
- * (live text, the viewer for zoom, fullscreen and the keyboard) below.
+ * (360° view, live text, the viewer for zoom, fullscreen and the keyboard) below.
  */
 export function PhotoMat({ photo, isOwner, faceLocation, rotation, faceDrawing, onOpenViewer }: Props) {
   const { t } = useTranslation();
@@ -51,6 +54,14 @@ export function PhotoMat({ photo, isOwner, faceLocation, rotation, faceDrawing, 
   const ocrBlocks = photo.ocr?.blocks;
   const hasOcrText = isOwner && !photo.video && !!ocrBlocks && ocrBlocks.length > 0;
   const liveTextLabel = showOcrText ? t("photopage.livetextoff") : t("photopage.livetext");
+  // A photo sphere opens flat here too; the toggle shows it in 360° (#483). The page has no
+  // shortcut keys, so V is the lightbox's only; opening the lightbox leaves the 360° view, whose
+  // arrow keys would otherwise turn this sphere behind it.
+  const panorama = usePanoramaMode({ sphere: !photo.video && isPhotoSphere(photo), photoKey: photo.image_hash });
+  const openViewer = () => {
+    panorama.exit();
+    onOpenViewer();
+  };
 
   return (
     <div className={classes.mat}>
@@ -85,10 +96,13 @@ export function PhotoMat({ photo, isOwner, faceLocation, rotation, faceDrawing, 
           drawingFace={isOwner && faceDrawing.isDrawing}
           onFaceDrawn={faceDrawing.onDrawn}
           onCancelDrawFace={faceDrawing.cancel}
+          panoramaActive={panorama.active}
+          onPanoramaError={panorama.fail}
         />
       </div>
       <div className={classes.tools}>
-        {hasOcrText && (
+        {panorama.available && <PanoramaToggle panorama={panorama} look="mat" />}
+        {hasOcrText && !panorama.active && (
           <Tooltip label={liveTextLabel}>
             <ActionIcon
               variant={showOcrText ? "filled" : "default"}
@@ -107,7 +121,7 @@ export function PhotoMat({ photo, isOwner, faceLocation, rotation, faceDrawing, 
             size="lg"
             radius="xl"
             aria-label={t("photopage.openinviewer")}
-            onClick={onOpenViewer}
+            onClick={openViewer}
           >
             <IconArrowsMaximize size={18} />
           </ActionIcon>

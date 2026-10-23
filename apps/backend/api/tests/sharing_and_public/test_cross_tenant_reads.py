@@ -32,6 +32,7 @@ from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
+from api.models import LongRunningJob
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     create_test_album_auto,
@@ -52,6 +53,8 @@ from api.tests.utils import (
 )
 
 THING_TYPE = "openclip_vitb32_tag"
+# A map view around v_photo2 (Porto)
+PORTO_VIEW = "south=41&west=-9&north=42&east=-8"
 
 
 class CrossTenantReadTest(TestCase):
@@ -119,6 +122,11 @@ class CrossTenantReadTest(TestCase):
         self.v_dup = create_test_duplicate(owner=self.victim)
         self.v_dup.photos.add(*self.v_photos)
         self.v_job = create_test_job(started_by=self.victim)
+        self.v_import = create_test_job(
+            started_by=self.victim,
+            job_type=LongRunningJob.JOB_IMPORT_UPLOADS,
+            sealed=False,
+        )
 
         # The attacker's own library, so each list has something to return.
         self.a_photo = create_test_photo(owner=self.attacker)
@@ -137,9 +145,13 @@ class CrossTenantReadTest(TestCase):
             "VictimEventTitle",
             "victimthingtitle",
             "VictimPlaceTitle",
+            # v_photo2's position as the Places map sends it
+            "41.1,-8.6",
+            f'"ids":[{self.v_place.pk}]',
             str(self.v_stack.pk),
             str(self.v_dup.pk),
             self.v_job.job_id,
+            self.v_import.job_id,
         }
 
     def client_for(self, user):
@@ -203,6 +215,13 @@ class CrossTenantReadTest(TestCase):
             ),
             ("/api/photos/shared/tome/", None),
             ("/api/photos/shared/fromme/", None),
+            # Shared with you (#2721, #2722): never the requester's own photos.
+            ("/api/photos/shared/tome/places/", None),
+            ("/api/photos/shared/tome/things/", None),
+            ("/api/photos/shared/tome/people/", None),
+            ("/api/photos/shared/tome/places/photos/?title=VictimPlaceTitle", None),
+            ("/api/photos/shared/tome/things/photos/?title=victimthingtitle", None),
+            (f"/api/photos/shared/tome/people/photos/?person={v.v_person.pk}", None),
             ("/api/photos/nolocation/", v.v_photo.image_hash),
             ("/api/search/metadata-values/?field=camera", "VictimCameraModel"),
             (
@@ -219,6 +238,10 @@ class CrossTenantReadTest(TestCase):
                 ),
                 v.v_photo2.image_hash,
             ),
+            # The Places map (#343): positions, never another user's.
+            ("/api/photos/map-points/", "41.1,-8.6"),
+            (f"/api/photos/in-bounds/?{PORTO_VIEW}", v.v_photo2.image_hash),
+            (f"/api/albums/place/in-bounds/?{PORTO_VIEW}", f'"ids":[{v.v_place.pk}]'),
             # The victim's photos are all in their album, so the owner sees none.
             ("/api/photos/no-album/", None),
             # The victim's photos are private: the owner's public list is empty.
@@ -229,6 +252,8 @@ class CrossTenantReadTest(TestCase):
             # The file is not on disk here, so the owner's read is a 404 too;
             # api/tests/metadata/test_raw_metadata.py reads real files.
             (f"/api/photos/{v.v_photo.pk}/metadata/raw/", None),
+            # Reads the file through the exif service, which does not run here.
+            (f"/api/datetime-rules/test/?photo_id={v.v_photo.pk}", None),
             ("/api/tags/", "victim-tag-name"),
             (f"/api/tags/{v.v_tag.pk}/", "victim-tag-name"),
             ("/api/stacks/", str(v.v_stack.pk)),
@@ -238,6 +263,8 @@ class CrossTenantReadTest(TestCase):
             (f"/api/duplicates/{v.v_dup.pk}/", str(v.v_dup.pk)),
             ("/api/duplicates/stats/", None),
             ("/api/jobs/", v.v_job.job_id),
+            ("/api/upload/status/", v.v_import.job_id),
+            ("/api/library/processing-status/", v.v_job.job_id),
             (f"/api/jobs/{v.v_job.pk}/", v.v_job.job_id),
             (f"/api/photos/download?job_id={v.v_job.job_id}", None),
             ("/api/memories/?fallback=true&window=30", v.v_photo.image_hash),
@@ -330,6 +357,19 @@ class SharedReadTest(TestCase):
             title="SharedPlaceTitle", geolocation_level=1, owner=self.sharer
         )
         self.place.shared_to.add(self.recipient)
+        # The places, things and people of the shared photo (#2721, #2722).
+        self.sharer.share_people_names = True
+        self.sharer.save()
+        create_test_album_place(title="PhotoPlaceTitle", owner=self.sharer).photos.add(
+            self.photo
+        )
+        create_test_album_thing(
+            title="photothingtitle", thing_type=THING_TYPE, owner=self.sharer
+        ).photos.add(self.album_photo)
+        self.person = create_test_person(
+            name="SharedPersonName", cluster_owner=self.sharer
+        )
+        create_test_face(photo=self.photo, person=self.person)
 
     def get(self, user, url):
         client = APIClient()
@@ -350,6 +390,22 @@ class SharedReadTest(TestCase):
             ("/api/sync/albums/thing/", "sharedthingtitle"),
             ("/api/sync/albums/place/", "SharedPlaceTitle"),
             ("/api/sync/sharing/", self.sharer.username),
+            ("/api/photos/shared/tome/places/", "PhotoPlaceTitle"),
+            (
+                "/api/photos/shared/tome/places/photos/?title=PhotoPlaceTitle",
+                self.photo.image_hash,
+            ),
+            ("/api/photos/shared/tome/things/", "photothingtitle"),
+            (
+                "/api/photos/shared/tome/things/photos/?title=photothingtitle",
+                self.album_photo.image_hash,
+            ),
+            ("/api/photos/shared/tome/people/", "SharedPersonName"),
+            (
+                f"/api/photos/shared/tome/people/photos/?person={self.person.pk}",
+                self.photo.image_hash,
+            ),
+            (f"/api/photos/{self.photo.pk}/", "SharedPersonName"),
         ]:
             with self.subTest(url=url):
                 status, body = self.get(self.recipient, url)

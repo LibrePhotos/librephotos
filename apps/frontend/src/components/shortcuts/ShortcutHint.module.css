@@ -1,0 +1,6 @@
+/* Keyboard hints mean nothing without a keyboard: hidden on touch-only devices. */
+@media (hover: none) {
+  .hint {
+    display: none;
+  }
+}

@@ -27,7 +27,7 @@ from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
-from rest_framework import routers
+from rest_framework import routers, serializers
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,7 +36,7 @@ from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
-from rest_framework_simplejwt.tokens import Token
+from rest_framework_simplejwt.tokens import RefreshToken, Token
 from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     TokenObtainPairView,
@@ -45,6 +45,11 @@ from rest_framework_simplejwt.views import (
 
 from api.accounts.cookies import clear_auth_cookies, set_auth_cookies
 from api.accounts.throttling import SignInRateThrottle, TokenRefreshRateThrottle
+from api.accounts.tokens import (
+    RememberMeRefreshToken,
+    remember_me_days,
+    remembered_max_age,
+)
 from api.models import User
 from api.views import (
     album_auto,
@@ -52,12 +57,14 @@ from api.views import (
     album_folder,
     albums,
     dataviz,
+    date_rules,
     duplicates,
     email_config,
     faces,
     geocode,
     health,
     jobs,
+    library_folders,
     media,
     memories,
     password_reset,
@@ -66,7 +73,10 @@ from api.views import (
     photo_locations,
     photo_metadata,
     photo_moves,
+    photo_renames,
     photos,
+    places_map,
+    processing_status,
     public_albums,
     public_photos,
     scan_triggers,
@@ -81,9 +91,11 @@ from api.views import (
     sync,
     tags,
     timezone,
+    updates,
     upgrade_tasks,
     upload,
     user,
+    user_places,
     zip_downloads,
 )
 from librephotos.converters import (
@@ -95,10 +107,21 @@ from nextcloud import views as nextcloud_views
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    remember_me = serializers.BooleanField(
+        required=False,
+        default=False,
+        write_only=True,
+        help_text="Stay signed in: a refresh token for REMEMBER_ME_DAYS instead of"
+        " REFRESH_TOKEN_DAYS, and auth cookies that outlive the browser session."
+        " Ignored when REMEMBER_ME_DAYS is 0.",
+    )
+
     @classmethod
     def get_token(cls, user: AuthUser) -> Token:
-        token = super(TokenObtainPairSerializer, cls).get_token(user)
+        return cls.with_user_claims(RefreshToken.for_user(user), user)
 
+    @staticmethod
+    def with_user_claims(token: RefreshToken, user: AuthUser) -> RefreshToken:
         # The custom claims below are api.User fields; every caller passes one.
         assert isinstance(user, User)
         token["name"] = user.get_username()
@@ -114,6 +137,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, str]:
+        # TokenObtainSerializer.validate checks the credentials and sets self.user
+        # (or raises); the pair is built here, not in TokenObtainPairSerializer,
+        # so "Remember me" can pick the refresh token class. UPDATE_LAST_LOGIN
+        # is off, so its last_login write is left out.
+        super(TokenObtainPairSerializer, self).validate(attrs)
+        user = self.user
+        assert user is not None
+        remember = attrs.get("remember_me") and remember_me_days() > 0
+        token_class = RememberMeRefreshToken if remember else RefreshToken
+        refresh = self.with_user_claims(token_class.for_user(user), user)
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -125,7 +161,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        set_auth_cookies(response, request, access=response.data["access"])
+        access = response.data["access"]
+        set_auth_cookies(
+            response, request, access=access, max_age=remembered_max_age(access)
+        )
         return response
 
 
@@ -139,7 +178,12 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         response = super().post(request, *args, **kwargs)
-        set_auth_cookies(response, request, access=response.data["access"])
+        # The access token carries the sign-in's remember_until claim, so a
+        # remembered session keeps its persistent jwt cookie on every refresh.
+        access = response.data["access"]
+        set_auth_cookies(
+            response, request, access=access, max_age=remembered_max_age(access)
+        )
         return response
 
 
@@ -245,6 +289,9 @@ router.register(r"api/persons", albums.PersonViewSet, basename="persons")
 router.register(
     r"api/person-groups", person_groups.PersonGroupViewSet, basename="person_groups"
 )
+router.register(
+    r"api/user-places", user_places.UserPlaceViewSet, basename="user_places"
+)
 
 router.register(r"api/tags", tags.TagViewSet, basename="tags")
 
@@ -252,6 +299,37 @@ router.register(
     r"api/photos/shared/tome",
     sharing.SharedToMePhotoSuperSimpleListViewSet,
     basename="shared_to_me_photo",
+)
+# Sharing > Shared with you: places, things and people (#2721, #2722).
+router.register(
+    r"api/photos/shared/tome/places",
+    sharing.SharedToMePlaceListViewSet,
+    basename="shared_to_me_places",
+)
+router.register(
+    r"api/photos/shared/tome/places/photos",
+    sharing.SharedToMePlacePhotoListViewSet,
+    basename="shared_to_me_place_photos",
+)
+router.register(
+    r"api/photos/shared/tome/things",
+    sharing.SharedToMeThingListViewSet,
+    basename="shared_to_me_things",
+)
+router.register(
+    r"api/photos/shared/tome/things/photos",
+    sharing.SharedToMeThingPhotoListViewSet,
+    basename="shared_to_me_thing_photos",
+)
+router.register(
+    r"api/photos/shared/tome/people",
+    sharing.SharedToMePersonListViewSet,
+    basename="shared_to_me_people",
+)
+router.register(
+    r"api/photos/shared/tome/people/photos",
+    sharing.SharedToMePersonPhotoListViewSet,
+    basename="shared_to_me_person_photos",
 )
 router.register(
     r"api/photos/shared/fromme",
@@ -306,7 +384,9 @@ urlpatterns = [
         name="media",
     ),
     # Ahead of the router: its api/photos/<pk>/ route would take "no-album",
-    # "public", "date-summary", "reapply-date-rules", "rescan", "move" and the two location routes below them.
+    # "public", "date-summary", "map-points", "in-bounds", "reapply-date-rules",
+    # "rescan", "move", "rename" and the two location routes below them, and
+    # its api/albums/place/<pk>/ route "in-bounds".
     path(
         "api/photos/no-album/",
         photos.NoAlbumPhotoViewSet.as_view({"get": "list"}),
@@ -328,6 +408,21 @@ urlpatterns = [
         name="photos_located_nearby_in_time",
     ),
     path(
+        "api/photos/map-points/",
+        places_map.PhotoMapPointsView.as_view(),
+        name="photos_map_points",
+    ),
+    path(
+        "api/photos/in-bounds/",
+        places_map.PhotosInBoundsViewSet.as_view({"get": "list"}),
+        name="photos_in_bounds",
+    ),
+    path(
+        "api/albums/place/in-bounds/",
+        places_map.PlaceAlbumsInBoundsView.as_view(),
+        name="place_albums_in_bounds",
+    ),
+    path(
         "api/photos/location-summary/",
         photo_locations.LocationSummaryView.as_view(),
         name="photos_location_summary",
@@ -346,6 +441,16 @@ urlpatterns = [
         "api/photos/move/folders/",
         photo_moves.MoveFoldersView.as_view(),
         name="photos_move_folders",
+    ),
+    path(
+        "api/photos/rename/",
+        photo_renames.RenamePhotosView.as_view(),
+        name="photos_rename",
+    ),
+    path(
+        "api/photos/rename/preview/",
+        photo_renames.RenamePhotosPreviewView.as_view(),
+        name="photos_rename_preview",
     ),
     path(
         "api/photos/reapply-date-rules/",
@@ -375,6 +480,7 @@ urlpatterns = [
     re_path(r"^api/email-config/?$", email_config.EmailConfigView.as_view()),
     re_path(r"^api/firsttimesetup/?$", user.IsFirstTimeSetupView.as_view()),
     re_path(r"^api/dirtree/?$", user.RootPathTreeView.as_view()),
+    path("api/dirtree/folders/", user.CreateFolderView.as_view()),
     re_path(r"^api/labelfaces/?$", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/addface/?$", faces.AddFaceView.as_view()),
     re_path(r"^api/deletefaces/?$", faces.DeleteFaces.as_view()),
@@ -404,6 +510,44 @@ urlpatterns = [
     re_path(r"^api/clusterfaces/?$", dataviz.ClusterFaceView.as_view()),
     re_path(r"^api/socialgraph/?$", dataviz.SocialGraphView.as_view()),
     re_path(r"^api/scanphotos/?$", scan_triggers.ScanPhotosView.as_view()),
+    path(
+        "api/manage/user/<int:user_id>/scan/",
+        scan_triggers.ScanUserPhotosView.as_view(),
+        name="manage_user_scan",
+    ),
+    path(
+        "api/manage/user/<int:user_id>/scan-directory-impact/",
+        user.ScanDirectoryImpactView.as_view(),
+        name="manage_user_scan_directory_impact",
+    ),
+    path("api/library-folders/", library_folders.OwnLibraryFoldersView.as_view()),
+    path(
+        "api/library-folders/excluded/",
+        library_folders.OwnExcludedFoldersView.as_view(),
+    ),
+    path(
+        "api/library-folders/subfolders/",
+        library_folders.OwnLibrarySubfoldersView.as_view(),
+    ),
+    path(
+        "api/library-folders/trash-outside/",
+        library_folders.TrashOwnPhotosOutsideLibraryView.as_view(),
+    ),
+    path(
+        "api/manage/user/<int:user_id>/library-folders/",
+        library_folders.ManageLibraryFoldersView.as_view(),
+        name="manage_user_library_folders",
+    ),
+    path(
+        "api/manage/user/<int:user_id>/library-folders/<int:folder_id>/",
+        library_folders.ManageLibraryFolderView.as_view(),
+        name="manage_user_library_folder",
+    ),
+    path(
+        "api/manage/user/<int:user_id>/trash-photos-outside-library/",
+        scan_triggers.TrashPhotosOutsideLibraryView.as_view(),
+        name="manage_user_trash_photos_outside_library",
+    ),
     # Two URLs, one view, on purpose: #2220 keeps this alias because it is documented.
     re_path(r"^api/scanuploadedphotos/?$", scan_triggers.FullScanPhotosView.as_view()),
     re_path(r"^api/fullscanphotos/?$", scan_triggers.FullScanPhotosView.as_view()),
@@ -430,6 +574,19 @@ urlpatterns = [
         upgrade_tasks.UpgradeTaskDismissView.as_view(),
     ),
     path("api/look-up-places/", scan_triggers.LookUpPlacesView.as_view()),
+    path(
+        "api/library/processing-status/",
+        processing_status.ProcessingStatusView.as_view(),
+    ),
+    path(
+        "api/library/processing-status/run/",
+        processing_status.RunProcessingStageView.as_view(),
+    ),
+    path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
+    path("api/check-file-contents/", scan_triggers.CheckFileContentsView.as_view()),
+    path("api/updates/", updates.UpdateStatusView.as_view()),
+    path("api/updates/skip/", updates.SkipReleaseView.as_view()),
+    path("api/updates/snooze/", updates.SnoozeUpdateNoticeView.as_view()),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(
         r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()
@@ -530,6 +687,9 @@ urlpatterns = [
     re_path(r"^api/predefinedrules/?$", user.PredefinedRulesView.as_view()),
     re_path(r"^api/defaultburstrules/?$", user.DefaultBurstRulesView.as_view()),
     re_path(r"^api/predefinedburstrules/?$", user.PredefinedBurstRulesView.as_view()),
+    path("api/datetime-rules/options/", date_rules.DateRuleOptionsView.as_view()),
+    path("api/datetime-rules/check/", date_rules.DateRuleCheckView.as_view()),
+    path("api/datetime-rules/test/", date_rules.DateRulesTestView.as_view()),
     re_path(r"^api/stats/?$", dataviz.StatsView.as_view()),
     re_path(r"^api/storagestats/?$", server_info.StorageStatsView.as_view()),
     re_path(r"^api/imagetag/?$", server_info.ImageTagView.as_view()),
@@ -613,6 +773,8 @@ urlpatterns = [
     path("api/geocode/reverse/", geocode.GeocodeReverseView.as_view()),
     # Chunked upload. The mobile sync uploader calls these two paths exactly.
     re_path(r"^api/upload/complete/?$", upload.UploadPhotosChunkedComplete.as_view()),
+    path("api/upload/seal/", upload.SealUploadImportsView.as_view()),
+    path("api/upload/status/", upload.UploadStatusView.as_view()),
     re_path(r"^api/upload/?$", upload.UploadPhotosChunked.as_view()),
     # Mobile-v2 delta-sync feeds (doc 04)
     re_path(r"^api/sync/photos/?$", sync.SyncPhotosView.as_view()),

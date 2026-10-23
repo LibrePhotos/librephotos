@@ -49,10 +49,16 @@ vi.mock("../../components/menubars/TopMenu", () => ({
 vi.mock("../../components/menubars/SideMenuNarrow", () => ({ SideMenuNarrow: () => null }));
 vi.mock("../../components/menubars/FooterMenu", () => ({ FooterMenu: () => null }));
 vi.mock("../../components/spotlight", () => ({ SpotlightProvider: () => null }));
+vi.mock("../../components/shortcuts/KeyboardShortcuts", () => ({
+  KeyboardShortcuts: ({ children }: { children: React.ReactNode }) => children,
+}));
 vi.mock("../../components/upload", () => ({
   UploadProvider: ({ children }: { children: React.ReactNode }) => children,
   UploadDropTarget: ({ children }: { children: React.ReactNode }) => children,
   UploadProgressCard: () => null,
+}));
+vi.mock("../../components/whatsnew/WhatsNewProvider", () => ({
+  WhatsNewProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 let root: Root | undefined;

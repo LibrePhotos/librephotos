@@ -80,6 +80,18 @@ export const PhotoHash = z.object({
 export type PhotoHash = z.infer<typeof PhotoHash>;
 
 /**
+ * A photo's `projection_type` when it is a 360° photo sphere (#483): GPano's
+ * name for the projection, as the backend stores it (`api.metadata.projection`).
+ */
+export const EQUIRECTANGULAR_PROJECTION = "equirectangular";
+
+/**
+ * A photo's projection: `EQUIRECTANGULAR_PROJECTION` for a photo sphere, null for a flat photo.
+ * Optional: backends before 1.5 do not send it, and know no spheres.
+ */
+export const ProjectionType = z.string().nullish();
+
+/**
  * The lightweight photo shape returned by list/timeline endpoints ("pig" =
  * photo-in-grid). `image_hash` names its thumbnails and media files.
  */
@@ -101,6 +113,12 @@ export const PigPhoto = z.object({
   // Whether a video's grid square is an animated clip (true) or a still frame, scanned with the
   // animated previews off (#649). Absent from older backends, where every video square is a clip.
   animated_preview: z.boolean().optional(),
+  // A video with a still poster beside its clip (#2026): the grid shows it and plays the clip only
+  // while the tile is pointed at. Absent from older backends; false until the poster job has run.
+  video_poster: z.boolean().optional(),
+  // In a person's photos: the second of the video where that person is first seen (#2762); null
+  // elsewhere, for a photo and for a video where the person is on the first frame. Older servers omit it.
+  person_video_time: z.number().nullable().optional(),
   rating: z.number().default(0),
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),
@@ -121,6 +139,8 @@ export const PigPhoto = z.object({
   // and 8 render swapped, #2595). Optional:
   // backends before 1.3 do not send it.
   local_orientation: z.number().optional(),
+  // A 360° photo sphere gets a badge on its tile (#483).
+  projection_type: ProjectionType,
 });
 export type PigPhoto = z.infer<typeof PigPhoto>;
 

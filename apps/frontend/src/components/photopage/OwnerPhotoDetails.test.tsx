@@ -50,8 +50,13 @@ function last<Props>(rendered: Props[]): Props {
   return props;
 }
 
-vi.mock("../../api_client/faces", () => ({ useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setLabel }) }));
+vi.mock("../../api_client/faces", () => ({
+  useSetFacesPersonLabelMutation: () => ({ mutate: stubs.setLabel }),
+  useDetectFacesReport: () => null,
+  useDrawnFaceResult: () => null,
+}));
 vi.mock("../../api_client/photos/hooks", () => ({ useFetchPhotoAlbumsQuery: () => ({ data: stubs.albums }) }));
+vi.mock("../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
 vi.mock("../../api_client/settings/hooks", () => ({
   useGetSettingsQuery: () => ({ data: { tagging_model: "openclip_vitb32" } }),
 }));

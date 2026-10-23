@@ -172,6 +172,49 @@ export const UpgradeTaskList = z.object({
 });
 export type UpgradeTaskList = z.infer<typeof UpgradeTaskList>;
 
+/**
+ * The stages of the library processing status (#2741), in pipeline order. `face_recognition`
+ * counts faces, every other stage photos.
+ */
+export const PROCESSING_STAGE_KEYS = [
+  "thumbnails",
+  "things",
+  "search",
+  "places",
+  "face_detection",
+  "face_recognition",
+  "text",
+  "captions",
+] as const;
+export type ProcessingStageKey = (typeof PROCESSING_STAGE_KEYS)[number];
+
+/**
+ * One stage that is turned on (`GET /library/processing-status/`): what it still has to do, its
+ * job while one runs, and the newest finished run of it. `key` stays a string so a stage a newer
+ * server adds does not fail the whole answer; clients show the keys they know.
+ */
+export const ProcessingStage = z.object({
+  key: z.string(),
+  remaining: z.number(),
+  running_job: z.object({ job_id: z.string(), progress_current: z.number(), progress_target: z.number() }).nullable(),
+  last_run: z
+    .object({
+      job_id: z.string(),
+      finished_at: z.string().nullable(),
+      failed: z.boolean(),
+      error_count: z.number(),
+    })
+    .nullable(),
+});
+export type ProcessingStage = z.infer<typeof ProcessingStage>;
+
+/** `GET /library/processing-status/`: the caller's photos and what each stage has left. */
+export const ProcessingStatus = z.object({
+  photo_count: z.number(),
+  stages: z.array(ProcessingStage),
+});
+export type ProcessingStatus = z.infer<typeof ProcessingStatus>;
+
 /** `POST /photos/download`: the archive job and the archive's file name (a UUID). */
 export const PhotoDownloadStart = z.looseObject({
   job_id: z.string(),

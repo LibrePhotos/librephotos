@@ -12,16 +12,47 @@ The user panel is at the bottom of the page above the worker logs.
 
 You can create, delete and manage users of your instance. You can change the scan path, password, name and e-mail of a given user.
 
+<Since version="1.5.0" /> The circular arrow next to a user's scan directory scans that user's library now, the same scan as the **Scan** button on their Library page: the job is theirs and shows in their job list. While it runs, the arrow shows its progress. So after you fix a user's scan path, you can scan it without signing in as them. On your own Library page, **Change scan directories in the Admin Area** under **Scan library** leads to this table.
+
 **Please note:**
 In LibrePhotos, the file system acts as the definitive source of photo organization. This means that folder structure dictates how photos are grouped and accessed within the application.
 
 To isolate users and their photo collections, create a subfolder for each user inside the folder you set as `scanDirectory` in your `.env` file — the folder LibrePhotos mounts as `/data`. Inside LibrePhotos these show up as `/data/user1`, `/data/user2`, etc., and that is the path you assign as each user's scan directory. Create the folders before assigning them: LibrePhotos only accepts directories that already exist under `/data`. This ensures that users only see and interact with the photos in their designated directories.
 
+<Since version="1.5.0" /> You can make such a folder in the user edit dialog: choose the folder it goes in, click **New folder** above the folder list, type its name and press Enter. The new folder is chosen as the scan directory right away. Only admins can make folders, only inside `/data`, and a name cannot hold `/` or `\`, be `.` or `..`, or be a name Windows refuses (such as `CON` or `a:b`). If LibrePhotos may not write to the folder, the dialog says so; then make the folder on the host.
+
+### Changing a user's scan directory
+
+<Since version="1.5.0" /> When you point a user at another folder, their photos from the old folder stay theirs: nothing moves to another user. The edit dialog counts the user's photos outside the new folder and asks what to do with them before you save:
+
+- **Keep them in the user's library** (the default): nothing changes, as before.
+- **Move them to the user's trash**: after the save, a job (Trash Photos Outside the Library, shown in the job list) moves them to the user's trash. The files on disk are not touched, and the user can restore the photos from the trash until it is emptied. The Save button turns red and says how many photos it moves.
+
+Photos in the user's upload folder, in their further [library folders](#several-library-folders-per-user) and copies from their Nextcloud count as inside. If another user's scan directory holds the same files, that user's next scan adds them to their own library.
+
 Scan directories of different users must not overlap. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that is the same as, inside, or above another user's scan directory, and names the user it clashes with. In particular, once one user scans `/data` itself, no other user can be given any folder under `/data`, so give every user a folder of their own, the admin included. Installations that already have overlapping scan directories keep working and those users can still be edited; only changing a scan directory to one that overlaps is refused. Two users whose scan directories overlap each get their own photo of a file both scan, with its own thumbnails and face crops. <Since version="1.4.0" /> Up to 1.3.0 the second user's photo shared an internal key with the first user's, so either of them could be refused a photo of their own or see the other's rotation of it. LibrePhotos 1.4.0 repairs those photos once while it starts, copying their thumbnails and face crops, so the first start takes a little longer and the thumbnails folder grows by those copies.
 
 If your admin account already scans `/data` and you want to add more users, move the admin's photos into a subfolder such as `/data/admin`, set that as the admin's scan directory and run a scan. The moved photos are matched to their existing entries by their content, so ratings, faces and albums are kept; see [Missing Photos](./missing-photos.md) for how that relinking works.
 
-To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md).
+### Several library folders per user
+
+<Since version="1.5.0" /> A user's library can span more than one folder, for example a folder of their own and a shared family folder, or a second disk. The scan directory stays the user's main folder (uploads go below it unless an upload folder is set); further folders are added in the user edit dialog, under **Library folders**:
+
+1. Open the user in the Admin Area and click **Add folder** under **Library folders**.
+2. Pick a folder in the tree (or type its path) and click **Add folder**. It must already exist under `/data`.
+3. Run a scan: every scan reads all folders of the library from then on.
+
+The same list is on that user's **Library** page; as an admin you can add and remove your own folders there. Adding or removing a folder in the dialog applies right away, without **Save**.
+
+The rules for scan directories hold for every library folder: a folder may not be the same as, inside or above a folder of another user's library (scan directory, upload folder or a further folder), and the error names the user it clashes with. Within one library, folders may not overlap either: a folder inside the scan directory is already part of the library. A scan directory that would contain one of the user's further folders is refused until you remove that folder.
+
+**Remove…** in a folder's menu takes it out of the library. Its files stay on disk and its photos stay the user's, outside the library; tick **Also move its photos to the user's trash** to move them to the trash right after, as when the scan directory changes. The main folder cannot be removed; change the scan directory instead.
+
+A folder that cannot be read (an unplugged disk) is shown as **Not found** and skipped by scans; its photos are not marked missing.
+
+Every user can also leave subfolders out of their own library, from the **Library** page; see [Leaving subfolders out](./library.md#leaving-subfolders-out).
+
+To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md). [Sharing photos in a family](./sharing.md#sharing-photos-in-a-family) compares the setups a household can use.
 
 While the application saves metadata (e.g., tags, albums, facial recognition data) on a per-user basis in its database, it doesn’t inherently restrict access to the photos themselves. Access permissions must be managed through the file system / paths.
 

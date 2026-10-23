@@ -17,7 +17,8 @@ from django.test import RequestFactory, TestCase
 from django.test.utils import CaptureQueriesContext
 
 from api import admin as admin_module
-from api.admin import PhotoAdmin, deduplicate_faces_function
+from api.admin import PhotoAdmin
+from api.faces.deduplicate import deduplicate_faces_of_photos
 from api.models import Photo
 from api.tests.utils import create_test_face, create_test_photos, create_test_user
 
@@ -151,7 +152,7 @@ class DeduplicateFacesFunctionQueryCountTest(TestCase):
         photos = self.make_photos_with_duplicate_faces(count)
         photo_ids = [photo.id for photo in photos]
         with CaptureQueriesContext(connection) as captured:
-            deduplicate_faces_function(photo_ids)
+            deduplicate_faces_of_photos(photo_ids)
         for photo in photos:
             self.assertEqual(photo.faces.count(), 1)
         return len(captured.captured_queries)

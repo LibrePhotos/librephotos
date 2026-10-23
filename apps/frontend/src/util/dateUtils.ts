@@ -190,6 +190,15 @@ export function describeDuration(seconds: number): string {
   return Duration.fromObject(nonZero).toHuman();
 }
 
+/**
+ * A moment of a video as its player's time display shows it: "0:42", "12:05", "1:02:03". Partial
+ * seconds are dropped and a negative time is 0:00.
+ */
+export function formatVideoTime(seconds: number): string {
+  const duration = Duration.fromObject({ seconds: Math.max(0, Math.floor(seconds)) });
+  return duration.toFormat(seconds >= 3600 ? "h:mm:ss" : "m:ss");
+}
+
 // A calendar day as the search filters and Mantine's date pickers write it, with no time or zone.
 const CALENDAR_DAY_FORMAT = "yyyy-MM-dd";
 

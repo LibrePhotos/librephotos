@@ -10,6 +10,14 @@ To label a face, click on the green plus button. A pop-up titled **Label faces**
 
 Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name. While you type, the people whose names match are listed with the most faces first, then by name; with nothing typed, the list is in name order. (Not released yet: up to 1.3.0, matches stayed in name order.)
 
+### The same face in a burst or duplicate group
+
+<Since version="1.5.0" />
+
+Burst frames, exposure brackets and duplicates are separate photos, so the same face is found once in every frame. When you label one of them, LibrePhotos also labels that face in the other photos of the same [burst or bracket stack](./stacks-and-file-variants.md) or [duplicate group](./duplicate-detection.md): the message then says, for example, "Also labeled 4 matching faces in the same burst or duplicate group", and its **Undo** takes all of them back.
+
+Only a face that is clearly the same one is labelled along: one that has no name yet, at nearly the same place in the picture, and that looks nearly identical to the face you labelled. The other people in those frames, faces you already named or deleted, and a face you said is not that person (**Not _name_**) are left alone. A manual stack, and a duplicate group you dismissed as not duplicates, do not count. Sending a face to "Unknown - Other" only changes that face.
+
 ### Writing face tags to your files
 
 By default, labelling a face only updates the LibrePhotos database — your image files are not touched.
@@ -42,6 +50,8 @@ The detector does not find every face. Someone turned away from the camera, a ch
 
 Open the photo, then click the green person-plus button at the top of the **People** section of the sidebar. The photo dims and the pointer becomes a crosshair: drag a box around the face, and the **Label faces** dialog opens so you can pick an existing person or type a new name. Press **Escape**, or use the **Cancel** button in the sidebar, to leave without adding anything.
 
+<Since version="1.5.0" /> The box only has to be rough. While the **People** section says "Looking for the face in your box…", the face recognition service looks at that part of the photo on its own, enlarged, where it finds faces that are too small or too turned to be found in the whole photo. The face it finds is saved with its own, exact box, and with an encoding like any detected face, so it is grouped with that person's other faces; the message then says "The face was found in your box". Only a face whose middle is inside your box is taken. If there is no face in the box, the section says **No face found in the box** and offers **Keep my box** (the face is saved with your box and the name you chose, as before) or **Draw again**. When the face recognition service is off or not answering, your box is saved as you drew it. Up to 1.4.0, the box you drew was saved as it was.
+
 A few things worth knowing:
 
 - **The face you add counts as your own labelling.** It is stored exactly like a face you named on the dashboard, and classification trains on it, so adding a few faces the detector missed also helps it recognise that person elsewhere. It never starts a cluster of its own.
@@ -55,6 +65,10 @@ If **Settings → Face Options → Write face tags to image files** is enabled, 
 ## Train faces
 
 If you click on the blue button (the barbell icon) in the face dashboard, or the **Train** button on the [Library page](./library.md) (avatar menu → **Library**, under **Faces & People**), the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person.
+
+<Since version="1.5.0" /> After uploads you do not have to: once at least 20 new faces (and 2% of all your faces) came in, LibrePhotos clusters and trains by itself, half an hour after your last upload, at most once an hour and not within 15 minutes of you labelling a face (see [Find Similar Faces](./job-system.md#find-similar-faces)). Your names and labels stay as they are.
+
+<Since version="1.5.0" /> Clustering only replaces its own groups ("Unknown 001" and the like). A person you named stays, even with no faces left: one you created by hand, or one whose faces you all moved to someone else, keeps its name and [birth date](./albums.md#birth-date-and-age). To get rid of such a person, delete them from their page. Up to 1.4.0, every clustering deleted the named people that had no faces, those of every user.
 
 The dashboard has four tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), **Labeled** (faces you have already named) and **Deleted** (faces you deleted, so you can [restore them](#restore-deleted-faces)). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about — use the **% confident** filter in the toolbar to lower this threshold and surface weaker recommendations (the filter applies to both the Inferred and Unknown tabs).
 
@@ -74,6 +88,8 @@ Each group starts with a row that shows the person's face, their name and how ma
 
 Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
 
+<Since version="1.5.0" /> The third button, **Similar faces together** (the joining arrows), puts groups whose faces look alike next to each other. It starts with the group with the most faces and then always takes the group that looks most like the last one, so the clusters of one person ("Unknown 014", "Unknown 087") usually end up in a row on the **Inferred** tab, often right after that person's name if they are already named. Label them in one pass, or select several groups' faces at once. Groups without a cluster (for example faces that only training suggested) come after the others, by name. A library with more than 3,000 groups keeps name order in this view.
+
 <Since version="1.4.0" /> To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there.
 
 ### Act on one face
@@ -89,6 +105,10 @@ You can also review faces one at a time, without selecting them first. Point at 
 
 On the Deleted tab the menu only offers **Restore face** and **Show photo**.
 
+#### "Not _name_" is remembered
+
+<Since version="1.5.0" /> When you send a face back with **Not _name_** (or the orange person-off button, or [**Remove from this person**](./albums.md) on a person's photos), LibrePhotos remembers that the face is not that person. **Train faces** never suggests them for that face again; it may suggest someone else, or leave the face in "Unknown - Other". The message after **Not _name_** says so, for example "Anna won't be suggested for this face again". To take it back, click **Undo** in that message, or label the face as that person yourself. When you [merge](./albums.md#merging-two-people) Anna into another person, the face is not suggested as the merged person either. Up to 1.4.0, the next training often suggested the same person again.
+
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
 <Since version="1.4.0" /> A face whose thumbnail is missing (faces from old versions, or a thumbnail that could not be saved) shows a grey person icon instead of the face. It is a face like any other: you can select it, label it, open its photo with **Show photo** to see who it is, or delete it. The next face scan (see [Re-scan faces](#re-scan-faces)) cuts its thumbnail from the photo again.
@@ -100,6 +120,8 @@ Sometimes the face recognition might find a face that is not actually a face. To
 <Since version="1.5.0" /> Up to 1.4.0, deleted faces were still grouped by clustering, so a painting or a pattern you deleted could still merge or split the clusters of real faces.
 
 If **Write face tags to image files** is on, deleting faces also takes them out of the files: each affected photo's face regions are written again from the faces it has left, in a background job, and the deleted person's name is removed from the photo's keywords. Deleting the last face of a photo clears its regions, including ones another photo manager such as digiKam wrote and LibrePhotos imported: the media file loses `XMP-mwg-rs:RegionInfo`, and with **Save to sidecar** the sidecar gets an empty region list, which hides the regions still stored in the original. A name you also added to the photo as a tag stays a keyword. Only XMP MWG regions are changed: Microsoft Photo regions (`XMP-MP:RegionInfo`) and digiKam's `People/…` entries in `XMP-digiKam:TagsList` stay in the file. <Since version="1.4.0" /> Up to 1.3.0, deleting a face left its region and name in the file.
+
+A face that was saved twice on the same photo (two overlapping boxes, for example from an old scan and from face regions read from the file) can be cleaned up for the whole instance by an admin with [Remove duplicate faces](./job-system.md#remove-duplicate-faces).
 
 ## Undo a face action
 
@@ -136,6 +158,8 @@ Re-scan faces on the Library page looks at every photo, which takes hours on a l
 - **Some photos**: select them, open the **⋮** (Photo Actions) and choose **Detect faces again** in the **Files** group (up to 1,000 photos). In the photo viewer it is in the **⋮** after the rotate buttons, and on a photo's page under **More**.
 - **A folder**: on the folder's page (open it from **Folders**), open the **⋮** (Folder actions) and choose **Detect faces again in this folder**. It covers the folder and its subfolders and asks first, saying how many photos that is.
 
+<Since version="1.5.0" /> For a single photo (from the photo viewer or the photo's page), the photo's **People** section follows the scan: it says "Looking for faces again…" while the scan runs, then marks the faces it found with **New**, or says **No new face found**. The scan uses the same detector as before, so a face it missed stays missed: use **Draw the face** there to draw a box around it (see [Add a face the scan missed](#add-a-face-the-scan-missed)).
+
 It works like Re-scan faces for those photos: faces already found and named stay as they are, and a face you deleted is not found again; restore it from the **Deleted** tab instead. The other photos are not touched, and the next face scan after a photo scan still looks at every photo whose faces have not been looked for yet. Only your own photos can be scanned, and a folder must be inside your scan directory or upload folder.
 
 ## Workflow
@@ -149,6 +173,22 @@ After the first scan finished, go to the face dashboard. Label a couple of faces
 Faces are detected with [InsightFace](https://github.com/deepinsight/insightface). Its detector (SCRFD) finds the faces in each photo and returns a bounding box for every face it sees. This replaced the older dlib detectors, so there is no longer a separate `hog` / `cnn` choice — a single detector is used for everyone.
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
+
+<Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face Options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
+
+### Faces in videos {#faces-in-videos}
+
+<Since version="1.5.0" /> A video is not read only on its first frame, the one its thumbnail shows. The face scan also reads up to 8 frames spread from 5% to 95% of the video (one per second at most, so a short clip gets fewer) and looks for faces in each. A person seen in several frames gets one face for the video, the largest one found: a face that looks like a face the video already has (its first frame's, or one an earlier scan found) is the same person and is not added again. The video then shows up in that person's album once the face is labelled or recognised. Videos shorter than 2 seconds, or whose length the scan could not read, are read on their first frame only, as before.
+
+Up to 1.4.0, only the first frame of a video was read. After updating, the next face scan (after a photo scan, or **Scan faces** on the Library page) reads the other frames of every video once; the faces the videos have already stay as they are. Reading the frames costs a few seconds per video, and at most two minutes for a long one. To scan videos on their first frame only, turn off **Faces in videos** under **Face detection** in the Features card (see [Feature Toggles](./feature-toggles.md#site-settings-switches)).
+
+#### Open a video where a face appears {#open-a-video-where-a-face-appears}
+
+<Since version="1.5.0" /> A face found in a later frame shows its time in the video, for example **▶ 0:42**, in the corner of its thumbnail on the face dashboard. Opening the photo from that face (**Show photo** in its menu) starts the video a second before that moment, and a note over the video says so for a few seconds: "Started at 0:42, where Anna appears", with a **Play from start** button. On a person's page, a video where the person appears later shows that time in the corner of its tile and opens there too. A video opened anywhere else, from the timeline or an album, starts at 0:00 as before.
+
+In the **People** list of the sidebar, a face from a later frame has a time button next to its name: click it to play the video from there. If the video is being converted while it plays (see [Seeking in videos](./viewing-photos.md#seeking-in-videos)), the player cannot jump ahead; the note then says where the face is and that the video can only play from the start.
+
+A face from a later frame has its thumbnail and embedding from the scan, since the frame itself is not kept: **Train faces** does not encode it again, a thumbnail that went missing is not cut again, and **Write face tags to image files** does not write it into the video as a face region, because its box is in another frame than the one other apps would show.
 
 <Since version="1.4.0" /> Up to 1.3.0, a photo with even one face region was not given to the detector at all, so the other people in it were never found, not even by **Re-scan faces**. Run **Re-scan faces** once after updating to find them.
 

@@ -33,14 +33,17 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
+from api.models.library_folder import LibraryFolder
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
 from api.models.photo_metadata import MetadataEdit
+from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
 from api.models.upload_followup_state import UploadFollowupState
+from api.models.user_place import UserPlace
 from api.photos.media_files import get_or_create_file
 
 fake = Faker()
@@ -117,6 +120,13 @@ def create_test_person(
         face_count=face_count,
         cluster_owner=cluster_owner,
         **kwargs,
+    )
+
+
+def create_test_library_folder(owner: User, path: str) -> LibraryFolder:
+    """A further library folder of ``owner`` at ``path`` (#123), stored normalised."""
+    return LibraryFolder.objects.create(
+        owner=owner, path=os.path.normpath(os.path.abspath(path))
     )
 
 
@@ -267,6 +277,11 @@ def create_test_upgrade_task_state(key: str, **kwargs: Any) -> UpgradeTaskState:
     return UpgradeTaskState.objects.create(key=key, **kwargs)
 
 
+def create_test_photo_ocr(photo: Photo, **kwargs: Any) -> PhotoOcr:
+    """The OCR result of ``photo``: no text unless given, read by ``kwargs["engine"]``."""
+    return PhotoOcr.objects.create(photo=photo, **kwargs)
+
+
 def create_test_upload_followup_state(user: User, **kwargs: Any) -> UploadFollowupState:
     """The upload follow-up state of ``user`` (``api.jobs.upload_followups``): idle, nothing pending."""
     return UploadFollowupState.objects.create(user=user, **kwargs)
@@ -313,6 +328,28 @@ def create_test_album_place(
     """A place album for ``owner``. Titles are unique per owner, so the default is random."""
     title = title or f"{fake.city()} {uuid.uuid4().hex[:8]}"
     return AlbumPlace.objects.create(owner=owner, title=title, **kwargs)
+
+
+def create_test_user_place(
+    owner: User,
+    name: str | None = None,
+    *,
+    center: tuple[float, float] = (48.13743, 11.57549),
+    radius_m: int = 150,
+    **kwargs: Any,
+) -> UserPlace:
+    """One of ``owner``'s places (#1365): a circle of ``radius_m`` around
+    ``center`` (lat, lon). Names are unique per owner, so the default is random.
+    Its photos are not filed: call ``refresh_user_places`` for that."""
+    lat, lon = center
+    return UserPlace.objects.create(
+        owner=owner,
+        name=name or f"Place {uuid.uuid4().hex[:8]}",
+        center_lat=lat,
+        center_lon=lon,
+        radius_m=radius_m,
+        **kwargs,
+    )
 
 
 def create_test_metadata_edit(

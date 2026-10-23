@@ -726,6 +726,61 @@ export async function setPersonGroups(
   return parseResponse(S.PersonGroupsResponse, res, "set person groups");
 }
 
+/* ---- your places (#1365) ----------------------------------------------- */
+
+/** What a place is drawn and named as: the circle, the name, the icon and the event titles switch. */
+export type UserPlaceFields = Pick<
+  S.UserPlace,
+  "name" | "icon" | "center_lat" | "center_lon" | "radius_m" | "use_in_titles"
+>;
+
+/** A circle being drawn, and the place it edits (left out for a new one). */
+export type UserPlaceCircle = { lat: number; lon: number; radiusM: number; exclude?: number };
+
+/** My places by name, with their photo counts; all pages. */
+export async function fetchUserPlaces(client: ApiClient): Promise<S.UserPlace[]> {
+  const results = await fetchAllPages(client, "/user-places/");
+  return parseResponse(S.UserPlaceList, { results }, "user places").results;
+}
+
+/** Draw a place (ApiError 400 `unique` for a name I use in any case, `too_many_places` past the limit). */
+export async function createUserPlace(client: ApiClient, fields: UserPlaceFields): Promise<S.UserPlace> {
+  const res = await client.post<unknown>("/user-places/", fields);
+  return parseResponse(S.UserPlace, res, "create user place");
+}
+
+/** Change a place; my photos are filed into the places they were taken in again. */
+export async function updateUserPlace(
+  client: ApiClient,
+  placeId: number,
+  fields: Partial<UserPlaceFields>
+): Promise<S.UserPlace> {
+  const res = await client.patch<unknown>(`/user-places/${placeId}/`, fields);
+  return parseResponse(S.UserPlace, res, "update user place");
+}
+
+/** Delete a place; its photos stay. Answers 204. */
+export async function deleteUserPlace(client: ApiClient, placeId: number): Promise<void> {
+  await client.delete(`/user-places/${placeId}/`);
+}
+
+/** How many of my photos a circle being drawn holds, the newest few, and my places it overlaps. */
+export async function fetchUserPlacePreview(client: ApiClient, circle: UserPlaceCircle): Promise<S.UserPlacePreview> {
+  const query = buildQuery({ lat: circle.lat, lon: circle.lon, radius_m: circle.radiusM, exclude: circle.exclude });
+  const res = await client.get<unknown>(`/user-places/preview/${query}`);
+  return parseResponse(S.UserPlacePreview, res, "user place preview");
+}
+
+/** A place's photos by day, newest first; `filter` narrows them to photos or videos. */
+export async function fetchUserPlacePhotos(
+  client: ApiClient,
+  placeId: number,
+  filter: AlbumMediaFilter = {}
+): Promise<S.UserPlacePhotos> {
+  const res = await client.get<unknown>(`/user-places/${placeId}/photos/${buildQuery(albumMediaQuery(filter))}`);
+  return parseResponse(S.UserPlacePhotos, res, "user place photos");
+}
+
 /* ---- search ------------------------------------------------------------ */
 
 /**
@@ -806,6 +861,27 @@ export async function fetchPredefinedRules(client: ApiClient): Promise<ParsedEnt
   const res = await client.get<unknown>("/predefinedrules/");
   const context = "predefined date-time rules";
   return parseEachResponse(S.DateTimeRule, decodeJsonString(res, context), context);
+}
+
+/** The tags a custom date rule may read and check, and where custom rule ids start (#2272). */
+export async function fetchDateRuleOptions(client: ApiClient): Promise<S.DateRuleOptions> {
+  const res = await client.get<unknown>("/datetime-rules/options/");
+  return parseResponse(S.DateRuleOptions, res, "date rule options");
+}
+
+/**
+ * Ask whether one date rule can be saved, as the settings save checks it. A 400 (`ApiError`) has an
+ * entry per param that cannot, with the param as its `field`.
+ */
+export async function checkDateRule(client: ApiClient, rule: S.DateTimeRule): Promise<S.DateRuleCheck> {
+  const res = await client.post<unknown>("/datetime-rules/check/", { rule });
+  return parseResponse(S.DateRuleCheck, res, "date rule check");
+}
+
+/** What each of the signed-in user's saved date rules reads from one of their photos; changes nothing. */
+export async function fetchDateRulesTest(client: ApiClient, photoId: string): Promise<S.DateRulesTest> {
+  const res = await client.get<unknown>(`/datetime-rules/test/${buildQuery({ photo_id: photoId })}`);
+  return parseResponse(S.DateRulesTest, res, "date rules test");
 }
 
 /** The predefined burst detection rules, parsed rule by rule (see fetchPredefinedRules). */
@@ -896,6 +972,110 @@ export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerRespons
   return triggerJob(client, "/scanphotos/", S.JobTriggerResponse, "scan photos");
 }
 
+/**
+ * Scan another user's library, as that user (admins only, #2037): the same scan as their own Scan
+ * button, so the job is theirs. Returns the queued (or their already running) job id.
+ */
+export async function scanUserPhotos(client: ApiClient, userId: number): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, `/manage/user/${userId}/scan/`, S.JobTriggerResponse, "scan user photos");
+}
+
+/**
+ * Admin: how many of a user's photos the scan directory `scanDirectory` (with the upload folder
+ * `uploadDirectory`, "" for the default) would leave outside their library (#2036). Read only.
+ */
+export async function fetchScanDirectoryImpact(
+  client: ApiClient,
+  userId: number,
+  scanDirectory: string,
+  uploadDirectory: string
+): Promise<S.ScanDirectoryImpact> {
+  const query = `scan_directory=${encodeURIComponent(scanDirectory)}&upload_directory=${encodeURIComponent(uploadDirectory)}`;
+  const res = await client.get<unknown>(`/manage/user/${userId}/scan-directory-impact/?${query}`);
+  return parseResponse(S.ScanDirectoryImpact, res, "scan directory impact");
+}
+
+/**
+ * Admin: move a user's photos outside their current library to their trash, as a job started as
+ * them (#2036). Files are not touched. Returns the queued (or already running) job.
+ */
+export async function trashPhotosOutsideLibrary(
+  client: ApiClient,
+  userId: number
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    `/manage/user/${userId}/trash-photos-outside-library/`,
+    S.JobStartedResponse,
+    "trash photos outside the library"
+  );
+}
+
+/** The folders of the signed-in user's library (#123), the scan directory first. */
+export async function fetchOwnLibraryFolders(client: ApiClient): Promise<S.LibraryFolders> {
+  const res = await client.get<unknown>("/library-folders/");
+  return parseResponse(S.LibraryFolders, res, "library folders");
+}
+
+/** Admin: the folders of a user's library (#123), the scan directory first. */
+export async function fetchLibraryFolders(client: ApiClient, userId: number): Promise<S.LibraryFolders> {
+  const res = await client.get<unknown>(`/manage/user/${userId}/library-folders/`);
+  return parseResponse(S.LibraryFolders, res, "library folders");
+}
+
+/**
+ * Admin: add `path`, an existing folder inside the data root, to a user's library (#123). A 400
+ * names `path` when it overlaps a folder of this or another user's library. Returns every folder.
+ */
+export async function addLibraryFolder(client: ApiClient, userId: number, path: string): Promise<S.LibraryFolders> {
+  const res = await client.post<unknown>(`/manage/user/${userId}/library-folders/`, { path });
+  return parseResponse(S.LibraryFolders, res, "add library folder");
+}
+
+/** Admin: remove a further folder from a user's library (#123); its photos stay. Returns every folder left. */
+export async function removeLibraryFolder(
+  client: ApiClient,
+  userId: number,
+  folderId: number
+): Promise<S.LibraryFolders> {
+  const res = await client.delete<unknown>(`/manage/user/${userId}/library-folders/${folderId}/`);
+  return parseResponse(S.LibraryFolders, res, "remove library folder");
+}
+
+/**
+ * Leave `excludedFolders` out of the signed-in user's library (#791), replacing the list. A 400
+ * names `excluded_folders` for a folder outside the library. Returns the library and how many of
+ * the user's photos are now outside it.
+ */
+export async function setExcludedFolders(
+  client: ApiClient,
+  excludedFolders: string[]
+): Promise<S.ExcludedFoldersSaved> {
+  const res = await client.request<unknown>("/library-folders/excluded/", {
+    method: "PUT",
+    body: { excluded_folders: excludedFolders },
+  });
+  return parseResponse(S.ExcludedFoldersSaved, res, "excluded folders");
+}
+
+/** The folders inside `path`, a folder of the signed-in user's library (#791). */
+export async function fetchLibrarySubfolders(client: ApiClient, path: string): Promise<S.LibrarySubfolders> {
+  const res = await client.get<unknown>(`/library-folders/subfolders/${buildQuery({ path })}`);
+  return parseResponse(S.LibrarySubfolders, res, "library subfolders");
+}
+
+/** Move the signed-in user's photos outside their library to their trash, as a job (#791). */
+export async function trashOwnPhotosOutsideLibrary(
+  client: ApiClient
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    "/library-folders/trash-outside/",
+    S.JobStartedResponse,
+    "trash own photos outside the library"
+  );
+}
+
 /** Trigger a full library rescan. */
 export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/fullscanphotos/", S.JobTriggerResponse, "full scan photos");
@@ -950,6 +1130,25 @@ export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobSt
   return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
 }
 
+/** What each processing stage still has to do in the caller's library (#2741). */
+export async function fetchProcessingStatus(client: ApiClient): Promise<S.ProcessingStatus> {
+  const res = await client.get<unknown>("/library/processing-status/");
+  return parseResponse(S.ProcessingStatus, res, "processing status");
+}
+
+/**
+ * Run now: start the job that catches a processing stage up on the caller's photos (#2741). A 403
+ * while the stage is off; its job already running resolves as that job.
+ */
+export async function runProcessingStage(
+  client: ApiClient,
+  stage: S.ProcessingStageKey
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/library/processing-status/run/", S.JobStartedResponse, "run processing stage", {
+    stage,
+  });
+}
+
 /** The post-upgrade tasks this instance still has, and those done in the last day (admins only, #2322). */
 export async function fetchUpgradeTasks(client: ApiClient): Promise<S.UpgradeTaskList> {
   const res = await client.get<unknown>("/upgrade-tasks/");
@@ -979,6 +1178,30 @@ export async function dismissUpgradeTask(client: ApiClient, key: string): Promis
  */
 export async function lookUpPlaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
   return triggerJob(client, "/look-up-places/", S.JobStartedResponse, "look up place names");
+}
+
+/** Delete the duplicate faces of every user's photos, as a job (admins only, #2030). */
+export async function deduplicateFaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/deduplicate-faces/", S.JobStartedResponse, "deduplicate faces");
+}
+
+/** Whose files Check file contents reads: every user's (`user_id` null) or one user's, optionally one folder. */
+export type CheckFileContentsScope = Readonly<{
+  user_id: number | null;
+  /** Relative to that user's scan directory; empty for the whole library. */
+  folder: string;
+}>;
+
+/**
+ * Read every indexed file again and re-index the ones replaced with their old date kept (admins only,
+ * #2040). A folder outside the user's scan directory is a 400 naming `folder`. Returns the queued (or
+ * already running) job.
+ */
+export async function checkFileContents(
+  client: ApiClient,
+  scope: CheckFileContentsScope
+): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/check-file-contents/", S.JobStartedResponse, "check file contents", scope);
 }
 
 /**
@@ -1265,6 +1488,45 @@ export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.Shar
   return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 
+/** What "Shared with you" groups the shared photos by (#2721, #2722). */
+export type SharedGroupKind = "places" | "things";
+
+/** The places or things of the photos shared with me, one entry per title. */
+export async function fetchSharedGroupsWithMe(
+  client: ApiClient,
+  kind: SharedGroupKind
+): Promise<S.SharedGroupsResponse["results"]> {
+  const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/`);
+  return parseResponse(S.SharedGroupsResponse, { results }, `shared ${kind} with me`).results;
+}
+
+/** The photos shared with me under one place or thing title; a 404 once none are left. */
+export async function fetchSharedGroupPhotos(
+  client: ApiClient,
+  kind: SharedGroupKind,
+  title: string
+): Promise<S.SharedToMePhotosResponse["results"]> {
+  const query = buildQuery({ title, page_size: 1000 });
+  const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, `shared ${kind} photos`).results;
+}
+
+/** The named people on the photos shared with me, one entry per owner and person. */
+export async function fetchSharedPeopleWithMe(client: ApiClient): Promise<S.SharedPeopleResponse["results"]> {
+  const results = await fetchAllPages(client, "/photos/shared/tome/people/");
+  return parseResponse(S.SharedPeopleResponse, { results }, "shared people with me").results;
+}
+
+/** The photos shared with me that show one of those people; a 404 once none are left. */
+export async function fetchSharedPersonPhotos(
+  client: ApiClient,
+  personId: number
+): Promise<S.SharedToMePhotosResponse["results"]> {
+  const query = buildQuery({ person: personId, page_size: 1000 });
+  const results = await fetchAllPages(client, `/photos/shared/tome/people/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, "shared person photos").results;
+}
+
 export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/shared/fromme/");
   return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
@@ -1462,15 +1724,18 @@ export async function scanFaces(client: ApiClient, scope: FaceScanScope = {}): P
 /**
  * Add a face from a box drawn on a photo (by id or image hash) and name its person, who is created
  * when new. ApiError 409 for a box over an existing face, 404 for a photo that is not the user's,
- * 400 for a box the server cannot use.
+ * 400 for a box the server cannot use. With `fit` the box only says where to look: the server
+ * saves the face it finds there (#1117), and answers 400 `no_face_in_box` when there is none.
  */
 export async function addFace(
   client: ApiClient,
   photo: string,
   personName: string,
-  box: S.NormalizedFaceBox
+  box: S.NormalizedFaceBox,
+  fit?: boolean
 ): Promise<S.AddFaceResponse> {
-  const res = await client.post<unknown>("/addface", { photo, person_name: personName, box });
+  const body = { photo, person_name: personName, box, ...(fit === undefined ? {} : { fit }) };
+  const res = await client.post<unknown>("/addface", body);
   return parseResponse(S.AddFaceResponse, res, "add face");
 }
 
@@ -1518,6 +1783,24 @@ export async function fetchLocationTimeline(client: ApiClient): Promise<S.Locati
 export async function fetchImageTag(client: ApiClient): Promise<S.ImageTag> {
   const res = await client.get<unknown>("/imagetag/");
   return parseResponse(S.ImageTag, res, "image tag");
+}
+
+/** Admin: whether a newer release is out, from the last daily check (#2311). Asks nobody else. */
+export async function fetchUpdateStatus(client: ApiClient): Promise<S.UpdateStatus> {
+  const res = await client.get<unknown>("/updates/");
+  return parseResponse(S.UpdateStatus, res, "update status");
+}
+
+/** Admin: Skip this release; `""` shows the newest release again. Answers the new status. */
+export async function skipRelease(client: ApiClient, version: string): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/skip/", { version });
+  return parseResponse(S.UpdateStatus, res, "skip release");
+}
+
+/** Admin: close the Update available card for a week. Answers the new status. */
+export async function snoozeUpdateNotice(client: ApiClient): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/snooze/", {});
+  return parseResponse(S.UpdateStatus, res, "snooze update notice");
 }
 
 /** Disk space where the server keeps its data (bytes). */
@@ -1637,6 +1920,31 @@ export async function completeUpload(client: ApiClient, formData: FormData): Pro
 }
 
 /**
+ * The upload run is over: the import jobs `/upload/complete/` answered take no more files and finish
+ * once their files are processed (#2737). Without it the server seals them after a few idle minutes.
+ */
+export async function sealUploadImports(client: ApiClient, jobIds: readonly string[]): Promise<S.UploadSealResponse> {
+  const res = await client.post<unknown>("/upload/seal/", { job_ids: jobIds });
+  return parseResponse(S.UploadSealResponse, res, "seal upload imports");
+}
+
+/**
+ * What the caller's uploads do on the server (#2739): their unfinished import jobs plus `jobIds`,
+ * which of `photoIds` are ready, and the follow-ups. Each list is sent as repeated parameters.
+ */
+export async function fetchUploadStatus(client: ApiClient, params: S.UploadStatusParams = {}): Promise<S.UploadStatus> {
+  const res = await client.get<unknown>(`/upload/status/${repeatedQuery(params)}`);
+  return parseResponse(S.UploadStatus, res, "upload status");
+}
+
+/** `?job_id=a&job_id=b&photo_id=c` for the upload status, or "" without ids. */
+function repeatedQuery({ jobIds = [], photoIds = [] }: S.UploadStatusParams): string {
+  const pairs = [...jobIds.map(id => ["job_id", id]), ...photoIds.map(id => ["photo_id", id])];
+  const text = new URLSearchParams(pairs).toString();
+  return text ? `?${text}` : "";
+}
+
+/**
  * Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id),
  * and that photo's id.
  */
@@ -1655,6 +1963,15 @@ export async function fetchDirTree(client: ApiClient, path: string): Promise<S.D
   // Always sent, blank included; encoded so "&", "#" or "+" in a folder name do not cut it short.
   const res = await client.get<unknown>(`/dirtree/?path=${encodeURIComponent(path)}`);
   return parseResponse(S.DirTreeResponse, res, "directory tree");
+}
+
+/**
+ * Admin: make the folder `name` in `parent`, a folder inside the data root (#2035). ApiError 400
+ * for a bad name or parent or a folder the server cannot write to, 409 `folder_exists`.
+ */
+export async function createFolder(client: ApiClient, parent: string, name: string): Promise<S.CreatedFolder> {
+  const res = await client.post<unknown>("/dirtree/folders/", { parent_path: parent, name });
+  return parseResponse(S.CreatedFolder, res, "create folder");
 }
 
 /** The folders at the top of the user's Nextcloud. */
@@ -1718,21 +2035,57 @@ export async function fetchLocatedNearbyInTime(
   return parseResponse(S.LocatedPhotosResponse, res, "photos located nearby in time");
 }
 
+/* ---- the Places map (#343) ---------------------------------------------- */
+
+/** A map's view in degrees. `west` greater than `east` is a view across the 180th meridian. */
+export type MapBounds = { south: number; west: number; north: number; east: number };
+
+const boundsQuery = ({ south, west, north, east }: MapBounds) =>
+  new URLSearchParams({ south: String(south), west: String(west), north: String(north), east: String(east) });
+
+/** Where my photos were taken: one point per spot with the number of photos there. */
+export async function fetchPhotoMapPoints(client: ApiClient): Promise<S.PhotoMapPoints> {
+  const res = await client.get<unknown>("/photos/map-points/");
+  return parseResponse(S.PhotoMapPoints, res, "photo map points");
+}
+
+/** Every one of my photos taken inside `bounds`, newest first (all pages). */
+export async function fetchPhotosInBounds(client: ApiClient, bounds: MapBounds): Promise<S.PigPhoto[]> {
+  const results = await fetchAllPages(client, `/photos/in-bounds/?${boundsQuery(bounds).toString()}`);
+  return parseResponse(S.PigPhoto.array(), results, "photos in bounds");
+}
+
+/** The ids of my place albums with a photo inside `bounds`. */
+export async function fetchPlaceAlbumsInBounds(client: ApiClient, bounds: MapBounds): Promise<number[]> {
+  const res = await client.get<unknown>(`/albums/place/in-bounds/?${boundsQuery(bounds).toString()}`);
+  return parseResponse(S.PlaceAlbumsInBounds, res, "place albums in bounds").ids;
+}
+
 /* ---- moving photos (#352) ----------------------------------------------- */
 
-/** Where the selected photos go and what to do with a name taken there (absent: a 409 `name_conflict`). */
-export type MovePhotosTarget = { targetFolder: string; onConflict?: S.MoveOnConflict };
+/**
+ * Where the selected photos go: `targetFolder`, or with `folderPattern` (`{year}/{month}`, #2774)
+ * the folder of each one's capture date inside it; and what to do with a name taken there (absent:
+ * a 409 `name_conflict`).
+ */
+export type MovePhotosTarget = { targetFolder: string; folderPattern?: string; onConflict?: S.MoveOnConflict };
 
-/** What moving the selected photos to `targetFolder` would do: counts, refusals and taken names. */
+const moveTargetBody = ({ targetFolder, folderPattern, onConflict }: MovePhotosTarget) => ({
+  target_folder: targetFolder,
+  ...(folderPattern ? { folder_pattern: folderPattern } : {}),
+  ...(onConflict ? { on_conflict: onConflict } : {}),
+});
+
+/** What moving the selected photos would do: counts, refusals, taken names and, by date, the folders. */
 export async function previewPhotosMove(
   client: ApiClient,
   imageHashes: string[],
-  targetFolder: string,
+  target: Omit<MovePhotosTarget, "onConflict">,
   selectAll?: SelectAllPhotos
 ): Promise<S.MovePreviewResponse> {
   const res = await client.post<unknown>("/photos/move/preview/", {
     ...photoSelection(imageHashes, selectAll),
-    target_folder: targetFolder,
+    ...moveTargetBody(target),
   });
   return parseResponse(S.MovePreviewResponse, res, "preview photos move");
 }
@@ -1749,10 +2102,42 @@ export async function movePhotos(
 ): Promise<S.MovePhotosAnswer> {
   const res = await client.post<unknown>("/photos/move/", {
     ...photoSelection(imageHashes, selectAll),
-    target_folder: target.targetFolder,
-    ...(target.onConflict ? { on_conflict: target.onConflict } : {}),
+    ...moveTargetBody(target),
   });
   return parseResponse(S.MovePhotosAnswer, res, "move photos");
+}
+
+/* ---- renaming photos after their capture date (#2773) ------------------ */
+
+/** What renaming the selected photos with `pattern` would do: counts, refusals and the first new names. */
+export async function previewPhotosRename(
+  client: ApiClient,
+  imageHashes: string[],
+  pattern: string,
+  selectAll?: SelectAllPhotos
+): Promise<S.RenamePreviewResponse> {
+  const res = await client.post<unknown>("/photos/rename/preview/", {
+    ...photoSelection(imageHashes, selectAll),
+    pattern,
+  });
+  return parseResponse(S.RenamePreviewResponse, res, "preview photos rename");
+}
+
+/**
+ * Rename the selected photos, with all their files, to the name `pattern` makes from each one's
+ * capture date. A small selection answers the counts; a large one the "Rename Photos" job (`job_id`).
+ */
+export async function renamePhotos(
+  client: ApiClient,
+  imageHashes: string[],
+  pattern: string,
+  selectAll?: SelectAllPhotos
+): Promise<S.RenamePhotosAnswer> {
+  const res = await client.post<unknown>("/photos/rename/", {
+    ...photoSelection(imageHashes, selectAll),
+    pattern,
+  });
+  return parseResponse(S.RenamePhotosAnswer, res, "rename photos");
 }
 
 /** The subfolders of `path` a move can go to; without it the library folders themselves. */

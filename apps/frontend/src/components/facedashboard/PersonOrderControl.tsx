@@ -1,5 +1,6 @@
 import { Center, SegmentedControl, Tooltip, VisuallyHidden } from "@mantine/core";
 import {
+  IconArrowsJoin as ArrowsJoin,
   IconSortAscendingLetters as SortAscendingLetters,
   IconSortDescendingNumbers as SortDescendingNumbers,
 } from "@tabler/icons-react";
@@ -14,7 +15,7 @@ type Props = Readonly<{
 }>;
 
 /**
- * The order of the people on the dashboard (#764), next to the order of their faces. Icons with a
+ * The order of the people on the dashboard (#764, #622: similar faces together), next to the order of their faces. Icons with a
  * tooltip and a hidden label, not words: the toolbar must still fit one line at 1280 px with the
  * Inferred tab's filters.
  */
@@ -47,6 +48,11 @@ export function PersonOrderControl({ value, onChange }: Props) {
           FacesPersonOrder.enum.count,
           t("facesdashboard.personorderbycount"),
           <SortDescendingNumbers size={ICON_SIZE.inline} />
+        ),
+        option(
+          FacesPersonOrder.enum.similar,
+          t("facesdashboard.personorderbysimilarity"),
+          <ArrowsJoin size={ICON_SIZE.inline} />
         ),
       ]}
     />

@@ -1,0 +1,5 @@
+/* The 360° viewer of a photo sphere (#483): as tall as the photo may be, the photo page's mat or 82vh in the lightbox. */
+.panorama {
+  width: 100%;
+  height: var(--page-media-max-height, 82vh);
+}

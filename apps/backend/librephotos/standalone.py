@@ -644,6 +644,14 @@ class Startup:
         if self.tray is not None:
             self.tray.notify(title, message)
 
+    def watch_updates(self, stop: threading.Event) -> None:
+        """The tray's Check for updates and its update item (#2311), from the
+        moment the server runs until ``stop`` is set."""
+        if self.tray is not None:
+            from api.updates.tray import watch_updates
+
+            watch_updates(self.tray, stop)
+
     def track(self, child: subprocess.Popen[str] | None) -> None:
         """The start-up child that Quit has to terminate, or None once it ended."""
         with self._lock:
@@ -1117,11 +1125,13 @@ def _serve(
 def _say_when_running(
     server: uvicorn.Server, url: str, startup: Startup, stopped: threading.Event
 ) -> None:
-    """Set the tray status to "Running" once uvicorn has started."""
+    """Set the tray status to "Running" once uvicorn has started, then keep
+    its update item current."""
     while not server.started:
         if stopped.wait(0.5) or startup.cancelled:
             return
     startup.status(STATUS_RUNNING.format(url=url))
+    startup.watch_updates(stopped)
 
 
 def _server_start_failure(host: str, port: int) -> Exception:

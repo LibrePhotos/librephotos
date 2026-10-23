@@ -1,4 +1,6 @@
 import type { Photo } from "@librephotos/api-client";
+import type { PanoramaMode } from "../panorama/usePanoramaMode";
+import type { VideoStart } from "./videoStart";
 
 export type FaceLocationType = {
   top: number;
@@ -43,6 +45,10 @@ export type LightboxItem = {
   isTemp?: boolean;
   date?: string | null;
   location?: string;
+  /** A 360° photo sphere (#483): a public page has no details to say so. */
+  projection_type?: string | null;
+  /** Opened from a face found in a later frame of the video: play from there (#2762). */
+  videoStart?: VideoStart;
 };
 
 export type LightBoxProps = {
@@ -92,6 +98,8 @@ export type LightboxControlsProps = {
   isCopyingToClipboard?: boolean;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
+  /** The 360° view of a photo sphere (#483). */
+  panorama?: PanoramaMode;
 };
 
 export type FaceOverlayProps = {

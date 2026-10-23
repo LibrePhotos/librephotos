@@ -18,6 +18,9 @@ export const PersonFace = z.looseObject({
   person: z.number().nullable().optional(),
   person_name: z.string().nullable().optional(),
   timestamp: z.string().nullable().optional(),
+  // The second of the video the face was found at (#2762); null for a photo's faces and a video's
+  // first frame. Optional: older servers do not send it.
+  video_time: z.number().nullable().optional(),
 });
 export type PersonFace = z.infer<typeof PersonFace>;
 
@@ -38,6 +41,11 @@ export const IncompletePersonFace = z.looseObject({
   name: z.string(),
   kind: z.string().optional(),
   face_count: z.number(),
+  /**
+   * The group's place when groups that look alike sit together (#622); null without a cluster
+   * centroid chain (too many groups, "Unknown - Other"). Optional: older servers omit it.
+   */
+  similarity_rank: z.number().nullable().optional(),
 });
 export type IncompletePersonFace = z.infer<typeof IncompletePersonFace>;
 
@@ -58,6 +66,7 @@ export const LabelledFace = z.looseObject({
   person: z.number().nullable().optional(),
   person_label_probability: z.number().optional(),
   person_name: z.string().optional(),
+  video_time: z.number().nullable().optional(),
 });
 export type LabelledFace = z.infer<typeof LabelledFace>;
 
@@ -74,6 +83,13 @@ export const FaceLabels = z.object({
 });
 export type FaceLabels = z.infer<typeof FaceLabels>;
 
+/** A named person faces were sent away from ("Not Anna", #2747): never suggested for them again. */
+export const RejectedPerson = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type RejectedPerson = z.infer<typeof RejectedPerson>;
+
 /** POST /api/labelfaces response. */
 export const SetFacesLabelResponse = z.looseObject({
   status: z.boolean(),
@@ -87,6 +103,14 @@ export const SetFacesLabelResponse = z.looseObject({
   write_error: z.string().nullable().optional(),
   /** Each face's people before the request, for an undo. Optional: older servers omit it. */
   previous: FaceLabels.array().optional(),
+  /** Who is no longer suggested for these faces (#2747). Optional: older servers omit it. */
+  rejected_people: RejectedPerson.array().optional(),
+  /**
+   * The faces labelled along with the ones sent: the same face in the other frames of a burst or
+   * bracket stack or a duplicate group (#2754). They are in `results` and `previous` too. Optional:
+   * older servers omit it.
+   */
+  twin_ids: z.number().array().optional(),
 });
 export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 
@@ -168,6 +192,8 @@ export const AddFaceResponse = z.object({
    * HEIC/RAW original); null when it was written or writing is off. Optional: older servers omit it.
    */
   write_error: z.string().nullable().optional(),
+  /** The face was found in the drawn box and saved with its own box (#1117). Optional: older servers omit it. */
+  fitted: z.boolean().optional(),
   face: z.object({
     face_id: z.number(),
     face_url: z.string(),

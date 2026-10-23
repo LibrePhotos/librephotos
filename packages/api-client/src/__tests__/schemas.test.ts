@@ -95,6 +95,15 @@ describe("schema parsing against fixtures", () => {
     expect(parsed.confidence_unknown_face).toBeUndefined();
   });
 
+  // #2305: an older server sends neither, and the web app then shows no What's new card.
+  it("parses a user record with and without the What's new fields", () => {
+    expect(User.parse(userFixture).last_seen_release).toBeUndefined();
+    expect(User.parse(userFixture).show_whats_new).toBeUndefined();
+    const parsed = User.parse({ ...userFixture, last_seen_release: "1.5.0", show_whats_new: false });
+    expect(parsed.last_seen_release).toBe("1.5.0");
+    expect(parsed.show_whats_new).toBe(false);
+  });
+
   it("keeps the valid keys of a saved timeline filter and drops the rest", () => {
     const parsed = User.parse({
       ...userFixture,

@@ -4,6 +4,7 @@ from typing import Any
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_cryptography.fields import encrypt
 
@@ -58,6 +59,10 @@ class User(AbstractUser):
     # Where web uploads are written. Empty means the "uploads" folder inside
     # scan_directory; use upload_root() rather than reading this directly.
     upload_directory = models.CharField(max_length=512, blank=True, default="")
+    # Folders inside the library that the user left out (#791): scans skip
+    # them, and their photos count as outside the library. Absolute paths
+    # spelled from their library folder; api.photos.library_folders checks them.
+    excluded_folders = models.JSONField(default=list, blank=True)
     confidence = models.FloatField(default=0.1, db_index=True)
     confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)
@@ -111,11 +116,21 @@ class User(AbstractUser):
     public_sharing_defaults = models.JSONField(
         default=get_default_public_sharing_settings
     )
+    # Whether the users this user shares photos or albums with see the names
+    # of the people the user named on those photos (#2722). Off by default:
+    # recipients then see no people at all. Public links follow
+    # ``public_sharing_defaults["share_faces"]`` instead.
+    share_people_names = models.BooleanField(default=False)
 
     min_cluster_size = models.IntegerField(default=0)
     confidence_unknown_face = models.FloatField(default=0.5)
     min_samples = models.IntegerField(default=1)
     cluster_selection_epsilon = models.FloatField(default=0.95)
+    # Detected faces lower than this share of the big thumbnail's shorter side
+    # are not saved (#2749): strangers far in the background. 0 keeps all.
+    min_face_size = models.FloatField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(0.5)]
+    )
 
     class TextAlignment(models.TextChoices):
         LEFT = "left"
@@ -142,6 +157,11 @@ class User(AbstractUser):
     # "media" ("all"/"photos"/"videos"), "hide_screenshots", "hide_documents"
     # and "favorites". Empty shows everything. See api.albums.timeline_filter.
     default_timeline_filter = models.JSONField(default=dict, blank=True)
+    # The "What's new" card (#2305): the release whose card this user last
+    # closed or opened ("" before the first one), and whether the card shows
+    # after an update at all. The account menu opens it either way.
+    last_seen_release = models.CharField(max_length=32, blank=True, default="")
+    show_whats_new = models.BooleanField(default=True)
 
     # Duplicate detection settings
     class DuplicateSensitivity(models.TextChoices):

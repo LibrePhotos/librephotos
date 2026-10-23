@@ -109,6 +109,8 @@ vi.mock("./PhotoActionTiles", () => ({
   },
 }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
+// The 360° toggle's failure toast; importing the real one would load the translations.
+vi.mock("../../service/notifications", () => ({ notification: { error: () => {} } }));
 
 beforeAll(setUpMantineDom);
 

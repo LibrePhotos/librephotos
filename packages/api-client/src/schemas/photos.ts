@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Media, PageFields, PigPhoto, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { Media, PageFields, PigPhoto, ProjectionType, SimpleUser, StackTypeEnum, UuidString } from "./common";
 import { FileTypeFilter } from "./search";
 
 /** One face entry in `Photo.people`: a face on this photo, with the name of its person. */
@@ -10,6 +10,8 @@ export const PhotoPerson = z.object({
   location: z.object({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number() }),
   face_url: z.string(),
   face_id: z.number(),
+  // The second of the video the face is at (#2762); null on the first frame. Older servers omit it.
+  video_time: z.number().nullable().optional(),
 });
 export type PhotoPerson = z.infer<typeof PhotoPerson>;
 /** @deprecated Use `PhotoPerson`; kept for one release while apps/mobile moves. */
@@ -179,6 +181,12 @@ export const Photo = z.object({
   // and 8 render swapped, #2595). Optional:
   // backends before 1.3 do not send it.
   local_orientation: z.number().optional(),
+  // What the main file is ("image/jpeg"; "image/x-dcraw" for any camera RAW), so a client
+  // can tell whether it can draw the original; null without a main file (#2742).
+  // Optional: older backends do not send it.
+  original_mime_type: z.string().nullish(),
+  // A 360° photo sphere opens in the panorama viewer on request (#483).
+  projection_type: ProjectionType,
 });
 export type Photo = z.infer<typeof Photo>;
 
@@ -210,6 +218,10 @@ export type PhotosNotInAlbumResponse = PhotosWithoutTimestampResponse;
 /** GET /api/photos/public/: a page of my own public photos, newest first. */
 export const MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
 export type MyPublicPhotosResponse = PhotosWithoutTimestampResponse;
+
+/** GET /api/photos/in-bounds/: a page of my photos taken inside a map's view (#343), newest first. */
+export const PhotosInBoundsResponse = PhotosWithoutTimestampResponse;
+export type PhotosInBoundsResponse = PhotosWithoutTimestampResponse;
 
 /** Body describing a photoset for server-side "select all" bulk operations. */
 export const BulkPhotoQuery = z.object({

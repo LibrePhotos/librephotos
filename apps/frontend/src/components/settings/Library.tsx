@@ -18,12 +18,14 @@ import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageLoader } from "../common/PageLoader";
 import { CountStats } from "../CountStats";
+import { LibraryFoldersCard } from "../libraryfolders/LibraryFoldersCard";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
 import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
 import { NextcloudSettings } from "./NextcloudSettings";
+import { ProcessingStatusCard } from "./ProcessingStatusCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanLibraryRow } from "./ScanLibraryRow";
 
@@ -140,6 +142,8 @@ export function Library() {
 
       <Stack>
         <CountStats />
+        <LibraryFoldersCard user={userSelfDetails} isAdmin={isAdmin} />
+        <ProcessingStatusCard busyReason={busyReason} uploadOnly={!hasScanDirectory} />
         <Card shadow="md">
           <Stack>
             <Title order={4}>

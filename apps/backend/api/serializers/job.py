@@ -116,6 +116,23 @@ class FindThingsRequest(serializers.Serializer[None]):
     )
 
 
+class CheckFileContentsRequest(serializers.Serializer[None]):
+    """``POST /api/check-file-contents/``: whose files, and which folder of them."""
+
+    user_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="Only this user's library; every user's when left out",
+    )
+    folder = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text="Only this folder, relative to the user's scan directory; needs user_id",
+    )
+
+
 class CaptionsJobStartedResponseSerializer(JobStartedResponseSerializer):
     """``POST /api/generate-captions/``: the started job, and whether it waits for the model."""
 

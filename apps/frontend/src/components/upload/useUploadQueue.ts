@@ -1,7 +1,9 @@
+import type { UploadCompleteResponse } from "@librephotos/api-client";
 import { useRef, useState } from "react";
 import {
   invalidateUploadQueries,
   isUploadAlbumRefusal,
+  sealUploadImports,
   uploadExists,
   useRefreshUploadAlbums,
   useUploadFinishedMutation,
@@ -34,6 +36,9 @@ export type UploadItem = {
   /** The album the file goes into; none for the library alone. */
   album?: UploadAlbumTarget;
   albumOutcome?: AlbumOutcome;
+  /** The import job processing the uploaded file, and the photo it made (#2737; newer servers). */
+  jobId?: string;
+  photoId?: string;
 };
 
 export type UploadQueue = {
@@ -54,8 +59,20 @@ export type UploadQueue = {
   reset: () => void;
 };
 
-/** What one file's run ends in: whether a new file landed, and the album it was filed into. */
-type Processed = { uploaded: boolean; filedInto?: number };
+/** What one file's run ends in: whether a new file landed, the album it was filed into, its import job. */
+type Processed = { uploaded: boolean; filedInto?: number; jobId?: string };
+
+/** How the server took a completed upload: its import job and photo, or a file it already had. */
+type Completed = { albumOutcome?: AlbumOutcome; answer: UploadCompleteResponse };
+
+/** The row of a completed upload; the server answers a file it already had with `detail` and no job. */
+const completedRow = ({ albumOutcome, answer }: Completed): Partial<UploadItem> => ({
+  status: !answer.job_id && answer.detail ? "duplicate" : "done",
+  progress: 100,
+  albumOutcome,
+  jobId: answer.job_id ?? undefined,
+  photoId: answer.photo_id ?? undefined,
+});
 
 /** A queued item and the cancel generation it was queued in; cancel() bumps the generation. */
 type QueuedUpload = { item: UploadItem; generation: number };
@@ -80,8 +97,10 @@ const errorMessage = (err: unknown): string => {
 /**
  * Upload state that outlives the button which started it: files are pushed
  * through one sequential worker (the server is easily overwhelmed by parallel
- * chunk streams), each file keeps its own status for the progress card, and
- * the photo queries are invalidated once when the worker drains.
+ * chunk streams) and each file keeps its own status for the progress card.
+ * When the worker drains, the run's import jobs are sealed (#2737); the photo
+ * queries are refreshed as the server makes the photos ready
+ * (`useUploadProcessing`), or at once by a server that names no import job.
  */
 export function useUploadQueue(): UploadQueue {
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
@@ -111,7 +130,7 @@ export function useUploadQueue(): UploadQueue {
     user: User,
     md5: string,
     isCancelled: () => boolean
-  ): Promise<AlbumOutcome | undefined> => {
+  ): Promise<Completed> => {
     const throwIfCancelled = () => {
       if (isCancelled()) throw new UploadCancelledError();
     };
@@ -149,21 +168,13 @@ export function useUploadQueue(): UploadQueue {
    * Completes the upload into its album. An album the server refuses (locked or deleted since)
    * leaves the staged file in place, so it is completed again into the library alone.
    */
-  const completeUpload = async (
-    item: UploadItem,
-    fields: Record<string, string>
-  ): Promise<AlbumOutcome | undefined> => {
-    if (!item.album) {
-      await complete(fields);
-      return undefined;
-    }
+  const completeUpload = async (item: UploadItem, fields: Record<string, string>): Promise<Completed> => {
+    if (!item.album) return { answer: await complete(fields) };
     try {
-      await complete(fields, item.album.id);
-      return undefined;
+      return { answer: await complete(fields, item.album.id) };
     } catch (err) {
       if (!isUploadAlbumRefusal(err)) throw err;
-      await complete(fields);
-      return "library_only";
+      return { answer: await complete(fields), albumOutcome: "library_only" };
     }
   };
 
@@ -192,9 +203,12 @@ export function useUploadQueue(): UploadQueue {
       }
 
       patchItem(item.id, { status: "uploading", progress: 0 });
-      const albumOutcome = await uploadFile(item, user, md5, isCancelled);
-      patchItem(item.id, { status: "done", progress: 100, albumOutcome });
-      return { uploaded: true, filedInto: albumOutcome ? undefined : item.album?.id };
+      const completed = await uploadFile(item, user, md5, isCancelled);
+      const row = completedRow(completed);
+      patchItem(item.id, row);
+      const uploaded = row.status === "done";
+      const filedInto = uploaded && !completed.albumOutcome ? item.album?.id : undefined;
+      return { uploaded, filedInto, jobId: row.jobId };
     } catch (err) {
       // A request that fails after cancel() is part of the cancel, not an error.
       patchItem(
@@ -218,12 +232,14 @@ export function useUploadQueue(): UploadQueue {
     setIsUploading(true);
     let uploadedAny = false;
     const filled = new Set<number>();
+    const jobIds = new Set<string>();
     const next = async (): Promise<void> => {
       const queued = pendingRef.current.shift();
       if (!queued) return;
-      const { uploaded, filedInto } = await processOne(queued);
+      const { uploaded, filedInto, jobId } = await processOne(queued);
       uploadedAny = uploaded || uploadedAny;
       if (filedInto !== undefined) filled.add(filedInto);
+      if (jobId) jobIds.add(jobId);
       setIsCancelling(false);
       await next();
     };
@@ -234,7 +250,10 @@ export function useUploadQueue(): UploadQueue {
       drainingRef.current = false;
       setIsUploading(false);
       setIsCancelling(false);
-      if (uploadedAny) invalidateUploadQueries();
+      // The run's import jobs can finish now; the card follows them and refreshes the timeline as
+      // photos become ready. A server that names no job gets the refresh now, as before #2739.
+      void sealUploadImports([...jobIds]);
+      if (uploadedAny && jobIds.size === 0) invalidateUploadQueries();
       refreshAlbums([...filled]);
     }
   };

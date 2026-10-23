@@ -84,14 +84,16 @@ These switches tell the captioning model what LibrePhotos already knows about a 
 
 See [Image Captioning](../image-captioning.md) for the captioning model itself.
 
-### Slideshow Options
+### Interface
 
 - `Slideshow interval` sets the time in seconds between photos when using slideshow mode in the lightbox.
+- <Since version="1.5.0" /> `Show what's new after updates` After LibrePhotos is updated, a small **What's new** card shows the highlights of the new version once, in the corner of the first page you open. Turn it off to never see the card. **Account menu > What's new** shows the highlights at any time either way. Default `On`. See [The What's new card](../../installation/upgrading.md#whats-new).
 
 ### Face Options
 
 Most of these settings control how [face clustering](../face-recognition.md) groups the faces in your library, which is what you work with when labelling people. How sure a suggested match must be is set on the face dashboard with its **% confident** filter, not here.
 
+- <Since version="1.5.0" /> `Minimum face size` skips the faces the face detector finds that are smaller than a share of the photo's shorter side, such as strangers far in the background or faces in a crowd. Options are `Off`, `2%`, `4%` and `8%`; next to them, an example photo marks with a dashed red box the faces a choice skips, and the line under them says what it means in pixels (4% is under 43 px on a 1080 px tall photo). It applies to photos scanned from now on: faces found already stay (delete them on the [face dashboard](../face-recognition.md#delete-faces)), and face regions saved in the file and faces you [draw by hand](../face-recognition.md#add-a-face-the-scan-missed) are always kept. Default `Off`.
 - `Minimum Cluster Size` changes how clusters form; a smaller value results in more clusters. Options are `Auto`, `2`, `4`, `8` and `16`. Default `Auto`, which lets LibrePhotos choose for you.
 - `Minimum Samples` changes how conservative clustering is; a smaller value is less conservative. Options are `1`, `2`, `4`, `8` and `16`. Default `1`
 - `Cluster Selection Epsilon` merges clusters whose faces are this close; a higher value merges more of one person's clusters, and `Very High` can also join look-alikes such as siblings. Options are `Off` (0), `Small` (0.9), `Normal` (0.95), `High` (1.0) and `Very High` (1.05), distances between face encodings scaled to length 1 (two photos of one person are about 0.9 apart). Default `Normal`. <Since version="1.4.0" /> Up to 1.3.0 the options were 0.025 to 0.2, too small to merge anything at all. A saved choice keeps its name when you update.
@@ -106,6 +108,8 @@ These switches decide what public links show. Photo links always use them, inclu
 - `Share camera information`: show the camera make, model and settings.
 - `Share captions`: show photo descriptions.
 - `Share detected faces`: show the people recognised in photos.
+
+<Since version="1.5.0" /> Up to 1.4.0, these switches were not saved: after **Save Changes** they were off again on the next visit, and public links shared none of these details unless an album link turned them on.
 
 ### Duplicate Detection
 
@@ -123,6 +127,8 @@ These are settings that apply to the whole instance. Besides the panels below, t
 - `Allow user registration` will enable a sign up button on the login page.
 - `Allow uploads` sets if uploading should be possible or not
 - <Since version="1.5.0" /> `Single sign-on` A group with the switches for logging in through an OpenID Connect identity provider: `Show the single sign-on button`, `Button label` and `Allow sign-ups over single sign-on`. It lists the providers set up in the Django admin and warns when SSO cannot work yet. See [Single sign-on](./single-sign-on.md#telling-librephotos-about-the-provider).
+- <Since version="1.5.0" /> `Check for new releases` On by default. Once a day the backend asks github.com which LibrePhotos release is the newest; nothing about your server is sent. A line under the switch says what the last check found: up to date, a newer release (or that you skipped it, with **Show it again**), that the check failed, or that it is off. It is locked off when the server's `UPDATE_CHECK` environment variable is `false`, and development builds have nothing to compare. See [Checking for new releases](../../installation/environment-variables.md#update-check) and [The Update available card](../../installation/upgrading.md#update-available).
+- <Since version="1.5.0" /> `Show users what's new after an update` On by default. After an update, each user sees a small **What's new** card once with the highlights of the new version, which are part of the app: nothing is downloaded. Turn it off to hide the card for everyone; each user can also turn it off for themselves under **Settings** > **Interface**. See [The What's new card](../../installation/upgrading.md#whats-new).
 - `Skip patterns` Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)
 - <Since version="1.4.0" /> `Missing photos limit` The largest share of one user's photos that a scan may mark missing at once. Default `50%`. When more than this share of the photos, and more than 100 photos, would lose all their files, the scan changes nothing and its job fails with "... photos would be marked missing. Nothing was changed. Is the library mounted?". This protects the library when a disk or share is not mounted (see [Missing Photos](../missing-photos.md#when-a-scan-asks-is-the-library-mounted)). If you really removed most of a library, set it to `100%` (off), scan, and set it back.
 - <Since version="1.4.0" /> `Scan libraries automatically` Scans every user's library for new and changed files on a schedule: `Off` (the default), `Every hour`, `Every day` at a time, or `Custom` days at a time, in the server's time zone. A user whose scan is still running is skipped, so scans never pile up. A line under the setting says what the last run did and when the next one is. See [Auto scan](../auto-scan.md#scan-on-a-schedule).
@@ -131,7 +137,7 @@ These are settings that apply to the whole instance. Besides the panels below, t
 - `API key for Map Provider` Only shown after you select a commercial provider (Mapbox, MapTiler, OpenCage, or TomTom), where it is required. It is not shown for Nominatim, which needs no key.
 - `Map Tiles` Where the map background is loaded from. Options are PhotoPrism (the default), OpenStreetMap, or None to hide maps entirely. Opening a map reveals the approximate location of your photos to the selected provider. This is separate from the map **provider** above, which only affects reverse geocoding.
 - `Captioning Model` `LFM2.5-VL` (the default) or `None` to turn automatic captioning off. See [Image Captioning](../image-captioning.md).
-- `Text Recognition (OCR) Model` `None` (the default) keeps text recognition off. `PP-OCRv6 Tiny`, `PP-OCRv6 Small` or `PP-OCRv6 Medium` turn it on, after a confirmation, because all readable text of every photo is then stored in the database. See [Text Recognition (OCR)](../text-recognition.md).
+- `Text Recognition (OCR) Model` `None` (the default) keeps text recognition off. `PP-OCRv6 Tiny`, `PP-OCRv6 Small` or `PP-OCRv6 Medium` turn it on, after a confirmation, because all readable text of every photo is then stored in the database. <Since version="1.5.0" /> The next scan or upload then starts reading the whole library. See [Text Recognition (OCR)](../text-recognition.md).
 - `Face Recognition Model` Select which [InsightFace](https://github.com/deepinsight/insightface) model is used to detect and recognise faces. Options:
   - **buffalo_sc** — Lightweight model (default). Fastest and smallest, a good fit for most setups.
   - **buffalo_s** / **buffalo_m** / **buffalo_l** — Progressively larger and more accurate, at the cost of more memory and compute.

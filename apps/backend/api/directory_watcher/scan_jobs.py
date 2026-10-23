@@ -27,11 +27,14 @@ from api.directory_watcher.file_handlers import handle_file_group, handle_new_im
 from api.directory_watcher.missing_guard import (
     library_root_problem,
     too_many_missing,
+    unavailable_folders,
 )
 from api.directory_watcher.processing_jobs import (
     add_geolocation,
     generate_tags,
+    ocr_has_work,
     probe_videos,
+    queue_ocr_followup,
     scan_faces,
     videos_to_probe,
 )
@@ -55,6 +58,7 @@ from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
 from api.photos import indexed_mtimes
 from api.photos.files import detach_missing_files, missing_files
 from api.photos.media_files import is_metadata
+from api.photos.paths import excluded_folders, is_valid_path, library_folder_paths
 from api.runtime.features import feature_enabled
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import semantic_shares_tagger
@@ -349,18 +353,62 @@ def backfill_missing_aspect_ratios(user: User) -> int:
     return still_missing
 
 
+class _ScanRoots(NamedTuple):
+    """The folders a scan walks, and what keeps some of them out."""
+
+    #: The folders to walk; none for a scan of chosen files.
+    roots: list[str]
+    #: A scan of the whole library: every folder of it (#123).
+    library_scan: bool
+    #: Library folders left out because they cannot be read (#123).
+    unavailable: list[SkippedDirectory]
+    #: Why the library cannot be scanned at all (#2195), or None.
+    problem: str | None = None
+
+
+def _scan_roots(user: User, scan_directory: str, scan_files: list[str]) -> _ScanRoots:
+    """The folders a scan of ``scan_directory`` walks.
+
+    A scan of the scan directory is a library scan: it walks the further
+    library folders too (#123). One of those that is missing or looks
+    unmounted is left out and listed, and the scan goes on; the scan
+    directory itself refuses the whole scan (``library_root_problem``).
+    """
+    if scan_files:
+        return _ScanRoots([], False, [])
+    if scan_directory != user.scan_directory:
+        return _ScanRoots([scan_directory], False, [])
+    problem = library_root_problem(user, scan_directory)
+    if problem is not None:
+        return _ScanRoots([], True, [], problem)
+    roots = [scan_directory]
+    unavailable: list[SkippedDirectory] = []
+    for folder in library_folder_paths(user):
+        folder_problem = library_root_problem(user, folder, "The library folder")
+        if folder_problem is None:
+            roots.append(folder)
+        else:
+            unavailable.append(SkippedDirectory(folder, folder_problem))
+    return _ScanRoots(roots, True, unavailable)
+
+
 def _discover_scan_paths(
-    scan_directory: str, scan_files: list[str]
+    roots: list[str], scan_files: list[str], excluded: list[str]
 ) -> tuple[list[str], list[SkippedDirectory]]:
     """Collect every candidate file path, either from an explicit list or a walk.
 
     Also returns the subdirectories the walk had to skip because they could
-    not be listed. A folder in the explicit list is walked (#2727).
+    not be listed. A folder in the explicit list is walked (#2727); without a
+    list, every folder of ``roots`` is. Nothing below a folder the user left
+    out of their library (``excluded``, #791) is collected.
     """
     photo_list: list[str] = []
     if scan_files:
-        return photo_list, walk_files(scan_files, photo_list)
-    return photo_list, walk_directory(scan_directory, photo_list)
+        return photo_list, walk_files(scan_files, photo_list, excluded=excluded)
+    skipped: list[SkippedDirectory] = []
+    for root in roots:
+        skipped += walk_directory(root, photo_list, excluded=excluded)
+    return photo_list, skipped
 
 
 def _partition_scan_paths(
@@ -553,18 +601,16 @@ def _remember_followups(
     lrj: LongRunningJob,
     user: User,
     full_scan: bool,
-    scan_directory: str,
-    scan_files: list[str],
+    library_scan: bool,
     skipped_directories: bool = False,
 ) -> None:
     """Store what the follow-up jobs and later scans need.
 
-    Call before any scan work is queued. A scan of the user's whole scan
-    directory is marked as a library scan: only such a scan can be the change
-    baseline of the next incremental one (``LongRunningJob.baselines``).
+    Call before any scan work is queued. A scan of the user's whole library
+    is marked as a library scan: only such a scan can be the change baseline
+    of the next incremental one (``LongRunningJob.baselines``).
     """
     result: dict[str, Any] = dict(lrj.result) if isinstance(lrj.result, dict) else {}
-    library_scan = scan_directory == user.scan_directory and not scan_files
     scan_missing = bool(full_scan or library_scan)
     if skipped_directories:
         # The files under a skipped folder were not seen. They may not even be
@@ -704,6 +750,11 @@ def _queue_followup_jobs(user: User, full_scan: bool, scan_missing: bool) -> Non
         )
     enqueue_chain(user, steps, exclusive=False)
 
+    # While a model is selected, the photos still without text (#2736). A
+    # run already queued or running covers them.
+    if ocr_has_work(user):
+        queue_ocr_followup(user)
+
 
 def scan_photos(
     user: User,
@@ -731,7 +782,8 @@ def scan_photos(
         user: The user performing the scan
         full_scan: If True, rescan all files; otherwise only new/modified
         job_id: Job ID for tracking progress
-        scan_directory: Directory to scan (defaults to user's scan_directory)
+        scan_directory: Directory to scan (defaults to user's scan_directory;
+            a scan of it walks every further library folder too, #123)
         scan_files: Optional list of specific files to scan
         force_files: Read every file of ``scan_files`` again, also the ones
             that did not change, and rebuild their thumbnails (#2214). The
@@ -759,16 +811,17 @@ def scan_photos(
     try:
         if scan_directory == "":
             scan_directory = user.scan_directory
-        if scan_directory == user.scan_directory and not scan_files:
-            problem = library_root_problem(user, scan_directory)
-            if problem is not None:
-                # A scan of an unmounted library would flag every photo missing.
-                logger.warning(
-                    "job %s: not scanning, the scan directory looks unmounted", job_id
-                )
-                lrj.fail(error=problem)
-                return
-        photo_list, skipped = _discover_scan_paths(scan_directory, scan_files)
+        scan_roots = _scan_roots(user, scan_directory, scan_files)
+        if scan_roots.problem is not None:
+            # A scan of an unmounted library would flag every photo missing.
+            logger.warning(
+                "job %s: not scanning, the scan directory looks unmounted", job_id
+            )
+            lrj.fail(error=scan_roots.problem)
+            return
+        photo_list, skipped = _discover_scan_paths(
+            scan_roots.roots, scan_files, excluded_folders(user)
+        )
         files_found = len(photo_list)
         last_scan = LongRunningJob.baseline_for(user, LongRunningJob.JOB_SCAN_PHOTOS)
 
@@ -798,10 +851,13 @@ def scan_photos(
         # Each group = one Photo with potentially multiple file variants
         total_groups = len(groups_to_process) + len(metadata_paths)
         _remember_followups(
-            lrj, user, full_scan, scan_directory, scan_files, bool(skipped)
+            lrj, user, full_scan, scan_roots.library_scan, bool(skipped)
         )
         lrj.update_progress(current=0, target=total_groups)
-        record_skipped_directories(job_id, skipped)
+        # A library folder that cannot be read is listed like a folder the
+        # walk skipped, but does not stop the missing-file check: that check
+        # leaves the photos in it alone (``scan_missing_photos``).
+        record_skipped_directories(job_id, skipped + scan_roots.unavailable)
         db.connections.close_all()
 
         logger.info(
@@ -842,6 +898,31 @@ def scan_photos(
         lrj.fail(error=e)
 
 
+class _MissingTally:
+    """What the missing-file check found so far."""
+
+    def __init__(self, unavailable: list[str]) -> None:
+        #: Library folders that look unmounted: their files are not checked.
+        self.unavailable = unavailable
+        #: Photo id -> the ids of its files that are gone.
+        self.missing: dict[UUID, list[str]] = {}
+        self.photos_with_files = 0
+        self.would_lose_all = 0
+
+    def _checked(self, file: File) -> bool:
+        return not any(is_valid_path(file.path, root) for root in self.unavailable)
+
+    def check(self, photo: Photo) -> None:
+        file_count = len(photo.files.all())
+        if not file_count:
+            return
+        self.photos_with_files += 1
+        gone = [file for file in missing_files(photo) if self._checked(file)]
+        if gone:
+            self.missing[photo.pk] = [file.pk for file in gone]
+            self.would_lose_all += len(gone) == file_count
+
+
 def scan_missing_photos(user: User, job_id: UUID) -> None:
     """
     Flag the photos whose files no longer exist on disk.
@@ -851,7 +932,8 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
     (``missing_guard``), the job fails and detaches nothing. The one change
     the check itself makes is to let an exact copy on disk take over a file
     whose own path is gone (``missing_files``, #2417): such a photo is not
-    missing, and does not count towards the guard.
+    missing, and does not count towards the guard. The files in a further
+    library folder that looks unmounted are not flagged (#123).
 
     Args:
         user: The user whose photos to check
@@ -884,37 +966,27 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
         paginator = Paginator(existing_photos, 5000)
         # A step per page checked, and one for detaching what is missing.
         lrj.update_progress(current=0, target=paginator.num_pages + 1)
-        # Photo id -> the ids of its files that are gone.
-        missing: dict[UUID, list[str]] = {}
-        photos_with_files = 0
-        would_lose_all = 0
+        tally = _MissingTally(unavailable_folders(user))
         for page in range(1, paginator.num_pages + 1):
             if is_job_cancelled(job_id):
                 logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:
-                file_count = len(existing_photo.files.all())
-                if not file_count:
-                    continue
-                photos_with_files += 1
-                gone = missing_files(existing_photo)
-                if gone:
-                    missing[existing_photo.pk] = [file.pk for file in gone]
-                    would_lose_all += len(gone) == file_count
+                tally.check(existing_photo)
             update_scan_counter(job_id)
 
-        problem = too_many_missing(would_lose_all, photos_with_files)
+        problem = too_many_missing(tally.would_lose_all, tally.photos_with_files)
         if problem is not None:
             logger.warning(
                 "job %s: not detaching %s missing photos of %s",
                 job_id,
-                would_lose_all,
-                photos_with_files,
+                tally.would_lose_all,
+                tally.photos_with_files,
             )
             lrj.fail(error=problem)
             return
 
-        _detach_missing(missing, job_id)
+        _detach_missing(tally.missing, job_id)
         update_scan_counter(job_id)
         logger.info("Finished checking paths for missing photos")
     except Exception as e:

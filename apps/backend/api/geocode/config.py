@@ -48,6 +48,20 @@ def language_args(provider: str, language: str) -> dict[str, str]:
     return {"language": language}
 
 
+# The providers whose geopy ``geocode`` takes ``limit`` (geopy 2.5). OpenCage,
+# Mapbox and MapTiler raise a TypeError for it: they get no limit, and the
+# search cuts their answer down instead (``Geocode.search``).
+SEARCH_LIMIT_PROVIDERS = frozenset({"nominatim", "tomtom"})
+
+
+def search_limit_args(provider: str, limit: int) -> dict[str, int]:
+    """The keyword arguments that ask *provider*'s search for at most *limit*
+    places; none for a provider whose geopy ``geocode`` has no ``limit``."""
+    if provider not in SEARCH_LIMIT_PROVIDERS:
+        return {}
+    return {"limit": limit}
+
+
 class _ProviderConfig(TypedDict):
     geocode_args: dict[str, object]
     parser: Callable[[Location], dict[str, object]]

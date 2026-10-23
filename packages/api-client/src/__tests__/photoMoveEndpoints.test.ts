@@ -18,7 +18,7 @@ describe("moving photos", () => {
       clashes: [{ photo_id: "0b7a3d52-3c55-4c1f-9d7e-2b8f1e7a9c10", name: "IMG_1.jpg", renamed_to: "IMG_1 (1).jpg" }],
     };
     const { client, requests } = fakeServer(preview);
-    expect(await endpoints.previewPhotosMove(client, ["h1"], "/photos/b")).toEqual(preview);
+    expect(await endpoints.previewPhotosMove(client, ["h1"], { targetFolder: "/photos/b" })).toEqual(preview);
     expect(defined(requests[0])).toEqual({
       url: `${API}/photos/move/preview/`,
       method: "POST",

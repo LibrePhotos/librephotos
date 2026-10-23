@@ -20,6 +20,7 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase, TestCase
 
+from api.metadata.date_rule_checks import CONDITION_TAGS, DATE_TAG_NAMES
 from api.metadata.photo_writer import write_photo_metadata
 from api.metadata.reader import sidecar_for_write
 from api.metadata.tags import Tags
@@ -167,6 +168,17 @@ class ExifToolReadTagNameTest(SimpleTestCase):
                     name.lower() in known[group],
                     f"ExifTool has no tag {name!r} in {group or 'any group'}",
                 )
+
+    def test_every_tag_a_custom_date_rule_may_use_is_known(self):
+        """The tags the settings page offers for custom date rules (#2272),
+        the only ones a user can save a new rule on."""
+        known = {}
+        for tag in sorted({*DATE_TAG_NAMES, *CONDITION_TAGS}):
+            group, _, name = tag.partition(":")
+            if group not in known:
+                known[group] = _known_names(group)
+            with self.subTest(tag=tag):
+                self.assertIn(name.lower(), known[group], f"ExifTool has no {tag}")
 
 
 @unittest.skipUnless(EXIFTOOL and FFMPEG, "exiftool or ffmpeg not available")

@@ -1,9 +1,11 @@
 import { Avatar, Box, Flex, Indicator, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconUser as User } from "@tabler/icons-react";
+import { IconPlayerPlayFilled, IconUser as User } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { CompletePersonFace } from "../../api_client/faces/types";
+import { formatVideoTime } from "../../util/dateUtils";
 import type { FaceActionHandlers } from "./faceActionRules";
 import { FaceActions } from "./FaceActions";
 import classes from "./FaceComponent.module.css";
@@ -34,6 +36,14 @@ export const calculateProbabiltyColor = (labelProbability: number) => {
   if (labelProbability > 0.7) return "orange";
   return "red";
 };
+
+/** The face button's name; a face from a later video frame says where in the video it is (#2762). */
+function faceLabel(t: TFunction, cell: FaceCell, name: string): string {
+  if (typeof cell.video_time === "number") {
+    return t("facesdashboard.faceinvideo", { name, time: formatVideoTime(cell.video_time) });
+  }
+  return t(cell.image ? "facesdashboard.facein" : "facesdashboard.faceinnothumbnail", { name });
+}
 
 export function FaceComponent({
   cell,
@@ -78,9 +88,7 @@ export function FaceComponent({
             <UnstyledButton
               className={classes.faceButton}
               data-focus-key="face"
-              aria-label={t(cell.image ? "facesdashboard.facein" : "facesdashboard.faceinnothumbnail", {
-                name: group?.name ?? cell.person_name ?? "",
-              })}
+              aria-label={faceLabel(t, cell, group?.name ?? cell.person_name ?? "")}
               aria-pressed={isSelected}
               onClick={e => handleClick(e, cell)}
               onFocus={openTooltip}
@@ -99,6 +107,12 @@ export function FaceComponent({
                 <Flex className={classes.noThumbnail} align="center" justify="center" w={entrySize} h={entrySize}>
                   <User size={40} stroke={1.5} />
                 </Flex>
+              )}
+              {typeof cell.video_time === "number" && (
+                <span className={classes.videoTime} aria-hidden="true">
+                  <IconPlayerPlayFilled size={10} />
+                  {formatVideoTime(cell.video_time)}
+                </span>
               )}
             </UnstyledButton>
           </Indicator>

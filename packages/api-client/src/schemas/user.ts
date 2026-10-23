@@ -90,17 +90,28 @@ export const User = z.object({
   min_cluster_size: z.number(),
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
+  // Detected faces lower than this share of the photo's shorter side are not saved (#2749); 0 is
+  // off. Optional: older servers do not send it, and the settings page then hides it.
+  min_face_size: z.number().optional(),
   // The caption context switches (the name is from the LLM era). The server
   // stores whatever a client saved there, so it stays `unknown`: readers narrow
   // each key on its own, and a settings save sends the other keys back unchanged.
   llm_settings: z.unknown(),
   public_sharing_defaults: PublicSharingDefaults.optional(),
+  // Whether the users this user shares with see the people they named (#2722). Optional: older
+  // servers do not send it, and off is what they do.
+  share_people_names: z.boolean().optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
   slideshow_interval: z.number().default(5),
   duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
   duplicate_clear_existing: z.boolean().default(false),
   default_timeline_filter: TimelineFilterDefault.optional().default({}),
+  // The What's new card (#2305): the release whose card the user last closed or opened ("" before
+  // the first), and whether the card shows after an update. Optional: an older server has neither,
+  // and the web app then shows no card, since it could not remember that it was closed.
+  last_seen_release: z.string().optional(),
+  show_whats_new: z.boolean().optional(),
 });
 export type User = z.infer<typeof User>;
 
@@ -147,3 +158,55 @@ export const ManageUser = z.object({
   password: z.string().optional(),
 });
 export type ManageUser = z.infer<typeof ManageUser>;
+
+/** `GET /manage/user/<id>/scan-directory-impact/` (admin, #2036): photos a new scan directory leaves outside. */
+export const ScanDirectoryImpact = z.object({
+  outside_count: z.number(),
+});
+export type ScanDirectoryImpact = z.infer<typeof ScanDirectoryImpact>;
+
+/**
+ * One folder of a user's library (#123): the scan directory (`main`), a further library folder an
+ * admin added (`folder`, with its id to remove it), or the upload folder when it lies outside them.
+ */
+export const LibraryFolderEntry = z.object({
+  id: z.number().nullable(),
+  path: z.string(),
+  kind: z.enum(["main", "folder", "upload"]),
+  /** The folder can be read now; a scan skips it otherwise and does not flag its photos missing. */
+  available: z.boolean(),
+  photo_count: z.number(),
+});
+export type LibraryFolderEntry = z.infer<typeof LibraryFolderEntry>;
+
+/** `GET /library-folders/` and `/manage/user/<id>/library-folders/`: every folder of a library, the main one first. */
+export const LibraryFolders = z.object({
+  folders: z.array(LibraryFolderEntry),
+  /** Folders inside them the user left out of the library (#791). */
+  excluded_folders: z.array(z.string()),
+});
+export type LibraryFolders = z.infer<typeof LibraryFolders>;
+
+/** `PUT /library-folders/excluded/` (#791): the library, and the photos now outside it. */
+export const ExcludedFoldersSaved = LibraryFolders.extend({
+  outside_count: z.number(),
+});
+export type ExcludedFoldersSaved = z.infer<typeof ExcludedFoldersSaved>;
+
+/** A folder inside a library folder, for the tree the user leaves folders out in (#791). */
+export const LibrarySubfolder = z.object({
+  name: z.string(),
+  path: z.string(),
+  excluded: z.boolean(),
+  has_subfolders: z.boolean(),
+  photo_count: z.number(),
+});
+export type LibrarySubfolder = z.infer<typeof LibrarySubfolder>;
+
+/** `GET /library-folders/subfolders/?path=`: the folders inside one folder of the library. */
+export const LibrarySubfolders = z.object({
+  path: z.string(),
+  subfolders: z.array(LibrarySubfolder),
+  truncated: z.boolean(),
+});
+export type LibrarySubfolders = z.infer<typeof LibrarySubfolders>;

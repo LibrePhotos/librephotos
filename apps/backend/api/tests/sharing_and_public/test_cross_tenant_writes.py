@@ -70,6 +70,7 @@ from api.tests.utils import (
     create_test_stack,
     create_test_tag,
     create_test_user,
+    create_test_user_place,
 )
 
 # URLconfs LibrePhotos does not write (Django admin, allauth). A route under
@@ -97,6 +98,7 @@ NOT_PHOTO_SCOPED = {
     "api/email-config/test/": "admin-only mail config",
     "api/upload/": "chunked upload into the requester's library",
     "api/upload/complete/": "completes only the requester's own upload; its album_id is owner-scoped (UploadIntoAlbumCrossTenantTest)",
+    "api/upload/seal/": "seals only the requester's own import jobs (SealUploadImportsTest)",
     "api/savemetadata/": "queues a job writing the requester's own photos' metadata to disk",
     "api/trainfaces/": "queues a job on the requester's own faces",
     "api/clusterfaces/": "queues a job on the requester's own faces",
@@ -108,11 +110,41 @@ NOT_PHOTO_SCOPED = {
     "api/generateocr/": "queues a job on the requester's own photos",
     "api/generate-captions/": "queues a job on the requester's own photos",
     "api/find-things/": "queues a job on the requester's own photos",
+    "api/library/processing-status/run/": "queues a job on the requester's own photos",
     "api/photos/reapply-date-rules/": "queues a job on the requester's own photos",
+    "api/datetime-rules/check/": "checks the rule in the body; reads and writes no rows",
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
     "api/upgrade-tasks/<slug:key>/start/": "admin-only, instance-wide post-upgrade jobs",
     "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
+    "api/updates/skip/": "admin-only, instance-wide update check state",
+    "api/updates/snooze/": "admin-only, instance-wide update check state",
     "api/look-up-places/": "admin-only, instance-wide place name lookup job",
+    "api/deduplicate-faces/": "admin-only, instance-wide face deduplication job",
+    "api/check-file-contents/": "admin-only, instance-wide file contents check job",
+    "api/manage/user/<int:user_id>/scan/": (
+        "admin-only; starts the named user's own library scan, as that user"
+    ),
+    "api/manage/user/<int:user_id>/trash-photos-outside-library/": (
+        "admin-only; trashes only the named user's own photos, as that user "
+        "(photos_outside_library is owner-scoped; test_outside_library)"
+    ),
+    "api/dirtree/folders/": "admin-only; makes a folder on disk, touches no rows",
+    "api/library-folders/excluded/": (
+        "the requester's own excluded folders; each must lie in their own "
+        "library (test_excluded_folders)"
+    ),
+    "api/library-folders/trash-outside/": (
+        "trashes only the requester's own photos outside their library "
+        "(photos_outside_library is owner-scoped; test_excluded_folders)"
+    ),
+    "api/manage/user/<int:user_id>/library-folders/": (
+        "admin-only; adds a library folder to the named user, refusing one that "
+        "overlaps another user's folders (test_library_folders)"
+    ),
+    "api/manage/user/<int:user_id>/library-folders/<int:folder_id>/": (
+        "admin-only; removes only the named user's own library folder "
+        "(owned_by; test_library_folders)"
+    ),
     "api/autoalbumgen/": "queues a job on the requester's own photos",
     "api/autoalbumtitlegen/": "queues a job on the requester's own albums",
     "api/stacks/detect/": "queues a job on the requester's own photos",
@@ -281,7 +313,11 @@ class CrossTenantWriteTest(TestCase):
         )
         self.v_priv = create_test_photo(owner=self.victim, public=False)
         self.v_trash = create_test_photo(owner=self.victim, in_trashcan=True)
-        self.victim_photos = [self.v_pub, self.v_priv, self.v_trash]
+        # Inside the victim's place (#1365), and where the attacker draws one
+        self.v_located = create_test_photo(
+            owner=self.victim, exif_gps_lat=48.1374, exif_gps_lon=11.5755
+        )
+        self.victim_photos = [self.v_pub, self.v_priv, self.v_trash, self.v_located]
 
         self.v_person = create_test_person(
             name="Victim Friend", cluster_owner=self.victim
@@ -335,6 +371,7 @@ class CrossTenantWriteTest(TestCase):
         self.a_person = create_test_person(name="Mallory", cluster_owner=self.attacker)
         self.a_face = create_test_face(photo=self.a_photo, person=self.a_person)
         self._person_groups()
+        self._user_places()
 
         self.client = APIClient()
         self.client.raise_request_exception = False
@@ -399,6 +436,16 @@ class CrossTenantWriteTest(TestCase):
             name="Loot Collection", owner=self.attacker
         )
 
+    def _user_places(self):
+        """A place of each user's (#1365); the victim's holds their located photo."""
+        self.v_user_place = create_test_user_place(
+            self.victim, "Victim Home", center=(48.1374, 11.5755), radius_m=100
+        )
+        self.v_user_place.photos.add(self.v_located)
+        self.a_user_place = create_test_user_place(
+            self.attacker, "Loot Place", center=(0.5, 0.5), radius_m=100
+        )
+
     def _person_groups(self):
         """A group of each user's (#1126): the victim's holds their person."""
         self.v_group = create_test_person_group(
@@ -434,6 +481,19 @@ class CrossTenantWriteTest(TestCase):
         cases += self._bulk(
             "/api/photos/move/", target_folder=TEST_MEDIA_ROOT, on_conflict="rename"
         )
+        cases += self._bulk(
+            "/api/photos/move/preview/",
+            target_folder=TEST_MEDIA_ROOT,
+            folder_pattern="{year}/{month}",
+        )
+        cases += self._bulk(
+            "/api/photos/move/",
+            target_folder=TEST_MEDIA_ROOT,
+            folder_pattern="{year}",
+            on_conflict="rename",
+        )
+        cases += self._bulk("/api/photos/rename/preview/", pattern="{year}_{name}")
+        cases += self._bulk("/api/photos/rename/", pattern="{year}_{name}")
         cases += self._bulk(
             "/api/photosedit/share", val_shared=True, target_user_id=self.target.id
         )
@@ -683,6 +743,25 @@ class CrossTenantWriteTest(TestCase):
                 f"/api/persons/{self.v_person.pk}/merge/",
                 {"person": self.a_person.pk},
             ),
+            # your places (#1365): another user's place is not there, and the
+            # attacker's own place never takes the victim's photos inside it
+            (
+                "post",
+                "/api/user-places/",
+                {
+                    "name": "Loot",
+                    "center_lat": 48.1374,
+                    "center_lon": 11.5755,
+                    "radius_m": 2000,
+                },
+            ),
+            ("patch", f"/api/user-places/{self.v_user_place.pk}/", {"name": "pwned"}),
+            (
+                "patch",
+                f"/api/user-places/{self.a_user_place.pk}/",
+                {"center_lat": 48.1374, "center_lon": 11.5755, "radius_m": 2000},
+            ),
+            ("delete", f"/api/user-places/{self.v_user_place.pk}/", None),
             # person groups (#1126)
             ("post", "/api/person-groups/", {"name": "Victim Family"}),
             (

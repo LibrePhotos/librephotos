@@ -66,6 +66,20 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
             finished=False
         )
 
+    def holding_the_queue(self) -> LongRunningJobQuerySet:
+        """Running jobs that make the shared queue busy (``/api/rqavailable/``).
+
+        Every running job but an upload import: it runs beside a scan, and a
+        phone backing up all day would otherwise keep the queue busy (#2737).
+        """
+        return self.running().exclude(job_type=LongRunningJob.JOB_IMPORT_UPLOADS)
+
+    def open_upload_imports(self) -> LongRunningJobQuerySet:
+        """Upload import jobs that still take files: unsealed and unfinished."""
+        return self.filter(
+            job_type=LongRunningJob.JOB_IMPORT_UPLOADS, sealed=False, finished=False
+        )
+
     def stuck(self, hours: int | None = None) -> LongRunningJobQuerySet:
         """Unfinished jobs that have shown no sign of life for ``hours``.
 
@@ -88,7 +102,7 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
         leaves out a run that was cancelled, raised, or was cut off by
         ``cleanup_stuck_jobs`` (#2212): what it never reached would fall
         outside every later window. A run flagged ``failed`` only because more
-        than 5 % of its items errored (``_record_error``) did reach its target
+        than 5 % of its items errored (``record_item_error``) did reach its target
         and stays a baseline; otherwise a library with many unreadable files
         would never get one. Some types add a condition of their own, see
         ``LongRunningJob.BASELINE_CONDITIONS``.
@@ -166,7 +180,9 @@ class LongRunningJob(models.Model):
     JOB_CLASSIFY_MEDIA = 17
     JOB_GENERATE_OCR = 18
     JOB_PROBE_VIDEOS = 19
-    # 20 and 21 are planned for the upload and Nextcloud import jobs (#2191).
+    # One open job per user counts the uploads it imports (#2737).
+    JOB_IMPORT_UPLOADS = 20
+    # 21 was planned for Nextcloud imports, which stay photo scans (#2734).
     JOB_DETECT_STACKS = 22
     JOB_STRIP_THUMBNAIL_METADATA = 23
     JOB_EMPTY_TRASH = 24
@@ -176,6 +192,11 @@ class LongRunningJob(models.Model):
     JOB_REFRESH_EXPOSURE_TIMES = 28
     JOB_LOOK_UP_PLACES = 29
     JOB_MOVE_PHOTOS = 30
+    JOB_DEDUPLICATE_FACES = 31
+    JOB_CHECK_FILE_CONTENTS = 32
+    JOB_TRASH_PHOTOS_OUTSIDE_LIBRARY = 33
+    JOB_MAKE_VIDEO_POSTERS = 34
+    JOB_RENAME_PHOTOS = 35
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -197,6 +218,7 @@ class LongRunningJob(models.Model):
         (JOB_CLASSIFY_MEDIA, "Classify Media Categories"),
         (JOB_GENERATE_OCR, "Extract Text (OCR)"),
         (JOB_PROBE_VIDEOS, "Probe Videos"),
+        (JOB_IMPORT_UPLOADS, "Import Uploads"),
         (JOB_DETECT_STACKS, "Detect Stacks"),
         (JOB_STRIP_THUMBNAIL_METADATA, "Remove Photo Details from Thumbnails"),
         (JOB_EMPTY_TRASH, "Empty Trash"),
@@ -206,6 +228,11 @@ class LongRunningJob(models.Model):
         (JOB_REFRESH_EXPOSURE_TIMES, "Read Shutter Speeds Again"),
         (JOB_LOOK_UP_PLACES, "Look Up Place Names"),
         (JOB_MOVE_PHOTOS, "Move Photos"),
+        (JOB_DEDUPLICATE_FACES, "Deduplicate Faces"),
+        (JOB_CHECK_FILE_CONTENTS, "Check File Contents"),
+        (JOB_TRASH_PHOTOS_OUTSIDE_LIBRARY, "Trash Photos Outside the Library"),
+        (JOB_MAKE_VIDEO_POSTERS, "Make Video Posters"),
+        (JOB_RENAME_PHOTOS, "Rename Photos"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.
@@ -214,11 +241,9 @@ class LongRunningJob(models.Model):
     # What a run of these types needs on top of ``baselines()`` to be one. A
     # photo scan must have walked the whole library: a file-list scan or a
     # Nextcloud import says nothing about the files it did not look at
-    # (#2192). An OCR run must have had work: a disabled or empty run would
-    # otherwise make every photo added before it look done.
+    # (#2192).
     BASELINE_CONDITIONS: dict[int, models.Q] = {
         JOB_SCAN_PHOTOS: models.Q(**{f"result__{LIBRARY_SCAN}": True}),
-        JOB_GENERATE_OCR: models.Q(progress_target__gt=0),
     }
 
     job_type = models.PositiveIntegerField(
@@ -245,6 +270,12 @@ class LongRunningJob(models.Model):
         max_length=100, null=True, blank=True
     )  # Current step description
     result = models.JSONField(null=True, blank=True)  # Detailed result/progress data
+    # False while an upload import job still takes files: it finishes only
+    # once sealed (``api.jobs.upload_import``). Every other job is born sealed.
+    sealed = models.BooleanField(default=True)
+    # When an upload import job last took a file; the sweeper seals it after
+    # a few idle minutes.
+    last_file_at = models.DateTimeField(null=True, blank=True)
 
     objects = LongRunningJobQuerySet.as_manager()
 
@@ -257,6 +288,15 @@ class LongRunningJob(models.Model):
                 fields=["started_at"],
                 condition=models.Q(finished=False),
                 name="lrj_unfinished_idx",
+            ),
+        ]
+        constraints = [
+            # One open upload import job per user: concurrent first uploads
+            # make one job, the loser of the insert attaches to it.
+            models.UniqueConstraint(
+                fields=["started_by"],
+                condition=models.Q(job_type=20, sealed=False, finished=False),
+                name="lrj_one_open_upload_import",
             ),
         ]
         verbose_name = "Long Running Job"

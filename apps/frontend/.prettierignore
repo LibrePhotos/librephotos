@@ -21,3 +21,6 @@ src/locales/*/
 
 # Written by eslint --suppress-rule / --prune-suppressions; ESLint owns its format.
 eslint-suppressions.json
+
+# Written by apps/docs/scripts/build-releases.mjs from the release posts (#2305).
+src/components/whatsnew/releases.json

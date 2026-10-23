@@ -1,9 +1,12 @@
-import type { JobDetail } from "@librephotos/api-client";
+import type { ImportJob, JobDetail } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { ShortcutsOverlayContext } from "../shortcuts/shortcutsOverlay";
+import type { UploadProcessing } from "../upload/useUploadProcessing";
+import { WhatsNewContext } from "../whatsnew/whatsNewContext";
 import { ProfileButton } from "./ProfileButton";
 import { jobPercent } from "./WorkerJobMenuSection";
 
@@ -14,6 +17,8 @@ const stubs = vi.hoisted(() => ({
   isAdmin: false,
   upgradeTasksLeft: 0,
   cancelJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),
+  openImports: [] as ImportJob[],
+  openWhatsNew: vi.fn<(releases?: readonly string[]) => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
@@ -26,6 +31,10 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useCancelJobMutation: () => ({ mutate: stubs.cancelJob, isPending: false }),
+}));
+vi.mock("../upload/UploadContext", async importOriginal => ({
+  ...(await importOriginal<typeof import("../upload/UploadContext")>()),
+  useOptionalUploadProcessing: (): Pick<UploadProcessing, "openImports"> => ({ openImports: stubs.openImports }),
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({
   useWorkerStatus: () => ({ currentData: stubs.worker, workerRunningJob: stubs.worker?.job_detail ?? null }),
@@ -57,7 +66,9 @@ const render = async (worker: Worker) => {
     root.render(
       // env="test" renders the menu inline and without transitions.
       <MantineProvider env="test">
-        <ProfileButton />
+        <WhatsNewContext.Provider value={{ open: stubs.openWhatsNew }}>
+          <ProfileButton />
+        </WhatsNewContext.Provider>
       </MantineProvider>
     );
   });
@@ -98,6 +109,7 @@ beforeEach(() => {
   stubs.cancelJob.mockClear();
   stubs.isAdmin = false;
   stubs.upgradeTasksLeft = 0;
+  stubs.openImports = [];
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -106,6 +118,38 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+});
+
+describe("ProfileButton upload imports (#2739)", () => {
+  const importJob = (overrides: Partial<ImportJob> = {}): ImportJob => ({
+    ...job({ job_type: 20, job_type_str: "Import Uploads", progress_current: 12, progress_target: 40 }),
+    result: { stages: {} },
+    ...overrides,
+  });
+  const importSection = () => container.querySelector('[data-testid="import-job-section"]');
+
+  it("rings the avatar with the import's progress and adds its own section, without Cancel", async () => {
+    stubs.openImports = [importJob()];
+    await render({ queue_can_accept_job: true, job_detail: null });
+
+    expect(arcOffset()).toBe("70");
+    expect(avatarButton().getAttribute("aria-label")).toContain(i18n.t("topmenu.workerstatusimporting"));
+    await openMenu();
+    expect(importSection()?.textContent).toContain("Importing your uploads");
+    expect(importSection()?.textContent).toContain("12 / 40 ready");
+    expect(importSection()?.querySelector("button")).toBeNull();
+    expect(jobSection()).toBeNull();
+  });
+
+  it("keeps the running job's ring and section beside the import", async () => {
+    stubs.openImports = [importJob()];
+    await render({ queue_can_accept_job: false, job_detail: job() });
+
+    expect(arcOffset()).toBe("75");
+    await openMenu();
+    expect(jobSection()).not.toBeNull();
+    expect(importSection()).not.toBeNull();
+  });
 });
 
 describe("ProfileButton worker status", () => {
@@ -201,7 +245,58 @@ describe("ProfileButton upgrade tasks (#2322)", () => {
 
     expect(dot()).toBeNull();
     await openMenu();
-    expect(adminItem()?.textContent).toBe(i18n.t("topmenu.adminarea"));
+    // No count, only the g a chord hint (#2037).
+    expect(adminItem()?.textContent).toBe(`${i18n.t("topmenu.adminarea")}g a`);
+  });
+});
+
+describe("ProfileButton keyboard shortcuts (#2037)", () => {
+  const shortcutsItem = () =>
+    [...container.querySelectorAll<HTMLElement>("[role=menuitem]")].find(item =>
+      item.textContent?.startsWith(i18n.t("topmenu.shortcuts"))
+    );
+
+  it("lists the chords next to the pages and opens the list of shortcuts", async () => {
+    const openShortcuts = vi.fn<() => void>();
+    stubs.worker = { queue_can_accept_job: true, job_detail: null };
+    await act(async () => {
+      root.render(
+        <MantineProvider env="test">
+          <ShortcutsOverlayContext value={openShortcuts}>
+            <ProfileButton />
+          </ShortcutsOverlayContext>
+        </MantineProvider>
+      );
+    });
+    await openMenu();
+
+    const settings = [...container.querySelectorAll<HTMLElement>("[role=menuitem]")].find(item =>
+      item.textContent?.startsWith(i18n.t("topmenu.settings"))
+    );
+    expect(settings?.textContent).toBe(`${i18n.t("topmenu.settings")}g s`);
+    expect(shortcutsItem()?.textContent).toBe(`${i18n.t("topmenu.shortcuts")}?`);
+    await act(async () => shortcutsItem()?.click());
+    expect(openShortcuts).toHaveBeenCalledOnce();
+  });
+
+  it("has no shortcuts entry outside the signed-in app (public pages)", async () => {
+    await render({ queue_can_accept_job: true, job_detail: null });
+    await openMenu();
+
+    expect(shortcutsItem()).toBeUndefined();
+  });
+});
+
+describe("ProfileButton What's new", () => {
+  it("opens the What's new dialog from the account menu (#2305)", async () => {
+    await render({ queue_can_accept_job: true, job_detail: null });
+    await openMenu();
+    const item = [...container.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      candidate => candidate.textContent === i18n.t("whatsnew.menu")
+    );
+    expect(item).toBeDefined();
+    await act(async () => item?.click());
+    expect(stubs.openWhatsNew).toHaveBeenCalledWith();
   });
 });
 

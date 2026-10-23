@@ -74,6 +74,63 @@ describe("managing users (admin)", () => {
     expect(user.username).toBe("bob");
   });
 
+  it("asks how many photos a new scan directory leaves outside (#2036)", async () => {
+    const { client, requests } = fakeServer({ outside_count: 4136 });
+    const impact = await endpoints.fetchScanDirectoryImpact(client, 2, "/data/a&b #1", "");
+    expect(defined(requests[0])).toMatchObject({
+      url: "https://demo.example.com/api/manage/user/2/scan-directory-impact/?scan_directory=%2Fdata%2Fa%26b%20%231&upload_directory=",
+      method: "GET",
+    });
+    expect(impact.outside_count).toBe(4136);
+  });
+
+  it("lists, adds and removes the folders of a library (#123)", async () => {
+    const answer = {
+      folders: [
+        { id: null, path: "/data/anna", kind: "main", available: true, photo_count: 12 },
+        { id: 3, path: "/data/family", kind: "folder", available: false, photo_count: 0 },
+      ],
+      excluded_folders: ["/data/family/trip"],
+    };
+    const { client, requests } = fakeServer(answer);
+    const own = await endpoints.fetchOwnLibraryFolders(client);
+    expect(own.folders.map(folder => folder.kind)).toEqual(["main", "folder"]);
+    await endpoints.fetchLibraryFolders(client, 2);
+    await endpoints.addLibraryFolder(client, 2, "/data/family");
+    const left = await endpoints.removeLibraryFolder(client, 2, 3);
+    expect(left.folders[1]?.available).toBe(false);
+    expect(requests.map(request => [request.method, request.url, request.body])).toEqual([
+      ["GET", "https://demo.example.com/api/library-folders/", undefined],
+      ["GET", "https://demo.example.com/api/manage/user/2/library-folders/", undefined],
+      ["POST", "https://demo.example.com/api/manage/user/2/library-folders/", { path: "/data/family" }],
+      ["DELETE", "https://demo.example.com/api/manage/user/2/library-folders/3/", undefined],
+    ]);
+  });
+
+  it("leaves folders out of the own library and lists a folder's subfolders (#791)", async () => {
+    const saved = { folders: [], excluded_folders: ["/data/a/trip"], outside_count: 3 };
+    const { client, requests } = fakeServer(saved);
+    const answer = await endpoints.setExcludedFolders(client, ["/data/a/trip"]);
+    expect(answer.outside_count).toBe(3);
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/library-folders/excluded/",
+      method: "PUT",
+      body: { excluded_folders: ["/data/a/trip"] },
+    });
+
+    const listing = {
+      path: "/data/a",
+      subfolders: [{ name: "trip", path: "/data/a/trip", excluded: true, has_subfolders: false, photo_count: 3 }],
+      truncated: false,
+    };
+    const second = fakeServer(listing);
+    const folders = await endpoints.fetchLibrarySubfolders(second.client, "/data/a & b");
+    expect(folders.subfolders[0]?.excluded).toBe(true);
+    expect(defined(second.requests[0]).url).toBe(
+      "https://demo.example.com/api/library-folders/subfolders/?path=%2Fdata%2Fa+%26+b"
+    );
+  });
+
   it("deletes a user (204, no body)", async () => {
     const { client, requests } = fakeServer(null);
     await expect(endpoints.deleteUser(client, 2)).resolves.toBeUndefined();

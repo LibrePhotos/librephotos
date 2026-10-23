@@ -15,6 +15,31 @@ At the top of the Library page, you'll see quick stats about your library:
 - **Faces** — Total faces detected
 - **Events** — Number of events (photos grouped by when they were taken)
 
+## Processing status
+
+<Since version="1.5.0" />
+
+After a scan or an upload, LibrePhotos keeps working on the new photos for a while: it makes their thumbnails, finds the things in them, gets them ready for search, looks up their places and finds the faces. The **Processing status** card under the overview stats says how far it got, one row per stage that is turned on. Photos in the trash and [missing photos](./missing-photos.md) are not counted.
+
+| Stage | What is left |
+| --- | --- |
+| **Thumbnails** | Photos without a thumbnail; they show a grey square. **Run now** reads their files again (as a [rescan](#rescan-some-photos)). |
+| **Things** | Photos not checked for things yet (only while [Things](./feature-toggles.md) are on). |
+| **Search** | Photos without search data for the current search model. |
+| **Places** | Photos with a GPS position whose place name was not looked up yet (only while reverse geocoding is on). |
+| **Face detection** | Photos not checked for faces yet (only while face detection is on). |
+| **Face recognition data** | Faces that cannot be grouped into people yet. **Run now** prepares them and, while face grouping is on, groups them. |
+| **Text in photos** | Photos the selected [text recognition](./text-recognition.md) model has not read yet. A photo it failed on three times is left out. |
+| **Captions** | Photos without a generated caption (only while [captions](./image-captioning.md) are on). |
+
+The header says how many stages are done. **Run now** starts the job that does what is left of that stage, for your photos only: the same job the scan runs afterwards, never one that starts over. While the stage's job runs, its row shows the progress and a **View job** link instead. When the last run of a stage could not process some photos, the row says how many and links to the [job list](./job-system.md), where the job lists them. Like every job button, **Run now** waits while another job runs.
+
+When every stage is done, the card is a single line, "All N photos are processed"; **Show details** opens the rows again. A library without photos has no card.
+
+If your photos only come from uploads (you have no scan directory), photos uploaded before LibrePhotos 1.4.0 that have no faces count as not checked for faces until a face scan has looked at them once: press **Run now** on **Face detection**. The row says so.
+
+For scripts: the card reads `GET /api/library/processing-status/`, and **Run now** is `POST /api/library/processing-status/run/` with the stage's key, for example `{"stage": "places"}` (keys: `thumbnails`, `things`, `search`, `places`, `face_detection`, `face_recognition`, `text`, `captions`). A stage that is off is a 403; its job already running is a 409 that names the job.
+
 ## Scanning
 
 ### Scan Photos (File System)
@@ -38,6 +63,25 @@ A **Scan** processes new and changed files, and also every photo whose metadata 
 
 To re-process all existing photos, open the dropdown next to **Scan** (the chevron) and choose **Rescan**.
 
+### Library folders
+
+<Since version="1.5.0" /> A library can have more than one folder. The **Library folders** card above **Photos** lists them: the scan directory (marked **Main folder**), the further folders an admin added, and the upload folder when it lies outside them. Each row says how many of your photos are in it, and its menu (⋮) opens the folder on the Folders page. A **Scan** reads every folder of the library.
+
+Admins add a folder with **Add folder** under the list and remove one with **Remove…** in its menu; see [Several library folders per user](./managing-users.md#several-library-folders-per-user). Other users see their folders here and ask an admin for changes.
+
+A folder that cannot be read right now, such as one on a disk that is unplugged, shows **Not found**. Scans skip it and go on with the rest of the library, list it in the job's errors, and do not mark its photos [missing](./missing-photos.md): they come back as they were when the disk does.
+
+### Leaving subfolders out
+
+<Since version="1.5.0" /> You can leave folders inside your library folders out of your library, for example the trips of a relative in a shared family folder. Choose **Leave out subfolders…** in a folder's menu (⋮): the dialog shows its subfolders with a checkbox each and how many of your photos are in them. Untick a folder to leave it, and everything in it, out; open a folder with the arrow to get to the folders inside it. **Save** applies the change to every folder at once.
+
+- Scans skip the folders you left out from then on, and so do scans of chosen files and [folder watchers](./auto-scan.md#tell-librephotos-about-new-files). The row of the library folder says how many subfolders are left out.
+- Photos already imported from those folders stay in your library until you move them to the trash: tick **Also move my photos outside my library to the trash** before saving. That moves every photo of yours that is outside your library folders to the trash, those in the folders you left out included; you can restore them from the [trash](./trash.md) until it is emptied. Files on disk are never touched.
+- Moving photos into a folder you left out is refused.
+- Tick the folder again to take it back in; the next scan imports its photos again.
+
+You cannot leave out a library folder itself (ask an admin to remove it) or a folder that holds your upload folder. Leaving folders out only changes your own library; the same folders stay in the libraries of others.
+
 Only one job runs at a time, for all users together. While one runs, the job buttons on this page are greyed out and a note above them says so: it names the job and links to the job list when it is yours (or you are an admin), and says "Another user's job is running" otherwise. <Since version="1.4.0" /> Point at or tab to a greyed-out button to see why it is unavailable.
 
 :::note
@@ -48,7 +92,13 @@ AI *captions* are not generated during a scan — they are created per photo on 
 
 If you overwrite a file with a different picture but keep the same name, the next scan picks the change up and re-indexes it: the thumbnails are rebuilt from the new picture and the photo goes back into the queue for face detection, things and geocoding. It keeps its album membership, its sharing and its link, so anything pointing at it still works.
 
+<Since version="1.5.0" /> What LibrePhotos worked out from the old picture goes with it: its things, its generated caption, its search data and the text found in it. The jobs after that scan find the things and make the search data again from the new picture; the text and a generated caption are made again the next time **Extract Text** or **Generate captions** runs. What you entered stays: your own caption, tags, rating, albums, and a date or location you set by hand. Up to 1.4.0, the old things, caption and text stayed with the new picture.
+
 A file whose bytes changed while its picture stayed the same is only re-keyed internally. That covers a rating or a face tag LibrePhotos wrote into the original, and metadata another tool edited in place: nothing is regenerated and nothing you corrected by hand is lost.
+
+<Since version="1.5.0" /> The same goes for a picture another app saved again, compressed again or edited lightly (a slightly brighter version, say): it keeps its faces, things, caption and place in the timeline, and only its thumbnails are made again so that they show the file as it is now. Uploading such a file again is recognised as a photo you already have. Up to 1.4.0, any change to the picture's fingerprint counted as a new picture and cost the photo its faces.
+
+<Since version="1.5.0" /> A scan only reads a file again when its modification date changed. A file replaced by a copy that kept the old date (`cp -p`, `rsync --times`, some sync apps) is not noticed; an admin finds those with **Check file contents** in the Admin Area (see [Check File Contents](./job-system.md#check-file-contents)), or with `python manage.py rehash_files` (`--user <name>` for one library, `--path <folder>` for one folder of it).
 
 For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
 
@@ -98,6 +148,40 @@ If a file with the same name is already in the folder, a second dialog lists the
 A file in the folder is never overwritten.
 
 Albums, faces, tags, ratings and sharing stay with the photo, and the folder views show it in its new folder right away. The next scan does not read a moved photo again. A selection of more than 100 photos moves in the background as a **Move Photos** job (see [Job System](./job-system.md)); a move cannot start while a scan of your library runs.
+
+### Sorting into folders by date
+
+<Since version="1.5.0" />
+
+Turn on **Sort into folders by date** in the same dialog to give each photo a folder of its own capture date inside the destination, for example `/photos/sorted/2025/06` and `/photos/sorted/2025/07`. Choose the folders with `{year}`, `{year}/{month}` or `{year}/{month}/{day}`. Missing folders are made when the photos move.
+
+The dialog lists the folders the photos go to, how many photos each one gets and where a name is taken, and shows an example path with the date folders in colour. Photos without a capture date stay where they are; **Change date and time…** next to their count gives them a date without leaving the dialog. Everything else works as for one folder: taken names, the photos that stay, and the job for more than 100 photos. A date folder that the scan would skip is refused.
+
+## Renaming photos by their date
+
+<Since version="1.5.0" />
+
+You can give your own photos file names made from their capture date, such as `20250601_233000.jpg` instead of `IMG_4711.jpg`, so they are easy to find and share outside LibrePhotos. Select the photos and choose **Rename files…** in the photo actions menu (⋮), or open a photo and choose **More → Rename files…**.
+
+Pick a preset (**Date and time**, **Date, time and old name**, **Date and old name**) or write your own name with these tokens; the buttons under the field put one where the cursor is:
+
+| Token | Becomes |
+| --- | --- |
+| `{year}` `{month}` `{day}` | the capture date, such as `2025` `06` `01` |
+| `{hour}` `{minute}` `{second}` | the capture time where the photo was taken, such as `23` `30` `00` |
+| `{name}` | the current file name without its extension, such as `IMG_4711` |
+
+The extension stays. A name cannot contain `\ / : * ? " < > |` or start with a dot, so a renamed file stays in its folder on every system.
+
+Before you rename, the dialog lists the first photos with a thumbnail, their name now and the name they get, and counts the rest:
+
+- photos that already have the name keep it;
+- photos without a capture date are skipped (**Change date and time…** gives them one);
+- the same photos as for a move keep their names: local copies of Nextcloud files, photos that share a file with another photo, photos whose files are missing on disk.
+
+A photo is renamed with all its files, as for a move: its RAW or JPEG variant, a Live Photo's video and its XMP sidecars (`IMG_1.CR2` becomes `20250601_233000.CR2`, `IMG_1.jpg.xmp` becomes `20250601_233000.jpg.xmp`), so the scan still sees one photo. When a name is taken, for example by two photos of the same second, the photo gets the next free one: `20250601_233000 (1).jpg`. Nothing is ever overwritten, and a photo that cannot be renamed keeps every file under its old name. Albums, faces, tags, ratings and sharing stay with the photo.
+
+A selection of more than 100 photos is renamed in the background as a **Rename Photos** job; a rename cannot start while a scan of your library runs.
 
 ## Nextcloud Integration
 
@@ -252,8 +336,8 @@ python manage.py scan
 python manage.py scan -f
 
 # Scan specific files, given by full path; each file goes to every user whose
-# scan directory contains it (normally exactly one; /data/alice2/x.jpg is not
-# in /data/alice), and a file outside every scan directory is ignored.
+# library folders contain it (normally exactly one; /data/alice2/x.jpg is not
+# in /data/alice), and a file outside every library is ignored.
 # Since 1.5.0 a folder is scanned too, with its subfolders
 python manage.py scan -s /path/to/file.jpg /path/to/folder
 
@@ -286,6 +370,11 @@ python manage.py backup_database
 # thumbnails created by 1.2.1 and older; pixels and colour profiles are kept,
 # clean files are not touched, so it is safe to run again (--dry-run only counts)
 python manage.py strip_thumbnail_metadata
+
+# Read every indexed file again and import the ones whose contents changed while
+# their modification date stayed (cp -p, rsync --times); --user <name> for one
+# library, --path <folder inside it> for one folder. Reads every byte: slow.
+python manage.py rehash_files
 
 # Read the exposure time again where 1.3.0 and older stored the shutter speed
 # wrongly ("0" for anything faster than about 1/2000 s, "1/1000" for 1/1250 to

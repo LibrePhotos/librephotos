@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { useYourPlaceAt } from "../places/useYourPlaceAt";
 import { AlbumsSection } from "./AlbumsSection";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { CategoryBadge } from "./CategoryBadge";
@@ -26,12 +27,14 @@ import { Description } from "./Description";
 import type { FaceLocationType, LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
+import { SharedPhotoDetails } from "./SharedPhotoDetails";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { TrashedItem } from "./TrashedItem";
 import { VersionComponent } from "./VersionComponent";
+import { WhyThisDate } from "./WhyThisDate";
 
 type SidebarProps = {
   isPublic: boolean;
@@ -224,10 +227,11 @@ type SharedViewerSidebarProps = {
   id: string;
   gridItem?: LightboxItem;
   closeSidepanel: () => void;
+  setFaceLocation: (location: FaceLocationType) => void;
 };
 
 /** Public pages without a slug, and shared albums: anyone who is not the owner. */
-function SharedViewerSidebar({ id, gridItem, closeSidepanel }: SharedViewerSidebarProps) {
+function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation }: SharedViewerSidebarProps) {
   const { t } = useTranslation();
   // The grid already shows these viewers the date and place (the server
   // leaves out what it may not share), so the panel does too.
@@ -245,6 +249,7 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel }: SharedViewerSideb
             isPublic
           />
         )}
+        <SharedPhotoDetails id={id} setFaceLocation={setFaceLocation} />
         <Text size="sm" c="dimmed">
           {date || location ? t("lightbox.sidebar.ownerOnlyMoreDetails") : t("lightbox.sidebar.ownerOnlyDetails")}
         </Text>
@@ -258,7 +263,14 @@ export function Sidebar({ isPublic, publicAlbumSlug, ...props }: SidebarProps) {
     return <PublicAlbumSidebar slug={publicAlbumSlug} id={props.id} closeSidepanel={props.closeSidepanel} />;
   }
   if (isPublic) {
-    return <SharedViewerSidebar id={props.id} gridItem={props.gridItem} closeSidepanel={props.closeSidepanel} />;
+    return (
+      <SharedViewerSidebar
+        id={props.id}
+        gridItem={props.gridItem}
+        closeSidepanel={props.closeSidepanel}
+        setFaceLocation={props.setFaceLocation}
+      />
+    );
   }
   return <OwnerSidebar {...props} />;
 }
@@ -280,6 +292,7 @@ function OwnerSidebar({
 
   const { data: photoDetail, isError: isPhotoDetailError } = useFetchPhotoDetailsQuery(id);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+  const yourPlace = useYourPlaceAt(photoDetail?.exif_gps_lat, photoDetail?.exif_gps_lon);
 
   if (!photoDetail) {
     // Keep the panel in place while loading, and say so if the photo has no
@@ -320,7 +333,7 @@ function OwnerSidebar({
     <SidebarPanel>
       <Stack>
         <SidebarHeader closeSidepanel={closeSidepanel} />
-        <TimestampItem photoDetail={photoDetail} isPublic={false} />
+        <TimestampItem photoDetail={photoDetail} isPublic={false} extra={<WhyThisDate photo={photoDetail} />} />
         {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
         <VersionComponent
           photoDetail={photoDetail}
@@ -328,7 +341,7 @@ function OwnerSidebar({
           category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} />}
         />
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
-        <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} />
+        <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
         <PeopleSection
           photoDetail={photoDetail}
           isPublic={false}

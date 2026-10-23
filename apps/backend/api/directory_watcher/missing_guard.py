@@ -14,6 +14,10 @@ fraction to 1 to let a user who really removed their library clear it.
 A file whose own path is gone but whose exact copy is on disk (#2417) is not
 missing, so its photo does not count towards that fraction
 (``api.photos.files.missing_files``).
+
+A further library folder (#123) that fails the first check is left out of the
+scan, and the files in it are not checked for missing (``unavailable_folders``):
+a second disk that is unplugged does not stop the scan of the rest.
 """
 
 import logging
@@ -22,7 +26,7 @@ import os
 from constance import config as site_config
 
 from api.models import Photo, User
-from api.photos.paths import folder_path_q
+from api.photos.paths import folder_path_q, library_folder_paths
 
 logger = logging.getLogger(__name__)
 
@@ -41,24 +45,26 @@ def _limit() -> float:
     return float(site_config.SCAN_MISSING_MAX_FRACTION)
 
 
-def library_root_problem(user: User, root: str) -> str | None:
+def library_root_problem(
+    user: User, root: str, label: str = "The scan directory"
+) -> str | None:
     """Why ``root`` does not look like ``user``'s mounted library, or None.
 
     It must exist, be a directory that can be listed, and not be empty while
-    the user has photos in it (unless the limit is off).
+    the user has photos in it (unless the limit is off). ``label`` names the
+    root in the answer: the scan directory, or one of the further library
+    folders (#123).
     """
     if not os.path.exists(root):
-        return f"The scan directory {root} does not exist. {_NOTHING_CHANGED}"
+        return f"{label} {root} does not exist. {_NOTHING_CHANGED}"
     if not os.path.isdir(root):
-        return f"The scan directory {root} is not a directory. {_NOTHING_CHANGED}"
+        return f"{label} {root} is not a directory. {_NOTHING_CHANGED}"
     try:
         with os.scandir(root) as entries:
             empty = next(entries, None) is None
     except OSError as error:
         reason = error.strerror or type(error).__name__
-        return (
-            f"The scan directory {root} cannot be read ({reason}). {_NOTHING_CHANGED}"
-        )
+        return f"{label} {root} cannot be read ({reason}). {_NOTHING_CHANGED}"
     if not empty or _limit() >= 1.0:
         return None
     photos_in_root = (
@@ -67,9 +73,18 @@ def library_root_problem(user: User, root: str) -> str | None:
     if not photos_in_root:
         return None
     return (
-        f"The scan directory {root} is empty, but {photos_in_root:,} of your"
+        f"{label} {root} is empty, but {photos_in_root:,} of your"
         f" photos are in it. {_NOTHING_CHANGED} {_RAISE_THE_LIMIT}"
     )
+
+
+def unavailable_folders(user: User) -> list[str]:
+    """The further library folders of ``user`` that look unmounted (#123)."""
+    return [
+        folder
+        for folder in library_folder_paths(user)
+        if library_root_problem(user, folder, "The library folder") is not None
+    ]
 
 
 def too_many_missing(would_lose_all: int, photos_with_files: int) -> str | None:

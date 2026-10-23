@@ -12,6 +12,7 @@ Run from `apps/frontend`:
 - `yarn format:check`: Prettier over this app and `packages/api-client` (one config, `prettier.config.cjs`); `yarn format` fixes. Non-English locales are ignored
 - `yarn typecheck`: plain `tsc --noEmit` over `src/` (`tsconfig.json`) and `vite.config.ts` (`tsconfig.node.json`). Zero errors, no baseline; any error fails
 - `yarn typecheck:e2e`: `tsc --noEmit` over the Playwright suite (`e2e/tsconfig.json`); needs `e2e/` dependencies installed
+- `yarn --cwd e2e screens:unit`: the helpers of the docs screenshot run. The shots in `apps/docs/static/img/shots/` and their `manifest.json` come from `yarn --cwd e2e screens` (`e2e/screens/manifest.ts`); never edit `manifest.json` by hand, `e2e/screens/files.test.ts` fails when it differs from what the run writes
 - `yarn knip`: unused dependencies, files and exports (`knip.json`), zero findings
 - `yarn test`: vitest (includes `src/fileNames.test.ts`, the file-name rule)
 - `yarn build`, `yarn start`

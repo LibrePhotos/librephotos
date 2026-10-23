@@ -27,7 +27,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.test import APIClient
 
-from api.models import File, LongRunningJob, Photo, User
+from api.models import File, LongRunningJob, Person, Photo, User
 from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
 from api.serializers.job import LongRunningJobSerializer
@@ -49,6 +49,7 @@ from api.tests.utils import (
     create_test_stack,
     create_test_tag,
     create_test_user,
+    create_test_user_place,
     share_test_photos,
 )
 from api.views.custom_api_view import ListViewSet
@@ -166,12 +167,76 @@ def _person_group(requester: User, index: int) -> None:
     )
 
 
+def _user_place(requester: User, index: int) -> None:
+    """A place of the requester's (#1365) with a photo inside it."""
+    place = create_test_user_place(requester)
+    place.photos.add(_visible_photo(requester))
+
+
 def _tag(requester: User, index: int) -> None:
     create_test_tag(owner=requester).photos.add(_visible_photo(requester))
 
 
 def _photo_shared_to_me(requester: User, index: int) -> None:
     share_test_photos([_tile_photo(create_test_user()).pk], requester)
+
+
+def _shared_place(requester: User, index: int) -> None:
+    """A place of its own on a photo another user shared (#2721)."""
+    owner = create_test_user()
+    photo = _tile_photo(owner)
+    share_test_photos([photo.pk], requester)
+    create_test_album_place(owner=owner, title=f"Place {index}").photos.add(photo)
+
+
+def _shared_thing(requester: User, index: int) -> None:
+    owner = create_test_user()
+    photo = _tile_photo(owner)
+    share_test_photos([photo.pk], requester)
+    album = create_test_album_thing(
+        owner=owner, title=f"thing-{index}", thing_type="hashtag_attribute"
+    )
+    album.photos.add(photo)
+
+
+def _shared_lisbon_photo(requester: User, index: int) -> None:
+    """One more shared photo in "Lisbon", of a new owner each time."""
+    owner = create_test_user()
+    photo = _tile_photo(owner)
+    share_test_photos([photo.pk], requester)
+    create_test_album_place(owner=owner, title="Lisbon").photos.add(photo)
+
+
+def _shared_tram_photo(requester: User, index: int) -> None:
+    owner = create_test_user()
+    photo = _tile_photo(owner)
+    share_test_photos([photo.pk], requester)
+    create_test_album_thing(
+        owner=owner, title="tram", thing_type="hashtag_attribute"
+    ).photos.add(photo)
+
+
+def _shared_person(requester: User, index: int) -> None:
+    """A named person of an owner who shares names, on a shared photo (#2722)."""
+    owner = create_test_user(share_people_names=True)
+    photo = _tile_photo(owner)
+    share_test_photos([photo.pk], requester)
+    create_test_face(photo=photo, person=create_test_person(cluster_owner=owner))
+
+
+SHARED_PERSON_ID = 990001
+
+
+def _shared_person_photo(requester: User, index: int) -> None:
+    """One more shared photo of the one person ``SHARED_PERSON_ID``."""
+    person = Person.objects.filter(pk=SHARED_PERSON_ID).first()
+    if person is None:
+        owner = create_test_user(share_people_names=True)
+        person = create_test_person(id=SHARED_PERSON_ID, cluster_owner=owner)
+    assert person.cluster_owner is not None
+    photo = _tile_photo(person.cluster_owner)
+    share_test_photos([photo.pk], requester)
+    create_test_face(photo=photo, person=person)
 
 
 def _photo_shared_from_me(requester: User, index: int) -> None:
@@ -220,9 +285,22 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     "api/albums/user/shared/fromme/": (ListFixture(_album_user),),
     "api/persons/": (ListFixture(_person),),
     "api/person-groups/": (ListFixture(_person_group),),
+    "api/user-places/": (ListFixture(_user_place),),
     "api/tags/": (ListFixture(_tag),),
     "api/photos/shared/tome/": (ListFixture(_photo_shared_to_me),),
     "api/photos/shared/fromme/": (ListFixture(_photo_shared_from_me),),
+    "api/photos/shared/tome/places/": (ListFixture(_shared_place),),
+    "api/photos/shared/tome/things/": (ListFixture(_shared_thing),),
+    "api/photos/shared/tome/people/": (ListFixture(_shared_person),),
+    "api/photos/shared/tome/places/photos/": (
+        ListFixture(_shared_lisbon_photo, params={"title": "Lisbon"}),
+    ),
+    "api/photos/shared/tome/things/photos/": (
+        ListFixture(_shared_tram_photo, params={"title": "tram"}),
+    ),
+    "api/photos/shared/tome/people/photos/": (
+        ListFixture(_shared_person_photo, params={"person": str(SHARED_PERSON_ID)}),
+    ),
     "api/photos/notimestamp/": (
         ListFixture(lambda user, index: _tile_photo(user, exif_timestamp=None)),
     ),
@@ -234,6 +312,13 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     # The requester's own public photos (#2686).
     "api/photos/public/": (
         ListFixture(lambda user, index: _tile_photo(user, public=True)),
+    ),
+    # The photos inside a view of the Places map (#343).
+    "api/photos/in-bounds/": (
+        ListFixture(
+            lambda user, index: _tile_photo(user, exif_gps_lat=48.1, exif_gps_lon=11.5),
+            params={"south": "48", "west": "11", "north": "49", "east": "12"},
+        ),
     ),
     "api/photos/edit/": (ListFixture(lambda user, index: _visible_photo(user)),),
     "api/photos/recentlyadded/": (ListFixture(lambda user, index: _tile_photo(user)),),

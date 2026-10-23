@@ -1,0 +1,15 @@
+.scroller {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The new name is what the dialog is about: it wraps instead of being cut on a phone. */
+.newName {
+  overflow-wrap: anywhere;
+}

@@ -19,6 +19,7 @@ import { enqueueBackups } from "@/sync/upload/queue";
 import { runUploadItem } from "@/sync/upload/worker";
 import type {
   UploadCompleteInput,
+  UploadCompleteResult,
   UploadFileInput,
   UploadResult,
   UploadTransport,
@@ -50,7 +51,7 @@ class RejectingCompleteTransport implements UploadTransport {
     this.uploads.push(input);
     return { uploadId: `up-${input.assetId}`, md5: "uploaded-md5" };
   }
-  async complete(input: UploadCompleteInput): Promise<void> {
+  async complete(input: UploadCompleteInput): Promise<UploadCompleteResult> {
     this.completes.push(input);
     throw new Error(`complete failed: HTTP ${this.completeStatus} — ${this.completeDetail}`);
   }
@@ -142,6 +143,7 @@ describe("upload_asset job failure propagation", () => {
       },
       async complete(input) {
         completes.push(input);
+        return { photoId: null };
       },
     };
 

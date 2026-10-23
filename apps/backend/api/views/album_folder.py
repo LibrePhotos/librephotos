@@ -22,7 +22,7 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.models.photo import Photo
 from api.models.user import User
-from api.photos.paths import folder_path_q, is_valid_path
+from api.photos.paths import folder_path_q, is_valid_path, library_roots
 from api.serializers.folders import FolderPathQuery, FolderSubfoldersPageSerializer
 
 logger = logging.getLogger(__name__)
@@ -34,14 +34,18 @@ def _user_scan_directory(user: User) -> str | None:
     return user.scan_directory or None
 
 
-def _default_path(request: Request, is_admin: bool) -> str:
-    """The folder a listing without ?path starts at; 403 if there is none."""
+def _default_path(user: User, is_admin: bool) -> str | None:
+    """The folder a listing without ?path starts at; 403 if there is none.
+
+    None for a user with several library folders (#123): the listing is
+    then the folders themselves.
+    """
     if is_admin:
         return settings.DATA_ROOT
-    scan_directory = _user_scan_directory(request_user(request))
-    if not scan_directory:
+    roots = library_roots(user)
+    if not roots:
         raise PermissionDenied("User scan directory not configured")
-    return scan_directory
+    return roots[0] if len(roots) == 1 else None
 
 
 def _validate_path(base_path: str) -> None:
@@ -51,29 +55,43 @@ def _validate_path(base_path: str) -> None:
         raise ValidationError("Path is not a directory")
 
 
-def _check_access(request: Request, base_path: str, is_admin: bool) -> None:
+def _check_access(user: User, base_path: str, is_admin: bool) -> None:
     if is_admin:
         if not is_valid_path(base_path, settings.DATA_ROOT):
             raise PermissionDenied("Access denied")
         return
 
-    scan_directory = _user_scan_directory(request_user(request))
-    if not scan_directory:
+    roots = library_roots(user)
+    if not roots:
         raise PermissionDenied("User scan directory not configured")
-    if not os.path.exists(scan_directory):
-        raise PermissionDenied("Scan directory does not exist")
     # A plain startswith() let /data/alice reach the sibling /data/alice2, and
     # /data/alice/../bob reach anything; is_valid_path compares whole,
-    # normalised path components.
-    if not is_valid_path(base_path, scan_directory):
+    # normalised path components. Any folder of the library will do (#123).
+    root = next((root for root in roots if is_valid_path(base_path, root)), None)
+    if not os.path.exists(root or roots[0]):
+        raise PermissionDenied("Scan directory does not exist")
+    if root is None:
         raise PermissionDenied(
             "Access denied - can only access folders within your scan directory"
         )
 
 
-def _parent_path(request: Request, base_path: str, is_admin: bool) -> str | None:
-    root = settings.DATA_ROOT if is_admin else request_user(request).scan_directory
-    return os.path.dirname(base_path) if base_path != root else None
+def _parent_path(user: User, base_path: str, is_admin: bool) -> str | None:
+    """The folder above ``base_path``; None at the top of what the caller may see."""
+    roots = [settings.DATA_ROOT] if is_admin else library_roots(user)
+    # base_path passed _check_access, so a root inside it is the folder itself.
+    if any(is_valid_path(root, base_path) for root in roots):
+        return None
+    return os.path.dirname(base_path)
+
+
+def _root_entries(user: User) -> list[tuple[str, str, float]]:
+    """The user's library folders that exist, as the entries of a listing."""
+    return [
+        (os.path.basename(root) or root, root, os.path.getmtime(root))
+        for root in library_roots(user)
+        if os.path.isdir(root)
+    ]
 
 
 def _scan_folder_entries(base_path: str) -> list[tuple[str, str, float]]:
@@ -189,7 +207,9 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
 
     Security:
     - Admins (is_staff=True) can access all folders within DATA_ROOT
-    - Regular users can only access folders within their scan_directory
+    - Regular users can only access folders within their library folders
+      (the scan directory, further library folders, the upload folder);
+      with several, a listing without a path lists those folders (#123)
     - All paths are validated to prevent directory traversal attacks
     """
 
@@ -215,13 +235,18 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
 
         # The default is worked out even when a path is given: a user without a
         # scan directory is refused here for an explicit path too.
-        default_path = _default_path(request, is_admin)
+        default_path = _default_path(user, is_admin)
         base_path = params.get("path", default_path)
+        if base_path is None:
+            # Several library folders (#123): they are the top of the tree.
+            page_entries = self.paginate_queryset(_root_entries(user))
+            subfolders = _folder_listing(user, page_entries) if page_entries else []
+            return self._folder_response(None, None, subfolders)
 
         # Access first: validating first answered "does not exist" or "is not
         # a directory" for paths the caller may not see, which made this an
         # existence oracle for the whole filesystem.
-        _check_access(request, base_path, is_admin)
+        _check_access(user, base_path, is_admin)
         _validate_path(base_path)
 
         try:
@@ -230,7 +255,7 @@ class FolderNavigationViewSet(PaginatedViewMixin, viewsets.ViewSet):
             logger.error("Error scanning directory %s: %s", base_path, e)
             raise APIException("Error scanning directory") from e
 
-        parent_path = _parent_path(request, base_path, is_admin)
+        parent_path = _parent_path(user, base_path, is_admin)
         page_entries = self.paginate_queryset(folder_entries)
         subfolders = _folder_listing(user, page_entries) if page_entries else []
         return self._folder_response(base_path, parent_path, subfolders)

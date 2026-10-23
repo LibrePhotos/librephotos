@@ -11,6 +11,7 @@ from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
 from api.models.face import Face
 from api.models.file import File, FileCopy
+from api.models.library_folder import LibraryFolder
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.person_group import PersonGroup
@@ -26,6 +27,7 @@ from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
 from api.models.upload_followup_state import UploadFollowupState
 from api.models.user import User
+from api.models.user_place import UserPlace
 
 __all__ = [
     "AlbumAuto",
@@ -40,6 +42,7 @@ __all__ = [
     "Duplicate",
     "EmailConfig",
     "Face",
+    "LibraryFolder",
     "LongRunningJob",
     "MetadataEdit",
     "Person",
@@ -56,6 +59,7 @@ __all__ = [
     "UpgradeTaskState",
     "UploadFollowupState",
     "User",
+    "UserPlace",
     "File",
     "FileCopy",
 ]

@@ -20,6 +20,7 @@ import type {
   PigSettings,
   PigTile,
   ScrollSpeed,
+  TileUrl,
 } from "./types";
 import { useGridResize } from "./useGridResize";
 import getScrollSpeed from "./utils/getScrollSpeed";
@@ -39,7 +40,7 @@ export type PigProps<T extends ImageItem> = {
   useLqip?: boolean;
   gridGap?: number;
   /** Builds an image or video URL from a tile's `image_hash`; Tile calls it for loaded tiles only. */
-  getUrl?: ((imageHash: string, size: number) => string) | null;
+  getUrl?: TileUrl | null;
   primaryImageBufferHeight?: number;
   secondaryImageBufferHeight?: number;
   sortByDate?: boolean;

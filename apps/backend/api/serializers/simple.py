@@ -18,6 +18,19 @@ def has_animated_preview(photo: Photo) -> bool:
     return bool(thumbnail and thumbnail.has_animated_squares)
 
 
+def has_video_poster(photo: Photo) -> bool:
+    """Whether the video has WebP stills beside its squares (#2026).
+
+    The grid shows ``/media/square_thumbnails[_small]/<image_hash>.webp`` and
+    plays the clip only while the tile is pointed at. False for the videos an
+    older release scanned until the Make Video Posters job has run.
+    """
+    if not photo.video:
+        return False
+    thumbnail = getattr(photo, "thumbnail", None)
+    return bool(thumbnail and thumbnail.video_poster)
+
+
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -33,6 +46,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     video_length = serializers.SerializerMethodField()
     is_hdr = serializers.SerializerMethodField()
     animated_preview = serializers.SerializerMethodField()
+    video_poster = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -52,7 +66,12 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "video_length",
             "is_hdr",
             "animated_preview",
+            "video_poster",
+            # The tile's 360° badge (#483), as in PhotoSummarySerializer.
+            "projection_type",
         )
+        # What the scan read from the file, never written through an event.
+        read_only_fields = ("projection_type",)
 
     def get_square_thumbnail(self, obj: Photo) -> str:
         # ``obj.thumbnail`` raises when the photo has no thumbnail row, as before.
@@ -75,6 +94,9 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
 
     def get_animated_preview(self, obj: Photo) -> bool:
         return has_animated_preview(obj)
+
+    def get_video_poster(self, obj: Photo) -> bool:
+        return has_video_poster(obj)
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):

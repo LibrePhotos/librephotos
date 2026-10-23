@@ -89,7 +89,21 @@ describe("useMovePreviewQuery", () => {
       image_hashes: ["h1", "h2"],
       target_folder: "/p/b",
     });
-    expect(client.getQueryData(photoKeys.movePreview(SELECTION, "/p/b"))).toEqual(PREVIEW);
+    expect(client.getQueryData(photoKeys.movePreview(SELECTION, "/p/b", ""))).toEqual(PREVIEW);
+  });
+
+  it("sends a sort by date's folder pattern and keys the answer by it (#2774)", async () => {
+    stubs.post.mockResolvedValue(PREVIEW);
+    const { client, unmount } = await renderHook(() => useMovePreviewQuery(SELECTION, "/p/b", "{year}"));
+    await settle();
+    await unmount();
+
+    expect(stubs.post).toHaveBeenCalledWith("/photos/move/preview/", {
+      image_hashes: ["h1", "h2"],
+      target_folder: "/p/b",
+      folder_pattern: "{year}",
+    });
+    expect(client.getQueryData(photoKeys.movePreview(SELECTION, "/p/b", "{year}"))).toEqual(PREVIEW);
   });
 
   it("asks nothing before a folder is picked", async () => {
@@ -173,6 +187,7 @@ describe("useMovePhotosMutation", () => {
         skipped: 0,
         refused: 2,
         failed: 0,
+        undated: 0,
       },
       "b"
     );

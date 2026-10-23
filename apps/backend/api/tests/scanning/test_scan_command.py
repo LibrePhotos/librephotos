@@ -21,7 +21,7 @@ from django.test import TestCase
 
 from api.models import User
 from api.models.user import get_deleted_user
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_library_folder, create_test_user
 
 MODULE = "api.management.commands.scan"
 
@@ -199,6 +199,19 @@ class ScanFilesTest(ScanCommandBaseTest):
         self.assertEqual(scan_photos.call_args.args[0], alice2)
         self.assertEqual(
             scan_photos.call_args.kwargs["scan_files"], ["/data/alice2/x.jpg"]
+        )
+
+    def test_files_of_a_further_library_folder_go_to_its_owner(self):
+        alice = create_test_user(scan_directory="/data/alice")
+        create_test_library_folder(alice, "/data/family")
+
+        with patch(f"{MODULE}.scan_photos") as scan_photos:
+            self.call_scan("--scan-files", "/data/family/a.jpg", "/data/other/b.jpg")
+
+        self.assertEqual(scan_photos.call_count, 1)
+        self.assertEqual(scan_photos.call_args.args[0], alice)
+        self.assertEqual(
+            scan_photos.call_args.kwargs["scan_files"], ["/data/family/a.jpg"]
         )
 
     def test_empty_scan_files_list_falls_through_to_directory_scan(self):

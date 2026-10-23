@@ -33,9 +33,10 @@ from api.accounts.authentication import (
     ThrottledBasicAuthentication,
 )
 from api.drf.params import parse_query
-from api.mime import mime_type
+from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, Photo
 from api.models.photo import HEAVY_PHOTO_COLUMNS
+from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS
 from api.models.user import User
 from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
@@ -378,6 +379,17 @@ class MediaServingView(APIView):
         except Exception:
             return "application/octet-stream"
 
+    def _original_content_type(self, photo: Photo) -> str:
+        """A video's type as it is; a still photo's real image type (#2742).
+
+        Stills used to go out as ``image/webp`` whatever they were, which made
+        a browser that opened the original guess, and told a client nothing.
+        """
+        path = _original_path(photo)
+        if photo.video:
+            return self._file_content_type(path)
+        return still_content_type(path)
+
     def _safe_media_join(self, path: str, fname: str, suffix: str = "") -> str | None:
         """Join ``path``/``fname`` under ``MEDIA_ROOT``, or ``None`` if it escapes.
 
@@ -719,11 +731,11 @@ class MediaServingView(APIView):
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
-        content_type = self._file_content_type(_original_path(photo))
+        content_type = self._original_content_type(photo)
 
         if use_proxy:
             response = HttpResponse()
-            response["Content-Type"] = content_type if photo.video else "image/webp"
+            response["Content-Type"] = content_type
             if _original_path(photo).startswith("/nextcloud_media/"):
                 internal_path = "/nextcloud_original" + _original_path(photo)[21:]
             elif _original_path(photo).startswith(settings.PHOTOS):
@@ -845,6 +857,33 @@ class MediaServingView(APIView):
     def _is_uuid_format(value: str) -> bool:
         return len(value) == 36 and value.count("-") == 4
 
+    @staticmethod
+    def _video_poster_name(photo: Photo, path: str, fname: str) -> str | None:
+        """The file a request for a video's poster asks for, else ``None``.
+
+        A video's squares are its clips, and the stored names say so; the
+        WebP still beside each one, its poster in the grid (#2026), is asked
+        for as ``<square directory>/<image_hash>.webp``.
+        """
+        if not photo.video or not fname.endswith(".webp"):
+            return None
+        if path.strip("/") not in ANIMATED_THUMBNAIL_DIRS:
+            return None
+        return photo.image_hash + ".webp"
+
+    def _video_poster_response(
+        self, path: str, name: str, use_proxy: bool
+    ) -> HttpResponseBase:
+        if not use_proxy:
+            file_path = self._safe_media_join(path, name)
+            if file_path is None:
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+            return self._serve_file_direct(file_path, "image/webp")
+        response = HttpResponse()
+        response["Content-Type"] = "image/webp"
+        response["X-Accel-Redirect"] = self._protected_media_url(path, name)
+        return response
+
     def _generate_response(
         self,
         photo: Photo,
@@ -853,6 +892,9 @@ class MediaServingView(APIView):
         transcode_videos: bool,
         use_proxy: bool,
     ) -> HttpResponseBase:
+        poster = self._video_poster_name(photo, path, fname)
+        if poster is not None:
+            return self._video_poster_response(path, poster, use_proxy)
         if use_proxy:
             return self._generate_response_proxy(photo, path, fname, transcode_videos)
         return self._generate_response_direct(photo, path, fname, transcode_videos)
@@ -982,13 +1024,11 @@ class MediaServingView(APIView):
         if "thumbnail" in path or "thumbnails" in path or "faces" in path:
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        content_type = self._file_content_type(_original_path(photo))
+        content_type = self._original_content_type(photo)
         if not use_proxy:
-            return self._serve_file_direct(
-                _original_path(photo), content_type if photo.video else "image/webp"
-            )
+            return self._serve_file_direct(_original_path(photo), content_type)
         response = HttpResponse()
-        response["Content-Type"] = content_type if photo.video else "image/webp"
+        response["Content-Type"] = content_type
         if _original_path(photo).startswith(settings.PHOTOS):
             internal_path = "/original" + _original_path(photo)[len(settings.PHOTOS) :]
         else:

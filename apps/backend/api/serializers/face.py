@@ -21,6 +21,9 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
             "photo_image_hash",
             "timestamp",
             "person_label_probability",
+            # The second of the video the face was found at; null for a photo's
+            # faces and a video's first frame (#2762).
+            "video_time",
         ]
         read_only_fields = ["photo"]
 
@@ -45,10 +48,23 @@ PERSON_KINDS = Person.KIND_CHOICES
 
 class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
     face_count = serializers.SerializerMethodField()
+    similarity_rank = serializers.SerializerMethodField(
+        help_text=(
+            "The group's place when groups that look alike sit together "
+            "(#622): a chain from the group with the most faces to each next "
+            "closest one; groups without a cluster come after it. Null above "
+            "3000 groups and for Unknown - Other"
+        )
+    )
 
     class Meta:
         model = Person
-        fields = ["id", "name", "kind", "face_count"]
+        fields = ["id", "name", "kind", "face_count", "similarity_rank"]
+
+    def get_similarity_rank(self, obj: Person) -> int | None:
+        # FaceIncompleteListViewSet.list puts the ranks in the context.
+        ranks: dict[int, int] = self.context.get("similarity_ranks", {})
+        return ranks.get(obj.pk)
 
     def get_face_count(self, obj: Person) -> int:
         # viewable_face_count is annotated by FaceIncompleteListViewSet's queryset.
@@ -75,6 +91,7 @@ class FaceListSerializer(serializers.ModelSerializer):
             "person",
             "person_label_probability",
             "person_name",
+            "video_time",
         )
         read_only_fields = ("photo", "person")
 
@@ -211,6 +228,13 @@ class FaceLabels(serializers.Serializer[None]):
     )
 
 
+class RejectedPerson(serializers.Serializer[None]):
+    """A named person a face was sent away from ("Not Anna", #2747)."""
+
+    id = serializers.IntegerField(help_text="The person's id")
+    name = serializers.CharField(help_text="The person's name")
+
+
 class SetFacePersonLabelResponse(serializers.Serializer[None]):
     """The answer of POST /api/labelfaces: the relabelled faces."""
 
@@ -223,6 +247,23 @@ class SetFacePersonLabelResponse(serializers.Serializer[None]):
         help_text=(
             "Each relabelled face's people before this request; POST them to "
             "/api/restore-face-labels/ to undo it"
+        ),
+    )
+    twin_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=(
+            "The faces labelled along with the ones sent: the same face in the "
+            "other frames of a burst or bracket stack or a duplicate group "
+            "(#2754). They are in results and previous too; empty when "
+            "the faces went back to unknown"
+        ),
+    )
+    rejected_people = RejectedPerson(
+        many=True,
+        help_text=(
+            "The named people the faces were sent away from: training never "
+            "suggests them for these faces again (#2747). Empty unless the "
+            "faces went back to unknown"
         ),
     )
     write_error = serializers.CharField(
@@ -265,6 +306,16 @@ class AddFaceRequest(serializers.Serializer[None]):
         required=False,
         help_text="top, right, bottom and left as fractions of the displayed image",
     )
+    fit = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=(
+            "Look for the face inside the box and save the face found there, "
+            "with its own box and encoding (#1117). No face in the box is a 400 "
+            "with code no_face_in_box; send the box again without fit to keep "
+            "it as drawn. With the face service off or failing, the box is kept"
+        ),
+    )
 
 
 class FaceBoxPixels(serializers.Serializer[None]):
@@ -294,6 +345,12 @@ class AddFaceResponse(serializers.Serializer[None]):
             "Why the edit, saved in LibrePhotos, was not written to the file or "
             "its sidecar; null when it was written or writing is off (#2294)"
         ),
+    )
+    fitted = serializers.BooleanField(
+        help_text=(
+            "The face was found in the drawn box: its location is the found "
+            "face's box (#1117). False when the box is saved as drawn"
+        )
     )
     face = AddedFace()
 

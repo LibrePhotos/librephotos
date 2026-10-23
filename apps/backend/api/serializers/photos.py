@@ -17,10 +17,12 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
+from api.faces.recipients import faces_shown_to, is_named
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
 from api.metadata.library_write import WRITE_TYPES
-from api.models import AlbumDate, File, Photo, User
+from api.mime import original_mime_type
+from api.models import AlbumDate, Face, File, Person, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
@@ -35,7 +37,11 @@ from api.serializers.fields import (
 )
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
-from api.serializers.simple import SimpleUserSerializer, has_animated_preview
+from api.serializers.simple import (
+    SimpleUserSerializer,
+    has_animated_preview,
+    has_video_poster,
+)
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -74,6 +80,10 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     is_hdr = serializers.SerializerMethodField()
     # Whether the grid square is a clip to play or a still (#649).
     animated_preview = serializers.SerializerMethodField()
+    # Whether the grid shows a still poster until the clip plays (#2026).
+    video_poster = serializers.SerializerMethodField()
+    # In a person's photos: the second of the video where that person is (#2762).
+    person_video_time = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
@@ -96,6 +106,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "video_length",
             "is_hdr",
             "animated_preview",
+            "video_poster",
+            "person_video_time",
             "rating",
             "owner",
             "exif_gps_lat",
@@ -110,7 +122,11 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "stacks",
             "has_raw_variant",
             "local_orientation",
+            # "equirectangular" for a 360° photo sphere, else null: the tile's
+            # 360° badge (#483).
+            "projection_type",
         )
+        read_only_fields = ("projection_type",)
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj: Photo) -> float | None:
@@ -144,6 +160,18 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def get_animated_preview(self, obj: Photo) -> bool:
         return has_animated_preview(obj)
+
+    def get_video_poster(self, obj: Photo) -> bool:
+        return has_video_poster(obj)
+
+    def get_person_video_time(self, obj: Photo) -> float | None:
+        """The second the person of a person's photo list is first seen at (#2762).
+
+        Annotated by ``with_person_video_time`` on that list only; None
+        everywhere else, for a photo, and for a video where the person is on
+        the first frame.
+        """
+        return getattr(obj, "person_video_time", None)
 
     # TODO: Remove this field in the future
     def get_birthTime(self, obj: Photo) -> datetime | str:
@@ -301,6 +329,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "thumbnail__dominant_color",
             # Its name says whether a video's square is a clip (animated_preview).
             "thumbnail__square_thumbnail",
+            "thumbnail__video_poster",
             "video",
             "main_file",
             "search_instance__search_location",
@@ -318,6 +347,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "archived",
             "trashed_at",
             "local_orientation",
+            "projection_type",
             # Read by filter_photos_by_media_type for ?is_screenshot / ?is_document.
             "is_screenshot",
             "is_document",
@@ -477,6 +507,64 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         )
 
 
+def with_person_video_time(
+    queryset: QuerySet[Photo], person_id: int
+) -> QuerySet[Photo]:
+    """``queryset`` with ``person_video_time``: when the person is first seen in each video.
+
+    The earliest ``Face.video_time`` of the person's live faces on the photo
+    (#2761), for ``PhotoSummarySerializer.person_video_time``. A subquery, so
+    a ``distinct()`` on the list is not changed by it.
+    """
+    first_seen = (
+        Face.objects.filter(
+            photo=OuterRef("pk"),
+            person_id=person_id,
+            deleted=False,
+            video_time__isnull=False,
+        )
+        .order_by("video_time")
+        .values("video_time")[:1]
+    )
+    return queryset.annotate(person_video_time=Subquery(first_seen))
+
+
+def _face_person(face: Face) -> tuple[Person | None, str, float]:
+    """The person a face is shown with, its kind and how sure that is."""
+    if face.person:
+        return face.person, "user", 1
+    if face.cluster_person:
+        return face.cluster_person, "cluster", face.cluster_probability
+    if face.classification_person:
+        return (
+            face.classification_person,
+            "classification",
+            face.classification_probability,
+        )
+    return None, "", 0
+
+
+def _face_entry(face: Face) -> dict[str, Any]:
+    """One face of ``PhotoSerializer.people``."""
+    person, kind, probability = _face_person(face)
+    return {
+        "name": person.name if person else "",
+        "type": kind,
+        "probability": probability,
+        "location": {
+            "top": face.location_top,
+            "bottom": face.location_bottom,
+            "left": face.location_left,
+            "right": face.location_right,
+        },
+        # A face without a crop (legacy rows) has no URL to show.
+        "face_url": face.crop_url or "",
+        "face_id": face.id,
+        # The second of the video the face is at; None on the first frame (#2762).
+        "video_time": face.video_time,
+    }
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
@@ -507,6 +595,9 @@ class PhotoSerializer(serializers.ModelSerializer):
     # Whether exif_timestamp is a date the user set by hand, which overrides
     # the date rules until the user removes it (#2254, #2280).
     date_set_by_user = serializers.SerializerMethodField()
+    # What the main file is (``image/jpeg``, ``image/x-dcraw`` for RAW), so a
+    # client can tell whether it can draw the original; null without one (#2742).
+    original_mime_type = serializers.SerializerMethodField()
 
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
@@ -596,6 +687,10 @@ class PhotoSerializer(serializers.ModelSerializer):
             "metadata",
             "ocr",
             "local_orientation",
+            "original_mime_type",
+            # "equirectangular" for a 360° photo sphere the lightbox can open
+            # in its panorama viewer, null for a flat photo (#483).
+            "projection_type",
         )
         # Shown, never written here: a category change goes through
         # /api/photosedit/category/ (or the PhotoEditSerializer), which pins
@@ -611,6 +706,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "video_codec",
             "exif_timestamp_offset",
             "exif_timestamp_source",
+            "projection_type",
         )
         extra_kwargs = {"rating": {"min_value": 0, "max_value": edits.MAX_RATING}}
 
@@ -641,6 +737,11 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_date_set_by_user(self, obj: Photo) -> bool:
         return obj.timestamp is not None
+
+    def get_original_mime_type(self, obj: Photo) -> str | None:
+        if obj.main_file is None:
+            return None
+        return original_mime_type(obj.main_file.path)
 
     def get_height(self, obj: Photo) -> int | None:
         metadata = self._get_metadata(obj)
@@ -834,59 +935,18 @@ class PhotoSerializer(serializers.ModelSerializer):
         return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
 
     def get_people(self, obj: Photo) -> list:
-        return [
-            {
-                "name": (
-                    f.person.name
-                    if f.person
-                    else (
-                        f.cluster_person.name
-                        if f.cluster_person
-                        else (
-                            f.classification_person.name
-                            if f.classification_person
-                            else ""
-                        )
-                    )
-                ),
-                "type": (
-                    "user"
-                    if f.person
-                    else (
-                        "cluster"
-                        if f.cluster_person
-                        else ("classification" if f.classification_person else "")
-                    )
-                ),
-                "probability": (
-                    1
-                    if f.person
-                    else (
-                        f.cluster_probability
-                        if f.cluster_person
-                        else (
-                            f.classification_probability
-                            if f.classification_person
-                            else 0
-                        )
-                    )
-                ),
-                "location": {
-                    "top": f.location_top,
-                    "bottom": f.location_bottom,
-                    "left": f.location_left,
-                    "right": f.location_right,
-                },
-                # A face without a crop (legacy rows) has no URL to show.
-                "face_url": f.crop_url or "",
-                "face_id": f.id,
-            }
-            for f in obj.faces.all()
-            # A deleted face is hidden everywhere else in LibrePhotos -- the face
-            # dashboard and the person's face list both filter it out -- so it must
-            # not come back in the photo's own face list either.
-            if not f.deleted
-        ]
+        """The faces on the photo the requester may see (``faces_shown_to``).
+
+        The owner sees every live face with its person, cluster or suggestion.
+        Anyone else sees only the people the owner named, and only where the
+        owner allows it: ``share_people_names`` for the users the photo is
+        shared with, the public link default ``share_faces`` for a public
+        photo. Without a request no viewer is known, so only what a public
+        visitor would see.
+        """
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        return [_face_entry(face) for face in faces_shown_to(obj, viewer)]
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file: File) -> dict[str, str]:
@@ -1249,14 +1309,16 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         if not self._get_sharing_settings().get("share_faces", False):
             return []
 
+        # Only the people the owner named, as for the users a photo is
+        # shared with: never a cluster or a suggestion (api/faces/recipients.py).
         return [
             {
-                "name": person.name,
+                "name": face.person.name,
                 "face_url": face.crop_url,
                 "face_id": face.id,
             }
             for face in obj.faces.all()
-            if not face.deleted and (person := face.person or face.cluster_person)
+            if is_named(face) and face.person is not None
         ]
 
 

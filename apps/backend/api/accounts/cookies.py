@@ -58,41 +58,40 @@ def cookie_secure(request: HttpRequest | Request) -> bool:
     return request.is_secure() or bool(settings.AUTH_COOKIE_SECURE)
 
 
-def _set(
-    response: HttpResponseBase,
-    request: HttpRequest | Request,
-    name: str,
-    value: str,
-    *,
-    httponly: bool,
-) -> None:
-    response.set_cookie(
-        name,
-        value,
-        path=COOKIE_PATH,
-        samesite=COOKIE_SAMESITE,
-        secure=cookie_secure(request),
-        httponly=httponly,
-    )
-
-
 def set_auth_cookies(
     response: HttpResponseBase,
     request: HttpRequest | Request,
     *,
     access: str,
     refresh: str | None = None,
+    max_age: int | None = None,
 ) -> None:
     """Set the ``jwt`` cookie to ``access`` on ``response``.
 
     With ``refresh`` (the SSO bridge), also hand the web its ``access`` and
     ``refresh`` cookies to boot from. The password login and the refresh
     return those two in the JSON body instead.
+
+    Without ``max_age`` they are session cookies, gone when the browser
+    closes. A "Remember me" sign-in passes the seconds its refresh token has
+    left (api/accounts/tokens.py), so the cookies outlive the browser session.
     """
-    _set(response, request, JWT_COOKIE_NAME, access, httponly=True)
+    cookies = [(JWT_COOKIE_NAME, access, True)]
     if refresh is not None:
-        _set(response, request, ACCESS_COOKIE_NAME, access, httponly=False)
-        _set(response, request, REFRESH_COOKIE_NAME, refresh, httponly=False)
+        cookies += [
+            (ACCESS_COOKIE_NAME, access, False),
+            (REFRESH_COOKIE_NAME, refresh, False),
+        ]
+    for name, value, httponly in cookies:
+        response.set_cookie(
+            name,
+            value,
+            max_age=max_age,
+            path=COOKIE_PATH,
+            samesite=COOKIE_SAMESITE,
+            secure=cookie_secure(request),
+            httponly=httponly,
+        )
 
 
 def clear_auth_cookies(

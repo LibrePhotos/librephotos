@@ -49,6 +49,10 @@ jobs:
         # --wait returns once the backend and proxy report healthy. The backend
         # entrypoint then queues the scan of deploy/e2e/photos; the suite's setup
         # step waits for the photos.
+        env:
+          # Run as a release, so whatsnew.spec.ts has a What's new card to show (#2305).
+          # Keep it one of the releases in apps/frontend/src/components/whatsnew/releases.json.
+          IMAGE_TAG: "1.4.0"
         run: docker compose up -d --wait --wait-timeout 600
 
       - uses: actions/setup-node@v7

@@ -18,6 +18,7 @@ from api.albums.timeline_filter import timeline_filter_q
 from api.drf.request_user import request_user
 from api.models.photo_search import fold
 from api.models.tag import Tag
+from api.models.user_place import UserPlace
 from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
 from api.search.semantic import calculate_query_embeddings
 from api.search.similarity import search_similar_embedding
@@ -74,6 +75,23 @@ def build_ocr_search_q(search_term: str, vendor: str) -> Q:
     return Q(ocr__text__icontains=search_term)
 
 
+def build_user_place_q(folded_term: str, folded_places: dict[int, str]) -> Q:
+    """Return a ``Q`` matching the photos of the requester's own places (#1365)
+    whose folded name contains ``folded_term``: a search for "home" finds
+    the photos of "Home".
+
+    ``folded_places`` holds only the requester's places (place id -> folded
+    name), so a place name never finds another user's photos, and nothing is
+    written into the photo's own search row, which shared and public views
+    read.
+    """
+    place_ids = [pid for pid, name in folded_places.items() if folded_term in name]
+    if not place_ids:
+        return Q(pk__in=[])
+    inside = UserPlace.photos.through.objects.filter(userplace_id__in=place_ids)
+    return Q(pk__in=inside.values("photo_id"))
+
+
 def build_folded_search_q(folded_term: str, folded_tags: dict[int, str]) -> Q:
     """Return a ``Q`` matching ``folded_term`` with case and accents ignored.
 
@@ -103,6 +121,17 @@ class SemanticSearchFilter(filters.SearchFilter):
             return {}
         tags = Tag.objects.owned_by(request_user(request)).values_list("id", "name")
         return {tag_id: fold(name) for tag_id, name in tags}
+
+    @staticmethod
+    def _folded_user_places(
+        request: Request, search_fields: list[str]
+    ) -> dict[int, str]:
+        """The requester's places by id, with folded names, when the view
+        searches place names at all."""
+        if "search_instance__search_location" not in search_fields:
+            return {}
+        places = UserPlace.objects.owned_by(request_user(request))
+        return {pid: fold(name) for pid, name in places.values_list("id", "name")}
 
     def _semantic_matches(self, request: Request) -> list[str]:
         """Hashes of the requester's photos closest to the query, by the
@@ -173,11 +202,14 @@ class SemanticSearchFilter(filters.SearchFilter):
                     "semantic search unavailable, using the text match only: %s",
                     error,
                 )
-        folded_tags = self._folded_tags(request, [str(f) for f in search_fields])
+        fields = [str(f) for f in search_fields]
+        folded_tags = self._folded_tags(request, fields)
+        folded_places = self._folded_user_places(request, fields)
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]
             queries.append(build_folded_search_q(fold(search_term), folded_tags))
+            queries.append(build_user_place_q(fold(search_term), folded_places))
 
             # OR the OCR match in per-term, matching the shape of the field
             # lookups above: each term may be satisfied by any field or by the

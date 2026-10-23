@@ -36,6 +36,18 @@ While files upload, a card in the bottom right corner lists them with their stat
 - Logging out while an upload runs asks first too: **Stop and log out** cancels the upload, **Keep uploading** keeps it going.
 - A cancelled or abandoned upload leaves a partial file on the server. A daily cleanup on the server deletes them once they are more than a day old. `python manage.py delete_expired_uploads` does the same by hand.
 
+### After the upload: processing on the server
+
+<Since version="1.5.0" /> Sending the files is only the first half: the server then makes their thumbnails, reads their dates and looks for things, places and faces. The card follows that too, so it no longer says *Upload complete* before your photos are in the timeline:
+
+- **Processing your uploads** with *12/40 ready*: the bar turns two-tone, green for the photos that are ready and blue for those uploaded and still being processed. Each file's row goes from *Uploading* to *Processing* to *Ready*, and a ready row shows the photo's thumbnail. The count includes uploads from the mobile app made at the same time, since the server imports them together. The timeline fills in as photos become ready; you do not have to reload.
+- **Updating search and faces**: every photo is in the timeline, and the server is now making them searchable by content and grouping their faces.
+- **38 photos ready**, with how many files were uploaded and how many were already in your library.
+
+A file the server could not read (an unsupported RAW format, a damaged file) says *Not imported* on its own row, with the reason and a link to **My Jobs**. A photo that is in your library but one of the later steps failed for (finding faces, for example) is *Ready* with a note naming the step. If the server makes no progress for two minutes, for example because a scan is running, the card says so; your files are safe and are processed once the server gets to them.
+
+You can close the card while the server works. As long as uploads are being imported, from this browser or from the mobile app, the ring around your avatar shows it and the account menu has an **Importing your uploads** section with the same count. It runs next to other jobs, so **Scan** stays available, and it cannot be cancelled. An empty timeline says *Importing your uploads* instead of asking you to scan. Up to 1.4.0 the card said *Upload complete* as soon as the files were sent, and the timeline was refreshed before the photos had thumbnails.
+
 ### How does it work?
 
 The upload process works in the following way:
@@ -44,7 +56,8 @@ The upload process works in the following way:
 - If it is, don't upload it (when uploading into an album, the photo you already have is added to the album instead)
 - If it isn't, upload it
 - We upload files in 1MB chunks
-- When each file finishes uploading, the backend registers that one photo and queues a background job chain for it (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.
+- When each file finishes uploading, the backend registers that one photo, counts it in your **Import Uploads** job and queues its processing (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.
+- <Since version="1.5.0" /> When the last file is sent, the web app tells the server the upload is over (`POST /api/upload/seal/`), and follows the import with `GET /api/upload/status/` (see [the upload API](../development/contribution/backend/upload.md)).
 - An upload into an album sends the album's id with the last request (`album_id` on `/api/upload/complete/`). The server checks that the album is yours and not locked before it saves the file; otherwise it answers 400 with the code `album_not_found` or `album_locked`, and the web app completes the same upload again without the album.
 
 ### Where are the files saved?

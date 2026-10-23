@@ -18,6 +18,8 @@ const BaseDateTimeProps = z
     name: z.string(),
     // The predefined rules always have it; a rule saved before the flag was added (2022-12) does not.
     is_default: z.boolean().optional(),
+    // A rule written in the settings' rule form (#2272), with an id from DateRuleOptions.first_custom_id up.
+    custom: z.boolean().optional(),
     // The rule only applies to a file whose full path, filename or ExifTool tag
     // ("<tag name>//<regexp>") matches.
     condition_path: z.string().optional(),
@@ -40,7 +42,10 @@ const PathDateTimeProps = BaseDateTimeProps.extend({
   rule_type: z.literal("path"),
   path_part: z.enum(["filename", "full_path"]).optional(),
   predefined_regexp: z.string().optional(),
+  // Older rules saved through the API; new ones cannot set it (api/metadata/date_rule_checks.py).
   custom_regexp: z.string().optional(),
+  // Where the date is in the name, as "YYYY-MM-DD HH.mm.ss" (api/metadata/date_patterns.py).
+  date_pattern: z.string().optional(),
 });
 
 const FilesystemDateTimeProps = BaseDateTimeProps.extend({
@@ -69,6 +74,45 @@ export type DateTimeRule = z.infer<typeof DateTimeRule>;
 /** GET /api/predefinedrules/ (PREDEFINED_RULES_JSON, sent as a JSON string). */
 export const PredefinedRules = z.array(DateTimeRule);
 export type PredefinedRules = z.infer<typeof PredefinedRules>;
+
+/** A tag a custom date rule may read; `utc` when its value is usually in UTC. */
+export const DateTag = z.object({ name: z.string(), utc: z.boolean() });
+export type DateTag = z.infer<typeof DateTag>;
+
+/** GET /api/datetime-rules/options/: what a custom date rule may use (#2272). */
+export const DateRuleOptions = z.object({
+  date_tags: z.array(DateTag),
+  condition_tags: z.array(z.string()),
+  first_custom_id: z.number(),
+});
+export type DateRuleOptions = z.infer<typeof DateRuleOptions>;
+
+/** POST /api/datetime-rules/check/: the rule, which can be saved (a 400 names each param that cannot). */
+export const DateRuleCheck = z.object({ rule: z.record(z.string(), z.unknown()) });
+export type DateRuleCheck = z.infer<typeof DateRuleCheck>;
+
+/** What one saved rule reads from a photo's files. */
+export const DateRuleOutcome = z.object({
+  rule_id: z.number().nullable(),
+  name: z.string(),
+  outcome: z.enum(["applies", "not_applicable", "error"]),
+  // The local wall-clock time, tagged UTC like exif_timestamp.
+  local_time: z.string().nullable(),
+  utc_offset: z.number().nullable(),
+  error: z.string().nullable(),
+});
+export type DateRuleOutcome = z.infer<typeof DateRuleOutcome>;
+
+/** GET /api/datetime-rules/test/?photo_id=: what each saved date rule reads from one photo ("Why this date?"). */
+export const DateRulesTest = z.object({
+  photo_id: z.string(),
+  exif_timestamp: z.string().nullable(),
+  date_set_by_user: z.boolean(),
+  // Index in outcomes of the rule a scan takes the date from.
+  winner: z.number().nullable(),
+  outcomes: z.array(DateRuleOutcome),
+});
+export type DateRulesTest = z.infer<typeof DateRulesTest>;
 
 /* ---- burst detection rules --------------------------------------------- *
  * api/stacks/burst_rules.py. The predefined rules come from

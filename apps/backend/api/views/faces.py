@@ -28,6 +28,13 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
+from api.faces.clustering_gate import record_face_label
+from api.faces.drawn_faces import (
+    FaceServiceError,
+    FoundFace,
+    PixelBox,
+    find_face_in_box,
+)
 from api.faces.labels import (
     RelabelResult,
     delete_faces,
@@ -42,6 +49,8 @@ from api.faces.photo_faces import (
     overlaps_existing_face,
     save_detected_face,
 )
+from api.faces.similarity import similarity_ranks
+from api.faces.twins import twin_faces
 from api.jobs.queue import JobStep
 from api.jobs.start import start_job, start_jobs
 from api.models import Face, LongRunningJob, Photo, User
@@ -260,9 +269,17 @@ class FaceIncompleteListViewSet(ListViewSet):
     def list(self, *args: Any, **kwargs: Any) -> Response:
         user = request_user(self.request)
         params = parse_query(self.request, FaceIncompleteListQuery)
-        queryset = self.get_queryset()
-
-        serializer = self.get_serializer(queryset, many=True)
+        people = list(self.get_queryset())
+        # Where each group goes when groups that look alike sit together (#622).
+        ranks = similarity_ranks(
+            user,
+            [(person.pk, getattr(person, "viewable_face_count")) for person in people],
+        )
+        serializer = self.get_serializer(
+            people,
+            many=True,
+            context={**self.get_serializer_context(), "similarity_ranks": ranks},
+        )
         real_persons = serializer.data
 
         unknown_faces_count = (
@@ -277,6 +294,7 @@ class FaceIncompleteListViewSet(ListViewSet):
                 "name": "Unknown - Other",
                 "face_count": unknown_faces_count,
                 "kind": Person.UNKNOWN_PERSON_NAME,
+                "similarity_rank": None,
             }
             real_persons.append(unknown_person)
 
@@ -391,8 +409,11 @@ class SetFacePersonLabel(APIView):
         # them again): a foreign face id must not come back serialized in
         # ``not_updated`` (it carried the photo id and the face crop path of
         # someone else's photo).
+        twin_ids = _twin_ids(user, data["face_ids"], person)
         result = relabel_faces(
-            user, Face.objects.owned_by(user).filter(pk__in=data["face_ids"]), person
+            user,
+            Face.objects.owned_by(user).filter(pk__in=[*data["face_ids"], *twin_ids]),
+            person,
         )
         updated = [FaceListSerializer(face).data for face in result.faces]
         not_updated: list[dict[str, object]] = []
@@ -407,8 +428,31 @@ class SetFacePersonLabel(APIView):
                 "write_error": result.write_error,
                 # What an undo sends back to /api/restore-face-labels/ (#127).
                 "previous": result.previous,
+                # The same face in the other frames, labelled too (#2754).
+                "twin_ids": twin_ids,
+                # Who is no longer suggested for these faces (#2747).
+                "rejected_people": [
+                    {"id": rejected.pk, "name": rejected.name}
+                    for rejected in result.rejected
+                ],
             }
         )
+
+
+def _twin_ids(user: User, face_ids: list[int], person: Person | None) -> list[int]:
+    """The twins of the faces labelled as ``person`` (#2754); none for "unknown".
+
+    The same face in the other frames of a burst, a bracket or a duplicate
+    group: labelling one frame labels them all.
+    """
+    if person is None:
+        return []
+    faces = (
+        Face.objects.owned_by(user)
+        .filter(pk__in=face_ids)
+        .select_related("photo__metadata")
+    )
+    return [face.pk for face in twin_faces(user, faces, person)]
 
 
 class AddFaceView(APIView):
@@ -428,6 +472,10 @@ class AddFaceView(APIView):
     A manually added face is a user label: it gets ``person`` set with
     ``KIND_USER`` and no cluster, so classification trains on it like any other
     face the user named, but it never seeds a cluster of its own.
+
+    With ``fit`` the box only says where to look (#1117): the face service
+    looks at that part of the photo alone, and the face it finds there is
+    saved with its own box and encoding, so a rough box is enough.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -481,9 +529,15 @@ class AddFaceView(APIView):
                 raise self._error(error)
             # _box_in_pixels returns a box whenever it reports no error.
             assert box is not None
+            found = _face_in_drawn_box(big_thumbnail, box, data["fit"])
+            if found is not None:
+                box = found.box
             top, right, bottom, left = box
 
-            existing = photo.faces.filter(deleted=False).values_list(
+            # A face from a later video frame is in another picture (#2761).
+            existing = photo.faces.filter(
+                deleted=False, video_time__isnull=True
+            ).values_list(
                 "location_top", "location_right", "location_bottom", "location_left"
             )
             if overlaps_existing_face(existing, top, right, bottom, left):
@@ -498,27 +552,21 @@ class AddFaceView(APIView):
             )
             face = save_detected_face(
                 photo,
-                DetectedFace(face_image, (top, right, bottom, left)),
+                DetectedFace(
+                    face_image, box, found.encoding if found is not None else None
+                ),
                 f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
                 person,
                 None,
             )
 
-        # Without an encoding the face is still a valid label -- it just cannot be
-        # compared to anything yet. "Train faces" encodes faces that have none, so
-        # a face service that is down or disabled delays recognition rather than
-        # losing the user's work.
-        try:
-            photo_faces.generate_face_encoding(face)
-        except Exception:
-            logger.exception(
-                "Could not encode manually added face %s; "
-                "it will be encoded by the next face training run",
-                face.id,
-            )
+        if not face.encoding:
+            _encode_drawn_face(face)
 
         person._calculate_face_count()
         person._set_default_cover_photo()
+        # A labelling like any other: the follow-ups' clustering waits (#2738).
+        record_face_label(user)
 
         # The person's name is part of what the photo can be found by.
         photo.refresh_from_db()
@@ -530,6 +578,7 @@ class AddFaceView(APIView):
             {
                 "status": True,
                 "write_error": write_error,
+                "fitted": found is not None,
                 "face": {
                     "face_id": face.id,
                     "face_url": face.image.url,
@@ -603,6 +652,48 @@ class AddFaceView(APIView):
             )
 
         return (top, right, bottom, left), None
+
+
+def _face_in_drawn_box(
+    thumbnail: PIL.Image.Image, box: PixelBox, fit: bool
+) -> FoundFace | None:
+    """The face found in a box drawn by hand, when the client asked for it (#1117).
+
+    None keeps the box as drawn: the client did not ask, face detection is
+    off, or the face service could not look (it is down or failing), as
+    before. Looking and finding nothing is a 400 ``no_face_in_box``: the
+    client offers to keep the box as drawn or to draw again.
+    """
+    if not fit or not feature_enabled("FACE_DETECTION"):
+        return None
+    try:
+        found = find_face_in_box(thumbnail, box)
+    except FaceServiceError as error:
+        logger.warning("Kept a drawn face box as drawn: %s", error)
+        return None
+    if found is None:
+        raise ValidationError(
+            {"box": "No face was found in this box."}, code="no_face_in_box"
+        )
+    return found
+
+
+def _encode_drawn_face(face: Face) -> None:
+    """Ask the face service for the encoding of a face drawn by hand.
+
+    Without an encoding the face is still a valid label -- it just cannot be
+    compared to anything yet. "Train faces" encodes faces that have none, so
+    a face service that is down or disabled delays recognition rather than
+    losing the user's work.
+    """
+    try:
+        photo_faces.generate_face_encoding(face)
+    except Exception:
+        logger.exception(
+            "Could not encode manually added face %s; "
+            "it will be encoded by the next face training run",
+            face.id,
+        )
 
 
 class DeleteFaces(APIView):

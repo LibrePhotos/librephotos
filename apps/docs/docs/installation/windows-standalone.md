@@ -65,7 +65,8 @@ scan, into the data folder; that needs an internet connection once.
 To start LibrePhotos from the desktop next time, right-click `librephotos.exe` and choose **Show
 more options** → **Send to** → **Desktop (create shortcut)** (on Windows 10: **Send to** directly).
 
-Right-click the tray icon for **Open LibrePhotos** (also a plain click), **Open data folder**,
+Right-click the tray icon for **Open LibrePhotos** (also a plain click), **Check for updates**
+(see [Knowing when there is an update](#update-notifications)), **Open data folder**,
 **Open logs** and **Quit LibrePhotos**. Quitting stops everything: the workers and the machine
 learning processes are children of `librephotos.exe` and go down with it, also when it is ended
 from Task Manager. If it cannot start, a message box usually says why: for example that another
@@ -314,6 +315,22 @@ database, and nothing showed until the browser opened):
 
 If the new release does not start, the message box says why, and `console.log` in the logs folder
 (tray: **Open logs**) has the details. You can always [go back](#going-back) to the old release.
+
+### Knowing when there is an update {#update-notifications}
+
+<Since version="1.5.0" /> LibrePhotos asks GitHub once a day whether a newer release is out (see
+[Checking for new releases](environment-variables.md#update-check) for what that sends). When one
+is, and its `librephotos-windows-x64.zip` can be downloaded:
+
+- a Windows notification says "LibrePhotos 1.5.0 is available" once for that release;
+- the tray menu has **Update to 1.5.0 available...**, which opens these steps;
+- admins see an **Update available** card at the top of the Admin Area, with **How to update**,
+  **Release notes** and **Skip this release**.
+
+**Check for updates** in the tray menu asks at once and answers with a notification, also when
+LibrePhotos is up to date. A release skipped on the Admin page is not announced again; the next
+one is. To turn the check off, switch off **Check for new releases** in **Admin Area > Site
+Settings**.
 
 ### Upgrading from 1.3.0 or older
 

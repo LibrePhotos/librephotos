@@ -13,11 +13,12 @@ receives the row's id as ``job_id`` and claims the row when it starts
   the same without the refusal.
 - ``enqueue_chain``: several jobs that run one after the other, each with its
   own row, all written up front.
-- ``enqueue_task`` / ``enqueue_task_chain``: work without a row of its own,
+- ``enqueue_task``: work without a row of its own,
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
 - ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
-  ``remove_schedule``: django-q schedules.
+  ``remove_schedule``: django-q schedules; ``next_scheduled_run`` reads one.
+- ``tasks_are_waiting``: whether the queue has drained.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
 ``django_q.tasks``. ``transcode_cache`` fills its cache from a thread while a
@@ -34,6 +35,7 @@ from typing import NamedTuple
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django_q.brokers import get_broker
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
 
@@ -232,11 +234,6 @@ def enqueue_task(func: TaskFunc, *args: object, **kwargs: object) -> None:
     AsyncTask(func, *args, **kwargs).run()
 
 
-def enqueue_task_chain(tasks: Sequence[Task]) -> None:
-    """Queue ``tasks`` to run one after the other, without job rows."""
-    _chain(tasks).run()
-
-
 def schedule_once(func: str, *args: object, at: datetime) -> None:
     """Run the function at dotted path ``func`` once, at ``at``."""
     schedule(func, *args, schedule_type=Schedule.ONCE, next_run=at)
@@ -262,6 +259,16 @@ def schedule_once_by(name: str, func: str, *args: object, at: datetime) -> None:
     except IntegrityError:
         # django-q's own name check: a concurrent request created it.
         logger.info("schedule %s was created concurrently", name)
+
+
+def next_scheduled_run(name: str, func: str) -> datetime | None:
+    """When the schedule ``schedule_once_by(name, func, ...)`` runs next, or ``None``."""
+    return (
+        Schedule.objects.filter(name=name, func=func)
+        .order_by("next_run")
+        .values_list("next_run", flat=True)
+        .first()
+    )
 
 
 def ensure_schedule(
@@ -311,6 +318,15 @@ def remove_schedule(func: str) -> bool:
     """Drop the schedules of the function at dotted path ``func``; whether there were any."""
     deleted, _ = Schedule.objects.filter(func=func).delete()
     return deleted > 0
+
+
+def tasks_are_waiting() -> bool:
+    """Whether the broker holds tasks that no worker has taken yet.
+
+    Taken tasks are locked for ``Q_CLUSTER["retry"]`` (about 231 days), so a
+    task whose worker died is not counted: it never runs again by itself.
+    """
+    return bool(get_broker().queue_size())
 
 
 def remove_queued_tasks(job_id: str) -> int:

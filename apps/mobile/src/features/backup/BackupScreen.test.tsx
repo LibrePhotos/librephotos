@@ -174,6 +174,50 @@ describe("BackupScreen", () => {
     });
   });
 
+  describe("uploads the server is still processing (#2740)", () => {
+    function seedUploaded(states: Record<string, string>): void {
+      setMediaAccess(t.db, "all");
+      setBackupConfig(t.db, { enabled: true });
+      const ids = Object.keys(states);
+      for (const id of ids) {
+        insertLocalAsset(t.db, { id, hash: `h-${id}` });
+        t.db.run(
+          sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+              VALUES (${id}, ${states[id]}, 0.5, 0, 1)`
+        );
+      }
+      insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ids });
+    }
+
+    it("counts them on a line of their own and labels their queue rows", async () => {
+      seedUploaded({ done1: "done", busy: "uploading" });
+      const { getByTestId, getByText } = renderWithDb(<BackupScreen />, t.db);
+      await waitFor(() => {
+        expect(getByTestId("backup-processing").props.children).toBe("1 processing on the server");
+        expect(getByText("Processing on server")).toBeTruthy();
+      });
+    });
+
+    it("never calls the library up to date while the server still works", async () => {
+      seedUploaded({ done1: "done", done2: "skipped_exists" });
+      const { getByTestId, queryByText } = renderWithDb(<BackupScreen />, t.db);
+      await waitFor(() => {
+        expect(getByTestId("backup-stage").props.children).toBe(
+          "2 uploaded, 2 still processing on the server"
+        );
+        expect(getByTestId("backup-processing").props.children).toContain("They show up in your timeline");
+      });
+      expect(queryByText(/nothing new to upload/)).toBeNull();
+    });
+
+    it("says nothing about the server when it has finished", async () => {
+      seedUploaded({ busy: "pending" });
+      const { getByTestId, queryByTestId } = renderWithDb(<BackupScreen />, t.db);
+      await waitFor(() => expect(getByTestId("backup-stage")).toBeTruthy());
+      expect(queryByTestId("backup-processing")).toBeNull();
+    });
+  });
+
   it("keeps quiet about iCloud when every photo is on the device", async () => {
     setMediaAccess(t.db, "all");
     setBackupConfig(t.db, { enabled: true });

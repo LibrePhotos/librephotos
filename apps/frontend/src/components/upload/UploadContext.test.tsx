@@ -8,6 +8,8 @@ const stubs = vi.hoisted(() => ({ isUploading: false }));
 vi.mock("./useUploadQueue", () => ({
   useUploadQueue: () => ({ items: [], isUploading: stubs.isUploading }),
 }));
+// The server side polls the API; these tests are about the queue's provider.
+vi.mock("./useUploadProcessing", () => ({ useUploadProcessing: () => null }));
 
 let root: Root;
 let container: HTMLDivElement;

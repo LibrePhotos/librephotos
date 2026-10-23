@@ -34,13 +34,16 @@ from api.tests.utils import (
     create_test_user,
 )
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
+from api.thumbnails.posters import make_video_posters_job
 
 migration_0185 = importlib.import_module("api.migrations.0185_upgrade_task_state")
+migration_0198 = importlib.import_module("api.migrations.0198_video_poster")
 
 STRIP = "strip_thumbnail_metadata"
 EXPOSURE = "refresh_exposure_times"
 PROBE = "probe_videos"
 SEARCH = "semantic_search_conversion"
+POSTERS = "make_video_posters"
 LIST_URL = "/api/upgrade-tasks/"
 
 
@@ -79,7 +82,8 @@ class TheRegistryTest(TestCase):
 
     def test_only_tasks_without_another_starter_start_themselves(self):
         self.assertEqual(
-            {task.key for task in UPGRADE_TASKS if task.autostart}, {STRIP, EXPOSURE}
+            {task.key for task in UPGRADE_TASKS if task.autostart},
+            {STRIP, EXPOSURE, POSTERS},
         )
 
 
@@ -110,6 +114,23 @@ class SeedingMigrationTest(TestCase):
         self.seed()
         self.assertEqual(self.seed(), {STRIP})
         self.assertEqual(UpgradeTaskState.objects.count(), 1)
+
+
+class VideoPosterSeedingTest(TestCase):
+    """Migration 0198: the poster task only where there are videos (#2026)."""
+
+    def seed(self):
+        migration_0198.seed_upgrade_task(global_apps, None)
+        return set(UpgradeTaskState.objects.values_list("key", flat=True))
+
+    def test_photos_alone_seed_nothing(self):
+        create_test_photo(owner=create_test_user())
+        self.assertEqual(self.seed(), set())
+
+    def test_videos_seed_the_posters(self):
+        create_test_photo(owner=create_test_user(), video=True)
+        self.assertEqual(self.seed(), {POSTERS})
+        self.assertEqual(self.seed(), {POSTERS})
 
 
 class WhenATaskIsNeededTest(UpgradeTaskTestCase):
@@ -263,6 +284,19 @@ class StartingTasksTest(UpgradeTaskTestCase):
         )
         state.refresh_from_db()
         self.assertIsNotNone(state.started_at)
+
+    def test_the_posters_are_queued_for_the_admin(self):
+        create_test_upgrade_task_state(POSTERS)
+        with (
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            [job] = upgrade_tasks.start_task(TASKS_BY_KEY[POSTERS], self.admin)
+
+        self.assertEqual(job.job_type, LongRunningJob.JOB_MAKE_VIDEO_POSTERS)
+        self.assertEqual(
+            async_task.call_args.args, (make_video_posters_job, self.admin)
+        )
 
     def test_the_probe_is_queued_per_owner(self):
         other = create_test_user()
@@ -418,6 +452,20 @@ class UpgradeTaskApiTest(UpgradeTaskTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(api_error(response)["code"], "queue_busy")
         self.assertEqual(LongRunningJob.objects.count(), 1)
+
+    def test_an_upload_import_does_not_hold_the_start(self):
+        # A phone backing up keeps one open all day (#2737).
+        create_test_upgrade_task_state(STRIP)
+        create_test_job(
+            create_test_user(), LongRunningJob.JOB_IMPORT_UPLOADS, sealed=False
+        )
+        with (
+            mock.patch("api.jobs.queue.AsyncTask"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(start_url(STRIP))
+
+        self.assertEqual(response.status_code, 200, response.content)
 
     def test_start_while_its_own_job_runs_names_that_job(self):
         create_test_upgrade_task_state(STRIP)

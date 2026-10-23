@@ -105,6 +105,8 @@ vi.mock("../modals/ModalNextcloudScanDirectoryEdit", () => ({
 // Leaving the page is covered in SaveChangesDialog.leaving.test.tsx, under a real router.
 vi.mock("./useUnsavedChangesGuard", () => ({ useUnsavedChangesGuard: () => ({ status: "idle" }) }));
 vi.mock("../modals/ModalUserEdit", () => ({ ModalUserEdit: () => null }));
+vi.mock("./ProcessingStatusCard", () => ({ ProcessingStatusCard: () => null }));
+vi.mock("../libraryfolders/LibraryFoldersCard", () => ({ LibraryFoldersCard: () => null }));
 
 beforeAll(() => {
   // jsdom has no matchMedia, MantineProvider needs it

@@ -87,3 +87,20 @@
   right: 6px;
   bottom: 6px;
 }
+
+/* "▶ 0:42" on a face from a later frame of a video (#2762): where the video opens. */
+.videoTime {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--app-scrim-black-65);
+  color: var(--mantine-color-white);
+  font-size: 11px;
+  line-height: 16px;
+  pointer-events: none;
+}

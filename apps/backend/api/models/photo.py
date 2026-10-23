@@ -36,6 +36,38 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
             q |= self.owner_q(user) | Q(shared_to=user)
         return self.filter(q)
 
+    def holding_content(self, file_hash: str) -> Self:
+        """Photos indexed from ``file_hash`` or holding a file with that hash.
+
+        ``image_hash`` names the content a photo was indexed from and stays
+        when a metadata write or a re-encode only re-keys its File (#2051), so
+        the file's current hash has to be asked as well.
+        """
+        return self.filter(
+            pk__in=self.filter(
+                Q(image_hash=file_hash) | Q(files__hash=file_hash)
+            ).values("pk")
+        )
+
+    def shared_with_me(self, user: User | AnonymousUser | None) -> Self:
+        """Photos someone else shared with ``user``, directly or in an album.
+
+        Directly through ``shared_to``, or as a photo of a user album shared
+        to ``user``. Not public photos, and never ``user``'s own. The
+        "Shared with you" places, things and people (#2721, #2722) are built
+        from it; call it on ``Photo.visible`` to leave out hidden, trashed
+        and removed photos. Subqueries rather than joins, so a photo shared
+        both ways is one row without ``distinct()``.
+        """
+        if not (isinstance(user, User) and user.is_authenticated):
+            return self.none()
+        through_share = self.model.shared_to.through.objects.filter(user=user)
+        in_shared_album = self.model.objects.filter(albumuser__shared_to=user)
+        return self.filter(
+            Q(pk__in=through_share.values("photo_id"))
+            | Q(pk__in=in_shared_album.values("pk"))
+        ).exclude(self.owner_q(user))
+
 
 def highest_resolution_first(photos: QuerySet[Photo]) -> QuerySet[Photo]:
     """``photos`` with the largest ``width * height`` first, unknown sizes last.
@@ -141,6 +173,10 @@ class Photo(models.Model):
     # again would not change (#2199). None until then, and again after the
     # file is replaced: an incremental Scan Faces covers exactly those photos.
     faces_scanned_at = models.DateTimeField(null=True, blank=True)
+    # Failed OCR calls since the last success; at OCR_MAX_FAILURES the photo
+    # is left out of incremental OCR runs (#2736). An unreachable OCR
+    # service is not counted.
+    ocr_failures = models.PositiveSmallIntegerField(default=0)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
     exif_gps_lon = models.FloatField(blank=True, null=True)
@@ -196,6 +232,10 @@ class Photo(models.Model):
     video_pixel_format = models.CharField(max_length=32, blank=True, null=True)
     video_color_transfer = models.CharField(max_length=32, blank=True, null=True)
     video_container = models.CharField(max_length=64, blank=True, null=True)
+    # "equirectangular" for a 360° photo sphere, NULL for a flat photo (#483).
+    # Read at scan time (api.metadata.projection); on the photo rather than
+    # PhotoMetadata so the grid's tile badge costs no join.
+    projection_type = models.CharField(max_length=32, blank=True, null=True)
     size = models.BigIntegerField(default=0)
     # Metadata fields (camera, lens, fstop, etc.) moved to PhotoMetadata model
     # See migration 0103_remove_photo_metadata_fields.py

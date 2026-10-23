@@ -14,18 +14,23 @@ faces the people a labelling took from them (its ``previous``), suggestions
 included, so a face confirmed or rejected by mistake goes back to the tab it
 came from. The face regions written to disk always follow the live faces, so
 a deleted face leaves the file and a restored one comes back (#1531).
+
+"Not this person" is remembered (#2747): the people a face is sent away from
+go into its ``rejected_persons``, which training never suggests for it again.
+Labelling the face as one of them, or undoing the rejection, takes them off.
 """
 
 import logging
 import uuid
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TypedDict
 
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 
+from api.faces.clustering_gate import record_face_label
 from api.jobs.queue import enqueue_task
 from api.metadata.photo_writer import write_photo_metadata, write_target
 from api.metadata.writer import MetadataWriteError, one_exiftool_process
@@ -60,6 +65,9 @@ class RelabelResult:
     write_queued: bool = False
     # Each face's people before the change, for an undo.
     previous: list[FaceLabels] = field(default_factory=list)
+    # The named people that will not be suggested for these faces again
+    # (#2747), by name; empty unless the faces were sent back to unknown.
+    rejected: list[Person] = field(default_factory=list)
 
 
 def labels_of(face: Face) -> FaceLabels:
@@ -109,6 +117,7 @@ def relabel_faces(
     """
     loaded = list(_with_photo_rows(faces.owned_by(user)))
     previous = [labels_of(face) for face in loaded]
+    rejected = _update_rejections(user, previous, person)
 
     affected_person_ids = {face.person_id for face in loaded if face.person_id}
     for face in loaded:
@@ -124,7 +133,80 @@ def relabel_faces(
     person_id = person.pk if person is not None else None
     _refresh_people(affected_person_ids, {face.pk: person_id for face in loaded})
 
-    return _finish(user, loaded, queue_write=queue_write, previous=previous)
+    result = _finish(user, loaded, queue_write=queue_write, previous=previous)
+    return replace(result, rejected=rejected)
+
+
+def _update_rejections(
+    user: User, previous: list[FaceLabels], person: Person | None
+) -> list[Person]:
+    """Remember a "not this person", or forget one the user took back (#2747).
+
+    Returns the named people now rejected for the faces.
+    """
+    if person is None:
+        return record_rejections(user, previous)
+    forget_rejections({item["id"]: {person.pk} for item in previous})
+    return []
+
+
+def _people_of(labels: FaceLabels) -> set[int]:
+    """The ids of the people a face has: labelled with, or suggested."""
+    return {
+        person_id
+        for person_id in (
+            labels["person"],
+            labels["cluster_person"],
+            labels["classification_person"],
+        )
+        if person_id is not None
+    }
+
+
+def record_rejections(user: User, labels: list[FaceLabels]) -> list[Person]:
+    """Remember that each face is none of the people in its ``labels`` (#2747).
+
+    Only the user's own people are recorded, and never "Unknown - Other",
+    where a rejected face goes. Returns the named people among them, by name,
+    for the "won't be suggested again" message.
+    """
+    wanted = {item["id"]: _people_of(item) for item in labels}
+    people = (
+        Person.objects.owned_by(user)
+        .exclude(kind=Person.KIND_UNKNOWN)
+        .in_bulk(set().union(*wanted.values()))
+    )
+    rejection = Face.rejected_persons.through
+    rejection.objects.bulk_create(
+        [
+            rejection(face_id=face_id, person_id=person_id)
+            for face_id, person_ids in wanted.items()
+            for person_id in person_ids
+            if person_id in people
+        ],
+        ignore_conflicts=True,
+    )
+    named = [person for person in people.values() if person.kind == Person.KIND_USER]
+    return sorted(named, key=lambda person: person.name)
+
+
+def forget_rejections(people_of_face: dict[int, set[int]]) -> None:
+    """Take each face's people in ``people_of_face`` off its rejected people.
+
+    A face labelled as, or given back to, a person it was rejected for: the
+    user changed their mind.
+    """
+    person_ids = set().union(*people_of_face.values())
+    rejection = Face.rejected_persons.through
+    stale = [
+        row.pk
+        for row in rejection.objects.filter(
+            face_id__in=people_of_face, person_id__in=person_ids
+        )
+        if row.person_id in people_of_face[row.face_id]
+    ]
+    if stale:
+        rejection.objects.filter(pk__in=stale).delete()
 
 
 def delete_faces(user: User, face_ids: Iterable[int]) -> RelabelResult:
@@ -178,6 +260,13 @@ def restore_labels(user: User, labels: list[FaceLabels]) -> RelabelResult:
     wanted = {item["id"]: item for item in labels}
     people = _owned_people(user, wanted.values())
     loaded = list(_with_photo_rows(Face.objects.owned_by(user).filter(pk__in=wanted)))
+    # The people given back are no longer rejected (#2747).
+    forget_rejections(
+        {
+            face.pk: {pk for pk in _people_of(wanted[face.pk]) if pk in people}
+            for face in loaded
+        }
+    )
 
     affected_person_ids = {face.person_id for face in loaded if face.person_id}
     for face in loaded:
@@ -203,8 +292,13 @@ def _finish(
     """Rebuild the search captions of the faces' photos and write their regions.
 
     ``queue_write`` writes the regions in the background once the
-    transaction commits (``queue_face_tags_write``), in one job.
+    transaction commits (``queue_face_tags_write``), in one job. A change to
+    any face holds back the upload follow-ups' clustering for a while
+    (``record_face_label``, #2738): a rebuild would renumber the clusters the
+    user is working through.
     """
+    if faces:
+        record_face_label(user)
     photos = _photos_of(faces)
     recreate_search_captions(photos)
     if queue_write:
@@ -222,16 +316,7 @@ def _finish(
 
 def _owned_people(user: User, labels: Iterable[FaceLabels]) -> dict[int, Person]:
     """The user's people that ``labels`` name, by id."""
-    ids = {
-        person_id
-        for item in labels
-        for person_id in (
-            item["person"],
-            item["cluster_person"],
-            item["classification_person"],
-        )
-        if person_id is not None
-    }
+    ids = {person_id for item in labels for person_id in _people_of(item)}
     return Person.objects.owned_by(user).in_bulk(ids)
 
 

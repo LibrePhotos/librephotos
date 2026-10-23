@@ -159,6 +159,10 @@ FEATURE_REVERSE_GEOCODING = env_flag("FEATURE_REVERSE_GEOCODING", default=True)
 FEATURE_SCENE_CLASSIFICATION = env_flag("FEATURE_SCENE_CLASSIFICATION", default=True)
 # Animated grid previews of videos; off, a video's squares are a still frame.
 FEATURE_VIDEO_PREVIEWS = env_flag("FEATURE_VIDEO_PREVIEWS", default=True)
+# Faces in a video's later frames; off, a video is scanned on its first frame.
+FEATURE_FACE_DETECTION_IN_VIDEOS = env_flag(
+    "FEATURE_FACE_DETECTION_IN_VIDEOS", default=True
+)
 
 # Whether a user's Nextcloud server address may resolve to a private network
 # address (LAN, Docker network, Tailscale). On by default because that is where
@@ -185,11 +189,21 @@ ALLOWED_HOSTS = ["localhost", BACKEND_HOST]
 # from a source checkout, where api/views/server_info.py asks git instead.
 IMAGE_TAG = env_str("IMAGE_TAG")
 GIT_HASH = env_str("GIT_HASH")
+# How this server was installed, for the "How to update" link of the update
+# check (api/updates): docker when an image set IMAGE_TAG, source otherwise;
+# librephotos/settings/standalone.py says windows.
+INSTALL_TYPE = "docker" if IMAGE_TAG else "source"
+# The daily check for a newer release (#2311). UPDATE_CHECK=false turns it off
+# for good, whatever the site setting says: nothing is sent to github.com.
+UPDATE_CHECK_ALLOWED = env_flag("UPDATE_CHECK", default=True)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=env_int("REFRESH_TOKEN_DAYS", 7)),
 }
+# How long a "Remember me" sign-in lasts: its refresh token and its persistent
+# auth cookies (api/accounts/tokens.py). 0 removes the option from the login page.
+REMEMBER_ME_DAYS = env_int("REMEMBER_ME_DAYS", 30)
 
 # Give the auth cookies the Secure flag even when the request looks like plain
 # HTTP, as it does behind a TLS proxy (SECURE_PROXY_SSL_HEADER is not set). Off
@@ -417,6 +431,47 @@ CONSTANCE_CONFIG = {
         " which libraries it scanned, skipped or could not start (JSON).",
         str,
     ),
+    # The update check (#2311, api/updates). UPDATE_CHECK_ALLOWED (the
+    # UPDATE_CHECK environment variable) is a hard off above this switch.
+    "UPDATE_CHECK": (
+        True,
+        "Ask github.com once a day which LibrePhotos release is the newest, and"
+        " tell admins when it is newer than this server. Nothing about this"
+        " server is sent.",
+        bool,
+    ),
+    "UPDATE_CHECK_RESULT": (
+        "",
+        "Written by the update check, not a setting: the newest release it"
+        " found, when it checked, and why the check failed (JSON).",
+        str,
+    ),
+    "UPDATE_CHECK_SKIPPED_RELEASE": (
+        "",
+        "Written by Skip this release on the Admin page, not a setting: the"
+        " release admins are no longer told about.",
+        str,
+    ),
+    "UPDATE_CHECK_SNOOZED_UNTIL": (
+        "",
+        "Written by closing the Update available card, not a setting: when the"
+        " card shows again (ISO time).",
+        str,
+    ),
+    "UPDATE_CHECK_NOTIFIED_RELEASE": (
+        "",
+        "Written by the Windows app, not a setting: the release its notification"
+        " last announced, so each release is announced once.",
+        str,
+    ),
+    # The "What's new" card (#2305): after an update, each user sees the
+    # release's highlights once. Users can also turn it off for themselves.
+    "WHATS_NEW_ENABLED": (
+        True,
+        "Show each user a small What's new card once after an update, with the"
+        " release's highlights. The account menu opens it either way.",
+        bool,
+    ),
     "UPLOAD_FOLLOWUPS_BACKFILL_DONE": (
         False,
         "Written at startup, not a setting: whether the upload follow-ups (search"
@@ -488,6 +543,11 @@ CONSTANCE_CONFIG = {
         True,
         "Make a short silent clip of each video for the photo grid; off, the"
         " grid shows a still frame and scans skip encoding the clip",
+        bool,
+    ),
+    "FACE_DETECTION_IN_VIDEOS_ENABLED": (
+        True,
+        "Find faces in a few frames across each video; off, only in its first frame",
         bool,
     ),
     "LOG_MAX_BYTES": (
@@ -606,6 +666,10 @@ SPECTACULAR_SETTINGS = {
         "MediaDiagnosisCauseEnum": "api.serializers.media.DIAGNOSIS_CAUSES",
         # A person's kind keeps its name now that another "kind" choice exists.
         "KindEnum": "api.serializers.face.PERSON_KINDS",
+        # The icon of a user's place (#1365).
+        "UserPlaceIconEnum": "api.models.user_place.UserPlaceIcon",
+        # Where a user's upload follow-ups stand (#2739).
+        "UploadFollowupStateEnum": "api.serializers.upload.FOLLOWUP_STATES",
         # A file of the All metadata view: the media file or a sidecar.
         "RawMetadataFileKindEnum": "api.serializers.photo_metadata.RAW_METADATA_FILE_KINDS",
         # What "Write metadata to files" writes, and where (#2287).
@@ -614,6 +678,10 @@ SPECTACULAR_SETTINGS = {
         # Moving photos to another folder (#352): a taken name, a refused photo.
         "MoveOnConflictEnum": "api.serializers.photo_moves.ON_CONFLICT_CHOICES",
         "MoveRefusalReasonEnum": "api.serializers.photo_moves.MOVE_REFUSAL_REASONS",
+        # Renaming photos after their date (#2773): what happens to one photo.
+        "RenameStatusEnum": "api.serializers.photo_renames.RENAME_STATUS_CHOICES",
+        # A stage of the library processing status (#2741).
+        "ProcessingStageEnum": "api.serializers.processing_status.PROCESSING_STAGES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

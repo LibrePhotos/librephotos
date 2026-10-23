@@ -1,6 +1,7 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import type { SelectionState } from "../../api_client/photos/types";
 import { Lightbox } from "../lightbox/Lightbox";
+import { videoStartOf } from "../lightbox/videoStart";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { ModalTagEdit } from "../modals/ModalTagEdit";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
@@ -12,7 +13,7 @@ import type { PhotoListSlideshow } from "./usePhotoListSlideshow";
 // The lightbox gets the fields it needs, not the whole tile. type lets public and shared views, which
 // have no photo details, play videos; isTemp marks placeholders that have not loaded yet; date and
 // location feed the details panel a non-owner sees (the server already leaves out what it may not share).
-const toLightboxItems = (idx2hash: PigPhoto[]) =>
+const toLightboxItems = (idx2hash: PigPhoto[], title: string) =>
   idx2hash.map(item => ({
     id: item.id,
     image_hash: item.image_hash,
@@ -20,6 +21,10 @@ const toLightboxItems = (idx2hash: PigPhoto[]) =>
     isTemp: item.isTemp,
     date: item.date,
     location: item.location,
+    projection_type: item.projection_type,
+    // A person's video opens where the person is (#2762). Only a person's photos carry the time,
+    // and their title is the person's name.
+    videoStart: videoStartOf(item.person_video_time, title),
   }));
 
 type Props = Readonly<{
@@ -31,6 +36,8 @@ type Props = Readonly<{
   isUserAlbum: boolean;
   albumID?: string;
   idx2hash: PigPhoto[];
+  /** The list's title: on a person's page, the person's name. */
+  title: string;
   totalCount: number;
   selectionState: SelectionState;
   updateSelectionState: (state: Partial<SelectionState>) => void;
@@ -47,6 +54,7 @@ export function PhotoListDialogs({
   isUserAlbum,
   albumID,
   idx2hash,
+  title,
   totalCount,
   selectionState,
   updateSelectionState,
@@ -62,7 +70,7 @@ export function PhotoListDialogs({
         <Lightbox
           isPublic={isPublic}
           publicAlbumSlug={publicAlbumSlug}
-          idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash)}
+          idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash, title)}
           selectedImage={lightbox.lightboxImageId}
           onChangedIndex={lightbox.handleLightboxIndexChange}
           onCloseRequest={slideshow.close}

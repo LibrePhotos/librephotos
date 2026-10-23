@@ -2,3 +2,10 @@
 .offset {
   white-space: nowrap;
 }
+
+/* "Why this date?" under the date (#2272), laid out like "All metadata" under the file name. */
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}

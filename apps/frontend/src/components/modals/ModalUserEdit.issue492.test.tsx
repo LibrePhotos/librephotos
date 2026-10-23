@@ -49,6 +49,12 @@ vi.mock("../../api_client/user/hooks", () => ({
 vi.mock("../../service/notifications", () => ({
   notification: { updateUserError: stubs.updateUserError },
 }));
+vi.mock("../libraryfolders/LibraryFolderList", () => ({
+  LibraryFolderList: ({ owner }: { owner: number | "self" }) => <div data-library-folders={owner} />,
+}));
+vi.mock("./useScanDirectoryChange", () => ({
+  useScanDirectoryChange: () => ({ changed: false, outsideCount: null, countFailed: false, trashOutside: () => {} }),
+}));
 vi.mock("../setup/DirectoryPicker", () => ({
   DirectoryPicker: ({ value, onChange }: Pick<React.ComponentProps<typeof DirectoryPicker>, "value" | "onChange">) => (
     <input

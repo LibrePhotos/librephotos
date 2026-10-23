@@ -91,3 +91,43 @@ describe("JobDetailView header", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/admin" });
   });
 });
+
+describe("JobDetailView results of a job type", () => {
+  const counts = {
+    checked: 3,
+    unchanged: 2,
+    missing: 0,
+    unreadable: 0,
+    new_picture: 1,
+    same_picture: 0,
+    similar_picture: 0,
+    uncomparable: 0,
+  };
+  const checkResult = {
+    status: "completed",
+    ...counts,
+    users: [{ user_id: 1, username: "admin", ...counts }],
+    changed: [{ path: "/photos/a.jpg", verdict: "new_picture", photo_id: "p", named_faces_removed: 0 }],
+    rescans: 1,
+  };
+
+  it("shows the Results card of a finished Check file contents job (#2040)", async () => {
+    const container = await renderPage(
+      detail({ job_type: 32, finished: true, finished_at: "2026-10-10T11:00:00Z", result: checkResult })
+    );
+
+    expect(container.textContent).toContain("Results");
+    expect(container.textContent).toContain("/photos/a.jpg");
+  });
+
+  it("shows no Results card while it runs, nor for another job type", async () => {
+    const running = await renderPage(detail({ job_type: 32, result: checkResult }));
+    expect(running.textContent).not.toContain("files read");
+
+    document.body.innerHTML = "";
+    const other = await renderPage(
+      detail({ job_type: 1, finished: true, finished_at: "2026-10-10T11:00:00Z", result: checkResult })
+    );
+    expect(other.textContent).not.toContain("files read");
+  });
+});

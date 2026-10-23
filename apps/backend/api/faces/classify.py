@@ -3,7 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
-from collections.abc import Collection, Mapping, Sequence
+from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -19,6 +20,7 @@ from api.faces.birth_dates import (
     without_unborn,
 )
 from api.faces.cluster_manager import ClusterManager
+from api.faces.clustering_gate import latest_face_id, record_clustering
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
@@ -145,8 +147,11 @@ def cluster_faces(user: User, inferred: bool = True) -> dict[str, object]:
 
 def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
-    existing clusters, then regenerates them all. It will split clusters that have
-    more than one kind of labeled face.
+    existing clusters and cluster people, then regenerates them all; the
+    user's named people are never deleted, not even those without faces. It
+    will split clusters that have more than one kind of labeled face. Every clustering, whoever started it,
+    moves the user's face watermark (``record_clustering``), so the upload
+    follow-ups do not cluster the same faces again.
     :param user: the current user running the training
     :param job_id: the background job ID; None when ``scan_faces`` calls it
     """
@@ -166,10 +171,13 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         # user without clusters. A cancel during the rebuild still skips the
         # training follow-up (complete() below).
         lrj.stop_if_cancelled()
+        # Taken before the rebuild: a face added while it runs is not in it,
+        # so the upload follow-ups count it as new (#2738).
+        watermark = latest_face_id(user)
         delete_clustered_people(user)
         delete_clusters(user)
-        delete_persons_without_faces(user)
         target_count: int = create_all_clusters(user, lrj)
+        record_clustering(user, watermark)
 
         lrj.update_progress(current=target_count, target=target_count)
         if not lrj.complete():
@@ -294,15 +302,13 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     return target_count
 
 
-# Clustering one user rebuilds only that user's rows: each delete below is
-# scoped to ``user``, so another user's people and clusters, even a person
-# just created with no faces yet, survive it (#2732).
-
-
-def delete_persons_without_faces(user: User) -> None:
-    """Delete the user's named people that have no face left"""
-    logger.info("Deleting the people without faces of user %s", user.id)
-    Person.objects.owned_by(user).filter(faces=None, kind=Person.KIND_USER).delete()
+# Clustering one user rebuilds only that user's rows it made itself: each
+# delete below is scoped to ``user``, so another user's people and clusters
+# survive it (#2732), and only clusters and cluster people are deleted. The
+# user's named people stay, even without faces: one made by hand, or with a
+# birth date and its faces moved away, is the user's, not the clustering's.
+# A face's rejection of a cluster person ("Not Unknown 12") goes with that
+# person: the rebuilt clusters are new people it says nothing about.
 
 
 def delete_clusters(user: User) -> None:
@@ -418,6 +424,16 @@ def likeliest_class(
     return person_id, probability
 
 
+def rejected_people_of(face_ids: Iterable[int]) -> dict[int, set[int]]:
+    """The people each face was rejected for ("Not Anna", #2747), by face id"""
+    rejected: dict[int, set[int]] = defaultdict(set)
+    for face_id, person_id in Face.rejected_persons.through.objects.filter(
+        face_id__in=face_ids
+    ).values_list("face_id", "person_id"):
+        rejected[face_id].add(person_id)
+    return rejected
+
+
 @dataclass
 class _Classifiers:
     """What ``train_faces`` predicts the person of an unlabelled face with."""
@@ -450,7 +466,11 @@ class _Classifiers:
     ) -> tuple[
         Sequence[float] | npt.NDArray[float64], Sequence[float] | npt.NDArray[float64]
     ]:
-        """Both rows of probabilities with the ``unborn`` people at 0 (#2752)"""
+        """Both rows of probabilities with the ``unborn`` people at 0 (#2752).
+
+        Any person ruled out for the face goes here too: the people the user
+        said it is not (#2747) are passed along with the unborn ones.
+        """
         if not unborn:
             return cluster_probabilities, classification_probabilities
         if self.person is not None:
@@ -518,6 +538,7 @@ def classify_face_page(
     faces_by_id = Face.objects.in_bulk(page_id)
     persons = classifiers.predicted_persons()
     taken_by_face = photo_dates_of_faces(page_id) if classifiers.birth_dates else {}
+    rejected = rejected_people_of(page_id)
     face_encodings_unknown_np = classifier_input(page_encodings)
     cluster_probs = classifiers.cluster.predict_proba(face_encodings_unknown_np)
     if classifiers.person:
@@ -542,10 +563,12 @@ def classify_face_page(
             continue
         # Never a person born after the photo was taken (#2752)
         unborn = unborn_people(classifiers.birth_dates, taken_by_face.get(face_id))
+        # Nor one the user said the face is not ("Not Anna", #2747)
+        ruled_out = unborn | rejected.get(face_id, set())
         assign_face_predictions(
             face,
             *classifiers.born_only(
-                unborn, cluster_probabilities, classification_probabilities
+                ruled_out, cluster_probabilities, classification_probabilities
             ),
             classifiers,
             persons,

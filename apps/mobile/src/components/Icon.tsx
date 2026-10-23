@@ -50,7 +50,9 @@ export type IconName =
   | "collapse"
   | "play"
   | "file"
-  | "sparkle";
+  | "sparkle"
+  // grid tiles
+  | "processing";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -91,6 +93,7 @@ const GLYPHS: Record<IconName, IoniconName> = {
   play: "play",
   file: "document-outline",
   sparkle: "sparkles-outline",
+  processing: "hourglass-outline",
 };
 
 export function Icon({

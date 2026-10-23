@@ -6,7 +6,7 @@ import copy
 import logging
 import os
 import stat
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 from uuid import UUID
 
@@ -15,6 +15,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from api.models import LongRunningJob
+from api.photos.paths import is_valid_path
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,9 @@ class SkippedDirectory(NamedTuple):
     error: str
 
 
-def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory]:
+def walk_directory(
+    directory: str, callback: list[str], excluded: Sequence[str] = ()
+) -> list[SkippedDirectory]:
     """
     Recursively walk a directory and collect file paths.
 
@@ -116,14 +119,18 @@ def walk_directory(directory: str, callback: list[str]) -> list[SkippedDirectory
     scan. The scan root is not: if it cannot be listed the library itself is
     unavailable, and the ``OSError`` propagates.
 
+    A folder the user left out of their library (``excluded``, #791) is not
+    walked, nor is anything below it.
+
     Args:
         directory: Directory to scan
         callback: List to append file paths to
+        excluded: Folders not to walk
 
     Returns:
         The subdirectories that were skipped because they could not be listed.
     """
-    walk = _DirectoryWalk(callback, skip_patterns())
+    walk = _DirectoryWalk(callback, skip_patterns(), excluded)
     walk.walk_entries(directory, _list_directory(directory))
     return walk.skipped
 
@@ -155,9 +162,12 @@ def _list_directory(directory: str) -> tuple[_DirectoryIdentity, list[str]]:
 class _DirectoryWalk:
     """The state of one ``walk_directory`` call."""
 
-    def __init__(self, callback: list[str], skip_list: list[str]) -> None:
+    def __init__(
+        self, callback: list[str], skip_list: list[str], excluded: Sequence[str] = ()
+    ) -> None:
         self.callback = callback
         self.skip_list = skip_list
+        self.excluded = excluded
         # The directories on the current path, to cut symlink loops.
         self.ancestors: set[_DirectoryIdentity] = set()
         self.skipped: list[SkippedDirectory] = []
@@ -173,9 +183,15 @@ class _DirectoryWalk:
             return
         self.walk_entries(directory, listing)
 
+    def left_out(self, path: str) -> bool:
+        """Whether the walk passes ``path`` by: hidden, a skip pattern, left out."""
+        if is_hidden(path) or should_skip(path, self.skip_list):
+            return True
+        return any(is_valid_path(path, folder) for folder in self.excluded)
+
     def walk_named_directory(self, directory: str) -> None:
         """Walk a folder a scan of chosen paths names, as the library walk would."""
-        if is_hidden(directory) or should_skip(directory, self.skip_list):
+        if self.left_out(directory):
             logger.info("not walking a hidden or skipped folder a scan names")
             return
         self.walk_subdirectory(directory)
@@ -193,7 +209,7 @@ class _DirectoryWalk:
         self.ancestors.add(identity)
         try:
             for fpath in paths:
-                if is_hidden(fpath) or should_skip(fpath, self.skip_list):
+                if self.left_out(fpath):
                     continue
                 if os.path.isdir(fpath):
                     self.walk_subdirectory(fpath)
@@ -208,7 +224,9 @@ class _DirectoryWalk:
             self.ancestors.discard(identity)
 
 
-def walk_files(scan_files: list[str], callback: list[str]) -> list[SkippedDirectory]:
+def walk_files(
+    scan_files: list[str], callback: list[str], excluded: Sequence[str] = ()
+) -> list[SkippedDirectory]:
     """Collect the files of a scan of chosen paths, each once.
 
     A file is taken as it is. A folder is walked as a folder of the library
@@ -217,18 +235,22 @@ def walk_files(scan_files: list[str], callback: list[str]) -> list[SkippedDirect
     listed, or a subfolder of it, is skipped and returned: it does not fail
     the scan.
 
+    Nothing in a folder the user left out of their library (``excluded``,
+    #791) is taken.
+
     Args:
         scan_files: The paths to scan, files and folders
         callback: List to append the file paths to
+        excluded: Folders whose files are not taken
 
     Returns:
         The folders that were skipped because they could not be listed.
     """
-    walk = _DirectoryWalk([], skip_patterns())
+    walk = _DirectoryWalk([], skip_patterns(), excluded)
     for fpath in scan_files:
         if os.path.isdir(fpath):
             walk.walk_named_directory(fpath)
-        elif os.path.isfile(fpath):
+        elif os.path.isfile(fpath) and not walk.left_out(fpath):
             walk.callback.append(fpath)
     # A file named on its own and inside a named folder is read once.
     callback.extend(dict.fromkeys(walk.callback))
@@ -321,7 +343,7 @@ def record_skipped_directories(
     update_job_result(job_id, add_skipped)
 
 
-def _record_error(result: dict[str, Any], error: str | None, target: int) -> bool:
+def record_item_error(result: dict[str, Any], error: str | None, target: int) -> bool:
     """Add one failed item to ``result``; return whether the job counts as failed.
 
     ``error_count`` tracks the aggregate (uncapped); the ``errors`` list itself
@@ -357,12 +379,15 @@ def finish_job_if_complete(job_id: UUID | str) -> bool:
     The conditional UPDATE is the whole transition, so it happens exactly once:
     of any number of callers racing past the target, only the one whose UPDATE
     flips ``finished`` gets a row back, and only that one runs the job's
-    completion hook. Returns whether this call finished the job.
+    completion hook. An upload import job that still takes files (not
+    ``sealed``) is left running: its target is still growing. Returns whether
+    this call finished the job.
     """
     finished = LongRunningJob.objects.filter(
         job_id=job_id,
         finished=False,
         cancelled=False,
+        sealed=True,
         progress_current__gte=F("progress_target"),
     ).update(finished=True, finished_at=timezone.now())
     if not finished:
@@ -380,12 +405,13 @@ def _on_job_finished(job_id: UUID | str) -> None:
     )
     if job is None:
         return
-    job_type = job["job_type"]
-    if job_type == LongRunningJob.JOB_GENERATE_TAGS:
-        _queue_embeddings_after_tags(job_id, job["started_by_id"])
-        return
-    if job_type != LongRunningJob.JOB_SCAN_PHOTOS:
-        return
+    hook = _FINISH_HOOKS.get(job["job_type"])
+    if hook is not None:
+        hook(job_id, job["started_by_id"])
+
+
+def _queue_scan_followups(job_id: UUID | str, user_id: int | None) -> None:
+    """The library-level jobs a photo scan queues when it is done."""
     # Imported here because scan_jobs imports this module.
     from api.directory_watcher.scan_jobs import queue_scan_followups
 
@@ -393,6 +419,17 @@ def _on_job_finished(job_id: UUID | str) -> None:
         queue_scan_followups(job_id)
     except Exception:
         logger.exception("job %s: could not queue the scan follow-ups", job_id)
+
+
+def _request_upload_followups(job_id: UUID | str, user_id: int | None) -> None:
+    """The user's upload follow-ups, once an upload import job is done (#2737)."""
+    # Imported here because api.jobs.upload_import imports this module.
+    from api.jobs.upload_import import on_import_finished
+
+    try:
+        on_import_finished(job_id, user_id)
+    except Exception:
+        logger.exception("job %s: could not request the upload follow-ups", job_id)
 
 
 def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> None:
@@ -425,6 +462,14 @@ def _queue_embeddings_after_tags(job_id: UUID | str, user_id: int | None) -> Non
         logger.exception("job %s: could not queue the search embeddings", job_id)
 
 
+# What runs when a job of the type finishes, given its id and its starter's id.
+_FINISH_HOOKS: dict[int, Callable[[UUID | str, int | None], None]] = {
+    LongRunningJob.JOB_GENERATE_TAGS: _queue_embeddings_after_tags,
+    LongRunningJob.JOB_SCAN_PHOTOS: _queue_scan_followups,
+    LongRunningJob.JOB_IMPORT_UPLOADS: _request_upload_followups,
+}
+
+
 def update_scan_counter(
     job_id: UUID | str, failed: bool = False, error: str | None = None
 ) -> None:
@@ -446,7 +491,7 @@ def update_scan_counter(
     if failed or error:
 
         def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, bool]:
-            return {"failed": _record_error(result, error, job.progress_target)}
+            return {"failed": record_item_error(result, error, job.progress_target)}
 
         if update_job_result(job_id, add_error) is None:
             # Gone, or cancelled: a cancelled job keeps its "cancelled" result.
@@ -477,7 +522,7 @@ def update_batch_counter(
             "last_progress_at": timezone.now(),
         }
         for error in errors:
-            fields["failed"] = _record_error(result, error, job.progress_target)
+            fields["failed"] = record_item_error(result, error, job.progress_target)
         return fields
 
     if update_job_result(job_id, add_batch) is None:

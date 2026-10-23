@@ -1,8 +1,10 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import { squareThumbnailUrl } from "@librephotos/api-client";
 import { useDb } from "@/db/provider";
 import { getThumb } from "@/sync/thumbs";
+import { Icon } from "./Icon";
 
 /** Normalized grid item — the shape every mirror query maps onto for display. */
 export type GridItem = {
@@ -12,7 +14,24 @@ export type GridItem = {
   type: string | null;
   dominantColor: string | null;
   localUri: string | null;
+  /**
+   * Uploaded, but the server is still making its thumbnail (#2740). Only the
+   * merged timeline knows; every other grid leaves it unset.
+   */
+  processing?: boolean;
 };
+
+/** Which corner badge a tile carries. */
+export type TileBadge = "processing" | "local" | null;
+
+/**
+ * A camera-roll photo the server does not show yet: still processing after its
+ * upload (hourglass), or only on this phone (↑). A server photo has no badge.
+ */
+export function tileBadge(item: Pick<GridItem, "photoId" | "processing">): TileBadge {
+  if (item.photoId !== null) return null;
+  return item.processing ? "processing" : "local";
+}
 
 /**
  * One photo thumbnail. Resolves local-first: a camera-roll asset renders from
@@ -39,7 +58,9 @@ export function PhotoTile({
   selected?: boolean;
 }) {
   const db = useDb();
+  const { t } = useTranslation();
   const uri = resolveUri(db, item, serverAddress);
+  const badge = tileBadge(item);
   return (
     <Pressable
       testID={`tile-${item.key}`}
@@ -62,10 +83,33 @@ export function PhotoTile({
           style={{ position: "absolute", right: 4, bottom: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" }}
         />
       ) : null}
+      {/* Uploaded, and the server is still making the thumbnail: an hourglass
+          rather than the ↑, which would claim the photo is only on this phone.
+          Both go once a delta sync brings the server photo in ready. */}
+      {badge === "processing" ? (
+        <View
+          testID={`processing-badge-${item.key}`}
+          accessible
+          accessibilityLabel={t("timeline.processingOnServer")}
+          style={{
+            position: "absolute",
+            left: 3,
+            bottom: 3,
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: "#208AEF",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="processing" size={9} color="#fff" />
+        </View>
+      ) : null}
       {/* Local-only asset (no remote counterpart yet): pending-upload badge.
           Flips off once the uploaded/exists-matched server row arrives on the
           next delta sync and the merged-timeline join absorbs this row. */}
-      {item.photoId === null ? (
+      {badge === "local" ? (
         <View
           testID={`local-badge-${item.key}`}
           style={{

@@ -7,10 +7,14 @@
  * has to be able to give.
  */
 import { sql } from "drizzle-orm";
+import type { SyncPhotosResponse } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { insertLocalAlbum, insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 import { getBackupConfig, setBackupConfig } from "@/db/queries/backup";
+import { photoItem } from "@/sync/__tests__/fake-source";
+import { applyPhotosPage } from "@/sync/remote/applier";
 import { backupState } from "../status";
+import { markDone, queueList } from "../queue";
 
 /** `count` selected assets, the first `hashedCount` of them already hashed. */
 function seedSelected(t: TestDb, count: number, hashedCount: number): string[] {
@@ -149,9 +153,121 @@ describe("backupState", () => {
       sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
           VALUES ('a0', 'done', 1, 0, 1), ('a1', 'skipped_exists', 1, 0, 1)`
     );
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "r0", imageHash: "h0" }),
+      remotePhoto({ id: "r1", imageHash: "h1" }),
+    ]);
     const state = stateOf(t);
     expect(state.blocker).toBeNull();
-    expect(state.stage.kind).toBe("up_to_date");
+    // Each photo once: the queue row and the mirror row are the same photo.
+    expect(state.stage).toEqual({ kind: "up_to_date", total: 2 });
+  });
+
+  /* -- #2740: uploaded, but the server is still processing ---------------- */
+
+  describe("processing on the server", () => {
+    /** Mark `ids` uploaded, as the worker does after `/api/upload/complete/`. */
+    function uploaded(ids: string[]): void {
+      for (const id of ids) {
+        t.db.run(
+          sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+              VALUES (${id}, 'uploading', 1, 0, 1)`
+        );
+        markDone(t.db, id, `photo-${id}`);
+      }
+    }
+
+    /** One delta page, as the sync loop applies it. */
+    function deltaPage(items: SyncPhotosResponse["items"], tombstones: string[] = []): void {
+      applyPhotosPage(t.db, { v: 1, items, tombstones, next_cursor: null, server_time: "0" }, 5000);
+    }
+
+    it("counts an upload the mirror does not have yet as processing, not as missing", () => {
+      seedSelected(t, 2, 2);
+      uploaded(["a0", "a1"]);
+      const state = stateOf(t);
+      expect(state.counts).toMatchObject({ onServer: 2, processingOnServer: 2 });
+      // Never "up to date" while the server still works on them.
+      expect(state.stage).toEqual({ kind: "processing", uploaded: 2, processing: 2 });
+      expect(state.blocker).toBeNull();
+    });
+
+    it("counts a mirrored photo without a thumbnail as processing", () => {
+      seedSelected(t, 1, 1);
+      uploaded(["a0"]);
+      deltaPage([photoItem("photo-a0", { image_hash: "h0", aspect_ratio: null, timestamp: null })]);
+      expect(stateOf(t).counts.processingOnServer).toBe(1);
+    });
+
+    it("drops to zero once a delta sync brings the photos in with thumbnails", () => {
+      seedSelected(t, 3, 3);
+      seedRemotePhotos(t.db, [remotePhoto({ id: "r2", imageHash: "h2" })]); // backed up long ago
+      uploaded(["a0", "a1"]);
+      expect(stateOf(t).stage).toEqual({ kind: "processing", uploaded: 3, processing: 2 });
+
+      deltaPage([photoItem("photo-a0", { image_hash: "h0" })]);
+      expect(stateOf(t).stage).toEqual({ kind: "processing", uploaded: 3, processing: 1 });
+
+      deltaPage([photoItem("photo-a1", { image_hash: "h1" })]);
+      const state = stateOf(t);
+      expect(state.counts.processingOnServer).toBe(0);
+      expect(state.stage).toEqual({ kind: "up_to_date", total: 3 });
+    });
+
+    it("follows the photo id the completion answered when the hash went stale", () => {
+      // The bytes changed between the hash pass and the upload (an iOS edit):
+      // the server photo's hash is not the one stored on the asset.
+      seedSelected(t, 1, 1);
+      uploaded(["a0"]);
+      deltaPage([photoItem("photo-a0", { image_hash: "edited-bytes" })]);
+      expect(stateOf(t).counts.processingOnServer).toBe(0);
+    });
+
+    it("matches a duplicate the server already had by its hash", () => {
+      seedSelected(t, 1, 1);
+      t.db.run(
+        sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+            VALUES ('a0', 'skipped_exists', 1, 0, 1)`
+      );
+      expect(stateOf(t).counts.processingOnServer).toBe(1);
+      deltaPage([photoItem("older-photo", { image_hash: "h0" })]);
+      expect(stateOf(t).counts.processingOnServer).toBe(0);
+    });
+
+    it("does not count a photo deleted on the server after it was ready", () => {
+      seedSelected(t, 1, 1);
+      uploaded(["a0"]);
+      deltaPage([photoItem("photo-a0", { image_hash: "h0" })]);
+      deltaPage([], ["photo-a0"]);
+      const state = stateOf(t);
+      expect(state.counts.processingOnServer).toBe(0);
+      expect(state.stage.kind).not.toBe("processing");
+    });
+
+    it("keeps the running stage as the headline and counts processing alongside", () => {
+      seedSelected(t, 2, 2);
+      uploaded(["a0"]);
+      t.db.run(
+        sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+            VALUES ('a1', 'uploading', 0.5, 0, 1)`
+      );
+      const state = stateOf(t);
+      expect(state.stage).toEqual({ kind: "uploading", done: 1, total: 2, inFlight: 1 });
+      expect(state.counts.processingOnServer).toBe(1);
+    });
+
+    it("labels the queue row until the photo is ready", () => {
+      seedSelected(t, 2, 2);
+      uploaded(["a0"]);
+      t.db.run(
+        sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+            VALUES ('a1', 'pending', 0, 0, 1)`
+      );
+      const processing = () => Object.fromEntries(queueList(t.db).map((r): [string, number] => [r.asset_id, r.processing]));
+      expect(processing()).toEqual({ a0: 1, a1: 0 });
+      deltaPage([photoItem("photo-a0", { image_hash: "h0" })]);
+      expect(processing()).toEqual({ a0: 0, a1: 0 });
+    });
   });
   /* -- iCloud: photos that are not on the phone at all ------------------- */
 

@@ -79,9 +79,8 @@ class ResolveTargetTest(LibraryTestCase):
         self.addCleanup(os.rmdir, uploads)
         User.objects.filter(pk=self.user.pk).update(upload_directory=uploads)
         self.user.refresh_from_db()
-        self.assertEqual(
-            [self.root, os.path.normpath(uploads)], library_roots(self.user)
-        )
+        # As stored: the spelling the paths below it were recorded with.
+        self.assertEqual([self.root, uploads], library_roots(self.user))
         self.assertEqual(os.path.normpath(uploads), resolve_target(self.user, uploads))
 
 
@@ -116,7 +115,7 @@ class PreviewAndMoveTest(LibraryTestCase):
         already = self.photo("IMG_2.jpg", folder=self.target)
         photos = moves.photos_to_move(self.user, [first.pk, second.pk, already.pk])
 
-        preview = moves.preview_move(photos, self.target)
+        preview = moves.preview_move(moves.MovePlan({self.target: photos}))
 
         self.assertEqual((2, 3, 1), (preview.photos, preview.files, preview.unchanged))
         self.assertEqual(
@@ -134,10 +133,17 @@ class PreviewAndMoveTest(LibraryTestCase):
         target = os.path.join(self.root, "new")
         photos = moves.photos_to_move(self.user, [moved.pk, clash.pk, refused.pk])
 
-        result = moves.move_photos(photos, target, "skip")
+        result = moves.move_photos(moves.MovePlan({target: photos}), "skip")
 
         self.assertEqual(
-            {"moved": 1, "skipped": 1, "unchanged": 0, "refused": 1, "failed": 0},
+            {
+                "moved": 1,
+                "skipped": 1,
+                "unchanged": 0,
+                "refused": 1,
+                "failed": 0,
+                "undated": 0,
+            },
             result.as_dict(),
         )
         self.assertEqual(["IMG_1.jpg"], os.listdir(target))
@@ -150,7 +156,7 @@ class PreviewAndMoveTest(LibraryTestCase):
             "api.photos.moves.move_photo_files",
             side_effect=[moves.MoveError("locked"), moves.MoveOutcome.MOVED],
         ):
-            result = moves.move_photos(photos, self.target, "skip")
+            result = moves.move_photos(moves.MovePlan({self.target: photos}), "skip")
         self.assertEqual((1, 1), (result.moved, result.failed))
 
     def test_only_the_owners_photos(self) -> None:

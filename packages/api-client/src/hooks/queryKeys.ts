@@ -1,4 +1,4 @@
-import type { SearchFilters, SelectAllPhotos } from "../endpoints";
+import type { MapBounds, SearchFilters, SelectAllPhotos, UserPlaceCircle } from "../endpoints";
 import type {
   DuplicateType,
   FaceAnalysisMethod,
@@ -7,6 +7,7 @@ import type {
   MetadataValueField,
   Photoset,
   ReviewStatus,
+  UploadStatusParams,
 } from "../schemas";
 
 // React Query keys for the web and mobile apps: one factory per domain, built hierarchically so one
@@ -49,9 +50,12 @@ type PhotoGridKind =
   | "withoutTimestamp"
   | "withoutLocation"
   | "notInAlbum"
+  | "inBounds"
+  | "userPlace"
   | "myPublicPhotos"
   | "sharedByMe"
-  | "sharedWithMe";
+  | "sharedWithMe"
+  | "sharedWithMeGroup";
 
 const gridRoot = ["photoGrid"] as const;
 const gridKind = <K extends PhotoGridKind>(kind: K) => [...gridRoot, kind] as const;
@@ -101,6 +105,10 @@ export const photoGridKeys = {
     [...photoGridKeys.search(term, mediaType, mode), filters] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
+  /** One of my places' photos (#1365). */
+  userPlace: (id: number, mediaType: MediaType) => [...gridKind("userPlace"), id, mediaType] as const,
+  /** My photos inside a view of the Places map (#343). */
+  inBounds: (bounds: MapBounds) => [...gridKind("inBounds"), bounds] as const,
   /** One page of the photos in none of my albums. */
   notInAlbum: (page: number, mediaType: MediaType) => [...gridKind("notInAlbum"), page, mediaType] as const,
   /** The first `pageSize` of my own public photos and their count (the Sharing overview). */
@@ -113,6 +121,9 @@ export const photoGridKeys = {
   sharedWithMe: () => gridKind("sharedWithMe"),
   /** The photos shared with me as the server sends them. */
   sharedWithMeRaw: () => [...photoGridKeys.sharedWithMe(), "raw"] as const,
+  /** The photos shared with me under one place or thing title, or showing one person (#2721, #2722). */
+  sharedWithMeGroup: (kind: "places" | "things" | "people", key: string) =>
+    [...gridKind("sharedWithMeGroup"), kind, key] as const,
 };
 
 const photoRoot = ["photos"] as const;
@@ -137,9 +148,15 @@ export const photoKeys = {
   locationSummary: (selection: Record<string, unknown>) => [...photoRoot, "locationSummary", selection] as const,
   /** The geotagged photos taken in a window, to copy a location from. */
   locatedNearby: (from: string, to: string) => [...photoRoot, "locatedNearby", from, to] as const,
-  /** What moving a selection to a folder would do (#352), keyed by the selection and the folder. */
-  movePreview: (selection: Record<string, unknown>, targetFolder: string) =>
-    [...photoRoot, "movePreview", selection, targetFolder] as const,
+  /**
+   * What moving a selection to a folder would do (#352), keyed by the selection, the folder and the
+   * date folder pattern (#2774; "" for none).
+   */
+  movePreview: (selection: Record<string, unknown>, targetFolder: string, folderPattern: string) =>
+    [...photoRoot, "movePreview", selection, targetFolder, folderPattern] as const,
+  /** What renaming a selection after its dates would do (#2773), keyed by the selection and the pattern. */
+  renamePreview: (selection: Record<string, unknown>, pattern: string) =>
+    [...photoRoot, "renamePreview", selection, pattern] as const,
 };
 
 // The album lists and pickers. An album's photos are a grid: photoGridKeys.
@@ -162,6 +179,13 @@ export const albumKeys = {
   /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */
   personGroups: () => [...albumKeys.peopleAlbums(), "groups"] as const,
   locationClusters: () => [...albumRoot, "locationClusters"] as const,
+  /** Where my photos were taken, for the Places map (#343). */
+  mapPoints: () => [...albumRoot, "mapPoints"] as const,
+  /** My places (#1365), and under them what a circle being drawn would hold. */
+  userPlaces: () => [...albumRoot, "userPlaces"] as const,
+  userPlacePreview: (circle: UserPlaceCircle) => [...albumKeys.userPlaces(), "preview", circle] as const,
+  /** The place albums with a photo inside a map's view, under the places list so it refreshes with it. */
+  placesInBounds: (bounds: MapBounds) => [...albumKeys.placesAlbums(), "inBounds", bounds] as const,
   /** The albums I shared, grouped by recipient (web). */
   sharedByMe: () => [...albumRoot, "sharedByMe"] as const,
   /** The albums I shared as the server sends them. */
@@ -170,6 +194,8 @@ export const albumKeys = {
   sharedWithMe: () => [...albumRoot, "sharedWithMe"] as const,
   /** The albums shared with me as the server sends them. */
   sharedWithMeRaw: () => [...albumKeys.sharedWithMe(), "raw"] as const,
+  /** The places, things or people of the photos shared with me (#2721, #2722). */
+  sharedWithMeGroups: (kind: "places" | "things" | "people") => [...albumKeys.sharedWithMe(), "groups", kind] as const,
   /** Every folder listing, paged or not. */
   folders: () => [...albumRoot, "folders"] as const,
   /** Every subfolder of one folder, all pages read at once (the folder page). */
@@ -271,8 +297,12 @@ export const jobKeys = {
   all: jobRoot,
   list: (request: JobListParams) => [...jobRoot, "list", request] as const,
   detail: (id: number) => [...jobRoot, "detail", id] as const,
+  /** The Library page's processing status (#2741): under `all`, so a job change refreshes it. */
+  processingStatus: () => [...jobRoot, "processingStatus"] as const,
   /** The Finish the upgrade card's tasks (#2322): under `all`, so a job change refreshes them. */
   upgradeTasks: () => [...jobRoot, "upgradeTasks"] as const,
+  /** The caller's upload imports and follow-ups (#2739), with the jobs and photos the upload card follows. */
+  uploadStatus: (params: UploadStatusParams) => [...jobRoot, "uploadStatus", params] as const,
   /** Whether the worker can take a job (not under `all`: a job change does not always move it). */
   worker: () => ["worker"] as const,
 };
@@ -309,6 +339,8 @@ export const serverKeys = {
   logs: (lines: number) => [...serverRoot, "logs", lines] as const,
   stats: () => [...serverRoot, "stats"] as const,
   storageStats: () => [...serverRoot, "storageStats"] as const,
+  /** The update check's result (admins, #2311). */
+  updates: () => [...serverRoot, "updates"] as const,
 };
 
 const serviceRoot = ["services"] as const;
@@ -329,6 +361,9 @@ export const settingsKeys = {
   emailConfig: () => [...settingsRoot, "emailConfig"] as const,
   predefinedBurstRules: () => [...settingsRoot, "predefinedBurstRules"] as const,
   predefinedRules: () => [...settingsRoot, "predefinedRules"] as const,
+  dateRuleOptions: () => [...settingsRoot, "dateRuleOptions"] as const,
+  /** What the saved date rules read from one photo ("Why this date?"). */
+  dateRulesTest: (photoId: string) => [...settingsRoot, "dateRulesTest", photoId] as const,
   timezones: () => [...settingsRoot, "timezones"] as const,
   trashRetentionPreview: (days: number) => [...settingsRoot, "trashRetentionPreview", days] as const,
   /** What "Write metadata to files" would write, for the saved write mode and face tag switch. */
@@ -378,4 +413,13 @@ export const userKeys = {
   selfDetails: () => [...userRoot, "self"] as const,
   /** A user's details. The id is a string in the key, whether the caller has it as a number or not. */
   selfDetail: (userId: string | number) => [...userKeys.selfDetails(), String(userId)] as const,
+  /** Photos a scan directory not saved yet would leave outside a user's library (admin, #2036). */
+  scanDirectoryImpact: (userId: number, scanDirectory: string, uploadDirectory: string) =>
+    [...userRoot, "scanDirectoryImpact", userId, scanDirectory, uploadDirectory] as const,
+  /** The folders of a library (#123): the signed-in user's own ("self"), or a user's for an admin. */
+  libraryFolders: (userId: number | "self") => [...userRoot, "libraryFolders", userId] as const,
+  /** Every listing of the folders inside a folder of the signed-in user's library (#791). */
+  librarySubfoldersAll: () => [...userRoot, "librarySubfolders"] as const,
+  /** The folders inside one folder of the signed-in user's library (#791). */
+  librarySubfolders: (path: string) => [...userRoot, "librarySubfolders", path] as const,
 };
