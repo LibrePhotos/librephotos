@@ -12,8 +12,12 @@ browser and the tray icon) on a fresh data folder and free ports, then uses it:
 3. checks that /api/imagetag reports ``--tag`` (the build_info.json the build wrote);
 4. checks that every enabled sidecar answers, through the API and on its own
    port, and, for a compiled build, runs under its own process name;
-5. scans three sample photos (deploy/e2e/photos) and waits for their thumbnails;
-6. kills the root process the way Task Manager's End task does (no tree kill)
+5. computes a perceptual hash inside the program (``manage shell -c``): the
+   build once shipped without imagehash, which is only imported by name;
+6. scans three sample photos (deploy/e2e/photos), waits for their thumbnails
+   and fails when the scan job recorded an error for any file (thumbnails come
+   first, so a photo whose processing broke halfway still has one);
+7. kills the root process the way Task Manager's End task does (no tree kill)
    and fails if any process of the build outlives it: that is the job object's
    promise in librephotos/standalone.py.
 
@@ -35,6 +39,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import secrets
 import shutil
 import socket
@@ -357,6 +362,22 @@ def check_migrations(app: App) -> None:
         raise SmokeError(f"unapplied migrations after the start: {error}") from error
 
 
+PHASH_PROBE = (
+    "from api.duplicates.perceptual_hash import calculate_perceptual_hash; "
+    "print('phash=%s' % calculate_perceptual_hash({path!r}))"
+)
+
+
+def check_perceptual_hash(app: App) -> None:
+    """The scan's duplicate detection works: imagehash is imported by name
+    (api/lazy_import.py), which a build can leave out without any error."""
+    step("computing a perceptual hash")
+    sample = str(SAMPLE_PHOTOS / SAMPLE_NAMES[0])
+    output = app.manage("shell", "-c", PHASH_PROBE.format(path=sample))
+    if not re.search(r"^phash=[0-9a-f]{16}$", output, re.MULTILINE):
+        raise SmokeError(f"no perceptual hash for {sample}:\n{output[-1000:]}")
+
+
 def log_in(app: App, api: Api) -> int:
     """Create the admin from the environment, as the e2e seed does, and log in.
     Returns the admin's user id."""
@@ -490,6 +511,33 @@ def thumbnailed_photos(api: Api, expected: int) -> list[dict[str, Any]] | None:
     return None
 
 
+SCAN_JOB_TYPE = 1  # LongRunningJob.JOB_SCAN_PHOTOS
+
+
+def finished_scan_jobs(api: Api) -> list[dict[str, Any]] | None:
+    """The scan jobs once every one of them has finished, else None."""
+    body = api.json("GET", "/api/jobs/")
+    results = body.get("results") if isinstance(body, dict) else None
+    if not isinstance(results, list):
+        raise SmokeError(f"/api/jobs answered {body!r}")
+    scans = [job for job in results if job.get("job_type") == SCAN_JOB_TYPE]
+    if scans and all(job.get("finished") for job in scans):
+        return scans
+    return None
+
+
+def check_scan_errors(scans: Iterable[Mapping[str, Any]]) -> None:
+    """Every file of the scan was processed: no error recorded, not failed."""
+    for job in scans:
+        result = job.get("result") or {}
+        if job.get("failed") or result.get("error_count"):
+            errors = result.get("errors") or result.get("error")
+            raise SmokeError(
+                f"scan job {job.get('job_id')} recorded "
+                f"{result.get('error_count', 0)} failed file(s): {errors!r}"
+            )
+
+
 def scan_samples(app: App, api: Api, user_id: int) -> None:
     step("scanning the sample photos")
     for name in SAMPLE_NAMES:
@@ -505,6 +553,14 @@ def scan_samples(app: App, api: Api, user_id: int) -> None:
         THUMBNAIL_TIMEOUT_SECONDS,
         f"thumbnails of {len(SAMPLE_NAMES)} photos",
         app.running,
+    )
+    check_scan_errors(
+        wait_until(
+            lambda: finished_scan_jobs(api),
+            THUMBNAIL_TIMEOUT_SECONDS,
+            "the scan job to finish",
+            app.running,
+        )
     )
     for photo in photos:
         path = f"/media/thumbnails_big/{photo['image_hash']}"
@@ -625,6 +681,7 @@ def run_checks(app: App, program: Path | None, tag: str | None) -> None:
     user_id = log_in(app, api)
     check_tag(api, tag)
     services = check_services(app, api, ports)
+    check_perceptual_hash(app)
     if program is not None:
         check_process_names(program, services)
     scan_samples(app, api, user_id)
