@@ -143,9 +143,14 @@ class StageRuntimeFilesTest(SimpleTestCase):
                 self.build.START_HERE_TEXT,
                 (dist / "START_HERE.txt").read_text(encoding="utf-8"),
             )
+            info = json.loads((dist / "build_info.json").read_text(encoding="utf-8"))
             self.assertEqual(
                 {"version": "9.9.9", "git_hash": "abc1234"},
-                json.loads((dist / "build_info.json").read_text(encoding="utf-8")),
+                {key: info[key] for key in ("version", "git_hash")},
+            )
+            # What the updater deletes an old program folder by (#2788).
+            self.assertEqual(
+                sorted(path.name for path in dist.iterdir()), info["files"]
             )
             for target in self.build.BUNDLED_BINARY_DIRS.values():
                 self.assertTrue((dist / target / "tool.exe").is_file())

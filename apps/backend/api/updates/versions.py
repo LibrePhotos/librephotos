@@ -14,8 +14,9 @@ import re
 _WEEKLY_SCHEME = 0
 _SEMVER_SCHEME = 1
 
-_SEMVER = re.compile(r"v?(\d+)\.(\d+)\.(\d+)")
-_WEEKLY = re.compile(r"(\d{4})w(\d{1,2})")
+# [0-9], not \d: \d also matches other scripts' digits ("٩.٠.٠").
+_SEMVER = re.compile(r"v?([0-9]+)\.([0-9]+)\.([0-9]+)")
+_WEEKLY = re.compile(r"([0-9]{4})w([0-9]{1,2})")
 
 Version = tuple[int, int, int, int]
 

@@ -114,12 +114,12 @@ def side(folder: Path) -> str:
 
 
 def check_swap(app: Path) -> None:
-    current, rollback = app / "librephotos", app / "librephotos-old"
-    if (
-        side(current) != "new"
-        or side(rollback) != "old"
-        or (app / "librephotos-next").exists()
-    ):
+    found_sides = (
+        side(app / "librephotos"),
+        side(app / "librephotos-old"),
+        (app / "librephotos-next").exists(),
+    )
+    if found_sides != ("new", "old", False):
         found = sorted(path.name for path in app.iterdir())
         raise SmokeError(f"the program folders did not trade places: {found}")
 
@@ -157,6 +157,12 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def stop_everything(work: Path) -> None:
+    """The new instance and anything else still running from the folders."""
+    for name in FOLDERS:
+        kill_all(processes_in(work / "app" / name))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     work = args.work_dir or Path(tempfile.mkdtemp(prefix="librephotos-update-"))
@@ -169,9 +175,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"update smoke: FAILED: {error}", file=sys.stderr, flush=True)
         return 1
     finally:
-        # The new instance and anything else still running from the folders.
-        for name in FOLDERS:
-            kill_all(processes_in(layout.work / "app" / name))
+        stop_everything(layout.work)
     print(f"update smoke: passed (logs in {layout.logs})", flush=True)
     return 0
 

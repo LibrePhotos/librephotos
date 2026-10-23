@@ -5,6 +5,7 @@ states, when it is not offered, and ``/api/updates/install/`` and
 import tempfile
 import threading
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -21,6 +22,7 @@ from api.updates.download import DownloadError
 from api.updates.install import (
     DATA_IN_PROGRAM_FOLDER,
     FAILED,
+    LIBRARY_IN_PROGRAM_FOLDER,
     NOT_WINDOWS_APP,
     READ_ONLY,
     READY,
@@ -167,9 +169,14 @@ class EnableTest(SimpleTestCase):
         self.assertEqual(state["reason"], NOT_WINDOWS_APP)
         self.assertIsNone(install.installer())
 
+    def enable(self, data_dirs, libraries=()):
+        # enable() keeps the function and asks it each time.
+        with patch.object(install, "library_dirs", lambda: list(libraries)):
+            return enable(self.program, data_dirs, MagicMock())
+
     def test_enabled_for_a_program_folder_it_may_replace(self):
         data = self.program.parent / "data"
-        updater = enable(self.program, [data], MagicMock())
+        updater = self.enable([data])
         self.assertIs(install.installer(), updater)
         self.assertTrue(install_state(None)["supported"])
 
@@ -178,8 +185,31 @@ class EnableTest(SimpleTestCase):
             blocked_reason(self.program, [self.program / "data"]),
             DATA_IN_PROGRAM_FOLDER,
         )
-        self.assertIsNone(enable(self.program, [self.program], MagicMock()))
+        updater = self.enable([self.program])
         self.assertEqual(install_state(VERSION)["reason"], DATA_IN_PROGRAM_FOLDER)
+        self.assertFalse(install_state(VERSION)["supported"])
+        with self.assertRaises(InstallError) as raised:
+            updater.start(VERSION)
+        self.assertEqual(raised.exception.code, DATA_IN_PROGRAM_FOLDER)
+        with self.assertRaises(InstallError):
+            updater.restart()
+
+    def test_a_photo_folder_inside_the_program_folder_blocks_it(self):
+        # The swap moves it to librephotos-old, the update after deletes it.
+        self.enable([self.program.parent / "data"], [self.program / "photos"])
+        self.assertEqual(install_state(VERSION)["reason"], LIBRARY_IN_PROGRAM_FOLDER)
+
+    def test_library_dirs_are_every_users_photo_folders(self):
+        with patch.object(install, "settings", SimpleNamespace(DATA_ROOT="")):
+            with patch.object(install.User.objects, "values_list") as users:
+                users.return_value = [("C:/a", ""), ("", "C:/up")]
+                with patch.object(
+                    install.LibraryFolder.objects, "values_list", return_value=["C:/b"]
+                ):
+                    self.assertEqual(
+                        install.library_dirs(),
+                        [Path("C:/a"), Path("C:/up"), Path("C:/b")],
+                    )
 
     def test_a_folder_it_cannot_write_next_to_blocks_it(self):
         with patch.object(install.tempfile, "mkdtemp", side_effect=PermissionError):

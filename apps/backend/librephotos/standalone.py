@@ -25,6 +25,7 @@ import argparse
 import errno
 import importlib
 import json
+import logging
 import os
 import re
 import subprocess
@@ -47,6 +48,8 @@ if TYPE_CHECKING:
 
     from librephotos.tray import Tray
     from librephotos.updater import Launch
+
+logger = logging.getLogger(__name__)
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
@@ -1198,11 +1201,16 @@ def enable_updater(startup: Startup, url: str) -> None:
         return
     from api.updates import install
 
-    install.enable(
-        Path(install_root()),
-        [Path(os.environ["BASE_DATA"]), Path(os.environ["BASE_LOGS"])],
-        lambda staged: startup.restart_to_update(staged, url),
-    )
+    try:
+        install.enable(
+            Path(install_root()),
+            [Path(os.environ["BASE_DATA"]), Path(os.environ["BASE_LOGS"])],
+            lambda staged: startup.restart_to_update(staged, url),
+        )
+    except Exception:
+        # An updater problem must never keep LibrePhotos from starting: the
+        # update steps in the docs still work.
+        logger.exception("The built-in updater is off")
 
 
 def _say_when_running(

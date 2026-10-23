@@ -25,8 +25,11 @@ from pathlib import Path
 from typing import TypedDict
 
 import requests
+from django.conf import settings
 
+from api.models.library_folder import LibraryFolder
 from api.models.long_running_job import LongRunningJob
+from api.models.user import User
 
 from . import signature
 from .download import DownloadError
@@ -52,9 +55,14 @@ BUSY = frozenset({DOWNLOADING, VERIFYING, EXTRACTING, RESTARTING})
 NOT_WINDOWS_APP = "not_windows_app"
 READ_ONLY = "read_only"
 DATA_IN_PROGRAM_FOLDER = "data_in_program_folder"
+LIBRARY_IN_PROGRAM_FOLDER = "library_in_program_folder"
+# A failure no DownloadError names; the log has the traceback.
+UNEXPECTED = "unexpected"
 
 # restart(prepared folder): start librephotos.updater from it, then quit.
 RestartHook = Callable[[Path], None]
+# The folders of every user's library (library_dirs).
+Libraries = Callable[[], Sequence[Path]]
 
 
 class InstallState(TypedDict):
@@ -103,6 +111,16 @@ def _as_state(progress: _Progress, reason: str | None = None) -> InstallState:
     )
 
 
+@dataclasses.dataclass(frozen=True)
+class Surroundings:
+    """What must not be inside the program folder: the data folders, and the
+    libraries (``libraries`` asks the database each time, since an admin can
+    move a scan directory at any time)."""
+
+    data_dirs: Sequence[Path] = ()
+    libraries: Libraries = lambda: ()
+
+
 class Installer:
     """One program folder's updater. Every method is safe from any thread."""
 
@@ -110,10 +128,12 @@ class Installer:
         self,
         folder: ProgramFolder,
         restart: RestartHook,
+        surroundings: Surroundings | None = None,
         session_factory: Callable[[], requests.Session] = requests.Session,
     ) -> None:
         self.folder = folder
         self._restart = restart
+        self._surroundings = surroundings or Surroundings()
         self._session_factory = session_factory
         self._lock = threading.Lock()
         self._now = _Progress()
@@ -137,11 +157,26 @@ class Installer:
             now = self._now
         return self._publish(now)
 
+    def blocked(self) -> str | None:
+        """Why this program folder cannot be replaced now, or None."""
+        surroundings = self._surroundings
+        return blocked_reason(
+            self.folder.path, surroundings.data_dirs, surroundings.libraries()
+        )
+
+    def _check_allowed(self) -> None:
+        reason = self.blocked()
+        if reason is not None:
+            raise InstallError(reason)
+
     def state(self, latest: str | None = None) -> InstallState:
         """The state now. ``latest``, the newest release, counts as ready
         when an earlier run of LibrePhotos prepared it already."""
         with self._lock:
             now = self._now
+        reason = self.blocked()
+        if reason is not None:
+            return _as_state(now, reason)
         if (
             latest
             and now.state in (IDLE, FAILED)
@@ -157,6 +192,7 @@ class Installer:
 
     def start(self, version: str) -> InstallState:
         """Download, check and unpack ``version`` in the background."""
+        self._check_allowed()
         with self._lock:
             now = self._now
             if now.version == version and (now.state in BUSY or now.state == READY):
@@ -200,6 +236,10 @@ class Installer:
                 "Update to %s failed on disk: errno %s", version, error.errno
             )
             self._settle(FAILED, "disk_error")
+        except Exception:
+            # Never leave the updater busy for good: anything else fails it.
+            logger.exception("Update to %s failed unexpectedly", version)
+            self._settle(FAILED, UNEXPECTED)
         else:
             self._staged = staged
             self._settle(READY, None)
@@ -207,6 +247,7 @@ class Installer:
     def restart(self) -> InstallState:
         """Hand over to the prepared release: LibrePhotos quits and the new
         release starts in its place."""
+        self._check_allowed()
         with self._lock:
             staged = self._staged
             if self._now.state != READY or staged is None:
@@ -226,7 +267,6 @@ class Installer:
 @dataclasses.dataclass
 class _Registry:
     installer: Installer | None = None
-    reason: str = NOT_WINDOWS_APP
 
 
 _registry = _Registry()
@@ -234,7 +274,11 @@ _registry = _Registry()
 
 def _inside(path: Path, folder: Path) -> bool:
     real_path, real_folder = os.path.realpath(path), os.path.realpath(folder)
-    return os.path.commonpath([real_path, real_folder]) == real_folder
+    try:
+        return os.path.commonpath([real_path, real_folder]) == real_folder
+    except ValueError:
+        # Different drives (D:\ and C:\) have no common path: not inside.
+        return False
 
 
 def _writable(folder: Path) -> bool:
@@ -245,11 +289,28 @@ def _writable(folder: Path) -> bool:
     return True
 
 
-def blocked_reason(program_dir: Path, data_dirs: Sequence[Path]) -> str | None:
-    """Why this program folder cannot be replaced, or None when it can."""
+def library_dirs() -> list[Path]:
+    """Every folder photos live in: the topmost photo folder (PHOTOS), each
+    user's scan directory and upload folder, and their library folders."""
+    folders = User.objects.values_list("scan_directory", "upload_directory")
+    paths = [
+        settings.DATA_ROOT,
+        *(path for pair in folders for path in pair),
+        *LibraryFolder.objects.values_list("path", flat=True),
+    ]
+    return [Path(path) for path in paths if path]
+
+
+def blocked_reason(
+    program_dir: Path, data_dirs: Sequence[Path], libraries: Sequence[Path] = ()
+) -> str | None:
+    """Why this program folder cannot be replaced, or None when it can. The
+    swap moves the folder to librephotos-old, and the update after deletes
+    it: nothing of the user's may be inside."""
     if any(_inside(data, program_dir) for data in data_dirs):
-        # The swap would move the library into librephotos-old.
         return DATA_IN_PROGRAM_FOLDER
+    if any(_inside(library, program_dir) for library in libraries):
+        return LIBRARY_IN_PROGRAM_FOLDER
     if not _writable(program_dir.parent):
         # Program Files, or a folder the user cannot write to.
         return READ_ONLY
@@ -258,14 +319,12 @@ def blocked_reason(program_dir: Path, data_dirs: Sequence[Path]) -> str | None:
 
 def enable(
     program_dir: Path, data_dirs: Sequence[Path], restart: RestartHook
-) -> Installer | None:
+) -> Installer:
     """Turn the updater on for the running program folder (the Windows app's
-    root process); returns None when the folder cannot be replaced."""
-    reason = blocked_reason(program_dir, data_dirs)
-    _registry.reason = reason or NOT_WINDOWS_APP
-    _registry.installer = (
-        None if reason else Installer(ProgramFolder(program_dir), restart)
-    )
+    root process). Whether it may replace the folder is asked each time
+    (``Installer.blocked``)."""
+    surroundings = Surroundings(tuple(data_dirs), library_dirs)
+    _registry.installer = Installer(ProgramFolder(program_dir), restart, surroundings)
     return _registry.installer
 
 
@@ -277,7 +336,7 @@ def install_state(latest: str | None) -> InstallState:
     """What the updater can do for ``latest``, the newest release known."""
     current = _registry.installer
     if current is None:
-        return _as_state(_Progress(), _registry.reason)
+        return _as_state(_Progress(), NOT_WINDOWS_APP)
     return current.state(latest)
 
 

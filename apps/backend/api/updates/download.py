@@ -38,7 +38,7 @@ MAX_REDIRECTS = 5
 CHUNK_BYTES = 2**20
 _REDIRECTS = frozenset({301, 302, 303, 307, 308})
 # X.Y.Z only: the version goes into a URL path.
-_RELEASE_VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
+_RELEASE_VERSION = re.compile(r"[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}")
 # sha256sum's format: "<64 hex>  <name>", or "<64 hex> *<name>" in binary mode.
 _CHECKSUM_LINE = re.compile(r"([0-9a-fA-F]{64}) [ *](.+)")
 

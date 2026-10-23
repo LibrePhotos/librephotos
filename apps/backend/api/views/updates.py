@@ -30,6 +30,11 @@ INSTALL_ERRORS = {
     "update_in_progress": "Another release is being downloaded.",
     "update_not_ready": "The update has not been downloaded yet.",
     "restart_failed": "LibrePhotos could not start the new release.",
+    "data_in_program_folder": "The data folder is inside the program folder,"
+    " which an update replaces.",
+    "library_in_program_folder": "A photo folder is inside the program folder,"
+    " which an update replaces.",
+    "read_only": "LibrePhotos cannot write next to its program folder.",
 }
 
 

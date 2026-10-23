@@ -27,10 +27,28 @@ BUILD_INFO = "build_info.json"
 # The 1.4.0 zip has about 9,000 entries and unpacks to 1.1 GB.
 MAX_ENTRIES = 100_000
 MAX_UNPACKED_BYTES = 8 * 2**30
+# Windows opens these names as devices, with any extension and with spaces
+# before it ("nul .txt"); COM and LPT also take 0 and the superscript digits.
+_DEVICE_DIGITS = "0123456789\u00b9\u00b2\u00b3"
 _WINDOWS_DEVICES = frozenset(
-    {"con", "prn", "aux", "nul"}
-    | {f"com{n}" for n in range(1, 10)}
-    | {f"lpt{n}" for n in range(1, 10)}
+    {"con", "prn", "aux", "nul", "conin$", "conout$"}
+    | {f"com{digit}" for digit in _DEVICE_DIGITS}
+    | {f"lpt{digit}" for digit in _DEVICE_DIGITS}
+)
+
+
+# What zipfile raises on a damaged or unusual archive: a broken structure, a
+# name that is not valid UTF-8 although flagged so, an unsupported compression
+# method or encryption.
+_ZIP_ERRORS = (
+    zipfile.BadZipFile,
+    zlib.error,
+    EOFError,
+    UnicodeDecodeError,
+    NotImplementedError,
+    RuntimeError,
+    ValueError,
+    OverflowError,
 )
 
 
@@ -42,7 +60,7 @@ def _safe_part(part: str) -> bool:
     return (
         part not in ("", ".", "..")
         and not part.endswith((".", " "))
-        and part.split(".", 1)[0].lower() not in _WINDOWS_DEVICES
+        and part.split(".", 1)[0].rstrip(" ").lower() not in _WINDOWS_DEVICES
     )
 
 
@@ -63,7 +81,11 @@ def _is_link(info: zipfile.ZipInfo) -> bool:
 
 def _inside(path: Path, folder: Path) -> bool:
     real_folder = os.path.realpath(folder)
-    return os.path.commonpath([os.path.realpath(path), real_folder]) == real_folder
+    try:
+        return os.path.commonpath([os.path.realpath(path), real_folder]) == real_folder
+    except ValueError:
+        # Another drive: not inside.
+        return False
 
 
 def _check_sizes(entries: list[zipfile.ZipInfo]) -> None:
@@ -100,7 +122,7 @@ def extract_release(zip_path: Path, target: Path) -> Path:
             _check_sizes(entries)
             for entry in entries:
                 _extract_entry(archive, entry, target)
-    except (zipfile.BadZipFile, zlib.error, EOFError) as error:
+    except _ZIP_ERRORS as error:
         raise DownloadError("bad_zip") from error
     return target / TOP_DIR
 

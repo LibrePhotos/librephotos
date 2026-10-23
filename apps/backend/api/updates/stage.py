@@ -90,7 +90,7 @@ class ProgramFolder:
 def read_marker(folder: Path) -> dict[str, object] | None:
     try:
         marker = json.loads((folder / MARKER_NAME).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
     return marker if isinstance(marker, dict) else None
 

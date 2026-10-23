@@ -305,7 +305,8 @@ What happens on your disk, next to the program folder (for example in `C:\Users\
   new release starts with the same options as the old one (`--data-dir`, `--port`, ...).
 - `librephotos-old` stays: it is the way [back to the previous release](#going-back). The
   `librephotos-old` of the update before is deleted, but only once the new release has started and
-  answers. A log of each update is in `update.log` in the logs folder (tray: **Open logs**).
+  answers, and only if it holds nothing but that release: anything you put into it yourself keeps
+  it there. A log of each update is in `update.log` in the logs folder (tray: **Open logs**).
 
 If the new release does not start, nothing is deleted and a message box says where the old release
 is; [Going back](#going-back) has the steps.
@@ -323,7 +324,9 @@ own folder:
 
 - the program folder is somewhere it cannot write next to, such as `C:\Program Files` (see [Choosing
   a folder](#choosing-a-folder));
-- the data folder (`--data-dir`) is inside the program folder, which an update replaces.
+- the data folder (`--data-dir`) is inside the program folder, which an update replaces;
+- a photo folder is inside the program folder: the topmost photos folder (`--photos`), a user's scan
+  directory or upload folder, or a library folder. Keep your photos outside the program folder.
 
 ### Updating by hand {#update-by-hand}
 

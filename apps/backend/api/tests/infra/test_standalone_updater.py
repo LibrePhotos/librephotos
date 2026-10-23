@@ -33,8 +33,11 @@ URL = "http://127.0.0.1:8000/"
 
 
 def program(folder, version):
+    """A release's program folder, with the build's list of its files."""
     folder.mkdir(parents=True)
     (folder / "librephotos.exe").write_text(version)
+    files = ["build_info.json", "librephotos.exe"]
+    (folder / "build_info.json").write_text(json.dumps({"files": files}))
     return folder
 
 
@@ -304,8 +307,9 @@ class RemoveSupersededTest(SimpleTestCase):
         plan = SwapPlan(folders.current, folders.staged, folders.rollback, other)
         updater.remove_superseded(plan, log)
         self.assertTrue((other / "my notes.txt").exists())
-        program(other / "inner", "x")
-        (other / "librephotos.exe").write_text("1.3.0")
+        (other / "my notes.txt").unlink()
+        other.rmdir()
+        program(other, "1.3.0")
         updater.remove_superseded(plan, log)
         self.assertFalse(other.exists())
         self.assertIn("deleted", log.call_args.args[0])

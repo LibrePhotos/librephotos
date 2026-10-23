@@ -32,10 +32,13 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import logging
 import os
+import re
 import shutil
 import subprocess
 import time
+import traceback
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +47,14 @@ import psutil
 import requests
 
 EXECUTABLE = "librephotos.exe"
+# Written by scripts/build_standalone.py; its "files" lists the release's
+# top-level entries (remove_superseded).
+BUILD_INFO = "build_info.json"
+# api/updates/stage.py marks a prepared release with it.
+UPDATE_MARKER = ".librephotos-update.json"
+# The process-name hard links LibrePhotos makes next to the binary
+# (librephotos.standalone.PROCESS_NAMES).
+_RUNTIME_LINK = re.compile(r"librephotos-[a-z]+\.exe")
 FINISH_COMMAND = "finish-update"
 ROLLBACK_SUFFIX = "-old"
 LOG_NAME = "update.log"
@@ -66,12 +77,19 @@ MESSAGE_SWAP_FAILED = (
     "was not installed and the release you had was started again. The new "
     "release is ready in {staged}."
 )
+MESSAGE_FAILED = (
+    "Updating LibrePhotos failed ({error}). LibrePhotos was started again. If "
+    "it does not work, the release you had is in {rollback}; to go back to it, "
+    "see {url}"
+)
 MESSAGE_NOT_READY = (
     "The new release of LibrePhotos did not start. The release you had is in "
     "{rollback}. To go back to it, see {url}"
 )
 
 Notify = Callable[[str], None]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -205,7 +223,7 @@ def plan_swap(current: Path, staged: Path, stamp: str) -> SwapPlan:
     """``stamp`` names the place an earlier ``librephotos-old`` moves to."""
     if staged.parent != current.parent or staged == current:
         raise ValueError("the new release is not next to the program folder")
-    rollback = current.with_name(current.name + ROLLBACK_SUFFIX)
+    rollback = rollback_of(current)
     superseded = (
         rollback.with_name(f"{rollback.name}.superseded-{stamp}")
         if os.path.lexists(rollback)
@@ -241,11 +259,20 @@ def wait_for_exit(pid: int, timeout: float) -> bool:
     return True
 
 
+def inside(path: str, folder: str) -> bool:
+    """``path`` is ``folder`` or below it; never for another drive."""
+    try:
+        return os.path.commonpath([path, folder]) == folder
+    except ValueError:
+        # D:\ and C:\ have no common path (Windows raises for that).
+        return False
+
+
 def _runs_from(process: psutil.Process, folder: str) -> bool:
     executable = process.info.get("exe")
     if not executable or process.pid == os.getpid():
         return False
-    return os.path.commonpath([os.path.realpath(executable), folder]) == folder
+    return inside(os.path.realpath(executable), folder)
 
 
 def processes_in(folder: Path) -> list[psutil.Process]:
@@ -304,12 +331,40 @@ def wait_ready(
     return False
 
 
+def unexpected_entries(folder: Path) -> list[str] | None:
+    """What ``folder`` holds beyond the release it is: the entries its
+    ``build_info.json`` does not list (``files``, written by the build), apart
+    from what LibrePhotos adds itself (the process-name links, the update
+    marker). None when it does not say what it holds: then it may hold
+    anything, and nothing in it is deleted."""
+    try:
+        info = json.loads((folder / BUILD_INFO).read_text(encoding="utf-8"))
+        names = os.listdir(folder)
+    except OSError, ValueError:
+        return None
+    files = info.get("files") if isinstance(info, dict) else None
+    if not isinstance(files, list) or not (folder / EXECUTABLE).is_file():
+        return None
+    allowed = {name for name in files if isinstance(name, str)} | {UPDATE_MARKER}
+    return sorted(
+        name
+        for name in names
+        if name not in allowed and not _RUNTIME_LINK.fullmatch(name)
+    )
+
+
 def remove_superseded(plan: SwapPlan, log: Callable[[str], None]) -> None:
-    """Delete the earlier ``librephotos-old``, if it is a LibrePhotos folder."""
+    """Delete the earlier ``librephotos-old``, but only when it holds exactly a
+    release: a folder with anything else in it (a photo folder someone put
+    there, notes) or without the build's list of files is left alone."""
     if plan.superseded is None:
         return
-    if not (plan.superseded / EXECUTABLE).is_file():
-        log(f"left {plan.superseded} alone: it holds no {EXECUTABLE}")
+    extra = unexpected_entries(plan.superseded)
+    if extra is None:
+        log(f"left {plan.superseded} alone: it does not list what it holds")
+        return
+    if extra:
+        log(f"left {plan.superseded} alone: it also holds {', '.join(extra[:10])}")
         return
     shutil.rmtree(plan.superseded, ignore_errors=True)
     if os.path.lexists(plan.superseded):
@@ -334,11 +389,48 @@ def _swap_or_restore(
     return plan
 
 
+def rollback_of(program_dir: Path) -> Path:
+    return program_dir.with_name(program_dir.name + ROLLBACK_SUFFIX)
+
+
+def recover(request: FinishRequest, log: Callable[[str], None]) -> None:
+    """After an unexpected failure: unless a LibrePhotos answers already,
+    start the release in the program folder, or else the one in
+    ``librephotos-old``, so the user is not left without LibrePhotos."""
+    if _answers_ready(request.url):
+        return
+    for folder in (request.old_dir, rollback_of(request.old_dir)):
+        if (folder / EXECUTABLE).is_file():
+            try:
+                launch_release(folder, request)
+            except OSError as error:
+                log(f"could not start {folder / EXECUTABLE}: {error}")
+                continue
+            log(f"started {folder / EXECUTABLE} again")
+            return
+    log("found no LibrePhotos to start")
+
+
 def finish_update(request: FinishRequest, notify: Notify) -> int:
     """``librephotos.exe finish-update``: the steps in the module docstring.
     ``notify`` tells the user why it failed (a message box). Returns the exit
-    code."""
+    code; never raises, since nobody would see it."""
     log = Log(request.log)
+    try:
+        return _finish(request, notify, log)
+    except Exception as error:
+        logger.exception("The update failed")
+        log(f"the update failed:\n{traceback.format_exc()}")
+        recover(request, log)
+        notify(
+            MESSAGE_FAILED.format(
+                error=error, rollback=rollback_of(request.old_dir), url=GOING_BACK_URL
+            )
+        )
+        return 1
+
+
+def _finish(request: FinishRequest, notify: Notify, log: Log) -> int:
     log(f"update: {request.staged} replaces {request.old_dir}")
     if not wait_for_exit(request.old_pid, OLD_EXIT_TIMEOUT_SECONDS):
         log(f"process {request.old_pid} did not exit")

@@ -16,6 +16,7 @@ const FAILURES: Partial<Record<string, ParseKeys>> = {
   unreachable: "updates.install.failure.network",
   interrupted: "updates.install.failure.network",
   restart_failed: "updates.install.failure.restart_failed",
+  bad_zip: "updates.install.failure.bad_zip",
 };
 
 export function installFailureKey(code: string | null): ParseKeys {
@@ -26,6 +27,7 @@ export function installFailureKey(code: string | null): ParseKeys {
 const UNSUPPORTED: Partial<Record<string, ParseKeys>> = {
   read_only: "updates.install.unsupported.read_only",
   data_in_program_folder: "updates.install.unsupported.data_in_program_folder",
+  library_in_program_folder: "updates.install.unsupported.library_in_program_folder",
 };
 
 export function unsupportedReasonKey(reason: string | null): ParseKeys | null {

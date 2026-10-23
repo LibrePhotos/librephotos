@@ -34,8 +34,10 @@ on:
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
       - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/scripts/smoke_update.py'
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
       - 'apps/backend/librephotos/settings/standalone.py'
       - '.github/workflows/standalone-windows.yml'
   push:
@@ -46,8 +48,10 @@ on:
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
       - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/scripts/smoke_update.py'
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
       - 'apps/backend/librephotos/settings/standalone.py'
       - '.github/workflows/standalone-windows.yml'
   workflow_dispatch:
