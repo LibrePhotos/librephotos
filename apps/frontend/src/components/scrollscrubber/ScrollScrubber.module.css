@@ -10,56 +10,158 @@
   display: none;
 }
 
+/* The scrubber's hit area along the right edge. Hidden until pointed at or a long scroll. */
 .scrubber {
-  width: 28px;
-  right: 0;
+  --scrubber-accent: var(--mantine-primary-color-filled);
+  --scrubber-ink: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  --scrubber-muted: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  --scrubber-strong: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+  --scrubber-glass: light-dark(var(--app-scrim-white-80), var(--app-scrim-black-65));
+
   position: fixed;
-  user-select: none;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  right: 0;
+  width: 36px;
+  margin: 8px 0;
   z-index: 101;
-  background-size: 4px 100%;
-  background-repeat: no-repeat;
-  background-position: right 12px center;
+  user-select: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 200ms ease;
 }
 
-.backgroundLayer {
-  width: 28px;
-  right: 0;
-  position: fixed;
-  opacity: 0.9;
-  z-index: 100;
+.scrubber[data-variant="density"] {
+  width: 44px;
 }
+
+/* Shown, it takes touches for itself: a drag along it scrubs instead of scrolling the page. */
+.scrubber[data-visible] {
+  opacity: 1;
+  touch-action: none;
+}
+
+/* Thumb style */
+
+.track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 15px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--scrubber-muted);
+}
+
+.thumb {
+  position: absolute;
+  right: 11px;
+  width: 11px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--scrubber-accent);
+  box-shadow: var(--mantine-shadow-xs);
+  transition:
+    width 120ms ease,
+    right 120ms ease;
+}
+
+.scrubber[data-active] .thumb {
+  right: 10px;
+  width: 13px;
+}
+
+.hoverLine {
+  position: absolute;
+  right: 9px;
+  width: 15px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--scrubber-ink);
+  pointer-events: none;
+}
+
+/* Density style */
+
+.panel {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--mantine-color-default-border);
+  border-right: 0;
+  border-radius: var(--mantine-radius-md) 0 0 var(--mantine-radius-md);
+  background: var(--scrubber-glass);
+  backdrop-filter: blur(10px);
+}
+
+.bar {
+  position: absolute;
+  right: 8px;
+  border-radius: 1px;
+  background: var(--scrubber-muted);
+  pointer-events: none;
+}
+
+.bar[data-current] {
+  background: var(--scrubber-strong);
+}
+
+.bar[data-hovered] {
+  background: var(--scrubber-accent);
+}
+
+.bracket {
+  position: absolute;
+  right: 4px;
+  width: 34px;
+  border: 1.5px solid var(--scrubber-accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--scrubber-accent) 12%, transparent);
+  pointer-events: none;
+}
+
+/* Both styles */
 
 .marker {
   position: absolute;
-  right: 30px;
-  margin-top: -2px;
+  right: 40px;
+  transform: translateY(-50%);
+  padding: 1px 7px;
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--scrubber-ink);
+  background: var(--scrubber-glass);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
 }
 
-.markerDot {
-  position: absolute;
-  right: 12px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  margin-top: -2px;
+.marker:hover {
+  color: var(--mantine-color-text);
 }
 
-.currentPosition {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  position: absolute;
-  right: 11px;
-  margin-top: -2px;
+.scrubber[data-variant="density"] .marker {
+  right: 50px;
 }
 
-.dragPosition {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.bubble {
   position: absolute;
-  right: 11px;
-  z-index: 105;
+  z-index: 1;
+  right: 40px;
+  transform: translateY(-50%);
+  padding: 4px 12px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 999px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
+  pointer-events: none;
+}
+
+.scrubber[data-variant="density"] .bubble {
+  right: 52px;
 }

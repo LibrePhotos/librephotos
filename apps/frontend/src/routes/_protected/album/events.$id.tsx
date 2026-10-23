@@ -68,6 +68,8 @@ function AlbumAutoGalleryView() {
         icon={SettingsAutomation}
         photoset={groupedPhotos}
         idx2hash={gridPhotos}
+        // An event reads as it happened, whatever the photo order (#2712).
+        eventOrder
         additionalSubHeader={
           album.people.length > 0 || hasGPSCoordinates ? (
             <EventSubHeader

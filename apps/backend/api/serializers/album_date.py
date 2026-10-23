@@ -3,7 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import ISO_8601, serializers
 
 from api.drf.params import TristateFlagField
-from api.models import AlbumDate, Photo
+from api.models import AlbumDate, Photo, User
 from api.models.place_names import town_name
 from api.serializers.photos import PhotoSummarySerializer
 from api.sharing.library_photos import SHARED_PLACE_ATTR
@@ -215,6 +215,13 @@ class DateAlbumFilterQuery(PublicViewQuery):
         help_text="Also the photos of the libraries you show in your timeline; "
         "ignored by views of your own library only (hidden, trash, a person, "
         "a folder, favourites, a search)",
+    )
+    order = serializers.ChoiceField(
+        choices=User.PhotoOrder.choices,
+        default=User.PhotoOrder.NEWEST,
+        help_text="newest (the default) or oldest day first, by date taken, "
+        "and a day's photos in the same order; the undated day comes last "
+        "either way",
     )
 
 

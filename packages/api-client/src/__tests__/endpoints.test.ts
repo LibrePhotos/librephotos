@@ -386,4 +386,15 @@ describe("library share endpoints (#2731)", () => {
       "https://demo.example.com/api/albums/date/list/?archived=false&libraries=true"
     );
   });
+
+  it("asks for oldest first only when it is not the newest-first default (#2712)", async () => {
+    const newest = harness({ results: [] });
+    await endpoints.fetchDateAlbumsList(newest.client, { order: "newest" });
+    expect(defined(newest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/list/");
+    const oldest = harness({
+      results: { id: 4, date: null, location: null, items: [], incomplete: false, numberOfItems: 0 },
+    });
+    await endpoints.fetchDateAlbum(oldest.client, 4, 2, { order: "oldest" });
+    expect(defined(oldest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/4/?order=oldest&page=2");
+  });
 });

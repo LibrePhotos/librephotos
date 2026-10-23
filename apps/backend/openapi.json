@@ -603,6 +603,20 @@
           },
           {
             "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "type": "integer"
@@ -813,6 +827,20 @@
               "type": "string"
             },
             "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
           },
           {
             "in": "query",
@@ -21507,6 +21535,12 @@
           "header_size": {
             "$ref": "#/components/schemas/HeaderSizeEnum"
           },
+          "scrubber_style": {
+            "$ref": "#/components/schemas/ScrubberStyleEnum"
+          },
+          "photo_order": {
+            "$ref": "#/components/schemas/PhotoOrderEnum"
+          },
           "save_metadata_to_disk": {
             "$ref": "#/components/schemas/SaveMetadataToDiskEnum"
           },
@@ -23072,6 +23106,14 @@
           "count",
           "month"
         ]
+      },
+      "PhotoOrderEnum": {
+        "enum": [
+          "newest",
+          "oldest"
+        ],
+        "type": "string",
+        "description": "* `newest` - Newest\n* `oldest` - Oldest"
       },
       "PhotoRequest": {
         "type": "object",
@@ -25107,6 +25149,14 @@
           "removed_count",
           "status"
         ]
+      },
+      "ScrubberStyleEnum": {
+        "enum": [
+          "thumb",
+          "density"
+        ],
+        "type": "string",
+        "description": "* `thumb` - Thumb\n* `density` - Density"
       },
       "SearchResults": {
         "type": "object",
@@ -28520,6 +28570,12 @@
           "header_size": {
             "$ref": "#/components/schemas/HeaderSizeEnum"
           },
+          "scrubber_style": {
+            "$ref": "#/components/schemas/ScrubberStyleEnum"
+          },
+          "photo_order": {
+            "$ref": "#/components/schemas/PhotoOrderEnum"
+          },
           "save_metadata_to_disk": {
             "$ref": "#/components/schemas/SaveMetadataToDiskEnum"
           },
@@ -28626,6 +28682,7 @@
           "nextcloud_server_address",
           "nextcloud_username",
           "photo_count",
+          "photo_order",
           "public_photo_count",
           "public_photo_samples",
           "public_sharing",
@@ -28634,6 +28691,7 @@
           "save_face_tags_to_disk",
           "save_metadata_to_disk",
           "scan_directory",
+          "scrubber_style",
           "semantic_search_topk",
           "share_people_names",
           "show_whats_new",

@@ -146,6 +146,26 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
+
+    # How the scroll scrubber beside a photo list looks: a thumb with a date
+    # bubble, or a map of how many photos each month holds.
+    class ScrubberStyle(models.TextChoices):
+        THUMB = "thumb"
+        DENSITY = "density"
+
+    scrubber_style = models.TextField(
+        choices=ScrubberStyle.choices, default=ScrubberStyle.THUMB
+    )
+
+    # Which end of the date-grouped photo lists comes first (#2712): the
+    # newest day or the oldest, by date taken. See api.albums.photo_order.
+    class PhotoOrder(models.TextChoices):
+        NEWEST = "newest"
+        OLDEST = "oldest"
+
+    photo_order = models.TextField(
+        choices=PhotoOrder.choices, default=PhotoOrder.NEWEST
+    )
     # No longer read: every scan imports RAW files and groups a RAW with its
     # JPEG as file variants. The user API still returns both, read-only, so
     # released clients keep parsing the user object (#2219); the columns are

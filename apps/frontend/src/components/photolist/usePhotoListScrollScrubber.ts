@@ -16,6 +16,7 @@ const getScrollPositions = (pig: PigHandle<PigPhoto>): ScrollerData[] => {
       targetY: group?.groupTranslateY ?? Number.NaN,
       year: group?.year,
       month: group?.month,
+      count: group?.items.length,
     });
   });
   return scrollPositions;

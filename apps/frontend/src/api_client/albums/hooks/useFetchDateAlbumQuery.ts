@@ -3,6 +3,7 @@ import type { IncompleteDatePhotosGroup, MediaType, Photoset } from "@librephoto
 import { useQuery } from "@tanstack/react-query";
 import { type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { apiClient, queryClient } from "../../api";
+import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
 import { dateAlbumRequestFilter, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
@@ -18,9 +19,11 @@ type AlbumDateOption = {
   withLibraries?: boolean;
 };
 
-// Fetch a single date album
-export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) =>
-  useQuery({
+// One page of a day, in the same photo order (#2712) as the day list it fills in.
+export const useFetchDateAlbumQuery = (dayOptions: AlbumDateOption, queryOptions?: { skip?: boolean }) => {
+  const photoOrder = usePhotoOrder();
+  const options = { ...dayOptions, order: photoOrder.order };
+  return useQuery({
     queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(options), options.album_date_id, options.page),
     queryFn: async () => {
       const filter = dateAlbumRequestFilter(options);
@@ -54,5 +57,6 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
 
       return result;
     },
-    enabled: queryOptions?.skip === undefined ? true : !queryOptions.skip,
+    enabled: !queryOptions?.skip && photoOrder.ready,
   });
+};
