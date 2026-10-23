@@ -60,7 +60,7 @@ class LegacyForeignLinkTest(TestCase):
 
     def test_public_album_json_does_not_list_vera_photo(self):
         for url in (
-            f"/api/albums/user/{self.album.pk}/?public=true",
+            f"/api/albums/user/{self.album.pk}/?public=true&slug={self.share.slug}",
             f"/api/public/albums/s/{self.share.slug}/",
         ):
             with self.subTest(url=url):

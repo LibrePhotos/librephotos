@@ -26,6 +26,7 @@ from django.db.models import Count, F, Min, Q, QuerySet
 
 from api.faces.person_shares import shared_person_faces
 from api.models import Face, Person, Photo, User
+from api.models.user import public_sharing_settings
 from api.sharing.grants import library_grant, without_switch
 
 
@@ -43,8 +44,7 @@ def _owner_shares_with_recipients(photo: Photo, viewer: User) -> bool:
 
 
 def _owner_shares_publicly(photo: Photo) -> bool:
-    defaults = photo.owner.public_sharing_defaults or {}
-    return photo.public and bool(defaults.get("share_faces", False))
+    return photo.public and public_sharing_settings(photo.owner)["share_faces"]
 
 
 def people_shown_to(photo: Photo, viewer: User | AnonymousUser | None) -> bool:

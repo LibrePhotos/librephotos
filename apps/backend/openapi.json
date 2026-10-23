@@ -1788,6 +1788,16 @@
           },
           {
             "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 64
+            },
+            "description": "With public: the slug of the album's public link (required)"
+          },
+          {
+            "in": "query",
             "name": "username",
             "schema": {
               "type": "string",
@@ -24029,7 +24039,7 @@
       },
       "PublicPhotoDetail": {
         "type": "object",
-        "description": "Serializer for photo details in public albums.\n\nConditionally includes metadata based on sharing settings passed in context.\nContext must include 'sharing_settings' dict with keys:\n- share_location: bool\n- share_camera_info: bool\n- share_timestamps: bool\n- share_captions: bool\n- share_faces: bool",
+        "description": "A photo behind a photo link or in a public album.\n\nThe context's ``sharing_settings`` (``share_location``, ``share_camera_info``,\n``share_timestamps``, ``share_captions``, ``share_faces``) decide what is\nsent, through ``api.sharing.grants.public_grant`` and its\n``PUBLIC_DETAIL_FIELDS``: what they leave out is null, \"\" or 0. Without\nthem every switch is off.",
         "properties": {
           "image_hash": {
             "type": "string",

@@ -61,9 +61,11 @@ class AlbumIdsAreNumbersTest(TestCase):
         self.assertIsNumberId(detail["id"], album.id)
 
         anonymous = APIClient()
-        public = anonymous.get(f"/api/albums/user/{album.id}/?public=true").json()
-        self.assertIsNumberId(public["id"], album.id)
         slug = made_public["public_slug"]
+        public = anonymous.get(
+            f"/api/albums/user/{album.id}/?public=true&slug={slug}"
+        ).json()
+        self.assertIsNumberId(public["id"], album.id)
         by_slug = anonymous.get(f"/api/public/albums/s/{slug}/").json()
         self.assertIsNumberId(by_slug["results"]["id"], album.id)
 

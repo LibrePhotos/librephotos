@@ -5,8 +5,10 @@ callers with ``?public``. Their ``last_modified`` branch threw every other
 filter away and kept only "owned by the requesting user". Anonymously that
 filtered on ``owner=AnonymousUser`` and crashed with a 500; signed in, the
 public view of another user's photos turned into the caller's own (private)
-timeline. With ``public`` set, ``last_modified`` now only narrows the public
-scope; the owner shortcut stays for signed-in, non-public requests.
+timeline. With ``public`` set, ``last_modified`` is ignored: when photos were
+taken or changed is not the public view's to filter by (the dates switch
+decides whether it is shown at all); the owner shortcut stays for signed-in,
+non-public requests.
 """
 
 import datetime
@@ -16,12 +18,20 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import Photo
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_album_date,
+    create_test_photo,
+    create_test_user,
+    every_public_switch_on,
+)
 
 
 class AlbumDatePublicLastModifiedTest(TestCase):
     def setUp(self):
-        self.owner = create_test_user(public_sharing=True)
+        # Dates and places shared: these tests are about which photos.
+        self.owner = create_test_user(
+            public_sharing=True, public_sharing_defaults=every_public_switch_on()
+        )
         self.viewer = create_test_user()
         self.taken = timezone.now()
         self.day = create_test_album_date(owner=self.owner, date=self.taken.date())
@@ -69,14 +79,14 @@ class AlbumDatePublicLastModifiedTest(TestCase):
                 listed = self._list(self.anonymous, last_modified=self.past, **params)
                 self.assertEqual({self.day.id: 1}, listed)
 
-    def test_anonymous_list_honors_last_modified(self):
+    def test_anonymous_list_ignores_last_modified(self):
         Photo.objects.filter(pk=self.public_photo.pk).update(
             last_modified=self.taken - datetime.timedelta(days=2)
         )
         listed = self._list(
             self.anonymous, username=self.owner.username, last_modified=self.past
         )
-        self.assertEqual({}, listed)
+        self.assertEqual({self.day.id: 1}, listed)
 
     def test_anonymous_detail_returns_only_public_photos(self):
         for params in ({"username": self.owner.username}, {}):
@@ -86,11 +96,11 @@ class AlbumDatePublicLastModifiedTest(TestCase):
                 )
                 self.assertEqual([str(self.public_photo.id)], items)
 
-    def test_anonymous_detail_honors_last_modified(self):
+    def test_anonymous_detail_ignores_last_modified(self):
         items = self._detail_items(
             self.anonymous, username=self.owner.username, last_modified=self.future
         )
-        self.assertEqual([], items)
+        self.assertEqual([str(self.public_photo.id)], items)
 
     def test_signed_in_public_view_shows_the_owners_public_photos_only(self):
         listed = self._list(

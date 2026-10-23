@@ -52,6 +52,21 @@ def get_default_public_sharing_settings() -> dict[str, bool]:
     }
 
 
+def public_sharing_settings(owner: object) -> dict[str, bool]:
+    """What ``owner``'s public pages share: the system defaults (all off)
+    under the owner's own defaults.
+
+    ``public_sharing_defaults`` is a JSON column: a switch counts as on only
+    when it holds ``true``, so a stored ``"no"`` or a missing key is off.
+    """
+    settings = get_default_public_sharing_settings()
+    saved = getattr(owner, "public_sharing_defaults", None)
+    if isinstance(saved, dict):
+        for key in settings:
+            settings[key] = saved.get(key) is True
+    return settings
+
+
 class User(AbstractUser):
     scan_directory = models.CharField(
         max_length=512, db_index=True, blank=True, default=""

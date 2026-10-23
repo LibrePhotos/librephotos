@@ -449,11 +449,11 @@ class SharedReadTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_a_public_album_link_still_opens_anonymously(self):
-        AlbumUserShare.objects.create(album=self.album, enabled=True)
+        share = AlbumUserShare.objects.create(album=self.album, enabled=True)
         status, body = self.get(
             None,
             f"/api/albums/user/{self.album.pk}/?public=true"
-            f"&username={self.sharer.username}",
+            f"&username={self.sharer.username}&slug={share.slug}",
         )
         self.assertEqual(status, 200, body[:300])
         self.assertIn("SharedTripTitle", body)

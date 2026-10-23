@@ -30,16 +30,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
 
 from api.models import AlbumUser, AlbumUserMember, AlbumUserPhoto, Photo, User
-from api.sharing.grants import LibraryGrant
+from api.sharing.grants import LibraryGrant, either
 
 NOTHING: Final = LibraryGrant()
-
-
-def either(a: LibraryGrant, b: LibraryGrant) -> LibraryGrant:
-    """What two albums show between them: each field either allows."""
-    return LibraryGrant(
-        **{f.name: getattr(a, f.name) or getattr(b, f.name) for f in fields(a)}
-    )
 
 
 def both(a: LibraryGrant, b: LibraryGrant) -> LibraryGrant:

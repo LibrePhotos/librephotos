@@ -46,6 +46,7 @@ from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
 from api.models.upload_followup_state import UploadFollowupState
+from api.models.user import get_default_public_sharing_settings
 from api.models.user_place import UserPlace
 from api.photos.media_files import get_or_create_file
 
@@ -196,6 +197,12 @@ def create_test_face(
         encoding=encoding or np.random.rand(128).tobytes().hex(),
         **kwargs,
     )
+
+
+def every_public_switch_on() -> dict[str, bool]:
+    """``public_sharing_defaults`` sharing every detail on public pages: a
+    visitor then gets the original files too (``api.sharing.grants.public_grant``)."""
+    return dict.fromkeys(get_default_public_sharing_settings(), True)
 
 
 def create_test_user(

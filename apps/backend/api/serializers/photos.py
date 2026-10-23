@@ -45,10 +45,16 @@ from api.serializers.simple import (
 )
 from api.sharing.grants import (
     DETAIL_FIELDS,
+    PUBLIC_DETAIL_FIELDS,
     SUMMARY_FIELDS,
     LibraryGrant,
+    either,
     lookup_for,
+    owner_public_grant,
+    public_grant,
+    public_lookup_for,
     redact,
+    viewer_grant,
 )
 from api.sharing.indirect import indirect_grants
 from api.video import color, playback
@@ -139,8 +145,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Photo) -> dict[str, Any]:
         data = super().to_representation(instance)
-        # Another user's library photo: what its owner shares (#2731).
-        grant = lookup_for(self).for_owner(instance.owner_id)
+        # A public page: what its switches allow; another user's library
+        # photo: what its owner shares (#2731).
+        grant = viewer_grant(self, instance.owner_id)
         if grant is not None:
             redact(data, SUMMARY_FIELDS, grant)
         return data
@@ -761,15 +768,24 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance: Photo) -> dict[str, Any]:
         data = super().to_representation(instance)
-        # A library share decides for its owner's photos (#2731); otherwise
-        # an album the viewer sees the photo in (#464).
-        grant = self._library_grant(instance) or self._album_grant(instance)
+        # A visitor who is not signed in sees what public pages show; a
+        # library share decides for its owner's photos (#2731); otherwise an
+        # album the viewer sees the photo in (#464), or its public switches.
+        grant = (
+            self._visitor_grant(instance)
+            or self._library_grant(instance)
+            or self._album_grant(instance)
+        )
         if grant is not None:
             redact(data, DETAIL_FIELDS, grant)
             if not grant.originals and not instance.video:
                 # The download is a JPEG copy without the file's metadata.
                 data["original_mime_type"] = "image/jpeg"
         return data
+
+    def _visitor_grant(self, obj: Photo) -> LibraryGrant | None:
+        public = public_lookup_for(self)
+        return public.for_owner(obj.owner_id) if public is not None else None
 
     @extend_schema_field(LibraryGrantSerializer(allow_null=True))
     def get_shared_library(self, obj: Photo) -> dict[str, bool] | None:
@@ -919,9 +935,10 @@ class PhotoSerializer(serializers.ModelSerializer):
         return {"text": ocr.text or "", "blocks": blocks}
 
     def get_similar_photos(self, obj: Photo) -> list:
-        if self._album_grant(obj) is not None:
-            # Matches come from the owner's whole library; an album shows
-            # none of it (and the sidecar call would be thrown away).
+        if self._visitor_grant(obj) is not None or self._album_grant(obj) is not None:
+            # Matches come from the owner's whole library; an album or a
+            # public page shows none of it (and the sidecar call would be
+            # thrown away).
             return []
         res = search_similar_image(obj.owner, obj)
         arr: list[str] = []
@@ -1013,14 +1030,15 @@ class PhotoSerializer(serializers.ModelSerializer):
         return [_face_entry(face) for face in faces_shown_to(obj, viewer)]
 
     def _album_grant(self, obj: Photo) -> LibraryGrant | None:
-        """What the requester sees of ``obj`` when only an album (#464) or a
-        person shared with them (#668) shows it.
+        """What a signed-in requester sees of ``obj`` when only an album
+        (#464), a person shared with them (#668) or its being public shows it.
 
-        None for its owner, someone it is shared with directly, a public
-        photo, a photo of a library shared with them (that share decides),
-        and without a request (no viewer to tell; ``lookup_for`` redacts
-        then). Anyone else reads it through an album they own or are a
-        member of, so the album's grant decides (``api/albums/member_grants``);
+        None for its owner, someone it is shared with directly, a photo of a
+        library shared with them (that share decides), and without a request
+        (no viewer to tell; ``lookup_for`` redacts then). Anyone else reads
+        it through an album they own or are a member of, or as a public
+        photo: what those allow between them decides
+        (``api/albums/member_grants``, the owner's public sharing switches);
         no grant at all hides every optional field.
         """
         cache: dict[object, LibraryGrant | None] = self.__dict__.setdefault(
@@ -1032,13 +1050,17 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def _lookup_album_grant(self, obj: Photo) -> LibraryGrant | None:
         viewer = getattr(self.context.get("request"), "user", None)
-        if not isinstance(viewer, User) or viewer.pk == obj.owner_id or obj.public:
+        if not isinstance(viewer, User) or viewer.pk == obj.owner_id:
             return None
         if self._library_grant(obj) is not None:
             return None
         if obj.shared_to.filter(pk=viewer.pk).exists():
             return None
-        return indirect_grants(viewer, [obj.pk]).get(obj.pk, NOTHING)
+        grant = indirect_grants(viewer, [obj.pk]).get(obj.pk)
+        if not obj.public:
+            return NOTHING if grant is None else grant
+        public = owner_public_grant(obj.owner_id)
+        return public if grant is None else either(grant, public)
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file: File) -> dict[str, str]:
@@ -1211,15 +1233,13 @@ class PublicPhotoPersonSerializer(serializers.Serializer[None]):
 
 
 class PublicPhotoDetailSerializer(serializers.ModelSerializer):
-    """Serializer for photo details in public albums.
+    """A photo behind a photo link or in a public album.
 
-    Conditionally includes metadata based on sharing settings passed in context.
-    Context must include 'sharing_settings' dict with keys:
-    - share_location: bool
-    - share_camera_info: bool
-    - share_timestamps: bool
-    - share_captions: bool
-    - share_faces: bool
+    The context's ``sharing_settings`` (``share_location``, ``share_camera_info``,
+    ``share_timestamps``, ``share_captions``, ``share_faces``) decide what is
+    sent, through ``api.sharing.grants.public_grant`` and its
+    ``PUBLIC_DETAIL_FIELDS``: what they leave out is null, "" or 0. Without
+    them every switch is off.
     """
 
     # Always included
@@ -1246,7 +1266,8 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
     width = serializers.SerializerMethodField()
     height = serializers.SerializerMethodField()
 
-    # Captions
+    # Captions; the search text is never sent (it mixes captions, people,
+    # keywords and file paths), the field stays for the clients.
     search_captions = serializers.SerializerMethodField()
     captions_json = serializers.SerializerMethodField()
 
@@ -1279,9 +1300,11 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
             "people",
         )
 
-    def _get_sharing_settings(self) -> dict:
-        """Get sharing settings from context."""
-        return self.context.get("sharing_settings", {})
+    def to_representation(self, instance: Photo) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        grant = public_grant(self.context.get("sharing_settings"))
+        redact(data, PUBLIC_DETAIL_FIELDS, grant)
+        return data
 
     def _get_metadata(self, obj: Photo) -> PhotoMetadata | None:
         """Helper to get PhotoMetadata."""
@@ -1292,12 +1315,6 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
                 setattr(obj, "_cached_metadata", None)
         cached: PhotoMetadata | None = getattr(obj, "_cached_metadata")
         return cached
-
-    def _shared_camera_metadata(self, obj: Photo) -> PhotoMetadata | None:
-        """PhotoMetadata, but only when camera info sharing is enabled."""
-        if not self._get_sharing_settings().get("share_camera_info", False):
-            return None
-        return self._get_metadata(obj)
 
     # Always available
     def get_square_thumbnail_url(self, obj: Photo) -> str:
@@ -1316,91 +1333,68 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         thumbnail = obj.thumbnail
         return thumbnail.thumbnail_big.url if thumbnail.thumbnail_big else ""
 
-    # Timestamp - conditional
     def get_exif_timestamp(self, obj: Photo) -> datetime | None:
-        if self._get_sharing_settings().get("share_timestamps", False):
-            return obj.exif_timestamp
-        return None
+        return obj.exif_timestamp
 
-    # Location - conditional
     def get_exif_gps_lat(self, obj: Photo) -> float | None:
-        if self._get_sharing_settings().get("share_location", False):
-            return obj.exif_gps_lat
-        return None
+        return obj.exif_gps_lat
 
     def get_exif_gps_lon(self, obj: Photo) -> float | None:
-        if self._get_sharing_settings().get("share_location", False):
-            return obj.exif_gps_lon
-        return None
+        return obj.exif_gps_lon
 
     def get_geolocation_json(self, obj: Photo) -> dict | None:
-        if self._get_sharing_settings().get("share_location", False):
-            return obj.geolocation_json
-        return None
+        return obj.geolocation_json
 
     def get_search_location(self, obj: Photo) -> str:
-        if self._get_sharing_settings().get("share_location", False):
-            search = _search_instance(obj)
-            if search:
-                return search.search_location or ""
-        return ""
+        search = _search_instance(obj)
+        return (search.search_location or "") if search else ""
 
-    # Camera info - conditional
     def get_camera(self, obj: Photo) -> str | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.camera_display if metadata else None
 
     def get_lens(self, obj: Photo) -> str | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.lens_display if metadata else None
 
     def get_focal_length(self, obj: Photo) -> float | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.focal_length if metadata else None
 
     def get_fstop(self, obj: Photo) -> float | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.aperture if metadata else None
 
     def get_iso(self, obj: Photo) -> int | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.iso if metadata else None
 
     def get_shutter_speed(self, obj: Photo) -> str | None:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return metadata.shutter_speed if metadata else None
 
     # 0 also for a size the metadata does not know (stored as NULL), as when
     # camera info is not shared: the public client rejects a null here.
     def get_width(self, obj: Photo) -> int:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return (metadata.width or 0) if metadata else 0
 
     def get_height(self, obj: Photo) -> int:
-        metadata = self._shared_camera_metadata(obj)
+        metadata = self._get_metadata(obj)
         return (metadata.height or 0) if metadata else 0
 
-    # Captions - conditional
     def get_search_captions(self, obj: Photo) -> str:
-        if self._get_sharing_settings().get("share_captions", False):
-            search = _search_instance(obj)
-            if search:
-                return search.search_captions or ""
+        # PUBLIC_DETAIL_FIELDS never sends it: nothing to read.
         return ""
 
     def get_captions_json(self, obj: Photo) -> dict:
-        if self._get_sharing_settings().get("share_captions", False):
-            caption = _caption_instance(obj)
-            if caption and caption.captions_json and len(caption.captions_json) > 0:
-                return caption.captions_json
+        caption = _caption_instance(obj)
+        if caption and caption.captions_json:
+            return caption.captions_json
         return {"im2txt": ""}
 
-    # People/faces - conditional
     @extend_schema_field(PublicPhotoPersonSerializer(many=True))
     def get_people(self, obj: Photo) -> list[dict[str, Any]]:
-        if not self._get_sharing_settings().get("share_faces", False):
-            return []
-
         # Only the people the owner named, as for the users a photo is
         # shared with: never a cluster or a suggestion (api/faces/recipients.py).
         return [

@@ -24,6 +24,12 @@ from rest_framework.response import Response
 
 from api.albums.collections import set_album_collections
 from api.albums.photo_order import day_ordering, photo_ordering
+from api.albums.public_days import (
+    UNDATED_ATTR,
+    owners_sharing_dates,
+    public_day_rows,
+    undated_day_id,
+)
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.pagination import (
     PAGE_PARAMETERS,
@@ -61,6 +67,7 @@ from api.serializers.album_date import (
     IncompleteAlbumDateSerializer,
     PublicViewQuery,
     prefetch_public_photos,
+    public_view_filters,
 )
 from api.serializers.album_place import (
     AlbumPlaceListSerializer,
@@ -440,13 +447,17 @@ class AlbumUserViewSet(
         # public album id can't be mutated or deleted through this unscoped
         # queryset. See issue #1861.
         if self._public_read():
-            # Anyone can view a public album if the album itself is marked public and active (not expired)
-            username = parse_query(self.request, AlbumUserQuery)["username"]
+            # Anyone holding an album's active public link: its slug, never
+            # the album's id alone, which counts up and would list them all.
+            query = parse_query(self.request, AlbumUserQuery)
+            username = query["username"]
             from django.utils import timezone
 
-            # Use share model exclusively
+            if not query["slug"]:
+                return AlbumUser.objects.none()
             base_qs = AlbumUser.objects.filter(
                 Q(share__enabled=True)
+                & Q(share__slug=query["slug"])
                 & (
                     Q(share__expires_at__isnull=True)
                     | Q(share__expires_at__gte=timezone.now())
@@ -555,7 +566,7 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     @cached_property
     def _query(self) -> dict[str, Any]:
         """The query string, validated once per request."""
-        return parse_query(self.request, DateAlbumFilterQuery)
+        return public_view_filters(parse_query(self.request, DateAlbumFilterQuery))
 
     def _ownership_filters(self) -> list[Q]:
         params = self._query
@@ -636,7 +647,8 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         if params["public"]:
             if params["username"]:
                 albums = albums.filter(owner__username=params["username"])
-            albums = albums.filter(photos__public=True)
+            # The photos the day list counts: never a hidden or trashed one.
+            albums = albums.filter(photos__in=Photo.visible.filter(public=True))
         else:
             # Only reached with an authenticated user: get_permissions requires
             # it unless ``public`` is set.
@@ -661,7 +673,30 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
                 self._photo_filters(),
             )
         album_date = self._album_date()
+        undated = self._public_undated_photos(album_date)
+        if undated is not None:
+            return album_date, undated
         return album_date, album_date.photos.filter(*self._photo_filters())
+
+    def _public_undated_photos(self, album_date: AlbumDate) -> QuerySet[Photo] | None:
+        """In the public view, every public photo of an owner who keeps dates
+        to themselves, as one undated group (``api.albums.public_days``).
+
+        Only under the id the day list gives the group: the owner's other
+        days are a 404, so their ids do not tell the days apart. None for an
+        owner who shares dates, and outside the public view.
+        """
+        owner = album_date.owner
+        if not self._query["public"] or owner.pk in owners_sharing_dates([owner.pk]):
+            return None
+        photos = Photo.objects.owned_by(owner).filter(
+            *self._photo_filters(), albumdate__isnull=False
+        )
+        days = AlbumDate.objects.owned_by(owner).filter(photos__in=photos)
+        if undated_day_id(days) != album_date.pk:
+            raise NotFound()
+        setattr(album_date, UNDATED_ATTR, True)
+        return photos
 
     def _album_date_page(self) -> tuple[AlbumDate, list[Photo]]:
         """The day album and one page of its photos (``DayAlbumPagination``).
@@ -670,11 +705,17 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         only action this viewset serves.
         """
         album_date, day_photos = self._day_and_photos()
-
+        # An undated public group is in an order that says nothing about when
+        # its photos were taken.
+        ordering = (
+            ("pk",)
+            if getattr(album_date, UNDATED_ATTR, False)
+            else photo_ordering(self._query["order"])
+        )
         photo_qs = _with_photo_summary_relations(
             # distinct(): filtering through a reverse foreign key (faces of a
             # person) repeats a photo.
-            day_photos.distinct().order_by(*photo_ordering(self._query["order"]))
+            day_photos.distinct().order_by(*ordering)
         )
         if "person" in self._query:
             # A person's video opens where the person is (#2762).
@@ -715,9 +756,12 @@ class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
             },
         )
         serializer_data = serializer.data
-        # The request: another user's library photos show what they share.
+        # The request: another user's library photos show what they share;
+        # the public view what the owners' public sharing switches allow.
         serializer_data["items"] = PhotoSummarySerializer(
-            photos, many=True, context={"request": self.request}
+            photos,
+            many=True,
+            context={"request": self.request, "public": self._query["public"]},
         ).data
         response = self.get_paginated_response(serializer_data)
         # The day's total, where clients have always read it (the same number
@@ -740,7 +784,7 @@ class AlbumDateListViewSet(ListViewSet):
     @cached_property
     def _query(self) -> dict[str, Any]:
         """The query string, validated once per request."""
-        return parse_query(self.request, AlbumDateListQuery)
+        return public_view_filters(parse_query(self.request, AlbumDateListQuery))
 
     def get_queryset(self) -> QuerySet[AlbumDate]:
         params = self._query
@@ -857,8 +901,9 @@ class AlbumDateListViewSet(ListViewSet):
         public = params["public"]
         rows: QuerySet[AlbumDate] | list[AlbumDate] = queryset
         if public:
-            # The public view may only name places of public photos.
-            rows = queryset.prefetch_related(prefetch_public_photos())
+            # The public view may only name places of public photos, and
+            # shows an owner who keeps dates to themselves no days.
+            rows = public_day_rows(queryset.prefetch_related(prefetch_public_photos()))
         elif params["libraries"]:
             rows = timeline_day_rows(request_user(self.request), params, queryset)
         serializer = IncompleteAlbumDateSerializer(

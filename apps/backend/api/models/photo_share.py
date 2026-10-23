@@ -48,16 +48,12 @@ class PhotoShare(models.Model):
             self.ensure_slug()
         super().save(*args, **kwargs)
 
-    def get_effective_sharing_settings(self) -> dict:
+    def get_effective_sharing_settings(self) -> dict[str, bool]:
         """Resolve what metadata this share exposes.
 
         Photo shares have no per-share overrides, so this is the owner's
         defaults on top of the system defaults (all False).
         """
-        from api.models.user import get_default_public_sharing_settings
+        from api.models.user import public_sharing_settings
 
-        defaults = get_default_public_sharing_settings()
-        user_defaults = getattr(self.photo.owner, "public_sharing_defaults", None)
-        if user_defaults:
-            defaults.update(user_defaults)
-        return defaults
+        return public_sharing_settings(self.photo.owner)

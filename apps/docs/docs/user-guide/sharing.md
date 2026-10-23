@@ -137,7 +137,7 @@ You can share your whole library with another user, read-only. They see your pho
 | **Location**: GPS position, place names, the map and Places | Only with the switch on |
 | **People names**: the face boxes and names of the people you named | Only with the switch on. Faces you have not named and face groups such as *Unknown 012* are never shown |
 | **Camera information**: make, model, lens and exposure | Only with the switch on |
-| **Captions and descriptions**: your descriptions, generated captions and text found in photos | Only with the switch on |
+| **Captions and descriptions**: your descriptions, generated captions and text found in photos | Only with the switch on. A generated caption can name the person and the place, so it also needs **Location** and **People names** |
 | **Download original files** | Only with the switch on. Off, a download is a full-size copy without the file's metadata |
 | Hidden photos, the trash, albums, tags, favourites and ratings, edit history, file names and folders | Never |
 
@@ -200,6 +200,8 @@ You can create a public link for any user album, making it accessible to anyone 
 
 The public album is accessible at `https://your-instance/public/s/{slug}`.
 
+On your public profile, `https://your-instance/public/<username>?album={slug}` shows the same album. A link always needs the slug: the album's number alone opens nothing for a visitor.
+
 The dialog shows it as the **Album link**, with buttons to copy it and to open it in a new tab.
 
 ### Slideshow Link
@@ -237,17 +239,21 @@ The **Photo Details** panel fine-tunes what information visitors can see when th
 
 | Setting | What it controls |
 |---------|-----------------|
-| **Share photo timestamps** | Whether photo dates and times are visible |
+| **Share photo timestamps** | Whether photo dates and times are visible. Without it, photos are not grouped by day and are listed in an order that says nothing about when they were taken. |
 | **Share location information** | Whether GPS coordinates and place names are shown |
 | **Share camera information** | Whether camera model, lens, focal length, aperture, ISO, and shutter speed are shown |
-| **Share captions** | Whether AI-generated or manual captions are visible |
+| **Share captions** | Whether captions are visible: yours, and the tags. A caption written by the captioning model can name the person and the place (see [Caption Context](./settings/index.md#caption-context)), so it is shown only when location information and detected faces are shared too. |
 | **Share detected faces** | Whether the names of the people you named are displayed. Faces you have not named and face groups are never shown. |
 
 Each of these settings can be toggled independently per album. When left unset, the **user-level defaults** from your settings are used; you can configure those in **Settings → Public Sharing Defaults**.
 
 **All five are off by default** — both as the built-in fallback and as the initial value of your user-level defaults, following a privacy-first, opt-in approach. So on a brand-new public link, visitors don't see any of these per-photo details until you turn the relevant options on.
 
-These settings cover what the page shows. The images themselves carry no hidden metadata: thumbnails are stored without the photo's EXIF and XMP (GPS position, camera serial number, keywords), keeping only the colour profile. Thumbnails created by 1.2.1 and older may still contain it. An admin cleans them once after upgrading, with **Remove photo details from old thumbnails** in **Admin Area > Admin Tools** or the `strip_thumbnail_metadata` command; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). Videos are played from the original file, so a video keeps whatever its camera recorded, including the location.
+These settings cover what the page shows, and the files behind it. Thumbnails are stored without the photo's EXIF and XMP (GPS position, camera serial number, keywords), keeping only the colour profile. Thumbnails created by 1.2.1 and older may still contain it. An admin cleans them once after upgrading, with **Remove photo details from old thumbnails** in **Admin Area > Admin Tools** or the `strip_thumbnail_metadata` command; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata).
+
+An original file carries all of its metadata at once (location, camera, date, keywords, people), so a visitor gets the original file of a photo or video only when **all five** settings are on. Otherwise a download is a full-size copy without metadata (a photo as a JPEG keeping only its colour profile, a video with its streams as they are but without the recorded location and other container metadata), and the video of a motion photo is not available. The text LibrePhotos searches in, file names and folders, ratings, favourites and stacks are never shown to visitors, whatever the settings.
+
+The same rules apply wherever a visitor can reach the photo: the public album page, a [photo made public](#making-individual-photos-public), your public profile, and a [photo link](#revocable-photo-links). Users of your instance who open a public photo that is not shared with them see it as a visitor does.
 
 :::caution
 Changes to the slug, expiration and Photo Details settings are **not applied until you click "Save link settings"** at the bottom of the settings panel. That button stays disabled until you change something; the **Public sharing** toggle itself only saves the on/off state.
@@ -272,9 +278,9 @@ Besides sharing whole albums, you can make individual photos public without putt
 
 When you select photos individually, direct image links (`https://your-instance/media/photos/<hash>.jpg`) are copied to your clipboard so you can paste them straight away. In *select all* mode the photos are still made public, but no links are copied.
 
-These are raw image-file URLs, so they behave differently from public album links. There is no album page, no custom slug, no expiration and no Photo Details toggles — anyone with the link can open the image file directly. If you need those controls, share a public album instead.
+These are raw image-file URLs, so they behave differently from public album links. There is no album page, no custom slug and no expiration — anyone with the link can open the image file directly. What it shows follows your **Settings → Public Sharing Defaults**: the original file only when all five details are shared, otherwise a copy without its metadata (see [Photo Details](#photo-details)). If you need per-link controls, share a public album instead.
 
-Public photos appear under the **Photos** tab of your **Public Links** page, on your public profile at `https://your-instance/public/<username>`, and in your own [My Public Photos](./viewing-photos.md#my-public-photos) view.
+Public photos appear under the **Photos** tab of your **Public Links** page, on your public profile at `https://your-instance/public/<username>`, and in your own [My Public Photos](./viewing-photos.md#my-public-photos) view. Your public profile shows the details your Public Sharing Defaults allow; without **Share photo timestamps** its photos are one group without a date instead of days.
 
 To reverse this, select the photos again and choose **"Make Private"** from the same menu.
 
@@ -291,7 +297,7 @@ Your active photo links are listed under the **Photos** tab of your **Public Lin
 
 What a visitor with the link can see:
 
-- The photo as a large preview image (not the original file). For a video, the video itself, so it can be played.
+- The photo as a large preview image (not the original file). For a video, the video itself, so it can be played: the original file only when all five Public Sharing Defaults are on, otherwise a copy without its metadata.
 - The photo details you allow in **Settings → Public Sharing Defaults** (date, location, camera, captions, people's names). Photo links have no per-link settings of their own.
 
 What they cannot see: the original file of a photo, face thumbnails, any other photo, or anything that identifies the file's content hash. While the photo is hidden or in the trash, its link shows "not found" as well.

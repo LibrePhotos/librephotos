@@ -22,11 +22,15 @@ from api.jobs.queue import enqueue_job
 from api.metadata.date_rule_checks import changed_rule_problem
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
-from api.models.user import get_default_public_sharing_settings
+from api.models.user import (
+    get_default_public_sharing_settings,
+    public_sharing_settings,
+)
 from api.runtime.ml_models import missing_models_prerequisites
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.fields import declare_fields, loaded_count, loaded_list
 from api.serializers.simple import PhotoSuperSimpleSerializer
+from api.sharing.grants import SAMPLE_FIELDS, public_grant, redact
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 from service.exif.tag_validation import is_safe_tag_name
 
@@ -193,8 +197,12 @@ def with_user_relations(queryset: QuerySet[User]) -> QuerySet[User]:
     # it), and ``public`` is never cleared when a photo is hidden, trashed or
     # removed later, while those are not served to visitors.
     visible = visible_photo_q("photo__")
-    samples = Photo.visible.filter(public=True).only(
-        *PhotoSuperSimpleSerializer.Meta.fields, "owner"
+    # By hash: an order that says nothing about when the photos were taken,
+    # which a card without the dates switch must not tell.
+    samples = (
+        Photo.visible.filter(public=True)
+        .only(*PhotoSuperSimpleSerializer.Meta.fields, "owner")
+        .order_by("image_hash")
     )
     return queryset.annotate(
         photo_count=Count("photo", filter=visible),
@@ -511,7 +519,12 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(PhotoSuperSimpleSerializer(many=True))
     def get_public_photo_samples(self, obj: User) -> list[dict[str, Any]]:
-        return public_photo_samples(obj)
+        # Seen by everyone: what the user's public sharing switches allow.
+        grant = public_grant(public_sharing_settings(obj))
+        samples = public_photo_samples(obj)
+        for sample in samples:
+            redact(sample, SAMPLE_FIELDS, grant)
+        return samples
 
     def get_avatar_url(self, obj: User) -> str | None:
         try:

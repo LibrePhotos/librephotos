@@ -47,7 +47,9 @@ class UserPayloadTest(TestCase):
         self.assertEqual(response.status_code, 200)
         return {row["id"]: row for row in response.json()["results"]}
 
-    def _assert_samples(self, row: dict, photos: list) -> None:
+    def _assert_samples(self, row: dict, photos: list, public: bool = False) -> None:
+        """``public``: as everyone else sees the card, without ratings (the
+        public sharing switches decide, ``api.sharing.grants.SAMPLE_FIELDS``)."""
         self.assertEqual(
             sorted(sample["image_hash"] for sample in row["public_photo_samples"]),
             sorted(photo.image_hash for photo in photos),
@@ -56,15 +58,15 @@ class UserPayloadTest(TestCase):
         for sample in row["public_photo_samples"]:
             self.assertEqual(set(sample), SAMPLE_FIELDS)
             photo = by_hash[sample["image_hash"]]
-            self.assertEqual(sample["rating"], photo.rating)
+            self.assertEqual(sample["rating"], 0 if public else photo.rating)
             self.assertIs(sample["public"], True)
             self.assertIs(sample["hidden"], False)
             self.assertIs(sample["video"], False)
 
-    def _assert_public_rows(self, rows: dict[int, dict]) -> None:
+    def _assert_public_rows(self, rows: dict[int, dict], public: bool = False) -> None:
         owner = rows[self.owner.id]
         self.assertEqual(owner["public_photo_count"], 2)
-        self._assert_samples(owner, self.public)
+        self._assert_samples(owner, self.public, public)
         prolific = rows[self.prolific.id]
         self.assertEqual(prolific["public_photo_count"], 12)
         self.assertEqual(len(prolific["public_photo_samples"]), 10)
@@ -81,13 +83,13 @@ class UserPayloadTest(TestCase):
 
     def test_signed_in_list(self):
         rows = self._rows(_client(self.private))
-        self._assert_public_rows(rows)
+        self._assert_public_rows(rows, public=True)
         self.assertNotIn("photo_count", rows[self.owner.id])
         self.assertEqual(rows[self.private.id]["public_photo_count"], 1)
 
     def test_visitor_list(self):
         rows = self._rows(_client())
-        self._assert_public_rows(rows)
+        self._assert_public_rows(rows, public=True)
         self.assertNotIn(self.private.id, rows)
 
     def test_retrieve_own_record(self):
@@ -104,7 +106,7 @@ class UserPayloadTest(TestCase):
         row = response.json()
         self.assertNotIn("photo_count", row)
         self.assertEqual(row["public_photo_count"], 2)
-        self._assert_samples(row, self.public)
+        self._assert_samples(row, self.public, public=True)
 
     def test_admin_creates_a_user(self):
         response = _client(self.admin).post(
