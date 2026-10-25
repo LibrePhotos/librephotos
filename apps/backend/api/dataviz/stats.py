@@ -3,11 +3,13 @@ import random
 import re
 from collections import Counter
 from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.conf import settings
+from django.db import connection, transaction
 from django.db.models import Count, Exists, Model, OuterRef, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
@@ -45,6 +47,36 @@ class SunburstNode(TypedDict, total=False):
     value: int
     hex: str
     children: list[SunburstNode]
+
+
+@contextmanager
+def without_parallel_workers() -> Iterator[None]:
+    """Run the enclosed queries without Postgres' parallel workers.
+
+    The stats count over the whole library, joining every photo to its
+    thumbnail or caption. A parallel plan keeps that join's hash table, about
+    10 MB on a 158k-photo library, in dynamic shared memory, which is
+    Docker's 64 MB /dev/shm, and a few stats requests at once ran it out
+    (#2868). A serial plan keeps it in the backend's own work_mem, spilling
+    to disk past it, for 100-200 ms more on a page that takes seconds.
+
+    The setting is local to the transaction and put back on the way out, so
+    the rest of the request keeps its parallel plans. Other databases have
+    no parallel workers to turn off.
+    """
+    if connection.vendor != "postgresql":
+        yield
+        return
+    with transaction.atomic(), connection.cursor() as cursor:
+        cursor.execute("SELECT current_setting('max_parallel_workers_per_gather')")
+        row = cursor.fetchone()
+        assert row is not None
+        cursor.execute("SET LOCAL max_parallel_workers_per_gather = 0")
+        # On an error the rollback of this atomic block undoes the setting.
+        yield
+        cursor.execute(
+            "SELECT set_config('max_parallel_workers_per_gather', %s, true)", [row[0]]
+        )
 
 
 def jump_by_month(
@@ -268,6 +300,9 @@ def get_server_stats() -> dict[str, Any]:
     gpu_name, gpu_memory = _get_gpu_info()
     total_storage, used_storage, free_storage = shutil.disk_usage("/")
     real_users = User.objects.filter(~Q(id=get_deleted_user().id))
+    with without_parallel_workers():
+        number_of_users = real_users.count()
+        users = [_get_user_stats(user) for user in real_users]
     return {
         "cpu_info": cpu_info,
         "image_tag": settings.IMAGE_TAG,
@@ -277,11 +312,12 @@ def get_server_stats() -> dict[str, Any]:
         "total_storage_in_mb": calc_megabytes(total_storage),
         "used_storage_in_mb": calc_megabytes(used_storage),
         "free_storage_in_mb": calc_megabytes(free_storage),
-        "number_of_users": real_users.count(),
-        "users": [_get_user_stats(user) for user in real_users],
+        "number_of_users": number_of_users,
+        "users": users,
     }
 
 
+@without_parallel_workers()
 def get_count_stats(user: User) -> dict[str, int]:
     # No DISTINCT: the thumbnail join of Photo.visible is one-to-one.
     photos = Photo.visible.owned_by(user).aggregate(
