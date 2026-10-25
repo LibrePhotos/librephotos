@@ -20,13 +20,12 @@ class ListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     pass
 
 
+# A list of album or tag cards, each with a few cover photos. The covers of
+# the page's cards are set on ``cover_photos_attr`` once the page is cut
+# (api.albums.covers), so only the cards sent get them. A comment, not a
+# docstring: drf-spectacular would publish a docstring here as the
+# description of every list that uses the mixin.
 class CoverPhotosMixin(viewsets.GenericViewSet[_M]):
-    """A list of album or tag cards, each with a few cover photos.
-
-    The covers of the page's cards are set on ``cover_photos_attr`` once the
-    page is cut (``api.albums.covers``), so only the cards sent get them.
-    """
-
     cover_photos_attr = "cover_photos"
 
     def paginate_queryset(
