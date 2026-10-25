@@ -11,13 +11,12 @@ from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Protocol
 
 from django.db import models
-from requests.exceptions import ChunkedEncodingError, ConnectionError, SSLError, Timeout
+from requests import exceptions as requests_errors
 
 from api.directory_watcher import handle_new_image
 from api.directory_watcher.scan_jobs import remember_import_followups
 from api.directory_watcher.utils import finish_job_if_complete
-from api.models import File, LongRunningJob, Photo, User
-from api.models.file import FileCopy
+from api.models import File, FileCopy, LongRunningJob, Photo, User
 from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import is_metadata, is_raw
 from api.photos.paths import folder_path_q, nextcloud_media_root
@@ -188,9 +187,14 @@ def download(
                 os.utime(temp_path, (mtime, mtime))
             os.replace(temp_path, local_path)
             return True
-        except SSLError:
+        except requests_errors.SSLError:
+            # A subclass of ConnectionError, but retrying cannot fix it.
             raise
-        except ChunkedEncodingError, ConnectionError, Timeout:
+        except (
+            requests_errors.ChunkedEncodingError,
+            requests_errors.ConnectionError,
+            requests_errors.Timeout,
+        ):
             if attempt == 3:
                 raise
             logger.warning(
