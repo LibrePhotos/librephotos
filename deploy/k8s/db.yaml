@@ -74,6 +74,11 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: data
+        # Postgres keeps the shared memory of parallel queries in /dev/shm,
+        # which the container runtime caps at 64 MB. A memory-backed emptyDir
+        # counts against the Pod's memory only for what Postgres allocates.
+        - mountPath: /dev/shm
+          name: shm
       securityContext:
         runAsUser: 999
         runAsGroup: 999
@@ -82,6 +87,10 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: postgres
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
 
 ---
 

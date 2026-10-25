@@ -14,7 +14,8 @@ Checked here:
   ``ALLOWED_DIFFERENCES``;
 * each shared variable has the same ``${key:-default}`` expression;
 * the backend has the same healthcheck (on ``/api/healthz/ready``, #2310);
-* the ``db`` service runs the same image with the same volume target;
+* the ``db`` service runs the same image with the same volume target and
+  the same ``shm_size`` (#2868, ``test_postgres_shared_memory.py``);
 * the old ``build-unified.sh`` script is gone and nothing under ``deploy/``
   points at it.
 
@@ -79,6 +80,10 @@ def compose_drift(standard_text: str, unified_text: str) -> list[str]:
     if standard_db.get("image") != unified_db.get("image"):
         problems.append(
             f"db image: {standard_db.get('image')!r} (standard) != {unified_db.get('image')!r} (unified)"
+        )
+    if standard_db.get("shm_size") != unified_db.get("shm_size"):
+        problems.append(
+            f"db shm_size: {standard_db.get('shm_size')!r} (standard) != {unified_db.get('shm_size')!r} (unified)"
         )
     standard_targets = sorted(
         volume_target(v) for v in standard_db.get("volumes") or []
@@ -149,6 +154,16 @@ services:
     def test_a_different_db_image_is_drift(self):
         planted = self.BASE.replace("18-alpine", "17-alpine")
         self.assertEqual(1, len(compose_drift(self.BASE, planted)))
+
+    def test_a_different_db_shm_size_is_drift(self):
+        planted = self.BASE.replace(
+            "    image: pgautoupgrade", "    shm_size: 256mb\n    image: pgautoupgrade"
+        )
+        self.assertEqual(
+            ["db shm_size: None (standard) != '256mb' (unified)"],
+            compose_drift(self.BASE, planted),
+        )
+        self.assertEqual([], compose_drift(planted, planted))
 
     def test_volume_target_ignores_colons_inside_interpolations(self):
         self.assertEqual(
