@@ -1,10 +1,11 @@
 import logging
 from collections.abc import Sequence
 from datetime import datetime
+from math import ceil
 from typing import TYPE_CHECKING, TypedDict
+from uuid import UUID
 
 import requests
-from django.core.paginator import Paginator
 
 from api.lazy_import import LazyModule
 from api.models import Photo, User
@@ -138,25 +139,31 @@ def build_image_similarity_index(user: User) -> int:
     """
     logger.info("building similarity index for user %s", user.username)
     start = datetime.now()
+    # isnull rather than exclude(clip_embeddings=None): that compares every
+    # stored embedding with JSON null, reading each one out of TOAST just to
+    # count them. A JSON null left in is skipped below, as an empty one is.
     photos = (
         Photo.objects.owned_by(user)
-        .filter(hidden=False)
-        .exclude(clip_embeddings=None)
+        .filter(hidden=False, clip_embeddings__isnull=False)
         .filter(produced_by_openclip())
-        .only("clip_embeddings", "image_hash")
-        .order_by("image_hash")
-        .all()
     )
     # An empty queryset still has one (empty) page, so a user without
     # embeddings gets an empty index rather than keeping a stale one.
-    paginator = Paginator(photos, INDEX_PAGE_SIZE)
-    last_page = paginator.num_pages
+    last_page = max(1, ceil(photos.count() / INDEX_PAGE_SIZE))
 
+    # Keyset pages on (owner, id), not OFFSET ones: each OFFSET page sorted
+    # all of the user's photos again, a parallel full scan per page, three
+    # rebuilds per conversion run on a large library (#2868).
+    after: UUID | None = None
     index_size = 0
     for page in range(1, last_page + 1):
+        page_photos = photos.only("clip_embeddings", "image_hash").order_by("pk")
+        if after is not None:
+            page_photos = page_photos.filter(pk__gt=after)
         image_hashes: list[str] = []
         image_embeddings: list[list[float]] = []
-        for photo in paginator.page(page).object_list:
+        for photo in page_photos[:INDEX_PAGE_SIZE]:
+            after = photo.pk
             clip_embeddings = photo.get_clip_embeddings()
             if clip_embeddings is not None:
                 image_hashes.append(photo.image_hash)

@@ -15,7 +15,11 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from api.dataviz.stats import get_location_clusters, get_server_stats
+from api.dataviz.stats import (
+    _get_user_stats,
+    get_location_clusters,
+    get_server_stats,
+)
 from api.models import Person, Photo
 from api.models.user import get_deleted_user
 from api.runtime import binaries
@@ -501,3 +505,27 @@ class GetLocationClustersTest(TestCase):
         )
         self.assertEqual([r[2] for r in get_location_clusters(self.user)], ["Mine"])
         self.assertEqual([r[2] for r in get_location_clusters(other)], ["Theirs"])
+
+
+class ServerStatsQueryCountTest(ServerStatsBaseTest):
+    """Each user costs the same few queries, whatever the library holds (#2868).
+
+    The per-user stats asked for min, max, mean and median of every album
+    group one by one, and again over the videos: 59 queries a user, a dozen
+    of them a join of every album link to its photo, and together they ran a
+    large library's Postgres out of shared memory.
+    """
+
+    def test_a_user_costs_seven_queries(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user, video=True)
+        for make in (create_test_album_user, create_test_album_place):
+            make(owner=user).photos.add(photo)
+        create_test_album_thing(
+            owner=user, thing_type="openclip_vitb32_tag"
+        ).photos.add(photo)
+        create_test_person(cluster_owner=user)
+
+        # The photo counters, five groups, the clusters.
+        with self.assertNumQueries(7):
+            _get_user_stats(user)

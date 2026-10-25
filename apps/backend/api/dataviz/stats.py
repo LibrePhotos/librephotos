@@ -2,12 +2,13 @@ import logging
 import random
 import re
 from collections import Counter
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.conf import settings
-from django.db.models import Avg, Count, Max, Min, Model, Q, QuerySet, Sum
+from django.db.models import Count, Exists, Model, OuterRef, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 from api.dataviz.color_palettes import hex_palette
@@ -60,17 +61,16 @@ def jump_by_month(
         yield current_date
 
 
-def median_value(queryset: QuerySet[Model], term: str) -> object:
-    from decimal import Decimal
-
-    count = queryset.count()
+def median_value(values: Iterable[int]) -> int | Decimal | None:
+    """The median of ``values``: the mean of the middle two, as a Decimal, for
+    an even count, and None for no value."""
+    ordered = sorted(values)
+    count = len(ordered)
     if count == 0:
         return None
-    values = queryset.values_list(term, flat=True).order_by(term)
     if count % 2 == 1:
-        return values[count // 2]
-    else:
-        return sum(values[count // 2 - 1 : count // 2 + 1]) / Decimal(2.0)
+        return ordered[count // 2]
+    return sum(ordered[count // 2 - 1 : count // 2 + 1]) / Decimal(2.0)
 
 
 def calc_megabytes(bytes: int | None) -> int:
@@ -176,65 +176,85 @@ def _get_gpu_info() -> tuple[str, int | str]:
         return name.strip(), ""
 
 
-def _aggregate_stats(
-    queryset: QuerySet[Model], related: str, photo_filter: Q | None = None
-) -> dict[str, Any]:
-    annotated = queryset.annotate(count=Count(related, filter=photo_filter))
+def _aggregate_stats(counts: Sequence[int]) -> dict[str, Any]:
+    """min, max, mean and median of the members per group.
+
+    min, max and mean of 0 read as None, as Django's Min/Max/Avg did here
+    through ``or None``; the median stays 0.
+    """
     return {
-        "min": annotated.aggregate(Min("count"))["count__min"] or None,
-        "max": annotated.aggregate(Max("count"))["count__max"] or None,
-        "mean": annotated.aggregate(Avg("count"))["count__avg"] or None,
-        "median": median_value(annotated, "count"),
+        "min": min(counts, default=None) or None,
+        "max": max(counts, default=None) or None,
+        "mean": (sum(counts) / len(counts) if counts else None) or None,
+        "median": median_value(counts),
     }
 
 
+# Each group's members are counted in one query and summarised in Python.
+# Asking the database for min, max, mean and median one at a time, then again
+# over the videos, joined every album link to its photo a dozen times per
+# group, and those parallel hash joins ran /dev/shm out on a large library
+# (#2868).
+
+
 def _photo_group_stats(queryset: QuerySet[Model]) -> dict[str, Any]:
-    stats: dict[str, Any] = {"count": queryset.count()}
-    stats.update(_aggregate_stats(queryset, "photos"))
-    videos = _aggregate_stats(queryset, "photos", Q(photos__video=True))
+    rows = list(
+        queryset.annotate(
+            n=Count("photos"), n_videos=Count("photos", filter=Q(photos__video=True))
+        ).values_list("n", "n_videos")
+    )
+    stats: dict[str, Any] = {"count": len(rows)}
+    stats.update(_aggregate_stats([n for n, _ in rows]))
+    videos = _aggregate_stats([n_videos for _, n_videos in rows])
     stats.update({f"{key}_videos": value for key, value in videos.items()})
     return stats
 
 
 def _person_group_stats(queryset: QuerySet[Model]) -> dict[str, Any]:
-    stats: dict[str, Any] = {"count": queryset.count()}
-    stats.update(_aggregate_stats(queryset, "faces"))
+    counts = list(queryset.annotate(n=Count("faces")).values_list("n", flat=True))
+    stats: dict[str, Any] = {"count": len(counts)}
+    stats.update(_aggregate_stats(counts))
     return stats
 
 
 def _get_user_stats(user: User) -> dict[str, Any]:
     owned = Q(owner=user)
-    photos = Photo.objects.filter(owned)
+    # Every photo counter in one pass over the user's photos.
+    photos = Photo.objects.filter(owned).aggregate(
+        size=Sum("size"),
+        photos=Count("pk"),
+        videos=Count("pk", filter=Q(video=True)),
+        screenshots=Count("pk", filter=Q(is_screenshot=True)),
+        documents=Count("pk", filter=Q(is_document=True)),
+        captions=Count(
+            "pk",
+            filter=Q(caption_instance__captions_json__user_caption__isnull=False),
+        ),
+        generated_captions=Count(
+            "pk", filter=Q(caption_instance__captions_json__im2txt__isnull=False)
+        ),
+        favorites=Count("pk", filter=Q(rating__gte=user.favorite_min_rating)),
+        hidden=Count("pk", filter=Q(hidden=True)),
+        public=Count("pk", filter=Q(public=True)),
+    )
     return {
         "date_joined": user.date_joined.strftime("%d-%m-%Y"),
-        "total_file_size_in_mb": calc_megabytes(
-            photos.aggregate(Sum("size"))["size__sum"] or None
-        ),
-        "number_of_photos": photos.count(),
-        "number_of_videos": Photo.objects.filter(owned & Q(video=True)).count(),
-        "number_of_screenshots": Photo.objects.filter(
-            owned & Q(is_screenshot=True)
-        ).count(),
-        "number_of_documents": Photo.objects.filter(
-            owned & Q(is_document=True)
-        ).count(),
-        "number_of_captions": Photo.objects.filter(
-            owned & Q(caption_instance__captions_json__user_caption__isnull=False)
-        ).count(),
-        "number_of_generated_captions": Photo.objects.filter(
-            owned & Q(caption_instance__captions_json__im2txt__isnull=False)
-        ).count(),
+        "total_file_size_in_mb": calc_megabytes(photos["size"]),
+        "number_of_photos": photos["photos"],
+        "number_of_videos": photos["videos"],
+        "number_of_screenshots": photos["screenshots"],
+        "number_of_documents": photos["documents"],
+        "number_of_captions": photos["captions"],
+        "number_of_generated_captions": photos["generated_captions"],
         "album": _photo_group_stats(AlbumUser.objects.filter(owned)),
         "person": _person_group_stats(Person.objects.filter(Q(cluster_owner=user))),
         "number_of_clusters": Cluster.objects.filter(owned).count(),
         "places": _photo_group_stats(AlbumPlace.objects.filter(owned)),
         "things": _photo_group_stats(AlbumThing.objects.filter(owned)),
         "events": _photo_group_stats(AlbumAuto.objects.filter(owned)),
-        "number_of_favorites": Photo.objects.filter(
-            owned & Q(rating__gte=user.favorite_min_rating)
-        ).count(),
-        "number_of_hidden": Photo.objects.filter(owned & Q(hidden=True)).count(),
-        "number_of_public": Photo.objects.filter(owned & Q(public=True)).count(),
+        "number_of_favorites": photos["favorites"],
+        "number_of_hidden": photos["hidden"],
+        "number_of_public": photos["public"],
     }
 
 
@@ -263,45 +283,42 @@ def get_server_stats() -> dict[str, Any]:
 
 
 def get_count_stats(user: User) -> dict[str, int]:
-    num_photos = Photo.visible.owned_by(user).distinct().count()
-    num_screenshots = (
-        Photo.visible.owned_by(user).filter(is_screenshot=True).distinct().count()
+    # No DISTINCT: the thumbnail join of Photo.visible is one-to-one.
+    photos = Photo.visible.owned_by(user).aggregate(
+        num_photos=Count("pk"),
+        num_screenshots=Count("pk", filter=Q(is_screenshot=True)),
+        num_documents=Count("pk", filter=Q(is_document=True)),
     )
-    num_documents = (
-        Photo.visible.owned_by(user).filter(is_document=True).distinct().count()
-    )
+    # NOT EXISTS rather than a LEFT JOIN on the files: the join hashed every
+    # photo of the library in shared memory (#2868), and counted a photo with
+    # no main file once per file it still has.
     num_missing_photos = (
-        Photo.objects.owned_by(user).filter(Q(files=None) | Q(main_file=None)).count()
-    )
-    num_faces = Face.objects.filter(photo__owner=user).count()
-    num_unknown_faces = Face.objects.filter(
-        (
-            Q(person__name__exact="unknown")
-            | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME)
+        Photo.objects.owned_by(user)
+        .filter(
+            Q(main_file=None)
+            | ~Exists(Photo.files.through.objects.filter(photo_id=OuterRef("pk")))
         )
-        & Q(photo__owner=user)
-    ).count()
-    num_labeled_faces = Face.objects.filter(
-        Q(person__isnull=False) & Q(photo__owner=user) & Q(photo__hidden=False)
-    ).count()
-    # The faces the user has not labelled -- the complement of
-    # num_labeled_faces above, and what the face dashboard shows under its
-    # Inferred tab, where every branch pairs its cluster or classification
-    # guess with person=None. This read Q(person=True), which Django resolves
-    # as a primary key: it counted the faces of person number 1.
-    num_inferred_faces = Face.objects.filter(
-        Q(person__isnull=True) & Q(photo__owner=user) & Q(photo__hidden=False)
-    ).count()
-    num_people = (
-        Person.objects.filter(
-            Q(faces__photo__hidden=False)
-            & Q(faces__photo__owner=user)
-            & Q(faces__person__isnull=False)
-        )
-        .distinct()
-        .annotate(viewable_face_count=Count("faces"))
-        .filter(Q(viewable_face_count__gt=0))
         .count()
+    )
+    # Every face counter in one pass over the user's faces.
+    labelled = Q(person__isnull=False) & Q(photo__hidden=False)
+    faces = Face.objects.filter(photo__owner=user).aggregate(
+        num_faces=Count("pk"),
+        num_unknown_faces=Count(
+            "pk",
+            filter=Q(person__name__in=["unknown", Person.UNKNOWN_PERSON_NAME]),
+        ),
+        num_labeled_faces=Count("pk", filter=labelled),
+        # The faces the user has not labelled -- the complement of
+        # num_labeled_faces, and what the face dashboard shows under its
+        # Inferred tab, where every branch pairs its cluster or classification
+        # guess with person=None. This read Q(person=True), which Django
+        # resolves as a primary key: it counted the faces of person number 1.
+        num_inferred_faces=Count(
+            "pk", filter=Q(person__isnull=True) & Q(photo__hidden=False)
+        ),
+        # The people with a labelled face on a visible photo.
+        num_people=Count("person", distinct=True, filter=labelled),
     )
     num_albumauto = (
         AlbumAuto.objects.filter(owner=user)
@@ -323,15 +340,15 @@ def get_count_stats(user: User) -> dict[str, int]:
     )
 
     res = {
-        "num_photos": num_photos,
-        "num_screenshots": num_screenshots,
-        "num_documents": num_documents,
+        "num_photos": photos["num_photos"],
+        "num_screenshots": photos["num_screenshots"],
+        "num_documents": photos["num_documents"],
         "num_missing_photos": num_missing_photos,
-        "num_faces": num_faces,
-        "num_people": num_people,
-        "num_unknown_faces": num_unknown_faces,
-        "num_labeled_faces": num_labeled_faces,
-        "num_inferred_faces": num_inferred_faces,
+        "num_faces": faces["num_faces"],
+        "num_people": faces["num_people"],
+        "num_unknown_faces": faces["num_unknown_faces"],
+        "num_labeled_faces": faces["num_labeled_faces"],
+        "num_inferred_faces": faces["num_inferred_faces"],
         "num_albumauto": num_albumauto,
         "num_albumdate": num_albumdate,
         "num_albumuser": num_albumuser,

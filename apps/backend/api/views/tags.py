@@ -29,6 +29,7 @@ from api.serializers.tag import (
     TagSerializer,
 )
 from api.views.albums import _with_photo_summary_relations
+from api.views.custom_api_view import CoverPhotosMixin
 from api.views.mixins import PartialUpdateModelMixin
 from api.views.photos import _get_photo_filter_kwargs
 
@@ -39,6 +40,9 @@ PHOTO_LINK_BATCH_SIZE = 2000
 
 
 class TagViewSet(
+    # The tiles' covers come from the same photos the detail action serves:
+    # a tile must not cover itself with a trashed photo whose file is gone.
+    CoverPhotosMixin[Tag],
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
@@ -77,13 +81,6 @@ class TagViewSet(
                         for field, value in _get_photo_filter_kwargs(photo).items()
                     }
                 ).distinct()
-
-            # The same photos the detail action serves: a tile must not cover
-            # itself with a trashed photo whose file is already gone.
-            cover_photos = Photo.visible.only("image_hash", "video")
-            queryset = queryset.prefetch_related(
-                Prefetch("photos", queryset=cover_photos[:4], to_attr="cover_photos")
-            )
         elif self.action == "retrieve":
             queryset = queryset.prefetch_related(
                 Prefetch(

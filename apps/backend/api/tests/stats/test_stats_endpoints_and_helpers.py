@@ -13,7 +13,6 @@ from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 
 from api.dataviz.stats import calc_megabytes, get_count_stats, median_value
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import (
@@ -331,40 +330,25 @@ class UtilityFunctionsTestCase(TestCase):
         # 100 MB
         self.assertEqual(calc_megabytes(104857600), 100)
 
-    def test_median_value_empty_queryset(self):
-        """Test median with empty queryset."""
-        qs = Photo.objects.none()
-        result = median_value(qs, "size")
-        self.assertIsNone(result)
+    def test_median_value_no_values(self):
+        self.assertIsNone(median_value([]))
 
     def test_median_value_odd_count(self):
         """Median of an odd number of values is the middle element."""
-        user = create_test_user()
-        for size in (10, 20, 30):
-            create_test_photo(owner=user, size=size)
-        qs = Photo.objects.filter(owner=user)
-        self.assertEqual(median_value(qs, "size"), 20)
+        self.assertEqual(median_value([30, 10, 20]), 20)
 
     def test_median_value_even_count(self):
         """Median of an even number of values averages the two middle ones.
 
         Regression test: ``count / 2`` is a float in Python 3, so the old
         slice ``values[count / 2 - 1 : count / 2 + 1]`` raised TypeError for
-        every even-sized queryset, breaking the whole server-stats endpoint.
+        every even-sized input, breaking the whole server-stats endpoint.
         """
-        user = create_test_user()
-        for size in (10, 20, 30, 40):
-            create_test_photo(owner=user, size=size)
-        qs = Photo.objects.filter(owner=user)
-        self.assertEqual(median_value(qs, "size"), 25)
+        self.assertEqual(median_value([40, 10, 30, 20]), 25)
 
     def test_median_value_two_values(self):
         """Smallest even case: average of the two values."""
-        user = create_test_user()
-        for size in (10, 30):
-            create_test_photo(owner=user, size=size)
-        qs = Photo.objects.filter(owner=user)
-        self.assertEqual(median_value(qs, "size"), 20)
+        self.assertEqual(median_value([10, 30]), 20)
 
 
 class CountStatsTestCase(TestCase):

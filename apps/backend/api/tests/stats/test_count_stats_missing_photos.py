@@ -61,3 +61,17 @@ class CountStatsMissingPhotosTest(TestCase):
         stats = get_count_stats(user)
 
         self.assertEqual(stats["num_missing_photos"], 0)
+
+    def test_photo_without_main_file_counts_once_whatever_its_files(self):
+        """A LEFT JOIN on the files counted such a photo once per file."""
+        user = create_test_user()
+        intact = create_test_photo(owner=user)
+        intact.files.add(intact.main_file)
+        photo = create_test_photo(owner=user)
+        photo.files.add(photo.main_file, intact.main_file)
+        photo.main_file = None
+        photo.save()
+
+        stats = get_count_stats(user)
+
+        self.assertEqual(stats["num_missing_photos"], 1)
