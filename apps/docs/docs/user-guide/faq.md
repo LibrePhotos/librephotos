@@ -81,6 +81,28 @@ This is not yet handled gracefully for uploads and deletions, which means, you w
 
 No. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that overlaps another user's. To share photos within a household, keep them in one library and share albums or photos from there, or let each person [share their whole library](sharing.md#sharing-your-whole-library) read-only with the others; [Sharing photos in a family](sharing.md#sharing-photos-in-a-family) compares the setups.
 
+## "could not resize shared memory segment ... No space left on device"
+
+A page fails now and then with "Something went wrong on the server", most often the Admin Area, the statistics or the Things and Places lists, and the backend log shows:
+
+```
+psycopg.errors.DiskFull: could not resize shared memory segment "/PostgreSQL.…" to … bytes: No space left on device
+```
+
+Your disk is not full. Postgres keeps the shared memory of parallel queries in `/dev/shm`, and Docker gives every container only 64 MB there. On a large library a few such queries at once need more, and the one that asks last fails. The same page usually works again a moment later.
+
+<Since version="1.5.0" /> The bundled Compose files give the `db` service `shm_size: 256mb`, and the Kubernetes manifest mounts a memory-backed `emptyDir` at `/dev/shm`. Both are ceilings: memory is used only for what Postgres actually allocates, so a small library pays nothing. 1.5.0 also stopped the pages above from needing that much shared memory in the first place.
+
+If you run your own Compose file, or a release up to 1.4.0, add the setting to the `db` service and recreate it with `docker compose up -d db`:
+
+```yaml
+services:
+  db:
+    shm_size: 256mb
+```
+
+To check it took effect, `docker exec db df -h /dev/shm` should show 256M.
+
 ## Videos are not playing and showing a 404 error
 
 ### Reason 1:

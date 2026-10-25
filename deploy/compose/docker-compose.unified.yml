@@ -16,6 +16,10 @@ services:
     image: pgautoupgrade/pgautoupgrade:18-alpine
     container_name: db
     restart: unless-stopped
+    # Postgres keeps the shared memory of parallel queries in /dev/shm, which
+    # Docker caps at 64 MB. A ceiling, not a reservation: memory is used only
+    # for what Postgres allocates.
+    shm_size: 256mb
     environment:
       - POSTGRES_USER=${dbUser}
       - POSTGRES_PASSWORD=${dbPass}
