@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import os
+import time
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -10,11 +11,12 @@ from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Protocol
 
 from django.db import models
+from requests import exceptions as requests_errors
 
 from api.directory_watcher import handle_new_image
 from api.directory_watcher.scan_jobs import remember_import_followups
 from api.directory_watcher.utils import finish_job_if_complete
-from api.models import File, LongRunningJob, Photo, User
+from api.models import File, FileCopy, LongRunningJob, Photo, User
 from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import is_metadata, is_raw
 from api.photos.paths import folder_path_q, nextcloud_media_root
@@ -169,21 +171,44 @@ def download(
     fetched again by the next scan instead of being kept as a truncated file.
     It gets the remote modification time ``mtime``, which tells the next scan
     whether the remote file changed since. Returns whether the file was
-    downloaded.
+    downloaded. Interrupted transfers are retried up to three times, with a
+    fresh temporary file each time; persistent errors still fail the scan.
     """
     local_dir = os.path.dirname(local_path)
     os.makedirs(local_dir, exist_ok=True)
-    temp_path = os.path.join(local_dir, f".nextcloud-{uuid.uuid4().hex}.part")
-    try:
-        if not nc.get_file(remote_path, temp_path) or not os.path.isfile(temp_path):
-            return False
-        if mtime is not None:
-            os.utime(temp_path, (mtime, mtime))
-        os.replace(temp_path, local_path)
-        return True
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    attempt = 0
+    while True:
+        attempt += 1
+        temp_path = os.path.join(local_dir, f".nextcloud-{uuid.uuid4().hex}.part")
+        try:
+            if not nc.get_file(remote_path, temp_path) or not os.path.isfile(temp_path):
+                return False
+            if mtime is not None:
+                os.utime(temp_path, (mtime, mtime))
+            os.replace(temp_path, local_path)
+            return True
+        except requests_errors.SSLError:
+            # A subclass of ConnectionError, but retrying cannot fix it.
+            raise
+        except (
+            requests_errors.ChunkedEncodingError,
+            requests_errors.ConnectionError,
+            requests_errors.Timeout,
+        ):
+            if attempt == 3:
+                raise
+            logger.warning(
+                "Nextcloud download interrupted on attempt %d/3; retrying in %d seconds",
+                attempt,
+                attempt,
+            )
+            logger.debug(
+                "Interrupted Nextcloud download: %r", remote_path, exc_info=True
+            )
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        time.sleep(attempt)
 
 
 def indexed_paths(user: User, root: str) -> set[str]:
@@ -194,11 +219,19 @@ def indexed_paths(user: User, root: str) -> set[str]:
     A file flagged missing is not: it is attached again when it comes back.
     """
     photos = Photo.objects.owned_by(user)
-    return set(
+    paths = set(
         File.objects.filter(folder_path_q("path", root), missing=False)
         .filter(models.Q(photo__in=photos) | models.Q(main_photo__in=photos))
         .values_list("path", flat=True)
     )
+    paths.update(
+        FileCopy.objects.filter(folder_path_q("path", root), file__missing=False)
+        .filter(
+            models.Q(file__photo__in=photos) | models.Q(file__main_photo__in=photos)
+        )
+        .values_list("path", flat=True)
+    )
+    return paths
 
 
 @dataclass
@@ -274,7 +307,11 @@ def detach_deleted_files(user: User, scope: str, listed: set[str]) -> int:
     removing them is the user's call. Returns how many files were flagged.
     """
     photos = Photo.objects.owned_by(user)
-    gone = sorted(indexed_paths(user, scope) - listed)
+    gone = sorted(
+        File.objects.filter(path__in=indexed_paths(user, scope) - listed).values_list(
+            "path", flat=True
+        )
+    )
     for start in range(0, len(gone), 500):
         for file in File.objects.filter(path__in=gone[start : start + 500]):
             for photo in photos.filter(files=file):
