@@ -15,6 +15,6 @@ api/models/photo_caption.py: 1
 api/models/photo_stack.py: 1
 api/models/tag.py: 1
 api/stacks/detection.py: 1
-api/dataviz/stats.py: 11
+api/dataviz/stats.py: 7
 api/sync_signals.py: 1
 api/accounts/deletion.py: 9

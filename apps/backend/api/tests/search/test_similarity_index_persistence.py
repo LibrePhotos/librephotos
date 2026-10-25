@@ -16,8 +16,12 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import requests
+from django.db import connection
+from django.db.models import JSONField, Value
 from django.test import SimpleTestCase, TestCase
+from django.test.utils import CaptureQueriesContext
 
+from api.models import Photo
 from api.models.long_running_job import LongRunningJob
 from api.search import embedding_jobs
 from api.search.similarity import (
@@ -393,3 +397,53 @@ class ClipJobFailsWithTheIndexTest(TestCase):
         self.assertTrue(job.failed)
         self.assertTrue(job.finished)
         self.assertIn("refused", job.result["error"])
+
+
+class BuildImageSimilarityIndexPagesTest(TestCase):
+    """The rebuild pages by id (keyset), not by OFFSET (#2868)."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photos = create_test_photos(number_of_photos=5, owner=self.user)
+        for number, photo in enumerate(self.photos):
+            photo.clip_embeddings = [float(number), 1.0]
+            photo.clip_embeddings_model = "openclip_vitb32"
+            photo.save()
+
+    @patch("api.runtime.sidecars.http.post")
+    def test_every_photo_is_sent_once_across_pages(self, post):
+        post.return_value = _build_reply()
+
+        with patch("api.search.similarity.INDEX_PAGE_SIZE", 2):
+            build_image_similarity_index(self.user)
+
+        pages = [call.kwargs["json"]["image_hashes"] for call in post.call_args_list]
+        self.assertEqual([len(page) for page in pages], [2, 2, 1])
+        sent = [image_hash for page in pages for image_hash in page]
+        self.assertCountEqual(sent, [photo.image_hash for photo in self.photos])
+
+    @patch("api.runtime.sidecars.http.post")
+    def test_a_json_null_embedding_is_left_out(self, post):
+        """Stored as JSON null rather than SQL NULL, it is skipped like an empty one."""
+        Photo.objects.filter(pk=self.photos[0].pk).update(
+            clip_embeddings=Value(None, JSONField())
+        )
+        post.return_value = _build_reply()
+
+        build_image_similarity_index(self.user)
+
+        sent = post.call_args.kwargs["json"]["image_hashes"]
+        self.assertEqual(len(sent), 4)
+        self.assertNotIn(self.photos[0].image_hash, sent)
+
+    @patch("api.runtime.sidecars.http.post")
+    def test_no_offset_in_the_page_queries(self, post):
+        post.return_value = _build_reply()
+
+        with patch("api.search.similarity.INDEX_PAGE_SIZE", 2):
+            with CaptureQueriesContext(connection) as queries:
+                build_image_similarity_index(self.user)
+
+        self.assertFalse(
+            any("OFFSET" in q["sql"].upper() for q in queries.captured_queries)
+        )

@@ -107,7 +107,7 @@ from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )
-from api.views.custom_api_view import ListViewSet
+from api.views.custom_api_view import CoverPhotosMixin, ListViewSet
 from api.views.library_days import (
     library_day,
     library_day_rows,
@@ -309,12 +309,17 @@ class AlbumThingViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
 
 # To-Do: Could be literally the list command in AlbumThingViewSet
-class AlbumThingListViewSet(ListViewSet):
+class AlbumThingListViewSet(CoverPhotosMixin[AlbumThing], ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumThingListSerializer
     pagination_class = WholeListPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = ["title"]
+    # The card shows the stored photo_count. The covers come from the
+    # album's visible photos, as on the place list: the stored cover_photos
+    # are never replaced once hidden or trashed, so an album could be listed
+    # with none of them left (#2234).
+    cover_photos_attr = "visible_cover_photos"
 
     def get_queryset(self) -> QuerySet[AlbumThing]:
         user = self.request.user
@@ -322,21 +327,9 @@ class AlbumThingListViewSet(ListViewSet):
             return AlbumThing.objects.none()
 
         active_types = _get_active_tag_thing_types()
-        # The card shows the stored photo_count. The covers come from the
-        # album's visible photos, as on the place list: the stored
-        # cover_photos are never replaced once hidden or trashed, so an album
-        # could be listed with none of them left (#2234).
-        cover_photos_query = Photo.visible.only("image_hash", "video")
         queryset = (
             AlbumThing.objects.owned_by(user)
             .filter(_thing_has_visible_photo())
-            .prefetch_related(
-                Prefetch(
-                    "photos",
-                    queryset=cover_photos_query[:4],
-                    to_attr="visible_cover_photos",
-                )
-            )
             .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
             .order_by("-title")
         )
@@ -401,7 +394,7 @@ class AlbumPlaceViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
 
 
 # To-Do: Could be literally the list command in AlbumPlaceViewSet
-class AlbumPlaceListViewSet(ListViewSet):
+class AlbumPlaceListViewSet(CoverPhotosMixin[AlbumPlace], ListViewSet):
     permission_classes = (IsAuthenticated,)
     serializer_class = AlbumPlaceListSerializer
     pagination_class = DefaultPagination
@@ -412,18 +405,12 @@ class AlbumPlaceListViewSet(ListViewSet):
         user = self.request.user
         if not isinstance(user, User):
             return AlbumPlace.objects.none()
-        cover_photos_query = Photo.visible.only("image_hash", "video")
 
         return (
             AlbumPlace.objects.owned_by(user)
             # No DISTINCT: a place holds a photo once and the thumbnail join is
             # one-to-one, and COUNT(DISTINCT) sorted every place link.
             .annotate(photo_count=Count("photos", filter=visible_photo_q("photos__")))
-            .prefetch_related(
-                Prefetch(
-                    "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
-                )
-            )
             .filter(Q(photo_count__gt=0))
             .order_by("title")
         )
