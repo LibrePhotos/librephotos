@@ -354,6 +354,7 @@ class ScanPhotosDownloadTest(TestCase):
         self.root = os.path.join(self.data_root, "nextcloud_media", self.user.username)
         self.nc = mock.MagicMock()
         self.nc.get_file.side_effect = self._write_file
+        self.sleep = self._patch("nextcloud.directory_watcher.time.sleep")
         self.handle_new_image = self._patch(
             "nextcloud.directory_watcher.handle_new_image"
         )
@@ -420,6 +421,10 @@ class ScanPhotosDownloadTest(TestCase):
 
         self.assertFalse(result["status"])
         self.assertTrue(job.failed)
+        self.assertTrue(job.finished)
+        self.assertEqual(3, self.nc.get_file.call_count)
+        self.assertEqual([mock.call(1), mock.call(2)], self.sleep.call_args_list)
+        self.assertEqual([], self._handled())
         self.assertEqual([], self._all_files())
 
         self.nc.get_file.side_effect = self._write_file
@@ -430,6 +435,104 @@ class ScanPhotosDownloadTest(TestCase):
         self.assertEqual([local_path], self._all_files())
         with open(local_path, "rb") as f:
             self.assertEqual(b"complete:/Photos/a.jpg", f.read())
+
+    def test_transient_download_errors_are_retried_with_clean_temporary_files(self):
+        for error in (
+            requests.exceptions.ChunkedEncodingError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        ):
+            with self.subTest(error=error):
+                self.nc.get_file.reset_mock()
+                self.sleep.reset_mock()
+                attempts: list[str] = []
+                local_path = os.path.join(self.root, "Photos", "a.jpg")
+
+                def interrupted_once(remote_path: str, temp_path: str) -> bool:
+                    self.assertFalse(os.path.exists(temp_path))
+                    for previous in attempts:
+                        self.assertFalse(os.path.exists(previous))
+                    attempts.append(temp_path)
+                    if len(attempts) == 1:
+                        with open(temp_path, "wb") as f:
+                            f.write(b"trunc")
+                        raise error("connection interrupted")
+                    return self._write_file(remote_path, temp_path)
+
+                self.nc.get_file.side_effect = interrupted_once
+
+                self.assertTrue(
+                    directory_watcher.download(
+                        self.nc, "/Photos/a.jpg", local_path, mtime=1234567890
+                    )
+                )
+
+                self.assertEqual(2, self.nc.get_file.call_count)
+                self.assertEqual(2, len(set(attempts)))
+                self.sleep.assert_called_once_with(1)
+                self.assertEqual([local_path], self._all_files())
+                self.assertEqual(1234567890, os.path.getmtime(local_path))
+                with open(local_path, "rb") as f:
+                    self.assertEqual(b"complete:/Photos/a.jpg", f.read())
+
+    def test_recovered_download_does_not_abort_the_rest_of_the_scan(self):
+        def interrupted_once(remote_path: str, local_path: str) -> bool:
+            if self.nc.get_file.call_count == 1:
+                with open(local_path, "wb") as f:
+                    f.write(b"trunc")
+                raise requests.exceptions.ChunkedEncodingError("incomplete response")
+            return self._write_file(remote_path, local_path)
+
+        self.nc.get_file.side_effect = interrupted_once
+
+        result, job = self._scan(["/Photos/a.jpg", "/Photos/b.jpg"])
+
+        self.assertTrue(result["status"])
+        self.assertFalse(job.failed)
+        self.assertEqual(3, self.nc.get_file.call_count)
+        self.assertEqual(
+            [os.path.join(self.root, "Photos", name) for name in ("a.jpg", "b.jpg")],
+            self._handled(),
+        )
+
+    def test_failed_replacement_preserves_the_existing_copy(self):
+        local_path = os.path.join(self.root, "Photos", "a.jpg")
+        os.makedirs(os.path.dirname(local_path))
+        with open(local_path, "wb") as f:
+            f.write(b"existing copy")
+
+        def interrupted(remote_path: str, temp_path: str) -> bool:
+            with open(temp_path, "wb") as f:
+                f.write(b"trunc")
+            raise requests.exceptions.ChunkedEncodingError("incomplete response")
+
+        self.nc.get_file.side_effect = interrupted
+        with self.assertRaises(requests.exceptions.ChunkedEncodingError):
+            directory_watcher.download(self.nc, "/Photos/a.jpg", local_path)
+
+        self.assertEqual(3, self.nc.get_file.call_count)
+        self.assertEqual([local_path], self._all_files())
+        with open(local_path, "rb") as f:
+            self.assertEqual(b"existing copy", f.read())
+
+    def test_non_transient_errors_are_not_retried(self):
+        for error in (
+            requests.exceptions.SSLError("certificate verification failed"),
+            requests.exceptions.HTTPError("401 Unauthorized"),
+            PermissionError("permission denied"),
+        ):
+            with self.subTest(error=error):
+                self.nc.get_file.reset_mock()
+                self.sleep.reset_mock()
+                self.nc.get_file.side_effect = error
+
+                result, job = self._scan(["/Photos/a.jpg"])
+
+                self.assertFalse(result["status"])
+                self.assertTrue(job.failed)
+                self.nc.get_file.assert_called_once()
+                self.sleep.assert_not_called()
+                self.assertEqual([], self._all_files())
 
     def test_file_the_server_did_not_return_is_not_imported(self):
         self.nc.get_file.side_effect = None

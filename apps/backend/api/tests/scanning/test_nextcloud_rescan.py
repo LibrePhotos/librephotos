@@ -16,7 +16,7 @@ import pyvips
 from django.test import TestCase, override_settings
 from owncloud import FileInfo
 
-from api.models import LongRunningJob, Photo
+from api.models import FileCopy, LongRunningJob, Photo
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
 
@@ -103,3 +103,52 @@ class NextcloudRescanTest(TestCase):
 
         self.assertEqual(["c.png"], self._processed())
         self.assertEqual(3, Photo.objects.owned_by(self.user).count())
+
+    def test_repeat_scan_skips_exact_copies(self):
+        self.listing = [_remote_file("/Photos/a.png"), _remote_file("/Photos/copy.png")]
+        self.nc.get_file.side_effect = lambda remote, local: self._write_image(
+            "/Photos/a.png", local
+        )
+        self._scan()
+        photo_count = Photo.objects.owned_by(self.user).count()
+        self.assertEqual(1, FileCopy.objects.count())
+        self.process.reset_mock()
+        self.nc.get_file.reset_mock()
+
+        self._scan()
+        self._scan()
+
+        self.process.assert_not_called()
+        self.nc.get_file.assert_not_called()
+        self.assertEqual(photo_count, Photo.objects.owned_by(self.user).count())
+
+    def test_removed_copy_does_not_mark_the_original_missing(self):
+        self.listing = [_remote_file("/Photos/a.png"), _remote_file("/Photos/copy.png")]
+        self.nc.get_file.side_effect = lambda remote, local: self._write_image(
+            "/Photos/a.png", local
+        )
+        self._scan()
+        self.listing = [_remote_file("/Photos/a.png")]
+        self.process.reset_mock()
+
+        self._scan()
+
+        for photo in Photo.objects.owned_by(self.user):
+            self.assertFalse(photo.main_file.missing)
+            self.assertTrue(photo.files.filter(pk=photo.main_file_id).exists())
+        self.process.assert_not_called()
+
+    def test_indexed_copy_paths_are_scoped_to_the_owner(self):
+        self.listing = [_remote_file("/Photos/a.png"), _remote_file("/Photos/copy.png")]
+        self.nc.get_file.side_effect = lambda remote, local: self._write_image(
+            "/Photos/a.png", local
+        )
+        self._scan()
+        root = directory_watcher.user_media_root(self.user)
+        copy_path = FileCopy.objects.get().path
+
+        self.assertIn(copy_path, directory_watcher.indexed_paths(self.user, root))
+        self.assertNotIn(
+            copy_path,
+            directory_watcher.indexed_paths(create_test_user(), root),
+        )
