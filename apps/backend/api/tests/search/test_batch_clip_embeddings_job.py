@@ -180,6 +180,56 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         self.assertTrue(self.latest_job().finished)
         self.assertFalse(self.latest_job().failed)
 
+    def test_rebuilds_while_converting_come_each_time_the_count_doubles(self):
+        """Each rebuild reads every photo converted so far. Rebuilt every
+        2000 photos, a 155k-photo conversion rebuilt 77 times, 7.6 hours of
+        a 31-hour run; doubling the interval makes it 7."""
+        legacy = create_test_photos(number_of_photos=20, owner=self.user)
+        for photo in legacy:
+            photo.clip_embeddings = [9.0, 9.0]  # CLIP ViT-B/32 (model NULL)
+            photo.save()
+
+        progress_at_rebuild = []
+
+        def record_rebuild(user):
+            progress_at_rebuild.append(self.latest_job().progress_current)
+            return 0
+
+        with (
+            patch.object(embedding_jobs, "BATCH_SIZE", 1),
+            patch.object(embedding_jobs, "INDEX_REBUILD_EVERY", 2),
+            patch.object(
+                embedding_jobs, "create_clip_embeddings", side_effect=fake_embeddings
+            ),
+            patch.object(
+                embedding_jobs,
+                "build_image_similarity_index",
+                side_effect=record_rebuild,
+            ),
+            patch.object(embedding_jobs.os.path, "exists", return_value=True),
+        ):
+            embedding_jobs.batch_calculate_clip_embedding(self.user)
+
+        # Before the first photo, after 2, 4, 8 and 16, and at the end.
+        self.assertEqual(progress_at_rebuild, [0, 2, 4, 8, 16, 20])
+        self.assertTrue(self.latest_job().finished)
+
+    def test_a_small_conversion_rebuilds_on_the_first_interval_only(self):
+        """Up to the first interval nothing changes for a small library."""
+        legacy = create_test_photos(number_of_photos=3, owner=self.user)
+        for photo in legacy:
+            photo.clip_embeddings = [9.0, 9.0]
+            photo.save()
+
+        with (
+            patch.object(embedding_jobs, "BATCH_SIZE", 1),
+            patch.object(embedding_jobs, "INDEX_REBUILD_EVERY", 2),
+        ):
+            _, m_index = self.run_job()
+
+        # Before converting, after 2, and at the end.
+        self.assertEqual(m_index.call_count, 3)
+
     # ------------------------------------------------------------------
     # photos of an earlier model that cannot be converted
     # ------------------------------------------------------------------

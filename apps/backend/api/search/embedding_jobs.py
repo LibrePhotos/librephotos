@@ -21,7 +21,12 @@ from api.search.similarity import SimilarityIndexError, build_image_similarity_i
 logger = logging.getLogger(__name__)
 
 # While a run re-embeds photos of an earlier model, the similarity index is
-# rebuilt after this many, so search covers the converted ones as it goes.
+# rebuilt as it goes, so search covers the converted photos: first after this
+# many, then each time the converted count has doubled. Every rebuild reads
+# all the photos converted so far, so a fixed interval made the rebuilds of
+# a large library cost the square of its size; doubling keeps their total
+# under twice one full rebuild, and search always covers at least half of
+# what is converted.
 INDEX_REBUILD_EVERY = 2000
 
 # Photos per sidecar request.
@@ -227,6 +232,7 @@ def _embed_batches(
     """
     count = lrj.progress_target
     since_rebuild = 0
+    rebuild_after = INDEX_REBUILD_EVERY
     done_count = 0
     last_pk: uuid.UUID | None = None
     while done_count < count:
@@ -260,13 +266,10 @@ def _embed_batches(
         if options.heartbeat is not None:
             options.heartbeat()
         since_rebuild += len(objs)
-        if (
-            options.converting
-            and since_rebuild >= INDEX_REBUILD_EVERY
-            and done_count < count
-        ):
+        if options.converting and since_rebuild >= rebuild_after and done_count < count:
             _rebuild_index_while_converting(user)
             since_rebuild = 0
+            rebuild_after = max(INDEX_REBUILD_EVERY, done_count)
 
 
 def photos_with_earlier_embeddings() -> QuerySet[Photo]:
