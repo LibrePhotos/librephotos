@@ -323,8 +323,9 @@ def remove_schedule(func: str) -> bool:
 def tasks_are_waiting() -> bool:
     """Whether the broker holds tasks that no worker has taken yet.
 
-    Taken tasks are locked for ``Q_CLUSTER["retry"]`` (about 231 days), so a
-    task whose worker died is not counted: it never runs again by itself.
+    A taken task is not counted while its cluster holds it. When that cluster
+    goes away, its tasks count again once their lease runs out
+    (``api.jobs.broker.LEASE``), and run again.
     """
     return bool(get_broker().queue_size())
 

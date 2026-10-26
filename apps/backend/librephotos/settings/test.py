@@ -39,3 +39,8 @@ REST_FRAMEWORK = {
         "public_gallery": "100000/minute",
     },
 }
+
+# The broker renews the leases of the tasks a cluster took from a thread it
+# starts on the first dequeue (api/jobs/broker.py); in the suite the tests
+# renew them themselves, and no thread writes to the test database.
+Q_CLUSTER = {**Q_CLUSTER, "testing": True}  # noqa: F405
