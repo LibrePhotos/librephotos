@@ -236,11 +236,15 @@ Q_CLUSTER = {
     "queue_limit": 50,
     "recycle": 50,
     "timeout": 10000000,
+    # Unused by the broker below, which holds a taken task on a lease its
+    # cluster renews instead; django-q2 warns while it is below the timeout.
     "retry": 20000000,
     "orm": "default",
-    # The ORM broker, except that a cluster takes no tasks once a newer release
-    # has migrated the database: during a rolling deploy the old container's
-    # cluster would otherwise run the new release's tasks.
+    # The ORM broker, except that a taken task is held on a lease, so the
+    # tasks of a cluster that went away run again (#2852), and that a cluster
+    # takes no tasks once a newer release has migrated the database: during a
+    # rolling deploy the old container's cluster would otherwise run the new
+    # release's tasks.
     "broker_class": "api.jobs.broker.ReleaseGuardedORM",
     "max_rss": 300000,
     "poll": 1,

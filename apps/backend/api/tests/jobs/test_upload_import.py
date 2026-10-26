@@ -325,8 +325,8 @@ class TasksAreWaitingTest(TransactionTestCase):
         broker.enqueue("payload")
         self.assertTrue(tasks_are_waiting())
 
-        # A taken task is locked for Q_CLUSTER["retry"]; a dead worker's
-        # task stays so, and must not hold the sweeper off.
+        # A taken task is locked while its cluster holds it, and comes back
+        # only once that cluster is gone and the lease has run out.
         broker.dequeue()
         self.assertFalse(tasks_are_waiting())
 
