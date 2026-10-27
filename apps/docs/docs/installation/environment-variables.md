@@ -303,9 +303,11 @@ These settings apply to thumbnails rendered from then on: those of newly scanned
 
 Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started.
 
+<Since version="1.5.0" /> A job that a running worker is still busy with is never marked failed, however long it goes without progress. Some jobs report none during one long step, such as **Find Similar Faces** while it groups the faces of a large library. Up to 1.4.0, such a job could be marked failed while it worked, and still showed as failed after it succeeded.
+
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
-| `STUCK_JOB_HOURS` | `stuckJobHours` | `24` | Hours without progress after which a job counts as stuck. Raise it only if a single photo can take longer than this on your machine. |
+| `STUCK_JOB_HOURS` | `stuckJobHours` | `24` | Hours without progress after which a job that no worker is busy with counts as stuck. |
 
 ### Checking for new releases {#update-check}
 

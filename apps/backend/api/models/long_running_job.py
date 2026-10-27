@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from collections.abc import Collection
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -543,18 +544,22 @@ class LongRunningJob(models.Model):
         ).update(started_at=now, finished=True, finished_at=now)
 
     @classmethod
-    def cleanup_stuck_jobs(cls, hours: int | None = None) -> int:
+    def cleanup_stuck_jobs(
+        cls, hours: int | None = None, alive: Collection[str] = ()
+    ) -> int:
         """Mark jobs failed that have reported no progress for ``hours``.
 
         See ``LongRunningJobQuerySet.stuck``: a job is stuck when it is
         unfinished and neither reported progress nor started (a never-started
         orphan: nor was queued) within ``hours``. The error is added to the
         job's ``result``, so what it recorded (errors, the scan's follow-up
-        options) stays visible.
+        options) stays visible. The hourly run is ``api.jobs.cleanup``'s,
+        which passes the jobs a live cluster still works on as ``alive``.
 
         Args:
             hours: Hours without progress after which a job is stuck.
                 Defaults to ``STUCK_JOB_HOURS``.
+            alive: Ids of jobs that are never stuck, however long silent.
 
         Returns:
             Number of jobs marked as failed
@@ -563,7 +568,8 @@ class LongRunningJob(models.Model):
             hours = stuck_job_hours()
         error = f"Job made no progress for {hours} hours"
         count = 0
-        for job in cls.objects.stuck(hours).only("pk", "result"):
+        stuck = cls.objects.stuck(hours).exclude(job_id__in=alive)
+        for job in stuck.only("pk", "result"):
             result = dict(job.result) if isinstance(job.result, dict) else {}
             result.update(status="failed", error=error)
             # Conditional: a job that finished meanwhile is left alone.
