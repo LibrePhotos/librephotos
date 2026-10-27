@@ -35,7 +35,7 @@ _.empty_expired_trash  # function in api/photos/retention.py (start_cleaning_ser
 _.cleanup_deleted_photos  # function in api/photos/retention.py (start_cleaning_service)
 _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_service)
 _.scheduled_library_scans  # function in api/directory_watcher/scan_schedule.py (sync_scan_schedule)
-_.cleanup_stuck_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
+_.fail_stuck_jobs  # function in api/jobs/cleanup.py (start_job_cleanup_service)
 _.cleanup_old_jobs  # method in api/models/long_running_job.py (start_job_cleanup_service)
 _.run_upload_followups  # function in api/jobs/upload_followups.py (schedule_upload_followups)
 _.sweep_upload_imports  # function in api/jobs/upload_import.py (start_job_cleanup_service)

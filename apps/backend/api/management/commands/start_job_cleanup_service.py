@@ -4,7 +4,8 @@ from typing import Any
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 
-from api.jobs.queue import ensure_schedule
+from api.jobs.cleanup import OLD_STUCK_JOBS_FUNC, STUCK_JOBS_FUNC
+from api.jobs.queue import ensure_schedule, remove_schedule
 from api.jobs.upload_import import SWEEP_FUNC
 
 logger = logging.getLogger(__name__)
@@ -17,11 +18,12 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
-        # Schedule hourly cleanup of stuck jobs (running for more than 24 hours)
-        if ensure_schedule(
-            "api.models.long_running_job.LongRunningJob.cleanup_stuck_jobs",
-            schedule_type=Schedule.HOURLY,
-        ):
+        # Hourly: fail the jobs that made no progress for STUCK_JOB_HOURS and
+        # that no live cluster still works on. An install from before 1.5.0
+        # has the schedule of the model method, which fails those too.
+        if remove_schedule(OLD_STUCK_JOBS_FUNC):
+            logger.info("Removed the stuck job cleanup's schedule of 1.4.0")
+        if ensure_schedule(STUCK_JOBS_FUNC, schedule_type=Schedule.HOURLY):
             logger.info("Scheduled hourly stuck job cleanup")
 
         # Schedule daily cleanup of old completed jobs (older than 30 days)

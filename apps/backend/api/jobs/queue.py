@@ -19,6 +19,7 @@ receives the row's id as ``job_id`` and claims the row when it starts
 - ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
   ``remove_schedule``: django-q schedules; ``next_scheduled_run`` reads one.
 - ``tasks_are_waiting``: whether the queue has drained.
+- ``held_job_ids``: the jobs whose tasks a live cluster holds.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
 ``django_q.tasks``. ``transcode_cache`` fills its cache from a thread while a
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import uuid
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import NamedTuple
@@ -342,9 +344,7 @@ def remove_queued_tasks(job_id: str) -> int:
     try:
         for queued in OrmQ.objects.all():
             try:
-                task = queued.task
-                values = [*task.get("args", ()), *task.get("kwargs", {}).values()]
-                if any(str(value) == job_id for value in values):
+                if any(str(value) == job_id for value in _arguments(queued.task)):
                     queued.delete()
                     removed += 1
             except Exception:
@@ -355,3 +355,35 @@ def remove_queued_tasks(job_id: str) -> int:
         # Not critical: the task claims its row first and skips a cancelled job.
         logger.exception("Could not remove the queued tasks of job %s", job_id)
     return removed
+
+
+def held_job_ids() -> set[str]:
+    """The ids of the jobs whose tasks a live cluster holds.
+
+    A taken task stays locked while the cluster that took it renews its lease
+    (``api.jobs.broker``), so these jobs are alive however long they have been
+    silent: a long step such as the clustering of Find Similar Faces reports
+    no progress until it ends. A job chained after a held task counts too: it
+    waits for that task. Read from the payloads of the locked rows, at most
+    ``Q_CLUSTER["queue_limit"]`` plus one per worker for each cluster.
+    """
+    ids: set[str] = set()
+    for queued in OrmQ.objects.filter(lock__gt=timezone.now()):
+        # A payload that does not open reads as {"id": "*<error>"}: no ids.
+        task = queued.task
+        values = _arguments(task)
+        for step in task.get("chain") or ():
+            # (func, args, kwargs), as django-q2 stores a chain's later steps.
+            if isinstance(step, tuple) and len(step) == 3:
+                values.extend(_arguments({"args": step[1], "kwargs": step[2]}))
+        ids.update(str(value) for value in values if isinstance(value, str | uuid.UUID))
+    return ids
+
+
+def _arguments(task: Mapping[str, object]) -> list[object]:
+    """The positional and keyword argument values of a queued task."""
+    args = task.get("args") or ()
+    kwargs = task.get("kwargs") or {}
+    if not isinstance(args, tuple | list) or not isinstance(kwargs, dict):
+        return []
+    return [*args, *kwargs.values()]

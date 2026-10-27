@@ -267,7 +267,8 @@ if _WORKER_CONCURRENCY is not None:
 # Hours a job may go without reporting progress before the hourly cleanup
 # marks it failed and stops counting it as running (#1919, #2248). Counted from
 # its last progress, not its start: a first scan of a large library on slow
-# hardware takes days. Raise it where one item can take longer than this.
+# hardware takes days. A job whose task a live cluster holds is never stuck
+# (api.jobs.cleanup), so a long silent step does not need a higher value.
 STUCK_JOB_HOURS = max(1, env_int("STUCK_JOB_HOURS", 24))
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
