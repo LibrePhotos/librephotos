@@ -1,5 +1,5 @@
 Django==6.1.2
-django-allauth==65.20.1
+django-allauth==65.21.0
 django-constance==4.4.0
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
@@ -65,7 +65,7 @@ argon2-cffi==25.1.0
 # GPU with a Vulkan (Linux), Direct3D 12 (Windows) or Metal (macOS) driver
 # (service/onnx_session.py). The plugin needs onnxruntime >= 1.24.4 and, on Linux,
 # libvulkan.so.1 (the backend base image installs it); without a GPU it stays idle.
-onnxruntime==1.31.0
+onnxruntime==1.31.1
 onnxruntime-ep-webgpu==0.4.0
 # pyclipper: polygon offsetting for the PP-OCRv6 detector's DBPostProcess
 # (unclip step).
