@@ -8,7 +8,7 @@ sidebar_position: 7
 
 To label a face, click on the green plus button. A pop-up titled **Label faces** will show up where you can either search for an already existing person or add a new person. We want to add a new person, so type the name into the **Person Name** field under **New person** and click **Add Person** (the button stays disabled until you enter a name that does not already exist). Now the face is associated with the person.
 
-Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name. While you type, the people whose names match are listed with the most faces first, then by name; with nothing typed, the list is in name order. (Not released yet: up to 1.3.0, matches stayed in name order.)
+Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name. <Since version="1.5.0" /> While you type, the people whose names match are listed with the most faces first, then by name; with nothing typed, the list is in name order. Up to 1.4.0, matches stayed in name order.
 
 ### The same face in a burst or duplicate group
 

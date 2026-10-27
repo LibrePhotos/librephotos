@@ -96,7 +96,7 @@ Results are displayed grouped by date, similar to the main timeline view.
 
 Besides the words you type, a search can be narrowed by the people in the photo, the camera, the exposure, the rating, the day, the location and the file. On the search results page, click **Filters** next to the media button (on a phone, the filter icon) to open the panel:
 
-- **People**: pick one or more people. With several, you get the photos with all of them together. While you type a name, the matching people are listed with the most faces first. (Not released yet: up to 1.3.0, matches stayed in name order.)
+- **People**: pick one or more people. With several, you get the photos with all of them together. <Since version="1.5.0" /> While you type a name, the matching people are listed with the most faces first. Up to 1.4.0, matches stayed in name order.
 - **Camera**: the maker, the camera and the lens. The lists show the cameras of your own photos, most used first, with how many photos of your library each one took.
 - **Exposure**: ISO, aperture, focal length and 35 mm equivalent focal length, each as a lowest and a highest value (either can stay empty). A value applies when you leave the field or press Enter. Shortcuts set common ISO and focal length bands in one click.
 - **Rating**: with star ratings, the fewest stars a photo needs. With the favorite toggle (see the rating style in Settings), one **Favorites only** switch.
