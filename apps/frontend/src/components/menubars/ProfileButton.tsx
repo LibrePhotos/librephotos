@@ -71,7 +71,7 @@ export function ProfileButton(): React.ReactNode {
             withBorder
             disabled={!upgradeTasksLeft}
             zIndex={2}
-            style={{ display: "flex" }}
+            display="flex"
           >
             <Menu.Target>
               <ActionIcon
