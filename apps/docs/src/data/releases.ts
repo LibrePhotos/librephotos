@@ -24,6 +24,8 @@ export type ReleaseEntry = {
   permalink: string;
   summary: string;
   highlights: Highlight[];
+  /** What to do, or what LibrePhotos does by itself, after updating; shown on the in-app card. */
+  after_update: Omit<Highlight, "shot">[];
 };
 
 export type ReleaseIndex = {

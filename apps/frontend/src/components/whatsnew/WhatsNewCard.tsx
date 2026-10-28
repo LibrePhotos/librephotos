@@ -15,6 +15,8 @@ import { WHATS_NEW_RELEASES, type WhatsNewRelease } from "./whatsNewReleases";
 
 /** The card lists this many highlights; the dialog has them all. */
 const MAX_CARD_HIGHLIGHTS = 4;
+/** And this many after-update steps above them, the newest release's first. */
+const MAX_CARD_STEPS = 3;
 
 type WhatsNewCardProps = Readonly<{
   user: User;
@@ -44,8 +46,38 @@ function UpgradeTasksLine({ isAdmin }: Readonly<{ isAdmin: boolean }>) {
   );
 }
 
+/**
+ * What to do after the update, or what LibrePhotos does by itself (the post's `after_update`). The
+ * body says where to click; the dialog has the docs links.
+ */
+function AfterUpdate({ releases }: Readonly<{ releases: readonly WhatsNewRelease[] }>) {
+  const { t } = useTranslation();
+  const steps = releases.flatMap(release => release.after_update).slice(0, MAX_CARD_STEPS);
+  if (steps.length === 0) return null;
+  return (
+    <Stack gap={4} className={classes.steps}>
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+        {t("whatsnew.afterupdate")}
+      </Text>
+      <Stack component="ul" gap={6} className={classes.list}>
+        {steps.map(step => (
+          <li key={step.id}>
+            <Text size="sm" fw={600}>
+              {step.title}
+            </Text>
+            <Text size="xs" c="dimmed" lineClamp={2}>
+              {step.body}
+            </Text>
+          </li>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
 function Highlights({ releases }: Readonly<{ releases: readonly WhatsNewRelease[] }>) {
   const highlights = releases.flatMap(release => release.highlights).slice(0, MAX_CARD_HIGHLIGHTS);
+  if (highlights.length === 0) return null;
   return (
     <Stack component="ul" gap={6} className={classes.list}>
       {highlights.map(highlight => (
@@ -63,9 +95,9 @@ function Highlights({ releases }: Readonly<{ releases: readonly WhatsNewRelease[
 }
 
 /**
- * The What's new card (#2305): after an update, a small card in a corner of the page with the
- * release's highlights, once per user. Closing it or opening the dialog remembers the release on the
- * server, so it does not come back on another browser. It never blocks the page and has no media;
+ * The What's new card (#2305): after an update, a small card in a corner of the page with what to
+ * do after the update and the release's highlights, once per user. Closing it or opening the dialog
+ * remembers the release on the server, so it does not come back on another browser. It never blocks the page and has no media;
  * only its close button closes it, so a stray Escape cannot dismiss it unseen.
  */
 export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardProps) {
@@ -117,6 +149,7 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
           </Tooltip>
         }
       >
+        <AfterUpdate releases={decision.releases} />
         <Highlights releases={decision.releases} />
         <UpgradeTasksLine isAdmin={isAdmin} />
         <Group gap="xs">

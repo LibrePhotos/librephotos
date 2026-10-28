@@ -108,8 +108,22 @@ highlights:              # 3 to 5, in the order of "What's new for you"
     shot: timeline-filter               # optional, a screenshot id in apps/docs/static/img/shots
     learn_more: /docs/user-guide/viewing-photos#filtering-the-timeline
     open_in_app: /                      # optional, a path in the web app
+after_update:            # optional, 1 to 4: the "After you update" steps, for the in-app card
+  - id: rescan-once      # kebab-case, unique across highlights and after_update
+    audience: all        # or admin
+    title: "Rescan your photos once"
+    body: "Account menu > Library, then the arrow next to Scan > Rescan. Reads dates of older videos."
+    learn_more: /docs/user-guide/library#library-actions
+    open_in_app: /library               # optional
 ---
 ```
+
+`after_update` brings the upgrade information into the app: the **What's new** card lists these steps
+under **After the update**, above the highlights, and the dialog puts them before the highlights. Use it
+for every step of "After you update" that someone still has to do once the new version runs (a rescan, a
+check of a setting), and for work LibrePhotos does by itself when people will notice it (a long job
+after the first start). Steps for admins get `audience: admin`. Steps that must happen before the update
+(a newer PostgreSQL, another image) do not belong here: whoever sees the card has already updated.
 
 `node scripts/check-release-posts.mjs` (from `apps/docs`, also run by the docs workflow) validates the
 front matter, rejects em dashes, and from 1.3.0 on requires "Who should update", "**Upstream:**" and,
@@ -154,7 +168,8 @@ Do them in this order, so the docs and their pictures are live before the releas
 3. In `apps/docs`, run `node scripts/build-releases.mjs` and commit `src/data/releases.json` and
    `apps/frontend/src/components/whatsnew/releases.json`. The first is what flips the
    `<Since version="<tag>" />` markers and the "New in" block; the second is what the app's
-   **What's new** card shows after the update (`summary` and the `highlights`, the 5 newest releases).
+   **What's new** card shows after the update (`summary`, `after_update` and the `highlights`, the 5
+   newest releases).
 4. Run `node scripts/check-release-posts.mjs`, `yarn build` and `node scripts/check-release-posts.mjs --build build`.
 5. Merge the PR. The docs deploy from that push to `dev`.
 6. Generate the body and check how GitHub renders it, without creating anything:

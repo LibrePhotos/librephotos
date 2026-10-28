@@ -4057,6 +4057,8 @@
     "upgradetasks_one": "{{count}} task to finish the upgrade.",
     "upgradetasks_other": "{{count}} tasks to finish the upgrade.",
     "openupgradetasks": "Open",
+    "afterupdate": "After the update",
+    "highlights": "What's new",
     "dialogtitle": "What's new in LibrePhotos",
     "release": "Release",
     "openinapp": "Open",

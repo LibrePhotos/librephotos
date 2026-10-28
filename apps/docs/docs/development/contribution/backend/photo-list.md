@@ -39,7 +39,7 @@ Returns the actual images, for a given day in chunks of 100 images by default. `
 
 - `?page=1` - Give me the first page of the album. A page past the end answers the last page, and one that is not a number the first, because clients work the page numbers out from the day's count, which may be out of date.
 - `?page_size=<n>` - Change the chunk size (default 100, at most 1000), as on every [paginated list](index.md#pagination). A value below 1 counts as 1; a value that is not a number is a 400.
-- (Not released yet: up to 1.4.0, `?size=<n>` was read as an alias of `page_size` when `page_size` was absent.)
+- <Since version="1.5.0" /> Up to 1.4.0, `?size=<n>` was read as an alias of `page_size` when `page_size` was absent.
 - `?favorite=true` - Give me the list for favorite images
 - `?public=true` - Give me the list for public images. Here `username` is optional: `?public=true` on its own returns the day's public images regardless of owner.
 - `?username=<name>` - Restrict the public images to this owner (only takes effect together with `?public=true`)

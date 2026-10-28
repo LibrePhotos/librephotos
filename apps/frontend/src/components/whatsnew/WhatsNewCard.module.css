@@ -3,6 +3,12 @@
   z-index: 150;
 }
 
+/* The after-update steps, set apart from the highlights below them. */
+.steps {
+  padding-bottom: var(--mantine-spacing-xs);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
 /* The highlights: a plain list, without bullets or indent. */
 .list {
   list-style: none;

@@ -49,7 +49,8 @@ export function release(
   tag: string,
   date: string,
   highlights: WhatsNewHighlight[] = [highlight(`${tag}-a`)],
-  versions: string[] = [tag]
+  versions: string[] = [tag],
+  afterUpdate: WhatsNewHighlight[] = []
 ): WhatsNewRelease {
   return {
     release: tag,
@@ -59,18 +60,28 @@ export function release(
     summary: `What ${tag} brings.`,
     url: `https://docs.librephotos.com/blog/${tag.replaceAll(".", "-")}`,
     highlights,
+    after_update: afterUpdate,
   };
 }
 
-/** Newest first, like releases.json: 1.0.0 covers its patch releases, 1.2.1 has no highlights. */
+/**
+ * Newest first, like releases.json: 1.0.0 covers its patch releases, 1.2.1 has no highlights, and
+ * 1.4.0 has after-update steps, one of them for admins.
+ */
 export const RELEASES: readonly WhatsNewRelease[] = [
-  release("1.4.0", "2026-10-17T12:00:00.000Z", [
-    highlight("edits"),
-    highlight("many"),
-    highlight("filters"),
-    highlight("collections"),
-    highlight("finish-upgrade", "admin"),
-  ]),
+  release(
+    "1.4.0",
+    "2026-10-17T12:00:00.000Z",
+    [
+      highlight("edits"),
+      highlight("many"),
+      highlight("filters"),
+      highlight("collections"),
+      highlight("finish-upgrade", "admin"),
+    ],
+    ["1.4.0"],
+    [highlight("rescan"), highlight("gpu-image", "admin")]
+  ),
   release("1.3.0", "2026-10-11T11:36:15.000Z", [highlight("timeline"), highlight("thumbnails", "admin")]),
   release("1.2.1", "2026-09-29T13:11:11.000Z", []),
   release("1.2.0", "2026-09-29T08:09:51.000Z", [highlight("windows")]),
