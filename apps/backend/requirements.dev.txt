@@ -4,7 +4,7 @@ Pygments==2.21.0
 prompt-toolkit==3.0.53
 pre-commit==4.7.0
 coverage==7.17.0
-Faker==40.43.0
+Faker==40.44.0
 setuptools==84.2.1
 pyfakefs==6.2.0
 ruff==0.15.22
