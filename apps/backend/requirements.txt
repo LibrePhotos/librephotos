@@ -1,6 +1,6 @@
 Django==6.1.2
 django-allauth==65.21.0
-django-constance==4.4.0
+django-constance==4.5.0
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
 django-extensions==4.1
@@ -34,7 +34,7 @@ psycopg[binary]==3.3.6
 # from_public_link (unused here) plus docs. The upstream repo is archived.
 pyocclient==0.6
 pytz==2026.5
-tzdata==2026.5
+tzdata==2026.6
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
 # loaders; api/thumbnails/decoding.py falls back to Pillow with these two plugins.
