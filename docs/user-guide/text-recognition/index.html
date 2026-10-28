@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -46,11 +46,11 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="extracting-text">Extracting text from your photos<a href="#extracting-text" class="hash-link" aria-label="Direct link to Extracting text from your photos" title="Direct link to Extracting text from your photos" translate="no">​</a></h2>
 <p>Open <strong>Account menu &gt; Library</strong>. Under the <strong>Text Recognition</strong> heading is the <strong>Extract Text</strong> row:</p>
 <ul>
-<li class=""><strong>Extract</strong> reads the photos that have not been read yet. The first time, that is all of your photos. After that, it reads the photos still without text: new ones, and ones an earlier run could not read. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Up to 1.4.0, it read the photos added since the last run, so a photo that failed or whose thumbnail was not ready yet could be left out for good.</li>
+<li class=""><strong>Extract</strong> reads the photos that have not been read yet. The first time, that is all of your photos. After that, it reads the photos still without text: new ones, and ones an earlier run could not read. <a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Up to 1.4.0, it read the photos added since the last run, so a photo that failed or whose thumbnail was not ready yet could be left out for good.</li>
 <li class="">The arrow next to <strong>Extract</strong> opens <strong>Extract text again for all photos</strong>, which reads every photo again, also the ones that already have text.</li>
 </ul>
 <p>Both start an <strong>Extract Text (OCR)</strong> job, which you can follow under <strong>Account menu &gt; My Jobs</strong>. It reads photos only, not videos. Each user runs it for their own photos, so on a shared server every user clicks <strong>Extract</strong> for themselves.</p>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> While a model is selected, the job also starts by itself after a scan and a few minutes after an upload, for the photos still without text. Selecting a model therefore reads your whole library after the next scan or upload, a little at a time. Up to 1.4.0, it only ran when you clicked <strong>Extract</strong>.</p>
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> While a model is selected, the job also starts by itself after a scan and a few minutes after an upload, for the photos still without text. Selecting a model therefore reads your whole library after the next scan or upload, a little at a time. Up to 1.4.0, it only ran when you clicked <strong>Extract</strong>.</p>
 <p>A photo the text recognition service failed on three times is no longer read by these runs or by <strong>Extract</strong>. <strong>Extract text again for all photos</strong> still tries it. When the service could not be reached at all, that does not count as a failure.</p>
 <p>If the administrator changes the model later, <strong>Extract</strong> also reads again the photos that were read with the previous model.</p>
 <p>When no model is selected, the buttons are disabled. Administrators then see &quot;Choose a text recognition model in the admin area to enable this.&quot;, and other users see &quot;Text recognition is turned off on this server. Ask your administrator to choose a text recognition model.&quot;</p>

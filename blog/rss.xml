@@ -4,10 +4,92 @@
         <title>LibrePhotos Blog</title>
         <link>https://docs.librephotos.com/blog</link>
         <description>LibrePhotos Blog</description>
-        <lastBuildDate>Sat, 17 Oct 2026 12:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 28 Oct 2026 12:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[1.5.0: Share your library, faces made easier, photos on the map, updates from the app]]></title>
+            <link>https://docs.librephotos.com/blog/1-5-0</link>
+            <guid>https://docs.librephotos.com/blog/1-5-0</guid>
+            <pubDate>Wed, 28 Oct 2026 12:00:00 GMT</pubDate>
+            <description><![CDATA[This release lets you share your whole library, one person or an album others can add to, makes labelling faces much faster, shows every photo on the map where it was taken, and opens photo spheres in a 360° view. The Windows app can now update itself, the Docker image uses any GPU, and it fixes security problems in public pages and sharing.]]></description>
+            <content:encoded><![CDATA[<p>This release lets you <strong>share your whole library, one person or an album others can add to</strong>, makes <strong>labelling faces much faster</strong>, shows <strong>every photo on the map where it was taken</strong>, and opens <strong>photo spheres in a 360° view</strong>. The Windows app can now <strong>update itself</strong>, the Docker image uses <strong>any GPU</strong>, and it fixes <strong>security problems</strong> in public pages and sharing.</p>
+<p><strong>Who should update:</strong> Everyone. If other people have an account on your LibrePhotos, or you share public links, update right away: this release fixes security problems. If you use the <a class="" href="https://docs.librephotos.com/docs/user-guide/glossary#windows-app">Windows app</a> 1.3.0 or 1.4.0, update too: it did not finish processing new photos.</p>
+<p><strong>What's new for you:</strong></p>
+<ul>
+<li class="">Open <strong>Sharing</strong> and click <strong>Share my library</strong> to share all your photos with another user, read-only, or choose <strong>Share…</strong> in a person's menu to share just them, for example your child with the grandparents. People you give <strong>Can add photos</strong> can add their own photos to your album. See <a class="" href="https://docs.librephotos.com/docs/user-guide/sharing#sharing-your-whole-library">Sharing your whole library</a>.</li>
+<li class="">Faces: drag a rough box around a face the scan missed and LibrePhotos finds it, sort the faces dashboard by <strong>Similar faces together</strong>, and a label now covers the same face in the other photos of a burst. People can get a birth date and show their age. See <a class="" href="https://docs.librephotos.com/docs/user-guide/face-recognition#add-a-face-the-scan-missed">Add a face the scan missed</a>.</li>
+<li class="">The <strong>Places</strong> map shows every photo where it was taken. <strong>Add place</strong> names your own spots, such as <em>Home</em> or <em>Grandma's</em>, and the photos taken there are filed under that name. See <a class="" href="https://docs.librephotos.com/docs/user-guide/places#the-places-page">The Places page</a>.</li>
+<li class="">Photo spheres get a <strong>360°</strong> badge and a <strong>360° view</strong> in the viewer, zooming in loads the original photo, videos show a still picture until you point at them, and <strong>Oldest first</strong> under <strong>Order</strong> shows a trip from the first day to the last. See <a class="" href="https://docs.librephotos.com/docs/user-guide/viewing-photos#photo-spheres">360° photo spheres</a>.</li>
+<li class="">After an update, a small <strong>What's new</strong> card shows what changed and what to do. Admins see an <strong>Update available</strong> card when a new release is out, and the Windows app downloads it and restarts into it. See <a class="" href="https://docs.librephotos.com/docs/installation/windows-standalone#update-from-the-app">Updating from LibrePhotos</a>.</li>
+</ul>
+<p><strong>Before you update:</strong></p>
+<ul>
+<li class="">Make a <a class="" href="https://docs.librephotos.com/docs/user-guide/glossary#backup">backup</a> as usual.</li>
+<li class=""><strong>Admins with their own PostgreSQL:</strong> LibrePhotos now needs PostgreSQL 15 or newer. The bundled Compose files (18) and the Kubernetes manifests (16) already run a newer one. Upgrade an older server first, or the backend stops at start with an error that names the version. See <a class="" href="https://docs.librephotos.com/docs/installation/upgrading">Upgrading</a>.</li>
+<li class=""><strong>Admins with the GPU image:</strong> <code>reallibrephotos/librephotos-gpu</code> is no longer built. Switch the <code>backend</code> service back to <code>reallibrephotos/librephotos</code> and give it your GPU as <a class="" href="https://docs.librephotos.com/docs/installation/environment-variables#utilizing-gpu-acceleration">Utilizing GPU Acceleration</a> shows. It now works with Intel, AMD and NVIDIA.</li>
+<li class=""><strong>Windows app:</strong> this update is still done <a class="" href="https://docs.librephotos.com/docs/installation/windows-standalone#update-by-hand">by hand</a>. From 1.5.0 on, the app updates itself.</li>
+</ul>
+<p><strong>After you update:</strong></p>
+<ul>
+<li class=""><strong>Nothing to do for most of it.</strong> Admins see the remaining work on the <strong>Finish the upgrade</strong> card under <strong>Account menu &gt; Admin Area</strong>: it makes still pictures of the videos you already have, by itself. The <strong>What's new</strong> card in the corner of the page lists the steps below too.</li>
+<li class=""><strong>Recommended for everyone: <a class="" href="https://docs.librephotos.com/docs/user-guide/glossary#rescan">rescan</a> your photos once.</strong> Go to <strong>Account menu &gt; Library</strong>, then the arrow next to <strong>Scan</strong> &gt; <strong>Rescan</strong>. This finds the photo spheres, the time zone of the capture time, and copyright, creator and license in photos you already had. It is done when the job in <strong>Account menu &gt; My Jobs</strong> has finished. If you skip it, only new and changed photos get them.</li>
+<li class=""><strong>Windows app, if you added photos with 1.3.0 or 1.4.0: scan once, required.</strong> Those releases stopped every new photo right after its thumbnail, so the photos have no date, place or camera details, and LibrePhotos finds no duplicates among them. Each user goes to <strong>Account menu &gt; Library</strong> and clicks <strong>Scan</strong> (the <strong>Rescan</strong> above does it too). It is done when the job in <strong>Account menu &gt; My Jobs</strong> has finished; places and faces follow by themselves. If you use them, run <strong>Detect Duplicates</strong>, <strong>Detect Photo Stacks</strong> and <strong>Generate Event Albums</strong> again afterwards. See <a class="" href="https://docs.librephotos.com/docs/installation/upgrading#windows-1-4-0">Windows app 1.3.0 and 1.4.0</a>.</li>
+<li class=""><strong>Public links show only what you allow.</strong> Public albums, public photos, your public profile and photo links now all follow <strong>Settings &gt; Public Sharing Defaults</strong> (or the album's own link settings). Before, some pages showed dates, places or the original file anyway. If visitors should see dates or places, turn those switches on. See <a class="" href="https://docs.librephotos.com/docs/user-guide/sharing#photo-details">Photo Details</a>.</li>
+<li class="">
+<details class="details_lb9f alert alert--info details_b_Ee" data-collapsed="true"><summary>Admins: settings, Docker and API changes</summary><div><div class="collapsibleContent_i85q">New site settings: <b>Public gallery</b> (off by default), <b>Place name language</b>, the single sign-on switches, and <strong>Remove duplicate faces</strong> in the Admin Area. New environment variables: <code>GEOCODE_LANGUAGE</code>, <code>REMEMBER_ME_DAYS</code>, <code>PUBLIC_GALLERY_THROTTLE_RATE</code>, <code>UPDATE_CHECK</code> and <code>FEATURE_FACE_DETECTION_IN_VIDEOS</code> (see <a href="https://docs.librephotos.com/docs/installation/environment-variables">Environment variables</a>). The bundled Compose files give the <code>db</code> service <code>shm_size: 256mb</code>; add it to an older Compose file if pages fail with "could not resize shared memory segment" (<a href="https://docs.librephotos.com/docs/user-guide/faq">FAQ</a>). On hosts that start the new container before they stop the old one (Coolify, Kubernetes), the old worker may log "Function ... is not defined" once during this update; from 1.5.0 on it leaves the tasks to the new release (<a href="https://docs.librephotos.com/docs/installation/upgrading#rolling-update">details</a>). The images run Python 3.14 and Django 6.1. Scripts that use the API: list endpoints no longer send the old pagination fields of 1.4.0 (<code>has_next</code>, <code>has_previous</code>, the folder listing's <code>subfolders</code> and <code>pagination</code>), <code>?size=</code> is no longer read as <code>page_size</code>, and the photo list only lists your own photos.</div></div></details>
+</li>
+</ul>
+<p><strong>Upstream:</strong></p>
+<p>🚀 LibrePhotos: Share Your Library, a Person or an Album</p>
+<p><strong>Share my library</strong> on the Sharing page shares your whole library with another user, read-only, as you add to it (<a href="https://github.com/LibrePhotos/librephotos/issues/2731" target="_blank" rel="noopener noreferrer" class="">#2731</a>). Every switch under <strong>What they see</strong> starts off, the photos stay yours, and you can stop at any time. A person can be shared on their own, with a review of new photos before they go out (<a href="https://github.com/LibrePhotos/librephotos/issues/668" target="_blank" rel="noopener noreferrer" class="">#668</a>). Albums can take contributors: a user with <strong>Can add photos</strong> adds photos from their own library, members can comment and like, and nothing is copied or moved (<a href="https://github.com/LibrePhotos/librephotos/issues/464" target="_blank" rel="noopener noreferrer" class="">#464</a>, <a href="https://github.com/LibrePhotos/librephotos/issues/262" target="_blank" rel="noopener noreferrer" class="">#262</a>). The places, things and people of the photos shared with you now show up for you too. Admins can open a <strong>public gallery</strong> at the server's address with the public photos of everyone who opts in, for members only or for everyone; it is off by default (<a href="https://github.com/LibrePhotos/librephotos/issues/434" target="_blank" rel="noopener noreferrer" class="">#434</a>). Photos can carry a copyright, creator and license, read from and written to the file, with defaults for your photos, and public pages show them when a license is set (<a href="https://github.com/LibrePhotos/librephotos/issues/425" target="_blank" rel="noopener noreferrer" class="">#425</a>).</p>
+<p>🚀 LibrePhotos: Faces, Made Easier</p>
+<p>Drag a rough box around a face the scan missed and LibrePhotos finds the face inside it. A <strong>Similar faces together</strong> order on the faces dashboard puts look-alikes next to each other, and labelling a face also labels it in the other frames of a burst or duplicate group. <strong>Not this person</strong> is remembered, so a face is not suggested for the same person again, you can set a <strong>Minimum face size</strong> under <strong>Settings &gt; Face Options</strong>, and admins can remove faces saved twice with <strong>Remove duplicate faces</strong>. A person can have a birth date: their age shows on the person page, and faces in photos taken before they were born are not suggested for them. Faces in videos are read on up to nine frames, and a face opens the video at the moment it appears (<a href="https://github.com/LibrePhotos/librephotos/issues/2762" target="_blank" rel="noopener noreferrer" class="">#2762</a>). New faces from uploads are grouped by themselves once enough of them came in, and face clustering no longer deletes named people without faces.</p>
+<p>🚀 LibrePhotos: Photos on the Map and Your Own Places</p>
+<p>The Places map shows every photo where it was taken, clusters count photos instead of place names, and clicking a point shows its newest photos (<a href="https://github.com/LibrePhotos/librephotos/issues/343" target="_blank" rel="noopener noreferrer" class="">#343</a>). <strong>Add place</strong> draws a named circle, from a house to a village, and every photo taken inside it is filed under that name, also in event titles such as "Sunday at Home" (<a href="https://github.com/LibrePhotos/librephotos/issues/1365" target="_blank" rel="noopener noreferrer" class="">#1365</a>). Online map providers can name places in your language with <strong>Place name language</strong>, and the place search in the location editor works with OpenCage, Mapbox and MapTiler again.</p>
+<p>🚀 LibrePhotos: Viewing, Scanning and Uploading</p>
+<p>Photo spheres open in a 360° panorama viewer (<a href="https://github.com/LibrePhotos/librephotos/issues/483" target="_blank" rel="noopener noreferrer" class="">#483</a>), zooming in the lightbox and the mobile viewer loads the original, and videos show a still poster in the grid and play only on hover. Lists can run <strong>Oldest first</strong>, saved on your account (<a href="https://github.com/LibrePhotos/librephotos/issues/2712" target="_blank" rel="noopener noreferrer" class="">#2712</a>), the scroll scrubber reaches the header and has thumb and density styles, and things show in the interface language. The Library page gets a <strong>Processing status</strong> card with <strong>Run now</strong> per stage. You can leave subfolders out of a library, rename photos by their capture date and sort them into dated folders, find files replaced with their old date (<strong>Check file contents</strong>), and create a folder from the scan directory picker. Date rules can be written and edited by hand, the photo says why it has its date, and the UTC offset of the capture time is stored and shown. Uploads get an import job: the upload card follows them through the server's processing, and search, faces and text recognition catch up after uploads by themselves. The login page has <strong>Remember me</strong>.</p>
+<p>🚀 LibrePhotos: Updates from the App, Any GPU</p>
+<p>Once a day the backend asks GitHub whether a newer release is out, and admins see an <strong>Update available</strong> card, a dot next to the version and, on Windows, a tray notification. The Windows app downloads the new release and restarts into it (<a href="https://github.com/LibrePhotos/librephotos/issues/2788" target="_blank" rel="noopener noreferrer" class="">#2788</a>). After an update, every user sees a small <strong>What's new</strong> card once, with the highlights and the steps to take. The machine learning models run on any GPU (Intel, AMD, NVIDIA) through ONNX Runtime's WebGPU plugin in the regular image, also in the single container, and the NVIDIA-only GPU image is no longer built (<a href="https://github.com/LibrePhotos/librephotos/issues/2445" target="_blank" rel="noopener noreferrer" class="">#2445</a>). The backend moves to Python 3.14 and Django 6.1, and scikit-learn, hdbscan, ImageHash and insightface are replaced by small numpy ports that give the same results, so the Windows build compiles in 38 minutes instead of three hours.</p>
+<p>🚀 LibrePhotos: Security and Privacy Fixes</p>
+<p>Public pages now show only what the public sharing switches allow: public albums, public photos, public profiles and photo links hide dates, places, camera details, captions and names unless they are switched on, and a visitor gets the original file only when all five are on. The photo list only lists your own photos, and album links made by older releases to other users' photos are removed. Pillow is updated to 13 for its security fixes. Please update right away if other people use your LibrePhotos or you share public links.</p>
+<ul>
+<li class="">✨ LibrePhotos: <strong>Scan now</strong> in the Admin Area, and <code>g</code> shortcuts to go between pages</li>
+<li class="">✨ LibrePhotos: <strong>Find things again for all photos</strong> on the Library page</li>
+<li class="">✨ Backend: <code>POST /api/scan-files/</code> and <code>scan -s</code> take folders and removed paths</li>
+<li class="">✨ Backend: Text recognition runs on the photos that still need it after scans and uploads</li>
+<li class="">✨ Mobile: Uploads still processing on the server show in the app, the memories reminder only comes on days with memories, and zooming loads the original</li>
+<li class="">✨ LibrePhotos: Single sign-on switches in Site Settings; shared emails are refused and identity provider errors reach the login page</li>
+<li class="">✨ Frontend: People matching a typed name are listed with the most faces first (<a href="https://github.com/LibrePhotos/librephotos/issues/301" target="_blank" rel="noopener noreferrer" class="">#301</a>) (Implemented by <a href="https://github.com/lalmachado" target="_blank" rel="noopener noreferrer" class="">lalmachado</a>)</li>
+<li class="">✨ Docs: Release posts with screenshots, a <code>&lt;Screenshot&gt;</code> component and a workflow that refreshes the shots</li>
+<li class="">🔨 Frontend: The avatar in the header lines up with the buttons next to it again</li>
+<li class="">🔨 Backend: Jobs: a taken task is held on a lease, so a restart no longer strands it for months (<a href="https://github.com/LibrePhotos/librephotos/issues/2852" target="_blank" rel="noopener noreferrer" class="">#2852</a>), and a long silent job that a running worker still works on is no longer marked failed</li>
+<li class="">🔨 Backend: An older worker takes no tasks from a database a newer release has migrated</li>
+<li class="">🔨 Backend: The Admin Area, the statistics and the album lists no longer run Postgres out of shared memory on large libraries (<a href="https://github.com/LibrePhotos/librephotos/issues/2868" target="_blank" rel="noopener noreferrer" class="">#2868</a>), and the bundled Compose files give Postgres 256 MB of <code>/dev/shm</code> (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: The similarity index is rebuilt each time the converted count doubles, faces move to the unknown cluster in two updates, and a photo the search conversion cannot read no longer holds the upgrade task open (Implemented by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a>)</li>
+<li class="">🔨 Backend: Nextcloud: interrupted downloads are retried and indexed copies are skipped (Implemented by <a href="https://github.com/varet80" target="_blank" rel="noopener noreferrer" class="">varet80</a>), and a Nextcloud scan runs the scan follow-ups</li>
+<li class="">🔨 LibrePhotos: Windows app: ImageHash was missing from the 1.3.0 and 1.4.0 builds, so every scanned photo failed halfway; the build now includes every lazily imported module, and the smoke test checks the hash and the scan job's errors</li>
+<li class="">🔨 Backend: A keyword edit no longer overwrites the file's last-read keywords, and a rescan takes a file's keywords and rating only when the file changed</li>
+<li class="">🔨 Backend: A re-encoded picture keeps its labels, and things, caption, search data and text of a replaced picture are made again</li>
+<li class="">🔨 Backend: Face clustering and training only use the faces the user is shown</li>
+<li class="">🔨 Backend: The <strong>Public Sharing Defaults</strong> switches are saved again</li>
+<li class="">🔨 Frontend: Menus fit the window, videos show in bulk-action previews, a placeholder tile opens nothing, and Tab works in the lightbox with Mantine 9.7</li>
+<li class="">✨ LibrePhotos: Renovate dependency updates for the backend, frontend, mobile app and docs, among them Pillow 13, TanStack Query 5.105, react-i18next 17.1, Node.js 24.22 and coverage 7.17</li>
+<li class="">🔒 Backend: Public pages only show what the public sharing switches allow, and serve the original file only when all of them are on</li>
+<li class="">🔒 Backend: The photo list only lists your own photos</li>
+<li class="">🔒 Backend: Album links to other users' photos made by older releases are removed</li>
+<li class="">🔒 Backend: Pillow 13 with its security fixes</li>
+</ul>
+<p><strong>Full changelog:</strong> <a href="https://github.com/LibrePhotos/librephotos/compare/1.4.0...1.5.0" target="_blank" rel="noopener noreferrer" class="">https://github.com/LibrePhotos/librephotos/compare/1.4.0...1.5.0</a></p>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>2</strong> awesome people!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content:encoded>
+            <category>release</category>
+        </item>
         <item>
             <title><![CDATA[1.4.0: Edits written to your files, editing many photos at once, search filters]]></title>
             <link>https://docs.librephotos.com/blog/1-4-0</link>
@@ -772,39 +854,6 @@
 <hr>
 <p><strong>Sponsoring development:</strong></p>
 <p>My work is sponsored by <strong>6</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Development: 2024 - October]]></title>
-            <link>https://docs.librephotos.com/blog/2024w45</link>
-            <guid>https://docs.librephotos.com/blog/2024w45</guid>
-            <pubDate>Mon, 04 Nov 2024 00:00:00 GMT</pubDate>
-            <description><![CDATA[Upstream:]]></description>
-            <content:encoded><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🚀 LibrePhotos: Reintroduce Classification</li>
-</ul>
-<p>This change aims to reintroduce classification, while keeping the current clustering intact. Clustering was chosen, because it works well in a cold start scenario, where the user does not have any persons. Common problems with clustering are that there is no way to only match faces to known persons, and that previous input does not improve the clustering results. Classification should solve this problem! Instead of finding all the clusters, classification will match all unknown faces with already known persons instead.</p>
-<ul>
-<li class="">✨ LibrePhotos: Faces are now only soft deleted</li>
-<li class="">✨ LibrePhotos: All cluster and classification probabilities are now saved</li>
-<li class="">✨ Frontend: New Light box for viewing images</li>
-<li class="">✨ Frontend: You can now delete faces from the lightbox</li>
-<li class="">✨ Frontend: Hovering over a name in the sidebar, will outline the face</li>
-<li class="">✨ Frontend: There is now a separate "Unknown" section in the face dashboard</li>
-<li class="">✨ Frontend: Inferred faces are now the first tab, instead of the last</li>
-<li class="">✨ Frontend: New filter for viewing cluster or classifications</li>
-<li class="">✨ Frontend: New filter for label probability</li>
-<li class="">✨ Frontend: Photo details now return, if the face was inferred or labelled and the probability</li>
-<li class="">✨ Frontend: The face of the person and the old name are now visible when renaming</li>
-<li class="">✨ LibrePhotos: Updated dependencies and updated language strings from the community</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>7</strong> awesome people!</p>
 <p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content:encoded>
             <category>release</category>
         </item>

@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -43,7 +43,7 @@ In the top right corner of the web interface, there is an upload button. Clickin
 <li class="">A cancelled or abandoned upload leaves a partial file on the server. A daily cleanup on the server deletes them once they are more than a day old. <code>python manage.py delete_expired_uploads</code> does the same by hand.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="after-the-upload-processing-on-the-server">After the upload: processing on the server<a href="#after-the-upload-processing-on-the-server" class="hash-link" aria-label="Direct link to After the upload: processing on the server" title="Direct link to After the upload: processing on the server" translate="no">​</a></h3>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Sending the files is only the first half: the server then makes their thumbnails, reads their dates and looks for things, places and faces. The card follows that too, so it no longer says <em>Upload complete</em> before your photos are in the timeline:</p>
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Sending the files is only the first half: the server then makes their thumbnails, reads their dates and looks for things, places and faces. The card follows that too, so it no longer says <em>Upload complete</em> before your photos are in the timeline:</p>
 <ul>
 <li class=""><strong>Processing your uploads</strong> with <em>12/40 ready</em>: the bar turns two-tone, green for the photos that are ready and blue for those uploaded and still being processed. Each file&#x27;s row goes from <em>Uploading</em> to <em>Processing</em> to <em>Ready</em>, and a ready row shows the photo&#x27;s thumbnail. The count includes uploads from the mobile app made at the same time, since the server imports them together. The timeline fills in as photos become ready; you do not have to reload.</li>
 <li class=""><strong>Updating search and faces</strong>: every photo is in the timeline, and the server is now making them searchable by content and grouping their faces.</li>
@@ -59,7 +59,7 @@ In the top right corner of the web interface, there is an upload button. Clickin
 <li class="">If it isn&#x27;t, upload it</li>
 <li class="">We upload files in 1MB chunks</li>
 <li class="">When each file finishes uploading, the backend registers that one photo, counts it in your <strong>Import Uploads</strong> job and queues its processing (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.</li>
-<li class=""><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> When the last file is sent, the web app tells the server the upload is over (<code>POST /api/upload/seal/</code>), and follows the import with <code>GET /api/upload/status/</code> (see <a class="" href="/docs/development/contribution/backend/upload">the upload API</a>).</li>
+<li class=""><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> When the last file is sent, the web app tells the server the upload is over (<code>POST /api/upload/seal/</code>), and follows the import with <code>GET /api/upload/status/</code> (see <a class="" href="/docs/development/contribution/backend/upload">the upload API</a>).</li>
 <li class="">An upload into an album sends the album&#x27;s id with the last request (<code>album_id</code> on <code>/api/upload/complete/</code>). The server checks that the album is yours and not locked before it saves the file; otherwise it answers 400 with the code <code>album_not_found</code> or <code>album_locked</code>, and the web app completes the same upload again without the album.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="where-are-the-files-saved">Where are the files saved?<a href="#where-are-the-files-saved" class="hash-link" aria-label="Direct link to Where are the files saved?" title="Direct link to Where are the files saved?" translate="no">​</a></h3>

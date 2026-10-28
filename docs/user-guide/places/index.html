@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -57,7 +57,7 @@
 <li class="">A photo whose lookup fails keeps its old place, and the next run tries it again.</li>
 </ul>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="place-names-in-your-language">Place names in your language<a href="#place-names-in-your-language" class="hash-link" aria-label="Direct link to Place names in your language" title="Direct link to Place names in your language" translate="no">​</a></h4>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Online providers name places in their own default language: English for some, the local name for Nominatim (<em>Wien</em> for Vienna, <em>Москва</em> for Moscow). To ask for another language, an admin picks it under <strong>Admin Area → Site Settings → Place name language</strong>, right below the Map Provider. <strong>Provider default</strong>, the default, asks for no language, as before.</p>
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Online providers name places in their own default language: English for some, the local name for Nominatim (<em>Wien</em> for Vienna, <em>Москва</em> for Moscow). To ask for another language, an admin picks it under <strong>Admin Area → Site Settings → Place name language</strong>, right below the Map Provider. <strong>Provider default</strong>, the default, asks for no language, as before.</p>
 <ul>
 <li class="">Nominatim, OpenCage, TomTom and MapTiler answer in the language you pick. Nominatim also takes a list in order of preference: type <code>de,en</code> into the field for German names, or English where a place has no German one.</li>
 <li class="">Mapbox and the offline ExifTool provider always answer in their own language; the field is disabled while one of them is the Map Provider, and it keeps your choice for when you switch.</li>
@@ -84,7 +84,7 @@
 <p>This setting is global. Choosing <strong>None</strong> hides the map in every map view, including the Places page, album location maps, the photo-info mini-map, and the location picker. The initial value comes from the <code>MAP_TILE_PROVIDER</code> environment variable (default <code>photoprism</code>), but it is an admin-editable site setting thereafter, so you don&#x27;t need to restart to change it.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="the-places-page">The Places Page<a href="#the-places-page" class="hash-link" aria-label="Direct link to The Places Page" title="Direct link to The Places Page" translate="no">​</a></h2>
 <p>The Places page (<code>/album/places</code>) shows your photos on an interactive map, each where it was taken, and under the map the places (Places albums) that have a photo in the part of the world the map shows.</p>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> The map shows photos, not place names:</p>
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> The map shows photos, not place names:</p>
 <ul>
 <li class=""><strong>Photos where they were taken</strong>: every photo with a position is a point at that position. Photos taken within about a metre of each other are one point, with their number on it.</li>
 <li class=""><strong>Clusters count photos</strong>: when zoomed out, nearby points are grouped into a cluster, and the number on it is how many photos it holds. A photo counts once, whatever number of place names it has.</li>
@@ -96,7 +96,7 @@
 <p>Up to 1.4.0 the map drew one marker per place name at the centre of that place: a photo showed up once for its street, once for its town and once for its region, a cluster counted place names rather than photos, and markers sat at the centre of a county where no photo was taken.</p>
 <p>The map and its counts only ever show your own photos. Hidden photos and photos in the trash are left out, and photos other users shared with you are not on it.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="your-places">Your places<a href="#your-places" class="hash-link" aria-label="Direct link to Your places" title="Direct link to Your places" translate="no">​</a></h2>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Name the places that matter to you, such as <em>Home</em>, <em>Office</em> or <em>Grandma&#x27;s</em>, and LibrePhotos files every photo taken there under that name, whatever the map provider calls the street.</p>
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Name the places that matter to you, such as <em>Home</em>, <em>Office</em> or <em>Grandma&#x27;s</em>, and LibrePhotos files every photo taken there under that name, whatever the map provider calls the street.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="adding-a-place">Adding a place<a href="#adding-a-place" class="hash-link" aria-label="Direct link to Adding a place" title="Direct link to Adding a place" translate="no">​</a></h3>
 <ol>
 <li class="">Open <strong>Albums → Places</strong> and click <strong>Add place</strong> above the map. The map grows so there is room to draw.</li>
@@ -154,7 +154,7 @@
 <li class="">Check the place name under the map: it is the name the photo gets when you save. It reads <strong>Place name unavailable</strong> when the server has no name for the spot (the coordinates are saved anyway), and says so when place names are turned off on the server.</li>
 <li class="">Click <strong>Save</strong>.</li>
 </ol>
-<p>The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and &quot;use my current location&quot; still work. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Up to 1.4.0, the place-name search found nothing when the Map Provider was OpenCage, Mapbox or MapTiler.</p>
+<p>The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and &quot;use my current location&quot; still work. <a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Up to 1.4.0, the place-name search found nothing when the Map Provider was OpenCage, Mapbox or MapTiler.</p>
 <p>A photo without a location opens the dialog where the nearest geotagged photo taken within a day of it was taken, or on a world map when there is none. The browser only asks for your position when you click the crosshair button. <a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission.</p>
 <p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> Above the search box, <strong>Copy from a photo taken nearby in time</strong> shows up to 20 of your photos that have a location and were taken within a day of this one, nearest first, each with its place and how long before or after it was taken. Click one to put the marker on its location; its place name is shown at once. Handy for camera photos taken next to a phone that recorded GPS.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="setting-the-location-of-many-photos">Setting the location of many photos<a href="#setting-the-location-of-many-photos" class="hash-link" aria-label="Direct link to Setting the location of many photos" title="Direct link to Setting the location of many photos" translate="no">​</a></h3>

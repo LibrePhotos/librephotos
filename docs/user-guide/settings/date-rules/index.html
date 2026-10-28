@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -53,7 +53,7 @@ should be one of the following:</p>
 <li class="">&quot;server_local&quot; - the local timezone of the machine running LibrePhotos (in Docker this is normally UTC unless you set a <code>TZ</code> for the container)</li>
 <li class="">&quot;name:&lt;timezone_name&gt;&quot; - the timezone with the name &lt;timezone_name&gt;, e.g. &quot;name<!-- -->:Europe<!-- -->/Berlin&quot;</li>
 </ul>
-<p>The predefined rules use &quot;utc&quot; for &quot;source_tz&quot; and &quot;gps_timezonefinder&quot; or &quot;user_default&quot; for &quot;report_tz&quot;. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> A rule you write yourself (see <a href="#writing-your-own-rules" class="">Writing your own rules</a>) can also convert to a time zone you pick; &quot;server_local&quot; only works in a rule list saved through the API (the <code>datetime_rules</code> of your user). Up to 1.4.0 the settings page could not change a rule at all.</p>
+<p>The predefined rules use &quot;utc&quot; for &quot;source_tz&quot; and &quot;gps_timezonefinder&quot; or &quot;user_default&quot; for &quot;report_tz&quot;. <a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> A rule you write yourself (see <a href="#writing-your-own-rules" class="">Writing your own rules</a>) can also convert to a time zone you pick; &quot;server_local&quot; only works in a rule list saved through the API (the <code>datetime_rules</code> of your user). Up to 1.4.0 the settings page could not change a rule at all.</p>
 <p>If either &quot;source_tz&quot; or &quot;report_tz&quot; could not be obtained, the rule is considered to be not applicable.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="videos">Videos<a href="#videos" class="hash-link" aria-label="Direct link to Videos" title="Direct link to Videos" translate="no">​</a></h3>
 <p>Videos keep their date in other tags than photos, and the default rules read three of them:</p>
@@ -66,7 +66,7 @@ should be one of the following:</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-gets-stored-and-why-times-are-not-converted-for-you">What gets stored, and why times are not converted for you<a href="#what-gets-stored-and-why-times-are-not-converted-for-you" class="hash-link" aria-label="Direct link to What gets stored, and why times are not converted for you" title="Direct link to What gets stored, and why times are not converted for you" translate="no">​</a></h3>
 <p>Once a rule succeeds, LibrePhotos stores the <strong>local time the camera recorded</strong> — the time you would have read off the camera when you took the shot.</p>
 <p>This is deliberate. A photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin are both shown as 14:00, because that is the time each one was actually taken. LibrePhotos does <strong>not</strong> re-cast your library into the timezone you happen to be browsing from; if it did, every photo would shift whenever you travelled, and photos from a holiday abroad would no longer line up with the day you remember them on.</p>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Next to the local time, LibrePhotos stores its UTC offset when the rule
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Next to the local time, LibrePhotos stores its UTC offset when the rule
 that read it knows one: the offset written after the time (<code>2024:04:03 03:00:00-07:00</code>), else the
 offset tag that goes with the date tag (<code>EXIF:OffsetTimeOriginal</code> for <code>EXIF:DateTimeOriginal</code> and
 <code>XMP:DateCreated</code>, <code>EXIF:OffsetTime</code> for <code>EXIF:ModifyDate</code>), or for a rule that converts a UTC
@@ -87,7 +87,7 @@ a property that only a sidecar holds, name its XMP tag directly (for example <co
 <code>XMP:DateCreated</code>, where LibrePhotos writes the dates you set when
 <a class="" href="/docs/user-guide/settings/#metadata-options">Write edits to files</a> is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
 they add it with <strong>Add Rule</strong> or <strong>Reset To Defaults</strong>.
-<span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> These date tags hold local time: <code>XMP:DateCreated</code>,
+<a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> These date tags hold local time: <code>XMP:DateCreated</code>,
 <code>EXIF:DateTimeOriginal</code>, <code>EXIF:ModifyDate</code> and <code>QuickTime:CreationDate</code>. Some apps still write
 them in UTC, with a trailing <code>Z</code> (<code>2025:06:02 06:30:00Z</code>); such a value is turned into local time
 with the date&#x27;s offset tag (see above), else the time zone of the photo&#x27;s position, else your
@@ -97,7 +97,7 @@ in your library. A rule with &quot;transform_tz&quot; says itself which zone its
 changed by this.</li>
 <li class="">&quot;path&quot; - time is taken from the filename using a regular expression matching. With
 &quot;path_part&quot; set to &quot;full_path&quot; the whole path is searched instead of the file name.
-<span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> A rule you write yourself names where the date is with a
+<a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> A rule you write yourself names where the date is with a
 &quot;date_pattern&quot; such as <code>YYYY-MM-DD HH.mm.ss</code> (see <a href="#writing-your-own-rules" class="">Writing your own rules</a>).
 An older rule saved through the API with its own regular expression (&quot;custom_regexp&quot;) keeps
 working, but a new or changed rule cannot set one any more.</li>
@@ -118,7 +118,7 @@ date you set by hand always wins (see above), and the settings page no longer of
 <p>To add a new rule, go to settings and navigate to the date time parsing rules. Click on the <strong>Add Rule</strong> button. You can now add optional rules, such as using the file&#x27;s modified or created time.</p>
 <p>To remove a rule again, click the X (<strong>Delete rule</strong>) at the right-hand end of its row. The <strong>Reset To Defaults</strong> button next to <strong>Add Rule</strong> puts the list back to the rules LibrePhotos ships with; it is greyed out while your list already matches the default rules in their default order.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="writing-your-own-rules">Writing your own rules<a href="#writing-your-own-rules" class="hash-link" aria-label="Direct link to Writing your own rules" title="Direct link to Writing your own rules" translate="no">​</a></h3>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> When no predefined rule reads your files&#x27; dates, write your own. Click
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> When no predefined rule reads your files&#x27; dates, write your own. Click
 <strong>New Rule</strong> next to <strong>Add Rule</strong>, or <strong>Duplicate and edit</strong> (the copy icon) on a predefined rule to
 start from it. A rule you wrote has an <strong>Edit rule</strong> pencil instead; the predefined rules stay as
 they are. In the form:</p>
@@ -145,7 +145,7 @@ the rule is then added at the end of the list. Like every change to the list, it
 confirm <strong>Save changes?</strong>, and photos already in your library get its dates with
 <a href="#applying-the-rules" class="">Apply date rules to existing photos</a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="seeing-why-a-photo-has-its-date">Seeing why a photo has its date<a href="#seeing-why-a-photo-has-its-date" class="hash-link" aria-label="Direct link to Seeing why a photo has its date" title="Direct link to Seeing why a photo has its date" translate="no">​</a></h3>
-<p><span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Open a photo of yours and click <strong>Why this date?</strong> under its date in the
+<p><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Open a photo of yours and click <strong>Why this date?</strong> under its date in the
 info panel. It lists every saved rule in order with what it reads from that photo (a date,
 <strong>Does not apply</strong>, or why it cannot run), and marks the one a scan takes the date from with
 <strong>Used</strong>. It also says when the photo shows another date now, which applying the rules or a rescan

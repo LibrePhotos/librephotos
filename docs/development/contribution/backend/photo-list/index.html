@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -46,7 +46,7 @@
 <ul>
 <li class=""><code>?page=1</code> - Give me the first page of the album. A page past the end answers the last page, and one that is not a number the first, because clients work the page numbers out from the day&#x27;s count, which may be out of date.</li>
 <li class=""><code>?page_size=&lt;n&gt;</code> - Change the chunk size (default 100, at most 1000), as on every <a class="" href="/docs/development/contribution/backend/#pagination">paginated list</a>. A value below 1 counts as 1; a value that is not a number is a 400.</li>
-<li class="">(Not released yet: up to 1.4.0, <code>?size=&lt;n&gt;</code> was read as an alias of <code>page_size</code> when <code>page_size</code> was absent.)</li>
+<li class=""><a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Up to 1.4.0, <code>?size=&lt;n&gt;</code> was read as an alias of <code>page_size</code> when <code>page_size</code> was absent.</li>
 <li class=""><code>?favorite=true</code> - Give me the list for favorite images</li>
 <li class=""><code>?public=true</code> - Give me the list for public images. Here <code>username</code> is optional: <code>?public=true</code> on its own returns the day&#x27;s public images regardless of owner.</li>
 <li class=""><code>?username=&lt;name&gt;</code> - Restrict the public images to this owner (only takes effect together with <code>?public=true</code>)</li>

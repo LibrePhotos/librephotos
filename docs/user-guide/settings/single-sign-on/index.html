@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.5cf25df0.css">
-<script src="/assets/js/runtime~main.bf1e105a.js" defer="defer"></script>
-<script src="/assets/js/main.44429f93.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.3e83e10b.js" defer="defer"></script>
+<script src="/assets/js/main.d86e0946.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -51,7 +51,7 @@ one whose <code>/.well-known/openid-configuration</code> document describes it).
 <p>In the Django admin (<code>/api/django-admin/</code>), under <strong>Social applications</strong>, add one:</p>
 <table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>Provider</td><td><code>OpenID Connect</code></td></tr><tr><td>Provider ID</td><td>the <code>&lt;provider_id&gt;</code> you used in the redirect URI</td></tr><tr><td>Name</td><td>what the login button should say, if you add more than one provider</td></tr><tr><td>Client id</td><td>from your provider</td></tr><tr><td>Secret key</td><td>from your provider</td></tr><tr><td>Settings</td><td><code>{&quot;server_url&quot;: &quot;https://your-idp/realms/example&quot;}</code> — the issuer URL</td></tr><tr><td>Sites</td><td>pick your site</td></tr></tbody></table>
 <p>Then, in the app, open <strong>Admin Area &gt; Site Settings</strong> and find the <strong>Single
-sign-on</strong> group. Each change saves at once. <span class="since_Hom5" data-since="1.5.0" data-released="false">Not released yet (comes after 1.4.0)</span> Up to 1.4.0
+sign-on</strong> group. Each change saves at once. <a class="since_Hom5" data-since="1.5.0" data-released="true" href="/blog/1-5-0">New in 1.5.0</a> Up to 1.4.0
 these switches were only on the Constance page of the Django admin, under the
 names in brackets.</p>
 <ul>
